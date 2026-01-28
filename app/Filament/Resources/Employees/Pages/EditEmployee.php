@@ -1,0 +1,26 @@
+<?php
+
+namespace App\Filament\Resources\Employees\Pages;
+
+use App\Filament\Resources\EmployeeResource;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
+use Filament\Resources\Pages\EditRecord;
+
+class EditEmployee extends EditRecord
+{
+    protected static string $resource = EmployeeResource::class;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('employees/resource.navigation.edit');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            ViewAction::make(),
+            DeleteAction::make(),
+        ];
+    }
+}

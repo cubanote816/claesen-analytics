@@ -10,9 +10,44 @@ class Employee extends CafcaModel
 
     protected $table = 'employee';
     protected $primaryKey = 'id';
-    protected $keyType = 'int';
-    public $incrementing = true;
+    protected $keyType = 'string';
+    public $incrementing = false;
     public $timestamps = false;
 
-    // Add any necessary accessors or relationships here
+    protected $casts = [
+        'fl_active' => 'boolean',
+        'birthday' => 'datetime',
+        'employment_date' => 'datetime',
+        'termination_date' => 'datetime',
+    ];
+
+    /**
+     * Get the avatar URL or a placeholder.
+     */
+    public function getAvatarUrlAttribute(): string
+    {
+        return "https://ui-avatars.com/api/?name=" . urlencode($this->name) . "&color=7F9CF5&background=EBF4FF";
+    }
+
+    /**
+     * Get the job function description.
+     */
+    public function getJobFunctionAttribute(): string
+    {
+        return trim($this->attributes['functie'] ?? 'Algemeen');
+    }
+
+    /**
+     * Get the formatted address.
+     */
+    public function getFullAddressAttribute(): string
+    {
+        $parts = array_filter([
+            $this->attributes['street'] ?? null,
+            trim(($this->attributes['zip'] ?? '') . ' ' . ($this->attributes['city'] ?? '')),
+            $this->attributes['country'] ?? null,
+        ]);
+
+        return implode(', ', $parts);
+    }
 }

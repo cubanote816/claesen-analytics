@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetPanelLocale::class,
         ]);
     })
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
+        $schedule->command('app:sync-employees')->dailyAt('04:00');
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
