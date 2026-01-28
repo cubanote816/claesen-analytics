@@ -4,16 +4,22 @@ namespace App\Filament\Resources\Roles\Pages;
 
 use App\Filament\Resources\Roles\RoleResource;
 use Filament\Actions\DeleteAction;
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
 class EditRole extends EditRecord
 {
     protected static string $resource = RoleResource::class;
 
+    public function getRecordTitle(): string
+    {
+        return \Illuminate\Support\Str::headline($this->record->name);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            Actions\DeleteAction::make(),
         ];
     }
 

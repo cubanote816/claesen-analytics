@@ -22,6 +22,8 @@ class UsersTable
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('roles.name')
+                    ->label('Roles')
+                    ->formatStateUsing(fn($state) => \Illuminate\Support\Str::headline($state))
                     ->badge(),
                 TextColumn::make('created_at')
                     ->dateTime()

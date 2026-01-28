@@ -16,8 +16,11 @@ class PermissionsTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label('Name')
+                    ->formatStateUsing(fn($state) => \Illuminate\Support\Str::headline($state))
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
                 TextColumn::make('guard_name'),
                 TextColumn::make('roles_count')
                     ->counts('roles')

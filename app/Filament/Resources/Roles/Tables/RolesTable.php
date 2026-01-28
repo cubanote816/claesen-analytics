@@ -16,6 +16,8 @@ class RolesTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label('Name')
+                    ->formatStateUsing(fn($state) => \Illuminate\Support\Str::headline($state))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('permissions_count')

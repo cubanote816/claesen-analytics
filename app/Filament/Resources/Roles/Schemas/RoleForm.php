@@ -17,7 +17,9 @@ class RoleForm
                     ->schema([
                         TextInput::make('name')
                             ->required()
-                            ->unique(ignoreRecord: true),
+                            ->unique(ignoreRecord: true)
+                            ->formatStateUsing(fn($state) => \Illuminate\Support\Str::headline($state))
+                            ->dehydrateStateUsing(fn($state) => \Illuminate\Support\Str::snake($state)),
                         TextInput::make('guard_name')
                             ->default('web')
                             ->hidden(),

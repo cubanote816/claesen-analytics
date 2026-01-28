@@ -30,6 +30,7 @@ class UserForm
                             ->required(fn(string $context): bool => $context === 'create'),
                         CheckboxList::make('roles')
                             ->relationship('roles', 'name')
+                            ->getOptionLabelFromRecordUsing(fn($record) => \Illuminate\Support\Str::headline($record->name))
                             ->columns(2)
                             ->gridDirection('row'),
                     ])
