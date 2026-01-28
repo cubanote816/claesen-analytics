@@ -29,8 +29,20 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Indigo,
+                'gray' => Color::Slate,
+                'danger' => Color::Rose,
+                'success' => Color::Emerald,
+                'warning' => Color::Orange,
+                'info' => Color::Blue,
             ])
+            ->font('Outfit')
+            ->sidebarCollapsibleOnDesktop()
+            ->collapsibleNavigationGroups()
+            ->brandLogo(asset('img/brand-logo-light.png'))
+            ->darkModeBrandLogo(asset('img/brand-logo-dark.png'))
+            ->brandLogoHeight('3rem')
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
