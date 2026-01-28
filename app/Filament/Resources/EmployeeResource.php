@@ -20,40 +20,57 @@ class EmployeeResource extends Resource
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
 
+    public static function getNavigationLabel(): string
+    {
+        return (__('employees/resource.navigation_label'));
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('employees/resource.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('employees/resource.plural_model_label');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
-                Section::make('Personal Information')
+                Section::make(__('employees/resource.sections.personal_info'))
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('first_name')
-                                    ->label('First Name')
+                                    ->label(__('employees/resource.fields.first_name'))
                                     ->disabled(), // Read-only
                                 TextInput::make('last_name')
-                                    ->label('Last Name')
+                                    ->label(__('employees/resource.fields.last_name'))
                                     ->disabled(),
                                 TextInput::make('ref_id')
-                                    ->label('Reference ID')
+                                    ->label(__('employees/resource.fields.ref_id'))
                                     ->disabled(),
                                 TextInput::make('job_title')
-                                    ->label('Job Function')
+                                    ->label(__('employees/resource.fields.job_title'))
                                     ->disabled(),
                             ]),
                     ]),
-                Section::make('Contact Details')
+                Section::make(__('employees/resource.sections.contact_details'))
                     ->schema([
                         Grid::make(3)
                             ->schema([
                                 TextInput::make('email')
+                                    ->label(__('employees/resource.fields.email'))
                                     ->email()
                                     ->disabled(),
                                 TextInput::make('mobile')
+                                    ->label(__('employees/resource.fields.mobile'))
                                     ->tel()
                                     ->disabled(),
                                 TextInput::make('address_combined')
-                                    ->label('Address')
+                                    ->label(__('employees/resource.fields.address'))
                                     ->columnSpanFull()
                                     ->disabled(),
                             ]),
@@ -66,22 +83,23 @@ class EmployeeResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('full_name') // Assuming accessor or concatenation needed
-                    ->label('Name')
+                    ->label(__('employees/resource.fields.name'))
                     ->getStateUsing(fn(Employee $record) => trim($record->first_name . ' ' . $record->last_name))
                     ->searchable(['first_name', 'last_name'])
                     ->sortable()
                     ->description(fn(Employee $record) => $record->job_title),
 
                 TextColumn::make('email')
+                    ->label(__('employees/resource.fields.email'))
                     ->icon('heroicon-m-envelope')
                     ->searchable(),
 
                 TextColumn::make('mobile')
-                    ->label('Phone'),
+                    ->label(__('employees/resource.fields.phone')),
 
                 IconColumn::make('is_active')
                     ->boolean()
-                    ->label('Status'),
+                    ->label(__('employees/resource.fields.status')),
             ])
             ->filters([
                 //

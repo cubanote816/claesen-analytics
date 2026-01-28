@@ -18,13 +18,26 @@ class PermissionResource extends Resource
 {
     protected static ?string $model = Permission::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'User Management';
-
     protected static ?int $navigationSort = 3;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('permissions/resource.navigation_group');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('permissions/resource.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('permissions/resource.plural_model_label');
+    }
 
     public static function form(Schema $schema): Schema
     {

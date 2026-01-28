@@ -59,10 +59,9 @@ class AuditProjectJob implements ShouldQueue
         }
 
         // 3. Call Gemini API
-        // Determine locale - falling back to 'nl' as per rules if not 'en'
-        // In a Job context, we might default to 'nl' or pass it in constructor.
-        // Assuming 'nl' as default for automated background jobs unless specified.
-        $result = $geminiService->analyzeProject($payload->toArray(), 'nl');
+        // Determine locale - passing 'nl' context via DTO.
+        $context = new \App\DTOs\GeminiContextDTO('nl');
+        $result = $geminiService->analyzeProject($payload->toArray(), $context);
 
         // 4. Update Insight Model
         $insight->efficiency_score = $result['efficiency_score'];

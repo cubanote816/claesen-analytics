@@ -18,13 +18,26 @@ class RoleResource extends Resource
 {
     protected static ?string $model = Role::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'User Management';
-
     protected static ?int $navigationSort = 2;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('roles/resource.navigation_group');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('roles/resource.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('roles/resource.plural_model_label');
+    }
 
     public static function form(Schema $schema): Schema
     {

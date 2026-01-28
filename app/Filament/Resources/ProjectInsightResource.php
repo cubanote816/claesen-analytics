@@ -19,36 +19,50 @@ class ProjectInsightResource extends Resource
     protected static ?string $model = ProjectInsight::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-sparkles';
-    protected static ?string $navigationLabel = 'AI Insights';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('project_insights/resource.navigation_label');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('project_insights/resource.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('project_insights/resource.plural_model_label');
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
-                Section::make('Analysis Results')
+                Section::make(__('project_insights/resource.sections.analysis_results'))
                     ->schema([
                         Grid::make(1)
                             ->schema([
                                 TextInput::make('efficiency_score')
-                                    ->label('Efficiency Score')
+                                    ->label(__('project_insights/resource.fields.efficiency_score'))
                                     ->numeric()
                                     ->suffix('%')
                                     ->disabled(),
                                 Textarea::make('ai_summary')
-                                    ->label('Gemini Summary')
+                                    ->label(__('project_insights/resource.fields.gemini_summary'))
                                     ->rows(5)
                                     ->disabled(),
                             ]),
                     ]),
-                Section::make('Metadata')
+                Section::make(__('project_insights/resource.sections.metadata'))
                     ->schema([
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('last_audited_at')
-                                    ->label('Last Analyzed')
+                                    ->label(__('project_insights/resource.fields.last_analyzed'))
                                     ->disabled(),
                                 TextInput::make('project_id')
-                                    ->label('Project ID')
+                                    ->label(__('project_insights/resource.fields.project_id'))
                                     ->disabled(),
                             ]),
                     ]),
@@ -60,17 +74,18 @@ class ProjectInsightResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('project_id')
-                    ->label('Project ID')
+                    ->label(__('project_insights/resource.fields.project_id'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('efficiency_score')
-                    ->label('Score')
+                    ->label(__('project_insights/resource.fields.score'))
                     ->sortable()
                     ->formatStateUsing(fn($state) => number_format($state, 2) . '%')
                     ->color(fn($state) => $state > 90 ? 'success' : ($state > 70 ? 'warning' : 'danger')),
 
                 TextColumn::make('last_audited_at')
+                    ->label(__('project_insights/resource.fields.last_analyzed'))
                     ->dateTime()
                     ->sortable(),
             ])

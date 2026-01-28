@@ -16,14 +16,16 @@ class PermissionsTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('permissions/resource.fields.name'))
                     ->formatStateUsing(fn($state) => \Illuminate\Support\Str::headline($state))
                     ->searchable()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: false),
-                TextColumn::make('guard_name'),
+                TextColumn::make('guard_name')
+                    ->label(__('permissions/resource.fields.guard_name')),
                 TextColumn::make('roles_count')
                     ->counts('roles')
+                    ->label(__('permissions/resource.fields.roles'))
                     ->badge(),
                 TextColumn::make('created_at')
                     ->dateTime()

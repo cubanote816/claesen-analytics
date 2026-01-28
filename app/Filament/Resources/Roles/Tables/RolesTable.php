@@ -16,13 +16,13 @@ class RolesTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('roles/resource.fields.name'))
                     ->formatStateUsing(fn($state) => \Illuminate\Support\Str::headline($state))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('permissions_count')
                     ->counts('permissions')
-                    ->label('Permissions'),
+                    ->label(__('roles/resource.fields.permissions')),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

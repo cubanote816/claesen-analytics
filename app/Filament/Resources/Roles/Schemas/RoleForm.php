@@ -16,16 +16,18 @@ class RoleForm
                 Section::make()
                     ->schema([
                         TextInput::make('name')
+                            ->label(__('roles/resource.fields.name'))
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->formatStateUsing(fn($state) => \Illuminate\Support\Str::headline($state))
                             ->dehydrateStateUsing(fn($state) => \Illuminate\Support\Str::snake($state)),
                         TextInput::make('guard_name')
+                            ->label(__('roles/resource.fields.guard_name'))
                             ->default('web')
                             ->hidden(),
                     ]),
-                Section::make('Permissions')
-                    ->description('Manage user permissions')
+                Section::make(__('roles/resource.sections.permissions'))
+                    ->description(__('roles/resource.sections.permissions_description'))
                     ->schema(function () {
                         $permissions = \App\Models\Permission::all();
 

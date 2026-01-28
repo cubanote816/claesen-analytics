@@ -16,13 +16,15 @@ class UsersTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label(__('users/resource.fields.name'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('email')
+                    ->label(__('users/resource.fields.email'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('roles.name')
-                    ->label('Roles')
+                    ->label(__('users/resource.fields.roles'))
                     ->formatStateUsing(fn($state) => \Illuminate\Support\Str::headline($state))
                     ->badge(),
                 TextColumn::make('created_at')

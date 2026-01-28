@@ -16,9 +16,11 @@ class PermissionForm
                 Section::make()
                     ->schema([
                         TextInput::make('name')
+                            ->label(__('permissions/resource.fields.name'))
                             ->required()
                             ->unique(ignoreRecord: true),
                         TextInput::make('guard_name')
+                            ->label(__('permissions/resource.fields.guard_name'))
                             ->default('web'),
                     ])
             ]);
