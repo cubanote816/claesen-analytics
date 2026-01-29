@@ -104,4 +104,9 @@ class Employee extends Model implements HasMedia
 
         return implode(', ', $parts);
     }
+
+    public function insight(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(EmployeeInsight::class, 'employee_id', 'id');
+    }
 }

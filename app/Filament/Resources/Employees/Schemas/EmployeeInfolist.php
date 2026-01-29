@@ -110,15 +110,57 @@ class EmployeeInfolist
                             ]),
 
                         // AI Analysis Section
-                        Grid::make(2)
+                        Grid::make(3)
                             ->schema([
                                 Section::make(__('employees/resource.sections.ai_insights'))
                                     ->schema([
-                                        TextEntry::make('ai_insights')
-                                            ->label(false)
-                                            ->markdown()
-                                            ->placeholder(__('employees/resource.placeholders.ai_insights_loading')),
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextEntry::make('insight.archetype_label')
+                                                    ->label(__('employees/resource.insights.archetype'))
+                                                    ->weight('bold')
+                                                    ->color('primary')
+                                                    ->size('lg')
+                                                    ->prefix(fn($record) => $record->insight?->archetype_icon . ' ')
+                                                    ->columnSpanFull(),
+
+                                                TextEntry::make('insight.burnout_risk_score')
+                                                    ->label(__('employees/resource.insights.burnout_risk'))
+                                                    ->suffix('%')
+                                                    ->weight('bold')
+                                                    ->color(fn(int $state): string => match (true) {
+                                                        $state > 70 => 'danger',
+                                                        $state > 40 => 'warning',
+                                                        default => 'success',
+                                                    }),
+
+                                                TextEntry::make('insight.efficiency_trend')
+                                                    ->label(__('employees/resource.insights.efficiency_trend'))
+                                                    ->badge()
+                                                    ->color(fn(string $state): string => match ($state) {
+                                                        'UP' => 'success',
+                                                        'DOWN' => 'danger',
+                                                        default => 'gray',
+                                                    })
+                                                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                                                        'UP' => '↗ ' . __('employees/resource.insights.status.increasing'),
+                                                        'DOWN' => '↘ ' . __('employees/resource.insights.status.decreasing'),
+                                                        default => '→ ' . __('employees/resource.insights.status.stable'),
+                                                    }),
+
+                                                TextEntry::make('insight.manager_insight')
+                                                    ->label(__('employees/resource.insights.manager_insight'))
+                                                    ->columnSpanFull(),
+
+                                                TextEntry::make('insight.last_audited_at')
+                                                    ->label(__('employees/resource.insights.last_audited'))
+                                                    ->since()
+                                                    ->size('xs')
+                                                    ->color('gray')
+                                                    ->columnSpanFull(),
+                                            ]),
                                     ])
+                                    ->columnSpan(2)
                                     ->compact(),
 
                                 Section::make(__('employees/resource.sections.project_timeline'))
@@ -127,6 +169,7 @@ class EmployeeInfolist
                                             ->label(false)
                                             ->placeholder(__('employees/resource.placeholders.project_timeline_loading')),
                                     ])
+                                    ->columnSpan(1)
                                     ->compact(),
                             ]),
                     ])

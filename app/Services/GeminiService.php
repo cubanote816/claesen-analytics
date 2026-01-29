@@ -7,27 +7,46 @@ use Illuminate\Support\Facades\Log;
 class GeminiService
 {
     /**
-     * Analyze project data and return insights.
+     * Analyze technician behavior and return archetypes.
      * 
-     * @param array $payload The sanitized project data.
-     * @param \App\DTOs\GeminiContextDTO $context Context containing locale etc.
-     * @return array {'efficiency_score': float, 'summary': string}
+     * @param array $payload The sanitized employee data.
+     * @param string $locale The locale for the response.
+     * @return array {'archetype_label': string, 'archetype_icon': string, 'manager_insight': string, 'analysis': string}
      */
-    public function analyzeProject(array $payload, \App\DTOs\GeminiContextDTO $context): array
+    public function analyzeEmployee(array $payload, string $locale = 'nl'): array
     {
-        // TODO: Implement actual Gemini API call here.
-        // For now, we simulate a response based on the payload.
+        Log::info("Gemini Employee Analysis Request: " . ($payload['employee_id'] ?? 'Unknown'));
 
-        $locale = $context->locale;
+        // Mock response based on the "Cerebro" archetypes
+        $archetypes = [
+            [
+                'label' => 'The Diesel',
+                'icon' => '🚜',
+                'insight' => $locale === 'nl' ? 'Constante prestaties, weinig risico.' : 'Steady performance, low risk.',
+            ],
+            [
+                'label' => 'The Sprinter',
+                'icon' => '🏎️',
+                'insight' => $locale === 'nl' ? 'Hoge snelheid op korte termijn, let op consistentie.' : 'High short-term speed, watch for consistency.',
+            ],
+            [
+                'label' => 'Road Warrior',
+                'icon' => '🛣️',
+                'insight' => $locale === 'nl' ? 'Veel onderweg, houdt efficiëntie hoog.' : 'Traveling a lot, keeps efficiency high.',
+            ],
+        ];
 
-        Log::info("Gemini Analysis Request for Project: " . ($payload['project_id'] ?? 'Unknown'), ['locale' => $locale]);
+        $selected = $archetypes[array_rand($archetypes)];
 
-        // Mock response
         return [
-            'efficiency_score' => rand(70, 99) + (rand(0, 99) / 100),
-            'summary' => $locale === 'en'
-                ? "Analysis complete. Project data appears stable. (Locale: {$locale})"
-                : "Analyse voltooid. Projectgegevens lijken stabiel. (Taal: {$locale})",
+            'archetype_label' => $selected['label'],
+            'archetype_icon' => $selected['icon'],
+            'efficiency_trend' => collect(['UP', 'DOWN', 'STABLE'])->random(),
+            'burnout_risk_score' => rand(5, 45),
+            'manager_insight' => $selected['insight'],
+            'analysis' => $locale === 'nl'
+                ? "Gedetailleerde analyse van prestaties over de afgelopen 6 maanden..."
+                : "Detailed performance analysis over the last 6 months...",
         ];
     }
 }

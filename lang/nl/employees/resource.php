@@ -75,10 +75,23 @@ return [
     'sections' => [
         'business_card' => 'Visitekaartje',
         'performance_dashboard' => 'Prestaties Dashboard',
-        'ai_insights' => 'AI Inzichten',
+        'ai_insights' => 'AI Analyse & Archetype',
         'project_timeline' => 'Project Tijdlijn',
         'watchdog_alerts' => 'WATCHDOG ALERT',
         'watchdog_description' => 'Kritieke meldingen voor dit profiel.',
+    ],
+
+    'insights' => [
+        'archetype' => 'Technicus Arquetype',
+        'burnout_risk' => 'Burnout Risico',
+        'efficiency_trend' => 'Efficiëntie Trend',
+        'manager_insight' => 'Manager Inzicht',
+        'last_audited' => 'Laatst geanalyseerd',
+        'status' => [
+            'stable' => 'Stabiel',
+            'increasing' => 'Stijgend',
+            'decreasing' => 'Dalend',
+        ],
     ],
 
     'messages' => [

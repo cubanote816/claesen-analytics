@@ -76,10 +76,23 @@ return [
     'sections' => [
         'business_card' => 'Business Card',
         'performance_dashboard' => 'Performance Dashboard',
-        'ai_insights' => 'AI Insights',
+        'ai_insights' => 'AI Analysis & Archetype',
         'project_timeline' => 'Project Timeline',
         'watchdog_alerts' => 'WATCHDOG ALERT',
         'watchdog_description' => 'Critical alerts for this profile.',
+    ],
+
+    'insights' => [
+        'archetype' => 'Technician Archetype',
+        'burnout_risk' => 'Burnout Risk',
+        'efficiency_trend' => 'Efficiency Trend',
+        'manager_insight' => 'Manager Insight',
+        'last_audited' => 'Last audited',
+        'status' => [
+            'stable' => 'Stable',
+            'increasing' => 'Increasing',
+            'decreasing' => 'Decreasing',
+        ],
     ],
 
     'messages' => [
