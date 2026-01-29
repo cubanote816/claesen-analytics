@@ -5,6 +5,14 @@ return [
     'plural_label' => 'Employees',
     'navigation_label' => 'Employees',
     'navigation_group' => 'Personnel',
+    'placeholders' => [
+        'no_function' => 'No function specified',
+        'total_hours' => '--- h',
+        'efficiency' => '--%',
+        'projects_count' => '--',
+        'ai_insights_loading' => 'AI analysis in progress...',
+        'project_timeline_loading' => 'Loading recent projects...',
+    ],
 
     'navigation' => [
         'details' => 'Details',
@@ -15,10 +23,11 @@ return [
     'fields' => [
         'id' => 'ID',
         'name' => 'Name',
-        'email' => 'Email',
+        'email' => 'E-mail',
         'mobile' => 'Mobile',
         'phone' => 'Phone',
         'is_active' => 'Status',
+        'function_default' => 'General',
         'job_function' => 'Function',
         'avatar' => 'Avatar',
         'address' => 'Address',
@@ -39,25 +48,46 @@ return [
 
     'actions' => [
         'performance' => 'Performance',
+        'edit' => [
+            'label' => 'Edit',
+        ],
+        'sync' => [
+            'label' => 'Sync SAP/ERP',
+            'notification' => [
+                'success' => 'Sync completed: :created new, :updated updated.',
+                'error' => 'An error occurred during synchronization.',
+            ],
+            'command' => [
+                'description' => 'Synchronize technicians from Legacy SQL Server to local MySQL',
+                'starting' => 'Starting technician synchronization...',
+                'up_to_date' => 'All records are already up to date.',
+                'success' => 'Synchronization completed successfully.',
+                'failed' => 'Synchronization failed: :error',
+                'table' => [
+                    'created' => 'Created',
+                    'updated' => 'Updated',
+                    'errors' => 'Errors',
+                ],
+            ],
+        ],
     ],
 
-    'placeholders' => [
-        'total_hours' => '--- h',
-        'efficiency' => '--%',
-        'projects_count' => '--',
-        'ai_insights_loading' => 'AI analysis is running...',
-        'project_timeline_loading' => 'Loading recent projects...',
-    ],
 
     'sections' => [
         'business_card' => 'Business Card',
         'performance_dashboard' => 'Performance Dashboard',
         'ai_insights' => 'AI Insights',
         'project_timeline' => 'Project Timeline',
+        'watchdog_alerts' => 'WATCHDOG ALERT',
+        'watchdog_description' => 'Critical alerts for this profile.',
+    ],
+
+    'messages' => [
+        'watchdog_warning' => 'Critical performance anomaly detected. Check project details immediately.',
     ],
 
     'stats' => [
-        'total_hours' => 'Total Hours',
+        'total_hours' => 'Total Worked',
         'efficiency' => 'Efficiency',
         'projects_count' => 'Active Projects',
     ],

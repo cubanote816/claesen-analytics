@@ -44,7 +44,7 @@ class EmployeeSyncService
                         ['id' => trim($legacy->id)],
                         [
                             'name' => trim($legacy->name),
-                            'function' => trim($legacy->functie ?? 'Algemeen'),
+                            'function' => trim($legacy->functie ?? __('employees/resource.fields.function_default')),
                             'mobile' => trim($legacy->mobile ?: $legacy->tel),
                             'email' => trim($legacy->email),
                             'street' => trim($legacy->street),

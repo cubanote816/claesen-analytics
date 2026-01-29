@@ -15,6 +15,11 @@ class ViewEmployee extends ViewRecord
         return $this->record->name;
     }
 
+    public function getHeading(): \Illuminate\Contracts\Support\Htmlable|string
+    {
+        return $this->record->name;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('employees/resource.navigation.details');
@@ -28,7 +33,10 @@ class ViewEmployee extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
+            EditAction::make()
+                ->label(__('employees/resource.actions.edit.label') ?? __('employees/resource.navigation.edit'))
+                ->color('primary')
+                ->outlined(),
         ];
     }
 }

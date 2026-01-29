@@ -17,32 +17,36 @@ class SyncEmployeesCommand extends Command
      * The console command description.
      * @var string
      */
-    protected $description = 'Synchronize employees from Legacy SQL Server to local MySQL';
+    protected $description = 'Synchronizeer techniekers vanuit Legacy SQL Server naar lokale MySQL';
 
     /**
      * Execute the console command.
      */
     public function handle(EmployeeSyncService $syncService): int
     {
-        $this->info('Starting synchronization of technicians...');
+        $this->info(__('employees/resource.actions.sync.command.starting'));
 
         try {
             $stats = $syncService->sync();
 
             $this->table(
-                ['Created', 'Updated', 'Errors'],
+                [
+                    __('employees/resource.actions.sync.command.table.created'),
+                    __('employees/resource.actions.sync.command.table.updated'),
+                    __('employees/resource.actions.sync.command.table.errors'),
+                ],
                 [[$stats['created'], $stats['updated'], $stats['errors']]]
             );
 
             if ($stats['created'] === 0 && $stats['updated'] === 0) {
-                $this->info('All records are already up to date.');
+                $this->info(__('employees/resource.actions.sync.command.up_to_date'));
             } else {
-                $this->info('Synchronization completed successfully.');
+                $this->info(__('employees/resource.actions.sync.command.success'));
             }
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('Synchronization failed: ' . $e->getMessage());
+            $this->error(__('employees/resource.actions.sync.command.failed', ['error' => $e->getMessage()]));
             return Command::FAILURE;
         }
     }

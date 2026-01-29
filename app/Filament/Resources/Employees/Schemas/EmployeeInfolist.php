@@ -15,29 +15,13 @@ class EmployeeInfolist
     {
         return $schema
             ->components([
-                // Watchdog Alert (Full Width High Priority)
-                Section::make('WATCHDOG ALERT')
-                    ->description('Kritieke meldingen voor dit profiel.')
-                    ->schema([
-                        TextEntry::make('warning_demo')
-                            ->label(false)
-                            ->default('Kritieke prestatie-afwijking gedetecteerd. Controleer de projectdetails onmiddellijk.')
-                            ->weight('bold')
-                            ->color('danger')
-                            ->icon('heroicon-m-exclamation-triangle')
-                            ->iconColor('danger'),
-                    ])
-                    ->extraAttributes([
-                        'style' => 'background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.5); border-radius: 1.5rem;',
-                    ])
-                    ->columnSpanFull(),
                 // Profile Header "One Pillar" Banner
                 Section::make()
                     ->schema([
                         Grid::make(['default' => 1, 'sm' => 2, 'md' => 3, 'lg' => 4, 'xl' => 6])
                             ->schema([
                                 ImageEntry::make('avatar_url')
-                                    ->label(false)
+                                    ->label(__('employees/resource.fields.avatar'))
                                     ->circular()
                                     ->imageSize(80)
                                     ->extraAttributes(['class' => 'ring-4 ring-primary-500/10 shadow-lg']),
@@ -45,11 +29,11 @@ class EmployeeInfolist
                                 Grid::make(1)
                                     ->schema([
                                         TextEntry::make('name')
-                                            ->label(false)
+                                            ->label(__('employees/resource.fields.name'))
                                             ->weight('bold')
                                             ->size('lg'),
                                         TextEntry::make('function')
-                                            ->label(false)
+                                            ->label(__('employees/resource.fields.job_function'))
                                             ->badge()
                                             ->color('gray')
                                             ->placeholder(__('employees/resource.placeholders.no_function')),
@@ -73,7 +57,7 @@ class EmployeeInfolist
                                     ->columnSpan(['lg' => 2, 'xl' => 1]),
 
                                 TextEntry::make('fl_active')
-                                    ->label(__('employees/resource.fields.status'))
+                                    ->label(__('employees/resource.fields.is_active'))
                                     ->badge()
                                     ->color(fn(bool $state): string => $state ? 'success' : 'danger')
                                     ->formatStateUsing(fn(bool $state): string => $state ? __('employees/resource.status.active') : __('employees/resource.status.inactive')),
@@ -81,6 +65,71 @@ class EmployeeInfolist
                             ->extraAttributes(['class' => 'items-center']),
                     ])
                     ->extraAttributes(['class' => 'bg-white/50 backdrop-blur-sm shadow-sm ring-1 ring-gray-950/5 rounded-3xl p-6'])
+                    ->columnSpanFull(),
+
+                // Watchdog Alert (Full Width High Priority)
+                Section::make(__('employees/resource.sections.watchdog_alerts'))
+                    ->description(__('employees/resource.sections.watchdog_description'))
+                    ->schema([
+                        TextEntry::make('warning_demo')
+                            ->label(false)
+                            ->default(__('employees/resource.messages.watchdog_warning'))
+                            ->weight('bold')
+                            ->color('danger')
+                            ->icon('heroicon-m-exclamation-triangle')
+                            ->iconColor('danger'),
+                    ])
+                    ->extraAttributes([
+                        'style' => 'background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.5); border-radius: 1.5rem;',
+                    ])
+                    ->columnSpanFull(),
+
+                // Performance Dashboard Section
+                Section::make(__('employees/resource.sections.performance_dashboard'))
+                    ->schema([
+                        // KPI Grid
+                        Grid::make(3)
+                            ->schema([
+                                TextEntry::make('total_hours')
+                                    ->label(__('employees/resource.stats.total_hours'))
+                                    ->size('xl')
+                                    ->weight('bold')
+                                    ->placeholder(__('employees/resource.placeholders.total_hours')),
+
+                                TextEntry::make('projects_count')
+                                    ->label(__('employees/resource.stats.projects_count'))
+                                    ->size('xl')
+                                    ->weight('bold')
+                                    ->placeholder(__('employees/resource.placeholders.projects_count')),
+
+                                TextEntry::make('efficiency')
+                                    ->label(__('employees/resource.stats.efficiency'))
+                                    ->size('xl')
+                                    ->weight('bold')
+                                    ->placeholder(__('employees/resource.stats.efficiency')),
+                            ]),
+
+                        // AI Analysis Section
+                        Grid::make(2)
+                            ->schema([
+                                Section::make(__('employees/resource.sections.ai_insights'))
+                                    ->schema([
+                                        TextEntry::make('ai_insights')
+                                            ->label(false)
+                                            ->markdown()
+                                            ->placeholder(__('employees/resource.placeholders.ai_insights_loading')),
+                                    ])
+                                    ->compact(),
+
+                                Section::make(__('employees/resource.sections.project_timeline'))
+                                    ->schema([
+                                        TextEntry::make('project_timeline')
+                                            ->label(false)
+                                            ->placeholder(__('employees/resource.placeholders.project_timeline_loading')),
+                                    ])
+                                    ->compact(),
+                            ]),
+                    ])
                     ->columnSpanFull(),
             ]);
     }

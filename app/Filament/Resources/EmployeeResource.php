@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\Employees\Pages\CreateEmployee;
 use App\Filament\Resources\Employees\Pages\EditEmployee;
-use App\Filament\Resources\Employees\Pages\EmployeePerformance;
 use App\Filament\Resources\Employees\Pages\ListEmployees;
 use App\Filament\Resources\Employees\Pages\ViewEmployee;
 use App\Filament\Resources\Employees\Schemas\EmployeeForm;
@@ -81,14 +80,13 @@ class EmployeeResource extends Resource
         return EmployeesTable::configure($table);
     }
 
-    public static function getRecordSubNavigation(\Filament\Resources\Pages\Page $page): array
-    {
-        return $page->generateNavigationItems([
-            ViewEmployee::class,
-            EmployeePerformance::class,
-            EditEmployee::class,
-        ]);
-    }
+    // public static function getRecordSubNavigation(\Filament\Resources\Pages\Page $page): array
+    // {
+    //     return $page->generateNavigationItems([
+    //         ViewEmployee::class,
+    //         EditEmployee::class,
+    //     ]);
+    // }
 
     public static function getRelations(): array
     {
@@ -103,7 +101,6 @@ class EmployeeResource extends Resource
             'index' => ListEmployees::route('/'),
             'create' => CreateEmployee::route('/create'),
             'view' => ViewEmployee::route('/{record}'),
-            'performance' => EmployeePerformance::route('/{record}/performance'),
             'edit' => EditEmployee::route('/{record}/edit'),
         ];
     }
