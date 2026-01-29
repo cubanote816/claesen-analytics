@@ -43,6 +43,7 @@ class AdminPanelProvider extends PanelProvider
             ->darkModeBrandLogo(asset('img/brand-logo-dark.png'))
             ->brandLogoHeight('3rem')
             ->viteTheme('resources/css/filament/admin/theme.css')
+            ->spa()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
