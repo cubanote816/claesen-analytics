@@ -70,9 +70,17 @@ return [
                 ],
             ],
         ],
+        'analyze' => [
+            'label' => 'Start AI Analysis',
+            'confirm' => [
+                'title' => 'Start new analysis?',
+                'body' => 'This will re-fetch performance data for the last 6 months and analyze it with AI. This may take a moment.',
+            ],
+            'notification' => [
+                'success' => 'Analysis started in background. Refresh the page in a few moments.',
+            ],
+        ],
     ],
-
-
     'sections' => [
         'business_card' => 'Business Card',
         'performance_dashboard' => 'Performance Dashboard',

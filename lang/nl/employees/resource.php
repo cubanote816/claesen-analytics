@@ -69,9 +69,17 @@ return [
                 ],
             ],
         ],
+        'analyze' => [
+            'label' => 'AI Analyse Starten',
+            'confirm' => [
+                'title' => 'Nieuwe analyse starten?',
+                'body' => 'Dit zal de prestatiegegevens van de laatste 6 maanden opnieuw ophalen en analyseren met AI. Dit kan even duren.',
+            ],
+            'notification' => [
+                'success' => 'Analyse gestart op de achtergrond. Vernieuw de pagina over enkele ogenblikken.',
+            ],
+        ],
     ],
-
-
     'sections' => [
         'business_card' => 'Visitekaartje',
         'performance_dashboard' => 'Prestaties Dashboard',

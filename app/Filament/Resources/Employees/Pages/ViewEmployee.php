@@ -33,6 +33,23 @@ class ViewEmployee extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            \Filament\Actions\Action::make('analyze')
+                ->label(__('employees/resource.actions.analyze.label'))
+                ->icon('heroicon-o-cpu-chip')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading(__('employees/resource.actions.analyze.confirm.title'))
+                ->modalDescription(__('employees/resource.actions.analyze.confirm.body'))
+                ->action(function () {
+                    \App\Jobs\AnalyzeEmployeeJob::dispatchSync($this->record->id);
+                    \Filament\Notifications\Notification::make()
+                        ->title(__('employees/resource.actions.analyze.notification.success'))
+                        ->success()
+                        ->send();
+                    $this->refresh();
+                })
+                ->visible(fn() => auth()->user()->hasRole(['super_admin', 'admin'])),
+
             EditAction::make()
                 ->label(__('employees/resource.actions.edit.label') ?? __('employees/resource.navigation.edit'))
                 ->color('primary')
