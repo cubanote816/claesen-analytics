@@ -38,6 +38,9 @@ class GeminiService
 
         $selected = $archetypes[array_rand($archetypes)];
 
+        $activeProjects = $payload['performance_data']['active_projects'] ?? [];
+        $projectsText = !empty($activeProjects) ? implode(', ', $activeProjects) : 'Unknown';
+
         return [
             'archetype_label' => $selected['label'],
             'archetype_icon' => $selected['icon'],
@@ -45,8 +48,8 @@ class GeminiService
             'burnout_risk_score' => rand(5, 45),
             'manager_insight' => $selected['insight'],
             'analysis' => $locale === 'nl'
-                ? "Gedetailleerde analyse van prestaties over de afgelopen 6 maanden..."
-                : "Detailed performance analysis over the last 6 months...",
+                ? "Gedetailleerde analyse van prestaties over de afgelopen 6 maanden. Actieve projecten: {$projectsText}."
+                : "Detailed performance analysis over the last 6 months. Active projects: {$projectsText}.",
         ];
     }
 }

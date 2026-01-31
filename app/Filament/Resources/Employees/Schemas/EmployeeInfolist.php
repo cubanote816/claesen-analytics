@@ -148,6 +148,26 @@ class EmployeeInfolist
                                                         default => '→ ' . __('employees/resource.insights.status.stable'),
                                                     }),
 
+                                                TextEntry::make('active_projects_realtime')
+                                                    ->label(__('employees/resource.insights.current_project'))
+                                                    ->default('---')
+                                                    ->state(function (Employee $record) {
+                                                        // Fetch distinct projects from the last 30 days
+                                                        $projects = \App\Models\Cafca\Labor::where('employee_id', $record->id)
+                                                            ->where('date', '>=', now()->subDays(30))
+                                                            ->with('project')
+                                                            ->get()
+                                                            ->pluck('project.name')
+                                                            ->unique()
+                                                            ->filter()
+                                                            ->values();
+
+                                                        return $projects->isEmpty() ? null : $projects->implode(', ');
+                                                    })
+                                                    ->icon('heroicon-o-briefcase')
+                                                    ->iconColor('gray')
+                                                    ->columnSpanFull(),
+
                                                 TextEntry::make('insight.manager_insight')
                                                     ->label(__('employees/resource.insights.manager_insight'))
                                                     ->columnSpanFull(),

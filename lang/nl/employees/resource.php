@@ -93,6 +93,8 @@ return [
         'archetype' => 'Technicus Arquetype',
         'burnout_risk' => 'Burnout Risico',
         'efficiency_trend' => 'Efficiëntie Trend',
+        'efficiency_trend' => 'Efficiëntie Trend',
+        'current_project' => 'Actieve Projecten (30d)',
         'manager_insight' => 'Manager Inzicht',
         'last_audited' => 'Laatst geanalyseerd',
         'status' => [

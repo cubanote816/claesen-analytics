@@ -94,6 +94,8 @@ return [
         'archetype' => 'Technician Archetype',
         'burnout_risk' => 'Burnout Risk',
         'efficiency_trend' => 'Efficiency Trend',
+        'efficiency_trend' => 'Efficiency Trend',
+        'current_project' => 'Active Projects (30d)',
         'manager_insight' => 'Manager Insight',
         'last_audited' => 'Last audited',
         'status' => [
