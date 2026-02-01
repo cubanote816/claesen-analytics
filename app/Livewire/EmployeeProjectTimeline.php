@@ -86,13 +86,11 @@ class EmployeeProjectTimeline extends Component
 
         $this->totalHours = $logs->sum('hours');
 
-        // Logic for Distribution (Simplified Heuristic for demonstration)
-        // In a real scenario, this would check 'type_id' or 'activity_id' from the legacy DB
         if ($this->totalHours > 0) {
             $this->distribution = [
-                'effective' => round($this->totalHours * 0.7, 1),
-                'loading' => round($this->totalHours * 0.15, 1),
-                'transport' => round($this->totalHours * 0.15, 1),
+                'effective' => round($logs->whereNotIn('labor_id', ['111', '114'])->sum('hours'), 1),
+                'loading' => round($logs->where('labor_id', '114')->sum('hours'), 1),
+                'transport' => round($logs->where('labor_id', '111')->sum('hours'), 1),
             ];
         } else {
             $this->distribution = ['effective' => 0, 'loading' => 0, 'transport' => 0];
