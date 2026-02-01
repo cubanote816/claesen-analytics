@@ -12,6 +12,13 @@ return [
         'projects_count' => '--',
         'ai_insights_loading' => 'AI analysis in progress...',
         'project_timeline_loading' => 'Loading recent projects...',
+        'last_6_months' => 'Last 6 months',
+        'this_month' => 'This Month',
+        'last_quarter' => 'Last Quarter',
+        'last_semester' => 'Last Semester',
+        'previous_year' => 'Previous Year',
+        'from' => 'From',
+        'to' => 'To',
     ],
 
     'navigation' => [
@@ -84,8 +91,11 @@ return [
     'sections' => [
         'business_card' => 'Business Card',
         'performance_dashboard' => 'Performance Dashboard',
-        'ai_insights' => 'AI Analysis & Archetype',
+        'performance_dashboard_desc' => 'Analysis of hours distribution and project activity over the selected period.',
+        'ai_insights' => 'AI Insights & Archetype',
         'project_timeline' => 'Project Timeline',
+        'project_timeline_title' => 'PROJECT TIMELINE',
+        'hours_distribution' => 'HOURS DISTRIBUTION',
         'watchdog_alerts' => 'WATCHDOG ALERT',
         'watchdog_description' => 'Critical alerts for this profile.',
     ],

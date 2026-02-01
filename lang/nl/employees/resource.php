@@ -12,6 +12,13 @@ return [
         'projects_count' => '--',
         'ai_insights_loading' => 'AI-analyse wordt uitgevoerd...',
         'project_timeline_loading' => 'Recente projecten laden...',
+        'last_6_months' => 'Laatste 6 maanden',
+        'this_month' => 'Deze Maand',
+        'last_quarter' => 'Vorig Kwartaal',
+        'last_semester' => 'Vorig Semester',
+        'previous_year' => 'Vorig Jaar',
+        'from' => 'Van',
+        'to' => 'Tot',
     ],
 
     'navigation' => [
@@ -82,9 +89,12 @@ return [
     ],
     'sections' => [
         'business_card' => 'Visitekaartje',
-        'performance_dashboard' => 'Prestaties Dashboard',
+        'performance_dashboard' => 'Performance Dashboard',
+        'performance_dashboard_desc' => 'Analyse van de urenverdeling en projectactiviteit over de geselecteerde periode.',
         'ai_insights' => 'AI Analyse & Archetype',
         'project_timeline' => 'Project Tijdlijn',
+        'project_timeline_title' => 'PROJECT TIJDLIJN',
+        'hours_distribution' => 'URENVERDELING',
         'watchdog_alerts' => 'WATCHDOG ALERT',
         'watchdog_description' => 'Kritieke meldingen voor dit profiel.',
     ],

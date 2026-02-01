@@ -7,6 +7,7 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Schema;
 
 class EmployeeInfolist
@@ -84,30 +85,14 @@ class EmployeeInfolist
                     ])
                     ->columnSpanFull(),
 
-                // Performance Dashboard Section
                 Section::make(__('employees/resource.sections.performance_dashboard'))
+                    ->description(__('employees/resource.sections.performance_dashboard_desc'))
                     ->schema([
-                        // KPI Grid
-                        Grid::make(3)
-                            ->schema([
-                                TextEntry::make('total_hours')
-                                    ->label(__('employees/resource.stats.total_hours'))
-                                    ->size('xl')
-                                    ->weight('bold')
-                                    ->placeholder(__('employees/resource.placeholders.total_hours')),
+                        Livewire::make(\App\Livewire\EmployeeProjectTimeline::class, fn(\App\Models\Employee $record) => ['record' => $record])
+                            ->key(fn(\App\Models\Employee $record) => 'project-timeline-' . $record->id)
+                            ->columnSpanFull(),
 
-                                TextEntry::make('projects_count')
-                                    ->label(__('employees/resource.stats.projects_count'))
-                                    ->size('xl')
-                                    ->weight('bold')
-                                    ->placeholder(__('employees/resource.placeholders.projects_count')),
-
-                                TextEntry::make('efficiency')
-                                    ->label(__('employees/resource.stats.efficiency'))
-                                    ->size('xl')
-                                    ->weight('bold')
-                                    ->placeholder(__('employees/resource.stats.efficiency')),
-                            ]),
+                        // AI Analysis Section
 
                         // AI Analysis Section
                         Grid::make(3)
@@ -180,16 +165,7 @@ class EmployeeInfolist
                                                     ->columnSpanFull(),
                                             ]),
                                     ])
-                                    ->columnSpan(2)
-                                    ->compact(),
-
-                                Section::make(__('employees/resource.sections.project_timeline'))
-                                    ->schema([
-                                        TextEntry::make('project_timeline')
-                                            ->label(false)
-                                            ->placeholder(__('employees/resource.placeholders.project_timeline_loading')),
-                                    ])
-                                    ->columnSpan(1)
+                                    ->columnSpanFull()
                                     ->compact(),
                             ]),
                     ])
