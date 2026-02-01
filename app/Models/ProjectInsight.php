@@ -11,6 +11,11 @@ class ProjectInsight extends Model
     protected $connection = 'mysql';
     protected $table = 'project_insights';
 
+    public function getRouteKeyName()
+    {
+        return 'project_id';
+    }
+
     protected $fillable = [
         'project_id',
         'insight_type',
