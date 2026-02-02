@@ -143,6 +143,12 @@
                 </div>
                 @endforelse
             </div>
+
+            @if($timeline->hasPages())
+            <div class="mt-6">
+                {{ $timeline->links('livewire::simple-tailwind', data: ['scrollTo' => false]) }}
+            </div>
+            @endif
         </div>
     </div>
 </div>

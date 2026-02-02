@@ -35,6 +35,7 @@ class EmployeeProjectTimeline extends Component
     {
         if (in_array($property, ['fromDate', 'toDate'])) {
             $this->calculateStats();
+            $this->resetPage();
         }
     }
 
@@ -60,6 +61,7 @@ class EmployeeProjectTimeline extends Component
         }
 
         $this->calculateStats();
+        $this->resetPage();
     }
 
     public function getActivePeriod(): ?string
@@ -97,6 +99,8 @@ class EmployeeProjectTimeline extends Component
         }
     }
 
+    use \Livewire\WithPagination;
+
     public function render()
     {
         $start = Carbon::parse($this->fromDate)->startOfDay();
@@ -124,8 +128,20 @@ class EmployeeProjectTimeline extends Component
             ->sortByDesc('total_hours')
             ->values();
 
+        // Manual Pagination for Collection
+        $perPage = 6;
+        $currentPage = $this->getPage();
+        $currentItems = $timelineData->slice(($currentPage - 1) * $perPage, $perPage)->all();
+        $paginatedItems = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentItems,
+            $timelineData->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'pageName' => 'page']
+        );
+
         return view('livewire.employee-project-timeline', [
-            'timeline' => $timelineData,
+            'timeline' => $paginatedItems,
         ]);
     }
 }
