@@ -1,0 +1,11 @@
+{
+    "name": "Website",
+    "alias": "website",
+    "description": "Website Portfolio & Contact Module",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Website\\Providers\\WebsiteServiceProvider"
+    ],
+    "files": []
+}

@@ -43,8 +43,12 @@ class AdminPanelProvider extends PanelProvider
             ->darkModeBrandLogo(asset('img/brand-logo-dark.png'))
             ->brandLogoHeight('3rem')
             ->viteTheme('resources/css/filament/admin/theme.css')
-            ->spa()
+            ->plugin(
+                \LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin::make()
+                    ->defaultLocales(['nl', 'en'])
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\Filament\Clusters')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
@@ -64,9 +68,11 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\BrowserLocaleMiddleware::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->spa();
     }
 }

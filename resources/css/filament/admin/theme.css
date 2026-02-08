@@ -1,3 +1,12 @@
-@import "../../../../vendor/filament/filament/resources/css/theme.css";
+@import "tailwindcss";
 
 @config '../../../../tailwind.config.js';
+
+@source "../../../../vendor/filament/filament/resources/views";
+@source "../../../../vendor/filament/forms/resources/views";
+@source "../../../../vendor/filament/tables/resources/views";
+@source "../../../../vendor/filament/widgets/resources/views";
+@source "../../../../vendor/filament/actions/resources/views";
+@source "../../../../vendor/filament/notifications/resources/views";
+@source "../../../../vendor/filament/infolists/resources/views";
+@source "../../../../vendor/filament/schemas/resources/views";

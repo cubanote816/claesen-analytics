@@ -6,6 +6,90 @@ use Illuminate\Support\Facades\Log;
 
 class GeminiService
 {
+    protected string $apiKey;
+    protected string $apiUrl;
+
+    public function __construct()
+    {
+        $this->apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY');
+        $this->apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL');
+    }
+
+    /**
+     * Translate multi-language content and detect source language.
+     * 
+     * @param string $text The text to translate.
+     * @param array $targetLocales List of locales to translate to (e.g. ['nl', 'en']).
+     * @return array {'detected_locale': string, 'translations': array<string, string>}
+     */
+    public function translateAndDetect(string $text, array $targetLocales): array
+    {
+        if (empty(trim($text))) {
+            return [
+                'detected_locale' => app()->getLocale(),
+                'translations' => array_combine($targetLocales, array_fill(0, count($targetLocales), '')),
+            ];
+        }
+
+        $localesList = implode(', ', $targetLocales);
+        $prompt = <<<PROMPT
+You are a translation expert.
+1. Detect the language of the following text: "{$text}".
+2. Translate the text into these languages: {$localesList}.
+
+IMPORTANT: You MUST provide an ACCURATE translation for EVERY requested language. Do not return the same text if the languages are different.
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "detected_locale": "ISO 639-1 code",
+  "translations": {
+    "nl": "translated text",
+    "en": "translated text"
+  }
+}
+PROMPT;
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::post($this->apiUrl . "?key=" . $this->apiKey, [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'response_mime_type' => 'application/json',
+                ]
+            ]);
+
+            if ($response->failed()) {
+                Log::error("Gemini API Error: " . $response->body());
+                return $this->fallbackResponse($text, $targetLocales);
+            }
+
+            $data = $response->json();
+            $content = $data['candidates'][0]['content']['parts'][0]['text'] ?? '{}';
+            $result = json_decode($content, true);
+
+            return [
+                'detected_locale' => $result['detected_locale'] ?? 'nl',
+                'translations' => $result['translations'] ?? [],
+            ];
+        } catch (\Exception $e) {
+            Log::error("Gemini Service Exception: " . $e->getMessage());
+            return $this->fallbackResponse($text, $targetLocales);
+        }
+    }
+
+    protected function fallbackResponse(string $text, array $targetLocales): array
+    {
+        return [
+            'detected_locale' => app()->getLocale(),
+            'translations' => array_combine($targetLocales, array_fill(0, count($targetLocales), $text)),
+        ];
+    }
+
     /**
      * Analyze technician behavior and return archetypes.
      * 
