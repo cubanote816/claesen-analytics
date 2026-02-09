@@ -21,17 +21,35 @@ class ConsultationService
                 'phone' => $data['phone'] ?? null,
                 'company' => $data['company'] ?? null,
                 'message' => $data['message'],
-                'type' => $data['type'] ?? 'consultation',
+                'type' => ($data['type'] ?? 'consultation') === 'free' ? 'consultation' : ($data['type'] ?? 'consultation'),
                 'project_type' => $data['project_type'] ?? null,
+                'preferred_contact' => $data['preferred_contact'] ?? 'email',
                 'source' => $data['source'] ?? 'website',
                 'status' => 'pending',
                 'last_activity_at' => now(),
             ]);
 
-            $this->logActivity($request, 'created', 'New consultation request received from ' . $request->source);
+            $this->logActivity(
+                $request,
+                'created',
+                __('website.activities.logs.created', ['source' => $request->source])
+            );
 
-            // Trigger notifications logic here (e.g., Resend email to admin)
-            // Implementation of notification sending will be handled by a Listener or here directly if requested.
+            try {
+                \Filament\Notifications\Notification::make()
+                    ->title(__('website.activities.notifications.new_request_title'))
+                    ->body(__('website.activities.notifications.new_request_body', ['name' => $request->name]))
+                    ->success()
+                    ->actions([
+                        \Filament\Actions\Action::make('view')
+                            ->button()
+                            ->url(\App\Filament\Clusters\Website\Resources\ConsultationRequestResource::getUrl('view', ['record' => $request], panel: 'admin')),
+                    ])
+                    ->sendToDatabase(\App\Models\User::all());
+            } catch (\Exception $e) {
+                // Log notification failure but don't fail the request
+                \Illuminate\Support\Facades\Log::error('Failed to send consultation notification: ' . $e->getMessage());
+            }
 
             return $request;
         });
@@ -52,7 +70,10 @@ class ConsultationService
         $this->logActivity(
             $request,
             'status_change',
-            "Status changed from {$oldStatus} to {$newStatus}",
+            __('website.activities.logs.status_change', [
+                'old' => __("website.consultation_requests.status_options.{$oldStatus}"),
+                'new' => __("website.consultation_requests.status_options.{$newStatus}"),
+            ]),
             ['old_value' => $oldStatus, 'new_value' => $newStatus],
             $userId
         );
@@ -72,7 +93,7 @@ class ConsultationService
             'activity_at' => now(),
         ]);
 
-        $request->update([
+        $request->updateQuietly([
             'last_activity_at' => now(),
             'activity_count' => $request->activity_count + 1,
         ]);

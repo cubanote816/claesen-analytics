@@ -12,10 +12,6 @@ enum ProjectCategory: string implements HasLabel
 
     public function getLabel(): ?string
     {
-        return match ($this) {
-            self::SPORT => 'Sport',
-            self::INDUSTRIAL => 'Industrial',
-            self::PUBLIC => 'Public',
-        };
+        return __("website.consultation_requests.categories.{$this->value}");
     }
 }

@@ -6,9 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+
 class ConsultationRequest extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     protected $table = 'website_consultation_requests';
 
@@ -48,6 +52,14 @@ class ConsultationRequest extends Model
         'actual_value' => 'decimal:2',
     ];
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
     public function assignedUser()
     {
         return $this->belongsTo(User::class, 'assigned_to');
@@ -55,7 +67,7 @@ class ConsultationRequest extends Model
 
     public function activities()
     {
-        return $this->hasMany(ConsultationActivity::class);
+        return $this->hasMany(ConsultationActivity::class, 'consultation_request_id');
     }
 
     public function reminders()

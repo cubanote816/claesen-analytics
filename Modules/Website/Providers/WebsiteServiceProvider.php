@@ -26,5 +26,7 @@ class WebsiteServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
+
+        \Modules\Website\Models\ConsultationRequest::observe(\Modules\Website\Observers\ConsultationRequestObserver::class);
     }
 }

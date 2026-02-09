@@ -52,33 +52,40 @@ class PageResource extends Resource
     {
         return $schema
             ->schema([
-                Section::make('Content')
+                Section::make(__('website.pages.sections.content'))
                     ->schema([
                         TextInput::make('title')
+                            ->label(__('website.pages.fields.title'))
                             ->required()
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn(string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
                         TextInput::make('slug')
+                            ->label(__('website.pages.fields.slug'))
                             ->disabled()
                             ->dehydrated()
                             ->required()
                             ->unique(Page::class, 'slug', ignoreRecord: true),
                         RichEditor::make('content')
+                            ->label(__('website.pages.fields.content'))
                             ->columnSpanFull(),
                     ])->columns(2),
 
-                Section::make('SEO')
+                Section::make(__('website.pages.sections.seo'))
                     ->schema([
                         KeyValue::make('meta_description')
-                            ->label('Meta Description (Multilingual potentially)'),
-                        KeyValue::make('meta_keywords'),
+                            ->label(__('website.pages.fields.meta_description')),
+                        KeyValue::make('meta_keywords')
+                            ->label(__('website.pages.fields.meta_keywords')),
                     ])->collapsed(),
 
-                Section::make('Settings')
+                Section::make(__('website.pages.sections.settings'))
                     ->schema([
-                        Toggle::make('published'),
-                        DateTimePicker::make('published_at'),
+                        Toggle::make('published')
+                            ->label(__('website.pages.fields.published')),
+                        DateTimePicker::make('published_at')
+                            ->label(__('website.pages.fields.published_at')),
                         TextInput::make('order_index')
+                            ->label(__('website.pages.fields.order_index'))
                             ->numeric()
                             ->default(0),
                     ])->columns(3),
@@ -90,15 +97,20 @@ class PageResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('title')
+                    ->label(__('website.pages.fields.title'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
+                    ->label(__('website.pages.fields.slug'))
                     ->searchable(),
                 Tables\Columns\IconColumn::make('published')
+                    ->label(__('website.pages.fields.published'))
                     ->boolean(),
                 Tables\Columns\TextColumn::make('published_at')
+                    ->label(__('website.pages.fields.published_at'))
                     ->dateTime()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('website.activities.fields.date'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

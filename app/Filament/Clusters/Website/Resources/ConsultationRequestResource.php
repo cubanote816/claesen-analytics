@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\Website\Resources;
 
 use App\Filament\Clusters\Website\WebsiteCluster;
 use App\Filament\Clusters\Website\Resources\ConsultationRequestResource\Pages;
+use App\Filament\Clusters\Website\Resources\ConsultationRequestResource\RelationManagers;
 use Modules\Website\Models\ConsultationRequest;
 use Filament\Forms;
 use Filament\Schemas\Schema;
@@ -46,57 +47,84 @@ class ConsultationRequestResource extends Resource
     {
         return $schema
             ->schema([
-                Section::make('Contact Information')
+                \Filament\Schemas\Components\Group::make()
                     ->schema([
-                        TextInput::make('name')->required(),
-                        TextInput::make('email')->email()->required(),
-                        TextInput::make('phone'),
-                        TextInput::make('company'),
-                    ])->columns(2),
+                        Section::make(__('website.consultation_requests.sections.contact'))
+                            ->schema([
+                                TextInput::make('name')
+                                    ->label(__('website.consultation_requests.fields.name'))
+                                    ->required()
+                                    ->disabledOn('edit'),
+                                TextInput::make('email')
+                                    ->label(__('website.consultation_requests.fields.email'))
+                                    ->email()
+                                    ->required()
+                                    ->disabledOn('edit'),
+                                TextInput::make('phone')
+                                    ->label(__('website.consultation_requests.fields.phone'))
+                                    ->disabledOn('edit'),
+                                TextInput::make('company')
+                                    ->label(__('website.consultation_requests.fields.company'))
+                                    ->disabledOn('edit'),
+                            ])->columns(2),
 
-                Section::make('Request Details')
-                    ->schema([
-                        Select::make('type')
-                            ->options([
-                                'consultation' => 'Consultation',
-                                'quote' => 'Quote',
-                                'project' => 'Project',
-                            ])->required(),
-                        Select::make('project_type')
-                            ->options([
-                                'sport' => 'Sport',
-                                'industrial' => 'Industrial',
-                                'public' => 'Public',
-                                'masts' => 'Masts',
-                                'other' => 'Other',
-                            ]),
-                        Textarea::make('message')
-                            ->columnSpanFull(),
-                    ])->columns(2),
+                        Section::make(__('website.consultation_requests.sections.details'))
+                            ->schema([
+                                Select::make('type')
+                                    ->label(__('website.consultation_requests.fields.type'))
+                                    ->options([
+                                        'consultation' => __('website.consultation_requests.types.consultation'),
+                                        'quote' => __('website.consultation_requests.types.quote'),
+                                        'project' => __('website.consultation_requests.types.project'),
+                                    ])->required()->disabledOn('edit'),
+                                Select::make('project_type')
+                                    ->label(__('website.consultation_requests.fields.project_type'))
+                                    ->options([
+                                        'sport' => __('website.consultation_requests.project_types.sport'),
+                                        'industrial' => __('website.consultation_requests.project_types.industrial'),
+                                        'public' => __('website.consultation_requests.project_types.public'),
+                                        'masts' => __('website.consultation_requests.project_types.masts'),
+                                        'other' => __('website.consultation_requests.project_types.other'),
+                                    ])->disabledOn('edit'),
+                                Textarea::make('message')
+                                    ->label(__('website.consultation_requests.fields.message'))
+                                    ->columnSpanFull()->disabledOn('edit'),
+                            ])->columns(2),
+                    ])
+                    ->columnSpan(['lg' => 2]),
 
-                Section::make('Internal Management')
+                \Filament\Schemas\Components\Group::make()
                     ->schema([
-                        Select::make('status')
-                            ->options([
-                                'pending' => 'Pending',
-                                'contacted' => 'Contacted',
-                                'in_progress' => 'In Progress',
-                                'completed' => 'Completed',
-                                'cancelled' => 'Cancelled',
-                            ])->required(),
-                        Select::make('priority')
-                            ->options([
-                                'low' => 'Low',
-                                'medium' => 'Medium',
-                                'high' => 'High',
-                                'urgent' => 'Urgent',
+                        Section::make(__('website.consultation_requests.sections.management'))
+                            ->schema([
+                                Select::make('status')
+                                    ->label(__('website.consultation_requests.fields.status'))
+                                    ->options([
+                                        'pending' => __('website.consultation_requests.status_options.pending'),
+                                        'contacted' => __('website.consultation_requests.status_options.contacted'),
+                                        'in_progress' => __('website.consultation_requests.status_options.in_progress'),
+                                        'completed' => __('website.consultation_requests.status_options.completed'),
+                                        'cancelled' => __('website.consultation_requests.status_options.cancelled'),
+                                    ])->required(),
+                                Select::make('priority')
+                                    ->label(__('website.consultation_requests.fields.priority'))
+                                    ->options([
+                                        'low' => __('website.consultation_requests.priority_options.low'),
+                                        'medium' => __('website.consultation_requests.priority_options.medium'),
+                                        'high' => __('website.consultation_requests.priority_options.high'),
+                                        'urgent' => __('website.consultation_requests.priority_options.urgent'),
+                                    ]),
+                                Select::make('assigned_to')
+                                    ->label(__('website.consultation_requests.fields.assigned_to'))
+                                    ->relationship('assignedUser', 'name'),
+                                DatePicker::make('follow_up_date')
+                                    ->label(__('website.consultation_requests.fields.follow_up_date')),
+                                Textarea::make('internal_notes')
+                                    ->label(__('website.consultation_requests.fields.internal_notes')),
                             ]),
-                        Select::make('assigned_to')
-                            ->relationship('assignedUser', 'name'),
-                        DatePicker::make('follow_up_date'),
-                        Textarea::make('internal_notes'),
-                    ])->columns(2),
-            ]);
+                    ])
+                    ->columnSpan(['lg' => 1]),
+            ])->columns(3);
     }
 
     public static function table(Table $table): Table
@@ -104,12 +132,17 @@ class ConsultationRequestResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label(__('website.consultation_requests.fields.name'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
+                    ->label(__('website.consultation_requests.fields.email'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('type')
-                    ->badge(),
+                    ->label(__('website.consultation_requests.fields.type'))
+                    ->badge()
+                    ->formatStateUsing(fn(string $state): string => __("website.consultation_requests.types.{$state}")),
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('website.consultation_requests.fields.status'))
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'pending' => 'gray',
@@ -117,37 +150,43 @@ class ConsultationRequestResource extends Resource
                         'in_progress' => 'warning',
                         'completed' => 'success',
                         'cancelled' => 'danger',
-                    }),
+                    })
+                    ->formatStateUsing(fn(string $state): string => __("website.consultation_requests.status_options.{$state}")),
                 Tables\Columns\TextColumn::make('priority')
+                    ->label(__('website.consultation_requests.fields.priority'))
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'low' => 'gray',
                         'medium' => 'info',
                         'high' => 'warning',
                         'urgent' => 'danger',
-                    }),
+                    })
+                    ->formatStateUsing(fn(string $state): string => __("website.consultation_requests.priority_options.{$state}")),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('website.activities.fields.date'))
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label(__('website.consultation_requests.fields.status'))
                     ->options([
-                        'pending' => 'Pending',
-                        'contacted' => 'Contacted',
-                        'in_progress' => 'In Progress',
-                        'completed' => 'Completed',
-                        'cancelled' => 'Cancelled',
+                        'pending' => __('website.consultation_requests.status_options.pending'),
+                        'contacted' => __('website.consultation_requests.status_options.contacted'),
+                        'in_progress' => __('website.consultation_requests.status_options.in_progress'),
+                        'completed' => __('website.consultation_requests.status_options.completed'),
+                        'cancelled' => __('website.consultation_requests.status_options.cancelled'),
                     ]),
-                Tables\Filters\SelectFilter::make('type'),
+                Tables\Filters\SelectFilter::make('type')
+                    ->label(__('website.consultation_requests.fields.type')),
             ])
             ->actions([
-                \Filament\Actions\ViewAction::make(),
+                // \Filament\Actions\ViewAction::make(),
                 \Filament\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                    // \Filament\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -156,24 +195,41 @@ class ConsultationRequestResource extends Resource
     {
         return $schema
             ->schema([
-                Infolists\Section::make('Contact')
+                Infolists\Section::make(__('website.consultation_requests.sections.contact'))
                     ->schema([
-                        Infolists\Text::make('name'),
-                        Infolists\Text::make('email'),
-                        Infolists\Text::make('phone'),
-                        Infolists\Text::make('company'),
+                        \Filament\Infolists\Components\TextEntry::make('name')
+                            ->label(__('website.consultation_requests.fields.name')),
+                        \Filament\Infolists\Components\TextEntry::make('email')
+                            ->label(__('website.consultation_requests.fields.email')),
+                        \Filament\Infolists\Components\TextEntry::make('phone')
+                            ->label(__('website.consultation_requests.fields.phone')),
+                        \Filament\Infolists\Components\TextEntry::make('company')
+                            ->label(__('website.consultation_requests.fields.company')),
                     ])->columns(2),
-                Infolists\Section::make('Message')
+                Infolists\Section::make(__('website.consultation_requests.sections.message'))
                     ->schema([
-                        Infolists\Text::make('type'),
-                        Infolists\Text::make('project_type'),
-                        Infolists\Text::make('message')->columnSpanFull(),
+                        \Filament\Infolists\Components\TextEntry::make('type')
+                            ->label(__('website.consultation_requests.fields.type'))
+                            ->formatStateUsing(fn(string $state): string => __("website.consultation_requests.types.{$state}")),
+                        \Filament\Infolists\Components\TextEntry::make('project_type')
+                            ->label(__('website.consultation_requests.fields.project_type'))
+                            ->formatStateUsing(fn(string $state): string => __("website.consultation_requests.project_types.{$state}")),
+                        \Filament\Infolists\Components\TextEntry::make('message')
+                            ->label(__('website.consultation_requests.fields.message'))
+                            ->columnSpanFull(),
                     ])->columns(2),
-                Infolists\Section::make('Status')
+                Infolists\Section::make(__('website.consultation_requests.sections.status'))
                     ->schema([
-                        Infolists\Text::make('status')->badge(),
-                        Infolists\Text::make('priority')->badge(),
-                        Infolists\Text::make('assignedUser.name')->label('Assigned To'),
+                        \Filament\Infolists\Components\TextEntry::make('status')
+                            ->label(__('website.consultation_requests.fields.status'))
+                            ->badge()
+                            ->formatStateUsing(fn(string $state): string => __("website.consultation_requests.status_options.{$state}")),
+                        \Filament\Infolists\Components\TextEntry::make('priority')
+                            ->label(__('website.consultation_requests.fields.priority'))
+                            ->badge()
+                            ->formatStateUsing(fn(string $state): string => __("website.consultation_requests.priority_options.{$state}")),
+                        \Filament\Infolists\Components\TextEntry::make('assignedUser.name')
+                            ->label(__('website.consultation_requests.fields.assigned_to')),
                     ])->columns(3),
             ]);
     }
@@ -181,7 +237,7 @@ class ConsultationRequestResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\ActivitiesRelationManager::class,
         ];
     }
 
@@ -190,7 +246,6 @@ class ConsultationRequestResource extends Resource
         return [
             'index' => Pages\ListConsultationRequests::route('/'),
             'create' => Pages\CreateConsultationRequest::route('/create'), // Optional
-            'view' => Pages\ViewConsultationRequest::route('/{record}'),
             'edit' => Pages\EditConsultationRequest::route('/{record}/edit'),
         ];
     }

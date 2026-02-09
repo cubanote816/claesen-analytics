@@ -24,8 +24,9 @@ class ConsultationController extends Controller
             'phone' => 'nullable|string|max:255',
             'company' => 'nullable|string|max:255',
             'message' => 'required|string',
-            'type' => 'nullable|string|in:consultation,quote,project',
+            'type' => 'nullable|string|in:consultation,free,quote,project',
             'project_type' => 'nullable|string|max:255',
+            'preferred_contact' => 'nullable|string|in:email,phone',
             'source' => 'nullable|string|max:255',
         ]);
 
