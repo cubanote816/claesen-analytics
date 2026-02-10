@@ -87,7 +87,7 @@ class Project extends Model implements HasMedia
         $this->addMediaCollection('gallery');
     }
 
-    public function registerMediaConversions(\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
+    public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
     {
         $this->addMediaConversion('thumb')
             ->width(300)
@@ -110,9 +110,11 @@ class Project extends Model implements HasMedia
                 'id' => $media->id,
                 'name' => $media->name,
                 'file_name' => $media->file_name,
+                'url' => $media->getUrl(),
                 'thumb' => $media->getUrl('thumb'),
                 'gallery' => $media->getUrl('gallery'),
-                'original' => $media->getUrl(),
+                'caption' => $media->getCustomProperty('caption'),
+                'alt' => $media->getCustomProperty('alt'),
             ];
         });
     }

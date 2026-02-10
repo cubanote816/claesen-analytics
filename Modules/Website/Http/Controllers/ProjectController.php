@@ -29,8 +29,6 @@ class ProjectController extends Controller
     {
         $project = $this->portfolioService->getProjectBySlug($slug);
 
-        // Append gallery to the response
-        $project->gallery = $this->portfolioService->getProjectGallery($project);
         $project->related = $this->portfolioService->getRelatedProjects($project);
 
         return response()->json([
