@@ -27,9 +27,13 @@ trait HasAiTranslations
         $gemini = app(GeminiService::class);
 
         // Use the locales configured in the plugin or a sensible default
-        $targetLocales = ['nl', 'en'];
+        $targetLocales = ['nl', 'en', 'fr'];
 
-        foreach ($this->getTranslatableAttributes() as $attribute) {
+        $attributesToTranslate = method_exists($this, 'getAiTranslatableAttributes')
+            ? $this->getAiTranslatableAttributes()
+            : $this->getTranslatableAttributes();
+
+        foreach ($attributesToTranslate as $attribute) {
             $translations = $this->getTranslations($attribute);
 
             // Find the translation that was just updated or is the only one present
@@ -72,6 +76,14 @@ trait HasAiTranslations
                     break;
                 }
             }
+
+            // Start of optimized logic:
+            // 1. If the attribute is NOT dirty (not changed), AND we have all translations, skip it.
+            if (!$this->isDirty($attribute) && !$isMissingTranslations) {
+                continue;
+            }
+            // If it IS dirty, we proceed (re-translate).
+            // If it is missing translations, we proceed (fill gaps).
 
             // If we have content, let's let Gemini decide if it needs correction/translation
             // Note: In a production environment, we might want to skip this if translations are already full

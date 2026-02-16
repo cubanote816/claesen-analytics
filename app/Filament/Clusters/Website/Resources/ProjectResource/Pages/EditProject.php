@@ -10,14 +10,25 @@ class EditProject extends EditRecord
 {
     protected static string $resource = ProjectResource::class;
 
-    use \LaraZeus\SpatieTranslatable\Resources\Pages\EditRecord\Concerns\Translatable;
-    use \LaraZeus\SpatieTranslatable\Resources\Concerns\HasActiveLocaleSwitcher;
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $record = $this->getRecord();
+        $translatableAttributes = $record->translatable ?? [];
+        $locale = app()->getLocale();
+
+        foreach ($translatableAttributes as $attribute) {
+            if (isset($data[$attribute]) && is_array($data[$attribute])) {
+                $data[$attribute] = $record->getTranslation($attribute, $locale, false) ?? $data[$attribute];
+            }
+        }
+
+        return $data;
+    }
 
     protected function getHeaderActions(): array
     {
         return [
             Actions\DeleteAction::make(),
-            \LaraZeus\SpatieTranslatable\Actions\LocaleSwitcher::make(),
         ];
     }
 }

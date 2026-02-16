@@ -6,13 +6,13 @@ use Illuminate\Support\Facades\Log;
 
 class GeminiService
 {
-    protected string $apiKey;
+    protected ?string $apiKey;
     protected string $apiUrl;
 
     public function __construct()
     {
         $this->apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY');
-        $this->apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL');
+        $this->apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
     }
 
     /**
@@ -31,20 +31,30 @@ class GeminiService
             ];
         }
 
+        if (empty($this->apiKey)) {
+            Log::warning("Gemini API Key is missing. Skipping translation.");
+            return $this->fallbackResponse($text, $targetLocales);
+        }
+
         $localesList = implode(', ', $targetLocales);
         $prompt = <<<PROMPT
-You are a translation expert.
-1. Detect the language of the following text: "{$text}".
-2. Translate the text into these languages: {$localesList}.
+You are a professional translator and native speaker of these languages: {$localesList}.
 
-IMPORTANT: You MUST provide an ACCURATE translation for EVERY requested language. Do not return the same text if the languages are different.
+Task:
+1. Detect the source language of: "{$text}".
+2. Translate it accurately into: {$localesList}.
 
-Return ONLY a valid JSON object with this exact structure:
+RULES:
+- If the source text is already in the target language, keep it as is.
+- If the source text is in a DIFFERENT language, you MUST translate it.
+- Do NOT just copy the source text for all languages.
+- Ensure the tone is professional and suitable for a business context.
+
+Return JSON:
 {
   "detected_locale": "ISO 639-1 code",
   "translations": {
-    "nl": "translated text",
-    "en": "translated text"
+    "code": "translated text"
   }
 }
 PROMPT;

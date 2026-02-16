@@ -26,7 +26,7 @@ class ProjectData
             title: $project->title,
             content: $project->content,
             primary_image: $project->primary_image ? asset('storage/' . $project->primary_image) : null,
-            gallery: $project->gallery,
+            gallery: $project->api_gallery,
             seo_tags: $project->seo_tags,
             published_at: $project->published_at?->toIso8601String(),
         );

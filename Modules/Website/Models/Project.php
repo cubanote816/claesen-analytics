@@ -33,12 +33,12 @@ class Project extends Model implements HasMedia
     ];
 
     protected $appends = [
-        'featured_image_url',
-        'gallery',
+        'api_featured_image_url',
+        'api_gallery',
     ];
 
     protected $hidden = [
-        'media',
+        // 'media', // Commented out to fix Filament form hydration
     ];
 
     public $translatable = [
@@ -49,6 +49,15 @@ class Project extends Model implements HasMedia
         'client',
         'seo_tags',
     ];
+
+    public function getAiTranslatableAttributes(): array
+    {
+        return [
+            'description',
+            'location',
+            'title',
+        ];
+    }
 
     protected $casts = [
         'category' => ProjectCategory::class,
@@ -98,12 +107,12 @@ class Project extends Model implements HasMedia
             ->height(800);
     }
 
-    public function getFeaturedImageUrlAttribute(): ?string
+    public function getApiFeaturedImageUrlAttribute(): ?string
     {
         return $this->getFirstMediaUrl('featured_image') ?: null;
     }
 
-    public function getGalleryAttribute()
+    public function getApiGalleryAttribute()
     {
         return $this->getMedia('gallery')->map(function ($media) {
             return [

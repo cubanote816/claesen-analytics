@@ -20,11 +20,9 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
 
-use LaraZeus\SpatieTranslatable\Resources\Concerns\Translatable;
-
 class ProjectResource extends Resource
 {
-    use Translatable;
+
 
     protected static ?string $model = Project::class;
 
@@ -59,7 +57,7 @@ class ProjectResource extends Resource
                             ->label(__('website.projects.fields.title'))
                             ->required()
                             ->live(onBlur: true)
-                            ->afterStateUpdated(fn(string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
+                            ->afterStateUpdated(fn(string $operation, $state, Set $set) => ($operation === 'create' || $operation === 'edit') ? $set('slug', Str::slug($state)) : null),
                         TextInput::make('slug')
                             ->label(__('website.projects.fields.slug'))
                             ->disabled()
@@ -90,8 +88,7 @@ class ProjectResource extends Resource
                             ->image()
                             ->imageEditor()
                             ->imagePreviewHeight('200')
-                            ->imageAspectRatio('16:9')
-                            ->multiple()
+                            ->multiple() // Kept for compatibility with Spatie Media Library
                             ->maxFiles(1)
                             ->maxSize(20480),
                         SpatieMediaLibraryFileUpload::make('gallery')
