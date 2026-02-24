@@ -17,6 +17,8 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
 
@@ -51,70 +53,108 @@ class ProjectResource extends Resource
     {
         return $schema
             ->schema([
-                Section::make(__('website.projects.sections.details'))
+                Group::make()
                     ->schema([
-                        TextInput::make('title')
-                            ->label(__('website.projects.fields.title'))
-                            ->required()
-                            ->live(onBlur: true)
-                            ->afterStateUpdated(fn(string $operation, $state, Set $set) => ($operation === 'create' || $operation === 'edit') ? $set('slug', Str::slug($state)) : null),
-                        TextInput::make('slug')
-                            ->label(__('website.projects.fields.slug'))
-                            ->disabled()
-                            ->dehydrated()
-                            ->required()
-                            ->unique(Project::class, 'slug', ignoreRecord: true),
-                        Select::make('category')
-                            ->label(__('website.projects.fields.category'))
-                            ->options(ProjectCategory::class)
-                            ->required(),
-                        TextInput::make('client')
-                            ->label(__('website.projects.fields.client')),
-                        TextInput::make('location')
-                            ->label(__('website.projects.fields.location')),
-                        TextInput::make('year')
-                            ->label(__('website.projects.fields.year'))
-                            ->numeric(),
-                        RichEditor::make('description')
-                            ->label(__('website.projects.fields.description'))
-                            ->columnSpanFull(),
-                    ])->columns(2),
+                        Section::make(__('website.projects.sections.details'))
+                            ->schema([
+                                TextInput::make('title')
+                                    ->label(__('website.projects.fields.title'))
+                                    ->required()
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn(string $operation, $state, Set $set) => ($operation === 'create' || $operation === 'edit') ? $set('slug', Str::slug($state)) : null),
+                                TextInput::make('slug')
+                                    ->label(__('website.projects.fields.slug'))
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->required()
+                                    ->unique(Project::class, 'slug', ignoreRecord: true),
+                                Select::make('category')
+                                    ->label(__('website.projects.fields.category'))
+                                    ->options(ProjectCategory::class)
+                                    ->required(),
+                                TextInput::make('client')
+                                    ->label(__('website.projects.fields.client')),
+                                TextInput::make('location')
+                                    ->label(__('website.projects.fields.location')),
+                                TextInput::make('year')
+                                    ->label(__('website.projects.fields.year'))
+                                    ->numeric(),
+                                RichEditor::make('description')
+                                    ->label(__('website.projects.fields.description'))
+                                    ->columnSpanFull(),
+                            ])->columns(2),
 
-                Section::make(__('website.projects.sections.media'))
-                    ->schema([
-                        SpatieMediaLibraryFileUpload::make('featured_image')
-                            ->label(__('website.projects.fields.featured_image'))
-                            ->collection('featured_image')
-                            ->image()
-                            ->imageEditor()
-                            ->imagePreviewHeight('200')
-                            ->multiple() // Kept for compatibility with Spatie Media Library
-                            ->maxFiles(1)
-                            ->maxSize(20480),
-                        SpatieMediaLibraryFileUpload::make('gallery')
-                            ->label(__('website.projects.fields.gallery'))
-                            ->collection('gallery')
-                            ->image()
-                            ->imageEditor()
-                            ->imagePreviewHeight('150')
-                            ->panelLayout('grid')
-                            ->multiple()
-                            ->reorderable()
-                            ->maxSize(20480),
-                    ])->collapsible(),
+                        Section::make(__('website.projects.sections.settings'))
+                            ->schema([
+                                Toggle::make('published')
+                                    ->label(__('website.projects.fields.published')),
+                                Toggle::make('featured')
+                                    ->label(__('website.projects.fields.featured')),
+                                TextInput::make('order_index')
+                                    ->label(__('website.projects.fields.order_index'))
+                                    ->hintIcon('heroicon-m-information-circle', tooltip: __('website.projects.fields.order_index_helper'))
+                                    ->numeric()
+                                    ->default(0),
+                            ])->columns(3),
+                    ])
+                    ->columnSpan(['default' => 5, 'lg' => 3]),
 
-                Section::make(__('website.projects.sections.settings'))
+                Group::make()
                     ->schema([
-                        Toggle::make('published')
-                            ->label(__('website.projects.fields.published')),
-                        Toggle::make('featured')
-                            ->label(__('website.projects.fields.featured')),
-                        TextInput::make('order_index')
-                            ->label(__('website.projects.fields.order_index'))
-                            ->numeric()
-                            ->default(0),
-                    ])->columns(3),
-            ]);
+                        Section::make(__('website.projects.sections.media'))
+                            ->schema([
+                                SpatieMediaLibraryFileUpload::make('featured_image')
+                                    ->label(__('website.projects.fields.featured_image'))
+                                    ->collection('featured_image')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->imagePreviewHeight('200')
+                                    ->multiple()
+                                    ->maxFiles(1)
+                                    ->maxSize(20480)
+                                    ->saveRelationshipsUsing(function (SpatieMediaLibraryFileUpload $component, $state, Project $record) {
+                                        $component->saveUploadedFiles();
+                                        $activeUuids = collect($state ?? [])->flatten()->toArray();
+                                        $record->getMedia('featured_image')
+                                            ->whereNotIn('uuid', $activeUuids)
+                                            ->each(fn($media) => $media->delete());
+                                    }),
+                                SpatieMediaLibraryFileUpload::make('gallery')
+                                    ->label(__('website.projects.fields.gallery'))
+                                    ->collection('gallery')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->imagePreviewHeight('150')
+                                    ->panelLayout('grid')
+                                    ->multiple()
+                                    ->reorderable()
+                                    ->maxSize(20480)
+                                    ->saveRelationshipsUsing(function (SpatieMediaLibraryFileUpload $component, $state, Project $record) {
+                                        $component->saveUploadedFiles();
+                                        $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
+
+                                        $record->getMedia('gallery')
+                                            ->whereNotIn('uuid', $activeUuids)
+                                            ->each(fn($media) => $media->delete());
+
+                                        if (!empty($activeUuids)) {
+                                            $mediaClass = config('media-library.media_model', \Spatie\MediaLibrary\MediaCollections\Models\Media::class);
+                                            $mappedIds = $mediaClass::query()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
+
+                                            $orderedIds = collect($activeUuids)
+                                                ->map(fn($uuid) => $mappedIds[$uuid] ?? null)
+                                                ->filter()
+                                                ->toArray();
+
+                                            if (!empty($orderedIds)) {
+                                                $mediaClass::setNewOrder($orderedIds);
+                                            }
+                                        }
+                                    }),
+                            ])->collapsible(),
+                    ])
+                    ->columnSpan(['default' => 5, 'lg' => 2]),
+            ])->columns(['default' => 5, 'lg' => 5]);
     }
 
     public static function table(Table $table): Table
