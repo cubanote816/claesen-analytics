@@ -13,7 +13,7 @@ use App\Traits\HasAiTranslations;
 
 class Project extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia, HasAiTranslations;
+    use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia; // , HasAiTranslations;
 
     protected $table = 'website_projects';
 

@@ -21,6 +21,7 @@ return [
             'published' => 'Published',
             'featured' => 'Featured',
             'order_index' => 'Order Index',
+            'order_index_helper' => 'Determines the position on the website (1 = first, 0 = default or at the bottom).',
             'featured_image' => 'Featured Image',
             'gallery' => 'Gallery',
         ],

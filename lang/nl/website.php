@@ -21,6 +21,7 @@ return [
             'published' => 'Gepubliceerd',
             'featured' => 'Uitgelicht',
             'order_index' => 'Volgorde',
+            'order_index_helper' => 'Bepaalt de positie op de website (1 = eerste, 0 = standaard of onderaan).',
             'featured_image' => 'Uitgelichte afbeelding',
             'gallery' => 'Galerij',
         ],

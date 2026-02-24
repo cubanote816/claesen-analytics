@@ -13,6 +13,8 @@ class EditProject extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $record = $this->getRecord();
+
+        // Text Hydration (Required because Translatable trait is not used on this Page)
         $translatableAttributes = $record->translatable ?? [];
         $locale = app()->getLocale();
 
@@ -24,6 +26,7 @@ class EditProject extends EditRecord
 
         return $data;
     }
+
 
     protected function getHeaderActions(): array
     {
