@@ -28,5 +28,7 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
 
         \Modules\Website\Models\ConsultationRequest::observe(\Modules\Website\Observers\ConsultationRequestObserver::class);
+        \Modules\Website\Models\Project::observe(\Modules\Website\Observers\ProjectObserver::class);
+        \Spatie\MediaLibrary\MediaCollections\Models\Media::observe(\Modules\Website\Observers\MediaObserver::class);
     }
 }
