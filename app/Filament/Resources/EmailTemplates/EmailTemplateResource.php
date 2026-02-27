@@ -22,6 +22,8 @@ class EmailTemplateResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    protected static ?string $slug = 'email-templates';
+
     public static function form(Schema $schema): Schema
     {
         return EmailTemplateForm::configure($schema);
