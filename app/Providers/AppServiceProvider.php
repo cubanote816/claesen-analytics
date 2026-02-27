@@ -19,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
     }
     public function boot(): void
     {
+        // Intercepta todos los correos si hay una dirección global de prueba configurada
+        if ($globalTo = env('MAIL_TO_ADDRESS')) {
+            $addresses = array_map('trim', explode(',', $globalTo));
+            \Illuminate\Support\Facades\Mail::alwaysTo($addresses);
+        }
+
         Gate::before(function ($user, $ability) {
             return $user->hasRole('super_admin') ? true : null;
         });
