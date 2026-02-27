@@ -10,6 +10,10 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Actions\BulkAction;
+use App\Jobs\ExecuteMailingCampaignJob;
+use Illuminate\Database\Eloquent\Collection;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
@@ -271,6 +275,25 @@ class ProspectResource extends Resource
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
+                    BulkAction::make('execute_campaign')
+                        ->label('Start Mailing Campagne')
+                        ->icon('heroicon-o-rocket-launch')
+                        ->color('primary')
+                        ->form([
+                            Select::make('template_id')
+                                ->label('Kies E-mail Sjabloon')
+                                ->options(\App\Models\EmailTemplate::query()->pluck('name', 'id'))
+                                ->required(),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            ExecuteMailingCampaignJob::dispatch($records->pluck('id')->toArray(), $data['template_id']);
+                            Notification::make()
+                                ->title('Campagne Gestart')
+                                ->success()
+                                ->body('De e-mails worden op de achtergrond verzonden met het gekozen sjabloon.')
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                 ]),
             ]);
     }
