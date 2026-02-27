@@ -15,15 +15,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
+        $user1 = User::factory()->create([
             'name' => 'Bert Bertels',
             'email' => 'bert.Bertels@claesen-verlichting.be',
         ]);
-        User::factory()->create([
+        $user2 = User::factory()->create([
             'name' => 'Bert Kenis',
             'email' => 'bert.kenis@claesen-verlichting.be',
         ]);
-        User::factory()->create([
+        $user3 = User::factory()->create([
             'name' => 'Toti',
             'email' => 'orelvys.cuellar@claesen-verlichting.be',
         ]);
@@ -32,5 +32,9 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             ProjectInsightSeeder::class,
         ]);
+
+        $user1->assignRole('super_admin');
+        $user2->assignRole('super_admin');
+        $user3->assignRole('super_admin');
     }
 }
