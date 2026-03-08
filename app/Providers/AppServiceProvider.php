@@ -25,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\Mail::alwaysTo($addresses);
         }
 
+        // Register Observers
+        \Modules\Website\Models\Project::observe(\App\Observers\ProjectObserver::class);
+
         Gate::before(function ($user, $ability) {
             return $user->hasRole('super_admin') ? true : null;
         });

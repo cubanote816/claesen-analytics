@@ -40,4 +40,11 @@ return [
         'url' => env('GEMINI_API_URL'),
     ],
 
+    'github' => [
+        'webhook_pat' => env('GITHUB_WEBHOOK_PAT'),
+        'portfolio_repo' => env('GITHUB_PORTFOLIO_REPO', 'totti/claesen-astro'),
+        'action_webhook_url' => env('GITHUB_ACTION_WEBHOOK_URL'),
+        'action_token' => env('GITHUB_ACTION_TOKEN'),
+    ],
+
 ];
