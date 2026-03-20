@@ -165,7 +165,14 @@ class ProjectResource extends Resource
                                     ->imagePreviewHeight('200')
                                     ->multiple()
                                     ->maxFiles(1)
-                                    ->maxSize(20480),
+                                    ->maxSize(20480)
+                                    ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
+                                        $component->saveUploadedFiles();
+                                        $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
+                                        $record->getMedia('featured_image')
+                                            ->whereNotIn('uuid', $activeUuids)
+                                            ->each(fn($media) => $media->delete());
+                                    }),
                                 SpatieMediaLibraryFileUpload::make('gallery')
                                     ->label(__('website.projects.fields.gallery'))
                                     ->collection('gallery')
@@ -175,7 +182,29 @@ class ProjectResource extends Resource
                                     ->panelLayout('grid')
                                     ->multiple()
                                     ->reorderable()
-                                    ->maxSize(20480),
+                                    ->maxSize(20480)
+                                    ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
+                                        $component->saveUploadedFiles();
+                                        $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
+
+                                        $record->getMedia('gallery')
+                                            ->whereNotIn('uuid', $activeUuids)
+                                            ->each(fn($media) => $media->delete());
+
+                                        if (!empty($activeUuids)) {
+                                            $mediaClass = config('media-library.media_model', \Spatie\MediaLibrary\MediaCollections\Models\Media::class);
+                                            $mappedIds = $mediaClass::query()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
+
+                                            $orderedIds = collect($activeUuids)
+                                                ->map(fn($uuid) => $mappedIds[$uuid] ?? null)
+                                                ->filter()
+                                                ->toArray();
+
+                                            if (!empty($orderedIds)) {
+                                                $mediaClass::setNewOrder($orderedIds);
+                                            }
+                                        }
+                                    }),
                             ])->collapsible(),
                     ])
                     ->columnSpan(['default' => 5, 'lg' => 2]),
