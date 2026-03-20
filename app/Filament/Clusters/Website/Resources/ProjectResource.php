@@ -21,6 +21,8 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Str;
+use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Utilities\Get;
 
 class ProjectResource extends Resource
 {
@@ -61,12 +63,64 @@ class ProjectResource extends Resource
                                     ->label(__('website.projects.fields.title'))
                                     ->required()
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn(string $operation, $state, Set $set) => ($operation === 'create' || $operation === 'edit') ? $set('slug', Str::slug($state)) : null),
+                                    ->afterStateUpdated(function (string $operation, $state, Set $set, ?Project $record) {
+                                        if ($operation !== 'create' && $operation !== 'edit') {
+                                            return;
+                                        }
+
+                                        if (empty($state)) {
+                                            $set('slug', null);
+                                            return;
+                                        }
+
+                                        $slug = Str::slug($state);
+                                        $originalSlug = $slug;
+                                        $count = 1;
+
+                                        $query = Project::where('slug', $slug);
+                                        if ($record) {
+                                            $query->where('id', '!=', $record->id);
+                                        }
+
+                                        while ($query->exists()) {
+                                            $slug = $originalSlug . '-' . $count;
+                                            $count++;
+                                            $query = Project::where('slug', $slug);
+                                            if ($record) {
+                                                $query->where('id', '!=', $record->id);
+                                            }
+                                        }
+
+                                        $set('slug', $slug);
+
+                                        if ($count > 1) {
+                                            Notification::make()
+                                                ->title('Naam in gebruik')
+                                                ->body('Er bestaat al een project met deze naam. Er is automatisch een alternatieve identificatie (slug) gegenereerd.')
+                                                ->warning()
+                                                ->send();
+                                        }
+                                    }),
                                 TextInput::make('slug')
                                     ->label(__('website.projects.fields.slug'))
-                                    ->disabled()
-                                    ->dehydrated()
+                                    ->readOnly()
                                     ->required()
+                                    ->helperText(function (Get $get) {
+                                        $title = $get('title');
+                                        $slug = $get('slug');
+                                        if ($title && $slug && Str::slug($title) !== $slug) {
+                                            return '⚠️ Naam automatisch gewijzigd om duplicaten te voorkomen.';
+                                        }
+                                        return null;
+                                    })
+                                    ->extraInputAttributes(function (Get $get) {
+                                        $title = $get('title');
+                                        $slug = $get('slug');
+                                        if ($title && $slug && Str::slug($title) !== $slug) {
+                                            return ['style' => 'border: 2px solid #eab308; background-color: rgba(234, 179, 8, 0.1); color: #ca8a04; font-weight: bold;'];
+                                        }
+                                        return [];
+                                    })
                                     ->unique(Project::class, 'slug', ignoreRecord: true),
                                 Select::make('category')
                                     ->label(__('website.projects.fields.category'))
@@ -111,14 +165,7 @@ class ProjectResource extends Resource
                                     ->imagePreviewHeight('200')
                                     ->multiple()
                                     ->maxFiles(1)
-                                    ->maxSize(20480)
-                                    ->saveRelationshipsUsing(function (SpatieMediaLibraryFileUpload $component, $state, Project $record) {
-                                        $component->saveUploadedFiles();
-                                        $activeUuids = collect($state ?? [])->flatten()->toArray();
-                                        $record->getMedia('featured_image')
-                                            ->whereNotIn('uuid', $activeUuids)
-                                            ->each(fn($media) => $media->delete());
-                                    }),
+                                    ->maxSize(20480),
                                 SpatieMediaLibraryFileUpload::make('gallery')
                                     ->label(__('website.projects.fields.gallery'))
                                     ->collection('gallery')
@@ -128,29 +175,7 @@ class ProjectResource extends Resource
                                     ->panelLayout('grid')
                                     ->multiple()
                                     ->reorderable()
-                                    ->maxSize(20480)
-                                    ->saveRelationshipsUsing(function (SpatieMediaLibraryFileUpload $component, $state, Project $record) {
-                                        $component->saveUploadedFiles();
-                                        $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
-
-                                        $record->getMedia('gallery')
-                                            ->whereNotIn('uuid', $activeUuids)
-                                            ->each(fn($media) => $media->delete());
-
-                                        if (!empty($activeUuids)) {
-                                            $mediaClass = config('media-library.media_model', \Spatie\MediaLibrary\MediaCollections\Models\Media::class);
-                                            $mappedIds = $mediaClass::query()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
-
-                                            $orderedIds = collect($activeUuids)
-                                                ->map(fn($uuid) => $mappedIds[$uuid] ?? null)
-                                                ->filter()
-                                                ->toArray();
-
-                                            if (!empty($orderedIds)) {
-                                                $mediaClass::setNewOrder($orderedIds);
-                                            }
-                                        }
-                                    }),
+                                    ->maxSize(20480),
                             ])->collapsible(),
                     ])
                     ->columnSpan(['default' => 5, 'lg' => 2]),
