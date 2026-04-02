@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\ProjectInsight;
+use Modules\Analytics\Models\ProjectInsight;
 use Illuminate\Database\Seeder;
 
 class ProjectInsightSeeder extends Seeder

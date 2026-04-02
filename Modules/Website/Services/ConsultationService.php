@@ -45,7 +45,7 @@ class ConsultationService
                             ->button()
                             ->url(\App\Filament\Clusters\Website\Resources\ConsultationRequestResource::getUrl('view', ['record' => $request], panel: 'admin')),
                     ])
-                    ->sendToDatabase(\App\Models\User::all());
+                    ->sendToDatabase(\Modules\Core\Models\User::all());
             } catch (\Exception $e) {
                 // Log notification failure but don't fail the request
                 \Illuminate\Support\Facades\Log::error('Failed to send consultation notification: ' . $e->getMessage());

@@ -1,0 +1,11 @@
+{
+    "name": "Cafca",
+    "alias": "cafca",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Cafca\\Providers\\CafcaServiceProvider"
+    ],
+    "files": []
+}

@@ -2,7 +2,7 @@
 
 namespace App\Contracts;
 
-use App\Models\Prospect;
+use Modules\Prospects\Models\Prospect;
 
 interface MarketingCampaignInterface
 {

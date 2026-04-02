@@ -1,0 +1,5 @@
+- traduccion
+- employees management
+- projects management
+- audit a project con ai
+- simulacion de presupuesto

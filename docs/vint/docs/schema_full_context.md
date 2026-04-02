@@ -1,0 +1,8353 @@
+# ESQUEMA COMPLETO DE BASE DE DATOS CAFCA (FULL DUMP)
+Generado el: 2026-01-06 20:57:18
+Driver: sqlsrv | DB: CLAESEN
+
+## Resumen: 296 Tablas Encontradas
+
+### Tabla: `account`
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **changefile_client** : bit (NULL)
+- **changefile_invoice** : bit (NULL)
+- **changefile_purchase** : bit (NULL)
+- **dbf_client** : nvarchar(255) (NULL)
+- **dbf_invoice_detail** : nvarchar(255) (NULL)
+- **dbf_invoice_head** : nvarchar(255) (NULL)
+- **dbf_invoice_totals** : nvarchar(255) (NULL)
+- **dbf_purchase_detail** : nvarchar(255) (NULL)
+- **dbf_purchase_head** : nvarchar(255) (NULL)
+- **dbf_purchase_totals** : nvarchar(255) (NULL)
+- **dbf_supplier** : nvarchar(255) (NULL)
+- **delimiter_client** : nvarchar(10) (NULL)
+- **delimiter_invoice_detail** : nvarchar(10) (NULL)
+- **delimiter_invoice_head** : nvarchar(10) (NULL)
+- **delimiter_invoice_totals** : nvarchar(10) (NULL)
+- **delimiter_purchase_detail** : nvarchar(10) (NULL)
+- **delimiter_purchase_head** : nvarchar(10) (NULL)
+- **delimiter_purchase_totals** : nvarchar(10) (NULL)
+- **delimiter_supplier** : nvarchar(10) (NULL)
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **fl_client** : bit (NULL)
+- **fl_invoice_detail** : bit (NULL)
+- **fl_invoice_head** : bit (NULL)
+- **fl_invoice_totals** : bit (NULL)
+- **fl_purchase_detail** : bit (NULL)
+- **fl_purchase_head** : bit (NULL)
+- **fl_purchase_totals** : bit (NULL)
+- **fl_supplier** : bit (NULL)
+- **fl_skipempty_client** : bit (NULL)
+- **fl_skipempty_invoice_detail** : bit (NULL)
+- **fl_skipempty_invoice_head** : bit (NULL)
+- **fl_skipempty_invoice_totals** : bit (NULL)
+- **fl_skipempty_purchase_detail** : bit (NULL)
+- **fl_skipempty_purchase_head** : bit (NULL)
+- **fl_skipempty_purchase_totals** : bit (NULL)
+- **fl_skipempty_supplier** : bit (NULL)
+- **fl_skipzero_invoice_detail** : bit (NULL)
+- **fl_skipzero_invoice_head** : bit (NULL)
+- **fl_skipzero_invoice_totals** : bit (NULL)
+- **fl_skipzero_purchase_detail** : bit (NULL)
+- **fl_skipzero_purchase_head** : bit (NULL)
+- **fl_skipzero_purchase_totals** : bit (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **path_invoice** : nvarchar(255) (NULL)
+- **path_purchase** : nvarchar(255) (NULL)
+- **path_relation** : nvarchar(255) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type_client** : int (NULL)
+- **type_invoice_detail** : int (NULL)
+- **type_invoice_head** : int (NULL)
+- **type_invoice_totals** : int (NULL)
+- **type_purchase_detail** : int (NULL)
+- **type_purchase_head** : int (NULL)
+- **type_purchase_totals** : int (NULL)
+- **type_supplier** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **xml_element_client** : nvarchar(50) (NULL)
+- **xml_element_invoice_detail** : nvarchar(50) (NULL)
+- **xml_element_invoice_head** : nvarchar(50) (NULL)
+- **xml_element_invoice_totals** : nvarchar(50) (NULL)
+- **xml_element_main_invoice** : nvarchar(50) (NULL)
+- **xml_element_main_purchase** : nvarchar(50) (NULL)
+- **xml_element_main_relation** : nvarchar(50) (NULL)
+- **xml_element_purchase_detail** : nvarchar(50) (NULL)
+- **xml_element_purchase_head** : nvarchar(50) (NULL)
+- **xml_element_purchase_totals** : nvarchar(50) (NULL)
+- **xml_element_supplier** : nvarchar(50) (NULL)
+- **xml_format_client** : nvarchar(50) (NULL)
+- **xml_format_invoice_detail** : nvarchar(50) (NULL)
+- **xml_format_invoice_head** : nvarchar(50) (NULL)
+- **xml_format_invoice_totals** : nvarchar(50) (NULL)
+- **xml_format_purchase_detail** : nvarchar(50) (NULL)
+- **xml_format_purchase_head** : nvarchar(50) (NULL)
+- **xml_format_purchase_totals** : nvarchar(50) (NULL)
+- **xml_format_supplier** : nvarchar(50) (NULL)
+
+---
+### Tabla: `account_adjust`
+- **account_id** : int (NOT NULL) 🔑?
+- **cut_flnumber** : bit (NULL)
+- **cut_fltext** : bit (NULL)
+- **cut_fltrim** : bit (NULL)
+- **cut_from** : nvarchar(2) (NULL)
+- **cut_to** : nvarchar(2) (NULL)
+- **edit_all** : bit (NULL)
+- **fl_onlylast** : bit (NULL)
+- **format_prefix** : nvarchar(50) (NULL)
+- **format_suffix** : nvarchar(50) (NULL)
+- **format_value** : nvarchar(50) (NULL)
+- **formule_destvalue1** : nvarchar(50) (NULL)
+- **formule_destvalue2** : nvarchar(50) (NULL)
+- **formule_sourcefield** : nvarchar(50) (NULL)
+- **formule_sourceoperator** : int (NULL)
+- **formule_sourcevalue** : nvarchar(50) (NULL)
+- **length_align** : int (NULL)
+- **length_fill** : nvarchar(1) (NULL)
+- **length_value** : int (NULL)
+- **round_flabs** : bit (NULL)
+- **round_flcsdbl** : bit (NULL)
+- **round_fldown** : bit (NULL)
+- **round_value** : int (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **seq_nr2** : int (NOT NULL)
+- **sql** : text(2147483647) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `account_adjust_cut`
+- **account_id** : int (NOT NULL) 🔑?
+- **cut_flnumber** : bit (NULL)
+- **cut_fltext** : bit (NULL)
+- **cut_fltrim** : bit (NULL)
+- **cut_from** : nvarchar(2) (NULL)
+- **cut_to** : nvarchar(2) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **seq_nr2** : int (NOT NULL)
+- **seq_nr3** : int (NOT NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `account_adjust_edit`
+- **account_id** : int (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **seq_nr2** : int (NOT NULL)
+- **seq_nr3** : int (NOT NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **value_from** : nvarchar(50) (NULL)
+- **value_to** : nvarchar(50) (NULL)
+
+---
+### Tabla: `account_adjust_format`
+- **account_id** : int (NOT NULL) 🔑?
+- **position** : int (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **seq_nr2** : int (NOT NULL)
+- **seq_nr3** : int (NOT NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **value** : nvarchar(50) (NULL)
+
+---
+### Tabla: `account_adjust_formule`
+- **account_id** : int (NOT NULL) 🔑?
+- **destvalue** : nvarchar(50) (NULL)
+- **parent** : int (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **seq_nr2** : int (NOT NULL)
+- **seq_nr3** : int (NOT NULL)
+- **sourcefield** : nvarchar(50) (NULL)
+- **sourceoperator** : int (NULL)
+- **sourcevalue** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `account_adjust_formule_group`
+- **account_id** : int (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **seq_nr2** : int (NOT NULL)
+- **seq_nr3** : int (NOT NULL)
+- **seq_nr4** : int (NOT NULL)
+- **sourcefield** : nvarchar(50) (NULL)
+- **sourceoperator** : int (NULL)
+- **sourcevalue** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `account_adjust_operator`
+- **account_id** : int (NOT NULL) 🔑?
+- **operator_field** : nvarchar(50) (NULL)
+- **operator_opt** : int (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **seq_nr2** : int (NOT NULL)
+- **seq_nr3** : int (NOT NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `account_extra`
+- **account_id** : int (NOT NULL) 🔑?
+- **descr** : nvarchar(50) (NULL)
+- **fl_askvalue** : bit (NULL)
+- **name** : nvarchar(50) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **value** : nvarchar(255) (NULL)
+
+---
+### Tabla: `account_field`
+- **account_id** : int (NOT NULL) 🔑?
+- **fieldname** : nvarchar(50) (NULL)
+- **name** : nvarchar(50) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `account_file`
+- **account_id** : int (NOT NULL) 🔑?
+- **kind** : int (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NOT NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **value** : nvarchar(50) (NULL)
+
+---
+### Tabla: `account_header`
+- **account_id** : int (NOT NULL) 🔑?
+- **dec** : int (NULL)
+- **kind** : int (NULL)
+- **name** : nvarchar(50) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **size** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NOT NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `account_info`
+- **account** : nvarchar(50) (NOT NULL)
+- **credit** : float (NULL)
+- **debet** : float (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **purchase_id** : int (NOT NULL) 🔑?
+- **remark** : nvarchar(50) (NULL)
+- **type** : int (NULL)
+
+---
+### Tabla: `account_result`
+- **account_id** : int (NOT NULL) 🔑?
+- **kind** : int (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NOT NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **value** : nvarchar(50) (NULL)
+
+---
+### Tabla: `accounting_settings`
+- **access_token** : nvarchar(50) (NULL)
+- **last_token_demand_time** : datetime (NULL)
+- **program** : nvarchar(50) (NOT NULL)
+- **refresh_token** : nvarchar(50) (NULL)
+
+---
+### Tabla: `activities`
+- **activity** : nvarchar(50) (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **id** : smallint (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `cafca.tmp_estimate_articles_non_bib`
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **parent_seqnr** : int (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **estimate_position** : nvarchar(20) (NULL)
+- **composition_id** : int (NOT NULL) 🔑?
+- **art_id** : int (NOT NULL) 🔑?
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : ntext(1073741823) (NULL)
+
+---
+### Tabla: `calculate`
+- **count** : int (NULL)
+- **Descr** : nvarchar(30) (NULL)
+- **ID** : int (NOT NULL) 🔑?
+- **maat1** : float (NULL)
+- **maat2** : float (NULL)
+- **maat3** : float (NULL)
+- **maat4** : float (NULL)
+- **maat5** : float (NULL)
+- **operation** : nvarchar(50) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **Shape** : nvarchar(50) (NULL)
+- **sort** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `call`
+- **calldate** : datetime (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **namefrom** : nvarchar(50) (NULL)
+- **nameto** : nvarchar(50) (NULL)
+- **phonefrom** : nvarchar(20) (NULL)
+- **phoneto** : nvarchar(20) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `cashbook`
+- **amount_in** : float (NULL)
+- **amount_out** : float (NULL)
+- **date** : datetime (NULL)
+- **document** : smallint (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **invoice_id** : nvarchar(15) (NULL) 🔑?
+- **name** : nvarchar(100) (NULL)
+- **paymenttype** : smallint (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **remark** : nvarchar(50) (NULL)
+- **seq_nr** : smallint (NULL) 🔑?
+- **saldo** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `catalog`
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **fl_export** : bit (NULL)
+- **fl_show_in_library** : bit (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `catalog_security`
+- **catalog_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_id** : int (NULL) 🔑?
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `CATALOGBUILDER`
+- **SUPPLIER** : nvarchar(25) (NOT NULL)
+- **LoginName** : nvarchar(40) (NULL)
+- **PW** : text(2147483647) (NULL)
+- **UserID** : nvarchar(40) (NULL) 🔑?
+- **KortingsGroepen** : varchar(100) (NULL)
+
+---
+### Tabla: `checkinatwork`
+- **creation_date** : datetime (NULL)
+- **fl_error** : bit (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **limosa** : nvarchar(50) (NULL)
+- **name** : nvarchar(50) (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **registration_date** : datetime (NULL)
+- **registrationid** : nvarchar(50) (NULL) 🔑?
+- **resultdescr** : nvarchar(50) (NULL)
+- **rijksregisternr** : nvarchar(50) (NULL) 🔑?
+- **vat** : nvarchar(20) (NULL)
+- **workplaceid** : nvarchar(30) (NULL) 🔑?
+
+---
+### Tabla: `cloud_contact`
+- **ContactID** : int (NOT NULL) 🔑?
+- **RELATION_ID** : int (NULL) 🔑?
+- **SEQ_NR** : int (NULL) 🔑?
+- **NAME** : nvarchar(35) (NULL)
+- **EMAIL** : nvarchar(200) (NULL)
+- **ACTIVE** : bit (NULL)
+
+---
+### Tabla: `cloud_delivery`
+- **DeliveryID** : int (NOT NULL) 🔑?
+- **RELATION_ID** : int (NULL) 🔑?
+- **SEQ_NR** : int (NULL) 🔑?
+- **NAME** : nvarchar(100) (NULL)
+- **STREET** : nvarchar(255) (NULL)
+- **CITY** : nvarchar(35) (NULL)
+- **ZIPCODE** : nvarchar(15) (NULL) 🔑?
+- **ACTIVE** : bit (NULL)
+- **HasWorkDocs** : int (NULL)
+- **HasProjects** : int (NULL)
+- **HasMaintenances** : int (NULL)
+
+---
+### Tabla: `cloud_relation`
+- **RelationID** : int (NOT NULL) 🔑?
+- **ID** : int (NULL) 🔑?
+- **NAME** : nvarchar(100) (NULL)
+- **STREET** : nvarchar(255) (NULL)
+- **CITY** : nvarchar(35) (NULL)
+- **ZIPCODE** : nvarchar(15) (NULL) 🔑?
+- **ACTIVE** : bit (NULL)
+- **HasContacts** : int (NULL)
+- **HasDeliveryAddresses** : int (NULL)
+- **HasInvoiceAddresses** : int (NULL)
+- **HasWorkDocs** : int (NULL)
+- **HasProjects** : int (NULL)
+- **HasMaintenances** : int (NULL)
+
+---
+### Tabla: `coda_bvb_detail`
+- **code** : nvarchar(2) (NULL) 🔑?
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **main_id** : int (NOT NULL) 🔑?
+- **pos_end** : int (NULL)
+- **pos_start** : int (NULL)
+- **remark** : nvarchar(1000) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **size** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `coda_bvb_main`
+- **category** : nvarchar(3) (NULL)
+- **code** : nvarchar(3) (NULL) 🔑?
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `coda_dagafsch`
+- **date_create** : datetime (NULL)
+- **date_saldo_new** : datetime (NULL)
+- **date_saldo_old** : datetime (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **key_dagafsch** : int (NULL)
+- **rekhouder** : nvarchar(255) (NULL)
+- **reknr** : nvarchar(255) (NULL) 🔑?
+- **saldo_new** : float (NULL)
+- **saldo_old** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **version** : nvarchar(2) (NULL)
+
+---
+### Tabla: `coda_mededeling`
+- **fl_structured** : bit (NULL)
+- **family_verrichting** : varchar(255) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **key_dagafsch** : int (NULL)
+- **key_detailnr** : int (NULL) 🔑?
+- **key_movement** : int (NULL)
+- **mededeling31** : nvarchar(255) (NULL)
+- **mededeling32** : nvarchar(255) (NULL)
+- **mededeling33** : nvarchar(255) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `coda_movement`
+- **amount** : float (NULL)
+- **category_code** : nvarchar(255) (NULL) 🔑?
+- **dagafsch_nummer** : int (NULL)
+- **date_booking** : datetime (NULL)
+- **date_valuta** : datetime (NULL)
+- **fl_structured** : bit (NULL)
+- **family_verrichting** : nvarchar(255) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **invoice_id** : varchar(15) (NULL) 🔑?
+- **key_dagafsch** : int (NULL)
+- **key_detailnr** : int (NULL) 🔑?
+- **key_movement** : int (NULL)
+- **mededeling21** : nvarchar(255) (NULL)
+- **mededeling22** : nvarchar(255) (NULL)
+- **mededeling23** : nvarchar(255) (NULL)
+- **naam_tegenpartij** : nvarchar(255) (NULL)
+- **purpose_code** : nvarchar(255) (NULL) 🔑?
+- **referte_bank** : nvarchar(255) (NULL)
+- **referte_client** : nvarchar(255) (NULL)
+- **referte_opdrachtgever** : nvarchar(255) (NULL)
+- **reknr** : nvarchar(255) (NULL) 🔑?
+- **rek_tegenpartij** : nvarchar(255) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `contact_link`
+- **document_id** : int (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `contract`
+- **ID** : int (NOT NULL) 🔑?
+- **name** : nvarchar(50) (NULL)
+- **name_customer** : nvarchar(50) (NULL)
+- **transportcost** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `contract_employee`
+- **contract_id** : int (NOT NULL) 🔑?
+- **employee_id** : int (NOT NULL) 🔑?
+- **salesprice** : float (NULL)
+- **transportcost** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `contract_labor_type`
+- **contract_id** : int (NOT NULL) 🔑?
+- **labor_type** : int (NOT NULL)
+- **percentage** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `cpy_estimate_element_tree`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **composition_id** : int (NOT NULL) 🔑?
+- **costprice_equipment** : float (NULL)
+- **costprice_labor** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **descr** : nvarchar(81) (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **fl_fixed_quantity** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **level_nr** : int (NOT NULL) 🔑?
+- **norm** : float (NULL)
+- **parent_seqnr** : int (NOT NULL) 🔑?
+- **quantity** : float (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **remark** : nvarchar(100) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `cpy_estimate_item`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **calculation_id** : int (NULL) 🔑?
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **composition_id** : int (NULL) 🔑?
+- **costprice_equipment** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **descr** : ntext(1073741823) (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **estimate_position** : nvarchar(12) (NULL)
+- **extra_cost** : float (NULL)
+- **factor_equipment** : real (NULL)
+- **factor_labor** : real (NULL)
+- **factor_material** : real (NULL)
+- **factor_subcontract** : real (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_fixed_quantity** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_variant** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **measuring_type** : smallint (NULL)
+- **norm** : float (NULL)
+- **picture_id** : int (NULL) 🔑?
+- **profit** : float (NULL)
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **remark** : ntext(1073741823) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **title** : nvarchar(1) (NULL)
+- **total_costprice** : float (NULL)
+- **total_costprice_equipment** : float (NULL)
+- **total_costprice_labor** : float (NULL)
+- **total_costprice_material** : float (NULL)
+- **total_costprice_subcontract** : float (NULL)
+- **total_hours** : float (NULL)
+- **total_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **unit_price_manual_entered** : bit (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(16) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+
+---
+### Tabla: `custom_list`
+- **descr** : nvarchar(200) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : nvarchar(20) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `delivery`
+- **activity_id** : smallint (NULL) 🔑?
+- **addition_cp** : bit (NULL)
+- **addition_factor_equipment** : float (NULL)
+- **addition_factor_labor** : float (NULL)
+- **addition_factor_material** : float (NULL)
+- **addition_factor_subcontract** : float (NULL)
+- **addition_group** : bit (NULL)
+- **addition_sp** : bit (NULL)
+- **advance** : float (NULL)
+- **book_remark** : nvarchar(25) (NULL)
+- **carrier_id** : int (NULL) 🔑?
+- **city** : nvarchar(35) (NULL)
+- **contact_email** : nvarchar(50) (NULL)
+- **contact_mobile** : nvarchar(20) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **country** : smallint (NULL)
+- **currency** : smallint (NULL)
+- **customer_discount** : float (NULL)
+- **date** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **delay** : smallint (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **fax** : nvarchar(20) (NULL)
+- **fl_active** : bit (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_backorder** : bit (NULL)
+- **fl_cancelled** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_paid** : bit (NULL) 🔑?
+- **fl_returnmentDoc** : bit (NULL)
+- **fl_sent** : bit (NULL)
+- **fl_show_payment_discount** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_transfered** : bit (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **language** : tinyint (NULL)
+- **memo** : int (NULL)
+- **name** : nvarchar(100) (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **payment_discount** : float (NULL)
+- **payment_term** : nvarchar(35) (NULL)
+- **price_type** : smallint (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(255) (NULL)
+- **ref_cust** : nvarchar(255) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **relation_ref** : nvarchar(50) (NULL)
+- **remark1** : nvarchar(100) (NULL)
+- **remark2** : nvarchar(100) (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **returning_costs** : int (NULL)
+- **status** : int (NULL)
+- **street** : nvarchar(255) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **title_contact** : nvarchar(20) (NULL)
+- **total_paid** : float (NULL) 🔑?
+- **total_price** : float (NULL)
+- **total_price_vat_excl** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `delivery_line`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **comment** : nvarchar(50) (NULL)
+- **costprice** : float (NULL)
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar (NULL)
+- **discount** : float (NULL)
+- **discount2** : float (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **fl_print_picture** : bit (NULL)
+- **invoice** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_materials** : bit (NULL)
+- **location_id** : int (NULL) 🔑?
+- **lotnumber** : nvarchar(25) (NULL)
+- **picture_id** : int (NULL) 🔑?
+- **position** : nvarchar(20) (NULL)
+- **price_type** : smallint (NULL)
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **quantity_delivered** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction** : float (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **ref_supplier** : nvarchar(50) (NULL)
+- **serialnumber** : nvarchar(25) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **st_sales_price** : float (NULL)
+- **stock** : tinyint (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+
+---
+### Tabla: `dossier`
+- **architect_id** : int (NULL) 🔑?
+- **date** : datetime (NULL)
+- **date_followup** : datetime (NULL)
+- **date_start** : datetime (NULL)
+- **date_tender** : datetime (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **designer_id_1** : int (NULL)
+- **designer_id_2** : int (NULL)
+- **designer3** : nvarchar(50) (NULL)
+- **distance** : int (NULL)
+- **dossier_address1** : int (NULL)
+- **dossier_address2** : nvarchar(50) (NULL)
+- **fl_active** : bit (NULL)
+- **id** : nvarchar(50) (NOT NULL) 🔑?
+- **memo** : int (NULL)
+- **name** : nvarchar(100) (NULL)
+- **origin** : int (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **param4** : nvarchar(40) (NULL)
+- **param5** : nvarchar(40) (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_address_relation_id** : int (NULL) 🔑?
+- **project_aanbesteding** : bit (NULL)
+- **project_executing** : bit (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **status** : int (NULL)
+- **subject** : nvarchar(255) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `dossier_docs`
+- **doc_1** : nvarchar(255) (NULL)
+- **doc_10** : nvarchar(255) (NULL)
+- **doc_2** : nvarchar(255) (NULL)
+- **doc_3** : nvarchar(255) (NULL)
+- **doc_4** : nvarchar(255) (NULL)
+- **doc_5** : nvarchar(255) (NULL)
+- **doc_6** : nvarchar(255) (NULL)
+- **doc_7** : nvarchar(255) (NULL)
+- **doc_8** : nvarchar(255) (NULL)
+- **doc_9** : nvarchar(255) (NULL)
+- **docname1_descr_l1** : nvarchar(50) (NULL)
+- **docname1_descr_l2** : nvarchar(50) (NULL)
+- **docname1_descr_l3** : nvarchar(50) (NULL)
+- **docname1_descr_l4** : nvarchar(50) (NULL)
+- **docname10_descr_l1** : nvarchar(50) (NULL)
+- **docname10_descr_l2** : nvarchar(50) (NULL)
+- **docname10_descr_l3** : nvarchar(50) (NULL)
+- **docname10_descr_l4** : nvarchar(50) (NULL)
+- **docname2_descr_l1** : nvarchar(50) (NULL)
+- **docname2_descr_l2** : nvarchar(50) (NULL)
+- **docname2_descr_l3** : nvarchar(50) (NULL)
+- **docname2_descr_l4** : nvarchar(50) (NULL)
+- **docname3_descr_l1** : nvarchar(50) (NULL)
+- **docname3_descr_l2** : nvarchar(50) (NULL)
+- **docname3_descr_l3** : nvarchar(50) (NULL)
+- **docname3_descr_l4** : nvarchar(50) (NULL)
+- **docname4_descr_l1** : nvarchar(50) (NULL)
+- **docname4_descr_l2** : nvarchar(50) (NULL)
+- **docname4_descr_l3** : nvarchar(50) (NULL)
+- **docname4_descr_l4** : nvarchar(50) (NULL)
+- **docname5_descr_l1** : nvarchar(50) (NULL)
+- **docname5_descr_l2** : nvarchar(50) (NULL)
+- **docname5_descr_l3** : nvarchar(50) (NULL)
+- **docname5_descr_l4** : nvarchar(50) (NULL)
+- **docname6_descr_l1** : nvarchar(50) (NULL)
+- **docname6_descr_l2** : nvarchar(50) (NULL)
+- **docname6_descr_l3** : nvarchar(50) (NULL)
+- **docname6_descr_l4** : nvarchar(50) (NULL)
+- **docname7_descr_l1** : nvarchar(50) (NULL)
+- **docname7_descr_l2** : nvarchar(50) (NULL)
+- **docname7_descr_l3** : nvarchar(50) (NULL)
+- **docname7_descr_l4** : nvarchar(50) (NULL)
+- **docname8_descr_l1** : nvarchar(50) (NULL)
+- **docname8_descr_l2** : nvarchar(50) (NULL)
+- **docname8_descr_l3** : nvarchar(50) (NULL)
+- **docname8_descr_l4** : nvarchar(50) (NULL)
+- **docname9_descr_l1** : nvarchar(50) (NULL)
+- **docname9_descr_l2** : nvarchar(50) (NULL)
+- **docname9_descr_l3** : nvarchar(50) (NULL)
+- **docname9_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `dossier_estimate_activities`
+- **activity_id** : smallint (NULL) 🔑?
+- **dossier_id** : nvarchar(15) (NULL) 🔑?
+- **fl_estimate** : bit (NULL)
+- **seq_nr** : smallint (NULL) 🔑?
+- **state** : int (NULL)
+
+---
+### Tabla: `dossier_estimate_applicants`
+- **Activity_id** : smallint (NULL) 🔑?
+- **Copy_to_function** : int (NULL)
+- **Copy_to_name** : nvarchar(50) (NULL)
+- **Copy_to_seqnr** : smallint (NULL) 🔑?
+- **Date_received** : datetime (NULL)
+- **Descr** : nvarchar(255) (NULL)
+- **detailsubactivity** : int (NULL)
+- **Dossier_id** : nvarchar(50) (NOT NULL) 🔑?
+- **Estimate_to_function** : int (NULL)
+- **Estimate_to_name** : nvarchar(50) (NULL)
+- **Estimate_to_seqnr** : smallint (NULL) 🔑?
+- **ref_cust** : nvarchar(30) (NULL)
+- **Relation_id** : int (NULL) 🔑?
+- **Relation_name** : nvarchar(100) (NULL)
+- **Resource** : nvarchar(25) (NULL)
+- **Seqnr** : int (NOT NULL) 🔑?
+- **State** : int (NULL)
+- **subactivity** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `dossier_paths`
+- **id** : int (NOT NULL) 🔑?
+- **name** : nvarchar(255) (NULL)
+- **parent** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `dtproperties`
+- **id** : int (NOT NULL) 🔑?
+- **objectid** : int (NULL) 🔑?
+- **property** : varchar(64) (NOT NULL)
+- **value** : varchar(255) (NULL)
+- **uvalue** : nvarchar(255) (NULL)
+- **lvalue** : image(2147483647) (NULL)
+- **version** : int (NOT NULL)
+
+---
+### Tabla: `easytech_material`
+- **id** : int (NOT NULL) 🔑?
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **ts_modif** : datetime (NULL)
+- **fl_deleted** : bit (NULL)
+- **fl_inserted** : bit (NULL)
+
+---
+### Tabla: `element`
+- **account_purchase** : nvarchar(50) (NULL)
+- **account_sales** : nvarchar(50) (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **call_id2** : nvarchar(50) (NULL)
+- **costprice** : float (NULL)
+- **costprice_equipment** : float (NULL)
+- **costprice_labor** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **date** : datetime (NULL)
+- **descr_l1** : ntext(1073741823) (NULL)
+- **descr_l2** : ntext(1073741823) (NULL)
+- **descr_l3** : ntext(1073741823) (NULL)
+- **descr_l4** : ntext(1073741823) (NULL)
+- **fl_current** : bit (NULL)
+- **fl_has_children** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **labor_c_price** : float (NULL)
+- **norm** : float (NULL)
+- **picture_id** : int (NULL) 🔑?
+- **ref** : nvarchar(15) (NULL)
+- **remark** : int (NULL)
+- **remark_l2** : int (NULL)
+- **remark_l3** : int (NULL)
+- **remark_l4** : int (NULL)
+- **remark_subcontr** : int (NULL)
+- **remark_subcontr_l2** : int (NULL)
+- **remark_subcontr_l3** : int (NULL)
+- **remark_subcontr_l4** : int (NULL)
+- **remark_subcontr_l5** : int (NULL)
+- **remark_subcontr_l6** : int (NULL)
+- **sales_price_1** : float (NULL)
+- **sales_price_2** : float (NULL)
+- **sales_price_3** : float (NULL)
+- **sales_price_1_equipment** : float (NULL)
+- **sales_price_2_equipment** : float (NULL)
+- **sales_price_3_equipment** : float (NULL)
+- **sales_price_1_labor** : float (NULL)
+- **sales_price_2_labor** : float (NULL)
+- **sales_price_3_labor** : float (NULL)
+- **sales_price_1_material** : float (NULL)
+- **sales_price_2_material** : float (NULL)
+- **sales_price_3_material** : float (NULL)
+- **sales_price_1_subcontract** : float (NULL)
+- **sales_price_2_subcontract** : float (NULL)
+- **sales_price_3_subcontract** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **url** : nvarchar(255) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+
+---
+### Tabla: `element_parameters`
+- **equipment_1** : float (NULL)
+- **equipment_2** : float (NULL)
+- **equipment_3** : float (NULL)
+- **factor_permanent** : bit (NULL)
+- **labor_1** : float (NULL)
+- **labor_2** : float (NULL)
+- **labor_3** : float (NULL)
+- **material_1** : float (NULL)
+- **material_2** : float (NULL)
+- **material_3** : float (NULL)
+- **subcontract_1** : float (NULL)
+- **subcontract_2** : float (NULL)
+- **subcontract_3** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `element_tree`
+- **child_id** : int (NOT NULL) 🔑?
+- **child_norm** : float (NULL)
+- **costprice** : float (NULL)
+- **element_id** : int (NOT NULL) 🔑?
+- **fct_equipment1** : float (NULL)
+- **fct_equipment2** : float (NULL)
+- **fct_equipment3** : float (NULL)
+- **fct_labor1** : float (NULL)
+- **fct_labor2** : float (NULL)
+- **fct_labor3** : float (NULL)
+- **fct_material1** : float (NULL)
+- **fct_material2** : float (NULL)
+- **fct_material3** : float (NULL)
+- **fct_subcontract1** : float (NULL)
+- **fct_subcontract2** : float (NULL)
+- **fct_subcontract3** : float (NULL)
+- **fl_fixed_quantity** : bit (NULL)
+- **labor_c_price** : float (NULL)
+- **quantity** : float (NULL)
+- **sales_price_1** : float (NULL)
+- **sales_price_2** : float (NULL)
+- **sales_price_3** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NOT NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `employee`
+- **aantal_dagen** : int (NULL)
+- **addition** : float (NULL)
+- **adres_rekeninghouder** : nvarchar(50) (NULL)
+- **andere_minderval_tenlaste** : int (NULL)
+- **andere_val_tenlaste** : int (NULL)
+- **barema_soc_abon** : float (NULL)
+- **begin_leercontract** : datetime (NULL)
+- **beroep_echtg** : nvarchar(50) (NULL)
+- **betaling** : int (NULL)
+- **birthday** : datetime (NULL)
+- **birthplace** : nvarchar(50) (NULL)
+- **burgerlijke_stand** : int (NULL)
+- **BV_loonberek** : bit (NULL)
+- **BV_werkloosh** : bit (NULL)
+- **call_id** : nvarchar(10) (NULL) 🔑?
+- **city** : nvarchar(35) (NULL)
+- **code_dv_1** : nvarchar(50) (NULL)
+- **code_dv_2** : nvarchar(50) (NULL)
+- **code_dv_3** : nvarchar(50) (NULL)
+- **code_vb_1** : nvarchar(50) (NULL)
+- **code_vb_2** : nvarchar(50) (NULL)
+- **code_vb_3** : nvarchar(50) (NULL)
+- **code_vb_4** : nvarchar(50) (NULL)
+- **code_vb_5** : nvarchar(50) (NULL)
+- **country** : int (NULL)
+- **countrycode** : nvarchar(50) (NULL) 🔑?
+- **default_transport** : int (NULL)
+- **department** : nvarchar(20) (NULL)
+- **dimonanr** : nvarchar(50) (NULL) 🔑?
+- **driver_cp** : float (NULL)
+- **driver_sp** : float (NULL)
+- **driver_wop_cp** : float (NULL)
+- **driver_wop_sp** : float (NULL)
+- **driverslicense** : nvarchar(50) (NULL)
+- **duur** : int (NULL)
+- **dv_1** : float (NULL)
+- **dv_2** : float (NULL)
+- **dv_3** : float (NULL)
+- **echtg_tenlaste** : int (NULL)
+- **education_1** : nvarchar(50) (NULL)
+- **education_2** : nvarchar(50) (NULL)
+- **education_3** : nvarchar(50) (NULL)
+- **email** : nvarchar(50) (NULL)
+- **fiscaal_stelsel** : nvarchar(50) (NULL)
+- **fl_active** : bit (NULL)
+- **fl_archive** : bit (NULL)
+- **fr_from1** : datetime (NULL)
+- **fr_from2** : datetime (NULL)
+- **fr_to1** : datetime (NULL)
+- **fr_to2** : datetime (NULL)
+- **functie** : nvarchar(50) (NULL)
+- **geboortedatum_echtg** : datetime (NULL)
+- **gender** : bit (NULL)
+- **gezinsverg_comp_kas** : nvarchar(50) (NULL)
+- **grossWage** : float (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **ident_kaartnr** : nvarchar(50) (NULL) 🔑?
+- **in_dienst** : datetime (NULL)
+- **index** : bit (NULL)
+- **internalcode** : nvarchar(50) (NULL) 🔑?
+- **juridisch_contract** : bit (NULL)
+- **kind_mindervalide** : int (NULL)
+- **kind_tenlaste** : int (NULL)
+- **km_thuis_werk** : int (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **language** : int (NULL)
+- **language_1** : nvarchar(50) (NULL)
+- **language_2** : nvarchar(50) (NULL)
+- **language_3** : nvarchar(50) (NULL)
+- **language_4** : nvarchar(50) (NULL)
+- **leercontract_nr** : nvarchar(50) (NULL) 🔑?
+- **location_id** : int (NULL) 🔑?
+- **login** : nvarchar(50) (NULL)
+- **loon** : float (NULL)
+- **loon_per** : int (NULL)
+- **looncategorie** : int (NULL)
+- **mealvoucher_cardnumber** : nvarchar(20) (NULL)
+- **med_ability_to** : datetime (NULL)
+- **medical_ability** : nvarchar(50) (NULL)
+- **medical_ability_by_doctor** : datetime (NULL)
+- **medical_ability_by_nurse** : datetime (NULL)
+- **medicard_number** : nvarchar(20) (NULL)
+- **memo** : int (NULL)
+- **mo_from1** : datetime (NULL)
+- **mo_from2** : datetime (NULL)
+- **mo_to1** : datetime (NULL)
+- **mo_to2** : datetime (NULL)
+- **mobile** : nvarchar(20) (NULL)
+- **mobile_private** : nvarchar(20) (NULL)
+- **naam_echtg** : nvarchar(50) (NULL)
+- **name** : nvarchar(50) (NULL)
+- **nationaliteit** : int (NULL)
+- **nationality** : int (NULL)
+- **nonemployeelist** : bit (NULL)
+- **owncar_cp** : float (NULL)
+- **owncar_sp** : float (NULL)
+- **paritair_comité** : nvarchar(50) (NULL)
+- **passenger_cp** : float (NULL)
+- **passenger_sp** : float (NULL)
+- **password** : nvarchar(50) (NULL)
+- **pda_address** : nvarchar(50) (NULL)
+- **pers_registernr** : nvarchar(50) (NULL) 🔑?
+- **picture** : nvarchar(255) (NULL)
+- **postnr_gem_rekeninghouder** : nvarchar(50) (NULL)
+- **postnr_werkplaats** : nvarchar(50) (NULL)
+- **qualification_1** : nvarchar(50) (NULL)
+- **qualification_2** : nvarchar(50) (NULL)
+- **qualification_3** : nvarchar(50) (NULL)
+- **rekeninghouder** : nvarchar(50) (NULL)
+- **rekeningnr** : nvarchar(50) (NULL) 🔑?
+- **rijksregisternr** : nvarchar(50) (NULL) 🔑?
+- **RSZ_categorie** : int (NULL)
+- **RSZ_forfait_code** : nvarchar(6) (NULL) 🔑?
+- **RSZ_plichtig** : bit (NULL)
+- **RSZ_vw** : nvarchar(50) (NULL)
+- **RSZ_vw_totkwart** : nvarchar(50) (NULL)
+- **RSZ_vw_vankwart** : nvarchar(50) (NULL)
+- **sa_from1** : datetime (NULL)
+- **sa_from2** : datetime (NULL)
+- **sa_to1** : datetime (NULL)
+- **sa_to2** : datetime (NULL)
+- **salesPrice** : float (NULL)
+- **semaphone** : nvarchar(20) (NULL)
+- **showonplanning** : bit (NULL)
+- **showonplanning_color** : int (NULL)
+- **signowncar** : nvarchar(50) (NULL)
+- **SIS_nr** : nvarchar(50) (NULL) 🔑?
+- **SISdate** : datetime (NULL)
+- **SISnummer** : nvarchar(50) (NULL)
+- **sizeFoot** : float (NULL)
+- **sizeTop** : nvarchar(20) (NULL)
+- **sizeTrousers** : nvarchar(20) (NULL)
+- **solidariteitsbijdrage** : bit (NULL)
+- **stamnr_comp_kas** : nvarchar(50) (NULL)
+- **stelsel** : int (NULL)
+- **street** : nvarchar(50) (NULL)
+- **su_from1** : datetime (NULL)
+- **su_from2** : datetime (NULL)
+- **su_to1** : datetime (NULL)
+- **su_to2** : datetime (NULL)
+- **taal_code** : int (NULL) 🔑?
+- **tel** : nvarchar(20) (NULL)
+- **th_from1** : datetime (NULL)
+- **th_from2** : datetime (NULL)
+- **th_to1** : datetime (NULL)
+- **th_to2** : datetime (NULL)
+- **time** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **tu_from1** : datetime (NULL)
+- **tu_from2** : datetime (NULL)
+- **tu_to1** : datetime (NULL)
+- **tu_to2** : datetime (NULL)
+- **uit_dienst** : datetime (NULL)
+- **uren_per_week** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vb_1** : float (NULL)
+- **vb_2** : float (NULL)
+- **vb_3** : float (NULL)
+- **vb_4** : float (NULL)
+- **vb_5** : float (NULL)
+- **vehicle** : int (NULL)
+- **vehiclehome** : bit (NULL)
+- **voorschotlijst** : bit (NULL)
+- **we_from1** : datetime (NULL)
+- **we_from2** : datetime (NULL)
+- **we_to1** : datetime (NULL)
+- **we_to2** : datetime (NULL)
+- **werkvergunning_nr** : nvarchar(50) (NULL) 🔑?
+- **wn_mindervalide** : bit (NULL)
+- **ziekenfondsnr** : nvarchar(50) (NULL) 🔑?
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `employee_gang`
+- **employee_id** : int (NOT NULL) 🔑?
+- **gang_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `employee_limosa`
+- **employee_id** : int (NOT NULL) 🔑?
+- **limosa** : nvarchar(50) (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+
+---
+### Tabla: `employee_paths`
+- **id** : int (NOT NULL) 🔑?
+- **name** : nvarchar(255) (NULL)
+- **parent** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `equipment`
+- **account_purchase** : nvarchar(50) (NULL)
+- **account_sales** : nvarchar(50) (NULL)
+- **brand** : nvarchar(20) (NULL)
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **call_id2** : nvarchar(50) (NULL)
+- **control_id** : nvarchar(50) (NULL) 🔑?
+- **control_organism** : nvarchar(50) (NULL)
+- **costprice** : float (NULL)
+- **date** : datetime (NULL)
+- **date_last_ctrl** : datetime (NULL)
+- **date_received** : datetime (NULL)
+- **date_valid_to** : datetime (NULL)
+- **depreciation_method** : int (NULL)
+- **depreciation_units** : int (NULL)
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **dossier** : nvarchar(20) (NULL)
+- **external_ctrl** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **invoice_date** : datetime (NULL)
+- **invoice_id** : nvarchar(50) (NULL) 🔑?
+- **location** : nvarchar(10) (NULL)
+- **memo** : int (NULL)
+- **months_to_ctrl** : int (NULL)
+- **owner** : int (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **path** : nvarchar(255) (NULL)
+- **picture_id** : int (NULL) 🔑?
+- **previous_owner** : int (NULL)
+- **project_stage** : smallint (NULL)
+- **purchase_date** : datetime (NULL)
+- **purchase_price** : float (NULL)
+- **ref** : nvarchar(15) (NULL)
+- **sales_price_1** : float (NULL)
+- **sales_price_2** : float (NULL)
+- **sales_price_3** : float (NULL)
+- **serial** : nvarchar(20) (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : nvarchar(20) (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **url** : nvarchar(255) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **yearly_depreciation_c** : float (NULL)
+- **years_of_depreciation** : real (NULL)
+
+---
+### Tabla: `equipment_paths`
+- **id** : int (NOT NULL) 🔑?
+- **name** : nvarchar(255) (NULL)
+- **parent** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `estimate`
+- **activity_id** : smallint (NULL) 🔑?
+- **architect** : nvarchar(40) (NULL)
+- **architect_id** : int (NULL) 🔑?
+- **building_principal** : nvarchar(40) (NULL)
+- **city** : nvarchar(35) (NULL)
+- **contact_email** : nvarchar(50) (NULL)
+- **contact_mobile** : nvarchar(20) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **country** : smallint (NULL)
+- **currency** : smallint (NULL)
+- **customer_discount** : float (NULL)
+- **date** : datetime (NULL)
+- **date_approved** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **date_followup** : datetime (NULL)
+- **date_printed** : datetime (NULL)
+- **date_sent** : datetime (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **distance** : float (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **dossier_seqnr** : int (NULL) 🔑?
+- **email** : nvarchar(50) (NULL)
+- **fax** : nvarchar(20) (NULL)
+- **fl_active** : bit (NULL)
+- **fl_apply_pricetype_relation** : bit (NULL)
+- **fl_apply_salesprice** : bit (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_followup** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_lock_price** : bit (NULL)
+- **fl_printed** : bit (NULL)
+- **fl_print_pics** : bit (NULL)
+- **fl_sent** : bit (NULL)
+- **fl_show_payment_discount** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_company** : int (NULL)
+- **language** : smallint (NULL)
+- **memo** : int (NULL)
+- **mobile** : nvarchar(20) (NULL)
+- **name** : nvarchar(100) (NULL)
+- **origin** : int (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **param4** : nvarchar(40) (NULL)
+- **param5** : nvarchar(40) (NULL)
+- **payment_discount** : float (NULL)
+- **payment_term** : int (NULL)
+- **price_type** : smallint (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **ref** : nvarchar(50) (NULL)
+- **ref_cust** : nvarchar(30) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **relation_ref** : nvarchar(50) (NULL)
+- **remark1** : nvarchar(100) (NULL)
+- **remark2** : nvarchar(100) (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **resources** : smallint (NULL)
+- **standard_salesprice** : int (NULL)
+- **status** : smallint (NULL)
+- **street** : nvarchar(255) (NULL)
+- **subject** : ntext(1073741823) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **textend** : int (NULL)
+- **textstart** : int (NULL)
+- **title** : nvarchar(20) (NULL)
+- **title_contact** : nvarchar(20) (NULL)
+- **total_costprice** : float (NULL)
+- **total_price** : float (NULL)
+- **transport_duration** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **user_open** : nvarchar(100) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **word_text_end** : nvarchar(100) (NULL)
+- **word_text_start** : nvarchar(100) (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `estimate_calculation`
+- **additional_hours** : float (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **extra_cost_any_descr1** : nvarchar(50) (NULL)
+- **extra_cost_any_descr2** : nvarchar(50) (NULL)
+- **extra_cost_any_descr3** : nvarchar(50) (NULL)
+- **extra_cost_any1** : float (NULL)
+- **extra_cost_any2** : float (NULL)
+- **extra_cost_any3** : float (NULL)
+- **extra_cost_building_site_descr1** : nvarchar(50) (NULL)
+- **extra_cost_building_site_descr2** : nvarchar(50) (NULL)
+- **extra_cost_building_site_descr3** : nvarchar(50) (NULL)
+- **extra_cost_building_site_descr4** : nvarchar(50) (NULL)
+- **extra_cost_building_site1** : float (NULL)
+- **extra_cost_building_site2** : float (NULL)
+- **extra_cost_building_site3** : float (NULL)
+- **extra_cost_building_site4** : float (NULL)
+- **extra_cost_calculation** : float (NULL)
+- **extra_cost_calculation_descr** : nvarchar(50) (NULL)
+- **extra_cost_company** : float (NULL)
+- **extra_cost_company_descr** : nvarchar(50) (NULL)
+- **extra_cost_company_one_hour** : float (NULL)
+- **extra_cost_design** : float (NULL)
+- **extra_cost_design_descr** : nvarchar(50) (NULL)
+- **extra_cost_insurance** : float (NULL)
+- **extra_cost_insurance_descr** : nvarchar(50) (NULL)
+- **extra_cost_management** : float (NULL)
+- **extra_cost_management_descr** : nvarchar(50) (NULL)
+- **extra_cost_transport** : float (NULL)
+- **extra_cost_transport_descr** : nvarchar(50) (NULL)
+- **factor_equipment** : float (NULL)
+- **factor_labor** : float (NULL)
+- **factor_material** : float (NULL)
+- **factor_qty_labor** : float (NULL)
+- **factor_qty_material** : float (NULL)
+- **factor_subcontract** : float (NULL)
+- **factor_total_1** : float (NULL)
+- **factor_total_1_descr** : nvarchar(20) (NULL)
+- **factor_total_2** : float (NULL)
+- **factor_total_2_descr** : nvarchar(20) (NULL)
+- **factor_total_3** : float (NULL)
+- **factor_total_3_descr** : nvarchar(20) (NULL)
+- **factor_unitprice** : float (NULL)
+- **fl_apply_quantity** : bit (NULL)
+- **fl_apply_sales_price** : bit (NULL)
+- **fl_factor_total_price** : bit (NULL)
+- **fl_factor_unit_prices** : bit (NULL)
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **qty_employees** : smallint (NULL)
+- **sales_price** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `estimate_element_tree`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **composition_id** : int (NOT NULL) 🔑?
+- **costprice_equipment** : float (NULL)
+- **costprice_labor** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **fct_equipment1** : float (NULL)
+- **fct_equipment2** : float (NULL)
+- **fct_equipment3** : float (NULL)
+- **fct_labor1** : float (NULL)
+- **fct_labor2** : float (NULL)
+- **fct_labor3** : float (NULL)
+- **fct_material1** : float (NULL)
+- **fct_material2** : float (NULL)
+- **fct_material3** : float (NULL)
+- **fct_subcontract1** : float (NULL)
+- **fct_subcontract2** : float (NULL)
+- **fct_subcontract3** : float (NULL)
+- **fl_fixed_quantity** : bit (NULL)
+- **fl_print** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **level_nr** : int (NOT NULL) 🔑?
+- **norm** : float (NULL)
+- **parent_seqnr** : int (NOT NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **remark** : nvarchar(100) (NULL)
+- **sales_price_1** : float (NULL)
+- **sales_price_2** : float (NULL)
+- **sales_price_3** : float (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **supplier** : nvarchar(255) (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **url** : nvarchar(255) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vendor** : nvarchar(255) (NULL)
+
+---
+### Tabla: `estimate_extra_fields`
+- **param1_descr_l1** : nvarchar(30) (NULL)
+- **param1_descr_l2** : nvarchar(30) (NULL)
+- **param1_descr_l3** : nvarchar(50) (NULL)
+- **param1_descr_l4** : nvarchar(50) (NULL)
+- **param2_descr_l1** : nvarchar(30) (NULL)
+- **param2_descr_l2** : nvarchar(30) (NULL)
+- **param2_descr_l3** : nvarchar(50) (NULL)
+- **param2_descr_l4** : nvarchar(50) (NULL)
+- **param3_descr_l1** : nvarchar(30) (NULL)
+- **param3_descr_l2** : nvarchar(30) (NULL)
+- **param3_descr_l3** : nvarchar(50) (NULL)
+- **param3_descr_l4** : nvarchar(50) (NULL)
+- **param4_descr_l1** : nvarchar(30) (NULL)
+- **param4_descr_l2** : nvarchar(30) (NULL)
+- **param4_descr_l3** : nvarchar(50) (NULL)
+- **param4_descr_l4** : nvarchar(50) (NULL)
+- **param5_descr_l1** : nvarchar(30) (NULL)
+- **param5_descr_l2** : nvarchar(30) (NULL)
+- **param5_descr_l3** : nvarchar(50) (NULL)
+- **param5_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `estimate_formulas`
+- **formula** : ntext(1073741823) (NULL)
+- **ID** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `estimate_item`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **calculation_id** : int (NULL) 🔑?
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **composition_id** : int (NULL) 🔑?
+- **costprice_equipment** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **descr** : nvarchar (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **estimate_position** : nvarchar(20) (NULL)
+- **extra_cost** : float (NULL)
+- **factor_equipment** : real (NULL)
+- **factor_labor** : real (NULL)
+- **factor_material** : real (NULL)
+- **factor_subcontract** : real (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_fixed_quantity** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_page_break_after** : bit (NULL)
+- **fl_print** : bit (NULL)
+- **fl_print_picture** : bit (NULL)
+- **fl_variant** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **measuring_type** : smallint (NULL)
+- **norm** : float (NULL)
+- **picture_id** : int (NULL) 🔑?
+- **profit** : float (NULL)
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **remark** : ntext(1073741823) (NULL)
+- **salesprice_equipment** : float (NULL)
+- **salesprice_labor** : float (NULL)
+- **salesprice_material** : float (NULL)
+- **salesprice_subcontract** : float (NULL)
+- **salesprice_type** : smallint (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **supplier** : nvarchar(255) (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **title** : nvarchar(1) (NULL)
+- **total_costprice** : float (NULL)
+- **total_costprice_equipment** : float (NULL)
+- **total_costprice_labor** : float (NULL)
+- **total_costprice_material** : float (NULL)
+- **total_costprice_subcontract** : float (NULL)
+- **total_hours** : float (NULL)
+- **total_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **unit_price_manual_entered** : bit (NULL)
+- **URL** : nvarchar(255) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **variant_seq_nr** : int (NULL) 🔑?
+- **vat_code** : smallint (NULL) 🔑?
+- **vendor** : nvarchar(255) (NULL)
+
+---
+### Tabla: `estimate_lock`
+- **datum** : datetime (NULL)
+- **estimate_id** : nvarchar(50) (NOT NULL) 🔑?
+- **name** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `estimate_report`
+- **doctype** : nvarchar(50) (NOT NULL)
+- **id** : int (NOT NULL) 🔑?
+- **location** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `estimate_text_end`
+- **descr** : nvarchar(20) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **text** : ntext(1073741823) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `estimate_text_start`
+- **descr** : nvarchar(20) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **text** : ntext(1073741823) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `extra_fields_labels`
+- **document** : int (NOT NULL)
+- **param1_descr_l1** : nvarchar(50) (NULL)
+- **param1_descr_l2** : nvarchar(50) (NULL)
+- **param1_descr_l3** : nvarchar(50) (NULL)
+- **param1_descr_l4** : nvarchar(50) (NULL)
+- **param10_descr_l1** : nvarchar(50) (NULL)
+- **param10_descr_l2** : nvarchar(50) (NULL)
+- **param10_descr_l3** : nvarchar(50) (NULL)
+- **param10_descr_l4** : nvarchar(50) (NULL)
+- **param11_descr_l1** : nvarchar(50) (NULL)
+- **param11_descr_l2** : nvarchar(50) (NULL)
+- **param11_descr_l3** : nvarchar(50) (NULL)
+- **param11_descr_l4** : nvarchar(50) (NULL)
+- **param12_descr_l1** : nvarchar(50) (NULL)
+- **param12_descr_l2** : nvarchar(50) (NULL)
+- **param12_descr_l3** : nvarchar(50) (NULL)
+- **param12_descr_l4** : nvarchar(50) (NULL)
+- **param13_descr_l1** : nvarchar(50) (NULL)
+- **param13_descr_l2** : nvarchar(50) (NULL)
+- **param13_descr_l3** : nvarchar(50) (NULL)
+- **param13_descr_l4** : nvarchar(50) (NULL)
+- **param14_descr_l1** : nvarchar(50) (NULL)
+- **param14_descr_l2** : nvarchar(50) (NULL)
+- **param14_descr_l3** : nvarchar(50) (NULL)
+- **param14_descr_l4** : nvarchar(50) (NULL)
+- **param15_descr_l1** : nvarchar(50) (NULL)
+- **param15_descr_l2** : nvarchar(50) (NULL)
+- **param15_descr_l3** : nvarchar(50) (NULL)
+- **param15_descr_l4** : nvarchar(50) (NULL)
+- **param16_descr_l1** : nvarchar(50) (NULL)
+- **param16_descr_l2** : nvarchar(50) (NULL)
+- **param16_descr_l3** : nvarchar(50) (NULL)
+- **param16_descr_l4** : nvarchar(50) (NULL)
+- **param17_descr_l1** : nvarchar(50) (NULL)
+- **param17_descr_l2** : nvarchar(50) (NULL)
+- **param17_descr_l3** : nvarchar(50) (NULL)
+- **param17_descr_l4** : nvarchar(50) (NULL)
+- **param18_descr_l1** : nvarchar(50) (NULL)
+- **param18_descr_l2** : nvarchar(50) (NULL)
+- **param18_descr_l3** : nvarchar(50) (NULL)
+- **param18_descr_l4** : nvarchar(50) (NULL)
+- **param19_descr_l1** : nvarchar(50) (NULL)
+- **param19_descr_l2** : nvarchar(50) (NULL)
+- **param19_descr_l3** : nvarchar(50) (NULL)
+- **param19_descr_l4** : nvarchar(50) (NULL)
+- **param2_descr_l1** : nvarchar(50) (NULL)
+- **param2_descr_l2** : nvarchar(50) (NULL)
+- **param2_descr_l3** : nvarchar(50) (NULL)
+- **param2_descr_l4** : nvarchar(50) (NULL)
+- **param20_descr_l1** : nvarchar(50) (NULL)
+- **param20_descr_l2** : nvarchar(50) (NULL)
+- **param20_descr_l3** : nvarchar(50) (NULL)
+- **param20_descr_l4** : nvarchar(50) (NULL)
+- **param21_descr_l1** : nvarchar(50) (NULL)
+- **param21_descr_l2** : nvarchar(50) (NULL)
+- **param21_descr_l3** : nvarchar(50) (NULL)
+- **param21_descr_l4** : nvarchar(50) (NULL)
+- **param22_descr_l1** : nvarchar(50) (NULL)
+- **param22_descr_l2** : nvarchar(50) (NULL)
+- **param22_descr_l3** : nvarchar(50) (NULL)
+- **param22_descr_l4** : nvarchar(50) (NULL)
+- **param23_descr_l1** : nvarchar(50) (NULL)
+- **param23_descr_l2** : nvarchar(50) (NULL)
+- **param23_descr_l3** : nvarchar(50) (NULL)
+- **param23_descr_l4** : nvarchar(50) (NULL)
+- **param24_descr_l1** : nvarchar(50) (NULL)
+- **param24_descr_l2** : nvarchar(50) (NULL)
+- **param24_descr_l3** : nvarchar(50) (NULL)
+- **param24_descr_l4** : nvarchar(50) (NULL)
+- **param25_descr_l1** : nvarchar(50) (NULL)
+- **param25_descr_l2** : nvarchar(50) (NULL)
+- **param25_descr_l3** : nvarchar(50) (NULL)
+- **param25_descr_l4** : nvarchar(50) (NULL)
+- **param26_descr_l1** : nvarchar(50) (NULL)
+- **param26_descr_l2** : nvarchar(50) (NULL)
+- **param26_descr_l3** : nvarchar(50) (NULL)
+- **param26_descr_l4** : nvarchar(50) (NULL)
+- **param27_descr_l1** : nvarchar(50) (NULL)
+- **param27_descr_l2** : nvarchar(50) (NULL)
+- **param27_descr_l3** : nvarchar(50) (NULL)
+- **param27_descr_l4** : nvarchar(50) (NULL)
+- **param28_descr_l1** : nvarchar(50) (NULL)
+- **param28_descr_l2** : nvarchar(50) (NULL)
+- **param28_descr_l3** : nvarchar(50) (NULL)
+- **param28_descr_l4** : nvarchar(50) (NULL)
+- **param29_descr_l1** : nvarchar(50) (NULL)
+- **param29_descr_l2** : nvarchar(50) (NULL)
+- **param29_descr_l3** : nvarchar(50) (NULL)
+- **param29_descr_l4** : nvarchar(50) (NULL)
+- **param3_descr_l1** : nvarchar(50) (NULL)
+- **param3_descr_l2** : nvarchar(50) (NULL)
+- **param3_descr_l3** : nvarchar(50) (NULL)
+- **param3_descr_l4** : nvarchar(50) (NULL)
+- **param30_descr_l1** : nvarchar(50) (NULL)
+- **param30_descr_l2** : nvarchar(50) (NULL)
+- **param30_descr_l3** : nvarchar(50) (NULL)
+- **param30_descr_l4** : nvarchar(50) (NULL)
+- **param31_descr_l1** : nvarchar(50) (NULL)
+- **param31_descr_l2** : nvarchar(50) (NULL)
+- **param31_descr_l3** : nvarchar(50) (NULL)
+- **param31_descr_l4** : nvarchar(50) (NULL)
+- **param32_descr_l1** : nvarchar(50) (NULL)
+- **param32_descr_l2** : nvarchar(50) (NULL)
+- **param32_descr_l3** : nvarchar(50) (NULL)
+- **param32_descr_l4** : nvarchar(50) (NULL)
+- **param33_descr_l1** : nvarchar(50) (NULL)
+- **param33_descr_l2** : nvarchar(50) (NULL)
+- **param33_descr_l3** : nvarchar(50) (NULL)
+- **param33_descr_l4** : nvarchar(50) (NULL)
+- **param34_descr_l1** : nvarchar(50) (NULL)
+- **param34_descr_l2** : nvarchar(50) (NULL)
+- **param34_descr_l3** : nvarchar(50) (NULL)
+- **param34_descr_l4** : nvarchar(50) (NULL)
+- **param35_descr_l1** : nvarchar(50) (NULL)
+- **param35_descr_l2** : nvarchar(50) (NULL)
+- **param35_descr_l3** : nvarchar(50) (NULL)
+- **param35_descr_l4** : nvarchar(50) (NULL)
+- **param36_descr_l1** : nvarchar(50) (NULL)
+- **param36_descr_l2** : nvarchar(50) (NULL)
+- **param36_descr_l3** : nvarchar(50) (NULL)
+- **param36_descr_l4** : nvarchar(50) (NULL)
+- **param37_descr_l1** : nvarchar(50) (NULL)
+- **param37_descr_l2** : nvarchar(50) (NULL)
+- **param37_descr_l3** : nvarchar(50) (NULL)
+- **param37_descr_l4** : nvarchar(50) (NULL)
+- **param38_descr_l1** : nvarchar(50) (NULL)
+- **param38_descr_l2** : nvarchar(50) (NULL)
+- **param38_descr_l3** : nvarchar(50) (NULL)
+- **param38_descr_l4** : nvarchar(50) (NULL)
+- **param39_descr_l1** : nvarchar(50) (NULL)
+- **param39_descr_l2** : nvarchar(50) (NULL)
+- **param39_descr_l3** : nvarchar(50) (NULL)
+- **param39_descr_l4** : nvarchar(50) (NULL)
+- **param4_descr_l1** : nvarchar(50) (NULL)
+- **param4_descr_l2** : nvarchar(50) (NULL)
+- **param4_descr_l3** : nvarchar(50) (NULL)
+- **param4_descr_l4** : nvarchar(50) (NULL)
+- **param40_descr_l1** : nvarchar(50) (NULL)
+- **param40_descr_l2** : nvarchar(50) (NULL)
+- **param40_descr_l3** : nvarchar(50) (NULL)
+- **param40_descr_l4** : nvarchar(50) (NULL)
+- **param41_descr_l1** : nvarchar(50) (NULL)
+- **param41_descr_l2** : nvarchar(50) (NULL)
+- **param41_descr_l3** : nvarchar(50) (NULL)
+- **param41_descr_l4** : nvarchar(50) (NULL)
+- **param42_descr_l1** : nvarchar(50) (NULL)
+- **param42_descr_l2** : nvarchar(50) (NULL)
+- **param42_descr_l3** : nvarchar(50) (NULL)
+- **param42_descr_l4** : nvarchar(50) (NULL)
+- **param43_descr_l1** : nvarchar(50) (NULL)
+- **param43_descr_l2** : nvarchar(50) (NULL)
+- **param43_descr_l3** : nvarchar(50) (NULL)
+- **param43_descr_l4** : nvarchar(50) (NULL)
+- **param44_descr_l1** : nvarchar(50) (NULL)
+- **param44_descr_l2** : nvarchar(50) (NULL)
+- **param44_descr_l3** : nvarchar(50) (NULL)
+- **param44_descr_l4** : nvarchar(50) (NULL)
+- **param45_descr_l1** : nvarchar(50) (NULL)
+- **param45_descr_l2** : nvarchar(50) (NULL)
+- **param45_descr_l3** : nvarchar(50) (NULL)
+- **param45_descr_l4** : nvarchar(50) (NULL)
+- **param46_descr_l1** : nvarchar(50) (NULL)
+- **param46_descr_l2** : nvarchar(50) (NULL)
+- **param46_descr_l3** : nvarchar(50) (NULL)
+- **param46_descr_l4** : nvarchar(50) (NULL)
+- **param47_descr_l1** : nvarchar(50) (NULL)
+- **param47_descr_l2** : nvarchar(50) (NULL)
+- **param47_descr_l3** : nvarchar(50) (NULL)
+- **param47_descr_l4** : nvarchar(50) (NULL)
+- **param48_descr_l1** : nvarchar(50) (NULL)
+- **param48_descr_l2** : nvarchar(50) (NULL)
+- **param48_descr_l3** : nvarchar(50) (NULL)
+- **param48_descr_l4** : nvarchar(50) (NULL)
+- **param49_descr_l1** : nvarchar(50) (NULL)
+- **param49_descr_l2** : nvarchar(50) (NULL)
+- **param49_descr_l3** : nvarchar(50) (NULL)
+- **param49_descr_l4** : nvarchar(50) (NULL)
+- **param5_descr_l1** : nvarchar(50) (NULL)
+- **param5_descr_l2** : nvarchar(50) (NULL)
+- **param5_descr_l3** : nvarchar(50) (NULL)
+- **param5_descr_l4** : nvarchar(50) (NULL)
+- **param50_descr_l1** : nvarchar(50) (NULL)
+- **param50_descr_l2** : nvarchar(50) (NULL)
+- **param50_descr_l3** : nvarchar(50) (NULL)
+- **param50_descr_l4** : nvarchar(50) (NULL)
+- **param6_descr_l1** : nvarchar(50) (NULL)
+- **param6_descr_l2** : nvarchar(50) (NULL)
+- **param6_descr_l3** : nvarchar(50) (NULL)
+- **param6_descr_l4** : nvarchar(50) (NULL)
+- **param7_descr_l1** : nvarchar(50) (NULL)
+- **param7_descr_l2** : nvarchar(50) (NULL)
+- **param7_descr_l3** : nvarchar(50) (NULL)
+- **param7_descr_l4** : nvarchar(50) (NULL)
+- **param8_descr_l1** : nvarchar(50) (NULL)
+- **param8_descr_l2** : nvarchar(50) (NULL)
+- **param8_descr_l3** : nvarchar(50) (NULL)
+- **param8_descr_l4** : nvarchar(50) (NULL)
+- **param9_descr_l1** : nvarchar(50) (NULL)
+- **param9_descr_l2** : nvarchar(50) (NULL)
+- **param9_descr_l3** : nvarchar(50) (NULL)
+- **param9_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `extra_labels`
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **form** : nvarchar(50) (NULL)
+- **label_id** : int (NULL) 🔑?
+- **length** : int (NULL)
+- **type** : smallint (NULL)
+
+---
+### Tabla: `followup_cost`
+- **account** : nvarchar(50) (NULL)
+- **addition_cp** : bit (NULL)
+- **addition_factor_equipment** : float (NULL)
+- **addition_factor_labor** : float (NULL)
+- **addition_factor_material** : float (NULL)
+- **addition_factor_subcontract** : float (NULL)
+- **addition_group** : bit (NULL)
+- **addition_sp** : bit (NULL)
+- **already_invoiced** : bit (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **costprice** : float (NULL)
+- **date** : datetime (NULL)
+- **descr** : ntext(1073741823) (NULL)
+- **document_date** : datetime (NULL)
+- **document_id** : nvarchar(50) (NULL) 🔑?
+- **document_seq_nr** : int (NULL) 🔑?
+- **employee_id** : int (NULL) 🔑?
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **fl_booked_to_invoice** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **invoice** : bit (NULL)
+- **location_id** : int (NULL) 🔑?
+- **name** : nvarchar(100) (NULL)
+- **position** : nvarchar(50) (NULL)
+- **price_type** : smallint (NULL)
+- **project_date** : datetime (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction_group** : int (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **salesprice** : float (NULL)
+- **source** : int (NULL)
+- **stock_booked** : bit (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **total_costprice** : float (NULL)
+- **total_salesprice** : float (NULL)
+- **transfer_invoice_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_invoice_seq_nr** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+
+---
+### Tabla: `followup_cost_standardvalues`
+- **account** : nvarchar(50) (NULL)
+- **account_hours** : nvarchar(50) (NULL)
+- **account_transport** : nvarchar(50) (NULL)
+- **addition_cp** : bit (NULL)
+- **addition_factor_equipment** : float (NULL)
+- **addition_factor_labor** : float (NULL)
+- **addition_factor_material** : float (NULL)
+- **addition_factor_subcontract** : float (NULL)
+- **addition_group** : bit (NULL)
+- **addition_sp** : bit (NULL)
+- **art_type** : int (NULL)
+- **contract_id** : int (NULL) 🔑?
+- **element_group_id_start** : int (NULL)
+- **element_group_id_stop** : int (NULL)
+- **element_id_start** : int (NULL)
+- **element_id_stop** : int (NULL)
+- **estimate_id** : nvarchar(50) (NULL) 🔑?
+- **extra_profit** : float (NULL)
+- **invoice** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **invoice_materials** : bit (NULL)
+- **invoice_transfer_method** : smallint (NULL)
+- **kminvoice** : bit (NULL)
+- **labor_descr** : nvarchar(40) (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **labor_type** : int (NULL)
+- **number_of_copies** : smallint (NULL)
+- **perc_current_year** : float (NULL)
+- **perc_next_year** : float (NULL)
+- **perc_current_year_plus_two** : float (NULL)
+- **pricetype** : int (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **project_stage** : int (NULL)
+- **reduction_group** : int (NULL)
+- **source** : int (NULL)
+- **supplier** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validationtype** : int (NULL)
+
+---
+### Tabla: `followup_labor_analytical`
+- **account** : nvarchar(50) (NULL)
+- **account_transport** : nvarchar(50) (NULL)
+- **allowance** : float (NULL)
+- **contract_nr** : nvarchar(25) (NULL) 🔑?
+- **costprice** : float (NULL)
+- **date** : datetime (NOT NULL)
+- **distance** : real (NULL)
+- **document_date** : datetime (NULL)
+- **document_id** : nvarchar(50) (NULL) 🔑?
+- **employee_id** : int (NOT NULL) 🔑?
+- **entry_date** : datetime (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **extra_allowance** : float (NULL)
+- **extra_allowance_amount** : float (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_booked_to_invoice** : bit (NULL)
+- **fl_correction** : bit (NULL)
+- **fl_KM_booked_to_invoice** : bit (NULL)
+- **fl_labortype** : bit (NULL)
+- **fl_pauze** : bit (NULL)
+- **fl_printlonglabordescr** : bit (NULL)
+- **fl_quarters** : bit (NULL)
+- **h_from_1** : datetime (NULL)
+- **h_from_2** : datetime (NULL)
+- **h_to_1** : datetime (NULL)
+- **h_to_2** : datetime (NULL)
+- **hours** : float (NULL)
+- **hours_after** : float (NULL)
+- **hours_before** : float (NULL)
+- **invoice** : bit (NULL)
+- **km_invoice** : bit (NULL)
+- **labor_descr** : nvarchar(255) (NULL)
+- **labor_descr_long** : nvarchar (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **labor_type** : int (NULL)
+- **name** : nvarchar(100) (NULL)
+- **pauze** : float (NULL)
+- **persons_allowance** : float (NULL)
+- **productivity** : float (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **remark** : ntext(1073741823) (NULL)
+- **salesprice** : float (NULL)
+- **seqnr** : int (NOT NULL) 🔑?
+- **source** : int (NULL)
+- **total_costprice** : float (NULL)
+- **total_salesprice** : float (NULL)
+- **total_transport_costprice** : float (NULL)
+- **total_transport_salesprice** : float (NULL)
+- **transfer_invoice_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_invoice_seq_nr** : int (NULL) 🔑?
+- **transfer_km_invoice_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_km_invoice_seq_nr** : int (NULL) 🔑?
+- **transport_costprice** : float (NULL)
+- **transport_salesprice** : float (NULL)
+- **transport_type** : smallint (NULL)
+- **travel_time** : datetime (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+
+---
+### Tabla: `followup_labor_types_absence`
+- **id** : int (NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **weather_absence** : bit (NULL)
+
+---
+### Tabla: `gang`
+- **descr** : nvarchar(25) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **labor_id** : int (NULL) 🔑?
+- **transport_unitprice** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `group`
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **discount** : real (NULL)
+- **factor_equipment** : real (NULL)
+- **factor_labor** : real (NULL)
+- **factor_material** : real (NULL)
+- **factor_subcontract** : real (NULL)
+- **fl_catalog_price** : bit (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **reduction_1** : int (NULL)
+- **reduction_2** : int (NULL)
+- **reduction_3** : int (NULL)
+- **reduction_4** : int (NULL)
+- **reduction_5** : int (NULL)
+- **salesprice_1** : float (NULL)
+- **salesprice_2** : float (NULL)
+- **salesprice_3** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type_id** : real (NULL) 🔑?
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `hourreg_labor_type`
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **labor_type** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `hourreg_standardvalues`
+- **descr** : nvarchar(50) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **value** : float (NULL)
+
+---
+### Tabla: `hours`
+- **basic_hours** : float (NULL)
+- **control** : bit (NULL)
+- **correction1** : float (NULL)
+- **correction1_remark** : nvarchar(50) (NULL)
+- **correction2** : float (NULL)
+- **correction2_remark** : nvarchar(50) (NULL)
+- **correction3_quarters** : bit (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **fr_default** : float (NULL)
+- **fr_from1** : datetime (NULL)
+- **fr_from2** : datetime (NULL)
+- **fr_to1** : datetime (NULL)
+- **fr_to2** : datetime (NULL)
+- **ID** : int (NOT NULL) 🔑?
+- **labortype1** : int (NULL)
+- **labortype2** : int (NULL)
+- **mo_default** : float (NULL)
+- **mo_from1** : datetime (NULL)
+- **mo_from2** : datetime (NULL)
+- **mo_to1** : datetime (NULL)
+- **mo_to2** : datetime (NULL)
+- **sa_default** : float (NULL)
+- **sa_from1** : datetime (NULL)
+- **sa_from2** : datetime (NULL)
+- **sa_to1** : datetime (NULL)
+- **sa_to2** : datetime (NULL)
+- **su_default** : float (NULL)
+- **su_from1** : datetime (NULL)
+- **su_from2** : datetime (NULL)
+- **su_to1** : datetime (NULL)
+- **su_to2** : datetime (NULL)
+- **th_default** : float (NULL)
+- **th_from1** : datetime (NULL)
+- **th_from2** : datetime (NULL)
+- **th_to1** : datetime (NULL)
+- **th_to2** : datetime (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **tu_default** : float (NULL)
+- **tu_from1** : datetime (NULL)
+- **tu_from2** : datetime (NULL)
+- **tu_to1** : datetime (NULL)
+- **tu_to2** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **we_default** : float (NULL)
+- **we_from1** : datetime (NULL)
+- **we_from2** : datetime (NULL)
+- **we_to1** : datetime (NULL)
+- **we_to2** : datetime (NULL)
+
+---
+### Tabla: `interface`
+- **van_omgeving** : varchar(256) (NULL)
+- **naar_omgeving** : varchar(256) (NULL)
+- **object** : varchar(256) (NULL)
+- **opdracht** : ntext(1073741823) (NULL)
+- **cdatum** : datetime (NULL)
+- **cuser** : varchar(256) (NULL)
+- **verwerkt** : bit (NULL)
+
+---
+### Tabla: `inventory`
+- **art_id** : int (NOT NULL) 🔑?
+- **location** : nvarchar(50) (NULL)
+- **maximum** : float (NULL)
+- **minimum** : float (NULL)
+- **qty_on_reservation** : float (NULL)
+- **qty_on_stock** : float (NULL)
+- **qty_ordered** : float (NULL)
+- **reorder_qty** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `invoice`
+- **activity_id** : smallint (NULL) 🔑?
+- **addition_cp** : bit (NULL)
+- **addition_factor_equipment** : float (NULL)
+- **addition_factor_labor** : float (NULL)
+- **addition_factor_material** : float (NULL)
+- **addition_factor_subcontract** : float (NULL)
+- **addition_group** : bit (NULL)
+- **addition_sp** : bit (NULL)
+- **advance** : float (NULL)
+- **attachment1_loc** : nvarchar(255) (NULL)
+- **attachment2_loc** : nvarchar(255) (NULL)
+- **attachment3_loc** : nvarchar(255) (NULL)
+- **book_remark** : nvarchar(25) (NULL)
+- **city** : nvarchar(35) (NULL)
+- **contact_email** : nvarchar(200) (NULL)
+- **contact_mobile** : nvarchar(20) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **count_reminders_sent** : tinyint (NULL)
+- **country** : smallint (NULL)
+- **currency** : smallint (NULL)
+- **customer_discount** : float (NULL)
+- **date** : datetime (NULL)
+- **date_end** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **date_sent** : datetime (NULL)
+- **delay** : smallint (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **fax** : nvarchar(20) (NULL)
+- **fl_active** : bit (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_booked_in_cubic** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_invoice_address** : bit (NULL)
+- **fl_paid** : bit (NULL) 🔑?
+- **fl_printoverdue** : bit (NULL)
+- **fl_printed** : bit (NULL)
+- **fl_ref_is_ponr** : bit (NULL) 🔑?
+- **fl_sent** : bit (NULL)
+- **fl_sent_attachment1** : bit (NULL)
+- **fl_sent_attachment2** : bit (NULL)
+- **fl_sent_attachment3** : bit (NULL)
+- **fl_sent_to_peppol** : bit (NULL)
+- **fl_show_payment_discount** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_transfered** : bit (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_company** : int (NULL)
+- **language** : tinyint (NULL)
+- **memo** : int (NULL)
+- **name** : nvarchar(100) (NULL)
+- **OGM** : nvarchar(100) (NULL)
+- **param1** : nvarchar(255) (NULL)
+- **param2** : nvarchar(255) (NULL)
+- **param3** : nvarchar(255) (NULL)
+- **payment_discount** : float (NULL)
+- **payment_term** : nvarchar(30) (NULL)
+- **peppol_invoice_id** : nvarchar(50) (NULL) 🔑?
+- **price_type** : smallint (NULL)
+- **print_date** : datetime (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(255) (NULL)
+- **ref_cust** : nvarchar(255) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **relation_ref** : nvarchar(50) (NULL)
+- **remark1** : nvarchar(100) (NULL)
+- **remark2** : nvarchar(100) (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **status** : int (NULL)
+- **street** : nvarchar(255) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **title_contact** : nvarchar(20) (NULL)
+- **total_paid** : float (NULL) 🔑?
+- **total_price** : float (NULL)
+- **total_price_vat_excl** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NOT NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `invoice_companies`
+- **acc_ledger_creditnote** : int (NULL)
+- **acc_ledger_invoice** : int (NULL)
+- **bankrelation1** : nvarchar(23) (NULL)
+- **bankrelation2** : nvarchar(23) (NULL)
+- **city** : nvarchar(35) (NULL)
+- **commer_register** : nvarchar(20) (NULL)
+- **country** : smallint (NULL)
+- **email** : nvarchar(40) (NULL)
+- **fax** : nvarchar(20) (NULL)
+- **fl_is_peppol_receiver** : bit (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **last_peppol_sync_date** : nvarchar(10) (NULL)
+- **name** : nvarchar(35) (NULL)
+- **peppol_companyID** : nvarchar(50) (NULL) 🔑?
+- **registrationnr** : nvarchar(50) (NULL) 🔑?
+- **rsz_nr** : nvarchar(50) (NULL) 🔑?
+- **street** : nvarchar(40) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **website** : nvarchar(40) (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `invoice_extra_fields`
+- **param1_descr_l1** : nvarchar(30) (NULL)
+- **param1_descr_l2** : nvarchar(30) (NULL)
+- **param1_descr_l3** : nvarchar(50) (NULL)
+- **param1_descr_l4** : nvarchar(50) (NULL)
+- **param2_descr_l1** : nvarchar(30) (NULL)
+- **param2_descr_l2** : nvarchar(30) (NULL)
+- **param2_descr_l3** : nvarchar(50) (NULL)
+- **param2_descr_l4** : nvarchar(50) (NULL)
+- **param3_descr_l1** : nvarchar(30) (NULL)
+- **param3_descr_l2** : nvarchar(30) (NULL)
+- **param3_descr_l3** : nvarchar(50) (NULL)
+- **param3_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `invoice_followup`
+- **date** : datetime (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **remark** : nvarchar(50) (NULL)
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NOT NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **document** : smallint (NOT NULL)
+
+---
+### Tabla: `invoice_line`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **costprice** : float (NULL)
+- **descr** : nvarchar (NULL)
+- **discount** : float (NULL)
+- **discount2** : float (NULL)
+- **invoice** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_materials** : bit (NULL)
+- **lotnumber** : nvarchar(25) (NULL)
+- **price_type** : smallint (NULL)
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction** : float (NULL)
+- **reduction_group** : int (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **serialnumber** : nvarchar(25) (NULL)
+- **st_sales_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NOT NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+
+---
+### Tabla: `invoice_overdue_docs`
+- **doc_overdue_1** : nvarchar(100) (NULL)
+- **doc_overdue_2** : nvarchar(100) (NULL)
+- **doc_overdue_3** : nvarchar(100) (NULL)
+- **doc_overdue_4** : nvarchar(100) (NULL)
+- **doc_overdue_5** : nvarchar(100) (NULL)
+- **doc_overdue_fr_1** : nvarchar(100) (NULL)
+- **doc_overdue_fr_2** : nvarchar(100) (NULL)
+- **doc_overdue_fr_3** : nvarchar(100) (NULL)
+- **doc_overdue_fr_4** : nvarchar(100) (NULL)
+- **doc_overdue_fr_5** : nvarchar(100) (NULL)
+- **doc_overdue_d_1** : nvarchar(100) (NULL)
+- **doc_overdue_d_2** : nvarchar(100) (NULL)
+- **doc_overdue_d_3** : nvarchar(100) (NULL)
+- **doc_overdue_d_4** : nvarchar(100) (NULL)
+- **doc_overdue_d_5** : nvarchar(100) (NULL)
+- **doc_overdue_en_1** : nvarchar(100) (NULL)
+- **doc_overdue_en_2** : nvarchar(100) (NULL)
+- **doc_overdue_en_3** : nvarchar(100) (NULL)
+- **doc_overdue_en_4** : nvarchar(100) (NULL)
+- **doc_overdue_en_5** : nvarchar(100) (NULL)
+- **penalty_1** : float (NULL)
+- **penalty_2** : float (NULL)
+- **penalty_3** : float (NULL)
+- **penalty_4** : float (NULL)
+- **penalty_5** : float (NULL)
+- **term_overdue_1** : int (NULL)
+- **term_overdue_2** : int (NULL)
+- **term_overdue_3** : int (NULL)
+- **term_overdue_4** : int (NULL)
+- **term_overdue_5** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `invoice_payment`
+- **amount** : float (NULL)
+- **date** : datetime (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **remark** : nvarchar(50) (NULL)
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NOT NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **document** : smallint (NOT NULL)
+- **paymenttype** : smallint (NULL)
+
+---
+### Tabla: `invoice_payment_extra`
+- **amount** : float (NULL)
+- **extra** : float (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **paymenttype** : smallint (NULL)
+
+---
+### Tabla: `kbcategory_1`
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `kbcategory_2`
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **kbcategory_1_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `kbcategory_3`
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **kbcategory_2_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `kbtopic`
+- **answer** : ntext(1073741823) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **kbcategory_1_id** : int (NULL) 🔑?
+- **kbcategory_2_id** : int (NULL) 🔑?
+- **kbcategory_3_id** : int (NULL) 🔑?
+- **question** : ntext(1073741823) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **subject** : nvarchar(255) (NULL)
+- **ticket_id** : nvarchar(15) (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `labor`
+- **account_purchase** : nvarchar(50) (NULL)
+- **account_sales** : nvarchar(50) (NULL)
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **date** : datetime (NULL)
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **group_id** : int (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **labor_c_price** : float (NULL)
+- **norm** : float (NULL)
+- **project_stage** : smallint (NULL)
+- **ref** : nvarchar(15) (NULL)
+- **sales_price_1** : float (NULL)
+- **sales_price_2** : float (NULL)
+- **sales_price_3** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+
+---
+### Tabla: `location`
+- **fl_default** : bit (NULL)
+- **fl_exclude_minimum_stock** : bit (NULL)
+- **fl_IsVehicle** : bit (NULL)
+- **fl_prefered** : bit (NULL)
+- **id** : smallint (NOT NULL) 🔑?
+- **location** : nvarchar(25) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `location_position`
+- **descr** : nvarchar(20) (NULL)
+- **fl_exclude_minimum_stock** : bit (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **location_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `maintenance`
+- **account** : nvarchar(50) (NULL)
+- **cancel_reason** : nvarchar(50) (NULL)
+- **contact_name** : nvarchar(100) (NULL)
+- **contact_email** : nvarchar(100) (NULL)
+- **contract_kind** : int (NULL)
+- **contact_mobile** : nvarchar(50) (NULL)
+- **contract_type** : int (NULL)
+- **date** : datetime (NULL)
+- **date_canceled** : datetime (NULL)
+- **date_formation** : datetime (NULL)
+- **date_invoice** : datetime (NULL)
+- **date_start** : datetime (NULL)
+- **distance** : float (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **duration** : int (NULL)
+- **fl_active** : bit (NULL)
+- **fl_blocked** : bit (NULL)
+- **fl_contractdate** : bit (NULL)
+- **fl_contractid** : bit (NULL) 🔑?
+- **fl_finished** : bit (NULL)
+- **fl_index** : bit (NULL)
+- **fl_period** : bit (NULL)
+- **fl_statistic** : bit (NULL)
+- **id** : nvarchar(50) (NOT NULL) 🔑?
+- **id_cloud** : nvarchar(50) (NULL)
+- **invoice_amount** : float (NULL)
+- **invoice_descr** : nvarchar(255) (NULL)
+- **invoices** : float (NULL)
+- **memo** : int (NULL)
+- **ordernumber** : int (NULL)
+- **param1** : nvarchar(255) (NULL)
+- **param2** : nvarchar(255) (NULL)
+- **param3** : nvarchar(255) (NULL)
+- **param4** : nvarchar(255) (NULL)
+- **param5** : nvarchar(255) (NULL)
+- **param6** : nvarchar(255) (NULL)
+- **param7** : nvarchar(255) (NULL)
+- **param8** : nvarchar(255) (NULL)
+- **param9** : nvarchar(255) (NULL)
+- **param10** : nvarchar(255) (NULL)
+- **prj_address** : int (NULL)
+- **prj_address_seq_nr** : int (NULL) 🔑?
+- **prj_city** : nvarchar(50) (NULL)
+- **prj_id** : nvarchar(50) (NULL) 🔑?
+- **prj_zipcode** : nvarchar(50) (NULL) 🔑?
+- **rel_city** : nvarchar(50) (NULL)
+- **rel_contactemail** : nvarchar(50) (NULL)
+- **rel_contactname** : nvarchar(200) (NULL)
+- **rel_contacttitle** : nvarchar(50) (NULL)
+- **rel_country** : int (NULL)
+- **rel_currency** : int (NULL)
+- **rel_fax** : nvarchar(50) (NULL)
+- **rel_id** : int (NULL) 🔑?
+- **rel_language** : int (NULL)
+- **rel_name** : nvarchar(100) (NULL)
+- **rel_ref** : nvarchar(15) (NULL)
+- **rel_street** : nvarchar(255) (NULL)
+- **rel_tel** : nvarchar(50) (NULL)
+- **rel_title** : nvarchar(50) (NULL)
+- **rel_zipcode** : nvarchar(50) (NULL) 🔑?
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(50) (NULL)
+- **route** : int (NULL)
+- **seqnr_cloud** : int (NULL)
+- **status** : int (NULL)
+- **times_a_year** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(50) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : int (NULL) 🔑?
+- **vat_type** : int (NULL)
+- **workdescr** : int (NULL)
+
+---
+### Tabla: `maintenance_content`
+- **call_id_child** : nvarchar(50) (NULL)
+- **call_id_element** : nvarchar(50) (NULL)
+- **child_id** : int (NOT NULL) 🔑?
+- **contract_id** : nvarchar(50) (NOT NULL) 🔑?
+- **control_param1** : datetime (NULL)
+- **control_param10** : bit (NULL)
+- **control_param11** : bit (NULL)
+- **control_param12** : bit (NULL)
+- **control_param13** : bit (NULL)
+- **control_param14** : bit (NULL)
+- **control_param15** : bit (NULL)
+- **control_param16** : bit (NULL)
+- **control_param17** : bit (NULL)
+- **control_param18** : bit (NULL)
+- **control_param19** : bit (NULL)
+- **control_param2** : int (NULL)
+- **control_param20** : bit (NULL)
+- **control_param21** : bit (NULL)
+- **control_param22** : bit (NULL)
+- **control_param23** : bit (NULL)
+- **control_param24** : bit (NULL)
+- **control_param25** : bit (NULL)
+- **control_param26** : bit (NULL)
+- **control_param27** : bit (NULL)
+- **control_param28** : bit (NULL)
+- **control_param29** : bit (NULL)
+- **control_param3** : int (NULL)
+- **control_param30** : bit (NULL)
+- **control_param31** : bit (NULL)
+- **control_param32** : bit (NULL)
+- **control_param33** : bit (NULL)
+- **control_param34** : bit (NULL)
+- **control_param35** : bit (NULL)
+- **control_param36** : bit (NULL)
+- **control_param37** : bit (NULL)
+- **control_param38** : bit (NULL)
+- **control_param39** : bit (NULL)
+- **control_param4** : bit (NULL)
+- **control_param40** : bit (NULL)
+- **control_param41** : bit (NULL)
+- **control_param42** : bit (NULL)
+- **control_param43** : bit (NULL)
+- **control_param5** : bit (NULL)
+- **control_param6** : bit (NULL)
+- **control_param7** : bit (NULL)
+- **control_param8** : bit (NULL)
+- **control_param9** : bit (NULL)
+- **costprice** : float (NULL)
+- **date_check** : datetime (NULL)
+- **date_purchase** : datetime (NULL)
+- **descr_child** : nvarchar(255) (NULL)
+- **descr_element** : nvarchar(255) (NULL)
+- **element_id** : int (NOT NULL) 🔑?
+- **extra_1** : nvarchar(50) (NULL)
+- **extra_2** : nvarchar(50) (NULL)
+- **extra_3** : nvarchar(50) (NULL)
+- **fl_brander** : bit (NULL)
+- **fl_component** : bit (NULL)
+- **fl_compressor** : bit (NULL)
+- **fl_condensor** : bit (NULL)
+- **fl_group** : bit (NULL)
+- **fl_inside** : bit (NULL)
+- **fl_ketel** : bit (NULL)
+- **group** : int (NULL)
+- **guarantee** : int (NULL)
+- **identification** : nvarchar(50) (NULL)
+- **measure_param1** : datetime (NULL)
+- **measure_param10** : nvarchar(50) (NULL)
+- **measure_param11** : nvarchar(50) (NULL)
+- **measure_param12** : nvarchar(50) (NULL)
+- **measure_param13** : nvarchar(50) (NULL)
+- **measure_param14** : nvarchar(50) (NULL)
+- **measure_param15** : nvarchar(50) (NULL)
+- **measure_param16** : nvarchar(50) (NULL)
+- **measure_param17** : nvarchar(50) (NULL)
+- **measure_param18** : nvarchar(50) (NULL)
+- **measure_param19** : nvarchar(50) (NULL)
+- **measure_param2** : int (NULL)
+- **measure_param20** : nvarchar(50) (NULL)
+- **measure_param21** : nvarchar(50) (NULL)
+- **measure_param22** : nvarchar(50) (NULL)
+- **measure_param23** : nvarchar(50) (NULL)
+- **measure_param24** : nvarchar(50) (NULL)
+- **measure_param25** : nvarchar(50) (NULL)
+- **measure_param26** : nvarchar(50) (NULL)
+- **measure_param27** : nvarchar(50) (NULL)
+- **measure_param28** : nvarchar(50) (NULL)
+- **measure_param29** : nvarchar(50) (NULL)
+- **measure_param3** : int (NULL)
+- **measure_param30** : nvarchar(50) (NULL)
+- **measure_param31** : nvarchar(50) (NULL)
+- **measure_param32** : nvarchar(50) (NULL)
+- **measure_param33** : nvarchar(50) (NULL)
+- **measure_param34** : nvarchar(50) (NULL)
+- **measure_param35** : nvarchar(50) (NULL)
+- **measure_param36** : nvarchar(50) (NULL)
+- **measure_param37** : nvarchar(50) (NULL)
+- **measure_param38** : nvarchar(50) (NULL)
+- **measure_param39** : nvarchar(50) (NULL)
+- **measure_param4** : nvarchar(50) (NULL)
+- **measure_param40** : nvarchar(50) (NULL)
+- **measure_param41** : nvarchar(50) (NULL)
+- **measure_param42** : nvarchar(50) (NULL)
+- **measure_param43** : nvarchar(50) (NULL)
+- **measure_param5** : nvarchar(50) (NULL)
+- **measure_param6** : nvarchar(50) (NULL)
+- **measure_param7** : nvarchar(50) (NULL)
+- **measure_param8** : nvarchar(50) (NULL)
+- **measure_param9** : nvarchar(50) (NULL)
+- **ordernr** : float (NULL) 🔑?
+- **paramel** : nvarchar(50) (NULL)
+- **printoncustfiche** : int (NULL)
+- **printonuniformaty** : int (NULL)
+- **printonworkdoc1** : int (NULL)
+- **printonworkdoc2** : int (NULL)
+- **printonworkdoc3** : int (NULL)
+- **printonworkdoc4** : int (NULL)
+- **quantity** : float (NULL)
+- **remark** : nvarchar(255) (NULL)
+- **replace_buffer** : float (NULL)
+- **replace_date** : datetime (NULL)
+- **replace_frequency** : float (NULL)
+- **salesprice** : float (NULL)
+- **seqnr** : float (NOT NULL) 🔑?
+- **serial_number** : nvarchar(50) (NULL)
+- **supplier_doc_id** : nvarchar(50) (NULL) 🔑?
+- **supplier_id** : float (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NOT NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **vendor** : float (NULL)
+- **workdoc** : bit (NULL)
+
+---
+### Tabla: `maintenance_docs`
+- **doc_1** : nvarchar(255) (NULL)
+- **doc_2** : nvarchar(255) (NULL)
+- **doc_3** : nvarchar(255) (NULL)
+- **doc_4** : nvarchar(255) (NULL)
+- **doc_5** : nvarchar(255) (NULL)
+- **docname1_descr_l1** : nvarchar(50) (NULL)
+- **docname1_descr_l2** : nvarchar(50) (NULL)
+- **docname1_descr_l3** : nvarchar(50) (NULL)
+- **docname1_descr_l4** : nvarchar(50) (NULL)
+- **docname2_descr_l1** : nvarchar(50) (NULL)
+- **docname2_descr_l2** : nvarchar(50) (NULL)
+- **docname2_descr_l3** : nvarchar(50) (NULL)
+- **docname2_descr_l4** : nvarchar(50) (NULL)
+- **docname3_descr_l1** : nvarchar(50) (NULL)
+- **docname3_descr_l2** : nvarchar(50) (NULL)
+- **docname3_descr_l3** : nvarchar(50) (NULL)
+- **docname3_descr_l4** : nvarchar(50) (NULL)
+- **docname4_descr_l1** : nvarchar(50) (NULL)
+- **docname4_descr_l2** : nvarchar(50) (NULL)
+- **docname4_descr_l3** : nvarchar(50) (NULL)
+- **docname4_descr_l4** : nvarchar(50) (NULL)
+- **docname4_descr_l5** : nvarchar(50) (NULL)
+- **docname5_descr_l1** : nvarchar(50) (NULL)
+- **docname5_descr_l2** : nvarchar(50) (NULL)
+- **docname5_descr_l3** : nvarchar(50) (NULL)
+- **docname5_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `maintenance_extra_fields`
+- **component_label1** : nvarchar(50) (NULL)
+- **component_label2** : nvarchar(50) (NULL)
+- **component_label3** : nvarchar(50) (NULL)
+- **param1_descr_l1** : nvarchar(30) (NULL)
+- **param1_descr_l2** : nvarchar(30) (NULL)
+- **param1_descr_l3** : nvarchar(50) (NULL)
+- **param1_descr_l4** : nvarchar(50) (NULL)
+- **param2_descr_l1** : nvarchar(30) (NULL)
+- **param2_descr_l2** : nvarchar(30) (NULL)
+- **param2_descr_l3** : nvarchar(50) (NULL)
+- **param2_descr_l4** : nvarchar(50) (NULL)
+- **param3_descr_l1** : nvarchar(30) (NULL)
+- **param3_descr_l2** : nvarchar(30) (NULL)
+- **param3_descr_l3** : nvarchar(50) (NULL)
+- **param3_descr_l4** : nvarchar(50) (NULL)
+- **param4_descr_l1** : nvarchar(30) (NULL)
+- **param4_descr_l2** : nvarchar(30) (NULL)
+- **param4_descr_l3** : nvarchar(50) (NULL)
+- **param4_descr_l4** : nvarchar(50) (NULL)
+- **param5_descr_l1** : nvarchar(30) (NULL)
+- **param5_descr_l2** : nvarchar(30) (NULL)
+- **param5_descr_l3** : nvarchar(50) (NULL)
+- **param5_descr_l4** : nvarchar(50) (NULL)
+- **param6_descr_l1** : nvarchar(50) (NULL)
+- **param6_descr_l2** : nvarchar(50) (NULL)
+- **param6_descr_l3** : nvarchar(50) (NULL)
+- **param6_descr_l4** : nvarchar(50) (NULL)
+- **param7_descr_l1** : nvarchar(50) (NULL)
+- **param7_descr_l2** : nvarchar(50) (NULL)
+- **param7_descr_l3** : nvarchar(50) (NULL)
+- **param7_descr_l4** : nvarchar(50) (NULL)
+- **param8_descr_l1** : nvarchar(50) (NULL)
+- **param8_descr_l2** : nvarchar(50) (NULL)
+- **param8_descr_l3** : nvarchar(50) (NULL)
+- **param8_descr_l4** : nvarchar(50) (NULL)
+- **param9_descr_l1** : nvarchar(50) (NULL)
+- **param9_descr_l2** : nvarchar(50) (NULL)
+- **param9_descr_l3** : nvarchar(50) (NULL)
+- **param9_descr_l4** : nvarchar(50) (NULL)
+- **param10_descr_l1** : nvarchar(50) (NULL)
+- **param10_descr_l2** : nvarchar(50) (NULL)
+- **param10_descr_l3** : nvarchar(50) (NULL)
+- **param10_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `maintenance_groups`
+- **contract_id** : nvarchar(50) (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **descr** : nvarchar(255) (NULL)
+- **prefill** : float (NULL)
+- **firstfill** : float (NULL)
+
+---
+### Tabla: `maintenance_indexes`
+- **a** : float (NULL)
+- **b** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `maintenance_info`
+- **contract_id** : nvarchar(50) (NOT NULL) 🔑?
+- **dial_servecenter** : bit (NULL)
+- **dialin_number** : nvarchar(20) (NULL)
+- **dialin_projecttechnician** : nvarchar(30) (NULL)
+- **dialin_tcversion** : nvarchar(15) (NULL)
+- **dialin_typemodem** : nvarchar(20) (NULL)
+- **documentation_creator** : nvarchar(50) (NULL)
+- **documentation_date** : datetime (NULL)
+- **dossier_asbuilt_creator** : nvarchar(50) (NULL)
+- **dossier_asbuilt_date** : datetime (NULL)
+- **dossier_asbuilt_info** : nvarchar(50) (NULL)
+- **el_diagram_asbuilt_creator** : nvarchar(50) (NULL)
+- **el_diagram_asbuilt_date** : datetime (NULL)
+- **el_diagram_concept_creator** : nvarchar(50) (NULL)
+- **el_diagram_concept_date** : datetime (NULL)
+- **guarantee_enddate** : datetime (NULL)
+- **guarantee_sent** : bit (NULL)
+- **refrigerant_qty** : float (NULL)
+- **refrigerant_unit** : nvarchar(10) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `maintenance_invoices`
+- **contract_id** : nvarchar(50) (NOT NULL) 🔑?
+- **date** : datetime (NOT NULL)
+- **fl_transfered** : bit (NULL)
+- **total_price_vat_excl** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `maintenance_paths`
+- **id** : int (NOT NULL) 🔑?
+- **name** : nvarchar(255) (NULL)
+- **parent** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `maintenance_services`
+- **contract_id** : nvarchar(50) (NOT NULL) 🔑?
+- **date** : datetime (NOT NULL)
+- **date_execution** : datetime (NULL)
+- **fl_finished** : bit (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **workdoc_id** : nvarchar(50) (NULL) 🔑?
+
+---
+### Tabla: `mat_supplier`
+- **catalog_price** : float (NULL)
+- **cost_price** : float (NULL)
+- **date** : datetime (NULL)
+- **delivery_days** : int (NULL)
+- **discount** : float (NULL)
+- **mat_id** : int (NOT NULL) 🔑?
+- **pack_qty** : int (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **supp_descr** : nvarchar(255) (NULL)
+- **supp_mat_id** : int (NULL) 🔑?
+- **supp_ref** : nvarchar(50) (NULL)
+- **supplier_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `material`
+- **account_purchase** : nvarchar(50) (NULL)
+- **account_sales** : nvarchar(50) (NULL)
+- **art_current** : float (NULL)
+- **auvibel** : float (NULL)
+- **basis1000Cu** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **call_id2** : nvarchar(50) (NULL)
+- **catalog_id** : int (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **coefficient1Cu** : float (NULL)
+- **coefficient2Cu** : float (NULL)
+- **costprice** : float (NULL)
+- **date** : datetime (NULL)
+- **depth** : float (NULL)
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **discount** : float (NULL)
+- **fl_current** : bit (NULL)
+- **fl_priceOnRequest** : bit (NULL)
+- **fl_priceRevisionCu** : bit (NULL)
+- **fl_showInWebshop** : bit (NULL)
+- **fl_stock** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **height** : float (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **incert_call_id** : nvarchar(50) (NULL) 🔑?
+- **kg1000Cu** : float (NULL)
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **length** : float (NULL)
+- **norm** : float (NULL)
+- **order_unit** : nvarchar(10) (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **path** : nvarchar(255) (NULL)
+- **picture_id** : int (NULL) 🔑?
+- **price_type** : int (NULL)
+- **project_stage** : smallint (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_amount** : float (NULL)
+- **recupel_excl** : float (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **related_article_call_id** : nvarchar(25) (NULL) 🔑?
+- **related_article_id** : int (NULL) 🔑?
+- **remark** : int (NULL)
+- **sales_price_1** : float (NULL)
+- **sales_price_2** : float (NULL)
+- **sales_price_3** : float (NULL)
+- **searchfield** : nvarchar(25) (NULL)
+- **sell_quantity** : float (NULL)
+- **sup_item_id** : int (NULL) 🔑?
+- **supplier_id** : int (NULL) 🔑?
+- **transfer_key** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unitpack** : float (NULL)
+- **unitpoblig** : bit (NULL)
+- **url** : nvarchar(350) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vendor_id** : int (NULL) 🔑?
+- **weight** : float (NULL)
+- **width** : float (NULL)
+- **incert_kind** : nvarchar(50) (NULL)
+- **fl_useweight** : bit (NULL)
+- **url_picture** : nvarchar(350) (NULL)
+- **fl_synchronize** : bit (NULL)
+
+---
+### Tabla: `material_extra_fields`
+- **param1_descr_l1** : nvarchar(30) (NULL)
+- **param1_descr_l2** : nvarchar(30) (NULL)
+- **param1_descr_l3** : nvarchar(50) (NULL)
+- **param1_descr_l4** : nvarchar(50) (NULL)
+- **param2_descr_l1** : nvarchar(30) (NULL)
+- **param2_descr_l2** : nvarchar(30) (NULL)
+- **param2_descr_l3** : nvarchar(50) (NULL)
+- **param2_descr_l4** : nvarchar(50) (NULL)
+- **param3_descr_l1** : nvarchar(30) (NULL)
+- **param3_descr_l2** : nvarchar(30) (NULL)
+- **param3_descr_l3** : nvarchar(50) (NULL)
+- **param3_descr_l4** : nvarchar(50) (NULL)
+- **param4_descr_l1** : nvarchar(30) (NULL)
+- **param4_descr_l2** : nvarchar(30) (NULL)
+- **param4_descr_l3** : nvarchar(50) (NULL)
+- **param4_descr_l4** : nvarchar(50) (NULL)
+- **param5_descr_l1** : nvarchar(30) (NULL)
+- **param5_descr_l2** : nvarchar(30) (NULL)
+- **param5_descr_l3** : nvarchar(50) (NULL)
+- **param5_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `material_import`
+- **SupplierID** : float (NULL) 🔑?
+- **BrandCode** : float (NULL) 🔑?
+- **Reference** : nvarchar(255) (NULL)
+- **ReelCode** : nvarchar(255) (NULL) 🔑?
+- **ReelLength** : float (NULL)
+- **DescriptNL** : nvarchar(255) (NULL)
+- **DescriptFR** : nvarchar(255) (NULL)
+- **ProdCenter** : float (NULL)
+- **SubGamme** : nvarchar(255) (NULL)
+- **Family** : float (NULL)
+- **StockCode** : nvarchar(255) (NULL) 🔑?
+- **UnitOfMeas** : float (NULL)
+- **UnitPOblig** : float (NULL)
+- **UnitPack** : float (NULL)
+- **URL** : nvarchar(255) (NULL)
+- **CustomerID** : nvarchar(255) (NULL) 🔑?
+- **TAV** : float (NULL)
+- **Sabam** : float (NULL)
+- **Ecotax** : float (NULL)
+- **Recupel** : float (NULL)
+- **NetPrice** : float (NULL)
+- **EAN** : nvarchar(255) (NULL)
+- **BrandNl** : nvarchar(255) (NULL)
+- **BrandFr** : nvarchar(255) (NULL)
+- **FamNl** : nvarchar(255) (NULL)
+- **FamFr** : nvarchar(255) (NULL)
+- **TarifPrice** : float (NULL)
+
+---
+### Tabla: `material_parameters`
+- **factor_1** : float (NULL)
+- **factor_2** : float (NULL)
+- **factor_3** : float (NULL)
+- **factor_permanent** : bit (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `min_sup`
+- **mat_id** : int (NULL) 🔑?
+- **supplier_id** : int (NULL) 🔑?
+- **ts_modif** : datetime (NULL)
+
+---
+### Tabla: `mobility`
+- **cp_driver** : float (NULL)
+- **cp_driver_wop** : float (NULL)
+- **cp_passenger** : float (NULL)
+- **km_from** : int (NULL)
+- **km_to** : int (NULL)
+- **seqnr** : int (NULL) 🔑?
+
+---
+### Tabla: `oci_configuration`
+- **customer** : nvarchar(50) (NULL)
+- **hook_url** : nvarchar(255) (NULL)
+- **lblCustomer** : nvarchar(50) (NULL)
+- **lblOciType** : nvarchar(50) (NULL)
+- **lblPw** : nvarchar(50) (NULL)
+- **lblUser** : nvarchar(50) (NULL)
+- **password** : nvarchar(50) (NULL)
+- **supplier** : nvarchar(50) (NOT NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : nvarchar(50) (NULL)
+- **url** : nvarchar(255) (NULL)
+- **user** : nvarchar(50) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `order`
+- **account** : nvarchar(50) (NULL)
+- **activity_id** : smallint (NULL) 🔑?
+- **addition_cp** : bit (NULL)
+- **addition_factor_equipment** : float (NULL)
+- **addition_factor_labor** : float (NULL)
+- **addition_factor_material** : float (NULL)
+- **addition_factor_subcontract** : float (NULL)
+- **addition_group** : bit (NULL)
+- **addition_sp** : bit (NULL)
+- **advance** : float (NULL)
+- **attachment1_loc** : varchar(255) (NULL)
+- **attachment2_loc** : varchar(255) (NULL)
+- **attachment3_loc** : varchar(255) (NULL)
+- **attachment4_loc** : varchar(255) (NULL)
+- **attachment5_loc** : varchar(255) (NULL)
+- **book_remark** : nvarchar(25) (NULL)
+- **city** : nvarchar(35) (NULL)
+- **contact_email** : nvarchar(50) (NULL)
+- **contact_mobile** : nvarchar(20) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **country** : smallint (NULL)
+- **currency** : smallint (NULL)
+- **customer_discount** : float (NULL)
+- **customer_id** : int (NULL) 🔑?
+- **date** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **delay** : smallint (NULL)
+- **delivery_date** : datetime (NULL)
+- **delivery_type** : int (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **fax** : nvarchar(20) (NULL)
+- **fl_active** : bit (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_backorder** : bit (NULL)
+- **fl_checked_with_delivery** : bit (NULL)
+- **fl_checked_with_order** : bit (NULL)
+- **fl_collect_order** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_paid** : bit (NULL) 🔑?
+- **fl_partial_delivery** : bit (NULL)
+- **fl_sent** : bit (NULL)
+- **fl_show_payment_discount** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_transfered** : bit (NULL)
+- **free_total_vat_excl** : float (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_comment1** : nvarchar(50) (NULL)
+- **invoice_comment2** : nvarchar(50) (NULL)
+- **invoice_comment3** : nvarchar(50) (NULL)
+- **invoice_comment4** : nvarchar(50) (NULL)
+- **invoice_comment5** : nvarchar(50) (NULL)
+- **invoice_costprice_incl1** : float (NULL)
+- **invoice_costprice_incl2** : float (NULL)
+- **invoice_costprice_incl3** : float (NULL)
+- **invoice_costprice_incl4** : float (NULL)
+- **invoice_costprice_incl5** : float (NULL)
+- **invoice_costprice_paid1** : float (NULL)
+- **invoice_costprice_paid2** : float (NULL)
+- **invoice_costprice_paid3** : float (NULL)
+- **invoice_costprice_paid4** : float (NULL)
+- **invoice_costprice_paid5** : float (NULL)
+- **invoice_costprice1** : float (NULL)
+- **invoice_costprice2** : float (NULL)
+- **invoice_costprice3** : float (NULL)
+- **invoice_costprice4** : float (NULL)
+- **invoice_costprice5** : float (NULL)
+- **invoice_date_expiration1** : datetime (NULL)
+- **invoice_date_expiration2** : datetime (NULL)
+- **invoice_date_expiration3** : datetime (NULL)
+- **invoice_date_expiration4** : datetime (NULL)
+- **invoice_date_expiration5** : datetime (NULL)
+- **invoice_date1** : datetime (NULL)
+- **invoice_date2** : datetime (NULL)
+- **invoice_date3** : datetime (NULL)
+- **invoice_date4** : datetime (NULL)
+- **invoice_date5** : datetime (NULL)
+- **invoice_id1** : nvarchar(25) (NULL)
+- **invoice_id2** : nvarchar(25) (NULL)
+- **invoice_id3** : nvarchar(25) (NULL)
+- **invoice_id4** : nvarchar(25) (NULL)
+- **invoice_id5** : nvarchar(25) (NULL)
+- **invoice_submit1** : bit (NULL)
+- **invoice_submit2** : bit (NULL)
+- **invoice_submit3** : bit (NULL)
+- **invoice_submit4** : bit (NULL)
+- **invoice_submit5** : bit (NULL)
+- **language** : tinyint (NULL)
+- **maintenance_id** : nvarchar(50) (NULL) 🔑?
+- **memo** : int (NULL)
+- **name** : nvarchar(100) (NULL)
+- **order_contact** : nvarchar(25) (NULL)
+- **order_type** : nvarchar(50) (NULL)
+- **origin** : nvarchar(80) (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **payment_discount** : float (NULL)
+- **payment_term** : nvarchar(35) (NULL)
+- **price_type** : smallint (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_manager** : int (NULL)
+- **project_name** : nvarchar(100) (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(255) (NULL)
+- **ref_cust** : nvarchar(255) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **relation_ref** : nvarchar(50) (NULL)
+- **remark1** : nvarchar(100) (NULL)
+- **remark2** : nvarchar(100) (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **status** : int (NULL)
+- **street** : nvarchar(255) (NULL)
+- **surplus_to_stock** : bit (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **title_contact** : nvarchar(20) (NULL)
+- **total_paid** : float (NULL) 🔑?
+- **total_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **workdoc_id** : nvarchar(15) (NULL) 🔑?
+- **yard_manager** : int (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `order_customer`
+- **addition_cp** : bit (NULL)
+- **addition_factor_equipment** : float (NULL)
+- **addition_factor_labor** : float (NULL)
+- **addition_factor_material** : float (NULL)
+- **addition_factor_subcontract** : float (NULL)
+- **addition_group** : bit (NULL)
+- **addition_sp** : bit (NULL)
+- **advance** : float (NULL)
+- **book_remark** : nvarchar(25) (NULL)
+- **city** : nvarchar(35) (NULL)
+- **contact_email** : nvarchar(50) (NULL)
+- **contact_mobile** : nvarchar(20) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **country** : smallint (NULL)
+- **currency** : smallint (NULL)
+- **customer_discount** : float (NULL)
+- **date** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **delay** : smallint (NULL)
+- **delivery_date** : datetime (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **fax** : nvarchar(20) (NULL)
+- **fl_active** : bit (NULL)
+- **fl_backorder** : bit (NULL)
+- **fl_cancelled** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_jobpreparation** : bit (NULL)
+- **fl_on_call_system** : bit (NULL)
+- **fl_order** : bit (NULL)
+- **fl_paid** : bit (NULL) 🔑?
+- **fl_sent** : bit (NULL)
+- **fl_show_payment_discount** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_transfered** : bit (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **language** : tinyint (NULL)
+- **memo** : int (NULL)
+- **name** : nvarchar(100) (NULL)
+- **order_contact** : nvarchar(25) (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **payment_discount** : float (NULL)
+- **payment_term** : nvarchar(30) (NULL)
+- **price_type** : smallint (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(255) (NULL)
+- **ref_cust** : nvarchar(255) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **relation_ref** : nvarchar(50) (NULL)
+- **remark1** : nvarchar(100) (NULL)
+- **remark2** : nvarchar(100) (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **state** : smallint (NULL)
+- **street** : nvarchar(255) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **title_contact** : nvarchar(20) (NULL)
+- **total_paid** : float (NULL) 🔑?
+- **total_price** : float (NULL)
+- **total_price_vat_excl** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `order_invoice`
+- **date** : datetime (NULL)
+- **date_expired** : datetime (NULL)
+- **invoice_id** : nvarchar(50) (NOT NULL) 🔑?
+- **journal** : nvarchar(50) (NULL)
+- **order_id** : nvarchar(15) (NOT NULL) 🔑?
+- **price_excl** : float (NULL)
+- **price_incl** : float (NULL)
+- **price_paid** : float (NULL) 🔑?
+- **remark** : nvarchar(50) (NULL)
+- **scanned_invoice_loc** : nvarchar(255) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **submit** : bit (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `order_line`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **collect_order_id** : nvarchar(15) (NULL) 🔑?
+- **comment** : nvarchar(255) (NULL)
+- **costprice** : float (NULL)
+- **customer_id** : int (NULL) 🔑?
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **discount** : float (NULL)
+- **discount2** : float (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **invoice** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_materials** : bit (NULL)
+- **location_id** : int (NULL) 🔑?
+- **measuring_type** : smallint (NULL)
+- **ordered** : bit (NULL)
+- **position** : nvarchar(20) (NULL)
+- **price_type** : smallint (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **quantity_current_delivery** : float (NULL)
+- **quantity_delivered** : float (NULL)
+- **quantity_last_delivery** : float (NULL)
+- **quantity_surplus** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction** : float (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **ref_supplier** : nvarchar(50) (NULL)
+- **ref_supplier_id** : int (NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **source_id** : nvarchar(15) (NULL) 🔑?
+- **source_type** : smallint (NULL)
+- **st_sales_price** : float (NULL)
+- **target** : smallint (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **weight** : float (NULL)
+- **workdoc_id** : nvarchar(15) (NULL) 🔑?
+- **workdoc_seqnr** : int (NULL) 🔑?
+
+---
+### Tabla: `order_line_customer`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **costprice** : float (NULL)
+- **d_o_quantity** : float (NULL)
+- **d_o_supplier_id** : int (NULL) 🔑?
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **directorder** : bit (NULL)
+- **discount** : float (NULL)
+- **discount2** : float (NULL)
+- **fl_pallet_pricing** : bit (NULL)
+- **invoice** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_materials** : bit (NULL)
+- **location_id** : int (NULL) 🔑?
+- **position** : nvarchar(20) (NULL)
+- **price_type** : smallint (NULL)
+- **project_stage** : smallint (NULL)
+- **qty_delivered** : float (NULL)
+- **qty_last_delivery** : float (NULL)
+- **qty_ordered_on_call** : float (NULL)
+- **qty_reserved** : float (NULL)
+- **qty_to_deliver** : float (NULL)
+- **quantity** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction** : float (NULL)
+- **reduction_group** : int (NULL)
+- **reservation** : bit (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **st_sales_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+
+---
+### Tabla: `order_line_customer_supplier`
+- **catalogprice** : float (NULL)
+- **costprice** : float (NULL)
+- **costprice_perc** : float (NULL)
+- **discount** : float (NULL)
+- **fl_ToOrder** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **supplier_contact_seqnr** : smallint (NULL) 🔑?
+- **supplier_id** : int (NULL) 🔑?
+- **supplier_levdatum** : datetime (NULL)
+- **supplier_ref** : nvarchar(50) (NULL)
+- **supplier_seq_nr** : smallint (NOT NULL) 🔑?
+- **supplier_stock** : float (NULL)
+- **supplier_variant** : nvarchar(35) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `order_suppliers`
+- **date_received** : datetime (NULL)
+- **date_sent** : datetime (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **name** : nvarchar(100) (NULL)
+- **remark** : nvarchar(255) (NULL)
+- **status** : int (NULL)
+- **supplier_contact** : nvarchar(100) (NULL)
+- **supplier_contact_seq_nr** : smallint (NULL) 🔑?
+- **supplier_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `own_hours`
+- **name** : varchar(256) (NOT NULL)
+
+---
+### Tabla: `parameter`
+- **key** : nvarchar(25) (NOT NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **value_char** : nvarchar(50) (NULL)
+- **value_lng** : int (NULL)
+
+---
+### Tabla: `partena_hours`
+- **labor_type_id** : int (NOT NULL) 🔑?
+- **name** : varchar(256) (NULL)
+- **export** : varchar(256) (NULL)
+
+---
+### Tabla: `partenas`
+- **name** : varchar(256) (NOT NULL)
+
+---
+### Tabla: `picture`
+- **height** : int (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **path** : nvarchar(255) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **width** : int (NULL)
+
+---
+### Tabla: `planning`
+- **date** : datetime (NOT NULL)
+- **employee_id** : int (NOT NULL) 🔑?
+- **internalcode** : nvarchar(50) (NULL) 🔑?
+- **IsPlanned** : bit (NULL)
+- **isyardmanager** : tinyint (NULL)
+- **labor_descr** : nvarchar(255) (NULL)
+- **makeworkdoc** : bit (NULL)
+- **PrintOnList1** : bit (NULL)
+- **PrintOnList2** : bit (NULL)
+- **project_id** : nvarchar(25) (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : int (NULL)
+- **vehicle** : int (NULL)
+
+---
+### Tabla: `plugin`
+- **document_nr** : int (NOT NULL) 🔑?
+- **filename** : nvarchar(255) (NULL)
+- **name** : nvarchar(50) (NOT NULL)
+- **parameters** : nvarchar(256) (NULL)
+- **param_ids** : bit (NULL)
+- **param_connection** : bit (NULL)
+- **param_db** : bit (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `plugin_old`
+- **document_nr** : int (NULL) 🔑?
+- **filename** : nvarchar(255) (NULL)
+- **name** : nvarchar(50) (NOT NULL)
+- **parameters** : nvarchar(256) (NULL)
+- **param_ids** : bit (NULL)
+- **param_connection** : bit (NULL)
+- **param_db** : bit (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `presta_hours`
+- **labor_type_id** : int (NOT NULL) 🔑?
+- **name** : varchar(256) (NULL)
+- **export** : varchar(256) (NULL)
+
+---
+### Tabla: `project`
+- **aal** : float (NULL)
+- **ace** : float (NULL)
+- **activity_id** : smallint (NULL) 🔑?
+- **acu** : float (NULL)
+- **advance** : float (NULL)
+- **advance_transfer_id** : nvarchar(15) (NULL) 🔑?
+- **af** : float (NULL)
+- **afp** : float (NULL)
+- **apb** : float (NULL)
+- **apl** : float (NULL)
+- **architect_id** : int (NULL) 🔑?
+- **atf** : float (NULL)
+- **budget_extra_cost** : float (NULL)
+- **budget_equipment** : float (NULL)
+- **budget_material** : float (NULL)
+- **budget_order_fl** : bit (NULL)
+- **budget_subcontract** : float (NULL)
+- **budget_surplus** : float (NULL)
+- **chemistry_allowance** : float (NULL)
+- **chemistry_allowance_amount** : float (NULL)
+- **class** : int (NULL)
+- **checkinatwork_fl** : bit (NULL)
+- **contract_price** : float (NULL)
+- **currency** : smallint (NULL)
+- **customer_type** : int (NULL)
+- **date** : datetime (NULL)
+- **date_decision** : datetime (NULL)
+- **date_end** : datetime (NULL)
+- **date_start** : datetime (NULL)
+- **date_start_planned** : datetime (NULL)
+- **date_tender** : datetime (NULL)
+- **descr** : nvarchar(100) (NULL)
+- **designer_3** : nvarchar(50) (NULL)
+- **designer_id_1** : int (NULL)
+- **designer_id_2** : int (NULL)
+- **designer_id_4** : int (NULL)
+- **distance** : float (NULL)
+- **dossier** : nvarchar(50) (NULL)
+- **e310** : float (NULL)
+- **e340** : float (NULL)
+- **email** : nvarchar(40) (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **estimate_total_base** : nvarchar(50) (NULL)
+- **estimate_total_more** : nvarchar(50) (NULL)
+- **estimated_total_hours_to_execute** : float (NULL)
+- **execution_duration** : int (NULL)
+- **execution_duration_prolongation_max** : int (NULL)
+- **fax** : nvarchar(20) (NULL)
+- **fix_transport** : float (NULL)
+- **fl_active** : bit (NULL)
+- **fl_advance** : bit (NULL)
+- **fl_advance_deducted** : bit (NULL)
+- **fl_advance_transfered** : bit (NULL)
+- **fl_blocked** : bit (NULL)
+- **fl_certificate_printed** : bit (NULL)
+- **fl_chemistry_allowance** : bit (NULL)
+- **fl_date_finished_0** : bit (NULL)
+- **fl_date_finished_1** : bit (NULL)
+- **fl_date_finished_2** : bit (NULL)
+- **fl_date_finished_3** : bit (NULL)
+- **fl_date_finished_4** : bit (NULL)
+- **fl_default_delivery_address** : bit (NULL)
+- **fl_followup** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_persons_allowance** : bit (NULL)
+- **fl_productivity** : bit (NULL)
+- **fl_roofing_allowance** : bit (NULL)
+- **fl_state** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_subinvoice** : bit (NULL)
+- **function** : nvarchar(35) (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **insurance_a** : real (NULL)
+- **insurance_aa** : real (NULL)
+- **insurance_ab** : real (NULL)
+- **insurance_ac** : real (NULL)
+- **insurance_apl** : real (NULL)
+- **insurance_As** : real (NULL)
+- **insurance_b** : real (NULL)
+- **insurance_bal** : real (NULL)
+- **insurance_bcu** : real (NULL)
+- **insurance_bfp** : real (NULL)
+- **insurance_bpl** : real (NULL)
+- **insurance_c** : real (NULL)
+- **insurance_d** : real (NULL)
+- **insurance_e** : real (NULL)
+- **insurance_f** : real (NULL)
+- **insurance_guarantee** : bit (NULL)
+- **insurance_guarantee_amount** : float (NULL)
+- **insurance_guarantee_percentage** : float (NULL)
+- **insurance_guarantee_type** : smallint (NULL)
+- **insurance_guarantee_withdraw** : bit (NULL)
+- **insurance_i** : real (NULL)
+- **insurance_j0** : real (NULL)
+- **insurance_policy_number** : nvarchar(25) (NULL)
+- **insurance_s** : real (NULL)
+- **insurance_s0** : float (NULL)
+- **invoice_company** : int (NULL)
+- **memo** : int (NULL)
+- **name** : nvarchar(100) (NULL)
+- **param1** : nvarchar(255) (NULL)
+- **param2** : nvarchar(255) (NULL)
+- **param3** : nvarchar(255) (NULL)
+- **payment_term** : smallint (NULL)
+- **persons_allowance** : float (NULL)
+- **pof** : float (NULL)
+- **productivity** : float (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_fax** : nvarchar(16) (NULL)
+- **project_manager** : int (NULL)
+- **project_tel** : nvarchar(16) (NULL)
+- **ref** : nvarchar(30) (NULL)
+- **ref_cust** : nvarchar(30) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **responsable** : nvarchar(50) (NULL)
+- **revision_formule** : int (NULL)
+- **roofing_allowance** : float (NULL)
+- **seller_id** : int (NULL) 🔑?
+- **state** : smallint (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **transport_salesprice** : float (NULL)
+- **transport_time** : datetime (NULL)
+- **transport_unitprice** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **uwm_date** : datetime (NULL)
+- **uwm_fl** : bit (NULL)
+- **uwm_memo** : nvarchar(255) (NULL)
+- **uwm_nr** : nvarchar(30) (NULL) 🔑?
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **yard_manager** : int (NULL)
+
+---
+### Tabla: `project_contact`
+- **email** : nvarchar(200) (NULL)
+- **fax** : nvarchar(20) (NULL)
+- **function** : nvarchar(20) (NULL)
+- **mobile** : nvarchar(20) (NULL)
+- **name** : nvarchar(35) (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **telbusiness** : nvarchar(20) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_engineering`
+- **engineering_agency_id** : int (NOT NULL) 🔑?
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_estimateapplicants`
+- **Date_received** : datetime (NULL)
+- **Project_id** : nvarchar(15) (NULL) 🔑?
+- **Project_stage** : int (NULL)
+- **Relation_id** : int (NULL) 🔑?
+- **Relation_name** : nvarchar(35) (NULL)
+- **Resource** : nvarchar(25) (NULL)
+- **Seqnr** : smallint (NULL) 🔑?
+- **State** : smallint (NULL)
+
+---
+### Tabla: `project_estimates`
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_extra_fields`
+- **param1_descr_l1** : nvarchar(30) (NULL)
+- **param1_descr_l2** : nvarchar(30) (NULL)
+- **param1_descr_l3** : nvarchar(50) (NULL)
+- **param1_descr_l4** : nvarchar(50) (NULL)
+- **param2_descr_l1** : nvarchar(30) (NULL)
+- **param2_descr_l2** : nvarchar(30) (NULL)
+- **param2_descr_l3** : nvarchar(50) (NULL)
+- **param2_descr_l4** : nvarchar(50) (NULL)
+- **param3_descr_l1** : nvarchar(30) (NULL)
+- **param3_descr_l2** : nvarchar(30) (NULL)
+- **param3_descr_l3** : nvarchar(50) (NULL)
+- **param3_descr_l4** : nvarchar(50) (NULL)
+- **param4_descr_l1** : nvarchar(30) (NULL)
+- **param4_descr_l2** : nvarchar(30) (NULL)
+- **param4_descr_l3** : nvarchar(50) (NULL)
+- **param4_descr_l4** : nvarchar(50) (NULL)
+- **param5_descr_l1** : nvarchar(30) (NULL)
+- **param5_descr_l2** : nvarchar(30) (NULL)
+- **param5_descr_l3** : nvarchar(50) (NULL)
+- **param5_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_old`
+- **aal** : float (NULL)
+- **ace** : float (NULL)
+- **acu** : float (NULL)
+- **advance** : float (NULL)
+- **af** : float (NULL)
+- **afp** : float (NULL)
+- **apb** : float (NULL)
+- **apl** : float (NULL)
+- **architect_id** : int (NULL) 🔑?
+- **atf** : float (NULL)
+- **budget_extra_cost** : float (NULL)
+- **budget_equipment** : float (NULL)
+- **budget_material** : float (NULL)
+- **budget_order_fl** : bit (NULL)
+- **budget_subcontract** : float (NULL)
+- **budget_surplus** : float (NULL)
+- **class** : int (NULL)
+- **contract_price** : float (NULL)
+- **currency** : smallint (NULL)
+- **customer_type** : int (NULL)
+- **date** : datetime (NULL)
+- **date_decision** : datetime (NULL)
+- **date_end** : datetime (NULL)
+- **date_start** : datetime (NULL)
+- **date_start_planned** : datetime (NULL)
+- **date_tender** : datetime (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **designer_3** : nvarchar(50) (NULL)
+- **designer_id_1** : int (NULL)
+- **designer_id_2** : int (NULL)
+- **distance** : float (NULL)
+- **dossier** : nvarchar(50) (NULL)
+- **e310** : float (NULL)
+- **e340** : float (NULL)
+- **email** : nvarchar(40) (NULL)
+- **estimate_total_base** : nvarchar(50) (NULL)
+- **estimate_total_more** : nvarchar(50) (NULL)
+- **estimated_total_hours_to_execute** : float (NULL)
+- **execution_duration** : int (NULL)
+- **execution_duration_prolongation_max** : int (NULL)
+- **fax** : nvarchar(20) (NULL)
+- **fl_active** : bit (NULL)
+- **fl_advance** : bit (NULL)
+- **fl_blocked** : bit (NULL)
+- **fl_date_finished_0** : bit (NULL)
+- **fl_date_finished_1** : bit (NULL)
+- **fl_date_finished_2** : bit (NULL)
+- **fl_date_finished_3** : bit (NULL)
+- **fl_date_finished_4** : bit (NULL)
+- **fl_followup** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_state** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_subinvoice** : bit (NULL)
+- **function** : nvarchar(35) (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **insurance_a** : real (NULL)
+- **insurance_aa** : real (NULL)
+- **insurance_ab** : real (NULL)
+- **insurance_ac** : real (NULL)
+- **insurance_apl** : real (NULL)
+- **insurance_As** : real (NULL)
+- **insurance_b** : real (NULL)
+- **insurance_bal** : real (NULL)
+- **insurance_bcu** : real (NULL)
+- **insurance_bfp** : real (NULL)
+- **insurance_bpl** : real (NULL)
+- **insurance_c** : real (NULL)
+- **insurance_d** : real (NULL)
+- **insurance_e** : real (NULL)
+- **insurance_f** : real (NULL)
+- **insurance_guarantee** : bit (NULL)
+- **insurance_guarantee_amount** : float (NULL)
+- **insurance_guarantee_percentage** : float (NULL)
+- **insurance_guarantee_type** : smallint (NULL)
+- **insurance_i** : real (NULL)
+- **insurance_j0** : real (NULL)
+- **insurance_policy_number** : nvarchar(25) (NULL)
+- **insurance_s** : real (NULL)
+- **insurance_s0** : float (NULL)
+- **invoice_company** : int (NULL)
+- **memo** : int (NULL)
+- **name** : nvarchar(35) (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **pof** : float (NULL)
+- **project_address** : int (NULL)
+- **project_fax** : nvarchar(16) (NULL)
+- **project_manager** : int (NULL)
+- **project_tel** : nvarchar(16) (NULL)
+- **ref** : nvarchar(30) (NULL)
+- **ref_cust** : nvarchar(30) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **responsable** : nvarchar(50) (NULL)
+- **revision_formule** : nvarchar(3) (NULL)
+- **state** : smallint (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **transport_salesprice** : float (NULL)
+- **transport_time** : datetime (NULL)
+- **transport_unitprice** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **yard_manager** : int (NULL)
+
+---
+### Tabla: `project_orders`
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_paths`
+- **id** : int (NOT NULL) 🔑?
+- **name** : nvarchar(255) (NULL)
+- **parent** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_revision`
+- **a** : float (NULL)
+- **a1** : float (NULL)
+- **al** : float (NULL)
+- **as** : float (NULL)
+- **b** : float (NULL)
+- **b1** : float (NULL)
+- **b2** : float (NULL)
+- **b3** : float (NULL)
+- **b4** : float (NULL)
+- **b5** : float (NULL)
+- **b6** : float (NULL)
+- **c** : float (NULL)
+- **c1** : float (NULL)
+- **cu** : float (NULL)
+- **d** : float (NULL)
+- **e** : float (NULL)
+- **e310** : float (NULL)
+- **e340** : float (NULL)
+- **f** : float (NULL)
+- **fp** : float (NULL)
+- **i** : float (NULL)
+- **i2021** : float (NULL)
+- **isti1** : float (NULL)
+- **isti2** : float (NULL)
+- **isti3** : float (NULL)
+- **isti4** : float (NULL)
+- **isti5** : float (NULL)
+- **isti6** : float (NULL)
+- **istilabel1** : nvarchar(5) (NULL)
+- **istilabel2** : nvarchar(5) (NULL)
+- **istilabel3** : nvarchar(5) (NULL)
+- **istilabel4** : nvarchar(5) (NULL)
+- **istilabel5** : nvarchar(5) (NULL)
+- **istilabel6** : nvarchar(5) (NULL)
+- **j0** : float (NULL)
+- **pl** : float (NULL)
+- **pl1** : float (NULL)
+- **project_id** : nvarchar(25) (NULL) 🔑?
+- **s** : float (NULL)
+- **s0** : float (NULL)
+- **s1** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type_revision** : smallint (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **X_text_value** : nvarchar(5) (NULL)
+
+---
+### Tabla: `project_revision_250`
+- **project_id** : nvarchar(25) (NOT NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **b_coefficient** : float (NULL)
+- **x_coefficient** : float (NULL)
+
+---
+### Tabla: `project_revision_material`
+- **al** : float (NULL)
+- **ce** : float (NULL)
+- **cu** : float (NULL)
+- **f** : float (NULL)
+- **fp** : float (NULL)
+- **pb** : float (NULL)
+- **pl** : float (NULL)
+- **project_id** : nvarchar(25) (NULL) 🔑?
+- **tf** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_subinvoices`
+- **amount** : float (NULL)
+- **date_invoice** : datetime (NULL)
+- **fl_transfered** : bit (NULL)
+- **name** : nvarchar(50) (NULL)
+- **percentage** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_subprojects`
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **sub_project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_suppliers`
+- **activity** : nvarchar(50) (NULL)
+- **date_end** : datetime (NULL)
+- **date_start** : datetime (NULL)
+- **fl_contract** : bit (NULL)
+- **insurance_guarantee_type** : smallint (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NULL) 🔑?
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `project_totals`
+- **finished_projectleader** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **to_prestate_projectleader** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **working_expense** : float (NULL)
+
+---
+### Tabla: `purchase`
+- **acc_dossier_id** : nvarchar(50) (NULL) 🔑?
+- **acc_journal** : nvarchar(50) (NULL)
+- **acc_ledger** : nvarchar(50) (NULL)
+- **account_central** : nvarchar(50) (NULL)
+- **approve_name1** : nvarchar(50) (NULL)
+- **approve_name2** : nvarchar(50) (NULL)
+- **approve_name3** : nvarchar(50) (NULL)
+- **approve_remark1** : nvarchar(100) (NULL)
+- **approve_remark2** : nvarchar(100) (NULL)
+- **approve_remark3** : nvarchar(100) (NULL)
+- **approve1** : bit (NULL)
+- **approve2** : bit (NULL)
+- **approve3** : bit (NULL)
+- **cur** : smallint (NULL)
+- **currencies** : float (NULL)
+- **customer_id** : int (NULL) 🔑?
+- **date_end** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **date_transcript** : datetime (NULL)
+- **disc_amount** : float (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **fl_active** : bit (NULL)
+- **fl_approve_accountancy** : bit (NULL)
+- **fl_approve_payment** : bit (NULL)
+- **fl_deduction_obligation** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_has_attachments** : bit (NULL)
+- **fl_manual_booking** : bit (NULL)
+- **fl_paid** : bit (NULL) 🔑?
+- **fl_transfered** : bit (NULL)
+- **fl_transfered_accountancy** : bit (NULL)
+- **fl_project_manager** : bit (NULL)
+- **ic_vat** : float (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **invoice_book_date** : datetime (NULL)
+- **invoice_date** : datetime (NULL)
+- **invoice_id** : nvarchar(50) (NULL) 🔑?
+- **mc_vat** : float (NULL)
+- **mvh** : float (NULL)
+- **non_recup** : float (NULL)
+- **not_submitted** : float (NULL)
+- **ogm** : nvarchar(50) (NULL)
+- **order_price** : float (NULL)
+- **order_price_paid** : float (NULL) 🔑?
+- **order_price_saldo** : float (NULL)
+- **order_to_pay** : float (NULL)
+- **payment_discount** : float (NULL)
+- **payment_ref** : nvarchar(50) (NULL)
+- **payment_remark** : nvarchar(100) (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **rate** : float (NULL)
+- **ref** : nvarchar(50) (NULL)
+- **remark** : int (NULL)
+- **remark1** : nvarchar(100) (NULL)
+- **remark2** : nvarchar(100) (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **scanned_invoice_loc** : nvarchar(255) (NULL)
+- **status** : int (NULL)
+- **supplier_city** : nvarchar(35) (NULL)
+- **supplier_country** : int (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **supplier_name** : nvarchar(100) (NULL)
+- **supplier_ref** : nvarchar(15) (NULL)
+- **supplier_street** : nvarchar(255) (NULL)
+- **supplier_title** : nvarchar(50) (NULL)
+- **supplier_vat** : nvarchar(20) (NULL)
+- **supplier_zipcode** : nvarchar(15) (NULL) 🔑?
+- **surplus_to_stock** : bit (NULL)
+- **total_price_excl** : float (NULL)
+- **total_price_incl** : float (NULL)
+- **total_purchase** : float (NULL)
+- **total_to_book** : float (NULL)
+- **transcript_amount** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **ubl_loc** : nvarchar(255) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_amount** : float (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **workdoc_id** : nvarchar(15) (NULL) 🔑?
+- **workdoc_remark** : nvarchar(255) (NULL)
+
+---
+### Tabla: `purchase_account`
+- **account** : nvarchar(50) (NOT NULL)
+- **account_type** : smallint (NULL)
+- **credit_debet** : nvarchar(1) (NULL)
+- **invoice_type** : smallint (NOT NULL)
+- **remark** : nvarchar(255) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_type** : smallint (NOT NULL)
+- **vatcell** : nvarchar(50) (NOT NULL)
+- **ventcode** : smallint (NOT NULL) 🔑?
+
+---
+### Tabla: `purchase_account_line`
+- **account** : nvarchar(50) (NOT NULL)
+- **art_type** : smallint (NULL)
+- **credit** : float (NULL)
+- **debet** : float (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **fl_division** : bit (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **purchase_id** : int (NOT NULL) 🔑?
+- **remark** : nvarchar(50) (NULL)
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_amount** : float (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **VATCell** : nvarchar(50) (NULL)
+- **ventcode** : smallint (NULL) 🔑?
+
+---
+### Tabla: `purchase_account_line_division`
+- **account** : nvarchar(50) (NOT NULL)
+- **art_type** : smallint (NULL)
+- **credit** : float (NULL)
+- **debet** : float (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **division_seq_nr** : smallint (NOT NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **purchase_id** : int (NOT NULL) 🔑?
+- **remark** : nvarchar(50) (NULL)
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **VATCell** : nvarchar(50) (NULL)
+- **ventcode** : smallint (NULL) 🔑?
+
+---
+### Tabla: `purchase_accounts_fix`
+- **account_disc_amount** : nvarchar(50) (NULL)
+- **account_ic_vat** : nvarchar(50) (NULL)
+- **account_mc_vat** : nvarchar(50) (NULL)
+- **account_received_discount** : nvarchar(50) (NULL)
+- **account_suppliers** : nvarchar(50) (NULL)
+- **account_vat_non_recup** : nvarchar(50) (NULL)
+- **account_vat_recup** : nvarchar(50) (NULL)
+- **remark_account_suppliers** : nvarchar(255) (NULL)
+- **remark_disc_amount** : nvarchar(255) (NULL)
+- **remark_ic_vat** : nvarchar(255) (NULL)
+- **remark_mc_vat** : nvarchar(255) (NULL)
+- **remark_received_discount** : nvarchar(255) (NULL)
+- **remark_vat_non_recup** : nvarchar(255) (NULL)
+- **remark_vat_recup** : nvarchar(255) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vatcell_account_suppliers** : nvarchar(50) (NULL)
+- **vatcell_disc_amount** : nvarchar(50) (NULL)
+- **vatcell_ic_vat** : nvarchar(50) (NULL)
+- **vatcell_mc_vat** : nvarchar(50) (NULL)
+- **vatcell_received_discount** : nvarchar(50) (NULL)
+- **vatcell_vat_non_recup** : nvarchar(50) (NULL)
+- **vatcell_vat_recup** : nvarchar(50) (NULL)
+- **ventcode_account_suppliers** : nvarchar(3) (NULL)
+- **ventcode_disc_amount** : nvarchar(3) (NULL)
+- **ventcode_ic_vat** : nvarchar(3) (NULL)
+- **ventcode_mc_vat** : nvarchar(3) (NULL)
+- **ventcode_received_discount** : nvarchar(3) (NULL)
+- **ventcode_vat_non_recup** : nvarchar(3) (NULL)
+- **ventcode_vat_recup** : nvarchar(3) (NULL)
+
+---
+### Tabla: `purchase_detail`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **collect_order_id** : nvarchar(15) (NULL) 🔑?
+- **comment** : nvarchar(50) (NULL)
+- **costprice** : float (NULL)
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **discount** : float (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **invoice** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NULL) 🔑?
+- **line_seq_nr** : int (NULL) 🔑?
+- **order_seqnr** : int (NOT NULL) 🔑?
+- **ordered** : bit (NULL)
+- **price_type** : smallint (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **purchase_id** : int (NOT NULL) 🔑?
+- **quantity** : float (NULL)
+- **quantity_delivered** : float (NULL)
+- **quantity_last_delivery** : float (NULL)
+- **quantity_surplus** : float (NULL)
+- **quantity_to_book** : int (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction_group** : int (NULL)
+- **ref_supplier** : nvarchar(50) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **type** : int (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+
+---
+### Tabla: `purchase_order_line`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **collect_order_id** : nvarchar(15) (NULL) 🔑?
+- **comment** : nvarchar(255) (NULL)
+- **costprice** : float (NULL)
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **difference** : float (NULL)
+- **discount** : float (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **invoice** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NULL) 🔑?
+- **location_id** : int (NULL) 🔑?
+- **measuring_type** : smallint (NULL)
+- **order_seq_nr** : int (NULL) 🔑?
+- **ordered** : bit (NULL)
+- **orderprice** : float (NULL)
+- **position** : nvarchar(20) (NULL)
+- **price_type** : smallint (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **purchase_id** : int (NOT NULL) 🔑?
+- **quantity** : float (NULL)
+- **quantity_current_delivery** : float (NULL)
+- **quantity_delivered** : float (NULL)
+- **quantity_last_delivery** : float (NULL)
+- **quantity_surplus** : float (NULL)
+- **quantity_to_book** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction_group** : int (NULL)
+- **ref_supplier** : nvarchar(50) (NULL)
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **st_sales_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **weight** : float (NULL)
+
+---
+### Tabla: `purchase_taxes`
+- **auvibel_account** : nvarchar(50) (NULL)
+- **bebat_account** : nvarchar(50) (NULL)
+- **recupel_account** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `refrigerant`
+- **bottle_id** : nvarchar(50) (NULL) 🔑?
+- **buy_date** : datetime (NULL)
+- **fl_retour** : bit (NULL)
+- **gross** : float (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **location_id** : int (NULL) 🔑?
+- **mat_id** : int (NULL) 🔑?
+- **net** : float (NULL)
+- **position_id** : int (NULL) 🔑?
+- **retour_date** : datetime (NULL)
+- **serial_number** : nvarchar(255) (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **tare** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(255) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `reg_invoice`
+- **amount** : float (NULL)
+- **amount_paid** : float (NULL) 🔑?
+- **amount_vat** : float (NULL)
+- **contact** : nvarchar(40) (NULL)
+- **date** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **date_paid** : datetime (NULL) 🔑?
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **fl_booked_in_cubic** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_paid** : bit (NULL) 🔑?
+- **fl_show_payment_discount** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_transfered** : bit (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **Payment_discount** : float (NULL)
+- **Payment_text** : nvarchar(30) (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **ready** : bit (NULL)
+- **ref** : nvarchar(50) (NULL)
+- **resource1_id** : nvarchar(15) (NULL) 🔑?
+- **resource2_id** : nvarchar(15) (NULL) 🔑?
+- **supplier_id** : int (NULL) 🔑?
+- **Total_payment** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `register_bord`
+- **id** : int (NOT NULL) 🔑?
+- **name** : nvarchar(256) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `register_keys`
+- **color_font** : int (NULL)
+- **color_key** : int (NULL)
+- **font_size** : int (NULL)
+- **icon** : nvarchar(256) (NULL)
+- **link** : int (NULL)
+- **place** : int (NOT NULL)
+- **register_bord_id** : int (NOT NULL) 🔑?
+- **text** : nvarchar(256) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `relation`
+- **account1** : nvarchar(23) (NULL)
+- **account1_remark** : nvarchar(50) (NULL)
+- **account2** : nvarchar(23) (NULL)
+- **account2_remark** : nvarchar(50) (NULL)
+- **account_central** : nvarchar(50) (NULL)
+- **account_customer** : nvarchar(50) (NULL)
+- **account_supplier** : nvarchar(50) (NULL)
+- **account_supplier_6** : nvarchar(50) (NULL)
+- **archive** : smallint (NULL)
+- **bank1** : int (NULL)
+- **bank2** : int (NULL)
+- **bic1** : nvarchar(255) (NULL)
+- **bic2** : nvarchar(255) (NULL)
+- **cash_discount** : float (NULL)
+- **chemistry_allowance** : float (NULL)
+- **chemistry_allowance_amount** : float (NULL)
+- **city** : nvarchar(35) (NULL)
+- **commer_register** : nvarchar(30) (NULL)
+- **companyweb_last_update** : nvarchar(10) (NULL)
+- **country** : smallint (NULL)
+- **credit_restriction** : float (NULL)
+- **currency** : smallint (NULL)
+- **date** : datetime (NULL)
+- **distance** : float (NULL)
+- **email** : nvarchar(50) (NULL)
+- **fax** : nvarchar(20) (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_blocked** : bit (NULL)
+- **fl_chemistry_allowance** : bit (NULL)
+- **fl_credit_restriction** : bit (NULL)
+- **fl_outlook** : bit (NULL)
+- **fl_has_pricing** : bit (NULL)
+- **fl_noinvoicepdf** : bit (NULL)
+- **fl_noinvoiceubl** : bit (NULL)
+- **fl_receivePeppolInvoice** : bit (NULL)
+- **franco_supp_amount** : float (NULL)
+- **glnnr** : nvarchar(15) (NULL) 🔑?
+- **iban1** : nvarchar(255) (NULL)
+- **iban2** : nvarchar(255) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **internet** : nvarchar(40) (NULL)
+- **language** : smallint (NULL)
+- **language_subcontract** : smallint (NULL)
+- **login_id** : nvarchar(30) (NULL) 🔑?
+- **mobile** : nvarchar(20) (NULL)
+- **name** : nvarchar(100) (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **param4** : nvarchar(40) (NULL)
+- **param5** : nvarchar(40) (NULL)
+- **password** : nvarchar(15) (NULL)
+- **payment_term** : smallint (NULL)
+- **payment_term_supplier** : smallint (NULL)
+- **peppol_schemeID** : nvarchar(10) (NULL) 🔑?
+- **price_type** : int (NULL)
+- **pricing_salesestimate_id** : nvarchar(15) (NULL) 🔑?
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(15) (NULL)
+- **ref_supp** : nvarchar(15) (NULL)
+- **remark** : int (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **street** : nvarchar(255) (NULL)
+- **tel1** : nvarchar(20) (NULL)
+- **tel2** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **tp_carrier** : bit (NULL)
+- **tp_customer** : bit (NULL)
+- **tp_followup** : bit (NULL)
+- **tp_invoice_address** : bit (NULL)
+- **tp_other** : bit (NULL)
+- **tp_subcontract** : bit (NULL)
+- **tp_supplier** : bit (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_code_supplier** : smallint (NULL)
+- **vat_type** : smallint (NULL)
+- **ventcode** : smallint (NULL) 🔑?
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+- **zipcode_extension** : nvarchar(2) (NULL)
+- **hs_object_id** : nvarchar(150) (NULL) 🔑?
+
+---
+### Tabla: `relation_companyweb`
+- **address** : nvarchar(255) (NULL)
+- **bookyear** : nvarchar(4) (NULL)
+- **close_date** : nvarchar(10) (NULL)
+- **company_name** : nvarchar(100) (NULL)
+- **company_status** : nvarchar(50) (NULL)
+- **company_status_code** : int (NULL) 🔑?
+- **credit_limit** : float (NULL)
+- **credit_limit_info** : nvarchar(255) (NULL)
+- **date_last_update** : nvarchar(10) (NULL)
+- **detail_url** : nvarchar(255) (NULL)
+- **employees** : float (NULL)
+- **end_date** : nvarchar(10) (NULL)
+- **equity** : float (NULL)
+- **gross_margin** : float (NULL)
+- **legal_form** : nvarchar(10) (NULL)
+- **preferred_language** : nvarchar(10) (NULL)
+- **profit_loss** : float (NULL)
+- **relation_id** : int (NOT NULL) 🔑?
+- **report_url** : nvarchar(255) (NULL)
+- **score** : float (NULL)
+- **score_image** : nvarchar(15) (NULL)
+- **start_date** : nvarchar(10) (NULL)
+- **turnover** : float (NULL)
+- **vat_enabled** : bit (NULL)
+- **vat_number** : nvarchar(20) (NULL)
+- **warnings_overview** : nvarchar(255) (NULL)
+
+---
+### Tabla: `relation_contact`
+- **date_creation** : datetime (NULL)
+- **department** : nvarchar(20) (NULL)
+- **email** : nvarchar(200) (NULL)
+- **emailprivate** : nvarchar(200) (NULL)
+- **fax** : nvarchar(20) (NULL)
+- **fl_optin** : bit (NULL)
+- **fl_optout** : bit (NULL)
+- **fl_outlook** : bit (NULL)
+- **function** : nvarchar(20) (NULL)
+- **homepage** : nvarchar(40) (NULL)
+- **language** : smallint (NULL)
+- **limosa** : nvarchar(50) (NULL)
+- **login_id** : nvarchar(30) (NULL) 🔑?
+- **mobile** : nvarchar(20) (NULL)
+- **name** : nvarchar(35) (NULL)
+- **password** : nvarchar(15) (NULL)
+- **relation_id** : int (NOT NULL) 🔑?
+- **remark** : nvarchar(255) (NULL)
+- **rijksregisternr** : nvarchar(50) (NULL) 🔑?
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **telbusiness** : nvarchar(20) (NULL)
+- **telprivate** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `relation_delivery`
+- **city** : nvarchar(35) (NULL)
+- **contact_id** : int (NULL) 🔑?
+- **country** : smallint (NULL)
+- **delivery_remark** : nvarchar(100) (NULL)
+- **distance** : float (NULL)
+- **email** : nvarchar(50) (NULL)
+- **entry_date** : datetime (NULL)
+- **extra** : nvarchar(255) (NULL)
+- **fax** : nvarchar(20) (NULL)
+- **fix_transport** : float (NULL)
+- **fl_active** : bit (NULL)
+- **fl_attest6_received** : bit (NULL)
+- **fl_attest6_sent** : bit (NULL)
+- **fl_blocked** : bit (NULL)
+- **fl_default** : bit (NULL)
+- **fl_gln_receivePeppolInvoice** : bit (NULL)
+- **glnnr** : nvarchar(15) (NULL) 🔑?
+- **invoice_id** : int (NULL) 🔑?
+- **invoice_name** : nvarchar(50) (NULL)
+- **language** : smallint (NULL)
+- **name** : nvarchar(100) (NULL)
+- **opening_hours** : int (NULL)
+- **relation_id** : int (NOT NULL) 🔑?
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **street** : nvarchar(255) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_code** : int (NULL) 🔑?
+- **vat_type** : int (NULL)
+- **year** : nvarchar(4) (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+- **zipcode_extension** : nvarchar(2) (NULL)
+
+---
+### Tabla: `relation_extra_data`
+- **date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **fl_date** : bit (NOT NULL)
+- **label_id** : int (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `relation_extra_fields`
+- **param1_descr_l1** : nvarchar(30) (NULL)
+- **param1_descr_l2** : nvarchar(30) (NULL)
+- **param1_descr_l3** : nvarchar(50) (NULL)
+- **param1_descr_l4** : nvarchar(50) (NULL)
+- **param2_descr_l1** : nvarchar(30) (NULL)
+- **param2_descr_l2** : nvarchar(30) (NULL)
+- **param2_descr_l3** : nvarchar(50) (NULL)
+- **param2_descr_l4** : nvarchar(50) (NULL)
+- **param3_descr_l1** : nvarchar(30) (NULL)
+- **param3_descr_l2** : nvarchar(30) (NULL)
+- **param3_descr_l3** : nvarchar(50) (NULL)
+- **param3_descr_l4** : nvarchar(50) (NULL)
+- **param4_descr_l1** : nvarchar(30) (NULL)
+- **param4_descr_l2** : nvarchar(30) (NULL)
+- **param4_descr_l3** : nvarchar(50) (NULL)
+- **param4_descr_l4** : nvarchar(50) (NULL)
+- **param5_descr_l1** : nvarchar(30) (NULL)
+- **param5_descr_l2** : nvarchar(30) (NULL)
+- **param5_descr_l3** : nvarchar(50) (NULL)
+- **param5_descr_l4** : nvarchar(50) (NULL)
+- **param6_descr_l1** : nvarchar(30) (NULL)
+- **param6_descr_l2** : nvarchar(30) (NULL)
+- **param6_descr_l3** : nvarchar(50) (NULL)
+- **param6_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `relation_group`
+- **group_id** : int (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `relation_groups`
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `relation_invoice`
+- **relation_id_invoice** : int (NOT NULL)
+- **relation_id_orig** : int (NOT NULL)
+- **relation_id_remark** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `relation_invoices`
+- **city** : nvarchar(35) (NULL)
+- **country** : smallint (NULL)
+- **name** : nvarchar(100) (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **payment_term** : smallint (NULL)
+- **ref** : nvarchar(15) (NULL)
+- **relation_id** : int (NOT NULL) 🔑?
+- **seq_nr** : smallint (NOT NULL) 🔑?
+- **street** : nvarchar(255) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : int (NULL) 🔑?
+- **vat_type** : int (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+- **zipcode_extension** : nvarchar(2) (NULL)
+
+---
+### Tabla: `relation_paths`
+- **id** : int (NOT NULL) 🔑?
+- **name** : nvarchar(255) (NULL)
+- **parent** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `relation_worddocs`
+- **id** : int (NOT NULL) 🔑?
+- **label** : nvarchar(50) (NULL)
+- **path** : nvarchar(255) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `relationab`
+- **account1** : nvarchar(255) (NULL)
+- **account1_remark** : nvarchar(255) (NULL)
+- **account2** : nvarchar(255) (NULL)
+- **account2_remark** : nvarchar(255) (NULL)
+- **archive** : float (NULL)
+- **bank1** : float (NULL)
+- **bank2** : float (NULL)
+- **city** : nvarchar(255) (NULL)
+- **commer_register** : nvarchar(255) (NULL)
+- **country** : float (NULL)
+- **currency** : float (NULL)
+- **date** : datetime (NULL)
+- **email** : nvarchar(255) (NULL)
+- **fax** : nvarchar(255) (NULL)
+- **id** : float (NULL) 🔑?
+- **internet** : nvarchar(255) (NULL)
+- **language** : float (NULL)
+- **login_id** : nvarchar(255) (NULL) 🔑?
+- **mobile** : nvarchar(255) (NULL)
+- **name** : nvarchar(255) (NULL)
+- **param1** : nvarchar(255) (NULL)
+- **param2** : nvarchar(255) (NULL)
+- **param3** : nvarchar(255) (NULL)
+- **param4** : nvarchar(255) (NULL)
+- **param5** : nvarchar(255) (NULL)
+- **password** : nvarchar(255) (NULL)
+- **payment_term** : float (NULL)
+- **price_type** : float (NULL)
+- **reduction_group** : float (NULL)
+- **ref** : nvarchar(255) (NULL)
+- **remark** : float (NULL)
+- **street** : nvarchar(255) (NULL)
+- **tel1** : nvarchar(255) (NULL)
+- **tel2** : nvarchar(255) (NULL)
+- **title** : nvarchar(255) (NULL)
+- **tp_customer** : bit (NULL)
+- **tp_other** : bit (NULL)
+- **tp_supplier** : bit (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(255) (NULL)
+- **user_modif** : nvarchar(255) (NULL)
+- **vat** : nvarchar(255) (NULL)
+- **vat_code** : float (NULL) 🔑?
+- **vat_type** : float (NULL)
+- **zipcode** : nvarchar(255) (NULL) 🔑?
+
+---
+### Tabla: `relxpertm`
+- **Nummer** : float (NULL)
+- **Alfa** : nvarchar(255) (NULL)
+- **Naam** : nvarchar(255) (NULL)
+- **Straat** : nvarchar(255) (NULL)
+- **Huisnr#** : float (NULL)
+- **Bus** : float (NULL)
+- **Postnr#** : float (NULL)
+- **Woonplaats** : nvarchar(255) (NULL)
+- **Ondernemingsnummer** : nvarchar(255) (NULL)
+- **Telefoonnr#** : nvarchar(255) (NULL)
+- **Faxnummer** : nvarchar(255) (NULL)
+
+---
+### Tabla: `report`
+- **alias** : nvarchar(50) (NULL)
+- **alias_alternative** : nvarchar(50) (NULL)
+- **copy_locale** : bit (NULL)
+- **default** : bit (NULL)
+- **duplex** : int (NULL)
+- **duplex_2** : int (NULL)
+- **duplex_3** : int (NULL)
+- **file** : nvarchar(50) (NULL)
+- **file_alt** : nvarchar(50) (NULL)
+- **fl_blockupdate** : bit (NULL)
+- **landscape** : bit (NULL)
+- **landscape_2** : bit (NULL)
+- **landscape_3** : bit (NULL)
+- **language** : smallint (NULL)
+- **logo_1** : bit (NULL)
+- **logo_2** : bit (NULL)
+- **logo_3** : bit (NULL)
+- **number_of_copies** : smallint (NULL)
+- **number_of_copies_2** : smallint (NULL)
+- **number_of_copies_3** : smallint (NULL)
+- **number_of_pages** : smallint (NULL)
+- **number_of_pages_2** : smallint (NULL)
+- **number_of_pages_3** : smallint (NULL)
+- **paperbin** : smallint (NULL)
+- **paperbin_2** : smallint (NULL)
+- **paperbin_3** : smallint (NULL)
+- **path** : nvarchar(100) (NULL)
+- **preview** : bit (NULL)
+- **printer_name** : nvarchar(100) (NULL)
+- **printer_name_2** : nvarchar(100) (NULL)
+- **printer_name_3** : nvarchar(100) (NULL)
+- **report** : smallint (NOT NULL)
+- **scope_of_pages** : smallint (NULL)
+- **scope_of_pages_2** : smallint (NULL)
+- **scope_of_pages_3** : smallint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `report_old`
+- **copy_locale** : bit (NULL)
+- **default** : bit (NULL)
+- **duplex** : int (NULL)
+- **duplex_2** : int (NULL)
+- **duplex_3** : int (NULL)
+- **file** : nvarchar(50) (NULL)
+- **file_alt** : nvarchar(50) (NULL)
+- **fl_blockupdate** : bit (NULL)
+- **landscape** : bit (NULL)
+- **landscape_2** : bit (NULL)
+- **landscape_3** : bit (NULL)
+- **language** : smallint (NULL)
+- **logo_1** : bit (NULL)
+- **logo_2** : bit (NULL)
+- **logo_3** : bit (NULL)
+- **number_of_copies** : smallint (NULL)
+- **number_of_copies_2** : smallint (NULL)
+- **number_of_copies_3** : smallint (NULL)
+- **number_of_pages** : smallint (NULL)
+- **number_of_pages_2** : smallint (NULL)
+- **number_of_pages_3** : smallint (NULL)
+- **paperbin** : smallint (NULL)
+- **paperbin_2** : smallint (NULL)
+- **paperbin_3** : smallint (NULL)
+- **path** : nvarchar(100) (NULL)
+- **preview** : bit (NULL)
+- **printer_name** : nvarchar(100) (NULL)
+- **printer_name_2** : nvarchar(100) (NULL)
+- **printer_name_3** : nvarchar(100) (NULL)
+- **report** : smallint (NULL)
+- **scope_of_pages** : smallint (NULL)
+- **scope_of_pages_2** : smallint (NULL)
+- **scope_of_pages_3** : smallint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `report_old_old`
+- **default** : bit (NULL)
+- **file** : nvarchar(30) (NOT NULL)
+- **file_alt** : nvarchar(30) (NULL)
+- **language** : smallint (NULL)
+- **logo_1** : bit (NULL)
+- **logo_2** : bit (NULL)
+- **logo_3** : bit (NULL)
+- **number_of_copies** : smallint (NULL)
+- **path** : nvarchar(100) (NULL)
+- **preview** : bit (NULL)
+- **printer_name** : nvarchar(100) (NULL)
+- **report** : smallint (NULL)
+- **type** : smallint (NULL)
+
+---
+### Tabla: `report_word_docs`
+- **descr** : nvarchar(50) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **path** : nvarchar(255) (NULL)
+- **seqnr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `revision_values`
+- **Al** : float (NULL)
+- **Ce** : float (NULL)
+- **Cu** : float (NULL)
+- **e310** : float (NULL)
+- **e340** : float (NULL)
+- **F** : float (NULL)
+- **Fp** : float (NULL)
+- **I** : float (NULL)
+- **i2021** : float (NULL)
+- **isti2800** : float (NULL)
+- **isti2900** : float (NULL)
+- **isti3000** : float (NULL)
+- **isti3100** : float (NULL)
+- **isti3200** : float (NULL)
+- **isti3300** : float (NULL)
+- **month** : int (NOT NULL)
+- **Pb** : float (NULL)
+- **Pl** : float (NULL)
+- **S** : float (NULL)
+- **Tf** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **Year** : int (NOT NULL)
+
+---
+### Tabla: `rpt_dossier_list`
+- **activity** : nvarchar(50) (NULL)
+- **city** : nvarchar(100) (NULL)
+- **date** : datetime (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **detailsubactivity** : nvarchar(50) (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **estimate_id** : nvarchar(50) (NULL) 🔑?
+- **ID** : int (NOT NULL) 🔑?
+- **margin** : float (NULL)
+- **name** : nvarchar(50) (NULL)
+- **project_name** : nvarchar(100) (NULL)
+- **state** : nvarchar(50) (NULL)
+- **subactivity** : nvarchar(50) (NULL)
+- **total_price** : float (NULL)
+- **type** : int (NULL)
+
+---
+### Tabla: `rpt_element`
+- **child_id** : nvarchar(25) (NULL) 🔑?
+- **element_id** : int (NULL) 🔑?
+
+---
+### Tabla: `rpt_element_child`
+- **child_id** : nvarchar(25) (NOT NULL) 🔑?
+- **descr** : nvarchar(50) (NULL)
+- **equipment** : float (NULL)
+- **labor** : float (NULL)
+- **material** : float (NULL)
+- **norm** : float (NULL)
+- **quantity** : float (NULL)
+- **seq_nr** : int (NULL) 🔑?
+- **subcontract** : float (NULL)
+
+---
+### Tabla: `rpt_estimate_article_list`
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : ntext(1073741823) (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **quantity** : float (NULL)
+- **ref** : nvarchar(15) (NULL)
+- **unit** : nvarchar(10) (NULL)
+
+---
+### Tabla: `rpt_estimate_item`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **composition_id** : int (NULL) 🔑?
+- **costprice_equipment** : float (NULL)
+- **costprice_labor** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **descr** : ntext(1073741823) (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **estimate_position** : nvarchar(20) (NULL)
+- **extra_cost** : float (NULL)
+- **factor_equipment** : real (NULL)
+- **factor_labor** : real (NULL)
+- **factor_material** : real (NULL)
+- **factor_subcontract** : real (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_fixed_quantity** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_page_break_after** : bit (NULL)
+- **fl_print** : bit (NULL)
+- **fl_print_picture** : bit (NULL)
+- **fl_variant** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **illustration** : int (NULL)
+- **illustration_path** : nvarchar(255) (NULL)
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **measuring_type** : smallint (NULL)
+- **norm** : float (NULL)
+- **quantity** : float (NULL)
+- **quantity_title** : float (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **title** : nvarchar(1) (NULL)
+- **total_hours** : float (NULL)
+- **total_price** : float (NULL)
+- **total_price_descr** : nvarchar(200) (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **unit_price_descr** : nvarchar(200) (NULL)
+- **url** : nvarchar(255) (NULL)
+- **variant_seq_nr** : int (NULL) 🔑?
+- **vat_code** : smallint (NULL) 🔑?
+
+---
+### Tabla: `rpt_estimate_material_list`
+- **art_id** : int (NULL) 🔑?
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : ntext(1073741823) (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **quantity** : float (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **vendor** : nvarchar(50) (NULL)
+
+---
+### Tabla: `rpt_estimate_variants`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **composition_id** : int (NULL) 🔑?
+- **costprice_equipment** : float (NULL)
+- **costprice_labor** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **descr** : ntext(1073741823) (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **estimate_position** : nvarchar(20) (NULL)
+- **extra_cost** : float (NULL)
+- **factor_equipment** : real (NULL)
+- **factor_labor** : real (NULL)
+- **factor_material** : real (NULL)
+- **factor_subcontract** : real (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_fixed_quantity** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_print** : bit (NULL)
+- **fl_variant** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **illustration** : int (NULL)
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **measuring_type** : smallint (NULL)
+- **norm** : float (NULL)
+- **quantity** : float (NULL)
+- **quantity_title** : float (NULL)
+- **ref** : nvarchar(15) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **title** : nvarchar(1) (NULL)
+- **total_hours** : float (NULL)
+- **total_price** : float (NULL)
+- **total_price_descr** : nvarchar(200) (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **unit_price_descr** : nvarchar(200) (NULL)
+- **variant_seq_nr** : int (NULL) 🔑?
+- **vat_code** : smallint (NULL) 🔑?
+
+---
+### Tabla: `rpt_follow_up_regie`
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **date** : nvarchar(50) (NULL)
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **id** : nvarchar(50) (NOT NULL) 🔑?
+- **project_id** : nvarchar(50) (NULL) 🔑?
+- **quantity** : float (NULL)
+- **unit** : nvarchar(50) (NULL)
+- **unit_price** : float (NULL)
+
+---
+### Tabla: `rpt_followup`
+- **cost_id** : int (NULL) 🔑?
+- **costprice** : float (NULL)
+- **date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **quantity** : float (NULL)
+- **ref1** : nvarchar(255) (NULL)
+- **ref2** : nvarchar(255) (NULL)
+- **ref3** : nvarchar(255) (NULL)
+- **total_costprice** : float (NULL)
+- **total_price** : float (NULL)
+- **type** : smallint (NULL)
+- **unit** : nvarchar(50) (NULL)
+- **unit_price** : float (NULL)
+- **workstation_id** : int (NULL) 🔑?
+
+---
+### Tabla: `rpt_followup_cost`
+- **art_type** : smallint (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **costprice** : float (NULL)
+- **descr** : ntext(1073741823) (NULL)
+- **descr_sort** : nvarchar(255) (NULL)
+- **document_id** : nvarchar(50) (NULL) 🔑?
+- **id** : int (NULL) 🔑?
+- **project_date** : datetime (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **quantity** : float (NULL)
+- **salesprice** : float (NULL)
+- **total_costprice** : float (NULL)
+- **total_salesprice** : float (NULL)
+
+---
+### Tabla: `rpt_followup_labor`
+- **allowance** : float (NULL)
+- **contract_nr** : int (NULL) 🔑?
+- **costprice** : float (NULL)
+- **date** : datetime (NOT NULL)
+- **distance** : real (NULL)
+- **document_date** : datetime (NULL)
+- **document_id** : nvarchar(50) (NULL) 🔑?
+- **employee_id** : int (NOT NULL) 🔑?
+- **entry_date** : datetime (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **extra_allowance** : float (NULL)
+- **h_from_1** : datetime (NULL)
+- **h_from_2** : datetime (NULL)
+- **h_to_1** : datetime (NULL)
+- **h_to_2** : datetime (NULL)
+- **hours** : float (NULL)
+- **invoice** : bit (NULL)
+- **km_invoice** : bit (NULL)
+- **labor_descr** : nvarchar(255) (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **labor_type** : int (NULL)
+- **productivity** : float (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **remark** : ntext(1073741823) (NULL)
+- **salesprice** : float (NULL)
+- **seqnr** : int (NOT NULL) 🔑?
+- **source** : int (NULL)
+- **total_costprice** : float (NULL)
+- **total_salesprice** : float (NULL)
+- **total_transport_costprice** : float (NULL)
+- **total_transport_salesprice** : float (NULL)
+- **transport_costprice** : float (NULL)
+- **transport_salesprice** : float (NULL)
+- **transport_type** : smallint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **vehicle** : int (NULL)
+
+---
+### Tabla: `rpt_followup_labor_hours`
+- **date** : datetime (NULL)
+- **distance** : real (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **employee_registernr** : nvarchar(50) (NULL) 🔑?
+- **hours** : float (NULL)
+- **labor_descr** : nvarchar(255) (NULL)
+- **labor_descr2** : nvarchar(255) (NULL)
+- **labor_id** : nvarchar(25) (NULL) 🔑?
+- **name** : nvarchar(50) (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **seqnr** : int (NULL) 🔑?
+- **total_transport_costprice** : float (NULL)
+- **transport_type** : smallint (NULL)
+- **type** : int (NULL)
+- **validation_type** : smallint (NULL)
+
+---
+### Tabla: `rpt_followup_labor_hours_absence`
+- **absent_hours** : float (NULL)
+- **allowance** : float (NULL)
+- **chemical_hours** : float (NULL)
+- **date** : datetime (NULL)
+- **distance** : float (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **extra_allowance** : float (NULL)
+- **extra_allowance_amount** : float (NULL)
+- **labor_type** : int (NULL)
+- **persons_allowance** : float (NULL)
+- **persons_hours** : float (NULL)
+- **prod_hours** : float (NULL)
+- **productivity** : float (NULL)
+- **project_id** : nvarchar(50) (NULL) 🔑?
+- **seqnr** : int (NOT NULL) 🔑?
+- **trans_hours** : float (NULL)
+- **transport_type** : nvarchar(1) (NULL)
+
+---
+### Tabla: `rpt_lstestimates`
+- **activity_id** : int (NULL) 🔑?
+- **address** : nvarchar(50) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **date_start** : datetime (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **estimate_date** : datetime (NULL)
+- **estimate_dem** : nvarchar(100) (NULL)
+- **estimate_id** : nvarchar(50) (NULL) 🔑?
+- **fl_active** : bit (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **margin** : float (NULL)
+- **project_id** : nvarchar(50) (NULL) 🔑?
+- **status** : nvarchar(50) (NULL)
+- **status_id** : int (NULL) 🔑?
+- **tel** : nvarchar(20) (NULL)
+- **total_price** : float (NULL)
+
+---
+### Tabla: `rpt_order_temp`
+- **account** : nvarchar(50) (NULL)
+- **activity_id** : smallint (NULL) 🔑?
+- **addition_cp** : bit (NULL)
+- **addition_factor_equipment** : float (NULL)
+- **addition_factor_labor** : float (NULL)
+- **addition_factor_material** : float (NULL)
+- **addition_factor_subcontract** : float (NULL)
+- **addition_group** : bit (NULL)
+- **addition_sp** : bit (NULL)
+- **advance** : float (NULL)
+- **attachment1_loc** : nvarchar(255) (NULL)
+- **attachment2_loc** : nvarchar(255) (NULL)
+- **attachment3_loc** : nvarchar(255) (NULL)
+- **attachment4_loc** : nvarchar(255) (NULL)
+- **attachment5_loc** : nvarchar(255) (NULL)
+- **book_remark** : nvarchar(25) (NULL)
+- **city** : nvarchar(35) (NULL)
+- **contact_email** : nvarchar(50) (NULL)
+- **contact_mobile** : nvarchar(20) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **country** : smallint (NULL)
+- **currency** : smallint (NULL)
+- **customer_discount** : float (NULL)
+- **customer_id** : int (NULL) 🔑?
+- **date** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **delay** : smallint (NULL)
+- **delivery_date** : datetime (NULL)
+- **delivery_type** : int (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **fax** : nvarchar(20) (NULL)
+- **fl_active** : bit (NULL)
+- **fl_approved** : bit (NULL)
+- **fl_backorder** : bit (NULL)
+- **fl_checked_with_delivery** : bit (NULL)
+- **fl_checked_with_order** : bit (NULL)
+- **fl_collect_order** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_paid** : bit (NULL) 🔑?
+- **fl_partial_delivery** : bit (NULL)
+- **fl_sent** : bit (NULL)
+- **fl_show_payment_discount** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_transfered** : bit (NULL)
+- **free_total_vat_excl** : float (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_comment1** : nvarchar(50) (NULL)
+- **invoice_comment2** : nvarchar(50) (NULL)
+- **invoice_comment3** : nvarchar(50) (NULL)
+- **invoice_comment4** : nvarchar(50) (NULL)
+- **invoice_comment5** : nvarchar(50) (NULL)
+- **invoice_costprice_incl1** : float (NULL)
+- **invoice_costprice_incl2** : float (NULL)
+- **invoice_costprice_incl3** : float (NULL)
+- **invoice_costprice_incl4** : float (NULL)
+- **invoice_costprice_incl5** : float (NULL)
+- **invoice_costprice_paid1** : float (NULL)
+- **invoice_costprice_paid2** : float (NULL)
+- **invoice_costprice_paid3** : float (NULL)
+- **invoice_costprice_paid4** : float (NULL)
+- **invoice_costprice_paid5** : float (NULL)
+- **invoice_costprice1** : float (NULL)
+- **invoice_costprice2** : float (NULL)
+- **invoice_costprice3** : float (NULL)
+- **invoice_costprice4** : float (NULL)
+- **invoice_costprice5** : float (NULL)
+- **invoice_date_expiration1** : datetime (NULL)
+- **invoice_date_expiration2** : datetime (NULL)
+- **invoice_date_expiration3** : datetime (NULL)
+- **invoice_date_expiration4** : datetime (NULL)
+- **invoice_date_expiration5** : datetime (NULL)
+- **invoice_date1** : datetime (NULL)
+- **invoice_date2** : datetime (NULL)
+- **invoice_date3** : datetime (NULL)
+- **invoice_date4** : datetime (NULL)
+- **invoice_date5** : datetime (NULL)
+- **invoice_id1** : nvarchar(25) (NULL)
+- **invoice_id2** : nvarchar(25) (NULL)
+- **invoice_id3** : nvarchar(25) (NULL)
+- **invoice_id4** : nvarchar(25) (NULL)
+- **invoice_id5** : nvarchar(25) (NULL)
+- **invoice_submit1** : bit (NULL)
+- **invoice_submit2** : bit (NULL)
+- **invoice_submit3** : bit (NULL)
+- **invoice_submit4** : bit (NULL)
+- **invoice_submit5** : bit (NULL)
+- **language** : tinyint (NULL)
+- **maintenance_id** : nvarchar(50) (NULL) 🔑?
+- **memo** : int (NULL)
+- **name** : nvarchar(100) (NULL)
+- **order_contact** : nvarchar(25) (NULL)
+- **order_type** : nvarchar(50) (NULL)
+- **origin** : nvarchar(80) (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **payment_discount** : float (NULL)
+- **payment_term** : nvarchar(35) (NULL)
+- **price_type** : smallint (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_manager** : int (NULL)
+- **project_name** : nvarchar(100) (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(255) (NULL)
+- **ref_cust** : nvarchar(30) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **relation_ref** : nvarchar(50) (NULL)
+- **remark1** : nvarchar(100) (NULL)
+- **remark2** : nvarchar(100) (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **status** : int (NULL)
+- **street** : nvarchar(255) (NULL)
+- **surplus_to_stock** : bit (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **title_contact** : nvarchar(20) (NULL)
+- **total_paid** : float (NULL) 🔑?
+- **total_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **workdoc_id** : nvarchar(15) (NULL) 🔑?
+- **yard_manager** : int (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `rpt_project_results`
+- **costprice_equipment** : float (NULL)
+- **costprice_extra** : float (NULL)
+- **costprice_labor** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **costprice_total** : float (NULL)
+- **costprice_transport** : float (NULL)
+- **current_costs_booked** : bit (NULL)
+- **dossier** : nvarchar(50) (NULL)
+- **hours_regie** : float (NULL)
+- **invoiced** : float (NULL)
+- **oH** : float (NULL)
+- **profit** : float (NULL)
+- **profit_percent** : float (NULL)
+- **profit_percent_estimates** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **project_relation_id** : int (NULL) 🔑?
+- **project_relation_name** : nvarchar(100) (NULL)
+- **project_uren** : float (NULL)
+- **total_estimates** : float (NULL)
+- **total_regie** : float (NULL)
+- **uren_projectleader** : float (NULL)
+- **voorz_uren** : float (NULL)
+
+---
+### Tabla: `rpt_project_results_2`
+- **costprice_equipment** : float (NULL)
+- **costprice_extra** : float (NULL)
+- **costprice_labor** : float (NULL)
+- **costprice_labor_driver** : float (NULL)
+- **costprice_labor_hours** : float (NULL)
+- **costprice_labor_owner** : float (NULL)
+- **costprice_labor_passenger** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **costprice_total** : float (NULL)
+- **costprice_transport** : float (NULL)
+- **current_costs_booked** : bit (NULL)
+- **dossier** : nvarchar(50) (NULL)
+- **hours_regie** : float (NULL)
+- **invoiced** : float (NULL)
+- **oh** : float (NULL)
+- **profit** : float (NULL)
+- **profit_percent** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **project_manager** : smallint (NULL)
+- **project_manager_name** : nvarchar(50) (NULL)
+- **project_name** : nvarchar(100) (NULL)
+- **project_relation_id** : int (NULL) 🔑?
+- **project_relation_name** : nvarchar(100) (NULL)
+- **project_uren** : float (NULL)
+- **total_estimates** : float (NULL)
+- **total_regie** : float (NULL)
+- **type** : int (NULL)
+
+---
+### Tabla: `rpt_project_results_estmamodstate`
+- **art_type** : int (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **est_cp_equipment** : float (NULL)
+- **est_cp_extra** : float (NULL)
+- **est_cp_labor** : float (NULL)
+- **est_cp_material** : float (NULL)
+- **est_cp_subcontract** : float (NULL)
+- **est_cp_total** : float (NULL)
+- **est_cp_transport** : float (NULL)
+- **est_hours** : float (NULL)
+- **est_profit** : float (NULL)
+- **est_project_stage** : int (NULL)
+- **est_quantity** : float (NULL)
+- **est_total_line_price** : float (NULL)
+- **est_unit_price** : float (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **estimate_position** : nvarchar(20) (NULL)
+- **prj_cp_equipment** : float (NULL)
+- **prj_cp_extra** : float (NULL)
+- **prj_cp_labor** : float (NULL)
+- **prj_cp_material** : float (NULL)
+- **prj_cp_subcontract** : float (NULL)
+- **prj_cp_total** : float (NULL)
+- **prj_hours** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **st_profit** : float (NULL)
+- **st_profit_hour** : float (NULL)
+- **st_quantity** : float (NULL)
+- **st_sales_hour** : float (NULL)
+- **st_total_line** : float (NULL)
+- **st_unit_price** : float (NULL)
+- **title** : nvarchar(1) (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+
+---
+### Tabla: `rpt_reception`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **backorder** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : nvarchar(255) (NULL)
+- **destination** : nvarchar(50) (NULL)
+- **destination_type** : nvarchar(50) (NULL)
+- **ean** : nvarchar(25) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **order_customer_id** : nvarchar(15) (NULL) 🔑?
+- **order_id** : nvarchar(15) (NULL) 🔑?
+- **quantity** : float (NULL)
+- **quantity_delivered** : float (NULL)
+- **supplier** : nvarchar(50) (NULL)
+- **user_id** : int (NULL) 🔑?
+- **workdoc_id** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `rpt_refrigerant`
+- **saldo_type** : nvarchar(1) (NULL)
+- **id** : int (NULL) 🔑?
+- **bottle_id** : nvarchar(50) (NULL) 🔑?
+- **serial_number** : nvarchar(255) (NULL)
+- **mat_id** : int (NULL) 🔑?
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : nvarchar(255) (NULL)
+- **saldo_begin** : float (NULL)
+- **saldo_end** : float (NULL)
+
+---
+### Tabla: `rpt_refrigerantconsumption`
+- **refrigerant_id** : int (NULL) 🔑?
+- **maintenance_id** : nvarchar(50) (NULL) 🔑?
+- **seq_nr** : int (NULL) 🔑?
+- **contract_type** : int (NULL)
+- **project_name** : nvarchar(100) (NULL)
+- **date** : datetime (NULL)
+- **quantity** : float (NULL)
+- **name** : nvarchar(100) (NULL)
+- **project_address** : int (NULL)
+- **id** : nvarchar(15) (NULL) 🔑?
+- **workdescr** : text(2147483647) (NULL)
+- **refrigerant_reason** : nvarchar(255) (NULL)
+- **refrigerant_fl_prefill** : bit (NULL)
+- **refrigerant_fl_firstfill** : bit (NULL)
+- **refrigerant_fl_leakage** : bit (NULL)
+- **refrigerant_fl_destruction** : bit (NULL)
+- **refrigerant_fl_transfer** : bit (NULL)
+- **refrigerant_fl_normal** : bit (NULL)
+- **txt** : text(2147483647) (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+
+---
+### Tabla: `rpt_refrigerantleak`
+- **id** : nvarchar(50) (NULL) 🔑?
+- **contract_type** : int (NULL)
+- **rel_name** : nvarchar(100) (NULL)
+- **prj_name** : nvarchar(50) (NULL)
+- **date** : datetime (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : nvarchar(255) (NULL)
+- **group_descr** : nvarchar(255) (NULL)
+- **qty** : float (NULL)
+- **qty_maintenance_prefill** : float (NULL)
+- **qty_maintenance_firstfill** : float (NULL)
+- **qty_workdoc_prefill** : float (NULL)
+- **qty_workdoc_firstfill** : float (NULL)
+- **qty_leakage** : float (NULL)
+- **qty_destruction** : float (NULL)
+- **qty_transfer** : float (NULL)
+- **qty_normal** : float (NULL)
+- **qty_prefill** : float (NULL)
+- **qty_firstfill** : float (NULL)
+
+---
+### Tabla: `rpt_state_general_total`
+- **aftrek_perc** : float (NULL)
+- **btw_code** : smallint (NULL) 🔑?
+- **enddate** : datetime (NULL)
+- **herzienings_bedrag** : float (NULL)
+- **niet_te_herzien** : float (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **relation_id** : int (NULL) 🔑?
+- **rma** : float (NULL)
+- **rmb** : float (NULL)
+- **startdate** : datetime (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **te_herzien** : float (NULL)
+
+---
+### Tabla: `rpt_state_Rmab`
+- **aAl** : float (NULL)
+- **aCe** : float (NULL)
+- **aCu** : float (NULL)
+- **aF** : float (NULL)
+- **aFp** : float (NULL)
+- **aPb** : float (NULL)
+- **aPl** : float (NULL)
+- **aTf** : float (NULL)
+- **bAl** : float (NULL)
+- **bCe** : float (NULL)
+- **bCu** : float (NULL)
+- **bF** : float (NULL)
+- **bFp** : float (NULL)
+- **bPb** : float (NULL)
+- **bPl** : float (NULL)
+- **bTf** : float (NULL)
+- **cAl** : float (NULL)
+- **cCe** : float (NULL)
+- **cCu** : float (NULL)
+- **cF** : float (NULL)
+- **cFp** : float (NULL)
+- **cPb** : float (NULL)
+- **cPl** : float (NULL)
+- **cTf** : float (NULL)
+- **date_start** : datetime (NULL)
+- **date_tender** : datetime (NULL)
+- **date2** : datetime (NULL)
+- **date6** : datetime (NULL)
+- **J0** : int (NULL)
+- **J02** : int (NULL)
+- **J06** : int (NULL)
+- **mc** : float (NULL)
+- **mk** : float (NULL)
+- **mk1** : float (NULL)
+- **price_contract** : float (NULL)
+- **price_cumul** : float (NULL)
+- **project_id** : nvarchar(50) (NOT NULL) 🔑?
+- **Rma** : float (NULL)
+- **Rmb** : float (NULL)
+
+---
+### Tabla: `rpt_stock_history`
+- **art_id** : int (NOT NULL) 🔑?
+- **art_type** : smallint (NOT NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **date** : datetime (NULL)
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **document_id** : nvarchar(15) (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **location** : nvarchar(25) (NULL)
+- **location_id** : int (NOT NULL) 🔑?
+- **movements** : int (NULL)
+- **position** : nvarchar(20) (NOT NULL)
+- **project_id_source** : nvarchar(15) (NULL)
+- **project_id_target** : nvarchar(15) (NULL)
+- **quantity** : float (NULL)
+- **source** : smallint (NULL)
+
+---
+### Tabla: `rpt_wdattest`
+- **brander_seqnr** : int (NULL) 🔑?
+- **contract_id** : nvarchar(50) (NULL) 🔑?
+- **employee_id** : int (NULL) 🔑?
+- **employee_name** : nvarchar(50) (NULL)
+- **ketel_seqnr** : int (NULL) 🔑?
+- **qualification** : nvarchar(50) (NULL)
+- **workdoc_id** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `sales_estimate`
+- **addition_cp** : bit (NULL)
+- **addition_factor_equipment** : float (NULL)
+- **addition_factor_labor** : float (NULL)
+- **addition_factor_material** : float (NULL)
+- **addition_factor_subcontract** : float (NULL)
+- **addition_group** : bit (NULL)
+- **addition_sp** : bit (NULL)
+- **advance** : float (NULL)
+- **book_remark** : nvarchar(25) (NULL)
+- **city** : nvarchar(35) (NULL)
+- **contact_email** : nvarchar(50) (NULL)
+- **contact_mobile** : nvarchar(20) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **country** : smallint (NULL)
+- **currency** : smallint (NULL)
+- **customer_discount** : float (NULL)
+- **date** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **delay** : smallint (NULL)
+- **delivery_date** : datetime (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **fax** : nvarchar(20) (NULL)
+- **fl_active** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_paid** : bit (NULL) 🔑?
+- **fl_pricing** : bit (NULL)
+- **fl_sent** : bit (NULL)
+- **fl_show_payment_discount** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_transfered** : bit (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_date1** : datetime (NULL)
+- **invoice_date2** : datetime (NULL)
+- **invoice_date3** : datetime (NULL)
+- **invoice_date4** : datetime (NULL)
+- **invoice_date5** : datetime (NULL)
+- **invoice_id1** : nvarchar(15) (NULL)
+- **invoice_id2** : nvarchar(15) (NULL)
+- **invoice_id3** : nvarchar(15) (NULL)
+- **invoice_id4** : nvarchar(15) (NULL)
+- **invoice_id5** : nvarchar(15) (NULL)
+- **language** : tinyint (NULL)
+- **memo** : int (NULL)
+- **name** : nvarchar(100) (NULL)
+- **order_contact** : nvarchar(25) (NULL)
+- **param1** : nvarchar(40) (NULL)
+- **param2** : nvarchar(40) (NULL)
+- **param3** : nvarchar(40) (NULL)
+- **payment_discount** : float (NULL)
+- **payment_term** : nvarchar(35) (NULL)
+- **price_type** : smallint (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(255) (NULL)
+- **ref_cust** : nvarchar(255) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **relation_ref** : nvarchar(50) (NULL)
+- **remark1** : nvarchar(100) (NULL)
+- **remark2** : nvarchar(100) (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **status** : int (NULL)
+- **street** : nvarchar(255) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **title_contact** : nvarchar(20) (NULL)
+- **total_paid** : float (NULL) 🔑?
+- **total_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `sales_estimate_line`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **comment** : nvarchar(50) (NULL)
+- **costprice** : float (NULL)
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **discount** : float (NULL)
+- **discount2** : float (NULL)
+- **invoice** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_materials** : bit (NULL)
+- **price_type** : smallint (NULL)
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **quantity_delivered** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction** : float (NULL)
+- **reduction_group** : int (NULL)
+- **ref_supplier** : nvarchar(50) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **st_sales_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+
+---
+### Tabla: `sales_estimate_line_params`
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **param** : nvarchar(25) (NULL)
+- **param_id** : smallint (NOT NULL) 🔑?
+- **searchfield** : nvarchar(15) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **value** : nvarchar(15) (NULL)
+
+---
+### Tabla: `schedule`
+- **datetime_from** : datetime (NULL)
+- **datetime_until** : datetime (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **labor_descr** : nvarchar(40) (NULL)
+- **location** : nvarchar(40) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **workdoc_id** : nvarchar(40) (NULL) 🔑?
+
+---
+### Tabla: `settings`
+- **setting_key** : nvarchar(255) (NOT NULL)
+- **setting_value** : nvarchar(255) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state`
+- **b_reduction** : float (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **e_reduction** : float (NULL)
+- **fl_active** : bit (NULL)
+- **fl_upgraded** : bit (NULL)
+- **m_reduction** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_240`
+- **a** : float (NULL)
+- **b** : float (NULL)
+- **c** : float (NULL)
+- **d** : float (NULL)
+- **e310** : float (NULL)
+- **e310_prj** : float (NULL)
+- **e340** : float (NULL)
+- **e340_prj** : float (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **P_Basis** : float (NULL)
+- **P_Meerwerk** : float (NULL)
+- **Pp_Basis** : real (NULL)
+- **Pp_Meerwerk** : float (NULL)
+- **prj_s** : float (NULL)
+- **Project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **s** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_240isti`
+- **a** : float (NULL)
+- **b1** : float (NULL)
+- **b2** : float (NULL)
+- **b3** : float (NULL)
+- **b4** : float (NULL)
+- **b5** : float (NULL)
+- **b6** : float (NULL)
+- **c** : float (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **isti1** : float (NULL)
+- **isti1_prj** : float (NULL)
+- **isti2** : float (NULL)
+- **isti2_prj** : float (NULL)
+- **isti3** : float (NULL)
+- **isti3_prj** : float (NULL)
+- **isti4** : float (NULL)
+- **isti4_prj** : float (NULL)
+- **isti5** : float (NULL)
+- **isti5_prj** : float (NULL)
+- **isti6** : float (NULL)
+- **isti6_prj** : float (NULL)
+- **label1** : nvarchar(5) (NULL)
+- **label2** : nvarchar(5) (NULL)
+- **label3** : nvarchar(5) (NULL)
+- **label4** : nvarchar(5) (NULL)
+- **label5** : nvarchar(5) (NULL)
+- **label6** : nvarchar(5) (NULL)
+- **P_Basis** : float (NULL)
+- **P_Meerwerk** : float (NULL)
+- **Pp_Basis** : real (NULL)
+- **Pp_Meerwerk** : float (NULL)
+- **prj_s** : float (NULL)
+- **Project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **s** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_250`
+- **a** : float (NULL)
+- **c** : float (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **P_Basis** : float (NULL)
+- **P_Meerwerk** : float (NULL)
+- **Pp_Basis** : float (NULL)
+- **Pp_Meerwerk** : float (NULL)
+- **prj_s** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **s** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_250_bx`
+- **b** : float (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **state_id** : int (NOT NULL) 🔑?
+- **x** : float (NULL)
+- **Xx** : float (NULL)
+
+---
+### Tabla: `state_ab`
+- **aa** : float (NULL)
+- **ab** : float (NULL)
+- **ac** : float (NULL)
+- **apl** : float (NULL)
+- **as** : float (NULL)
+- **ba** : float (NULL)
+- **bal** : float (NULL)
+- **bb** : float (NULL)
+- **bc** : float (NULL)
+- **bcu** : float (NULL)
+- **bd** : float (NULL)
+- **be** : float (NULL)
+- **bf** : float (NULL)
+- **bfp** : float (NULL)
+- **bpl** : float (NULL)
+- **bs** : float (NULL)
+- **fl_phase_a** : bit (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **P_Basis** : float (NULL)
+- **P_Meerwerk** : float (NULL)
+- **Pp_Basis** : real (NULL)
+- **Pp_Meerwerk** : float (NULL)
+- **Project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **state_apl** : float (NULL)
+- **state_as** : float (NULL)
+- **state_bal** : float (NULL)
+- **state_bcu** : float (NULL)
+- **state_bfp** : float (NULL)
+- **state_bpl** : float (NULL)
+- **state_bs** : float (NULL)
+- **state_id** : float (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_estimate`
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **total_price_estimate** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_item`
+- **art_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : ntext(1073741823) (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **estimate_position** : nvarchar(20) (NULL)
+- **estimate_seqnr** : int (NULL) 🔑?
+- **finished** : bit (NULL)
+- **fl_delivery** : bit (NULL)
+- **fl_revision** : bit (NULL)
+- **measuring_type** : int (NULL)
+- **perc_del_now** : int (NULL)
+- **perc_del_previous** : int (NULL)
+- **perc_projectleader** : float (NULL)
+- **perc_reception** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **quantity** : float (NULL)
+- **quantity_executed** : float (NULL)
+- **quantity_now** : float (NULL)
+- **quantity_previous** : float (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **state_id** : int (NOT NULL) 🔑?
+- **title** : nvarchar(1) (NULL)
+- **total_line** : float (NULL)
+- **total_price** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_order`
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **total_price_order** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_p`
+- **a** : float (NULL)
+- **b** : float (NULL)
+- **c** : float (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **i** : float (NULL)
+- **i2021** : float (NULL)
+- **i_prj** : float (NULL)
+- **i2021_prj** : float (NULL)
+- **P_Basis** : float (NULL)
+- **P_Meerwerk** : float (NULL)
+- **Pp_Basis** : real (NULL)
+- **Pp_Meerwerk** : float (NULL)
+- **prj_s** : float (NULL)
+- **Project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **s** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_Pk`
+- **As** : float (NULL)
+- **BMk** : float (NULL)
+- **BMk_prev** : float (NULL)
+- **BMK0** : float (NULL)
+- **BPk** : float (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **J0** : float (NULL)
+- **J0k** : float (NULL)
+- **MMk** : float (NULL)
+- **MMk_prev** : float (NULL)
+- **MMk0** : float (NULL)
+- **MPk** : float (NULL)
+- **MRevision** : float (NULL)
+- **prj_s** : float (NULL)
+- **Project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **s** : float (NULL)
+- **s0** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_print`
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_project`
+- **bad_weather** : int (NULL)
+- **BMk** : float (NULL)
+- **BTotalNowNoRev** : float (NULL)
+- **BTotalNowRev** : float (NULL)
+- **BTotCum** : float (NULL)
+- **closed** : bit (NULL)
+- **date** : datetime (NULL)
+- **divers** : int (NULL)
+- **enddate** : datetime (NULL)
+- **ETotalNow** : float (NULL)
+- **feastdays** : int (NULL)
+- **final_state** : bit (NULL)
+- **fl_invoiced** : bit (NULL)
+- **holidays** : int (NULL)
+- **insurance_i** : real (NULL)
+- **insurance_s** : float (NULL)
+- **mc** : float (NULL)
+- **MMk** : float (NULL)
+- **MTotalNowNoRev** : float (NULL)
+- **MTotalNowRev** : float (NULL)
+- **MTotCum** : float (NULL)
+- **ok** : bit (NULL)
+- **pof** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **remark** : nvarchar(30) (NULL)
+- **revision** : bit (NULL)
+- **revision_material** : bit (NULL)
+- **revision_rma** : bit (NULL)
+- **rma** : float (NULL)
+- **rmb** : float (NULL)
+- **startdate** : datetime (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **status** : int (NULL)
+- **suspension** : int (NULL)
+- **total_price** : float (NULL)
+- **totaldays** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **work_days** : int (NULL)
+
+---
+### Tabla: `state_subcontract`
+- **b_reduction** : float (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **e_reduction** : float (NULL)
+- **fl_active** : bit (NULL)
+- **id** : nvarchar(50) (NULL) 🔑?
+- **m_reduction** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_subcontract_240`
+- **a** : float (NULL)
+- **b** : float (NULL)
+- **c** : float (NULL)
+- **d** : float (NULL)
+- **e310** : float (NULL)
+- **e310_prj** : float (NULL)
+- **e340** : float (NULL)
+- **e340_prj** : float (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **P_Basis** : float (NULL)
+- **P_Meerwerk** : float (NULL)
+- **Pp_Basis** : float (NULL)
+- **Pp_Meerwerk** : float (NULL)
+- **prj_s** : float (NULL)
+- **Project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **Relation_id** : int (NOT NULL) 🔑?
+- **s** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_subcontract_240isti`
+- **a** : float (NULL)
+- **b1** : float (NULL)
+- **b2** : float (NULL)
+- **b3** : float (NULL)
+- **b4** : float (NULL)
+- **b5** : float (NULL)
+- **b6** : float (NULL)
+- **c** : float (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **isti1** : float (NULL)
+- **isti1_prj** : float (NULL)
+- **isti2** : float (NULL)
+- **isti2_prj** : float (NULL)
+- **isti3** : float (NULL)
+- **isti3_prj** : float (NULL)
+- **isti4** : float (NULL)
+- **isti4_prj** : float (NULL)
+- **isti5** : float (NULL)
+- **isti5_prj** : float (NULL)
+- **isti6** : float (NULL)
+- **isti6_prj** : float (NULL)
+- **label1** : nvarchar(5) (NULL)
+- **label2** : nvarchar(5) (NULL)
+- **label3** : nvarchar(5) (NULL)
+- **label4** : nvarchar(5) (NULL)
+- **label5** : nvarchar(5) (NULL)
+- **label6** : nvarchar(5) (NULL)
+- **P_Basis** : float (NULL)
+- **P_Meerwerk** : float (NULL)
+- **Pp_Basis** : real (NULL)
+- **Pp_Meerwerk** : float (NULL)
+- **prj_s** : float (NULL)
+- **Project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **s** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_subcontract_ab`
+- **aa** : float (NULL)
+- **ab** : float (NULL)
+- **ac** : float (NULL)
+- **apl** : real (NULL)
+- **as** : real (NULL)
+- **ba** : float (NULL)
+- **bal** : float (NULL)
+- **bb** : float (NULL)
+- **bc** : float (NULL)
+- **bcu** : float (NULL)
+- **bd** : float (NULL)
+- **be** : real (NULL)
+- **bf** : real (NULL)
+- **bfp** : float (NULL)
+- **bpl** : float (NULL)
+- **bs** : float (NULL)
+- **fl_phase_a** : bit (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **P_Basis** : float (NULL)
+- **P_Meerwerk** : float (NULL)
+- **Pp_Basis** : real (NULL)
+- **Pp_Meerwerk** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **state_apl** : float (NULL)
+- **state_as** : float (NULL)
+- **state_bal** : float (NULL)
+- **state_bcu** : float (NULL)
+- **state_bfp** : float (NULL)
+- **state_bpl** : float (NULL)
+- **state_bs** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_subcontract_item`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : nvarchar(255) (NULL)
+- **finished** : bit (NULL)
+- **fl_delivery** : bit (NULL)
+- **fl_revision** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **order_seqnr** : int (NULL) 🔑?
+- **perc_del_now** : int (NULL)
+- **perc_del_previous** : int (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **quantity** : float (NULL)
+- **quantity_executed** : float (NULL)
+- **quantity_now** : float (NULL)
+- **quantity_previous** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **relation_id** : int (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **state_id** : int (NOT NULL) 🔑?
+- **total_line** : float (NULL)
+- **total_price** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_subcontract_order`
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **total_price_order** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : int (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_subcontract_p`
+- **a** : float (NULL)
+- **b** : float (NULL)
+- **c** : float (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **i** : float (NULL)
+- **i2021** : float (NULL)
+- **i_prj** : float (NULL)
+- **i2021_prj** : float (NULL)
+- **P_Basis** : float (NULL)
+- **P_Meerwerk** : float (NULL)
+- **Pp_Basis** : real (NULL)
+- **Pp_Meerwerk** : float (NULL)
+- **prj_s** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **s** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_subcontract_pk`
+- **As** : float (NULL)
+- **BMk** : float (NULL)
+- **BMk_prev** : float (NULL)
+- **BMk0** : float (NULL)
+- **BPk** : float (NULL)
+- **HBedragB** : float (NULL)
+- **HBedragM** : float (NULL)
+- **HC** : float (NULL)
+- **J0** : float (NULL)
+- **J0k** : float (NULL)
+- **MMk** : float (NULL)
+- **MMk_prev** : float (NULL)
+- **MMk0** : float (NULL)
+- **MPk** : float (NULL)
+- **MRevision** : float (NULL)
+- **prj_s** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **s** : float (NULL)
+- **s0** : float (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_subcontract_print`
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **state_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `state_subcontract_project`
+- **bad_weather** : int (NULL)
+- **BMk** : float (NULL)
+- **BTotalNowNoRev** : float (NULL)
+- **BTotalNowRev** : float (NULL)
+- **BTotCum** : float (NULL)
+- **closed** : bit (NULL)
+- **date** : datetime (NULL)
+- **divers** : int (NULL)
+- **enddate** : datetime (NULL)
+- **ETotalNow** : float (NULL)
+- **feastdays** : int (NULL)
+- **final_state** : bit (NULL)
+- **fl_invoiced** : bit (NULL)
+- **holidays** : int (NULL)
+- **insurance_i** : real (NULL)
+- **insurance_s** : float (NULL)
+- **mc** : float (NULL)
+- **MMk** : float (NULL)
+- **MTotalNowNoRev** : float (NULL)
+- **MTotalNowRev** : float (NULL)
+- **MTotCum** : float (NULL)
+- **ok** : bit (NULL)
+- **pof** : float (NULL)
+- **project_id** : nvarchar(15) (NOT NULL) 🔑?
+- **relation_id** : int (NOT NULL) 🔑?
+- **remark** : nvarchar(30) (NULL)
+- **revision** : bit (NULL)
+- **revision_material** : bit (NULL)
+- **revision_rma** : bit (NULL)
+- **rma** : float (NULL)
+- **rmb** : float (NULL)
+- **startdate** : datetime (NULL)
+- **state_id** : int (NOT NULL) 🔑?
+- **status** : int (NULL)
+- **suspension** : int (NULL)
+- **total_price** : float (NULL)
+- **totaldays** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **work_days** : int (NULL)
+
+---
+### Tabla: `stock`
+- **art_id** : int (NOT NULL) 🔑?
+- **art_type** : smallint (NOT NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **call_id2** : nvarchar(50) (NULL)
+- **catalog_id** : int (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **costprice** : float (NULL)
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **discount** : float (NULL)
+- **fl_active** : bit (NULL)
+- **fl_costprice_blocked** : bit (NULL)
+- **fl_over_max_mark** : bit (NULL)
+- **fl_under_minimum_mark** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **material_id** : int (NULL) 🔑?
+- **maximum** : float (NULL)
+- **minimum** : float (NULL)
+- **ordered** : bit (NULL)
+- **ordered_doc** : nvarchar(15) (NULL)
+- **prjtoorder_qty** : float (NULL)
+- **qty_ordered** : float (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **remark** : nvarchar(50) (NULL)
+- **reorder_qty** : float (NULL)
+- **supp_ref** : nvarchar(50) (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **toorder_qty** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vendor_id** : int (NULL) 🔑?
+
+---
+### Tabla: `stock_history`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **costprice** : float (NULL)
+- **current_quantity** : float (NULL)
+- **date** : datetime (NULL)
+- **document_date** : datetime (NULL)
+- **document_id** : nvarchar(15) (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **location_id** : int (NULL) 🔑?
+- **position** : nvarchar(20) (NULL)
+- **project_id_source** : nvarchar(15) (NULL)
+- **project_id_target** : nvarchar(15) (NULL)
+- **quantity** : float (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **source** : smallint (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user** : nvarchar(50) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `stock_loc`
+- **art_id** : int (NOT NULL) 🔑?
+- **art_type** : smallint (NOT NULL)
+- **fl_over_maximum_mark** : bit (NULL)
+- **fl_under_minimum_mark** : bit (NULL)
+- **location_id** : int (NOT NULL) 🔑?
+- **maximum** : float (NULL)
+- **minimum** : float (NULL)
+
+---
+### Tabla: `stock_location`
+- **art_id** : int (NOT NULL) 🔑?
+- **art_type** : smallint (NOT NULL)
+- **date_reserv_end** : datetime (NULL)
+- **date_reserv_start** : datetime (NULL)
+- **fl_default** : bit (NULL)
+- **fl_prefered** : bit (NULL)
+- **location_id** : int (NOT NULL) 🔑?
+- **position** : nvarchar(20) (NOT NULL)
+- **qty_on_reservation** : float (NULL)
+- **qty_on_stock** : float (NULL)
+- **remark** : ntext(1073741823) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `stock_processing`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **EAN** : nvarchar(25) (NULL)
+- **qty** : float (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `stock_reservation`
+- **art_id** : int (NOT NULL) 🔑?
+- **art_type** : smallint (NOT NULL)
+- **date_from** : datetime (NULL)
+- **date_to** : datetime (NULL)
+- **doc_id** : nvarchar(15) (NOT NULL) 🔑?
+- **doc_type** : smallint (NOT NULL)
+- **location_id** : smallint (NOT NULL) 🔑?
+- **position** : nvarchar(20) (NOT NULL)
+- **projectnr** : nvarchar(15) (NOT NULL) 🔑?
+- **qty_reserved** : float (NULL)
+- **relation_id** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `subcontract`
+- **account_purchase** : nvarchar(50) (NULL)
+- **account_sales** : nvarchar(50) (NULL)
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **costprice** : float (NULL)
+- **date** : datetime (NULL)
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **group_id** : int (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **norm** : float (NULL)
+- **project_stage** : smallint (NULL)
+- **ref** : nvarchar(15) (NULL)
+- **sales_price_1** : float (NULL)
+- **sales_price_2** : float (NULL)
+- **sales_price_3** : float (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+
+---
+### Tabla: `supplier_webservices`
+- **customer_id** : nvarchar(50) (NULL) 🔑?
+- **fl_active** : bit (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **login** : nvarchar(50) (NULL)
+- **name** : nvarchar(50) (NULL)
+- **password** : nvarchar(50) (NULL)
+- **path** : nvarchar(255) (NULL)
+- **plugin_id** : nvarchar(50) (NULL) 🔑?
+
+---
+### Tabla: `system`
+- **acc_ledger_creditnote** : int (NULL)
+- **acc_ledger_invoice** : int (NULL)
+- **bankrelation1** : nvarchar(23) (NULL)
+- **bankrelation2** : nvarchar(23) (NULL)
+- **city** : nvarchar(35) (NULL)
+- **commer_register** : nvarchar(20) (NULL)
+- **company** : nvarchar(20) (NOT NULL)
+- **country** : smallint (NULL)
+- **default_catalog** : int (NULL)
+- **delivery_default_catalog** : int (NULL)
+- **email** : nvarchar(40) (NULL)
+- **fax** : nvarchar(20) (NULL)
+- **fl_delivery_copyourref** : bit (NULL)
+- **fl_delivery_copystate** : bit (NULL)
+- **fl_delivery_defaultCatalog** : bit (NULL)
+- **fl_delivery_descrMax** : bit (NULL)
+- **fl_delivery_printpictures** : bit (NULL)
+- **fl_delivery_remarknotpassing** : bit (NULL)
+- **fl_delivery_statetomemo** : bit (NULL)
+- **fl_delivery_transferinvoiceid** : bit (NULL) 🔑?
+- **fl_dossier_showEstimateApplicants** : bit (NULL)
+- **fl_dossier_staterequired** : bit (NULL)
+- **fl_dossier_statetomemo** : bit (NULL)
+- **fl_estimate_hasproject** : bit (NULL)
+- **fl_estimate_statetomemo** : bit (NULL)
+- **fl_estimate_transferestimateid** : bit (NULL) 🔑?
+- **fl_has_cloud** : bit (NULL)
+- **fl_invoice_accountrequired** : bit (NULL)
+- **fl_invoice_copystate** : bit (NULL)
+- **fl_invoice_customerrefrequired** : bit (NULL)
+- **fl_invoice_descrMax** : bit (NULL)
+- **fl_invoice_payment_discount** : bit (NULL)
+- **fl_invoice_payment_term** : bit (NULL)
+- **fl_invoice_printPDF_withUBL** : bit (NULL)
+- **fl_invoice_printPDF_withUBL_PDFincluded** : bit (NULL)
+- **fl_invoice_printQRpaymentcode** : bit (NULL) 🔑?
+- **fl_invoice_remarknotpassing** : bit (NULL)
+- **fl_invoice_setflpaidinoverview** : bit (NULL)
+- **fl_invoice_setflsentmanually** : bit (NULL)
+- **fl_invoice_transferinvoiceid** : bit (NULL) 🔑?
+- **fl_invoice_validationrequired** : bit (NULL)
+- **fl_invoice_vatrequired** : bit (NULL)
+- **fl_is_peppol_receiver** : bit (NULL)
+- **fl_maintenance_createdirnamenr** : bit (NULL) 🔑?
+- **fl_multiple_invoices** : bit (NULL)
+- **fl_order_accountrequired** : bit (NULL)
+- **fl_order_remarknotpassing** : bit (NULL)
+- **fl_order_remarkrequired** : bit (NULL)
+- **fl_order_statetomemo** : bit (NULL)
+- **fl_order_transferinvoiceid** : bit (NULL) 🔑?
+- **fl_ordercustomer_automaticorder** : bit (NULL)
+- **fl_ordercustomer_automaticreservation** : bit (NULL)
+- **fl_ordercustomer_checkinvoicenotpaid** : bit (NULL) 🔑?
+- **fl_ordercustomer_copystate** : bit (NULL)
+- **fl_ordercustomer_remarknotpassing** : bit (NULL)
+- **fl_ordercustomer_transferordercustomerid** : bit (NULL) 🔑?
+- **fl_phaser_mmodaddqty** : bit (NULL)
+- **fl_phaser_showmessage** : bit (NULL)
+- **fl_purchase_checktotalaccountlines** : bit (NULL)
+- **fl_purchase_shortinput** : bit (NULL)
+- **fl_purchase_statetomemo** : bit (NULL)
+- **fl_purchase_suprefrequired** : bit (NULL)
+- **fl_project_classrequired** : bit (NULL)
+- **fl_project_statetomemo** : bit (NULL)
+- **fl_project_syncdossier** : bit (NULL)
+- **fl_project_updateinvoicecompany** : bit (NULL)
+- **fl_relation_refrequired** : bit (NULL)
+- **fl_relation_synccontacts** : bit (NULL)
+- **fl_relation_exportoutlookemail** : bit (NULL)
+- **fl_relation_vatnr** : bit (NULL) 🔑?
+- **fl_salesestimate_remarknotpassing** : bit (NULL)
+- **fl_salesestimate_transferinvoiceid** : bit (NULL) 🔑?
+- **fl_stock_bookelementsandresources** : bit (NULL)
+- **fl_stock_minmaxperlocation** : bit (NULL)
+- **fl_stock_use_economic_stock** : bit (NULL)
+- **fl_supplierdataapi** : bit (NULL)
+- **fl_sync_active** : bit (NULL)
+- **fl_workdoc_checknotbookedstock** : bit (NULL)
+- **fl_workdoc_setinvoicedmanual** : bit (NULL)
+- **fl_workdoc_toforeseeequalsquantity** : bit (NULL)
+- **fl_workdoc_validationrequired** : bit (NULL)
+- **fl_workdoc_statetomemo** : bit (NULL)
+- **header_activity** : nvarchar(80) (NULL)
+- **header_address** : ntext(1073741823) (NULL)
+- **header_extra1** : ntext(1073741823) (NULL)
+- **header_extra2** : ntext(1073741823) (NULL)
+- **header_extra3** : ntext(1073741823) (NULL)
+- **header_extra4** : ntext(1073741823) (NULL)
+- **header_name** : nvarchar(50) (NULL)
+- **invoice_payment_discount** : float (NULL)
+- **invoice_payment_term** : int (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **last_peppol_sync_date** : nvarchar(10) (NULL)
+- **logo** : nvarchar(50) (NULL)
+- **name** : nvarchar(35) (NULL)
+- **order_customer_delivery_days** : int (NULL)
+- **order_deliveryaddress_name** : nvarchar(100) (NULL)
+- **order_deliveryaddress_street** : nvarchar(255) (NULL)
+- **order_deliveryaddress_zipcode** : nvarchar(15) (NULL) 🔑?
+- **order_deliveryaddress_city** : nvarchar(35) (NULL)
+- **order_delivery_days** : int (NULL)
+- **pdagateway** : nvarchar(50) (NULL)
+- **pdaimportpath** : nvarchar(50) (NULL)
+- **pdakey** : nvarchar(50) (NULL)
+- **pdalogin** : nvarchar(50) (NULL)
+- **peppol_companyID** : nvarchar(50) (NULL) 🔑?
+- **registrationnr** : nvarchar(50) (NULL) 🔑?
+- **relation_synccontactsfolder** : nvarchar(50) (NULL)
+- **rsz_nr** : nvarchar(50) (NULL) 🔑?
+- **street** : nvarchar(40) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **ttgateway** : nvarchar(50) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **VAT** : nvarchar(20) (NULL)
+- **version** : nvarchar(15) (NULL)
+- **website** : nvarchar(40) (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+- **lastSyncCafcaHubspot** : datetime (NULL)
+- **lastSyncHubspotCafca** : datetime (NULL)
+
+---
+### Tabla: `taxes`
+- **amount_excl** : float (NULL)
+- **amount_incl** : float (NULL)
+- **code** : nvarchar(10) (NOT NULL) 🔑?
+- **descr** : nvarchar(80) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NOT NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `ticket`
+- **appointment_time** : datetime (NULL)
+- **appointment_time_to** : datetime (NULL)
+- **approval_remark1** : nvarchar(50) (NULL)
+- **approval_remark2** : nvarchar(50) (NULL)
+- **approval_remark3** : nvarchar(50) (NULL)
+- **approval_user1** : int (NULL)
+- **approval_user2** : int (NULL)
+- **approval_user3** : int (NULL)
+- **category** : int (NULL)
+- **city** : nvarchar(35) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **contact_seqnr** : smallint (NULL) 🔑?
+- **country** : smallint (NULL)
+- **currency** : smallint (NULL)
+- **date** : datetime (NULL)
+- **date_end** : datetime (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **dossier_name** : nvarchar(50) (NULL)
+- **email** : nvarchar(50) (NULL)
+- **estimate_id** : nvarchar(50) (NULL) 🔑?
+- **fax** : nvarchar(20) (NULL)
+- **finished** : float (NULL)
+- **fl_active** : bit (NULL)
+- **fl_approval1** : bit (NULL)
+- **fl_approval2** : bit (NULL)
+- **fl_approval3** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_followup** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **hours** : float (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **intern_id** : int (NULL) 🔑?
+- **intern_name** : nvarchar(50) (NULL)
+- **invoice** : bit (NULL)
+- **invoice_materials** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **kminvoice** : bit (NULL)
+- **language** : tinyint (NULL)
+- **maintenance_id** : nvarchar(50) (NULL) 🔑?
+- **mobile** : nvarchar(20) (NULL)
+- **name** : nvarchar(100) (NULL)
+- **priority** : int (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **ref** : nvarchar(50) (NULL)
+- **ref_cust** : nvarchar(30) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **relation_ref** : nvarchar(50) (NULL)
+- **remark** : int (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **seqnr** : int (NULL) 🔑?
+- **status** : int (NULL)
+- **street** : nvarchar(255) (NULL)
+- **subcontractor_contact** : nvarchar(35) (NULL)
+- **subcontractor_id** : int (NULL) 🔑?
+- **subcontractor_name** : nvarchar(50) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **title_contact** : nvarchar(20) (NULL)
+- **tp_customer** : bit (NULL)
+- **tp_intern** : bit (NULL)
+- **tp_other** : bit (NULL)
+- **tp_supplier** : bit (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validationtype** : int (NULL)
+- **workdescr** : int (NULL)
+- **workdoc_id** : nvarchar(15) (NULL) 🔑?
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `time_registration`
+- **actie** : nvarchar(15) (NULL)
+- **dattijd** : nvarchar(50) (NULL)
+- **employeeID** : int (NOT NULL) 🔑?
+- **fotoPath** : nvarchar(255) (NULL)
+- **seqnr** : int (NOT NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `tmp_article`
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **costprice** : float (NULL)
+- **catalog_price** : float (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **quantity** : float (NULL)
+- **workstation_id** : smallint (NULL) 🔑?
+
+---
+### Tabla: `tmp_basket`
+- **article_number_manufacturer** : nvarchar(50) (NULL)
+- **backorder** : float (NULL)
+- **brand** : nvarchar(50) (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **costprice** : float (NULL)
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **ecotax** : float (NULL)
+- **ean** : nvarchar(25) (NULL)
+- **fl_get** : int (NULL)
+- **image_url** : nvarchar(350) (NULL)
+- **quantity** : float (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **recupel_excl_2** : float (NULL)
+- **sabam** : float (NULL)
+- **seqnr** : int (NOT NULL) 🔑?
+- **stock** : float (NULL)
+- **sup_item_id** : int (NULL) 🔑?
+- **url** : nvarchar(350) (NULL)
+- **workstation_id** : smallint (NULL) 🔑?
+
+---
+### Tabla: `tmp_code`
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **value** : smallint (NULL)
+
+---
+### Tabla: `tmp_code_1`
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **value** : smallint (NULL)
+
+---
+### Tabla: `tmp_code_2`
+- **descr_l1** : nvarchar(50) (NULL)
+- **descr_l2** : nvarchar(50) (NULL)
+- **descr_l3** : nvarchar(50) (NULL)
+- **descr_l4** : nvarchar(50) (NULL)
+- **value** : smallint (NULL)
+
+---
+### Tabla: `tmp_dossiers`
+- **id** : nvarchar(15) (NULL) 🔑?
+- **status** : int (NULL)
+
+---
+### Tabla: `tmp_estimate_articles_non_bib`
+- **workstation_id** : smallint (NOT NULL) 🔑?
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **estimate_seq_nr** : int (NOT NULL) 🔑?
+- **composition_id** : int (NOT NULL) 🔑?
+- **parent_seqnr** : int (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **art_id** : int (NOT NULL) 🔑?
+- **art_type** : int (NOT NULL)
+- **estimate_position** : nvarchar(20) (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : ntext(1073741823) (NULL)
+
+---
+### Tabla: `tmp_estimate_articles_price`
+- **workstation_id** : smallint (NOT NULL) 🔑?
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **estimate_seq_nr** : int (NOT NULL) 🔑?
+- **composition_id** : int (NOT NULL) 🔑?
+- **parent_seqnr** : int (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **art_id** : int (NOT NULL) 🔑?
+- **art_type** : int (NOT NULL)
+- **estimate_position** : nvarchar(20) (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : ntext(1073741823) (NULL)
+- **costprice_equipment** : float (NULL)
+- **costprice_labor** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **labor_c_price** : float (NULL)
+- **sales_price_1** : float (NULL)
+- **sales_price_2** : float (NULL)
+- **sales_price_3** : float (NULL)
+- **salesprice_equipment** : float (NULL)
+- **salesprice_labor** : float (NULL)
+- **salesprice_material** : float (NULL)
+- **salesprice_subcontract** : float (NULL)
+- **unit_price** : float (NULL)
+
+---
+### Tabla: `tmp_estimate_element_tree`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **composition_id** : int (NOT NULL) 🔑?
+- **costprice_equipment** : float (NULL)
+- **costprice_labor** : float (NULL)
+- **costprice_material** : float (NULL)
+- **costprice_subcontract** : float (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **estimate_id** : nvarchar(15) (NOT NULL) 🔑?
+- **fct_equipment1** : float (NULL)
+- **fct_equipment2** : float (NULL)
+- **fct_equipment3** : float (NULL)
+- **fct_labor1** : float (NULL)
+- **fct_labor2** : float (NULL)
+- **fct_labor3** : float (NULL)
+- **fct_material1** : float (NULL)
+- **fct_material2** : float (NULL)
+- **fct_material3** : float (NULL)
+- **fct_subcontract1** : float (NULL)
+- **fct_subcontract2** : float (NULL)
+- **fct_subcontract3** : float (NULL)
+- **fl_fixed_quantity** : bit (NULL)
+- **fl_print** : bit (NULL)
+- **group_id** : int (NULL) 🔑?
+- **labor_c_price** : float (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **level_nr** : int (NOT NULL) 🔑?
+- **norm** : float (NULL)
+- **parent_seqnr** : int (NOT NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **remark** : nvarchar(100) (NULL)
+- **sales_price_1** : float (NULL)
+- **sales_price_2** : float (NULL)
+- **sales_price_3** : float (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **supplier** : nvarchar(255) (NULL)
+- **supplier_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vendor** : nvarchar(255) (NULL)
+- **workstation_id** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `tmp_followup`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **costprice** : float (NULL)
+- **date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **followup_id_seqnr** : int (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **invoice** : bit (NULL)
+- **name** : nvarchar(100) (NULL)
+- **price_type** : smallint (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **sales_price** : float (NULL)
+- **source** : int (NULL)
+- **source_document_id** : nvarchar(50) (NULL) 🔑?
+- **total_sales_price** : float (NULL)
+- **transfer_invoice_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_invoice_seq_nr** : int (NULL) 🔑?
+- **type** : smallint (NULL)
+- **unit** : nvarchar(50) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **workstation_id** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `tmp_followup_labor`
+- **allowance** : float (NULL)
+- **contract_nr** : nvarchar(25) (NULL) 🔑?
+- **costprice** : float (NULL)
+- **date** : datetime (NULL)
+- **distance** : real (NULL)
+- **document_date** : datetime (NULL)
+- **document_id** : nvarchar(50) (NULL) 🔑?
+- **employee_id** : int (NULL) 🔑?
+- **entry_date** : datetime (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **extra_allowance** : float (NULL)
+- **extra_allowance_amount** : float (NULL)
+- **h_from_1** : datetime (NULL)
+- **h_from_2** : datetime (NULL)
+- **h_to_1** : datetime (NULL)
+- **h_to_2** : datetime (NULL)
+- **hours** : float (NULL)
+- **hours_after** : float (NULL)
+- **hours_before** : float (NULL)
+- **invoice** : bit (NULL)
+- **km_invoice** : bit (NULL)
+- **labor_descr** : nvarchar(255) (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **labor_type** : int (NULL)
+- **parent_seqnr** : int (NULL) 🔑?
+- **pauze** : float (NULL)
+- **persons_allowance** : float (NULL)
+- **productivity** : float (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **remark** : ntext(1073741823) (NULL)
+- **salesprice** : float (NULL)
+- **seqnr** : int (NOT NULL) 🔑?
+- **source** : int (NULL)
+- **total_costprice** : float (NULL)
+- **total_salesprice** : float (NULL)
+- **total_transport_costprice** : float (NULL)
+- **total_transport_salesprice** : float (NULL)
+- **transport_costprice** : float (NULL)
+- **transport_salesprice** : float (NULL)
+- **transport_type** : smallint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **type** : smallint (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+
+---
+### Tabla: `tmp_followuphours_monthlist`
+- **employee_id** : int (NULL) 🔑?
+- **labortype** : int (NULL)
+- **labordescr** : nvarchar(50) (NULL)
+- **day1** : float (NULL)
+- **day2** : float (NULL)
+- **day3** : float (NULL)
+- **day4** : float (NULL)
+- **day5** : float (NULL)
+- **day6** : float (NULL)
+- **day7** : float (NULL)
+- **day8** : float (NULL)
+- **day9** : float (NULL)
+- **day10** : float (NULL)
+- **day11** : float (NULL)
+- **day12** : float (NULL)
+- **day13** : float (NULL)
+- **day14** : float (NULL)
+- **day15** : float (NULL)
+- **day16** : float (NULL)
+- **day17** : float (NULL)
+- **day18** : float (NULL)
+- **day19** : float (NULL)
+- **day20** : float (NULL)
+- **day21** : float (NULL)
+- **day22** : float (NULL)
+- **day23** : float (NULL)
+- **day24** : float (NULL)
+- **day25** : float (NULL)
+- **day26** : float (NULL)
+- **day27** : float (NULL)
+- **day28** : float (NULL)
+- **day29** : float (NULL)
+- **day30** : float (NULL)
+- **day31** : float (NULL)
+- **distance1_driver** : float (NULL)
+- **distance2_driver** : float (NULL)
+- **distance3_driver** : float (NULL)
+- **distance4_driver** : float (NULL)
+- **distance5_driver** : float (NULL)
+- **distance6_driver** : float (NULL)
+- **distance7_driver** : float (NULL)
+- **distance8_driver** : float (NULL)
+- **distance9_driver** : float (NULL)
+- **distance10_driver** : float (NULL)
+- **distance11_driver** : float (NULL)
+- **distance12_driver** : float (NULL)
+- **distance13_driver** : float (NULL)
+- **distance14_driver** : float (NULL)
+- **distance15_driver** : float (NULL)
+- **distance16_driver** : float (NULL)
+- **distance17_driver** : float (NULL)
+- **distance18_driver** : float (NULL)
+- **distance19_driver** : float (NULL)
+- **distance20_driver** : float (NULL)
+- **distance21_driver** : float (NULL)
+- **distance22_driver** : float (NULL)
+- **distance23_driver** : float (NULL)
+- **distance24_driver** : float (NULL)
+- **distance25_driver** : float (NULL)
+- **distance26_driver** : float (NULL)
+- **distance27_driver** : float (NULL)
+- **distance28_driver** : float (NULL)
+- **distance29_driver** : float (NULL)
+- **distance30_driver** : float (NULL)
+- **distance31_driver** : float (NULL)
+- **totaldistance_driver** : float (NULL)
+- **distance1_driver_wop** : float (NULL)
+- **distance2_driver_wop** : float (NULL)
+- **distance3_driver_wop** : float (NULL)
+- **distance4_driver_wop** : float (NULL)
+- **distance5_driver_wop** : float (NULL)
+- **distance6_driver_wop** : float (NULL)
+- **distance7_driver_wop** : float (NULL)
+- **distance8_driver_wop** : float (NULL)
+- **distance9_driver_wop** : float (NULL)
+- **distance10_driver_wop** : float (NULL)
+- **distance11_driver_wop** : float (NULL)
+- **distance12_driver_wop** : float (NULL)
+- **distance13_driver_wop** : float (NULL)
+- **distance14_driver_wop** : float (NULL)
+- **distance15_driver_wop** : float (NULL)
+- **distance16_driver_wop** : float (NULL)
+- **distance17_driver_wop** : float (NULL)
+- **distance18_driver_wop** : float (NULL)
+- **distance19_driver_wop** : float (NULL)
+- **distance20_driver_wop** : float (NULL)
+- **distance21_driver_wop** : float (NULL)
+- **distance22_driver_wop** : float (NULL)
+- **distance23_driver_wop** : float (NULL)
+- **distance24_driver_wop** : float (NULL)
+- **distance25_driver_wop** : float (NULL)
+- **distance26_driver_wop** : float (NULL)
+- **distance27_driver_wop** : float (NULL)
+- **distance28_driver_wop** : float (NULL)
+- **distance29_driver_wop** : float (NULL)
+- **distance30_driver_wop** : float (NULL)
+- **distance31_driver_wop** : float (NULL)
+- **totaldistance_driver_wop** : float (NULL)
+- **distance1_passenger** : float (NULL)
+- **distance2_passenger** : float (NULL)
+- **distance3_passenger** : float (NULL)
+- **distance4_passenger** : float (NULL)
+- **distance5_passenger** : float (NULL)
+- **distance6_passenger** : float (NULL)
+- **distance7_passenger** : float (NULL)
+- **distance8_passenger** : float (NULL)
+- **distance9_passenger** : float (NULL)
+- **distance10_passenger** : float (NULL)
+- **distance11_passenger** : float (NULL)
+- **distance12_passenger** : float (NULL)
+- **distance13_passenger** : float (NULL)
+- **distance14_passenger** : float (NULL)
+- **distance15_passenger** : float (NULL)
+- **distance16_passenger** : float (NULL)
+- **distance17_passenger** : float (NULL)
+- **distance18_passenger** : float (NULL)
+- **distance19_passenger** : float (NULL)
+- **distance20_passenger** : float (NULL)
+- **distance21_passenger** : float (NULL)
+- **distance22_passenger** : float (NULL)
+- **distance23_passenger** : float (NULL)
+- **distance24_passenger** : float (NULL)
+- **distance25_passenger** : float (NULL)
+- **distance26_passenger** : float (NULL)
+- **distance27_passenger** : float (NULL)
+- **distance28_passenger** : float (NULL)
+- **distance29_passenger** : float (NULL)
+- **distance30_passenger** : float (NULL)
+- **distance31_passenger** : float (NULL)
+- **totaldistance_passenger** : float (NULL)
+- **distance1_owncar** : float (NULL)
+- **distance2_owncar** : float (NULL)
+- **distance3_owncar** : float (NULL)
+- **distance4_owncar** : float (NULL)
+- **distance5_owncar** : float (NULL)
+- **distance6_owncar** : float (NULL)
+- **distance7_owncar** : float (NULL)
+- **distance8_owncar** : float (NULL)
+- **distance9_owncar** : float (NULL)
+- **distance10_owncar** : float (NULL)
+- **distance11_owncar** : float (NULL)
+- **distance12_owncar** : float (NULL)
+- **distance13_owncar** : float (NULL)
+- **distance14_owncar** : float (NULL)
+- **distance15_owncar** : float (NULL)
+- **distance16_owncar** : float (NULL)
+- **distance17_owncar** : float (NULL)
+- **distance18_owncar** : float (NULL)
+- **distance19_owncar** : float (NULL)
+- **distance20_owncar** : float (NULL)
+- **distance21_owncar** : float (NULL)
+- **distance22_owncar** : float (NULL)
+- **distance23_owncar** : float (NULL)
+- **distance24_owncar** : float (NULL)
+- **distance25_owncar** : float (NULL)
+- **distance26_owncar** : float (NULL)
+- **distance27_owncar** : float (NULL)
+- **distance28_owncar** : float (NULL)
+- **distance29_owncar** : float (NULL)
+- **distance30_owncar** : float (NULL)
+- **distance31_owncar** : float (NULL)
+- **totaldistance_owncar** : float (NULL)
+- **transporttype1** : nvarchar(10) (NULL)
+- **transporttype2** : nvarchar(10) (NULL)
+- **transporttype3** : nvarchar(10) (NULL)
+- **transporttype4** : nvarchar(10) (NULL)
+- **transporttype5** : nvarchar(10) (NULL)
+- **transporttype6** : nvarchar(10) (NULL)
+- **transporttype7** : nvarchar(10) (NULL)
+- **transporttype8** : nvarchar(10) (NULL)
+- **transporttype9** : nvarchar(10) (NULL)
+- **transporttype10** : nvarchar(10) (NULL)
+- **transporttype11** : nvarchar(10) (NULL)
+- **transporttype12** : nvarchar(10) (NULL)
+- **transporttype13** : nvarchar(10) (NULL)
+- **transporttype14** : nvarchar(10) (NULL)
+- **transporttype15** : nvarchar(10) (NULL)
+- **transporttype16** : nvarchar(10) (NULL)
+- **transporttype17** : nvarchar(10) (NULL)
+- **transporttype18** : nvarchar(10) (NULL)
+- **transporttype19** : nvarchar(10) (NULL)
+- **transporttype20** : nvarchar(10) (NULL)
+- **transporttype21** : nvarchar(10) (NULL)
+- **transporttype22** : nvarchar(10) (NULL)
+- **transporttype23** : nvarchar(10) (NULL)
+- **transporttype24** : nvarchar(10) (NULL)
+- **transporttype25** : nvarchar(10) (NULL)
+- **transporttype26** : nvarchar(10) (NULL)
+- **transporttype27** : nvarchar(10) (NULL)
+- **transporttype28** : nvarchar(10) (NULL)
+- **transporttype29** : nvarchar(10) (NULL)
+- **transporttype30** : nvarchar(10) (NULL)
+- **transporttype31** : nvarchar(10) (NULL)
+- **month** : int (NULL)
+- **SeqNr** : int (NULL) 🔑?
+- **totalhours** : float (NULL)
+- **year** : int (NULL)
+
+---
+### Tabla: `tmp_getarticle`
+- **contract** : nvarchar(10) (NULL)
+- **contract_item** : nvarchar(5) (NULL)
+- **currency** : nvarchar(5) (NULL)
+- **cust_field1** : nvarchar(10) (NULL)
+- **cust_field2** : nvarchar(10) (NULL)
+- **cust_field3** : nvarchar(10) (NULL)
+- **cust_field4** : nvarchar(10) (NULL)
+- **cust_field5** : nvarchar(10) (NULL)
+- **description** : nvarchar(255) (NULL)
+- **ext_product_id** : nvarchar(40) (NULL) 🔑?
+- **ext_quote_id** : nvarchar(35) (NULL) 🔑?
+- **ext_quote_item** : nvarchar(10) (NULL)
+- **fl_get** : bit (NULL)
+- **leadtime** : nvarchar(5) (NULL)
+- **longtext_1** : ntext(1073741823) (NULL)
+- **manufactcode** : nvarchar(10) (NULL) 🔑?
+- **manufactmat** : nvarchar(40) (NULL)
+- **matgroup** : nvarchar(10) (NULL)
+- **matnr** : nvarchar(40) (NULL) 🔑?
+- **price** : nvarchar(50) (NULL)
+- **priceunit** : nvarchar(5) (NULL)
+- **quantity** : nvarchar(15) (NULL)
+- **service** : nvarchar(1) (NULL)
+- **unit** : nvarchar(3) (NULL)
+- **vendor** : nvarchar(10) (NULL)
+- **vendormat** : nvarchar(40) (NULL)
+
+---
+### Tabla: `tmp_import`
+- **ART_OM** : nvarchar(255) (NULL)
+- **ART_OM1** : nvarchar(255) (NULL)
+- **ART_OM2** : nvarchar(255) (NULL)
+- **ART_OM3** : nvarchar(255) (NULL)
+- **ARTNO_OR** : nvarchar(50) (NULL)
+- **ARTNR** : nvarchar(25) (NULL) 🔑?
+- **ARTNRFAB** : nvarchar(25) (NULL)
+- **AUVIBEL** : int (NULL)
+- **BASISCU** : float (NULL)
+- **BEBAT** : int (NULL)
+- **BRUTO_P** : float (NULL)
+- **C1** : nvarchar(10) (NULL)
+- **C2** : smallint (NULL)
+- **COURANT** : smallint (NULL)
+- **CUCOEF** : float (NULL)
+- **DATUM** : datetime (NULL)
+- **EAN_CODE** : nvarchar(25) (NULL) 🔑?
+- **EXTRA1** : nvarchar(40) (NULL)
+- **EXTRA2** : nvarchar(40) (NULL)
+- **EXTRA3** : nvarchar(40) (NULL)
+- **FABR** : nvarchar(25) (NULL)
+- **KG1000CU** : float (NULL)
+- **MG_OMFR** : nvarchar(50) (NULL)
+- **MG_OMNL** : nvarchar(50) (NULL)
+- **NET_P1** : float (NULL)
+- **RECUPEL** : nvarchar(50) (NULL)
+- **REMARK** : int (NULL)
+- **REVISIONCU** : bit (NULL)
+- **SALES_P1** : float (NULL)
+- **SALES_P2** : float (NULL)
+- **SALES_P3** : float (NULL)
+- **STOCK** : smallint (NULL)
+- **UNIEKSUPID** : nvarchar(25) (NULL) 🔑?
+- **UNITPACK** : float (NULL)
+- **URL** : nvarchar(350) (NULL)
+- **URL_PICTURE** : nvarchar(350) (NULL)
+- **USEWEIGHT** : bit (NULL)
+- **WMG** : nvarchar(25) (NULL)
+
+---
+### Tabla: `tmp_import_cebeo`
+- **BrandCode** : float (NULL) 🔑?
+- **CustomerID** : nvarchar(15) (NULL) 🔑?
+- **DescriptFR** : nvarchar(255) (NULL)
+- **DescriptNL** : nvarchar(255) (NULL)
+- **EAN** : nvarchar(13) (NULL)
+- **Ecotax** : float (NULL)
+- **Family** : nvarchar(50) (NULL)
+- **NetPrice** : float (NULL)
+- **ProdCenter** : float (NULL)
+- **Recupel** : float (NULL)
+- **ReelCode** : nvarchar(1) (NULL) 🔑?
+- **ReelLength** : float (NULL)
+- **Reference** : nvarchar(16) (NULL)
+- **Sabam** : float (NULL)
+- **StockCode** : nvarchar(1) (NULL) 🔑?
+- **SubGamme** : nvarchar(1) (NULL)
+- **SupplierID** : float (NULL) 🔑?
+- **TarifPrice** : float (NULL)
+- **TAV** : float (NULL)
+- **UnitOfMeas** : float (NULL)
+- **UnitPack** : float (NULL)
+- **UnitPOblig** : float (NULL)
+- **URL** : nvarchar(52) (NULL)
+
+---
+### Tabla: `tmp_import_delivery`
+- **city** : nvarchar(255) (NULL)
+- **comments** : nvarchar(255) (NULL)
+- **date** : datetime (NULL)
+- **expdeldate** : datetime (NULL)
+- **friday_from** : datetime (NULL)
+- **friday_to** : datetime (NULL)
+- **gsm** : nvarchar(255) (NULL)
+- **language** : int (NULL)
+- **monday_from** : datetime (NULL)
+- **monday_to** : datetime (NULL)
+- **orderid** : nvarchar(255) (NOT NULL) 🔑?
+- **outlet** : nvarchar(255) (NULL)
+- **outname** : nvarchar(255) (NULL)
+- **postalcode** : nvarchar(255) (NULL) 🔑?
+- **saturday_from** : datetime (NULL)
+- **saturday_to** : datetime (NULL)
+- **slsroute** : nvarchar(255) (NULL)
+- **slsroutename** : nvarchar(255) (NULL)
+- **street_nr** : nvarchar(255) (NULL) 🔑?
+- **sunday_from** : datetime (NULL)
+- **sunday_to** : datetime (NULL)
+- **thursday_from** : datetime (NULL)
+- **thursday_to** : datetime (NULL)
+- **tuesday_from** : datetime (NULL)
+- **tuesday_to** : datetime (NULL)
+- **wednesday_from** : datetime (NULL)
+- **wednesday_to** : datetime (NULL)
+
+---
+### Tabla: `tmp_import_deliverylines`
+- **call_id** : nvarchar(255) (NULL) 🔑?
+- **descr** : nvarchar(255) (NULL)
+- **order_id** : nvarchar(255) (NULL) 🔑?
+- **quantity** : int (NULL)
+
+---
+### Tabla: `tmp_import_material`
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **date** : datetime (NULL)
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **element_id** : int (NOT NULL) 🔑?
+- **group_id** : int (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `tmp_import_sql`
+- **artno_or** : varchar(50) (NULL)
+- **c1** : varchar(10) (NULL)
+- **art_om** : varchar(255) (NULL)
+- **ean_code** : varchar(25) (NULL) 🔑?
+- **ROWID** : int (NULL) 🔑?
+
+---
+### Tabla: `tmp_invoice_followup`
+- **date** : nvarchar(10) (NULL)
+- **invoice_id** : nvarchar(15) (NULL) 🔑?
+- **name** : nvarchar(50) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **remark** : nvarchar(50) (NULL)
+- **workstation_id** : int (NULL) 🔑?
+
+---
+### Tabla: `tmp_invoice_line`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **costprice** : float (NULL)
+- **descr** : ntext(1073741823) (NULL)
+- **discount** : float (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **invoice** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **measuring_type** : smallint (NULL)
+- **picture_id** : int (NULL) 🔑?
+- **price_type** : smallint (NULL)
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **supplier_id** : int (NULL) 🔑?
+- **titlenr** : int (NULL) 🔑?
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **type** : smallint (NOT NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **workstation_id** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `tmp_invoice_payment`
+- **descr** : nvarchar(50) (NULL)
+- **invoice_date** : nvarchar(10) (NULL)
+- **invoice_id** : nvarchar(15) (NULL) 🔑?
+- **invoice_total_excl** : float (NULL)
+- **invoice_type** : int (NULL)
+
+---
+### Tabla: `tmp_job_registration`
+- **datum** : datetime (NULL)
+- **employeeID** : int (NULL) 🔑?
+- **ID** : smallint (NOT NULL) 🔑?
+- **labortype** : int (NULL)
+- **perc** : float (NULL)
+- **projectID** : nvarchar(15) (NULL) 🔑?
+- **time_end** : nvarchar(50) (NULL)
+- **time_start** : datetime (NULL)
+
+---
+### Tabla: `tmp_material`
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_id** : int (NULL) 🔑?
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **group_id** : int (NULL) 🔑?
+- **id** : int (NULL) 🔑?
+- **supplier_id** : int (NULL) 🔑?
+- **workstation_id** : int (NULL) 🔑?
+
+---
+### Tabla: `tmp_order_line`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **collect_order_id** : nvarchar(15) (NULL) 🔑?
+- **comment** : nvarchar(255) (NULL)
+- **costprice** : float (NULL)
+- **customer_id** : int (NULL) 🔑?
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **discount** : float (NULL)
+- **discount2** : float (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **invoice** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_materials** : bit (NULL)
+- **location_id** : int (NULL) 🔑?
+- **measuring_type** : smallint (NULL)
+- **ordered** : bit (NULL)
+- **position** : nvarchar(20) (NULL)
+- **price_type** : smallint (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **quantity_current_delivery** : float (NULL)
+- **quantity_delivered** : float (NULL)
+- **quantity_last_delivery** : float (NULL)
+- **quantity_surplus** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction** : float (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **ref_supplier** : nvarchar(50) (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **st_sales_price** : float (NULL)
+- **target** : smallint (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **weight** : float (NULL)
+- **workdoc_id** : nvarchar(15) (NULL) 🔑?
+- **workdoc_seqnr** : int (NULL) 🔑?
+- **workstation_id** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `tmp_order_line_customer`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **costprice** : float (NULL)
+- **d_o_quantity** : float (NULL)
+- **d_o_supplier_id** : int (NULL) 🔑?
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **directorder** : bit (NULL)
+- **discount** : float (NULL)
+- **discount2** : float (NULL)
+- **invoice** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **invoice_materials** : bit (NULL)
+- **price_type** : smallint (NULL)
+- **project_stage** : smallint (NULL)
+- **qty_delivered** : float (NULL)
+- **qty_last_delivery** : float (NULL)
+- **qty_reserved** : float (NULL)
+- **qty_to_deliver** : float (NULL)
+- **quantity** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction** : float (NULL)
+- **reduction_group** : int (NULL)
+- **reservation** : bit (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **st_sales_price** : float (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **workstation_id** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `tmp_order_line_customer_supplier`
+- **catalogprice** : float (NULL)
+- **costprice** : float (NULL)
+- **costprice_perc** : float (NULL)
+- **discount** : float (NULL)
+- **fl_ToOrder** : bit (NULL)
+- **invoice_id** : nvarchar(15) (NOT NULL) 🔑?
+- **seq_nr** : int (NOT NULL) 🔑?
+- **supplier_contact_seqnr** : smallint (NULL) 🔑?
+- **supplier_id** : int (NULL) 🔑?
+- **supplier_levdatum** : datetime (NULL)
+- **supplier_ref** : nvarchar(30) (NULL)
+- **supplier_seq_nr** : smallint (NOT NULL) 🔑?
+- **supplier_stock** : float (NULL)
+- **supplier_variant** : nvarchar(35) (NULL)
+- **workstation_id** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `tmp_param_descr`
+- **param1_descr_l1** : nvarchar(50) (NULL)
+- **param1_descr_l2** : nvarchar(50) (NULL)
+- **param1_descr_l3** : nvarchar(50) (NULL)
+- **param1_descr_l4** : nvarchar(50) (NULL)
+- **param2_descr_l1** : nvarchar(50) (NULL)
+- **param2_descr_l2** : nvarchar(50) (NULL)
+- **param2_descr_l3** : nvarchar(50) (NULL)
+- **param2_descr_l4** : nvarchar(50) (NULL)
+- **param3_descr_l1** : nvarchar(50) (NULL)
+- **param3_descr_l2** : nvarchar(50) (NULL)
+- **param3_descr_l3** : nvarchar(50) (NULL)
+- **param3_descr_l4** : nvarchar(50) (NULL)
+- **project_id** : nvarchar(50) (NOT NULL) 🔑?
+
+---
+### Tabla: `tmp_picking`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : nvarchar(255) (NULL)
+- **name** : nvarchar(100) (NULL)
+- **project_address** : nvarchar(255) (NULL)
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **qty_to_pick** : float (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **workdoc_id** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `tmp_project_hours`
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : nvarchar(50) (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **labor_id** : nvarchar(50) (NULL) 🔑?
+- **project_id** : nvarchar(50) (NOT NULL) 🔑?
+- **tothours** : nvarchar(50) (NULL)
+
+---
+### Tabla: `tmp_projectid`
+- **id** : nvarchar(15) (NULL) 🔑?
+- **finalstate** : bit (NULL)
+
+---
+### Tabla: `tmp_relation_extra_data`
+- **count** : int (NULL)
+- **date** : datetime (NULL)
+- **descr** : nvarchar(50) (NULL)
+- **fl_date** : bit (NULL)
+- **label_id** : int (NULL) 🔑?
+- **relation_id** : int (NULL) 🔑?
+
+---
+### Tabla: `tmp_stock`
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : nvarchar(255) (NULL)
+- **location_id** : int (NULL) 🔑?
+- **location** : nvarchar(25) (NULL)
+- **position** : nvarchar(20) (NULL)
+- **workstation_id** : int (NULL) 🔑?
+
+---
+### Tabla: `tmp_tracking`
+- **Action1** : nvarchar(50) (NULL)
+- **Action2** : nvarchar(50) (NULL)
+- **Action3** : nvarchar(50) (NULL)
+- **AddedOn** : datetime (NULL)
+- **Address** : nvarchar(50) (NULL)
+- **CafcaMessage** : nvarchar(150) (NULL)
+- **CountryEnglish** : nvarchar(50) (NULL)
+- **Employee_call_id** : nvarchar(50) (NULL) 🔑?
+- **Employee_nr** : nvarchar(50) (NULL) 🔑?
+- **GPSDateTime** : datetime (NULL)
+- **Id** : int (NOT NULL) 🔑?
+- **Memo** : nvarchar(50) (NULL)
+- **Mileage** : int (NULL)
+- **RegistrationNumber** : nvarchar(50) (NULL)
+- **Time** : datetime (NULL)
+- **ts_crea** : datetime (NULL)
+- **user_crea** : nvarchar(50) (NULL)
+
+---
+### Tabla: `tmp_tracking_processing`
+- **action_1** : smallint (NULL)
+- **action_2** : nvarchar(50) (NULL)
+- **action_3** : nvarchar(50) (NULL)
+- **activity_id** : int (NULL) 🔑?
+- **activity_name** : nvarchar(50) (NULL)
+- **address_name** : nvarchar(255) (NULL)
+- **date** : datetime (NULL)
+- **distance** : float (NULL)
+- **employee_callid** : nvarchar(50) (NULL) 🔑?
+- **employee_id** : int (NULL) 🔑?
+- **employee_name** : nvarchar(50) (NULL)
+- **fl_import** : bit (NULL)
+- **go_back** : int (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **labor_type** : int (NULL)
+- **message** : nvarchar(150) (NULL)
+- **message_id** : int (NOT NULL) 🔑?
+- **place** : nvarchar(50) (NULL)
+- **project_id** : nvarchar(50) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **registration_time** : datetime (NULL)
+- **time_elapsed** : float (NULL)
+- **time_from1** : datetime (NULL)
+- **time_from2** : datetime (NULL)
+- **time_to1** : datetime (NULL)
+- **time_to2** : datetime (NULL)
+- **transport_type** : int (NULL)
+
+---
+### Tabla: `tmp_tracking_processingx`
+- **action_1** : smallint (NULL)
+- **action_2** : nvarchar(50) (NULL)
+- **action_3** : nvarchar(50) (NULL)
+- **activity_id** : int (NULL) 🔑?
+- **activity_name** : nvarchar(50) (NULL)
+- **address_name** : nvarchar(50) (NULL)
+- **date** : datetime (NULL)
+- **distance** : int (NULL)
+- **employee_callid** : nvarchar(50) (NULL) 🔑?
+- **employee_id** : int (NULL) 🔑?
+- **employee_name** : nvarchar(50) (NULL)
+- **go_back** : int (NULL)
+- **labor_type** : int (NULL)
+- **message** : nvarchar(150) (NULL)
+- **message_id** : int (NOT NULL) 🔑?
+- **place** : nvarchar(50) (NULL)
+- **project_id** : nvarchar(50) (NULL) 🔑?
+- **time_elapsed** : float (NULL)
+- **time_from1** : datetime (NULL)
+- **time_from2** : datetime (NULL)
+- **time_to1** : datetime (NULL)
+- **time_to2** : datetime (NULL)
+- **transport_type** : int (NULL)
+
+---
+### Tabla: `tmp_workdoc`
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **descr** : nvarchar(50) (NULL)
+- **distance** : int (NULL)
+- **quantity** : int (NULL)
+- **seq_nr** : int (NULL) 🔑?
+- **type** : int (NULL)
+- **unit** : nvarchar(50) (NULL)
+- **workdoc_id** : nvarchar(50) (NULL) 🔑?
+
+---
+### Tabla: `tmp_workdoc_labor`
+- **account** : nvarchar(50) (NULL)
+- **contract_id** : int (NULL) 🔑?
+- **date** : datetime (NULL)
+- **distance** : real (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **fixtransport** : float (NULL)
+- **fl_invoice** : bit (NULL)
+- **fl_kminvoice** : bit (NULL)
+- **fl_printlonglabordescr** : bit (NULL)
+- **h_from_1** : datetime (NULL)
+- **h_from_2** : datetime (NULL)
+- **h_to_1** : datetime (NULL)
+- **h_to_2** : datetime (NULL)
+- **hours** : float (NULL)
+- **id_identity** : int (NULL)
+- **id_workdoc** : int (NULL)
+- **km_salesprice** : float (NULL)
+- **km_totalsalesprice** : float (NULL)
+- **labor_descr** : nvarchar(255) (NULL)
+- **labor_descr_long** : ntext(1073741823) (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **labor_type** : int (NULL)
+- **project_stage** : smallint (NULL)
+- **salesprice** : float (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **totalkm** : float (NULL)
+- **totalsalesprice** : float (NULL)
+- **transport_type** : smallint (NULL)
+- **validation_type** : int (NULL)
+- **vatcode** : int (NULL) 🔑?
+- **vattype** : int (NULL)
+- **workdoc_id** : nvarchar(50) (NOT NULL) 🔑?
+- **workstation_id** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `tmp_workdoc_material`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **comment** : nvarchar(50) (NULL)
+- **costprice** : float (NULL)
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **discount** : float (NULL)
+- **discount2** : float (NULL)
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **fl_loaded_for_use** : bit (NULL)
+- **fl_ordered** : bit (NULL)
+- **fl_reserved** : bit (NULL)
+- **id_identity** : int (NULL)
+- **id_workdoc** : int (NULL)
+- **invoice** : bit (NULL)
+- **location_id** : int (NULL) 🔑?
+- **order** : bit (NULL)
+- **order_id** : nvarchar(15) (NULL) 🔑?
+- **pickup** : bit (NULL)
+- **position** : nvarchar(20) (NULL)
+- **price_type** : smallint (NULL)
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **quantity_delivered** : float (NULL)
+- **quantity_to_order** : float (NULL)
+- **quantity_picked** : float (NULL)
+- **quantity_to_reserve** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction** : float (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **ref_supplier** : nvarchar(50) (NULL)
+- **refrigerant_bottle_id** : nvarchar(50) (NULL) 🔑?
+- **refrigerant_id** : int (NULL) 🔑?
+- **refrigerant_reason** : nvarchar(255) (NULL)
+- **refrigerant_fl_destruction** : bit (NULL)
+- **refrigerant_fl_firstfill** : bit (NULL)
+- **refrigerant_fl_leakage** : bit (NULL)
+- **refrigerant_fl_normal** : bit (NULL)
+- **refrigerant_fl_prefill** : bit (NULL)
+- **refrigerant_fl_refrigerant** : bit (NULL)
+- **refrigerant_fl_transfer** : bit (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **st_sales_price** : float (NULL)
+- **stock** : tinyint (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **workdoc_id** : nvarchar(50) (NOT NULL) 🔑?
+- **workstation_id** : int (NOT NULL) 🔑?
+
+---
+### Tabla: `transfer_line_history`
+- **fl_removed** : bit (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **transfer_from_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_from_identity** : int (NULL)
+- **transfer_from_type** : smallint (NULL)
+- **transfer_to_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_to_identity** : int (NULL)
+- **transfer_to_type** : smallint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `translate`
+- **descr_l1** : nvarchar(255) (NULL)
+- **descr_l2** : nvarchar(255) (NULL)
+- **descr_l3** : nvarchar(255) (NULL)
+- **descr_l4** : nvarchar(255) (NULL)
+- **tag** : nvarchar(10) (NOT NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `transportfees`
+- **cp_driver** : float (NULL)
+- **cp_driver_wop** : float (NULL)
+- **cp_own** : float (NULL)
+- **cp_passenger** : float (NULL)
+- **id** : int (NOT NULL) 🔑?
+- **km_from** : int (NULL)
+- **km_to** : int (NULL)
+- **sp_driver** : float (NULL)
+- **sp_driver_wop** : float (NULL)
+- **sp_own** : float (NULL)
+- **sp_passenger** : float (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `txt`
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **txt** : ntext(1073741823) (NULL)
+- **txt_id** : int (NOT NULL) 🔑?
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `vendor`
+- **call_id** : nvarchar(25) (NULL) 🔑?
+- **id** : int (NOT NULL) 🔑?
+- **lev_id** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **vendor** : nvarchar(50) (NULL)
+
+---
+### Tabla: `word_docs`
+- **doc_1** : nvarchar(255) (NULL)
+- **doc_10** : nvarchar(255) (NULL)
+- **doc_11** : nvarchar(255) (NULL)
+- **doc_12** : nvarchar(255) (NULL)
+- **doc_13** : nvarchar(255) (NULL)
+- **doc_14** : nvarchar(255) (NULL)
+- **doc_15** : nvarchar(255) (NULL)
+- **doc_16** : nvarchar(255) (NULL)
+- **doc_17** : nvarchar(255) (NULL)
+- **doc_18** : nvarchar(255) (NULL)
+- **doc_19** : nvarchar(255) (NULL)
+- **doc_2** : nvarchar(255) (NULL)
+- **doc_20** : nvarchar(255) (NULL)
+- **doc_3** : nvarchar(255) (NULL)
+- **doc_4** : nvarchar(255) (NULL)
+- **doc_5** : nvarchar(255) (NULL)
+- **doc_6** : nvarchar(255) (NULL)
+- **doc_7** : nvarchar(255) (NULL)
+- **doc_8** : nvarchar(255) (NULL)
+- **doc_9** : nvarchar(255) (NULL)
+- **docname1_descr_l1** : nvarchar(50) (NULL)
+- **docname1_descr_l2** : nvarchar(50) (NULL)
+- **docname1_descr_l3** : nvarchar(50) (NULL)
+- **docname1_descr_l4** : nvarchar(50) (NULL)
+- **docname10_descr_l1** : nvarchar(50) (NULL)
+- **docname10_descr_l2** : nvarchar(50) (NULL)
+- **docname10_descr_l3** : nvarchar(50) (NULL)
+- **docname10_descr_l4** : nvarchar(50) (NULL)
+- **docname11_descr_l1** : nvarchar(50) (NULL)
+- **docname11_descr_l2** : nvarchar(50) (NULL)
+- **docname11_descr_l3** : nvarchar(50) (NULL)
+- **docname11_descr_l4** : nvarchar(50) (NULL)
+- **docname12_descr_l1** : nvarchar(50) (NULL)
+- **docname12_descr_l2** : nvarchar(50) (NULL)
+- **docname12_descr_l3** : nvarchar(50) (NULL)
+- **docname12_descr_l4** : nvarchar(50) (NULL)
+- **docname13_descr_l1** : nvarchar(50) (NULL)
+- **docname13_descr_l2** : nvarchar(50) (NULL)
+- **docname13_descr_l3** : nvarchar(50) (NULL)
+- **docname13_descr_l4** : nvarchar(50) (NULL)
+- **docname14_descr_l1** : nvarchar(50) (NULL)
+- **docname14_descr_l2** : nvarchar(50) (NULL)
+- **docname14_descr_l3** : nvarchar(50) (NULL)
+- **docname14_descr_l4** : nvarchar(50) (NULL)
+- **docname15_descr_l1** : nvarchar(50) (NULL)
+- **docname15_descr_l2** : nvarchar(50) (NULL)
+- **docname15_descr_l3** : nvarchar(50) (NULL)
+- **docname15_descr_l4** : nvarchar(50) (NULL)
+- **docname16_descr_l1** : nvarchar(50) (NULL)
+- **docname16_descr_l2** : nvarchar(50) (NULL)
+- **docname16_descr_l3** : nvarchar(50) (NULL)
+- **docname16_descr_l4** : nvarchar(50) (NULL)
+- **docname17_descr_l1** : nvarchar(50) (NULL)
+- **docname17_descr_l2** : nvarchar(50) (NULL)
+- **docname17_descr_l3** : nvarchar(50) (NULL)
+- **docname17_descr_l4** : nvarchar(50) (NULL)
+- **docname18_descr_l1** : nvarchar(50) (NULL)
+- **docname18_descr_l2** : nvarchar(50) (NULL)
+- **docname18_descr_l3** : nvarchar(50) (NULL)
+- **docname18_descr_l4** : nvarchar(50) (NULL)
+- **docname19_descr_l1** : nvarchar(50) (NULL)
+- **docname19_descr_l2** : nvarchar(50) (NULL)
+- **docname19_descr_l3** : nvarchar(50) (NULL)
+- **docname19_descr_l4** : nvarchar(50) (NULL)
+- **docname2_descr_l1** : nvarchar(50) (NULL)
+- **docname2_descr_l2** : nvarchar(50) (NULL)
+- **docname2_descr_l3** : nvarchar(50) (NULL)
+- **docname2_descr_l4** : nvarchar(50) (NULL)
+- **docname20_descr_l1** : nvarchar(50) (NULL)
+- **docname20_descr_l2** : nvarchar(50) (NULL)
+- **docname20_descr_l3** : nvarchar(50) (NULL)
+- **docname20_descr_l4** : nvarchar(50) (NULL)
+- **docname3_descr_l1** : nvarchar(50) (NULL)
+- **docname3_descr_l2** : nvarchar(50) (NULL)
+- **docname3_descr_l3** : nvarchar(50) (NULL)
+- **docname3_descr_l4** : nvarchar(50) (NULL)
+- **docname4_descr_l1** : nvarchar(50) (NULL)
+- **docname4_descr_l2** : nvarchar(50) (NULL)
+- **docname4_descr_l3** : nvarchar(50) (NULL)
+- **docname4_descr_l4** : nvarchar(50) (NULL)
+- **docname5_descr_l1** : nvarchar(50) (NULL)
+- **docname5_descr_l2** : nvarchar(50) (NULL)
+- **docname5_descr_l3** : nvarchar(50) (NULL)
+- **docname5_descr_l4** : nvarchar(50) (NULL)
+- **docname6_descr_l1** : nvarchar(50) (NULL)
+- **docname6_descr_l2** : nvarchar(50) (NULL)
+- **docname6_descr_l3** : nvarchar(50) (NULL)
+- **docname6_descr_l4** : nvarchar(50) (NULL)
+- **docname7_descr_l1** : nvarchar(50) (NULL)
+- **docname7_descr_l2** : nvarchar(50) (NULL)
+- **docname7_descr_l3** : nvarchar(50) (NULL)
+- **docname7_descr_l4** : nvarchar(50) (NULL)
+- **docname8_descr_l1** : nvarchar(50) (NULL)
+- **docname8_descr_l2** : nvarchar(50) (NULL)
+- **docname8_descr_l3** : nvarchar(50) (NULL)
+- **docname8_descr_l4** : nvarchar(50) (NULL)
+- **docname9_descr_l1** : nvarchar(50) (NULL)
+- **docname9_descr_l2** : nvarchar(50) (NULL)
+- **docname9_descr_l3** : nvarchar(50) (NULL)
+- **docname9_descr_l4** : nvarchar(50) (NULL)
+- **document** : int (NOT NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `workdoc`
+- **addition_cp** : bit (NULL)
+- **addition_factor_equipment** : float (NULL)
+- **addition_factor_labor** : float (NULL)
+- **addition_factor_material** : float (NULL)
+- **addition_factor_subcontract** : float (NULL)
+- **addition_group** : bit (NULL)
+- **addition_sp** : bit (NULL)
+- **advance** : float (NULL)
+- **appointment_time** : datetime (NULL)
+- **appointment_time_to** : datetime (NULL)
+- **book_remark** : nvarchar(25) (NULL)
+- **city** : nvarchar(35) (NULL)
+- **contact_email** : nvarchar(200) (NULL)
+- **contact_mobile** : nvarchar(20) (NULL)
+- **contact_name** : nvarchar(35) (NULL)
+- **contact_seqnr** : smallint (NULL) 🔑?
+- **country** : smallint (NULL)
+- **currency** : smallint (NULL)
+- **customer_discount** : float (NULL)
+- **date** : datetime (NULL)
+- **date_end** : datetime (NULL)
+- **date_expiration** : datetime (NULL)
+- **date_followup** : datetime (NULL)
+- **delay** : smallint (NULL)
+- **distance** : float (NULL)
+- **dossier_id** : nvarchar(50) (NULL) 🔑?
+- **estimate_id** : nvarchar(50) (NULL) 🔑?
+- **fax** : nvarchar(20) (NULL)
+- **fix_transport** : float (NULL)
+- **fl_active** : bit (NULL)
+- **fl_backorder** : bit (NULL)
+- **fl_canceled** : bit (NULL)
+- **fl_continuation** : bit (NULL)
+- **fl_Demand** : bit (NULL)
+- **fl_docin** : bit (NULL)
+- **fl_finished** : bit (NULL)
+- **fl_inorder** : bit (NULL)
+- **fl_invoice** : bit (NULL)
+- **fl_locked** : bit (NULL)
+- **fl_needinvoiced** : bit (NULL)
+- **fl_nosync** : bit (NULL)
+- **fl_paid** : bit (NULL) 🔑?
+- **fl_planned** : bit (NULL)
+- **fl_prepaid** : bit (NULL) 🔑?
+- **fl_printed** : bit (NULL)
+- **fl_sent** : bit (NULL)
+- **fl_show_payment_discount** : bit (NULL)
+- **fl_statistics** : bit (NULL)
+- **fl_stockbooked** : bit (NULL)
+- **fl_tobeexecuted** : bit (NULL)
+- **fl_transfered** : bit (NULL)
+- **id** : nvarchar(15) (NOT NULL) 🔑?
+- **id_identity** : int (NULL)
+- **internal_remark** : int (NULL)
+- **invoice** : bit (NULL)
+- **invoice_hours** : bit (NULL)
+- **invoice_materials** : bit (NULL)
+- **kminvoice** : bit (NULL)
+- **language** : tinyint (NULL)
+- **location_id** : int (NULL) 🔑?
+- **maintenance_id** : nvarchar(50) (NULL) 🔑?
+- **mobile** : nvarchar(20) (NULL)
+- **name** : nvarchar(100) (NULL)
+- **ordernumber** : int (NULL)
+- **param1** : nvarchar(255) (NULL)
+- **param2** : nvarchar(255) (NULL)
+- **param3** : nvarchar(255) (NULL)
+- **payment_discount** : float (NULL)
+- **payment_term** : nvarchar(35) (NULL)
+- **price_type** : smallint (NULL)
+- **project_address** : int (NULL)
+- **project_address_seq_nr** : int (NULL) 🔑?
+- **project_id** : nvarchar(15) (NULL) 🔑?
+- **project_name** : nvarchar(100) (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(255) (NULL)
+- **ref_cust** : nvarchar(255) (NULL)
+- **relation_id** : int (NULL) 🔑?
+- **relation_ref** : nvarchar(50) (NULL)
+- **remark** : int (NULL)
+- **resource_1** : nvarchar(25) (NULL)
+- **resource_2** : nvarchar(25) (NULL)
+- **route** : int (NULL)
+- **scanned_workdoc_loc** : varchar(255) (NULL)
+- **seqnr** : int (NULL) 🔑?
+- **signature** : image(2147483647) (NULL)
+- **signature_name** : nvarchar(255) (NULL)
+- **status** : int (NULL)
+- **street** : nvarchar(255) (NULL)
+- **tel** : nvarchar(20) (NULL)
+- **title** : nvarchar(20) (NULL)
+- **title_contact** : nvarchar(20) (NULL)
+- **total_paid** : float (NULL) 🔑?
+- **total_price** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **ts_saved** : datetime (NULL)
+- **ts_sync** : datetime (NULL)
+- **url** : nvarchar(255) (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validationtype** : int (NULL)
+- **vat** : nvarchar(20) (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **workdescr** : int (NULL)
+- **zipcode** : nvarchar(15) (NULL) 🔑?
+
+---
+### Tabla: `workdoc_docs`
+- **doc_1** : nvarchar(255) (NULL)
+- **doc_2** : nvarchar(255) (NULL)
+- **doc_3** : nvarchar(255) (NULL)
+- **doc_4** : nvarchar(255) (NULL)
+- **doc_5** : nvarchar(255) (NULL)
+- **doc_6** : nvarchar(255) (NULL)
+- **docname1_descr_l1** : nvarchar(50) (NULL)
+- **docname1_descr_l2** : nvarchar(50) (NULL)
+- **docname1_descr_l3** : nvarchar(50) (NULL)
+- **docname1_descr_l4** : nvarchar(50) (NULL)
+- **docname2_descr_l1** : nvarchar(50) (NULL)
+- **docname2_descr_l2** : nvarchar(50) (NULL)
+- **docname2_descr_l3** : nvarchar(50) (NULL)
+- **docname2_descr_l4** : nvarchar(50) (NULL)
+- **docname3_descr_l1** : nvarchar(50) (NULL)
+- **docname3_descr_l2** : nvarchar(50) (NULL)
+- **docname3_descr_l3** : nvarchar(50) (NULL)
+- **docname3_descr_l4** : nvarchar(50) (NULL)
+- **docname4_descr_l1** : nvarchar(50) (NULL)
+- **docname4_descr_l2** : nvarchar(50) (NULL)
+- **docname4_descr_l3** : nvarchar(50) (NULL)
+- **docname4_descr_l4** : nvarchar(50) (NULL)
+- **docname5_descr_l1** : nvarchar(50) (NULL)
+- **docname5_descr_l2** : nvarchar(50) (NULL)
+- **docname5_descr_l3** : nvarchar(50) (NULL)
+- **docname5_descr_l4** : nvarchar(50) (NULL)
+- **docname6_descr_l1** : nvarchar(50) (NULL)
+- **docname6_descr_l2** : nvarchar(50) (NULL)
+- **docname6_descr_l3** : nvarchar(50) (NULL)
+- **docname6_descr_l4** : nvarchar(50) (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `workdoc_employee`
+- **employee_id** : int (NOT NULL) 🔑?
+- **id_identity** : int (NULL)
+- **id_workdoc** : int (NULL)
+- **seq_nr** : int (NULL) 🔑?
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **workdoc_id** : nvarchar(15) (NOT NULL) 🔑?
+
+---
+### Tabla: `workdoc_labor`
+- **account** : nvarchar(50) (NULL)
+- **contract_id** : int (NULL) 🔑?
+- **date** : datetime (NULL)
+- **distance** : real (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **fixtransport** : float (NULL)
+- **fl_invoice** : bit (NULL)
+- **fl_kminvoice** : bit (NULL)
+- **fl_printlonglabordescr** : bit (NULL)
+- **h_from_1** : datetime (NULL)
+- **h_from_2** : datetime (NULL)
+- **h_to_1** : datetime (NULL)
+- **h_to_2** : datetime (NULL)
+- **hours** : float (NULL)
+- **id_identity** : int (NULL)
+- **id_workdoc** : int (NULL)
+- **km_salesprice** : float (NULL)
+- **km_totalsalesprice** : float (NULL)
+- **labor_descr** : nvarchar(255) (NULL)
+- **labor_descr_long** : nvarchar (NULL)
+- **labor_id** : int (NULL) 🔑?
+- **labor_type** : int (NULL)
+- **project_stage** : smallint (NULL)
+- **salesprice** : float (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **totalkm** : float (NULL)
+- **totalsalesprice** : float (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **transport_type** : smallint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : int (NULL)
+- **vatcode** : int (NULL) 🔑?
+- **vattype** : int (NULL)
+- **workdoc_id** : nvarchar(50) (NOT NULL) 🔑?
+
+---
+### Tabla: `workdoc_material`
+- **account** : nvarchar(50) (NULL)
+- **art_id** : int (NULL) 🔑?
+- **art_type** : smallint (NULL)
+- **auvibel** : float (NULL)
+- **backorder** : float (NULL)
+- **bebat** : float (NULL)
+- **call_id** : nvarchar(50) (NULL) 🔑?
+- **catalog_price** : float (NULL)
+- **comment** : nvarchar(50) (NULL)
+- **costprice** : float (NULL)
+- **delivery_date** : datetime (NULL)
+- **descr** : nvarchar(255) (NULL)
+- **discount** : float (NULL)
+- **discount2** : float (NULL)
+- **employee_id** : int (NULL) 🔑?
+- **estimate_id** : nvarchar(15) (NULL) 🔑?
+- **estimate_seq_nr** : smallint (NULL) 🔑?
+- **fl_loaded_for_use** : bit (NULL)
+- **fl_ordered** : bit (NULL)
+- **fl_reserved** : bit (NULL)
+- **id_identity** : int (NULL)
+- **id_workdoc** : int (NULL)
+- **invoice** : bit (NULL)
+- **location_id** : int (NULL) 🔑?
+- **order** : bit (NULL)
+- **order_id** : nvarchar(15) (NULL) 🔑?
+- **pickup** : bit (NULL)
+- **position** : nvarchar(20) (NULL)
+- **price_type** : smallint (NULL)
+- **project_stage** : smallint (NULL)
+- **quantity** : float (NULL)
+- **quantity_delivered** : float (NULL)
+- **quantity_to_order** : float (NULL)
+- **quantity_picked** : float (NULL)
+- **quantity_to_reserve** : float (NULL)
+- **recupel** : nvarchar(10) (NULL)
+- **recupel_excl** : float (NULL)
+- **reduction** : float (NULL)
+- **reduction_group** : int (NULL)
+- **ref** : nvarchar(25) (NULL)
+- **ref_supplier** : nvarchar(50) (NULL)
+- **refrigerant_bottle_id** : nvarchar(50) (NULL) 🔑?
+- **refrigerant_id** : int (NULL) 🔑?
+- **refrigerant_reason** : nvarchar(255) (NULL)
+- **refrigerant_fl_destruction** : bit (NULL)
+- **refrigerant_fl_firstfill** : bit (NULL)
+- **refrigerant_fl_leakage** : bit (NULL)
+- **refrigerant_fl_normal** : bit (NULL)
+- **refrigerant_fl_prefill** : bit (NULL)
+- **refrigerant_fl_refrigerant** : bit (NULL)
+- **refrigerant_fl_transfer** : bit (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **st_sales_price** : float (NULL)
+- **stock** : tinyint (NULL)
+- **transfer_id** : nvarchar(15) (NULL) 🔑?
+- **transfer_type** : tinyint (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **unit** : nvarchar(10) (NULL)
+- **unit_price** : float (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **validation_type** : smallint (NULL)
+- **vat_code** : smallint (NULL) 🔑?
+- **vat_type** : smallint (NULL)
+- **workdoc_id** : nvarchar(50) (NOT NULL) 🔑?
+
+---
+### Tabla: `workdoc_paths`
+- **id** : int (NOT NULL) 🔑?
+- **name** : nvarchar(255) (NULL)
+- **parent** : int (NULL)
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+
+---
+### Tabla: `workdoc_pictures`
+- **filename** : nvarchar(500) (NULL)
+- **picture** : varbinary (NULL)
+- **seq_nr** : int (NOT NULL) 🔑?
+- **ts_sync** : datetime (NULL)
+- **workdoc_id** : nvarchar(50) (NOT NULL) 🔑?
+
+---
+### Tabla: `workstation`
+- **ts_crea** : datetime (NULL)
+- **ts_modif** : datetime (NULL)
+- **ts_timestamp** : datetime (NULL)
+- **user_crea** : nvarchar(15) (NULL)
+- **user_modif** : nvarchar(15) (NULL)
+- **workstation_id** : smallint (NOT NULL) 🔑?
+
+---
+### Tabla: `WürthGroepen`
+- **PRODUCTBEREIK** : varchar(255) (NULL)
+- **call_id** : varchar(255) (NULL) 🔑?
+
+---

@@ -2,8 +2,8 @@
 
 namespace App\Livewire;
 
-use App\Models\Employee;
-use App\Models\Cafca\Labor;
+use Modules\Cafca\Models\Employee;
+use Modules\Cafca\Models\Labor;
 use Livewire\Component;
 use Carbon\Carbon;
 

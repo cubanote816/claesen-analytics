@@ -1,0 +1,11 @@
+{
+    "name": "Mailing",
+    "alias": "mailing",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Mailing\\Providers\\MailingServiceProvider"
+    ],
+    "files": []
+}

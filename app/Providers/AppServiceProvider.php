@@ -13,8 +13,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Contracts\MarketingCampaignInterface::class, function ($app) {
             $driver = config('app.mailing_driver', env('MAILING_DRIVER', 'simulation'));
             return $driver === 'saas'
-                ? new \App\Services\Mailers\SaaSMailer()
-                : new \App\Services\Mailers\SimulationMailer();
+                ? new \Modules\Mailing\Services\SaaSMailer()
+                : new \Modules\Mailing\Services\SimulationMailer();
         });
     }
     public function boot(): void
@@ -25,8 +25,6 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\Mail::alwaysTo($addresses);
         }
 
-        // Register Observers
-        \Modules\Website\Models\Project::observe(\App\Observers\ProjectObserver::class);
 
         Gate::before(function ($user, $ability) {
             return $user->hasRole('super_admin') ? true : null;

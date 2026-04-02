@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Cafca\EmployeeSyncService;
+use Modules\Cafca\Services\Cafca\EmployeeSyncService;
 use Illuminate\Console\Command;
 
 class SyncEmployeesCommand extends Command

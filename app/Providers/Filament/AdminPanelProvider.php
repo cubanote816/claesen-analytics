@@ -47,13 +47,43 @@ class AdminPanelProvider extends PanelProvider
                 \LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin::make()
                     ->defaultLocales(['nl', 'en'])
             )
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
-            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\Filament\Clusters')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
+            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+            /** @phpstan-ignore-next-line */
+            ->tap(function (Panel $panel) {
+                foreach (\Nwidart\Modules\Facades\Module::allEnabled() as $module) {
+                    $name = $module->getName();
+                    
+                    // Resources
+                    if (is_dir(module_path($name, 'Filament/Resources'))) {
+                        $panel->discoverResources(
+                            in: module_path($name, 'Filament/Resources'),
+                            for: "Modules\\{$name}\\Filament\\Resources"
+                        );
+                    }
+                    
+                    // Pages
+                    if (is_dir(module_path($name, 'Filament/Pages'))) {
+                        $panel->discoverPages(
+                            in: module_path($name, 'Filament/Pages'),
+                            for: "Modules\\{$name}\\Filament\\Pages"
+                        );
+                    }
+                    
+                    // Widgets
+                    if (is_dir(module_path($name, 'Filament/Widgets'))) {
+                        $panel->discoverWidgets(
+                            in: module_path($name, 'Filament/Widgets'),
+                            for: "Modules\\{$name}\\Filament\\Widgets"
+                        );
+                    }
+                }
+            })
             ->pages([
                 Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
                 FilamentInfoWidget::class,

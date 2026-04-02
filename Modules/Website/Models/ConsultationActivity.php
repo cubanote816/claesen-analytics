@@ -3,7 +3,7 @@
 namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
+use Modules\Core\Models\User;
 
 class ConsultationActivity extends Model
 {

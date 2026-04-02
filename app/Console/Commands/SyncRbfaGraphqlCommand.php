@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
-use App\Models\Prospect;
-use App\Models\ProspectLocation;
+use Modules\Prospects\Models\Prospect;
+use Modules\Prospects\Models\ProspectLocation;
 
 class SyncRbfaGraphqlCommand extends Command
 {

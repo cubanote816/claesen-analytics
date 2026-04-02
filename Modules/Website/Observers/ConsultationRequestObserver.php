@@ -55,7 +55,7 @@ class ConsultationRequestObserver
 
         // Track Assignment Change
         if (isset($dirty['assigned_to'])) {
-            $oldUser = \App\Models\User::find($consultationRequest->getOriginal('assigned_to'))?->name ?? 'Nobody';
+            $oldUser = \Modules\Core\Models\User::find($consultationRequest->getOriginal('assigned_to'))?->name ?? 'Nobody';
             $newUser = $consultationRequest->assignedUser?->name ?? 'Nobody';
 
             $this->service->logActivity(
