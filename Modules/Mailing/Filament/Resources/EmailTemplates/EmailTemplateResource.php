@@ -20,6 +20,13 @@ class EmailTemplateResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Groei & Acquisitie';
+    }
+
+    protected static ?int $navigationSort = 2;
+    
     protected static ?string $recordTitleAttribute = 'name';
 
     protected static ?string $slug = 'email-templates';

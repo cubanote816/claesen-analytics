@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'navigation_group' => 'Gebruikersbeheer',
+    'navigation_group' => 'Systeem & Beheer',
     'model_label' => 'Permissie',
     'plural_model_label' => 'Permissies',
     'fields' => [

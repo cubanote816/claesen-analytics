@@ -20,6 +20,13 @@ class ProjectInsightResource extends Resource
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-sparkles';
 
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Analyse & Intelligentie';
+    }
+
+    protected static ?int $navigationSort = 2;
+
     public static function getNavigationLabel(): string
     {
         return __('project_insights/resource.navigation_label');

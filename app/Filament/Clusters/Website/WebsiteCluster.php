@@ -15,7 +15,7 @@ class WebsiteCluster extends Cluster
         return __('website.cluster_label');
     }
 
-    protected static UnitEnum | string | null $navigationGroup = 'Content Management';
+    protected static UnitEnum | string | null $navigationGroup = 'Inhoud & Website';
 
     protected static ?\Filament\Pages\Enums\SubNavigationPosition $subNavigationPosition = \Filament\Pages\Enums\SubNavigationPosition::Top;
 }

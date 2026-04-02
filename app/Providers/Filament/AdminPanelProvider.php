@@ -7,6 +7,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
+use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -104,6 +105,23 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->spa()
+            ->navigationGroups([
+                NavigationGroup::make()
+                     ->label('Analyse & Intelligentie')
+                     ->icon('heroicon-o-sparkles'),
+                NavigationGroup::make()
+                    ->label('Groei & Acquisitie')
+                    ->icon('heroicon-o-chart-bar-square'),
+                NavigationGroup::make()
+                    ->label('Operatie & Personeel')
+                    ->icon('heroicon-o-cpu-chip'),
+                NavigationGroup::make()
+                    ->label('Inhoud & Website')
+                    ->icon('heroicon-o-globe-alt'),
+                NavigationGroup::make()
+                    ->label('Systeem & Beheer')
+                    ->icon('heroicon-o-cog-6-tooth'),
+            ])
         ;
     }
 }

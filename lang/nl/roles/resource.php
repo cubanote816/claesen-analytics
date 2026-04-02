@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'navigation_group' => 'Gebruikersbeheer',
+    'navigation_group' => 'Systeem & Beheer',
     'model_label' => 'Rol',
     'plural_model_label' => 'Rollen',
     'fields' => [

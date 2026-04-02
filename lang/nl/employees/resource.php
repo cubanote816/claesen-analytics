@@ -4,7 +4,7 @@ return [
     'label' => 'Medewerker',
     'plural_label' => 'Medewerkers',
     'navigation_label' => 'Medewerkers',
-    'navigation_group' => 'Personeel',
+    'navigation_group' => 'Operatie & Personeel',
     'placeholders' => [
         'no_function' => 'Geen functie opgegeven',
         'total_hours' => '--- u',
