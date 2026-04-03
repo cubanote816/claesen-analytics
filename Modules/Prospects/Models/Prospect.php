@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Prospect extends Model
 {
     use HasFactory;
+ 
+    protected $table = 'prospects_prospects';
+
 
     protected $fillable = [
         'name',

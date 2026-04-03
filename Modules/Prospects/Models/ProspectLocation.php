@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProspectLocation extends Model
 {
     use HasFactory;
+ 
+    protected $table = 'prospects_locations';
+
 
     protected $fillable = [
         'prospect_id',
