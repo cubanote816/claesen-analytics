@@ -9,9 +9,19 @@ php artisan down --refresh=15 --secret="admin-update"
 
 # 2. COPIA DE SEGURIDAD (Preventivo antes de migrar)
 echo "📦 Realizando backup de seguridad..."
-# Aseguramos que la carpeta de destino existe
 mkdir -p storage/app/backups
-mysqldump -u bert -p'0706MyPWD!' claesen > storage/app/backups/db_pre_deploy_$(date +%F_%H-%M).sql
+
+# Extraer credenciales del .env para el backup
+DB_DATABASE=$(grep '^DB_DATABASE=' .env | cut -d '=' -f2- | sed 's/^"//;s/"$//')
+DB_USERNAME=$(grep '^DB_USERNAME=' .env | cut -d '=' -f2- | sed 's/^"//;s/"$//')
+DB_PASSWORD=$(grep '^DB_PASSWORD=' .env | cut -d '=' -f2- | sed 's/^"//;s/"$//')
+
+if [ -z "$DB_PASSWORD" ]; then
+    mysqldump -u "$DB_USERNAME" "$DB_DATABASE" > storage/app/backups/db_pre_deploy_$(date +%F_%H-%M).sql || echo "⚠️ Advertencia: No se pudo realizar el backup, pero continuando..."
+else
+    mysqldump -u "$DB_USERNAME" -p"$DB_PASSWORD" "$DB_DATABASE" > storage/app/backups/db_pre_deploy_$(date +%F_%H-%M).sql || echo "⚠️ Advertencia: No se pudo realizar el backup (posible error de permisos), pero continuando..."
+fi
+
 
 # 3. ACTUALIZAR CÓDIGO
 echo "📥 Descargando cambios desde GitHub..."
