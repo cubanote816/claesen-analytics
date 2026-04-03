@@ -15,7 +15,7 @@ class SyncRbfaGraphqlCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'cafca:sync-rbfa-graphql';
+    protected $signature = 'cafca:sync-rbfa-graphql {--province=all : Sync a specific province or all}';
 
     /**
      * The console command description.
@@ -29,28 +29,18 @@ class SyncRbfaGraphqlCommand extends Command
      */
     public function handle()
     {
-        $leagueIds = [
-            'CHP_123324',
-            'CHP_123331',
-            'CHP_123332',
-            'CHP_124002',
-            'CHP_124003',
-            'CHP_124004',
-            'CHP_125639',
-            'CHP_125744',
-            'CHP_125443',
-            'CHP_125444',
-            'CHP_123322',
-            'CHP_123327',
-            'CHP_123328',
-            'CHP_124185',
-            'CHP_123996',
-            'CHP_123997',
-            'CHP_125627',
-            'CHP_125628',
-            'CHP_125629',
-            'CHP_125630'
-        ];
+        $provinceOption = $this->option('province');
+        $provincesConfig = config('rbfa.provinces');
+
+        if ($provinceOption !== 'all') {
+            if (!isset($provincesConfig[$provinceOption])) {
+                $this->error("Province '{$provinceOption}' not found in configuration.");
+                return 1;
+            }
+            $activeProvinces = [$provinceOption => $provincesConfig[$provinceOption]];
+        } else {
+            $activeProvinces = $provincesConfig;
+        }
 
         $apiUrl = 'https://datalake-prod2018.rbfa.be/graphql';
         $headers = [
@@ -63,9 +53,10 @@ class SyncRbfaGraphqlCommand extends Command
         $this->info("Starting Discovery Phase...");
         $uniqueClubs = [];
 
-        foreach ($leagueIds as $seriesId) {
-            $this->info("Fetching data for series: {$seriesId}");
-            sleep(2); // CRITICAL: respect API rate limits
+        foreach ($activeProvinces as $provinceName => $leagueIds) {
+            foreach ($leagueIds as $seriesId) {
+                $this->info("Fetching data for series: {$seriesId} ({$provinceName})");
+                sleep(2); // CRITICAL: respect API rate limits
 
             $payload = [
                 "operationName" => "GetSeriesRankings",
@@ -95,13 +86,8 @@ class SyncRbfaGraphqlCommand extends Command
                 $channel = $seriesRankings['channel'] ?? null;
                 $rankings = $seriesRankings['rankings'] ?? [];
 
-                // Attempt to derive region from leagueName
-                $region = null;
-                if (stripos($leagueName, 'Antw') !== false) {
-                    $region = 'Antwerpen';
-                } elseif (stripos($leagueName, 'Limb') !== false) {
-                    $region = 'Limburg';
-                }
+                // 1. Set region directly from the province name in the configuration
+                $region = $provinceName;
 
                 foreach ($rankings as $ranking) {
                     $teams = $ranking['teams'] ?? [];
@@ -114,8 +100,6 @@ class SyncRbfaGraphqlCommand extends Command
                                 'clubId' => $clubId,
                                 'logo' => $logo,
                                 'region' => $region,
-                                'league' => $leagueName,
-                                'league_id' => $seriesId,
                                 'channel' => $channel,
                             ];
                         }
@@ -123,6 +107,7 @@ class SyncRbfaGraphqlCommand extends Command
                 }
             } else {
                 $this->error("Failed to fetch series {$seriesId}");
+            }
             }
         }
 
@@ -168,8 +153,6 @@ class SyncRbfaGraphqlCommand extends Command
                     $logoUrl = $clubData['logo'] ?? null;
 
                     $region = $clubData['region'] ?? null;
-                    $league = $clubData['league'] ?? null;
-                    $leagueId = $clubData['league_id'] ?? null;
                     $channel = $clubData['channel'] ?? null;
 
                     // 1. UpdateOrCreate Prospect
@@ -178,8 +161,6 @@ class SyncRbfaGraphqlCommand extends Command
                         [
                             'type' => 'football_club',
                             'region' => $region,
-                            'league' => $league,
-                            'league_id' => $leagueId,
                             'channel' => $channel,
                             'logo_url' => $logoUrl,
                             'website' => $website,
@@ -267,5 +248,25 @@ class SyncRbfaGraphqlCommand extends Command
         }
 
         $this->info("Sync completed successfully.");
+    }
+
+    /**
+     * Detect Belgian province from league name.
+     */
+    private function detectRegion(?string $leagueName): ?string
+    {
+        if (!$leagueName) return null;
+
+        $mapping = config('rbfa.regions', []);
+
+        foreach ($mapping as $province => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (stripos($leagueName, $keyword) !== false) {
+                    return $province;
+                }
+            }
+        }
+
+        return null;
     }
 }

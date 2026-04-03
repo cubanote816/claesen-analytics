@@ -14,8 +14,6 @@ class Prospect extends Model
         'name',
         'type',
         'region',
-        'league',
-        'league_id',
         'channel',
         'logo_url',
         'website',

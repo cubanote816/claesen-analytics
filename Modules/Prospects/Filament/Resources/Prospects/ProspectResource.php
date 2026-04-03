@@ -34,6 +34,8 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Actions\Action;
+use Filament\Tables\Enums\FiltersLayout;
 use Illuminate\Database\Eloquent\Builder;
 
 class ProspectResource extends Resource
@@ -63,15 +65,11 @@ class ProspectResource extends Resource
                             ->required(),
                         Select::make('region')
                             ->label('Regio')
-                            ->options([
-                                'Limburg' => 'Limburg',
-                                'Antwerpen' => 'Antwerpen',
-                            ]),
-                        Select::make('league')
-                            ->label('Liga')
-                            ->options(Prospect::query()->whereNotNull('league')->distinct()->pluck('league', 'league')->toArray()),
-                        TextInput::make('league_id')
-                            ->label('Liga ID'),
+                            ->options(array_combine(
+                                array_keys(config('rbfa.regions', [])),
+                                array_keys(config('rbfa.regions', []))
+                            ))
+                            ->required(),
                         TextInput::make('channel')
                             ->label('Kanaal'),
                         TextInput::make('website')
@@ -131,10 +129,6 @@ class ProspectResource extends Resource
                                 ->url(fn($record) => $record->website, true),
                             TextEntry::make('region')
                                 ->label('Regio'),
-                            TextEntry::make('league')
-                                ->label('Liga'),
-                            TextEntry::make('league_id')
-                                ->label('Liga ID'),
                             TextEntry::make('channel')
                                 ->label('Kanaal'),
                             TextEntry::make('vat_number')
@@ -190,15 +184,6 @@ class ProspectResource extends Resource
                     ->label('Regio')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('league')
-                    ->label('Liga')
-                    ->sortable()
-                    ->searchable(),
-                TextColumn::make('league_id')
-                    ->label('Liga ID')
-                    ->sortable()
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('channel')
                     ->label('Kanaal')
                     ->sortable()
@@ -223,44 +208,23 @@ class ProspectResource extends Resource
                         true: fn(Builder $query) => $query->whereHas('locations', fn($q) => $q->whereNotNull('email')->where('email', '!=', '')),
                         false: fn(Builder $query) => $query->whereDoesntHave('locations', fn($q) => $q->whereNotNull('email')->where('email', '!=', '')),
                         blank: fn(Builder $query) => $query,
-                    ),
-                Filter::make('region_league_filter')
+                    )
+                    ->native(false),
+                Filter::make('region_filter')
                     ->form([
                         Select::make('region')
                             ->label('Regio')
-                            ->options([
-                                'Limburg' => 'Limburg',
-                                'Antwerpen' => 'Antwerpen',
-                            ])
+                            ->options(array_combine(
+                                array_keys(config('rbfa.regions', [])),
+                                array_keys(config('rbfa.regions', []))
+                            ))
                             ->live(),
-                        Select::make('league')
-                            ->label('Liga')
-                            ->options(function (Get $get) {
-                                $region = $get('region');
-                                if ($region) {
-                                    return Prospect::query()
-                                        ->where('region', $region)
-                                        ->whereNotNull('league')
-                                        ->distinct()
-                                        ->pluck('league', 'league')
-                                        ->toArray();
-                                }
-                                return Prospect::query()
-                                    ->whereNotNull('league')
-                                    ->distinct()
-                                    ->pluck('league', 'league')
-                                    ->toArray();
-                            }),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when(
                                 $data['region'],
                                 fn(Builder $query, $region): Builder => $query->where('region', $region),
-                            )
-                            ->when(
-                                $data['league'],
-                                fn(Builder $query, $league): Builder => $query->where('league', $league),
                             );
                     })
                     ->indicateUsing(function (array $data): array {
@@ -268,12 +232,43 @@ class ProspectResource extends Resource
                         if ($data['region'] ?? null) {
                             $indicators['region'] = 'Regio: ' . $data['region'];
                         }
-                        if ($data['league'] ?? null) {
-                            $indicators['league'] = 'Liga: ' . $data['league'];
+                        return $indicators;
+                    }),
+                Filter::make('type_filter')
+                    ->form([
+                        Select::make('type')
+                            ->label('Type Sport')
+                            ->options([
+                                'football_club' => 'Voetbal',
+                            ])
+                            ->live(),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['type'],
+                                fn(Builder $query, $type): Builder => $query->where('type', $type),
+                            );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['type'] ?? null) {
+                            $label = match ($data['type']) {
+                                'football_club' => 'Voetbal',
+                                default => $data['type'],
+                            };
+                            $indicators['type'] = 'Sport: ' . $label;
                         }
                         return $indicators;
                     }),
             ])
+            ->filtersLayout(FiltersLayout::Dropdown)
+            ->filtersFormColumns(1)
+            ->filtersApplyAction(
+                fn (Action $action) => $action
+                    ->label('Apply filters')
+                    ->close(),
+            )
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
