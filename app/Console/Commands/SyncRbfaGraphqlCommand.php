@@ -72,7 +72,10 @@ class SyncRbfaGraphqlCommand extends Command
                 ]
             ];
 
-            $response = Http::withHeaders($headers)->post($apiUrl, $payload);
+            $response = Http::withHeaders($headers)
+                ->timeout(60)
+                ->retry(3, 5000)
+                ->post($apiUrl, $payload);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -134,7 +137,10 @@ class SyncRbfaGraphqlCommand extends Command
                 ]
             ];
 
-            $response = Http::withHeaders($headers)->post($apiUrl, $payload);
+            $response = Http::withHeaders($headers)
+                ->timeout(60)
+                ->retry(3, 5000)
+                ->post($apiUrl, $payload);
 
             if ($response->successful()) {
                 $data = $response->json();

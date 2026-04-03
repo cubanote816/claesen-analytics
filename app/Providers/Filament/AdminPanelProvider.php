@@ -56,7 +56,7 @@ class AdminPanelProvider extends PanelProvider
             ->tap(function (Panel $panel) {
                 foreach (\Nwidart\Modules\Facades\Module::allEnabled() as $module) {
                     $name = $module->getName();
-                    
+
                     // Resources
                     if (is_dir(module_path($name, 'Filament/Resources'))) {
                         $panel->discoverResources(
@@ -64,7 +64,7 @@ class AdminPanelProvider extends PanelProvider
                             for: "Modules\\{$name}\\Filament\\Resources"
                         );
                     }
-                    
+
                     // Pages
                     if (is_dir(module_path($name, 'Filament/Pages'))) {
                         $panel->discoverPages(
@@ -72,7 +72,7 @@ class AdminPanelProvider extends PanelProvider
                             for: "Modules\\{$name}\\Filament\\Pages"
                         );
                     }
-                    
+
                     // Widgets
                     if (is_dir(module_path($name, 'Filament/Widgets'))) {
                         $panel->discoverWidgets(
@@ -106,18 +106,21 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->spa()
             ->navigationGroups([
-                NavigationGroup::make()
-                     ->label('Analyse & Intelligentie')
-                     ->icon('heroicon-o-sparkles'),
+                // NavigationGroup::make()
+                //      ->label('Analyse & Intelligentie')
+                //      ->icon('heroicon-o-sparkles'),
                 NavigationGroup::make()
                     ->label('Groei & Acquisitie')
                     ->icon('heroicon-o-chart-bar-square'),
-                NavigationGroup::make()
-                    ->label('Operatie & Personeel')
-                    ->icon('heroicon-o-cpu-chip'),
+                // NavigationGroup::make()
+                //     ->label('Operatie & Personeel')
+                //     ->icon('heroicon-o-cpu-chip'),
                 NavigationGroup::make()
                     ->label('Inhoud & Website')
                     ->icon('heroicon-o-globe-alt'),
+                NavigationGroup::make()
+                    ->label('User Management')
+                    ->icon('heroicon-o-users'),
                 NavigationGroup::make()
                     ->label('Systeem & Beheer')
                     ->icon('heroicon-o-cog-6-tooth'),
