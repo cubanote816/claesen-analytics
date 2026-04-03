@@ -43,7 +43,10 @@ class ProspectsServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            \Modules\Prospects\Console\Commands\SyncVALClubsCommand::class,
+            \Modules\Prospects\Console\Commands\SyncLBFAClubsCommand::class,
+        ]);
     }
 
     /**

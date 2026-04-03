@@ -63,13 +63,26 @@ class ProspectResource extends Resource
                         TextInput::make('name')
                             ->label('Naam van de Club')
                             ->required(),
-                        Select::make('region')
+                        Select::make('region_id')
                             ->label('Regio')
-                            ->options(array_combine(
-                                array_keys(config('rbfa.regions', [])),
-                                array_keys(config('rbfa.regions', []))
-                            ))
+                            ->relationship('region', 'name')
                             ->required(),
+                        Select::make('federation')
+                            ->label('Federatie')
+                            ->options([
+                                'RBFA' => 'Voetbal (RBFA)',
+                                'VAL' => 'Atletiek (VAL)',
+                                'LBFA' => 'Atletiek (LBFA)',
+                            ]),
+                        Select::make('language')
+                            ->label('Taal')
+                            ->options([
+                                'nl' => 'Nederlands',
+                                'fr' => 'Frans',
+                                'en' => 'Engels',
+                            ]),
+                        TextInput::make('contact_person')
+                            ->label('Secretaris / Contactpersoon'),
                         TextInput::make('channel')
                             ->label('Kanaal'),
                         TextInput::make('website')
@@ -127,8 +140,27 @@ class ProspectResource extends Resource
                             TextEntry::make('website')
                                 ->label('Website')
                                 ->url(fn($record) => $record->website, true),
-                            TextEntry::make('region')
+                            TextEntry::make('region.name')
                                 ->label('Regio'),
+                            TextEntry::make('federation')
+                                ->label('Federatie')
+                                ->badge()
+                                ->color(fn(string $state): string => match ($state) {
+                                    'RBFA' => 'success',
+                                    'VAL' => 'warning',
+                                    'LBFA' => 'info',
+                                    default => 'gray',
+                                }),
+                            TextEntry::make('language')
+                                ->label('Taal')
+                                ->formatStateUsing(fn(string $state): string => match ($state) {
+                                    'nl' => 'Nederlands',
+                                    'fr' => 'Frans',
+                                    'en' => 'Engels',
+                                    default => $state,
+                                }),
+                            TextEntry::make('contact_person')
+                                ->label('Secretaris'),
                             TextEntry::make('channel')
                                 ->label('Kanaal'),
                             TextEntry::make('vat_number')
@@ -152,10 +184,12 @@ class ProspectResource extends Resource
                                             'stadium' => 'Stadion',
                                             'venue_name' => 'Locatie Naam',
                                             default => $state,
-                                        }),
+                                        })
+                                        ->columnSpanFull(),
                                     TextEntry::make('email')
                                         ->label('E-mail')
-                                        ->icon('heroicon-m-envelope'),
+                                        ->icon('heroicon-m-envelope')
+                                        ->columnSpan(2),
                                     TextEntry::make('phone')
                                         ->label('Telefoonnummer')
                                         ->icon('heroicon-m-phone'),
@@ -180,10 +214,23 @@ class ProspectResource extends Resource
                 TextColumn::make('name')
                     ->label('Naam')
                     ->searchable(),
-                TextColumn::make('region')
+                TextColumn::make('region.name')
                     ->label('Regio')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('federation')
+                    ->label('Federatie')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'RBFA' => 'success',
+                        'VAL' => 'warning',
+                        'LBFA' => 'info',
+                        default => 'gray',
+                    })
+                    ->sortable(),
+                TextColumn::make('language')
+                    ->label('Taal')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('channel')
                     ->label('Kanaal')
                     ->sortable()
@@ -212,25 +259,23 @@ class ProspectResource extends Resource
                     ->native(false),
                 Filter::make('region_filter')
                     ->form([
-                        Select::make('region')
+                        Select::make('region_id')
                             ->label('Regio')
-                            ->options(array_combine(
-                                array_keys(config('rbfa.regions', [])),
-                                array_keys(config('rbfa.regions', []))
-                            ))
+                            ->options(\Modules\Prospects\Models\Region::pluck('name', 'id'))
                             ->live(),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
                             ->when(
-                                $data['region'],
-                                fn(Builder $query, $region): Builder => $query->where('region', $region),
+                                $data['region_id'],
+                                fn(Builder $query, $regionId): Builder => $query->where('region_id', $regionId),
                             );
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if ($data['region'] ?? null) {
-                            $indicators['region'] = 'Regio: ' . $data['region'];
+                        if ($data['region_id'] ?? null) {
+                            $regionName = \Modules\Prospects\Models\Region::find($data['region_id'])?->name;
+                            $indicators['region'] = 'Regio: ' . $regionName;
                         }
                         return $indicators;
                     }),
@@ -240,6 +285,7 @@ class ProspectResource extends Resource
                             ->label('Type Sport')
                             ->options([
                                 'football_club' => 'Voetbal',
+                                'athletics_club' => 'Atletiek',
                             ])
                             ->live(),
                     ])
@@ -255,9 +301,35 @@ class ProspectResource extends Resource
                         if ($data['type'] ?? null) {
                             $label = match ($data['type']) {
                                 'football_club' => 'Voetbal',
+                                'athletics_club' => 'Atletiek',
                                 default => $data['type'],
                             };
                             $indicators['type'] = 'Sport: ' . $label;
+                        }
+                        return $indicators;
+                    }),
+                Filter::make('federation_filter')
+                    ->form([
+                        Select::make('federation')
+                            ->label('Federatie')
+                            ->options([
+                                'RBFA' => 'RBFA (Voetbal)',
+                                'VAL' => 'VAL (Atletiek NL)',
+                                'LBFA' => 'LBFA (Atletiek FR)',
+                            ])
+                            ->live(),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['federation'],
+                                fn(Builder $query, $fed): Builder => $query->where('federation', $fed),
+                            );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['federation'] ?? null) {
+                            $indicators['federation'] = 'Federatie: ' . $data['federation'];
                         }
                         return $indicators;
                     }),
@@ -265,7 +337,7 @@ class ProspectResource extends Resource
             ->filtersLayout(FiltersLayout::Dropdown)
             ->filtersFormColumns(1)
             ->filtersApplyAction(
-                fn (Action $action) => $action
+                fn(Action $action) => $action
                     ->label('Apply filters')
                     ->close(),
             )

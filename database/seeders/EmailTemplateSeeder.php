@@ -26,7 +26,7 @@ class EmailTemplateSeeder extends Seeder
                     <p>Wij komen graag langs om de velden te bekijken en een berekening te maken van wat Claesen Verlichting voor jullie kan betekenen.</p>
                     <p><br></p>
                     <p>Met sportieve groeten,</p>
-                    <p><strong>Het Claesen Team</strong><br><a href="https://www.claesen.be" target="_blank">www.claesen.be</a></p>
+                    <p><strong>Het Claesen Team</strong><br><a href="https://claesen-verlichting.be/" target="_blank">claesen-verlichting.be</a></p>
                 ',
             ],
             [
@@ -40,7 +40,7 @@ class EmailTemplateSeeder extends Seeder
                     <p>Mogen we dit in een kort (telefonisch) gesprek aan jullie voorleggen?</p>
                     <p><br></p>
                     <p>Met sportieve groeten, en succes met de rest van het seizoen,</p>
-                    <p><strong>Het Energie-team van Claesen Verlichting</strong><br><a href="https://www.claesen.be" target="_blank">www.claesen.be</a></p>
+                    <p><strong>Het Energie-team van Claesen Verlichting</strong><br><a href="https://claesen-verlichting.be/" target="_blank">claesen-verlichting.be</a></p>
                 ',
             ],
             [
@@ -53,13 +53,13 @@ class EmailTemplateSeeder extends Seeder
                     <p>Wij staan klaar met snel advies en een transparante offerte.</p>
                     <p><br></p>
                     <p>Sportieve groeten,</p>
-                    <p><strong>Claesen Verlichting</strong><br><a href="https://www.claesen.be" target="_blank">www.claesen.be</a></p>
+                    <p><strong>Claesen Verlichting</strong><br><a href="https://claesen-verlichting.be/" target="_blank">claesen-verlichting.be</a></p>
                 ',
             ]
         ];
 
         foreach ($templates as $template) {
-            EmailTemplate::firstOrCreate(
+            EmailTemplate::updateOrCreate(
                 ['name' => $template['name']],
                 $template
             );
