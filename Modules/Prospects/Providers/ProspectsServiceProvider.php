@@ -46,6 +46,9 @@ class ProspectsServiceProvider extends ServiceProvider
         $this->commands([
             \Modules\Prospects\Console\Commands\SyncVALClubsCommand::class,
             \Modules\Prospects\Console\Commands\SyncLBFAClubsCommand::class,
+            \Modules\Prospects\Console\Commands\SyncAFTClubsCommand::class,
+            \Modules\Prospects\Console\Commands\SyncTPVClubsCommand::class,
+            \Modules\Prospects\Console\Commands\SyncHockeyClubsCommand::class,
         ]);
     }
 
@@ -54,10 +57,16 @@ class ProspectsServiceProvider extends ServiceProvider
      */
     protected function registerCommandSchedules(): void
     {
-        // $this->app->booted(function () {
-        //     $schedule = $this->app->make(Schedule::class);
-        //     $schedule->command('inspire')->hourly();
-        // });
+         $this->app->booted(function () {
+             $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
+             
+             // Production scheduled jobs for syncing sports clubs
+             $schedule->command('cafca:sync-val-clubs')->monthlyOn(1, '01:00');
+             $schedule->command('cafca:sync-lbfa-clubs')->monthlyOn(1, '01:30');
+             $schedule->command('cafca:sync-aft-clubs')->monthlyOn(1, '02:00');
+             $schedule->command('cafca:sync-tpv-clubs')->monthlyOn(1, '02:30');
+             $schedule->command('cafca:sync-hockey-clubs')->monthlyOn(1, '03:00');
+         });
     }
 
     /**

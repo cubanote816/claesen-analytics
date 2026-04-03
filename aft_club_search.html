@@ -1,0 +1,3247 @@
+
+<!DOCTYPE html>
+<html translate="no">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSK1K0G893"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-PSK1K0G893');
+    </script>
+    <!-- Google Tag Manager -->
+    <script>
+        (function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-5Z58FK7');</script>
+    <!-- End Google Tag Manager -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <link rel="shortcut icon" type="image/x-icon" href="/MyAFT/Content/favicon.png">
+    <link rel="icon" type="image/x-icon" href="/MyAFT/Content/favicon.png">
+    <title></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link href="/MyAFT/Content/css?v=HvtMnEfdAjPxke0J2FhQoeeOkIhMipuBToxCEtKr2VY1" rel="stylesheet"/>
+
+        <link rel="stylesheet" type="text/css" href="/CMSPages/GetResource.ashx?stylesheetname=CssTemplate2024" />
+    <link href="https://kendo.cdn.telerik.com/2017.2.504/styles/kendo.common.min.css" type="text/css" rel="stylesheet">
+    <link href="https://kendo.cdn.telerik.com/2017.2.504/styles/kendo.default.min.css" type="text/css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
+    <script>
+        sessionStorage.clear();
+        var imagePath = "/MyAFT/Content/Images/";
+        var isDisableLoading = false;
+        function activeHoverForContextMenu(selector) {
+            if (selector !== null && selector !== undefined) {
+                selector.mouseenter(function (e) {
+                    isDisableLoading = true;
+                    var $this = $(this);
+                    var loadurl = $(this).attr("data-url");
+                    if (typeof loadurl !== typeof undefined && loadurl !== false) {
+                        $.get(loadurl, function (html) {
+                            $("#context-menu").html(html);
+                            $this.contextmenu('show', e);
+                            isDisableLoading = false;
+                        });
+                    }
+                });
+            }
+        }
+    </script>
+    <script src="/MyAFT/Scripts/scripts?v=dstfD_POMUB83yLnVKnIfUW8plT6Hm_kR_2YUI_t4AQ1"></script>
+
+    <script src="https://kendo.cdn.telerik.com/2017.2.504/js/kendo.all.min.js" type="text/javascript"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.504/js/kendo.aspnetmvc.min.js" type="text/javascript"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.504/js/kendo.timezones.min.js" type="text/javascript"></script>
+    <script src="https://kendo.cdn.telerik.com/2017.2.504/js/cultures/kendo.culture.fr-FR.min.js" type="text/javascript"></script>
+    <script src="https://kit.fontawesome.com/78af9d0769.js" crossorigin="anonymous"></script>
+    <!-- Google tag (gtag.js) -->
+    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=UA-1332364-5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-1332364-5');
+    </script> -->
+</head>
+<body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+        <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5Z58FK7"
+                height="0" width="0" style="display:none;visibility:hidden"></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+
+    
+<header>
+    <div class="wrap">
+        <div id="logo__container" class="flex">
+            <a id="logo" href="/" title="AFT-WEBS01">Tennis</a>
+            <div class="site_switcher">
+                <a href="https://tennis.tppwb.be" class="tennis"><img src="/Aftnet/media/Media/logo-tennis-white.svg" alt="Tennis"></a>
+                <a href="https://padel.tppwb.be" class="padel" target="_blank"><img src="/Aftnet/media/Media/logo-padel-white.svg" alt="Padel"></a>
+                <a href="https://pickleball.tppwb.be" class="pickleball" target="_blank"><img src="/Aftnet/media/Media/logo-pickleball-white.svg" alt="Pickleball"></a>
+            </div>
+        </div>
+        <div class="responsive-wrapper">
+            <span class="trigger plus" data-tab="plus"><i class="fas fa-ellipsis-v"></i></span>
+            <a class="contact" href="/A-PROPOS/Contact.aspx"><i class="far fa-envelope"></i></a>
+            <a class="suggestion" href="/MyAFT/Home/Suggestion"><i class="far fa-lightbulb"></i></a>
+            <div class="links">
+                <a href="/A-PROPOS/Contact.aspx">Contact</a>
+                <div class="drop-nav">
+                    <a href="/MyAFT/Home/Suggestion">Suggestion</a>
+                </div>
+                    <div class="drop-nav">
+                        <a href="/A-PROPOS/Structure-generale.aspx">A propos</a>
+                        <ul id="menuElem">
+                            <li><a href="/A-PROPOS/Branding">Branding</a></li>
+                            <li><a href="/A-PROPOS/Structure-generale">Structure générale</a></li>
+                            <li><a href="/A-PROPOS/Regions">Régions</a></li>
+                            <li><a href="/A-PROPOS/FRBT">FRBT</a></li>
+                            <li><a href="/MENU-SECONDAIRE/A-propos/Padel">Padel</a></li>
+                            <li><a href="/A-PROPOS/Reglements">Règlements</a></li>
+                            <li><a href="/A-PROPOS/Documents">Documents</a></li>
+                            <li><a href="/MENU-SECONDAIRE/A-propos/FAQ">FAQ</a></li>
+                            <li><a href="/MENU-SECONDAIRE/A-propos/Liens-utiles">Liens utiles</a></li>
+                            <li><a href="/MENU-SECONDAIRE/A-propos/Partenaires">Nos partenaires</a></li>
+                        </ul>
+                    </div>
+
+                    <form class="searchBox" action="https://tennis.tppwb.be/Recherche/Liste-de-resultats" method="GET">
+                        <input type="hidden" name="searchmode" value="anyword" />
+                        <input type="search" name="searchtext" placeholder="Saisissez votre recherche">
+                        <input class="btn" type="submit">
+                    </form>
+                </div>
+            <a class="tournois btn" href="/MyAFT/Competitions/Tournaments">Inscriptions tournois</a>
+            <div class="socials">
+                <span class="user-trigger"><i class="fas fa-user"></i></span>
+                <div id="responsiveBtn">Responsive menu</div>
+                <div id="loginInfo">
+                        <a class="aft" href="/MyAFT">Mon Tennis</a>
+
+                </div>
+                <a class="social tw" href="https://twitter.com/aftofficiel" target="_blank"><i class="fab fa-twitter"></i></a>
+                <a class="social fb" href="https://www.facebook.com/aft.tennis/" target="_blank"><i class="fab fa-facebook-f"></i></a>
+            </div>
+        </div>
+
+    </div>
+    
+
+
+<nav><ul id='menuElem'><li><a href='/ACCUEIL'>ACCUEIL</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:100%;'><div class='group'><strong>Actualité</strong><ul><li><a href='/ACCUEIL/Actualite/News'>News</a></li></ul></div></div></div><li><a href='/MyAFT/Players/Index'>JOUEURS</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:50%;'><div class='group'><strong>Affiliés</strong><ul><li><a href='/JOUEURS/Transferts'>Transferts</a></li><li><a href='/MyAFT/Players/Search'>Recherche Affiliés</a></li><li><a href='/JOUEURS/Affiliation'>Affiliation</a></li></ul></div></div><div class='col' style='width:50%;'><div class='group'><strong>Joueurs</strong><ul><li><a href='/JOUEURS/Assurances'>Assurances</a></li><li><a href='/JOUEURS/Documents'>Documents</a></li><li><a href='/JOUEURS/tennisenchaise'>Tennis en chaise</a></li></ul></div></div></div><li><a href='/MyAFT/Clubs/Index'>CLUBS</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:33%;'><div class='group'><strong>Clubs</strong><ul><li><a href='/labellisation'>Labellisation</a></li><li><a href='/GirlsTennisDays'>Girls Tennis Days</a></li><li><a href='/monclubaft'>Mon Club Tennis Wallonie-Bruxelles</a></li><li><a href='/MyAFT/Clubs/Search'>Recherche de Clubs</a></li><li><a href='/CLUBS/Documents'>Documents</a></li><li><a href='/CLUBS/Clubstennisenchaise'>Clubs tennis en chaise</a></li><li><a href='/CLUBS/Fetes-du-tennis-en-club'>Fêtes du tennis en club</a></li></ul></div></div><div class='col' style='width:33%;'><div class='group'><strong><a href='/Tennis-quizz-le-match'>TENNIS QUIZZ - Le match</a></strong></div></div><div class='col' style='width:33%;'></div></div><li><a href='/MyAFT/Competitions/Index'>COMPETITIONS</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:25%;'><div class='group'><strong>Tournois</strong><ul><li><a href='/MyAFT/Competitions/Tournaments'>Tournois TWB</a></li><li><a href='/calendriertournois'>Calendrier des tournois 2026</a></li><li><a href='/belgianjuniorcircuit'>Belgian Junior Circuit</a></li><li><a href='/challenge-12-metres'>Challenge 12 mètres</a></li><li><a href='/COMPETITIONS/LottoBelgiancircuit'>Lotto Belgian Circuit</a></li><li><a href='/seniormasters'>Senior Masters</a></li><li><a href='/Kidnoizejuniormasters'>Ethias Kid Noize Junior Masters</a></li><li><a href='/Ethias-Kid-Noize-Junior-Tour'>Ethias Kid Noize Junior Tour</a></li><li><a href='/circuitseniors'>Les tournois internationaux seniors en belgique</a></li><li><a href='/BelgianWheelchairTennisTour'>Belgian Wheelchair Tennis Tour</a></li><li><a href='/top100aft'>Top 100</a></li></ul></div></div><div class='col' style='width:25%;'><div class='group'><strong>Championnats</strong><ul><li><a href='/Championnats-de-Belgique-veterans'>Championnats de Belgique vétérans</a></li><li><a href='/Championnats-de-Belgique-de-tennis-en-chaise'>Championnats de Belgique de tennis en chaise</a></li><li><a href='/ORGANISATIONS/Evenements-AFT/Championnats-Tennis-Wallonie-Bruxelles-jeunes'>Championnats Tennis Wallonie-Bruxelles jeunes</a></li><li><a href='/Championnats-de-Belgique-jeunes'>Championnats de Belgique jeunes</a></li><li><a href='/championnatsdEuropeindividuels'>Championnats d'Europe individuels</a></li></ul></div></div><div class='col' style='width:25%;'><div class='group'><strong>Compétitions par équipes</strong><ul><li><a href='/daviscup'>Coupe Davis</a></li><li><a href='/billiejeankingcup'>Billie Jean King Cup</a></li><li><a href='/MyAFT/Competitions/Interclubs'>Interclubs Ethias</a></li><li><a href='/wintercups'>Winter Cups</a></li><li><a href='/summercups'>Summer Cups</a></li><li><a href='/European-Youth-Olympics-Festival'>European Youth Olympics Festival</a></li><li><a href='/nationschallenge'>Tennis Europe Nations Challenge</a></li></ul></div></div><div class='col' style='width:25%;'><div class='group'><strong>Règlements des compétitions et des classements 2026</strong><ul><li><a href='/reforme/contacts'>Règlements et contacts</a></li><li><a href='/cuts-des-classements'>Cuts des classements</a></li></ul></div></div></div><li><a href='/TOP-TENNIS'>TOP TENNIS</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:33%;'></div><div class='col' style='width:33%;'><div class='group'><strong>La compétition</strong><ul><li><a href='/TOP-TENNIS/La-competition-nationale'>La compétition nationale</a><ul><li><a href='/TOP-TENNIS/La-competition/La-competition-nationale/Categories-en-AFT'>Catégories en AFT</a></li></ul></li><li><a href='/TOP-TENNIS/La-competition-internationale-jeunes'>La compétition internationale jeunes</a><ul><li><a href='/TOP-TENNIS/La-competition-internationale/Categories-et-grades'>Catégories et grades</a></li><li><a href='/TOP-TENNIS/La-competition-internationale/Classements'>Classements</a></li><li><a href='/TOP-TENNIS/La-competition-internationale/Tournois-en-fonction-de-l-age'>Tournois en fonction de l'âge</a></li><li><a href='/TOP-TENNIS/La-competition-internationale/Inscriptions,-retraits'>Inscriptions, retraits</a></li><li><a href='/TOP-TENNIS/La-competition-internationale/Acceptance-list'>Acceptance list</a></li><li><a href='/TOP-TENNIS/La-competition-internationale/Designation-du-coach-officiel'>Désignation du coach national (ITF et TE) et National Window (TE)</a></li><li><a href='/TOP-TENNIS/La-competition-internationale/Reglementation'>Réglements</a></li></ul></li></ul></div></div><div class='col' style='width:33%;'></div></div><li><a href='/OFFICIELS'>OFFICIELS</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:50%;'><div class='group'><strong>Officiels</strong><ul><li><a href='/arbitrage'>Informations</a></li><li><a href='/OFFICIELS/Documents'>Documents</a></li><li><a href='/OFFICIELS/Formations-juge-arbitrage'>Formations juge-arbitrage</a></li><li><a href='/MyAFT/Officials/Search'>Recherche des officiels</a></li></ul></div></div><div class='col' style='width:50%;'><div class='group'><strong>Formations</strong><ul><li><a href='/MyAFT/Trainings/Index'>Nos formations</a></li></ul></div></div></div><li><a href='/ORGANISATIONS'>ORGANISATIONS</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:25%;'><div class='group'><strong><a href='/ORGANISATIONS/Evenements/Evenements-AFT'>Evénements AFT</a></strong><ul><li><a href='/youngtalentscup'>Young Talents Cup</a><ul><li><a href='/Les-loups-du-Brabant'>Les loups du Brabant</a></li><li><a href='/Les-lions-du-Hainaut'>Les lions du Hainaut</a></li><li><a href='/Les-raptors-de-Liege'>Les raptors de Liège</a></li><li><a href='/Les-sangliers-de-Namur-Luxembourg'> Les sangliers de Namur-Luxembourg</a></li></ul></li><li><a href='/tipl'>Tournoi International de la Province de Liège</a></li><li><a href='/Doubles-Dames-tenniswalloniebruxelles'>Doubles Dames Tennis Wallonie-Bruxelles</a></li><li><a href='/journeeopen'>Journée Open</a></li></ul></div></div><div class='col' style='width:25%;'><div class='group'><strong><a href='/ORGANISATIONS/Evenements/Evenements-soutenus-par-l’AFT'>Evénements soutenus par l’AFT</a></strong><ul><li><a href='/itfbaulet'>Ladies Open Baulet avec BNP Paribas Fortis</a></li><li><a href='/argayoncup'>Argayon Cup</a></li><li><a href='/UccleTrophy'>Uccle Trophy</a></li><li><a href='/Leo-Cup'>Leo Cup</a></li><li><a href='/itfbrussels'>$25,000 Messieurs du R. Leopold Club</a></li><li><a href='/J30bruxelles'>J30 Bruxelles</a></li><li><a href='/justineheninjuniorcup'>Justine Henin Junior Cup</a></li><li><a href='/itfeupen'>$15,000 Messieurs du KTC Eupen</a></li><li><a href='/itfjuniorarlon'>ITF Junior Arlon</a></li><li><a href='/Astrid-Bowl'>Astrid Bowl Charleroi</a></li></ul></div></div><div class='col' style='width:25%;'><div class='group'><strong><a href='/ORGANISATIONS/Evenements/Autres-evenements'>Autres événements</a></strong><ul><li><a href='/europeanopen'>European Open</a></li></ul></div></div><div class='col' style='width:25%;'><div class='group'><strong>Animations</strong><ul><li><a href='/tennisalecole'>Tennis à l'école</a></li></ul></div><div class='group'><strong>Divers</strong><ul><li><a href='/tennis-quizz-le-match-joueurs'>TENNIS QUIZZ - Le match</a></li><li><a href='/play-tennis-padel'>Play Tennis & Padel</a></li></ul></div></div></div><li><a href='/FORMATIONS'>FORMATIONS</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:33%;'><div class='group'><strong><a href='/FORMATIONS/Animateur'>Animateur</a></strong><ul><li><a href='/FORMATIONS/Animateur/Inscription'>Inscription</a></li><li><a href='/FORMATIONS/Animateur/Journee-d-application'>Journée d'application</a></li><li><a href='/FORMATIONS/Animateur/Cours-a-telecharger-animateur'>Cours à télécharger animateur</a></li></ul></div><div class='group'><strong><a href='/FORMATIONS/Initiateur'>Initiateur</a></strong><ul><li><a href='/FORMATIONS/Initiateur/Inscription'>Inscription</a></li><li><a href='/FORMATIONS/Dropdown/col1/Initiateur/Stage'>Stage</a></li><li><a href='/FORMATIONS/Animateur/Cours-a-telecharger-initiateur'>Cours à télécharger initiateur</a></li><li><a href='/FORMATIONS/Dropdown/col1/Initiateur/Cours-generaux-MS-Initiateur'>Cours généraux MS Initiateur</a></li><li><a href='/FORMATIONS/Initiateur/Premiers-soins-en-milieu-sportif'>Premiers soins en milieu sportif</a></li></ul></div><div class='group'><strong><a href='/FORMATIONS/Educateur'>Educateur</a></strong><ul><li><a href='/FORMATIONS/Educateur/Inscription'>Inscription</a></li><li><a href='/FORMATIONS/Dropdown/col1/Educateur/Stage-1'>Stage</a></li><li><a href='/FORMATIONS/Animateur/Cours-a-telecharger-educateur'>Cours à télécharger éducateur</a></li><li><a href='/FORMATIONS/Dropdown/col1/Educateur/Cours-generaux-MS-Educateur'>Cours généraux MS Educateur</a></li></ul></div><div class='group'><strong><a href='/FORMATIONS/Entraineur'>Entraîneur</a></strong><ul><li><a href='/FORMATION/Entraineur/Cours-generaux-MS-Entraineur'>Cours généraux MS Entraîneur</a></li><li><a href='/FORMATION/Entraineur/Inscription'>Inscription</a></li></ul></div></div><div class='col' style='width:33%;'><div class='group'><strong><a href='/FORMATIONS/Directeur-Ecole-de-Tennis'>Directeur Ecole de Tennis</a></strong></div><div class='group'><strong><a href='/FORMATIONS/Maitre-de-stage'>Maître de stage</a></strong><ul><li><a href='/FORMATIONS/Maitres-de-stage/Niveau-Aspirant'>Niveau Aspirant</a></li><li><a href='/FORMATIONS/Maitres-de-stage/Niveau-certifie'>Niveau Certifié</a></li><li><a href='/FORMATIONS/Formation-de-Maitres-de-stage/Inscription'>Inscription</a></li></ul></div><div class='group'><strong><a href='/FORMATIONS/Formateur-AFT'>Formateur TWB</a></strong><ul><li><a href='/FORMATIONS/Formateur-AFT/Niveau-Aspirant'>Niveau Aspirant</a></li><li><a href='/FORMATIONS/Formateur-AFT/Niveau-Certifie'>Niveau Certifié</a></li><li><a href='/FORMATIONS/Formation-de-Formateurs/Inscription'>Inscription</a></li></ul></div><div class='group'><strong><a href='/formations/Estimation-du-potentiel'>Estimation du potentiel</a></strong><ul><li><a href='/formations/Estimation-du-potentiel/formation-en-ligne'>Formation en ligne</a></li><li><a href='/formations/Estimation-du-potentiel/livre-a-telecharger'>Livre à télécharger</a></li></ul></div></div><div class='col' style='width:33%;'><div class='group'><strong><a href='/FORMATIONS/Formation-continue'>Formation continue</a></strong><ul><li><a href='/FORMATIONS/Entraineur/Nos-formations'>Nos formations</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Inscription'>Inscription</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Systeme-de-credits'>Système de crédits</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Moniteurs-etoiles'>Moniteurs étoilés</a></li><li><a href=''>Opérateur de formation reconnu par TWB</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Diaporamas-des-modules-passes'>Diaporamas des modules passés</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Modules-Formation-Externes'>Modules de formation externes à TWB</a></li></ul></div><div class='group'><strong><a href='/FORMATIONS/VAE-VAF-Equivalence-Dispense(s)'>VAE/VAF/Equivalence/Dispense(s)</a></strong><ul><li><a href='/FORMATIONS/VAE-VAF-Equivalence-Dispense(s)/Dossier-de-demande-d’equivalences'>Dossier de demande d’équivalences</a></li></ul></div></div></div><li><a href='/REGIONS'>RÉGIONS</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:100%;'><div class='group'><strong>Les régions AFT</strong><ul><li><a style='cursor: pointer;' onclick="this.href='#';window.open('http://www.aft-brabant.be');">Tennis Wallonie-Bruxelles Brabant</a></li><li><a style='cursor: pointer;' onclick="this.href='#';window.open('http://www.aft-hainaut.be');">Tennis Wallonie-Bruxelles Hainaut</a></li><li><a style='cursor: pointer;' onclick="this.href='#';window.open('http://www.aftliege.net');">Tennis Wallonie-Bruxelles Liège</a></li><li><a style='cursor: pointer;' onclick="this.href='#';window.open('http://www.aft-rnl.be');">Tennis Wallonie-Bruxelles Namur-Luxembourg</a></li></ul></div></div></div><li><a href='/FORMATIONS-(1)'>FORMATIONS DEV</a><span class='responsive-trigger'>+</span><div class='dropdown'><div class='col' style='width:33%;'><div class='group'><strong>Les formations</strong><ul><li><a href='/FORMATIONS/Animateur-1'>MS Animateur</a><ul><li><a href='/FORMATIONS/Animateur/Schema-de-base-1'>Schéma de base</a></li><li><a href='/FORMATIONS/Animateur/Organisation-1'>Organisation 2020</a></li><li><a href='/FORMATIONS/Animateur/Inscription-1'>Inscription</a></li><li><a href='/FORMATIONS/Animateur/Journee-d-application-1'>Stage</a></li><li><a href='/FORMATIONS/Animateur/Cours-a-telecharger-1'>Cours à télécharger</a></li></ul></li><li><a href='/FORMATIONS/Initiateur-1'>MS Initiateur</a><ul><li><a href='/FORMATIONS/Initiateur/Schema-de-base-1'>Schéma de base</a></li><li><a href='/FORMATIONS/Initiateur/Organisation-1'>Organisation 2020</a></li><li><a href='/FORMATIONS/Initiateur/Inscription-1'>Inscription</a></li><li><a href='/FORMATIONS/Initiateur/Premiers-soins-en-milieu-sportif-1'>Formation Premiers soins en milieu sportif</a></li></ul></li><li><a href='/FORMATIONS/Educateur-1'>MS Educateur</a><ul><li><a href='/FORMATIONS/Educateur/Schema-de-base-1'>Schéma de base</a></li><li><a href='/FORMATIONS/Educateur/Organisation-1'>Organisation 2020</a></li><li><a href='/FORMATIONS/Educateur/Inscription-1'>Inscription</a></li></ul></li><li><a href='/FORMATIONS/Entraineur-1'>MS Entraîneur</a></li><li><a href='/FORMATIONS/Cours-generaux-Adeps-1'>Cours généraux Adeps</a></li><li><a href='/FORMATIONS/Stage-preparatoire-Initiateur-1'>Stage préparatoire Initiateur</a></li><li><a href=''>Test - TOP</a></li><li><a href=''>Test - Player</a></li><li><a href=''>Test - CLUB</a></li><li><a href=''>Test Play Tennis</a></li></ul></div></div><div class='col' style='width:33%;'><div class='group'><strong>Les « expertises »</strong><ul><li><a href='/FORMATIONS/Initiateur-Expert-Pedagogique-1'>Initiateur Expert Pédagogique</a><ul><li><a href='/FORMATIONS/Initiateur-Expert-Pedagogique/Schema-de-base-1'>Schéma de base</a></li></ul></li><li><a href='/FORMATIONS/Initiateur-Expert-Handisport-1'>Initiateur Expert Handisport</a></li><li><a href='/FORMATIONS/Directeur-Ecole-de-Tennis-1'>Directeur Ecole de Tennis</a><ul><li><a href='/FORMATIONS/Directeur-Ecole-de-Tennis/Schema-de-base-1'>Schéma de base</a></li><li><a href='/FORMATIONS/Directeur-Ecole-de-Tennis/Organisation-1'>Organisation 2020</a></li><li><a href='/FORMATIONS/Directeur-Ecole-de-Tennis/Inscription-1'>Inscription</a></li></ul></li></ul></div></div><div class='col' style='width:33%;'><div class='group'><strong><a href='/FORMATIONS/Formation-continue-1'>Formation continue</a></strong><ul><li><a href='/FORMATIONS/Entraineur/Formation-continue/Systeme-de-credits-1'>Système de crédits</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Moniteurs-etoiles-1'>Moniteurs étoilés</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Prochains-modules-de-formation-AFT-1'>Prochains modules de formation AFT</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Inscription-1'>Inscription</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Modules-de-formation-AFT-passes-1'>Modules de formation AFT passés</a></li><li><a href='/FORMATIONS/Entraineur/Formation-continue/Diaporamas-des-modules-passes-1'>Diaporamas des modules passés</a></li></ul></div></div></div></ul></nav>;
+</header>
+    <div id="content">
+        <div class="wrap" id="contentBody">
+            <div id="blockAd-left" style="padding-top: 120px">
+                
+
+
+        <a href="https://tennis.tppwb.be/MyAFT/Clubs/Search" target="_blank">
+            <img src="https://tennis.tppwb.be/getattachment/10c1da7b-ca62-4b1e-b87f-b273a4338d78/Annonce-Promo-Tennis-skyscraper.jpg">
+        </a>
+
+            </div>
+            <div id="center-column">
+                <div id="blockAd-top" style="padding-bottom: 10px">
+                    
+
+
+
+                </div>
+                <div>
+                    
+
+<div class="panel panel-default col-left">
+    <div class="panel-heading">
+        <h4 class="panel-title"><a data-toggle="collapse" href="#collapse_search_livesearch"><span class="glyphicon glyphicon-menu-down"></span> Recherche rapide</a></h4>
+    </div>
+    <div id="collapse_search_livesearch" class="panel-collapse collapse in">
+        <div class="panel-body">
+
+            <input class="form-control ui-autocomplete-input" id="txtClubs" name="txtClubs" placeholder="Matricule club ou nom" type="text" value="" autocomplete="off">
+
+
+        </div>
+    </div>
+</div>
+
+<div class="panel panel-default col-left">
+    <div class="panel-heading">
+        <h4 class="panel-title">
+            <a data-toggle="collapse" href="#collapse_search_form_club1">
+                <span class="glyphicon glyphicon-menu-down"></span>
+                Recherche par critères
+            </a>
+        </h4>
+    </div>
+    <div id="collapse_search_form_club1" class="panel-collapse collapse">
+        <div class="panel-body profile-panel">
+
+            <ul class="form-fields inline">
+                <li>
+                    <label>Région</label>
+                    <div class="checkbox-row">
+                        <div class="checkbox-box">
+                            <label><input type="checkbox" name="Regions" checked="checked" value="1">Brabant</label>
+                        </div>
+                        <div class="checkbox-box">
+                            <label><input type="checkbox" name="Regions" checked="checked" value="3">Hainaut</label>
+                        </div>
+                        <div class="checkbox-box">
+                            <label><input type="checkbox" name="Regions" checked="checked" value="4">Liège</label>
+                        </div>
+                        <div class="checkbox-box">
+                            <label><input type="checkbox" name="Regions" checked="checked" value="6">Namur-Luxembourg</label>
+                        </div>
+                    </div>
+                </li>
+                <li>
+                    <label>Matricule</label>
+                    <input id="ClubIdFrom" name="ClubIdFrom" type="text" value="" /><span class="sep"></span><input id="ClubIdTo" name="ClubIdTo" type="text" value="" />
+                </li>
+                <li>
+                    <label>Nom</label>
+                    <input id="NameFrom" name="NameFrom" type="text" value="" /><span class="sep"></span><input id="NameTo" name="NameTo" type="text" value="" />
+                </li>
+                <li>
+                    <label>Code postal</label>
+                    <select class="form-control" id="ZipCodeFrom" name="ZipCodeFrom"><option value=""></option>
+<option value="1000">1000</option>
+<option value="1020">1020</option>
+<option value="1030">1030</option>
+<option value="1050">1050</option>
+<option value="1070">1070</option>
+<option value="1080">1080</option>
+<option value="1082">1082</option>
+<option value="1083">1083</option>
+<option value="1130">1130</option>
+<option value="1140">1140</option>
+<option value="1150">1150</option>
+<option value="1160">1160</option>
+<option value="1170">1170</option>
+<option value="1180">1180</option>
+<option value="1190">1190</option>
+<option value="1200">1200</option>
+<option value="1300">1300</option>
+<option value="1310">1310</option>
+<option value="1315">1315</option>
+<option value="1320">1320</option>
+<option value="1330">1330</option>
+<option value="1331">1331</option>
+<option value="1342">1342</option>
+<option value="1348">1348</option>
+<option value="1357">1357</option>
+<option value="1360">1360</option>
+<option value="1370">1370</option>
+<option value="1380">1380</option>
+<option value="1390">1390</option>
+<option value="1400">1400</option>
+<option value="1410">1410</option>
+<option value="1420">1420</option>
+<option value="1430">1430</option>
+<option value="1440">1440</option>
+<option value="1457">1457</option>
+<option value="1474">1474</option>
+<option value="1480">1480</option>
+<option value="1490">1490</option>
+<option value="1500">1500</option>
+<option value="1501">1501</option>
+<option value="1502">1502</option>
+<option value="1560">1560</option>
+<option value="1600">1600</option>
+<option value="1601">1601</option>
+<option value="1620">1620</option>
+<option value="1630">1630</option>
+<option value="1640">1640</option>
+<option value="1700">1700</option>
+<option value="1701">1701</option>
+<option value="1702">1702</option>
+<option value="1703">1703</option>
+<option value="1730">1730</option>
+<option value="1745">1745</option>
+<option value="1760">1760</option>
+<option value="1780">1780</option>
+<option value="1785">1785</option>
+<option value="1790">1790</option>
+<option value="1800">1800</option>
+<option value="1820">1820</option>
+<option value="1830">1830</option>
+<option value="1840">1840</option>
+<option value="1850">1850</option>
+<option value="1853">1853</option>
+<option value="1860">1860</option>
+<option value="1861">1861</option>
+<option value="1910">1910</option>
+<option value="1930">1930</option>
+<option value="1932">1932</option>
+<option value="1933">1933</option>
+<option value="1950">1950</option>
+<option value="1970">1970</option>
+<option value="1982">1982</option>
+<option value="2020">2020</option>
+<option value="2040">2040</option>
+<option value="2050">2050</option>
+<option value="2060">2060</option>
+<option value="2100">2100</option>
+<option value="2150">2150</option>
+<option value="2160">2160</option>
+<option value="2170">2170</option>
+<option value="2180">2180</option>
+<option value="2200">2200</option>
+<option value="2220">2220</option>
+<option value="2230">2230</option>
+<option value="2235">2235</option>
+<option value="2250">2250</option>
+<option value="2260">2260</option>
+<option value="2270">2270</option>
+<option value="2280">2280</option>
+<option value="2300">2300</option>
+<option value="2310">2310</option>
+<option value="2320">2320</option>
+<option value="2323">2323</option>
+<option value="2330">2330</option>
+<option value="2340">2340</option>
+<option value="2350">2350</option>
+<option value="2360">2360</option>
+<option value="2370">2370</option>
+<option value="2380">2380</option>
+<option value="2387">2387</option>
+<option value="2390">2390</option>
+<option value="2400">2400</option>
+<option value="2430">2430</option>
+<option value="2440">2440</option>
+<option value="2450">2450</option>
+<option value="2460">2460</option>
+<option value="2470">2470</option>
+<option value="2480">2480</option>
+<option value="2490">2490</option>
+<option value="2500">2500</option>
+<option value="2520">2520</option>
+<option value="2530">2530</option>
+<option value="2540">2540</option>
+<option value="2547">2547</option>
+<option value="2550">2550</option>
+<option value="2560">2560</option>
+<option value="2570">2570</option>
+<option value="2580">2580</option>
+<option value="2590">2590</option>
+<option value="2600">2600</option>
+<option value="2610">2610</option>
+<option value="2627">2627</option>
+<option value="2630">2630</option>
+<option value="2640">2640</option>
+<option value="2650">2650</option>
+<option value="2660">2660</option>
+<option value="2800">2800</option>
+<option value="2801">2801</option>
+<option value="2811">2811</option>
+<option value="2812">2812</option>
+<option value="2820">2820</option>
+<option value="2830">2830</option>
+<option value="2840">2840</option>
+<option value="2850">2850</option>
+<option value="2860">2860</option>
+<option value="2870">2870</option>
+<option value="2880">2880</option>
+<option value="2890">2890</option>
+<option value="2900">2900</option>
+<option value="2910">2910</option>
+<option value="2920">2920</option>
+<option value="2930">2930</option>
+<option value="2940">2940</option>
+<option value="2950">2950</option>
+<option value="2960">2960</option>
+<option value="2970">2970</option>
+<option value="2980">2980</option>
+<option value="2990">2990</option>
+<option value="3000">3000</option>
+<option value="3001">3001</option>
+<option value="3010">3010</option>
+<option value="3020">3020</option>
+<option value="3050">3050</option>
+<option value="3071">3071</option>
+<option value="3080">3080</option>
+<option value="3090">3090</option>
+<option value="3111">3111</option>
+<option value="3128">3128</option>
+<option value="3130">3130</option>
+<option value="3140">3140</option>
+<option value="3150">3150</option>
+<option value="3201">3201</option>
+<option value="3290">3290</option>
+<option value="3300">3300</option>
+<option value="3320">3320</option>
+<option value="3360">3360</option>
+<option value="3370">3370</option>
+<option value="3400">3400</option>
+<option value="3500">3500</option>
+<option value="3510">3510</option>
+<option value="3512">3512</option>
+<option value="3520">3520</option>
+<option value="3530">3530</option>
+<option value="3540">3540</option>
+<option value="3545">3545</option>
+<option value="3550">3550</option>
+<option value="3560">3560</option>
+<option value="3570">3570</option>
+<option value="3580">3580</option>
+<option value="3582">3582</option>
+<option value="3583">3583</option>
+<option value="3590">3590</option>
+<option value="3600">3600</option>
+<option value="3620">3620</option>
+<option value="3630">3630</option>
+<option value="3640">3640</option>
+<option value="3650">3650</option>
+<option value="3660">3660</option>
+<option value="3665">3665</option>
+<option value="3670">3670</option>
+<option value="3680">3680</option>
+<option value="3690">3690</option>
+<option value="3700">3700</option>
+<option value="3720">3720</option>
+<option value="3730">3730</option>
+<option value="3740">3740</option>
+<option value="3770">3770</option>
+<option value="3800">3800</option>
+<option value="3803">3803</option>
+<option value="3840">3840</option>
+<option value="3900">3900</option>
+<option value="3910">3910</option>
+<option value="3920">3920</option>
+<option value="3930">3930</option>
+<option value="3941">3941</option>
+<option value="3945">3945</option>
+<option value="3950">3950</option>
+<option value="3960">3960</option>
+<option value="3970">3970</option>
+<option value="3980">3980</option>
+<option value="3990">3990</option>
+<option value="4000">4000</option>
+<option value="4020">4020</option>
+<option value="4030">4030</option>
+<option value="4031">4031</option>
+<option value="4032">4032</option>
+<option value="4040">4040</option>
+<option value="4042">4042</option>
+<option value="4050">4050</option>
+<option value="4052">4052</option>
+<option value="4053">4053</option>
+<option value="4100">4100</option>
+<option value="4102">4102</option>
+<option value="4122">4122</option>
+<option value="4130">4130</option>
+<option value="4140">4140</option>
+<option value="4163">4163</option>
+<option value="4170">4170</option>
+<option value="4180">4180</option>
+<option value="4219">4219</option>
+<option value="4250">4250</option>
+<option value="4260">4260</option>
+<option value="4280">4280</option>
+<option value="4300">4300</option>
+<option value="4317">4317</option>
+<option value="4347">4347</option>
+<option value="4360">4360</option>
+<option value="4400">4400</option>
+<option value="4420">4420</option>
+<option value="4432">4432</option>
+<option value="4450">4450</option>
+<option value="4460">4460</option>
+<option value="4470">4470</option>
+<option value="4480">4480</option>
+<option value="4500">4500</option>
+<option value="4520">4520</option>
+<option value="4540">4540</option>
+<option value="4550">4550</option>
+<option value="4560">4560</option>
+<option value="4590">4590</option>
+<option value="4600">4600</option>
+<option value="4602">4602</option>
+<option value="4607">4607</option>
+<option value="4630">4630</option>
+<option value="4650">4650</option>
+<option value="4651">4651</option>
+<option value="4671">4671</option>
+<option value="4680">4680</option>
+<option value="4700">4700</option>
+<option value="4720">4720</option>
+<option value="4730">4730</option>
+<option value="4750">4750</option>
+<option value="4780">4780</option>
+<option value="4800">4800</option>
+<option value="4802">4802</option>
+<option value="4840">4840</option>
+<option value="4841">4841</option>
+<option value="4845">4845</option>
+<option value="4851">4851</option>
+<option value="4860">4860</option>
+<option value="4870">4870</option>
+<option value="4877">4877</option>
+<option value="4880">4880</option>
+<option value="4890">4890</option>
+<option value="4900">4900</option>
+<option value="4910">4910</option>
+<option value="4920">4920</option>
+<option value="4950">4950</option>
+<option value="4960">4960</option>
+<option value="4970">4970</option>
+<option value="4980">4980</option>
+<option value="4987">4987</option>
+<option value="5000">5000</option>
+<option value="5001">5001</option>
+<option value="5004">5004</option>
+<option value="5020">5020</option>
+<option value="5030">5030</option>
+<option value="5060">5060</option>
+<option value="5070">5070</option>
+<option value="5080">5080</option>
+<option value="5081">5081</option>
+<option value="5100">5100</option>
+<option value="5140">5140</option>
+<option value="5170">5170</option>
+<option value="5190">5190</option>
+<option value="5300">5300</option>
+<option value="5350">5350</option>
+<option value="5351">5351</option>
+<option value="5360">5360</option>
+<option value="5377">5377</option>
+<option value="5380">5380</option>
+<option value="5500">5500</option>
+<option value="5530">5530</option>
+<option value="5537">5537</option>
+<option value="5544">5544</option>
+<option value="5555">5555</option>
+<option value="5560">5560</option>
+<option value="5570">5570</option>
+<option value="5575">5575</option>
+<option value="5580">5580</option>
+<option value="5590">5590</option>
+<option value="5640">5640</option>
+<option value="5644">5644</option>
+<option value="5660">5660</option>
+<option value="5670">5670</option>
+<option value="6000">6000</option>
+<option value="6032">6032</option>
+<option value="6040">6040</option>
+<option value="6041">6041</option>
+<option value="6060">6060</option>
+<option value="6061">6061</option>
+<option value="6110">6110</option>
+<option value="6120">6120</option>
+<option value="6140">6140</option>
+<option value="6210">6210</option>
+<option value="6220">6220</option>
+<option value="6224">6224</option>
+<option value="6240">6240</option>
+<option value="6280">6280</option>
+<option value="6440">6440</option>
+<option value="6460">6460</option>
+<option value="6500">6500</option>
+<option value="6530">6530</option>
+<option value="6560">6560</option>
+<option value="6590">6590</option>
+<option value="6600">6600</option>
+<option value="6630">6630</option>
+<option value="6660">6660</option>
+<option value="6681">6681</option>
+<option value="6690">6690</option>
+<option value="6700">6700</option>
+<option value="6717">6717</option>
+<option value="6720">6720</option>
+<option value="6724">6724</option>
+<option value="6740">6740</option>
+<option value="6747">6747</option>
+<option value="6750">6750</option>
+<option value="6760">6760</option>
+<option value="6762">6762</option>
+<option value="6780">6780</option>
+<option value="6791">6791</option>
+<option value="6792">6792</option>
+<option value="6800">6800</option>
+<option value="6810">6810</option>
+<option value="6830">6830</option>
+<option value="6840">6840</option>
+<option value="6850">6850</option>
+<option value="6870">6870</option>
+<option value="6880">6880</option>
+<option value="6890">6890</option>
+<option value="6900">6900</option>
+<option value="6920">6920</option>
+<option value="6940">6940</option>
+<option value="6941">6941</option>
+<option value="6950">6950</option>
+<option value="6960">6960</option>
+<option value="6980">6980</option>
+<option value="6990">6990</option>
+<option value="7000">7000</option>
+<option value="7012">7012</option>
+<option value="7020">7020</option>
+<option value="7021">7021</option>
+<option value="7022">7022</option>
+<option value="7060">7060</option>
+<option value="7062">7062</option>
+<option value="7070">7070</option>
+<option value="7080">7080</option>
+<option value="7090">7090</option>
+<option value="7100">7100</option>
+<option value="7110">7110</option>
+<option value="7134">7134</option>
+<option value="7140">7140</option>
+<option value="7160">7160</option>
+<option value="7170">7170</option>
+<option value="7181">7181</option>
+<option value="7301">7301</option>
+<option value="7331">7331</option>
+<option value="7332">7332</option>
+<option value="7350">7350</option>
+<option value="7370">7370</option>
+<option value="7380">7380</option>
+<option value="7390">7390</option>
+<option value="7503">7503</option>
+<option value="7536">7536</option>
+<option value="7540">7540</option>
+<option value="7603">7603</option>
+<option value="7640">7640</option>
+<option value="7700">7700</option>
+<option value="7711">7711</option>
+<option value="7730">7730</option>
+<option value="7784">7784</option>
+<option value="7800">7800</option>
+<option value="7830">7830</option>
+<option value="7850">7850</option>
+<option value="7880">7880</option>
+<option value="7890">7890</option>
+<option value="7900">7900</option>
+<option value="7970">7970</option>
+<option value="8000">8000</option>
+<option value="8020">8020</option>
+<option value="8200">8200</option>
+<option value="8210">8210</option>
+<option value="8300">8300</option>
+<option value="8301">8301</option>
+<option value="8310">8310</option>
+<option value="8340">8340</option>
+<option value="8370">8370</option>
+<option value="8380">8380</option>
+<option value="8400">8400</option>
+<option value="8420">8420</option>
+<option value="8430">8430</option>
+<option value="8450">8450</option>
+<option value="8470">8470</option>
+<option value="8480">8480</option>
+<option value="8490">8490</option>
+<option value="8500">8500</option>
+<option value="8510">8510</option>
+<option value="8520">8520</option>
+<option value="8540">8540</option>
+<option value="8550">8550</option>
+<option value="8560">8560</option>
+<option value="8570">8570</option>
+<option value="8580">8580</option>
+<option value="8600">8600</option>
+<option value="8610">8610</option>
+<option value="8620">8620</option>
+<option value="8630">8630</option>
+<option value="8650">8650</option>
+<option value="8660">8660</option>
+<option value="8670">8670</option>
+<option value="8680">8680</option>
+<option value="8700">8700</option>
+<option value="8710">8710</option>
+<option value="8730">8730</option>
+<option value="8740">8740</option>
+<option value="8750">8750</option>
+<option value="8755">8755</option>
+<option value="8760">8760</option>
+<option value="8770">8770</option>
+<option value="8790">8790</option>
+<option value="8800">8800</option>
+<option value="8810">8810</option>
+<option value="8820">8820</option>
+<option value="8840">8840</option>
+<option value="8870">8870</option>
+<option value="8890">8890</option>
+<option value="8900">8900</option>
+<option value="8920">8920</option>
+<option value="8930">8930</option>
+<option value="8940">8940</option>
+<option value="8970">8970</option>
+<option value="8999">8999</option>
+<option value="9000">9000</option>
+<option value="9041">9041</option>
+<option value="9050">9050</option>
+<option value="9051">9051</option>
+<option value="9060">9060</option>
+<option value="9070">9070</option>
+<option value="9080">9080</option>
+<option value="9090">9090</option>
+<option value="9100">9100</option>
+<option value="9112">9112</option>
+<option value="9120">9120</option>
+<option value="9130">9130</option>
+<option value="9140">9140</option>
+<option value="9150">9150</option>
+<option value="9160">9160</option>
+<option value="9170">9170</option>
+<option value="9180">9180</option>
+<option value="9185">9185</option>
+<option value="9190">9190</option>
+<option value="9200">9200</option>
+<option value="9220">9220</option>
+<option value="9230">9230</option>
+<option value="9240">9240</option>
+<option value="9250">9250</option>
+<option value="9280">9280</option>
+<option value="9290">9290</option>
+<option value="9300">9300</option>
+<option value="9320">9320</option>
+<option value="9340">9340</option>
+<option value="9400">9400</option>
+<option value="9401">9401</option>
+<option value="9420">9420</option>
+<option value="9450">9450</option>
+<option value="9470">9470</option>
+<option value="9500">9500</option>
+<option value="9506">9506</option>
+<option value="9520">9520</option>
+<option value="9550">9550</option>
+<option value="9572">9572</option>
+<option value="9600">9600</option>
+<option value="9620">9620</option>
+<option value="9660">9660</option>
+<option value="9700">9700</option>
+<option value="9770">9770</option>
+<option value="9800">9800</option>
+<option value="9810">9810</option>
+<option value="9820">9820</option>
+<option value="9830">9830</option>
+<option value="9840">9840</option>
+<option value="9850">9850</option>
+<option value="9860">9860</option>
+<option value="9870">9870</option>
+<option value="9880">9880</option>
+<option value="9890">9890</option>
+<option value="9900">9900</option>
+<option value="9910">9910</option>
+<option value="9920">9920</option>
+<option value="9930">9930</option>
+<option value="9940">9940</option>
+<option value="9950">9950</option>
+<option value="9960">9960</option>
+<option value="9970">9970</option>
+<option value="9990">9990</option>
+</select>
+                    <span class="sep"></span>
+                    <select class="form-control" id="ZipCodeTo" name="ZipCodeTo"><option value=""></option>
+<option value="1000">1000</option>
+<option value="1020">1020</option>
+<option value="1030">1030</option>
+<option value="1050">1050</option>
+<option value="1070">1070</option>
+<option value="1080">1080</option>
+<option value="1082">1082</option>
+<option value="1083">1083</option>
+<option value="1130">1130</option>
+<option value="1140">1140</option>
+<option value="1150">1150</option>
+<option value="1160">1160</option>
+<option value="1170">1170</option>
+<option value="1180">1180</option>
+<option value="1190">1190</option>
+<option value="1200">1200</option>
+<option value="1300">1300</option>
+<option value="1310">1310</option>
+<option value="1315">1315</option>
+<option value="1320">1320</option>
+<option value="1330">1330</option>
+<option value="1331">1331</option>
+<option value="1342">1342</option>
+<option value="1348">1348</option>
+<option value="1357">1357</option>
+<option value="1360">1360</option>
+<option value="1370">1370</option>
+<option value="1380">1380</option>
+<option value="1390">1390</option>
+<option value="1400">1400</option>
+<option value="1410">1410</option>
+<option value="1420">1420</option>
+<option value="1430">1430</option>
+<option value="1440">1440</option>
+<option value="1457">1457</option>
+<option value="1474">1474</option>
+<option value="1480">1480</option>
+<option value="1490">1490</option>
+<option value="1500">1500</option>
+<option value="1501">1501</option>
+<option value="1502">1502</option>
+<option value="1560">1560</option>
+<option value="1600">1600</option>
+<option value="1601">1601</option>
+<option value="1620">1620</option>
+<option value="1630">1630</option>
+<option value="1640">1640</option>
+<option value="1700">1700</option>
+<option value="1701">1701</option>
+<option value="1702">1702</option>
+<option value="1703">1703</option>
+<option value="1730">1730</option>
+<option value="1745">1745</option>
+<option value="1760">1760</option>
+<option value="1780">1780</option>
+<option value="1785">1785</option>
+<option value="1790">1790</option>
+<option value="1800">1800</option>
+<option value="1820">1820</option>
+<option value="1830">1830</option>
+<option value="1840">1840</option>
+<option value="1850">1850</option>
+<option value="1853">1853</option>
+<option value="1860">1860</option>
+<option value="1861">1861</option>
+<option value="1910">1910</option>
+<option value="1930">1930</option>
+<option value="1932">1932</option>
+<option value="1933">1933</option>
+<option value="1950">1950</option>
+<option value="1970">1970</option>
+<option value="1982">1982</option>
+<option value="2020">2020</option>
+<option value="2040">2040</option>
+<option value="2050">2050</option>
+<option value="2060">2060</option>
+<option value="2100">2100</option>
+<option value="2150">2150</option>
+<option value="2160">2160</option>
+<option value="2170">2170</option>
+<option value="2180">2180</option>
+<option value="2200">2200</option>
+<option value="2220">2220</option>
+<option value="2230">2230</option>
+<option value="2235">2235</option>
+<option value="2250">2250</option>
+<option value="2260">2260</option>
+<option value="2270">2270</option>
+<option value="2280">2280</option>
+<option value="2300">2300</option>
+<option value="2310">2310</option>
+<option value="2320">2320</option>
+<option value="2323">2323</option>
+<option value="2330">2330</option>
+<option value="2340">2340</option>
+<option value="2350">2350</option>
+<option value="2360">2360</option>
+<option value="2370">2370</option>
+<option value="2380">2380</option>
+<option value="2387">2387</option>
+<option value="2390">2390</option>
+<option value="2400">2400</option>
+<option value="2430">2430</option>
+<option value="2440">2440</option>
+<option value="2450">2450</option>
+<option value="2460">2460</option>
+<option value="2470">2470</option>
+<option value="2480">2480</option>
+<option value="2490">2490</option>
+<option value="2500">2500</option>
+<option value="2520">2520</option>
+<option value="2530">2530</option>
+<option value="2540">2540</option>
+<option value="2547">2547</option>
+<option value="2550">2550</option>
+<option value="2560">2560</option>
+<option value="2570">2570</option>
+<option value="2580">2580</option>
+<option value="2590">2590</option>
+<option value="2600">2600</option>
+<option value="2610">2610</option>
+<option value="2627">2627</option>
+<option value="2630">2630</option>
+<option value="2640">2640</option>
+<option value="2650">2650</option>
+<option value="2660">2660</option>
+<option value="2800">2800</option>
+<option value="2801">2801</option>
+<option value="2811">2811</option>
+<option value="2812">2812</option>
+<option value="2820">2820</option>
+<option value="2830">2830</option>
+<option value="2840">2840</option>
+<option value="2850">2850</option>
+<option value="2860">2860</option>
+<option value="2870">2870</option>
+<option value="2880">2880</option>
+<option value="2890">2890</option>
+<option value="2900">2900</option>
+<option value="2910">2910</option>
+<option value="2920">2920</option>
+<option value="2930">2930</option>
+<option value="2940">2940</option>
+<option value="2950">2950</option>
+<option value="2960">2960</option>
+<option value="2970">2970</option>
+<option value="2980">2980</option>
+<option value="2990">2990</option>
+<option value="3000">3000</option>
+<option value="3001">3001</option>
+<option value="3010">3010</option>
+<option value="3020">3020</option>
+<option value="3050">3050</option>
+<option value="3071">3071</option>
+<option value="3080">3080</option>
+<option value="3090">3090</option>
+<option value="3111">3111</option>
+<option value="3128">3128</option>
+<option value="3130">3130</option>
+<option value="3140">3140</option>
+<option value="3150">3150</option>
+<option value="3201">3201</option>
+<option value="3290">3290</option>
+<option value="3300">3300</option>
+<option value="3320">3320</option>
+<option value="3360">3360</option>
+<option value="3370">3370</option>
+<option value="3400">3400</option>
+<option value="3500">3500</option>
+<option value="3510">3510</option>
+<option value="3512">3512</option>
+<option value="3520">3520</option>
+<option value="3530">3530</option>
+<option value="3540">3540</option>
+<option value="3545">3545</option>
+<option value="3550">3550</option>
+<option value="3560">3560</option>
+<option value="3570">3570</option>
+<option value="3580">3580</option>
+<option value="3582">3582</option>
+<option value="3583">3583</option>
+<option value="3590">3590</option>
+<option value="3600">3600</option>
+<option value="3620">3620</option>
+<option value="3630">3630</option>
+<option value="3640">3640</option>
+<option value="3650">3650</option>
+<option value="3660">3660</option>
+<option value="3665">3665</option>
+<option value="3670">3670</option>
+<option value="3680">3680</option>
+<option value="3690">3690</option>
+<option value="3700">3700</option>
+<option value="3720">3720</option>
+<option value="3730">3730</option>
+<option value="3740">3740</option>
+<option value="3770">3770</option>
+<option value="3800">3800</option>
+<option value="3803">3803</option>
+<option value="3840">3840</option>
+<option value="3900">3900</option>
+<option value="3910">3910</option>
+<option value="3920">3920</option>
+<option value="3930">3930</option>
+<option value="3941">3941</option>
+<option value="3945">3945</option>
+<option value="3950">3950</option>
+<option value="3960">3960</option>
+<option value="3970">3970</option>
+<option value="3980">3980</option>
+<option value="3990">3990</option>
+<option value="4000">4000</option>
+<option value="4020">4020</option>
+<option value="4030">4030</option>
+<option value="4031">4031</option>
+<option value="4032">4032</option>
+<option value="4040">4040</option>
+<option value="4042">4042</option>
+<option value="4050">4050</option>
+<option value="4052">4052</option>
+<option value="4053">4053</option>
+<option value="4100">4100</option>
+<option value="4102">4102</option>
+<option value="4122">4122</option>
+<option value="4130">4130</option>
+<option value="4140">4140</option>
+<option value="4163">4163</option>
+<option value="4170">4170</option>
+<option value="4180">4180</option>
+<option value="4219">4219</option>
+<option value="4250">4250</option>
+<option value="4260">4260</option>
+<option value="4280">4280</option>
+<option value="4300">4300</option>
+<option value="4317">4317</option>
+<option value="4347">4347</option>
+<option value="4360">4360</option>
+<option value="4400">4400</option>
+<option value="4420">4420</option>
+<option value="4432">4432</option>
+<option value="4450">4450</option>
+<option value="4460">4460</option>
+<option value="4470">4470</option>
+<option value="4480">4480</option>
+<option value="4500">4500</option>
+<option value="4520">4520</option>
+<option value="4540">4540</option>
+<option value="4550">4550</option>
+<option value="4560">4560</option>
+<option value="4590">4590</option>
+<option value="4600">4600</option>
+<option value="4602">4602</option>
+<option value="4607">4607</option>
+<option value="4630">4630</option>
+<option value="4650">4650</option>
+<option value="4651">4651</option>
+<option value="4671">4671</option>
+<option value="4680">4680</option>
+<option value="4700">4700</option>
+<option value="4720">4720</option>
+<option value="4730">4730</option>
+<option value="4750">4750</option>
+<option value="4780">4780</option>
+<option value="4800">4800</option>
+<option value="4802">4802</option>
+<option value="4840">4840</option>
+<option value="4841">4841</option>
+<option value="4845">4845</option>
+<option value="4851">4851</option>
+<option value="4860">4860</option>
+<option value="4870">4870</option>
+<option value="4877">4877</option>
+<option value="4880">4880</option>
+<option value="4890">4890</option>
+<option value="4900">4900</option>
+<option value="4910">4910</option>
+<option value="4920">4920</option>
+<option value="4950">4950</option>
+<option value="4960">4960</option>
+<option value="4970">4970</option>
+<option value="4980">4980</option>
+<option value="4987">4987</option>
+<option value="5000">5000</option>
+<option value="5001">5001</option>
+<option value="5004">5004</option>
+<option value="5020">5020</option>
+<option value="5030">5030</option>
+<option value="5060">5060</option>
+<option value="5070">5070</option>
+<option value="5080">5080</option>
+<option value="5081">5081</option>
+<option value="5100">5100</option>
+<option value="5140">5140</option>
+<option value="5170">5170</option>
+<option value="5190">5190</option>
+<option value="5300">5300</option>
+<option value="5350">5350</option>
+<option value="5351">5351</option>
+<option value="5360">5360</option>
+<option value="5377">5377</option>
+<option value="5380">5380</option>
+<option value="5500">5500</option>
+<option value="5530">5530</option>
+<option value="5537">5537</option>
+<option value="5544">5544</option>
+<option value="5555">5555</option>
+<option value="5560">5560</option>
+<option value="5570">5570</option>
+<option value="5575">5575</option>
+<option value="5580">5580</option>
+<option value="5590">5590</option>
+<option value="5640">5640</option>
+<option value="5644">5644</option>
+<option value="5660">5660</option>
+<option value="5670">5670</option>
+<option value="6000">6000</option>
+<option value="6032">6032</option>
+<option value="6040">6040</option>
+<option value="6041">6041</option>
+<option value="6060">6060</option>
+<option value="6061">6061</option>
+<option value="6110">6110</option>
+<option value="6120">6120</option>
+<option value="6140">6140</option>
+<option value="6210">6210</option>
+<option value="6220">6220</option>
+<option value="6224">6224</option>
+<option value="6240">6240</option>
+<option value="6280">6280</option>
+<option value="6440">6440</option>
+<option value="6460">6460</option>
+<option value="6500">6500</option>
+<option value="6530">6530</option>
+<option value="6560">6560</option>
+<option value="6590">6590</option>
+<option value="6600">6600</option>
+<option value="6630">6630</option>
+<option value="6660">6660</option>
+<option value="6681">6681</option>
+<option value="6690">6690</option>
+<option value="6700">6700</option>
+<option value="6717">6717</option>
+<option value="6720">6720</option>
+<option value="6724">6724</option>
+<option value="6740">6740</option>
+<option value="6747">6747</option>
+<option value="6750">6750</option>
+<option value="6760">6760</option>
+<option value="6762">6762</option>
+<option value="6780">6780</option>
+<option value="6791">6791</option>
+<option value="6792">6792</option>
+<option value="6800">6800</option>
+<option value="6810">6810</option>
+<option value="6830">6830</option>
+<option value="6840">6840</option>
+<option value="6850">6850</option>
+<option value="6870">6870</option>
+<option value="6880">6880</option>
+<option value="6890">6890</option>
+<option value="6900">6900</option>
+<option value="6920">6920</option>
+<option value="6940">6940</option>
+<option value="6941">6941</option>
+<option value="6950">6950</option>
+<option value="6960">6960</option>
+<option value="6980">6980</option>
+<option value="6990">6990</option>
+<option value="7000">7000</option>
+<option value="7012">7012</option>
+<option value="7020">7020</option>
+<option value="7021">7021</option>
+<option value="7022">7022</option>
+<option value="7060">7060</option>
+<option value="7062">7062</option>
+<option value="7070">7070</option>
+<option value="7080">7080</option>
+<option value="7090">7090</option>
+<option value="7100">7100</option>
+<option value="7110">7110</option>
+<option value="7134">7134</option>
+<option value="7140">7140</option>
+<option value="7160">7160</option>
+<option value="7170">7170</option>
+<option value="7181">7181</option>
+<option value="7301">7301</option>
+<option value="7331">7331</option>
+<option value="7332">7332</option>
+<option value="7350">7350</option>
+<option value="7370">7370</option>
+<option value="7380">7380</option>
+<option value="7390">7390</option>
+<option value="7503">7503</option>
+<option value="7536">7536</option>
+<option value="7540">7540</option>
+<option value="7603">7603</option>
+<option value="7640">7640</option>
+<option value="7700">7700</option>
+<option value="7711">7711</option>
+<option value="7730">7730</option>
+<option value="7784">7784</option>
+<option value="7800">7800</option>
+<option value="7830">7830</option>
+<option value="7850">7850</option>
+<option value="7880">7880</option>
+<option value="7890">7890</option>
+<option value="7900">7900</option>
+<option value="7970">7970</option>
+<option value="8000">8000</option>
+<option value="8020">8020</option>
+<option value="8200">8200</option>
+<option value="8210">8210</option>
+<option value="8300">8300</option>
+<option value="8301">8301</option>
+<option value="8310">8310</option>
+<option value="8340">8340</option>
+<option value="8370">8370</option>
+<option value="8380">8380</option>
+<option value="8400">8400</option>
+<option value="8420">8420</option>
+<option value="8430">8430</option>
+<option value="8450">8450</option>
+<option value="8470">8470</option>
+<option value="8480">8480</option>
+<option value="8490">8490</option>
+<option value="8500">8500</option>
+<option value="8510">8510</option>
+<option value="8520">8520</option>
+<option value="8540">8540</option>
+<option value="8550">8550</option>
+<option value="8560">8560</option>
+<option value="8570">8570</option>
+<option value="8580">8580</option>
+<option value="8600">8600</option>
+<option value="8610">8610</option>
+<option value="8620">8620</option>
+<option value="8630">8630</option>
+<option value="8650">8650</option>
+<option value="8660">8660</option>
+<option value="8670">8670</option>
+<option value="8680">8680</option>
+<option value="8700">8700</option>
+<option value="8710">8710</option>
+<option value="8730">8730</option>
+<option value="8740">8740</option>
+<option value="8750">8750</option>
+<option value="8755">8755</option>
+<option value="8760">8760</option>
+<option value="8770">8770</option>
+<option value="8790">8790</option>
+<option value="8800">8800</option>
+<option value="8810">8810</option>
+<option value="8820">8820</option>
+<option value="8840">8840</option>
+<option value="8870">8870</option>
+<option value="8890">8890</option>
+<option value="8900">8900</option>
+<option value="8920">8920</option>
+<option value="8930">8930</option>
+<option value="8940">8940</option>
+<option value="8970">8970</option>
+<option value="8999">8999</option>
+<option value="9000">9000</option>
+<option value="9041">9041</option>
+<option value="9050">9050</option>
+<option value="9051">9051</option>
+<option value="9060">9060</option>
+<option value="9070">9070</option>
+<option value="9080">9080</option>
+<option value="9090">9090</option>
+<option value="9100">9100</option>
+<option value="9112">9112</option>
+<option value="9120">9120</option>
+<option value="9130">9130</option>
+<option value="9140">9140</option>
+<option value="9150">9150</option>
+<option value="9160">9160</option>
+<option value="9170">9170</option>
+<option value="9180">9180</option>
+<option value="9185">9185</option>
+<option value="9190">9190</option>
+<option value="9200">9200</option>
+<option value="9220">9220</option>
+<option value="9230">9230</option>
+<option value="9240">9240</option>
+<option value="9250">9250</option>
+<option value="9280">9280</option>
+<option value="9290">9290</option>
+<option value="9300">9300</option>
+<option value="9320">9320</option>
+<option value="9340">9340</option>
+<option value="9400">9400</option>
+<option value="9401">9401</option>
+<option value="9420">9420</option>
+<option value="9450">9450</option>
+<option value="9470">9470</option>
+<option value="9500">9500</option>
+<option value="9506">9506</option>
+<option value="9520">9520</option>
+<option value="9550">9550</option>
+<option value="9572">9572</option>
+<option value="9600">9600</option>
+<option value="9620">9620</option>
+<option value="9660">9660</option>
+<option value="9700">9700</option>
+<option value="9770">9770</option>
+<option value="9800">9800</option>
+<option value="9810">9810</option>
+<option value="9820">9820</option>
+<option value="9830">9830</option>
+<option value="9840">9840</option>
+<option value="9850">9850</option>
+<option value="9860">9860</option>
+<option value="9870">9870</option>
+<option value="9880">9880</option>
+<option value="9890">9890</option>
+<option value="9900">9900</option>
+<option value="9910">9910</option>
+<option value="9920">9920</option>
+<option value="9930">9930</option>
+<option value="9940">9940</option>
+<option value="9950">9950</option>
+<option value="9960">9960</option>
+<option value="9970">9970</option>
+<option value="9990">9990</option>
+</select>
+                </li>
+                <li>
+                    <label>Dans un rayon de</label>
+                    <input type="number" id="Radius" name="Radius">
+                    <span style="padding-left: 10px;">Km autour de :</span>
+                </li>
+                <li>
+                    <div class="col-offset">
+                        <div class="checkbox-row">
+                            <label><input type="radio" id="chkMyPosition" checked=checked name="LocationGroup" onclick="loadGoogleMapsApi('setMyLocation')"> Ma position</label>
+                            <a href="javascript:void(0)" onclick="loadGoogleMapsApi('setMyLocation')"><span class="glyphicon glyphicon-map-marker"></span> Map</a>
+                        </div>
+                        <div class="checkbox-row">
+                            <label><input type="radio" id="chkAddress"  name="LocationGroup"> L'adresse suivante:</label>
+                            <a href="javascript:void(0)" onclick="loadGoogleMapsApi('setLocationByAddress')"><span class="glyphicon glyphicon-map-marker"></span> Map</a>
+                        </div>
+                        <div class="form-group" style="margin-left: 15px;">
+                            <label>Rue et numéro:</label>
+                            <div class="col-sm-6">
+                                <input class="form-control" id="StreetNumber" name="StreetNumber" type="text">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-left: 15px;">
+                            <label>Code postal:</label>
+                            <div class="col-sm-6">
+                                <input class="form-control" id="ZipCode" name="ZipCode" type="text">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-left: 15px;">
+                            <label>Localité</label>
+                            <div class="col-sm-6">
+                                <input class="form-control" id="City" name="City" type="text">
+                            </div>
+                        </div>
+                        <div class="checkbox-row">
+                            <label><input type="radio" id="chkMap" name="LocationGroup" onclick="loadGoogleMapsApi('setLocation')"> Cliquez sur un lieu sur le plan</label>
+                            <input type="hidden" name="hdPositionLongitude" id="hdPositionLongitude" />
+                            <input type="hidden" name="hdPositionLatitude" id="hdPositionLatitude" />
+                        </div>
+                    </div>
+                </li>
+            </ul>
+
+            <div class="row form-horizontal">
+                <h3>Installations / Terrains</h3>
+            </div>
+
+            <div class="flex col-2 ClubspecificCheckboxLoc">
+                <div class="location">
+                    <div class="flex col-2">
+                        <strong>Emplacement</strong>
+                        <label><input data-val="true" data-val-required="The CourtIndoor field is required." id="CourtIndoor" name="CourtIndoor" type="checkbox" value="true" /><input name="CourtIndoor" type="hidden" value="false" /> Intérieur</label>
+                    </div>
+                    <div class="flex col-2">
+                        <strong>Surface</strong>
+                        <select class="form-control" id="IndoorSurface" name="IndoorSurface"><option value=""></option>
+<option value="Asphalte">Asphalte</option>
+<option value="Asphalte poreux">Asphalte poreux</option>
+<option value="Balatom">Balatom</option>
+<option value="Béton">B&#233;ton</option>
+<option value="Béton poreux">B&#233;ton poreux</option>
+<option value="Bitume poreux">Bitume poreux</option>
+<option value="Canada Tenn">Canada Tenn</option>
+<option value="Caoutchouc">Caoutchouc</option>
+<option value="Céram Clay">C&#233;ram Clay</option>
+<option value="Champion Pro">Champion Pro</option>
+<option value="Chevron">Chevron</option>
+<option value="Clerdal">Clerdal</option>
+<option value="Dalle monolithique">Dalle monolithique</option>
+<option value="Décoturf">D&#233;coturf</option>
+<option value="Elastone">Elastone</option>
+<option value="French court">French court</option>
+<option value="Gazon naturel">Gazon naturel</option>
+<option value="Gazon synthétique">Gazon synth&#233;tique</option>
+<option value="Grain court">Grain court</option>
+<option value="Grand Clay">Grand Clay</option>
+<option value="Green set">Green set</option>
+<option value="Herbe synthétique">Herbe synth&#233;tique</option>
+<option value="Hydrocarbone">Hydrocarbone</option>
+<option value="Hydrocarboné poreux">Hydrocarbon&#233; poreux</option>
+<option value="Hydrocarbure poreux">Hydrocarbure poreux</option>
+<option value="Laycold">Laycold</option>
+<option value="Master top">Master top</option>
+<option value="Masterclay">Masterclay</option>
+<option value="Mateflex">Mateflex</option>
+<option value="New red clay">New red clay</option>
+<option value="Parquet">Parquet</option>
+<option value="Polyuréthane">Polyur&#233;thane</option>
+<option value="Pulastic">Pulastic</option>
+<option value="Quick">Quick</option>
+<option value="Red Court">Red Court</option>
+<option value="Roche pilée">Roche pil&#233;e</option>
+<option value="Rubkor">Rubkor</option>
+<option value="Smash court">Smash court</option>
+<option value="Someclay">Someclay</option>
+<option value="Surfan">Surfan</option>
+<option value="Synthétique">Synth&#233;tique</option>
+<option value="Tapis">Tapis</option>
+<option value="Tapis granulé">Tapis granul&#233;</option>
+<option value="Tapis overcourt II">Tapis overcourt II</option>
+<option value="Tapis velours DLW">Tapis velours DLW</option>
+<option value="Taraflex">Taraflex</option>
+<option value="Tarmac">Tarmac</option>
+<option value="Tarmac poreux">Tarmac poreux</option>
+<option value="Tartan">Tartan</option>
+<option value="Terbal">Terbal</option>
+<option value="Terre battue">Terre battue</option>
+<option value="Top clay">Top clay</option>
+<option value="Top tenn">Top tenn</option>
+<option value="Truflex synthétique">Truflex synth&#233;tique</option>
+</select>
+                    </div>
+                    <div class="flex col-2">
+                        <strong>Nombre de terrains</strong>
+                        <input type="number" id="IndoorNumberOfCourts" name="IndoorNumberOfCourts">
+                    </div>
+                    <div class="flex col-2">
+                        <strong>Eclairage</strong>
+                        <label><input data-val="true" data-val-required="The IndoorLighting field is required." id="IndoorLighting" name="IndoorLighting" type="checkbox" value="true" /><input name="IndoorLighting" type="hidden" value="false" /> </label>
+                    </div>
+                </div>
+
+                <div class="location">
+                    <div class="flex col-2">
+                        <strong>Emplacement</strong>
+                        <label><input data-val="true" data-val-required="The CourtOutdoor field is required." id="CourtOutdoor" name="CourtOutdoor" type="checkbox" value="true" /><input name="CourtOutdoor" type="hidden" value="false" /> Extérieur</label>
+                    </div>
+                    <div class="flex col-2">
+                        <strong>Surface</strong>
+                        <select class="form-control" id="OutdoorSurface" name="OutdoorSurface"><option value=""></option>
+<option value="Asphalte">Asphalte</option>
+<option value="Asphalte poreux">Asphalte poreux</option>
+<option value="Balatom">Balatom</option>
+<option value="Béton">B&#233;ton</option>
+<option value="Béton poreux">B&#233;ton poreux</option>
+<option value="Bitume poreux">Bitume poreux</option>
+<option value="Canada Tenn">Canada Tenn</option>
+<option value="Caoutchouc">Caoutchouc</option>
+<option value="Céram Clay">C&#233;ram Clay</option>
+<option value="Champion Pro">Champion Pro</option>
+<option value="Chevron">Chevron</option>
+<option value="Clerdal">Clerdal</option>
+<option value="Dalle monolithique">Dalle monolithique</option>
+<option value="Décoturf">D&#233;coturf</option>
+<option value="Elastone">Elastone</option>
+<option value="French court">French court</option>
+<option value="Gazon naturel">Gazon naturel</option>
+<option value="Gazon synthétique">Gazon synth&#233;tique</option>
+<option value="Grain court">Grain court</option>
+<option value="Grand Clay">Grand Clay</option>
+<option value="Green set">Green set</option>
+<option value="Herbe synthétique">Herbe synth&#233;tique</option>
+<option value="Hydrocarbone">Hydrocarbone</option>
+<option value="Hydrocarboné poreux">Hydrocarbon&#233; poreux</option>
+<option value="Hydrocarbure poreux">Hydrocarbure poreux</option>
+<option value="Laycold">Laycold</option>
+<option value="Master top">Master top</option>
+<option value="Masterclay">Masterclay</option>
+<option value="Mateflex">Mateflex</option>
+<option value="New red clay">New red clay</option>
+<option value="Parquet">Parquet</option>
+<option value="Polyuréthane">Polyur&#233;thane</option>
+<option value="Pulastic">Pulastic</option>
+<option value="Quick">Quick</option>
+<option value="Red Court">Red Court</option>
+<option value="Roche pilée">Roche pil&#233;e</option>
+<option value="Rubkor">Rubkor</option>
+<option value="Smash court">Smash court</option>
+<option value="Someclay">Someclay</option>
+<option value="Surfan">Surfan</option>
+<option value="Synthétique">Synth&#233;tique</option>
+<option value="Tapis">Tapis</option>
+<option value="Tapis granulé">Tapis granul&#233;</option>
+<option value="Tapis overcourt II">Tapis overcourt II</option>
+<option value="Tapis velours DLW">Tapis velours DLW</option>
+<option value="Taraflex">Taraflex</option>
+<option value="Tarmac">Tarmac</option>
+<option value="Tarmac poreux">Tarmac poreux</option>
+<option value="Tartan">Tartan</option>
+<option value="Terbal">Terbal</option>
+<option value="Terre battue">Terre battue</option>
+<option value="Top clay">Top clay</option>
+<option value="Top tenn">Top tenn</option>
+<option value="Truflex synthétique">Truflex synth&#233;tique</option>
+</select>
+                    </div>
+                    <div class="flex col-2">
+                        <strong>Nombre de terrains</strong>
+                        <input type="number" id="OutdoorNumberOfCourts" name="OutdoorNumberOfCourts">
+                    </div>
+                    <div class="flex col-2">
+                        <strong>Eclairage</strong>
+                        <label><input data-val="true" data-val-required="The OutdoorLighting field is required." id="OutdoorLighting" name="OutdoorLighting" type="checkbox" value="true" /><input name="OutdoorLighting" type="hidden" value="false" /> </label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: none;">
+                <div class="row form-horizontal">
+                    <h3>Offres et labels de qualité</h3>
+                </div>
+                <div class="form-group checkbox-row">
+                    <div class="checkbox-box">
+                        <label>
+                            <input type="checkbox" name="ClubLabels" value="">Pour les enfants
+                        </label>
+                        <image src="/MyAFT/Content/Images/kid.png"></image>
+                    </div>
+                    <div class="checkbox-box">
+                        <label>
+                            <input type="checkbox" name="ClubLabels" value="">Ecole de tennis
+                        </label>
+                        <span class="glyphicon glyphicon-education" style="font-size: 20px;"></span>
+                    </div>
+                    <div class="checkbox-box">
+                        <label>
+                            <input type="checkbox" name="ClubLabels" value="">Fauteuil roulant
+                        </label>
+                        <image src="/MyAFT/Content/Images/wheelchair.png"></image>
+                    </div>
+                </div>
+                <div class="form-group checkbox-row">
+                    <div class="checkbox-box">
+                        <label>
+                            <input type="checkbox" name="ClubLabels" value="">Beau site
+                        </label>
+                        <span class="glyphicon glyphicon-picture" style="font-size: 18px;"></span>
+                    </div>
+                    <div class="checkbox-box">
+                        <label>
+                            <input type="checkbox" name="ClubLabels" value="">Parking aisé
+                        </label>
+                        <image src="/MyAFT/Content/Images/easy-parking.png"></image>
+                    </div>
+                    <div class="checkbox-box">
+                        <label>
+                            <input type="checkbox" name="ClubLabels" value="">Accès facile TEC
+                        </label>
+                        <image src="/MyAFT/Content/Images/easy-access.png"></image>
+                    </div>
+                </div>
+                <div class="form-group checkbox-row">
+                    <div class="checkbox-box">
+                        <label>
+                            <input type="checkbox" name="ClubLabels" value="">Aire de jeux
+                        </label>
+                        <image src="/MyAFT/Content/Images/ball.png"></image>
+                    </div>
+                    <div class="checkbox-box">
+                        <label>
+                            <input type="checkbox" name="ClubLabels" value="">Autre
+                        </label>
+                        <span class="glyphicon glyphicon-option-horizontal" style="font-size: 18px; padding-top: 3px;"></span>
+                    </div>
+                </div>
+            </div>
+            <ul class="form-fields">
+                <li>
+                    <button type="button" class="btn btn-primary" onclick="searchClub()">Appliquer</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div id="map" style="width: 310px; height: 480px; display: none">
+    <div class="panel-body" style="width: 100%;height: 85px">
+    <div class="k-loading-mask" style="width: 100%; height: 100%; top: 0px; left: 0px;position: relative">
+        <div class="k-loading-image"></div>
+        <div class="k-loading-color"></div>
+    </div>
+</div>
+</div>
+
+<div class="panel panel-default col-left">
+    <div class="panel-heading">
+        <h2 class="panel-title">
+            <a data-toggle="collapse" href="#collapse_search_result_club"><span class="glyphicon glyphicon-menu-down"></span> Clubs</a>
+            <a class="pull-right" href="javascript:void(0)" onclick="showMaps()"><span class="glyphicon glyphicon-map-marker"></span> Map</a>
+        </h2>
+    </div>
+    <div id="collapse_search_result_club" class="panel-collapse collapse in">
+        <div class="panel panel-body">
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="nav-tabs-trigger">Afficher les onglets</div>
+                    <ul class="nav main-tabs nav-tabs nav-justified" id="ulClubsSearchTabs">
+                        <li class="active"><a data-toggle="tab" data-url="/MyAFT/Clubs/MyRegions" data-target="#tabMyRegion" onclick="setControlMap('tabMyRegion')">Ma région</a></li>
+                        <li><a data-toggle="tab" data-url="/MyAFT/Clubs/NearMyHouse" data-target="#tabNearMyHouse" onclick="setControlMap('tabNearMyHouse')">Près de chez moi</a></li>
+                        <li><a data-toggle="tab" id="tabResult" data-url="/MyAFT/Clubs/SearchResult" data-target="#tabSearchResult" onclick="setControlMap('tabSearchResult')">Résultats de la recherche</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="tab-content" id="clubsData">
+                        <div id="tabMyRegion" class="tab-pane fade in active">
+
+<input type="hidden" class="not-authen" />
+<div style="padding: 10px; z-index: 0;">Si vous n'êtes pas identifié sur le site vous ne profiterez pas de certaines de ses fonctionnalités...<a href="/MyAFT/Home/Login?returnUrl=%2FMyAFT%2FClubs%2FSearch">Identifiez-vous</a> et vivez une expérience personnalisée</div>
+                        </div>
+                        <div id="tabNearMyHouse" class="tab-pane fade">
+
+<input type="hidden" class="not-authen" />
+<div style="padding: 10px; z-index: 0;">Si vous n'êtes pas identifié sur le site vous ne profiterez pas de certaines de ses fonctionnalités...<a href="/MyAFT/Home/Login?returnUrl=%2FMyAFT%2FClubs%2FSearch">Identifiez-vous</a> et vivez une expérience personnalisée</div>
+                        </div>
+                        <div id="tabSearchResult" class="tab-pane fade">
+                            <div class="panel-body" style="width: 100%;height: 85px">
+    <div class="k-loading-mask" style="width: 100%; height: 100%; top: 0px; left: 0px;position: relative">
+        <div class="k-loading-image"></div>
+        <div class="k-loading-color"></div>
+    </div>
+</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var intervalHideSearchMap;
+    $(function () {
+        $("#txtClubs").autocomplete({
+            source: function (request, response) {
+                $.ajax({
+                    url: "/MyAFT/Clubs/GetClubsAutocomplete",
+                    data: { prefix: encodeURIComponent(request.term) },
+                    dataType: "json",
+                    type: "POST",
+                    success: function (data) {
+                        response($.map(data, function (item) {
+                            if (item.ClubID == 0) {
+                                return {
+                                    label: item.Nom,
+                                    val: item.ClubID
+                                }
+                            }
+                            return {
+                                label: item.Nom + " (" + item.ClubID + ") " + item.CodePostal + " " + item.Localite,
+                                val: item.ClubID
+                            }
+                        }));
+                    },
+                    error: function (res) {
+                        alert(res.responseText);
+                    },
+                    failure: function (re) {
+                        alert(re.responseText);
+                    }
+                });
+            },
+            select: function (e, i) {
+                window.location.href = "Detail/" + i.item.val;
+            },
+            minLength: 1
+        }).data("ui-autocomplete")._renderItem = function (ul, item) {
+            if (item.val == 0) {
+                return $('<li class="ui-state-disabled">' + item.label + '</li>').appendTo(ul);
+            } else {
+                return $("<li>")
+                .append("<a>" + item.label + "</a>")
+                .appendTo(ul);
+            }
+        };
+
+        intervalHideSearchMap = setInterval("hideSearchMap()", 1000);
+    });
+
+    function setControlMap(tabName) {
+        if (tabName == "tabMyRegion") {
+            $("#mapForGrid").hide();
+            $("#mapNearMyHouse").hide();
+            $("#mapGridResult").hide();
+        } else if (tabName == "tabNearMyHouse") {
+            $("#mapNearMyHouse").hide();
+            $("#mapForGrid").hide();
+            $("#mapGridResult").hide();
+        } else {
+            $("#mapGridResult").hide();
+            $("#mapForGrid").hide();
+            $("#mapNearMyHouse").hide();
+        }
+    }
+
+    function hideSearchMap() {
+        $("#map").hide();
+        window.clearInterval(intervalHideSearchMap);
+    }
+</script>
+
+<script type="text/javascript">
+    // Note: This example requires that you consent to location sharing when
+    // prompted by your browser. If you see the error "The Geolocation service
+    // failed.", it means you probably did not give permission for the browser to
+    // locate you.
+    var geocoder;
+    var map;
+    //using for Region grid
+    //var geocoderMultiple;
+    var mapMultiple;
+    var multipleMarkers = [];
+    //using for Result grid
+    var mapResultMultiple;
+    var mapNearMyHouseMultiple;
+    //var geocoderResultMultiple;
+    //var geocoderNearMyHouseMultiple;
+    var resultMultipleMarkers = [];
+    var nearMyHouseMultipleMarkers = [];
+    var infoWindow;
+    var infoWindowRegion;
+    var infoWindowResult;
+    var infoWindowNearMyHouse;
+    ///
+    var markers = [];
+
+    function addMarker(isMultiple, location, title) {
+        if (location.lat == 0 || location.lng == 0) {
+            return;
+        }
+        var marker;
+        var markerResult;
+        var markerNearMyHouse;
+        //var infowindow;
+        //var infowindowResult;
+        //var infowindowNearMyHouse;
+        var iconPath = "http://maps.google.com/mapfiles/ms/icons/red-dot.png";
+        var dataContent = title.split("|");
+        //https://webclub.tppwb.be/Uploads/1027/Royal%20Leopold%20Club_Presentation.jpg
+        var contentInfoWindow = "";
+        if (title != "") {
+            contentInfoWindow = "<div style='font-size:10px;'>" +
+                "<div style='float:left; width:50%;'>" +
+                "<img style='width:80px; height:50px;' src='" + dataContent[7] + "' />" +
+                "</div>" +
+                "<div style='float:left; width:50%; padding-left:5px;'>" +
+                (dataContent[0] != "" ? "<span>" + dataContent[0] + "</span><br/>" : "") +
+                (dataContent[1] != "" ? "<span>" + dataContent[1] + "</span><br/>" : "") +
+                (dataContent[2] != "" || dataContent[3] != "" ? "<span>" + dataContent[2] + " " + dataContent[3] + "</span><br/>" : "") +
+                (dataContent[4] != "" ? "<span>" + dataContent[4] + "</span><br/>" : "") +
+                (dataContent[5] != "" ? "<a href='" + (dataContent[5].toString().toLowerCase().lastIndexOf("http", 0) === 0 ? dataContent[5] : "http://" + dataContent[5]) + "' target='_blank'>" + dataContent[5] + "</a><br/>" : "") +
+                (dataContent[6] != "" ? "<a href='mailto:" + dataContent[6] + "' target='_top'>" + dataContent[6] + "</a>" : "") +
+                "</div>" +
+                "</div>";
+        }
+
+        if (isMultiple == "Region") {
+            marker = new google.maps.Marker({
+                position: location,
+                icon: new google.maps.MarkerImage(iconPath),
+                map: mapMultiple
+            });
+            marker.id = location.lat.toString() + "-" + location.lng.toString();
+            multipleMarkers.push(marker);
+            //infoWindowRegion = new google.maps.InfoWindow({
+            //    content: contentInfoWindow
+            //});
+            marker.addListener('click', function () {
+                infoWindowRegion.setContent(contentInfoWindow);
+                infoWindowRegion.open(mapMultiple, marker);
+            });
+        } else if (isMultiple == "Result") {
+            markerResult = new google.maps.Marker({
+                position: location,
+                icon: new google.maps.MarkerImage(iconPath),
+                map: mapResultMultiple
+            });
+            markerResult.id = location.lat.toString() + "-" + location.lng.toString();
+            resultMultipleMarkers.push(markerResult);
+            //infowindowResult = new google.maps.InfoWindow({
+            //    content: contentInfoWindow
+            //});
+            markerResult.addListener('click', function () {
+                infoWindowResult.setContent(contentInfoWindow);
+                infoWindowResult.open(mapResultMultiple, markerResult);
+            });
+        } else if (isMultiple == "NearMyHouse") {
+            markerNearMyHouse = new google.maps.Marker({
+                position: location,
+                icon: new google.maps.MarkerImage(iconPath),
+                map: mapNearMyHouseMultiple
+            });
+            markerNearMyHouse.id = location.lat.toString() + "-" + location.lng.toString();
+            nearMyHouseMultipleMarkers.push(markerNearMyHouse);
+            //infowindowNearMyHouse = new google.maps.InfoWindow({
+            //    content: contentInfoWindow
+            //});
+            markerNearMyHouse.addListener('click', function () {
+                infoWindowNearMyHouse.setContent(contentInfoWindow);
+                infoWindowNearMyHouse.open(mapNearMyHouseMultiple, markerNearMyHouse);
+            });
+        } else {
+            deleteMarkers("");
+            marker = new google.maps.Marker({
+                position: location,
+                icon: new google.maps.MarkerImage(iconPath),
+                map: map
+            });
+            markers.push(marker);
+        }
+    }
+
+    function showInfoWindow(isMultiple, location, title) {
+        var infoId = "id" + location.lat.toString() + "-" + location.lng.toString();
+        var infowindow = new google.maps.InfoWindow({
+            width: 50,
+            disableAutoPan: true,
+            content: "<div id='" + infoId + "' class='info-content'>" + title + "</div>"
+        });
+
+        infowindow.setPosition(location);
+        infowindow.open(mapMultiple);
+        //google.maps.event.addListener(infowindow, 'domready', function () {
+        //    //$("#" + infoId).closest('.gm-style-iw').parent().addClass('custom-iw');
+        //});
+    }
+
+    // Sets the map on all markers in the array.
+    function setMapOnAll(isMultiple, map) {
+        if (isMultiple == "Region") {
+            for (var i = 0; i < multipleMarkers.length; i++) {
+                multipleMarkers[i].setMap(map);
+            }
+        } else if (isMultiple == "Result") {
+            for (var i = 0; i < resultMultipleMarkers.length; i++) {
+                resultMultipleMarkers[i].setMap(map);
+            }
+        } else if (isMultiple == "NearMyHouse") {
+            for (var i = 0; i < nearMyHouseMultipleMarkers.length; i++) {
+                nearMyHouseMultipleMarkers[i].setMap(map);
+            }
+        } else {
+            for (var j = 0; j < markers.length; j++) {
+                markers[j].setMap(map);
+            }
+        }
+    }
+
+    function clearLocation(isMultiple, location) {
+        if (isMultiple == "Region") {
+            for (var i = 0; i < multipleMarkers.length; i++) {
+                if (multipleMarkers[i].id === location.lat.toString() + "-" + location.lng.toString()) {
+                    multipleMarkers[i].setMap(null);
+                    multipleMarkers.splice(i, 1);
+                    break;
+                }
+            }
+        } else if (isMultiple == "Result") {
+            for (var i = 0; i < resultMultipleMarkers.length; i++) {
+                if (resultMultipleMarkers[i].id === location.lat.toString() + "-" + location.lng.toString()) {
+                    resultMultipleMarkers[i].setMap(null);
+                    resultMultipleMarkers.splice(i, 1);
+                    break;
+                }
+            }
+        } else if (isMultiple == "NearMyHouse") {
+            for (var i = 0; i < nearMyHouseMultipleMarkers.length; i++) {
+                if (nearMyHouseMultipleMarkers[i].id === location.lat.toString() + "-" + location.lng.toString()) {
+                    nearMyHouseMultipleMarkers[i].setMap(null);
+                    nearMyHouseMultipleMarkers.splice(i, 1);
+                    break;
+                }
+            }
+        }
+    }
+
+    function changeColorMarker(isMultiple, element, valueLatLng, outOrOver) {
+        if (typeof google === "undefined") {
+            return;
+        }
+        var latlng = valueLatLng.split('-');
+        var pos = {
+            lat: parseFloat(latlng[0].replace(',', '.')),
+            lng: parseFloat(latlng[1].replace(',', '.'))
+        };
+        if (pos.lat != 0 && pos.lng != 0) {
+            var colorIcon = "http://maps.google.com/mapfiles/ms/icons/red-dot.png";
+            if (outOrOver == "over") {
+                colorIcon = "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png";
+            }
+
+            if (isMultiple == "Region") {
+                mapMultiple.setCenter(pos);
+                for (var i = 0; i < multipleMarkers.length; i++) {
+                    if (multipleMarkers[i].id === pos.lat.toString() + "-" + pos.lng.toString()) {
+                        multipleMarkers[i].setIcon(new google.maps.MarkerImage(colorIcon));
+                        break;
+                    }
+                }
+            } else if (isMultiple == "Result") {
+                mapResultMultiple.setCenter(pos);
+                for (var i = 0; i < resultMultipleMarkers.length; i++) {
+                    if (resultMultipleMarkers[i].id === pos.lat.toString() + "-" + pos.lng.toString()) {
+                        resultMultipleMarkers[i].setIcon(new google.maps.MarkerImage(colorIcon));
+                        break;
+                    }
+                }
+            } else if (isMultiple == "NearMyHouse") {
+                mapNearMyHouseMultiple.setCenter(pos);
+                for (var i = 0; i < nearMyHouseMultipleMarkers.length; i++) {
+                    if (nearMyHouseMultipleMarkers[i].id === pos.lat.toString() + "-" + pos.lng.toString()) {
+                        //nearMyHouseMultipleMarkers[i].setIcon(new google.maps.MarkerImage(colorIcon));
+                        nearMyHouseMultipleMarkers[i].setIcon(new google.maps.MarkerImage(colorIcon));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Removes the markers from the map, but keeps them in the array.
+    function clearMarkers(isMultiple) {
+        setMapOnAll(isMultiple, null);
+    }
+
+    // Shows any markers currently in the array.
+    function showMarkers(isMultiple) {
+        if (isMultiple == "Region") {
+            setMapOnAll(isMultiple, mapMultiple);
+        } else if (isMultiple == "Result") {
+            setMapOnAll(isMultiple, mapResultMultiple);
+        } else if (isMultiple == "NearMyHouse") {
+            setMapOnAll(isMultiple, mapNearMyHouseMultiple);
+        } else {
+            setMapOnAll(isMultiple, map);
+        }
+    }
+
+    // Deletes all markers in the array by removing references to them.
+    function deleteMarkers(isMultiple) {
+        clearMarkers(isMultiple);
+        if (isMultiple == "Region") {
+            multipleMarkers = [];
+        } else if (isMultiple == "Result") {
+            resultMultipleMarkers = [];
+        } else if (isMultiple == "NearMyHouse") {
+            nearMyHouseMultipleMarkers = [];
+        } else {
+            markers = [];
+        }
+    }
+
+    function initMap() {
+        var mapOptions = {
+            zoom: 15,
+            center: { lat: 4.5325502, lng: 50.3387427 },
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        }
+        geocoder = new google.maps.Geocoder();
+        map = new google.maps.Map(document.getElementById('map'), mapOptions);
+    }
+
+    function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+        infoWindow = new google.maps.InfoWindow();
+        infoWindow.setPosition(pos);
+        infoWindow.setContent(browserHasGeolocation ?
+            'Error: The Geolocation service failed.' :
+            'Error: Your browser doesn\'t support geolocation.');
+    }
+
+    function buildAddress() {
+        var street = $("#StreetNumber").val();
+        var zipCode = $("#ZipCode").val();
+        var city = $("#City").val();
+
+        return street + " " + zipCode + " " + city;
+    }
+
+    function setLocationByAddress() {
+        initMap();
+        google.maps.event.clearListeners(map, 'click');
+        var address = buildAddress().trim();
+        if (address.length == 0) {
+            $("#map").hide();
+            return;
+        }
+        geocoder.geocode({ 'address': address }, function (results, status) {
+            switch (status) {
+                case google.maps.GeocoderStatus.OK:
+                    $("#hdPositionLatitude").val(parseFloat(results[0].geometry.location.lat()).toFixed(7));
+                    $("#hdPositionLongitude").val(parseFloat(results[0].geometry.location.lng()).toFixed(7));
+                    map.setCenter(results[0].geometry.location);
+                    addMarker("", results[0].geometry.location, "");
+                    //mapVenueAddress(results[0]);
+                    break;
+                default:
+                    alert("An error occured while validating this address:" + status);
+                    $("#map").hide();
+            }
+        });
+
+    }
+
+    var apiGeolocationSuccess = function (position) {
+        var pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+        };
+        $("#hdPositionLatitude").val(parseFloat(pos.lat).toFixed(7));
+        $("#hdPositionLongitude").val(parseFloat(pos.lng).toFixed(7));
+        map.setCenter(pos);
+        addMarker("", pos, "");
+    };
+
+    var tryAPIGeolocation = function () {
+        jQuery.post("https://www.googleapis.com/geolocation/v1/geolocate?key=AIzaSyCX8o5tgId3vZpNrfC1zMG9Oh_qkraTQoA", function (success) {
+            apiGeolocationSuccess({ coords: { latitude: success.location.lat, longitude: success.location.lng } });
+        })
+      .fail(function (err) {
+          alert("API Geolocation error! \n\n" + err);
+      });
+    };
+
+    var browserGeolocationSuccess = function (position) {
+        var pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+        };
+        $("#hdPositionLatitude").val(parseFloat(pos.lat).toFixed(7));
+        $("#hdPositionLongitude").val(parseFloat(pos.lng).toFixed(7));
+        map.setCenter(pos);
+        addMarker("", pos, "");
+    };
+
+    var browserGeolocationFail = function (error) {
+        switch (error.code) {
+            case error.TIMEOUT:
+                alert("Browser geolocation error !\n\nTimeout.");
+                break;
+            case error.PERMISSION_DENIED:
+                if (error.message.indexOf("Only secure origins are allowed") == 0) {
+                    tryAPIGeolocation();
+                }
+                break;
+            case error.POSITION_UNAVAILABLE:
+                alert("Browser geolocation error !\n\nPosition unavailable.");
+                break;
+        }
+    };
+
+    var tryGeolocation = function () {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                browserGeolocationSuccess,
+              browserGeolocationFail,
+              { maximumAge: 50000, timeout: 20000, enableHighAccuracy: true });
+        }
+    };
+
+    function setMyLocation() {
+        initMap();
+        google.maps.event.clearListeners(map, 'click');
+        // Try HTML5 geolocation.
+        tryGeolocation();
+    }
+    function setLocation() {
+        initMap();
+        tryGeolocation();
+        google.maps.event.addListener(map, 'click', function (e) {
+            addMarker("", e.latLng, "");
+            $("#hdPositionLatitude").val(parseFloat(e.latLng.lat()).toFixed(7));
+            $("#hdPositionLongitude").val(parseFloat(e.latLng.lng()).toFixed(7));
+        });
+    }
+    function showMaps() {
+        var target = $("#ulClubsSearchTabs li.active a").attr("data-target");
+        if (target == "#tabMyRegion") {
+            $("#mapForGrid").show();
+            $("#mapNearMyHouse").hide();
+            $("#mapGridResult").hide();
+            loadGoogleMapsApi('showMapForGridRegion');
+        } else if (target == "#tabNearMyHouse") {
+            $("#mapNearMyHouse").show();
+            $("#mapForGrid").hide();
+            $("#mapGridResult").hide();
+            loadGoogleMapsApi('showMapForGridNearMyHouse');
+        }
+        else if (target == "#tabSearchResult") {
+            $("#mapGridResult").show();
+            $("#mapForGrid").hide();
+            $("#mapNearMyHouse").hide();
+            loadGoogleMapsApi('showMapForGridResult');
+        }
+    }
+    function showMapForGridRegion() {
+        infoWindowRegion = new google.maps.InfoWindow({
+            content: ""
+        });
+
+        //init for map which shows multiple markers
+        //geocoderMultiple = new google.maps.Geocoder();
+        var mapMultipleOptions = {
+            zoom: 8,
+            center: { lat: 4.5325502, lng: 50.3387427 },
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        }
+
+        mapMultiple = new google.maps.Map(document.getElementById('mapForGrid'), mapMultipleOptions);
+        multipleMarkers = [];
+        if ($("#myRegionLatLng").val() != "") {
+            var combineLatLng = $("#myRegionLatLng").val().split('[');
+            var isSetCenter = false;
+            for (var i = 0; i < combineLatLng.length; i++) {
+                var latlng = combineLatLng[i].split('>');
+                if (latlng.length >= 2) {
+                    var pos = {
+                        lat: parseFloat(latlng[0].replace(',', '.')),
+                        lng: parseFloat(latlng[1].replace(',', '.'))
+                    };
+                    if (pos.lat == 0 || pos.lng == 0) {
+                        continue;
+                    }
+                    if (!isSetCenter) {
+                        mapMultiple.setCenter(pos);
+                        isSetCenter = true;
+                    }
+
+                    addMarker("Region", pos, latlng[2]);
+                }
+            }
+        }
+    }
+
+    function showMapForGridNearMyHouse() {
+        infoWindowNearMyHouse = new google.maps.InfoWindow({
+            content: ""
+        });
+        //geocoderMultiple = new google.maps.Geocoder();
+        var mapNearMyHouseOption = {
+            zoom: 8,
+            center: { lat: 4.5325502, lng: 50.3387427 },
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        }
+
+        mapNearMyHouseMultiple = new google.maps.Map(document.getElementById("mapNearMyHouse"), mapNearMyHouseOption);
+        nearMyHouseMultipleMarkers = [];
+
+        if ($("#nearMyHouseLatLng").val() != "") {
+            var combineLatLng = $("#nearMyHouseLatLng").val().split('[');
+            var isSetCenter = false;
+            for (var i = 0; i < combineLatLng.length; i++) {
+                var latlng = combineLatLng[i].split('>');
+                if (latlng.length >= 2) {
+                    var pos = {
+                        lat: parseFloat(latlng[0].replace(',', '.')),
+                        lng: parseFloat(latlng[1].replace(',', '.'))
+                    };
+                    if (pos.lat == 0 || pos.lng == 0) {
+                        continue;
+                    }
+                    if (!isSetCenter) {
+                        mapNearMyHouseMultiple.setCenter(pos);
+                        isSetCenter = true;
+                    }
+                    addMarker("NearMyHouse", pos, latlng[2]);
+                }
+            }
+        }
+    }
+
+    function showMapForGridResult() {
+        infoWindowResult = new google.maps.InfoWindow({
+            content: ""
+        });
+        //geocoderMultiple = new google.maps.Geocoder();
+        var mapResultOption = {
+            zoom: 8,
+            center: { lat: 4.5325502, lng: 50.3387427 },
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        }
+
+        mapResultMultiple = new google.maps.Map(document.getElementById("mapGridResult"), mapResultOption);
+        resultMultipleMarkers = [];
+
+        if ($("#myResultLatLng").val() != "") {
+            var combineLatLng = $("#myResultLatLng").val().split('[');
+            var isSetCenter = false;
+            for (var i = 0; i < combineLatLng.length; i++) {
+                var latlng = combineLatLng[i].split('>');
+                if (latlng.length >= 2) {
+                    var pos = {
+                        lat: parseFloat(latlng[0].replace(',', '.')),
+                        lng: parseFloat(latlng[1].replace(',', '.'))
+                    };
+                    if (pos.lat == 0 || pos.lng == 0) {
+                        continue;
+                    }
+                    if (!isSetCenter) {
+                        mapResultMultiple.setCenter(pos);
+                        isSetCenter = true;
+                    }
+                    addMarker("Result", pos, latlng[2]);
+                }
+            }
+        }
+    }
+
+    function setLocationByLatLng(isMultiple, element) {
+        var latlng = $(element).val().split('-');
+        if (latlng.length >= 2 & latlng[0] != "" && latlng[1] != "") {
+            var pos = {
+                lat: parseFloat(latlng[0].replace(',', '.')),
+                lng: parseFloat(latlng[1].replace(',', '.'))
+            };
+            if ($(element).is(':checked')) {
+                if (isMultiple == "Region") {
+                    mapMultiple.setCenter(pos);
+                } else if (isMultiple == "Result") {
+                    mapResultMultiple.setCenter(pos);
+                }
+
+                addMarker(isMultiple, pos, latlng[2]);
+            } else {
+                clearLocation(isMultiple, pos);
+            }
+        }
+    }
+
+    function searchClub() {
+        var regions = [];
+        $("input[name=Regions]:checked").each(function () {
+            regions.push($(this).val());
+        });
+        var courtIndoor = false;
+        var courtOutdoor = false;
+        if ($("#CourtIndoor").is(":checked")) {
+            courtIndoor = true;
+        }
+        if ($("#CourtOutdoor").is(":checked")) {
+            courtOutdoor = true;
+        }
+        var indoorSurface = $("#IndoorSurface").val();
+        var outdoorSurface = $("#OutdoorSurface").val();
+        var indoorNumberOfCourts = $("#IndoorNumberOfCourts").val();
+        var outdoorNumberOfCourts = $("#OutdoorNumberOfCourts").val();
+        var indoorLighting = false;
+        if ($("#IndoorLighting").is(":checked")) {
+            indoorLighting = true;
+        }
+        var outdoorLighting = false;
+        if ($("#OutdoorLighting").is(":checked")) {
+            outdoorLighting = true;
+        }
+        var clubLabels = [];
+        $("input[name=ClubLabels]:checked").each(function () {
+            clubLabels.push($(this).val());
+        });
+
+        var streetNumber = "";
+        var zipCode = "";
+        var city = "";
+        if ($("#chkAddress").is(":checked")) {
+            streetNumber = $("#StreetNumber").val();
+            zipCode = $("#ZipCode").val();
+            city = $("#City").val();
+        }
+
+        var url = "/MyAFT/Clubs/SearchClubs";
+        var data = {
+            "regions": regions.toString(),
+            "ClubIdFrom": $("#ClubIdFrom").val(),
+            "ClubIdTo": $("#ClubIdTo").val(),
+            "NameFrom": $("#NameFrom").val(),
+            "NameTo": $("#NameTo").val(),
+            "ZipCodeFrom": $("#ZipCodeFrom").val(),
+            "ZipCodeTo": $("#ZipCodeTo").val(),
+            "Radius": $("#Radius").val(),
+            "Latitude": $("#hdPositionLatitude").val(),
+            "Longitude": $("#hdPositionLongitude").val(),
+            "CourtIndoor": courtIndoor,
+            "CourtOutdoor": courtOutdoor,
+            "IndoorSurface": indoorSurface,
+            "OutdoorSurface": outdoorSurface,
+            "IndoorNumberOfCourts": indoorNumberOfCourts,
+            "OutdoorNumberOfCourts": outdoorNumberOfCourts,
+            "IndoorLighting": indoorLighting,
+            "OutdoorLighting": outdoorLighting,
+            "ClubLabels": clubLabels.toString(),
+            "StreetNumber": streetNumber,
+            "ZipCode": zipCode,
+            "City": city
+        };
+
+        $.BigLoading();
+        $.post(url, data, function (res) {
+            $.RemoveBigLoading();
+            $("#tabSearchResult").html(res);
+            $("#tabResult").click();
+        });
+    }
+    function loadGoogleMapsApi(callbackFn) {
+        if (callbackFn == "setMyLocation" || callbackFn == "setLocationByAddress" || callbackFn == "setLocation") {
+            $("#map").show();
+        }
+        if (typeof google === "undefined") {
+            var script = document.createElement("script");
+            script.src = "http://maps.google.com/maps/api/js?key=AIzaSyCX8o5tgId3vZpNrfC1zMG9Oh_qkraTQoA&callback=" + callbackFn;
+            document.getElementsByTagName("head")[0].appendChild(script);
+        } else {
+            if (callbackFn != "") {
+                eval(callbackFn + "()");
+            }
+        }
+
+    }
+</script>
+
+                </div>
+                <div class="bottom-partners">
+                    <img src="https://tennis.tppwb.be/Aftnet/media/Media/Pictures/partenaires.jpg" alt="">
+                </div>
+            </div>
+            <div id="blockAd-right" style="padding-top: 120px">
+                
+
+
+
+
+            </div>
+        </div>
+    </div>
+    <div id="context-menu">
+    </div>
+    <footer>
+    
+
+
+<div class="logos-wrapper">
+    <h2 style="font-weight: bold;">Nos partenaires</h2>
+    <ul class="center">
+            <li>
+                <a target="_blank" href="https://www.ethias.be/"><img src="https://tennis.tppwb.be/getattachment/b03f172a-85a3-4bea-b5e4-f025463b0466/logo-ethias-40-trans.png"></a>
+            </li>
+    </ul>
+    <ul class="primary">
+            <li>
+                <a target="_blank" href="https://www.loterie-nationale.be"><img src="https://tennis.tppwb.be/getattachment/50b40c66-7d85-47df-972b-ca12a96c813f/logo_lotto_circle_cs5.png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://fr.tennis-point.be/wilson/?refID=partnerseiten/verbaende/be/aft/website/logo/&amp;utm_medium=federation&amp;utm_source=AFT&amp;utm_campaign=partnerlogo&amp;utm_content=websitehomepage&amp;utm_term=TP_BE"><img src="https://tennis.tppwb.be/getattachment/4811e2b3-3076-46de-ab55-1faf69c35215/tennispoint.png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://www.wilson.com/fr-fr "><img src="https://tennis.tppwb.be/getattachment/f420ec49-e4ed-4dfe-ab68-9051bb611584/wilson-(1).png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://www.luxilon.tennis/fr/"><img src="https://tennis.tppwb.be/getattachment/811a7c6d-8a11-441d-bb5b-e384b2b14b70/luxilonlxnlogo2013.png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://royalswinkels.com/fr"><img src="https://tennis.tppwb.be/getattachment/eeeb983b-5fb4-45dd-af4e-2dd7d7cb7e3a/cornet-small-2-(1).png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://www.autosphere.be/"><img src="https://tennis.tppwb.be/getattachment/a046693b-196f-4451-a6fe-42090b1311c2/autosphere-h30.png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://www.ice-watch.com/be-fr/"><img src="https://tennis.tppwb.be/getattachment/5de52e94-6aaf-49e5-918b-9acb999ef917/logo-ice-watch-66.png"></a>
+            </li>
+    </ul>
+    <ul class="medias">
+            <li>
+                <a target="_blank" href="https://www.dswallonie.be/fr/"><img src="https://tennis.tppwb.be/getattachment/3f73f4ed-16e2-4349-9b4c-9f600a0beb42/logo-xerox.png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://www.flexy.be/"><img src="https://tennis.tppwb.be/getattachment/dc4d8d6b-adac-4e67-b5ff-e1b7d7f057fd/logo-flexyenergie.png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://www.martinshotels.com/"><img src="https://tennis.tppwb.be/getattachment/4684723d-d6fa-4205-ac8d-72af73645a6d/00-mh-2022-logo-2l-432.png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://atfield.be/"><img src="https://tennis.tppwb.be/getattachment/37aa0a1b-8226-4833-a70d-bf77c91e79c9/atfiel_120x30.png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="http://www.lesoir.be"><img src="https://tennis.tppwb.be/getattachment/91f8de83-29c5-4960-ac88-aa210489eb6a/le-soir.png"></a>
+            </li>
+            <li>
+                <a target="_blank" href="http://www.sudinfo.be/"><img src="https://tennis.tppwb.be/getattachment/c6eb774c-f910-4096-b95c-0f8add2ab406/sudinfo_rvb.jpg"></a>
+            </li>
+            <li>
+                <a target="_blank" href="https://www.big-captain.com/be/"><img src="https://tennis.tppwb.be/getattachment/3fa77d1f-dd2b-4f0b-a1a6-b5905d5841be/logo-big-captain.png"></a>
+            </li>
+    </ul>
+</div>
+
+    <div class="nav">
+        <div class="wrap">
+            <div class="nav">
+    <div class="wrap">
+            
+        <nav class="fixed">
+            <ul id="menuElem">
+                <li>
+                    <a href="/ACCUEIL">ACCUEIL</a>
+                </li>
+                <li>
+                    <a href="/MyAFT/Players">JOUEURS</a>
+                </li>
+                <li>
+                    <a href="/MyAFT/Clubs">CLUBS</a>
+                </li>
+                <li>
+                    <a href="/MyAFT/Competitions">COMPETITIONS</a>
+                </li>
+                <li>
+                    <a href="/TOP-TENNIS">TOP TENNIS</a>
+                </li>
+                <li>
+                    <a href="/FORMATIONS">FORMATIONS</a>
+                </li>
+                <li>
+                    <a href="/OFFICIELS">OFFICIELS</a>
+                </li>
+                <li>
+                    <a href="/ORGANISATIONS">ORGANISATIONS</a>
+                </li>
+                <li>
+                    <a href="/REGIONS">RÉGIONS</a>
+                </li>
+                <li>
+                    <a href="/FORMATIONS-(1)">FORMATIONS DEV</a>
+                </li>
+            </ul>
+        </nav>
+        <span>© Copyright AFT</span>
+    </div>
+</div>
+            <span>© Copyright AFT</span>
+        </div>
+    </div>
+</footer>
+
+<div class="modal aft_registration_warning">
+    <div class="__content">
+        <div class="closemodal"><i class="closemodal fa-regular fa-xmark"></i></div>
+        <h2>Afin :</h2>
+        <ol>
+          <li>D’éviter un blocage du système vu le nombre élevé de joueurs et joueuses qui se connectent en même temps.</li>
+          <li>De mieux répartir les inscriptions entre les différentes catégories.</li>
+        </ol>
+        <p><i class="fa-duotone fa-arrow-right"></i>Nous avons modifié les dispositions des inscriptions aux tournois, voici les nouvelles :</p>
+        <dl>
+          <dt>Lundi 19 heures:</dt><dd>Jeunes</dd>
+          <dt>Lundi 20 heures:</dt><dd>Dames et Doubles</dd>
+          <dt>Lundi 21 heures:</dt><dd>Vétérans (Dames et Messieurs)</dd>
+          <dt>Mardi 19 heures:</dt><dd>Messieurs (catégories 6 et 5)</dd>
+          <dt>Mardi 20 heures:</dt><dd>Messieurs (catégories 4 et 3)</dd>
+          <dt>Mardi 21heures :</dt><dd>Messieurs (catégories 2 et 1)</dd>
+        </dl>
+        <p class="warning"><strong>Attention</strong>: il s'agit bien des heures auxquelles les inscriptions sont ouvertes! Une fois ouvertes, elles le restent jusqu'à ce que le nombre d'inscriptions défini par le juge-arbitre soit atteint dans ladite catégorie ou lorsque le nombre total d'inscriptions pour le tournoi soit atteint.</p>
+    </div>
+    <div class="__mask"></div>
+</div>
+
+<script src="/CMSScripts/AFTnet/jquery.cookies.2.2.0.min.js"></script>
+<script type="text/javascript">
+    jQuery(function($){
+        // MODAL
+        $('.modal').on('click', '.__mask, .closemodal', function(){
+          $('.modal').fadeOut('fast');
+        });
+        if($.cookie('modal_registration') != '1'){
+          $('.modal.aft_registration_warning').css('display', 'flex');
+          $.cookie('modal_registration', '1', { path: '/', expires: 360 })
+        }
+    });
+</script>
+    <div class="modal" id="modalDialog" role="dialog" data-backdrop="static" data-keyboard="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="btn btn-icon close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body">
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal" id="modalSendMailDialog" role="dialog" data-backdrop="static" data-keyboard="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalError" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="btn btn-icon close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Un problème est survenu - AFTnet</h4>
+            </div>
+            <div id="modalError_Content" class="modal-body">
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalProblem" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalNextSubscription" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div style="padding:20px">
+                <p id="nonOnlinePaymentMessage" style="display: none"> L’inscription a été enregistrée avec succès.</p>
+                <div id="paymentOnlineMessage" style="display: none">
+                    <hr />
+                    <strong style="color:red">Attention : le paiement de votre inscription à ce tournoi se fait exclusivement en ligne.</strong><br />
+                    Veuillez effectuer le paiement en suivant les instructions contenues dans l'e-mail que vous allez recevoir, ou en cliquant sur le bouton "Payer mon inscription" qui apparaîtra dans votre espace "<a style="font-weight: bold" href="/MyAFT/">Mes inscriptions</a>" (cela peut prendre 1 ou 2 minutes).<br />
+                    Le paiement doit être effectué dans le délai indiqué. Votre inscription ne sera validée qu'après réception du paiement.
+                </div>
+                <div id="tennisPointMessage_Deactivate" style="display: none">
+                    <hr />
+                    Merci pour votre participation au Critérium Tennis-Point !<br />
+                    Notre partenaire Tennis-Point vous offre 10% de remise à l’achat de minimum 80€ sur leur site.<br />
+                    Le code promotionnel est le suivant : <span style="font-weight: bold; font-family: sans-serif">CRITERIUMTP25</span><br />
+                    <i>Ce code n’est utilisable qu’une seule fois par personne et ne peut être combiné avec d’autres promotions.</i><br />
+                    Certains produits, tels que les offres quotidiennes, les balles, les raquettes d'essai, les produits de running, peuvent être exclus.<br />
+                    Rendez-vous sur le site de <a style="font-weight: bold" href="https://fr.tennis-point.be/wilson/?refID=partnerseiten/verbaende/be/aft/website/banner/&utm%5C_medium=federation&utm%5C_source=AFT&utm%5C_campaign=wilson&utm%5C_content=bannerhomepage&utm%5C_term=TP%5C_BE" target="_blank">Tennis-Point</a>
+                </div>
+                <hr />
+                <p> Voulez-vous effectuer une inscription dans une autre catégorie pour ce tournoi ?</p>
+                <div style="text-align: center">
+                    <button type="button" class="btn btn-danger nextSubscription" onclick="nextSubscription(true)">Oui</button>
+                    <button type="button" class="btn btn-default nextSubscription" onclick="nextSubscription(false)">Non</button>
+                    <input type="hidden" id="hdRefreshIDTournoi" />
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<div class="modal fade" id="loginModal" role="dialog">
+    <div class="form-signin">
+        <form action="/MyAFT/Home/Login" data-ajax="true" data-ajax-begin="OnBegin" data-ajax-complete="OnComplete" data-ajax-failure="OnFailure" data-ajax-success="onQuickLoginSuccess" id="form0" method="post">    <div class="modal-dialog">        
+        <div class="modal-content">
+            <div class="modal-header" style="padding: 20px 50px;background-color: #FFF">
+                <div class="pull-right">
+                    <img style="height: 50px;" src="/MyAFT/Content/Images/logo.svg">
+                </div>
+                <h1 class="pull-left">
+                    <span class="glyphicon glyphicon-lock"></span> Connexion
+                </h1>
+                <div class="clearfix"></div>
+            </div>
+            <div class="modal-body" style="padding: 20px 50px;">
+                <form role="form">
+                    <div class="form-group">
+                        <label for="affiliationNumber"><span class="glyphicon glyphicon-user"></span> Numéro d'affiliation:</label>
+                        <input type="text" class="form-control" id="affiliationNumber" name="affiliationNumber"  required autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="pinCode"><span class="glyphicon glyphicon-eye-open"></span> Code PIN:</label>
+                        <input type="password" class="form-control" id="pinCode" name="pinCode" value="" required>
+                    </div>
+                    <div id="loginMessage" class="alert alert-danger" style="display: none">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="btnQuickLogin"><span class="glyphicon glyphicon-off"></span> Se connecter</button>
+                    <a href="/MyAFT/Home/Login" class="btn btn-primary btn-block"><span class="glyphicon glyphicon-user"></span> Se connecter avec un autre compte</a>
+                </form>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</form>
+    </div>
+</div>
+<div class="modal fade" id="updatePinCodeModal" role="dialog">
+    <div class="form-signin">
+        <form action="/MyAFT/Home/UpdatePinCodeAndActivePlayer" id="formUpdatePinCode" method="post"><input name="__RequestVerificationToken" type="hidden" value="tpAfefCKLu7z0yXVVPJkZX_EZc1PT1NBhztMKOXooxFxpEHndOu6_zJH5hwg-qY3k9MCcXc02V7coRu-EcaW_zq56zM1" />    <input type="hidden" name="numFed" />
+    <input type="hidden" name="token" />
+            <div class="modal-dialog">
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Modifier mon code PIN</h4>
+                    </div>
+                    <div class="modal-body" style="padding: 20px 50px;">
+                        <p>
+                            Pour des raisons de sécurité, nous vous conseillons de modifier régulièrement votre code PIN. Toutefois, si vous le souhaitez, vous pouvez garder l'ancien.
+                        </p>
+                        <div class="form-group">
+                            <label for="newPinCode"><span class="glyphicon glyphicon-eye-open"></span> Nouveau code PIN:</label>
+                            <input type="password" class="form-control" id="newPinCode" name="newPinCode" required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="pinCode2"><span class="glyphicon glyphicon-eye-open"></span> Confirmation du code PIN:</label>
+                            <input type="password" class="form-control" id="pinCode2" name="pinCode2" required autocomplete="off">
+                        </div>
+                        <div id="loginMessage" class="alert alert-danger" style="display: none">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        
+                        <button type="submit" class="btn btn-primary">Sauvegarder</button>                        
+                    </div>
+                </div>
+            </div>
+</form><script type="text/javascript">
+    $("#formUpdatePinCode").validate({
+        rules: {
+            newPinCode: {
+                required: true,
+                minlength: 4,
+                maxlength: 10
+            },
+            pinCode2: {
+                required: true,
+                equalTo: "#newPinCode",
+                minlength: 4
+            }
+        },
+        messages: {
+            newPinCode: {
+                required: "This field is required.",
+                minlength: "Please enter at least {0} characters.",
+                maxlength: "Please enter no more than {0} characters."
+            },
+            pinCode2: {
+                required: "This field is required.",
+                equalTo: "Please enter the same value again."
+            }
+        }
+    }
+        );
+</script>
+    </div>
+</div>
+
+  
+                            
+    <div class="modal fade" id="modalAffiliation" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button class="btn btn-icon close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">TPPWB</h4>
+                </div>
+                <div class="modal-body">
+                    <p></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+<!--use for reloading data after session timeout -->
+    <input type="hidden" id="hdUpdateTargetId" value="" />
+    <input type="hidden" id="hdUpdateLoadUrl" value="" />
+    <input type="hidden" id="hdFuncRefresh" value="" />
+    <input type="hidden" id="hdFuncRefreshSecond" value="" />
+    <input type="hidden" id="hdFuncRefreshThird" value="" />
+    <input type="hidden" id="hdOpenTournoiUrl" value="" />
+
+    <script src="/MyAFT/Scripts/bootstrap-contextmenu.js" type="text/javascript"></script>
+    <link href="/MyAFT/Content/jquery.jqplot.min.css" rel="stylesheet"/>
+
+    <script src="/MyAFT/Scripts/jqplot?v=RiKzcTJUfgXsETnkYXsROpZJCZNWjWnd1lNfxMccfaE1"></script>
+
+    
+
+    <script type="text/javascript">
+        //var interval = setInterval("checkSessionTimeout()", 10000);
+        var adsBannerUrl = "/MyAFT/MyInterclubs/GetAdsBanner";
+        var historyDataUrl = "/MyAFT/Home/HistoryData";
+        function checkSessionTimeout() {
+            $.getJSON("/MyAFT/Home/CheckSessionTimeout", function (res) {
+                if (res.isExpired == 1) {
+                    //window.location = "/MyAFT/Home/Login";
+                    $("#loginModal").modal();
+                    window.clearInterval(interval);
+                }
+            });
+        }
+
+        function sendMailSuccess(res) {
+            if (res.result === true) {
+                alert("Email envoyé.");
+            } else {
+                alert(res.message);
+            }
+
+        }
+
+        function onQuickLoginSuccess(res) {
+            if (res.message == "OK") {
+                $("#loginModal").modal("hide");
+                $("#loginMessage").html("");
+                $("#loginMessage").hide();
+                $("#loginInfo").load("/MyAFT/Home/LoginInfo");
+                $("#hdFuncRefreshThird").val("");
+                loadDataAfterLogin();
+
+                if (res.existScheduleToConfirm) {
+                    showInformExistScheduleToConfirm(res.redirectUrl);
+                }
+
+                //interval = setInterval("checkSessionTimeout()", 10000);
+            } else {
+                $("#loginMessage").html(res.message);
+                $("#loginMessage").show();
+            }
+        }
+
+        function showInformExistScheduleToConfirm(redirectUrl) {
+            var url = "/MyAFT/Home/InformExistScheduleToConfirm";
+            url = url + "?redirectUrl=" + redirectUrl;
+            showModalDialogByUrl(url, 'Confirmation');
+        }
+        function confirmOrCancelScheduleForSeries(idTournoi, subscriptionNumber, dayDate, dayStartTime, dayEndTime, status, funcName, ele) {
+            if (status == "C") {
+                var text = "Votre présence au club est requise le ##DayDate## entre ##DayStartTime## et ##DayEndTime##.\n\nEn donnant votre accord vous confirmez votre horaire pour tous vos matchs de poule de cette catégorie à jouer le même jour.\n\nConfirmer?";
+                text = text.replace("##DayDate##", dayDate);
+                text = text.replace("##DayStartTime##", dayStartTime);
+                text = text.replace("##DayEndTime##", dayEndTime);
+                var res = confirm(text);
+                if (res) {
+                    var url = "/MyAFT/TournamentSubscription/ConfirmOrCancelScheduleForSeries";
+                    var data = { "idTournoi": idTournoi, "dayDate": dayDate, "dayStartTime": dayStartTime, "dayEndTime": dayEndTime, "subscriptionNumber": subscriptionNumber, "status": status };
+                    $.BigLoading();
+                    $.post(url, data, function (result) {
+                        if (funcName != "" && typeof funcName != "undefined") {
+                            if (funcName == "draw") {
+                                //replace comfirm schedule button by comfirmed status
+                                $(ele).removeAttr("onclick");
+                                $(ele).removeClass("btn-danger");
+                                $(ele).addClass("btn-success");
+                                $(ele).css("cursor", "auto");
+                                $(ele).html("C");
+                            } else {
+                                var tmpFunc = new Function(funcName);
+                                tmpFunc();
+                            }
+                        }
+                        $.RemoveBigLoading();
+                        alert("Votre confirmation a bien été enregistrée. Merci pour votre réponse.");
+                    });
+                }
+            }
+
+        }
+        function confirmOrCancelSchedule(idTournoi, idCategory, drawType, drawPosition, status, funcName, ele) {
+            var url = "/MyAFT/TournamentSubscription/ConfirmOrCancelSchedule";
+            var data = { "idTournoi": idTournoi, "idCategory": idCategory, "drawType": drawType, "drawPosition": drawPosition, "status": status };
+            $.BigLoading();
+            $.post(url, data, function (res) {
+                if (funcName != "" && typeof funcName != "undefined") {
+                    if (funcName == "draw") {
+                        //window.location.href = window.location.href;
+                        updateConfirmSchdule(drawPosition);
+                        //replace comfirm schedule button by comfirmed status
+                        $(ele).removeAttr("onclick");
+                        $(ele).removeClass("btn-danger");
+                        $(ele).addClass("btn-success");
+                        $(ele).css("cursor", "auto");
+                        $(ele).html("C");
+                    } else {
+                        var tmpFunc = new Function(funcName);
+                        tmpFunc();
+                    }
+                }
+                $.RemoveBigLoading();
+                alert("Votre confirmation a bien été enregistrée. Merci pour votre réponse.");
+            });
+        }
+
+        function refreshCategoriesList(idTournoi) {
+            if (idTournoi != null && idTournoi != undefined && $.trim(idTournoi) != "") {
+                $.post("/MyAFT/Tooltip/TournamentCategories", { id: idTournoi }, function (html) {
+                    $("#modalDialog .modal-body").html(html);
+                    setTimeout("$('#modalDialog').modal('show');", 333);
+                });
+            }
+        }
+
+        function addTournamentForMember(idTournoi, funcName) {
+            var numFed = "";
+            var url = "/MyAFT/MyTournois/AddTournamentsToFollow";
+            var data = { "idTournoi": idTournoi, "numFed": numFed };
+            $.BigLoading();
+            $.post(url, data, function (res) {
+                var tmpFunc = new Function(funcName);
+                tmpFunc();
+                $.RemoveBigLoading();
+            });
+        }
+
+        function deleteTournamentForMember(idTournoi, funcName) {
+            var numFed = "";
+            var url = "/MyAFT/MyTournois/DeleteTournamentsToFollow";
+            var data = { "idTournoi": idTournoi, "numFed": numFed };
+            $.BigLoading();
+            $.post(url, data, function (res) {
+                var tmpFunc = new Function(funcName);
+                tmpFunc();
+                $.RemoveBigLoading();
+            });
+        }
+
+        function openTournoiPage(url) {
+            $("#modalDialog").modal("hide");
+            window.open(url, '_blank');
+            window.focus();
+        }
+
+        function reportProblem() {
+            $("#modalProblem .modal-content").load("/MyAFT/MyProfile/BugReport", function () {
+                $("#BugReports").find(".k-grid-header").hide();
+                $("#modalProblem").modal('show');
+            });
+        }
+
+        function editBugReport(id) {
+            $("#modalProblem .modal-content").load("/MyAFT/MyProfile/EditBugReport" + "?id=" + id, function () {
+                $("#BugReports").find(".k-grid-header").hide();
+                $("#modalProblem").modal('show');
+            });
+        }
+
+        function deleteBugReport(id) {
+            $.post("/MyAFT/MyProfile/DeleteBugReport", { "id": id }, function (res) {
+                if (res.result) {
+                    reportProblem();
+                }
+            });
+        }
+
+        function onSubmitReportProblemSuccess(res) {
+            if (res.result) {
+                reportProblem();
+            }
+        }
+        function showMyAffiliationCard() {
+            $("#modalDialog .modal-body").load("/MyAFT/MyProfile/MyAffiliationCard", function () {
+                $("#modalDialog .modal-title").html('Carte affilié');
+                $("#modalDialog").modal('show');
+            });
+        }
+        $(function () {
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            } else {
+                $(window).bind('scroll', function () {
+                    if ($(window).scrollTop() > 147) {
+                        $('nav').addClass('fixed');
+                        $('.nav.nav-tabs.main-top').addClass('fixed');
+                    } else {
+                        $('nav').removeClass('fixed');
+                        $('.nav.nav-tabs.main-top').removeClass('fixed');
+                    }
+                });
+            }
+            /*RESPONSIVE MENU*/
+            var navTrigger = $('#responsiveBtn');
+            var nav = $('nav');
+
+            navTrigger.on('click', function () {
+                $(this).toggleClass('open');
+                $('nav').toggleClass('open');
+            });
+            //$('hActiontioneader nav ul ul').before('<span class="responsive-trigger">+</span>');
+            $('nav .responsive-trigger').on('click', function () {
+                return true;
+            });
+
+            /*RESPONSIVE SECONDARY MENU*/
+            var trigger = $('header .trigger');
+            trigger.on('click', function () {
+                $(this).toggleClass('open');
+                if ($('header .links').is(":visible")) {
+                    $('header .links').hide();
+                } else {
+                    $('header .links').show();
+                }
+            });
+
+            /*AD TOP BANNER*/
+            if ($('#blockAd-top').length) {
+                $("#blockAd-left, #blockAd-right").css('padding-top', '120px');
+            }
+
+            var customBlockHeight = $('.panel-default.custom-info').height();
+            $('.row .col-sm-8 + .col-sm-4').css('padding-top', (parseInt(customBlockHeight, 10) + parseInt(25, 10)) + 'px');
+
+            $(document).on('click', 'a.menu-down', function (event) {
+                event.preventDefault();
+                $(this).parent('dl').next('div.grid-item-collapse').toggle();
+            });
+
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                $(document).on('mousedown touchstart', 'div.nav-tabs-trigger', function () {
+                    $(this).toggleClass('open');
+                    $(this).next('ul').toggleClass('open');
+                    if ($(this).hasClass('main')) {
+                        if ($(this).hasClass('open')) {
+                            $(this).html('Masquer le menu');
+                        } else {
+                            $(this).html('Afficher le menu');
+                        }
+                    } else {
+                        if ($(this).hasClass('open')) {
+                            $(this).html('Masquer les onglets');
+                        } else {
+                            $(this).html('Afficher les onglets');
+                        }
+                    }
+                });
+            } else {
+                $(document).on('click', 'div.nav-tabs-trigger', function () {
+                    $(this).toggleClass('open');
+                    $(this).next('ul').toggleClass('open');
+                    if ($(this).hasClass('main')) {
+                        if ($(this).hasClass('open')) {
+                            $(this).html('Masquer le menu');
+                        } else {
+                            $(this).html('Afficher le menu');
+                        }
+                    } else {
+                        if ($(this).hasClass('open')) {
+                            $(this).html('Masquer les onglets');
+                        } else {
+                            $(this).html('Afficher les onglets');
+                        }
+                    }
+                });
+            }
+
+            //$(document).on('click', 'span.user-trigger', function () {
+            //    $(this).toggleClass('open');
+            //    $(this).next('div#loginInfo').toggleClass('open');
+            //});
+
+            var UserTrigger = $('span.user-trigger');
+            UserTrigger.on('click', function () {
+                $(this).toggleClass('open');
+                $('div#loginInfo').toggleClass('open');
+            });
+
+
+            $(document).on('click', 'ul.nav-tabs.main-top.open a', function () {
+                $('ul.nav-tabs.main-top, .nav-tabs-trigger.main').removeClass('open');
+                $('.nav-tabs-trigger.main').html('Afficher le menu');
+            });
+
+            //TODO Tam AFTGDPR-2755
+            
+
+        });
+        function showNewsletterPartnerAFT() {
+            $("#newsletterPartnerAFT").modal('show');
+        }
+        function hideNewsletterPartnerAFT() {
+            var optIn = $("#NewsletterPartnerAFTOptIn").is(":checked");
+            $.post("/MyAFT/Home/UpdateNewsletterPartners?optIn=" + optIn);
+            $('#newsletterPartnerAFT').modal('hide')
+        }
+        function setCookie(cname, cvalue, exdays) {
+            var d = new Date();
+            d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+            var expires = "expires=" + d.toUTCString();
+            document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+        }
+
+        function getCookie(cname) {
+            var name = cname + "=";
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                    return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
+
+        function checkVisitNewRanking() {
+            var ranking = localStorage.getItem('ranking2022');
+            if (ranking !== "1") {
+                localStorage.setItem('ranking2022', '1');
+                window.location.href = 'http://tennis.tppwb.be/classements/index.html';
+            }
+        }
+       function showAffiliationPopUp() {
+           var showPopup = localStorage.getItem("showAffiliationPopUp2026") == "1";
+           if (!showPopup) {
+               localStorage.setItem("showAffiliationPopUp2026", "1");
+               $("#modalAffiliation").modal();
+           }
+        }
+        //checkVisitNewRanking();
+    </script>
+    
+    <script type="text/javascript">
+        function subscribeTournament(idTournoi, idCategory, numFed) {
+            if (idCategory > 0) {
+                if ((!isNullEmpty(idCategory) && idCategory !== "0")) {
+                    $.post("/MyAFT/TournamentSubscription/ValidateSubscription", { idTournoi: idTournoi, idCategory: idCategory, playerNumFed: numFed, isNewSubscription: true }, function (res) {
+                        if (res.subscriptionAuthorized == true) {
+                            var result = true;
+                            $("#categoryDescription").html(res.categoryDescription);
+                            if (res.validationMessage && res.validationMessage !== "") {
+                                result = confirm(res.validationMessage);
+                            }
+                            if (result) {
+                                var $cate = $("#cate-" + idCategory);
+                                $(".border-highlight").removeClass("border-highlight");
+                                $cate.addClass("border-highlight");
+                                showGeneralInfo(idTournoi, idCategory, numFed);
+                            } else {
+                                $("#modalDialog").modal('hide');
+                            }
+                        } else {
+                            if (res.validationMessage) {
+                                alert(res.validationMessage);
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function subscribeTeamTournament(ele, idTournoi, idCategory, idTeam, categoryDescription) {
+            $.post("/MyAFT/TournamentSubscription/SubscriptionByCoach", { idTournoi: idTournoi, idCategory: idCategory, teamId: idTeam }, function (html) {
+                if (idCategory > 0) {
+                    $("#categoryDescription").html(categoryDescription);
+                    $("#divRegisterProcess").html(html);
+                    $("#divRegisterProcess").show();
+                    //$("#collapse_teams").removeClass("in");
+                    $("#collapse_categories").removeClass("in");
+                    $(ele).parent().parent().addClass("border-highlight");
+                } else {
+                    $("#modalDialog .modal-title").html("Inscription");
+                    $("#modalDialog .modal-body").html(html);
+                    $("#modalDialog").modal('show');
+                }
+            });
+        }
+
+        function showGeneralInfo(idTournoi, idCategory, numFed) {
+            if (!isNullEmpty(idTournoi)) {
+                $.post("/MyAFT/TournamentSubscription/GetGeneralInfo", { idTournoi: idTournoi, idCategory: idCategory, numFed: numFed }, function (html) {
+                    $("#divRegisterProcess").html(html);
+                    $("#divRegisterProcess").show();
+                    $("#collapse_categories").removeClass("in");
+                });
+            }
+        }
+        function showAvailabilities(idTournoi, idCategory) {
+            $.post("/MyAFT/TournamentSubscription/PlayerAvailabilitiesSubscription", { idTournoi: idTournoi, idCategory: idCategory }, function (html) {
+                $("#divRegisterProcess").html(html);
+            });
+        }
+        function showPlayerUnavailabilities(idTournoi, idCategory, idUnavailability) {
+            $.post("/MyAFT/TournamentSubscription/PlayerUnavailabilities", { culture: "fr-FR", idTournoi: idTournoi, idCategory: idCategory, idUnavailability: idUnavailability }, function (html) {
+                $("#modalDialog .modal-body").html(html);
+            });
+        }
+
+        function showPlayerAvailabilities(idTournoi, idCategory, idUnavailability, canEdit) {
+            $.post("/MyAFT/TournamentSubscription/PlayerAvailabilities", { idTournoi: idTournoi, idCategory: idCategory, idUnavailability: idUnavailability, canEdit: canEdit }, function (html) {
+                $("#modalDialog .modal-body").html(html);
+            });
+        }
+
+        function showSelectTeam(idTournoi) {
+            $.post("/MyAFT/TournamentSubscription/SelectTeam", { idTournoi: idTournoi }, function (html) {
+                $("#divRegisterProcess").html(html);
+            });
+        }
+
+        function selectTeam(idTournoi) {
+            $("#teamIdSubscription").val($("#ddlTeamSubscription").val());
+            showSelectPlayerOrPartner(idTournoi, '', '');
+        }
+
+        function goBackToTeamOrTournament(idTournoi) {
+            if ($("#startFromTeamOrTournament").val() == "Team") {
+                showSelectTeam(idTournoi);
+            } else {
+                showSelectTournament();
+            }
+        }
+
+        function showSelectPlayerOrPartner(idTournoi, idCategory, playerNumFed, isPartner, title) {
+            var idTeam = $("#teamIdSubscription").val();
+            $.post("/MyAFT/TournamentSubscription/SelectPlayer", { idTournoi: idTournoi, idCategory: idCategory, teamId : idTeam, playerNumFed: playerNumFed, isPartner: isPartner }, function (html) {
+                $("#divRegisterProcess").html(html);
+                if (title != undefined) {
+                    $("#modalDialog .modal-title").html(title);
+                }
+            });
+        }
+
+        function showPlayerOrPartnerInfo(idTournoi, idCategory, numFed, isPartner) {
+            if (!isNullEmpty(idTournoi)) {
+                $.post("/MyAFT/TournamentSubscription/GetGeneralInfo", { idTournoi: idTournoi, idCategory: idCategory, numFed: numFed, isPartner: isPartner }, function (html) {
+                    $("#divRegisterProcess").html(html);
+                });
+            }
+        }
+
+        function showSelectCategory(idTournoi, idCategory, playerNumFed) {
+            $.post("/MyAFT/TournamentSubscription/SelectCategory", { idTournoi: idTournoi, idCategory: idCategory, playerNumFed: playerNumFed }, function (html) {
+                $("#divRegisterProcess").html(html);
+            });
+        }
+
+        function showSelectPartner(idTournoi, idCategory, playerNumFed) {
+            $.post("/MyAFT/TournamentSubscription/SelectPlayer", { idTournoi: idTournoi, idCategory: idCategory, playerNumFed: playerNumFed, isPartner: true }, function (html) {
+                $("#divRegisterProcess").html(html);
+            });
+        }
+        function selectCategory(idTournoi, playerNumFed) {
+            var ddlCat = $("#ddlCategorySubscription").val();
+            var idCategory = "";
+            var singleOrDouble = "";
+            if (ddlCat) {
+                var splitCat = ddlCat.split("-");
+                if (splitCat.length == 2) {
+                    idCategory = splitCat[0];
+                    singleOrDouble = splitCat[1];
+                }
+            }
+            if (idCategory != "" && idCategory !== "0") {
+                validateSubscription(idTournoi, idCategory, playerNumFed, "", singleOrDouble);
+            } else if (idCategory != "" && singleOrDouble == "D") {
+                showSelectPlayerOrPartner(idTournoi, idCategory, playerNumFed, true);
+            }
+        }
+
+        function validateSubscription(idTournoi, idCategory, playerNumFed, partnerNumFed, singleOrDouble) {
+            $.post("/MyAFT/TournamentSubscription/ValidateSubscription", { idTournoi: idTournoi, idCategory: idCategory, playerNumFed: playerNumFed, partnerNumFed: partnerNumFed }, function (res) {
+                if (res.subscriptionAuthorized == true) {
+                    var result = true;
+                    if (res.validationMessage) {
+                        result = confirm(res.validationMessage);
+                    }
+                    if (result) {
+                        if (singleOrDouble == "D" && partnerNumFed == "") {
+                            showSelectPlayerOrPartner(idTournoi, idCategory, playerNumFed, true);
+                        } else {
+                            showAvailabilitiesForPlayerOrPartner(idTournoi, idCategory, playerNumFed, partnerNumFed);
+                        }
+                    }
+                } else {
+                    if (res.validationMessage) {
+                        alert(res.validationMessage);
+                    }
+                }
+            });
+        }
+        function validateSelectedPlayer(idTournoi, idCategory, playerNumFed, partnerNumFed, isPartner) {
+            $.post("/MyAFT/TournamentSubscription/ValidateSubscription", { idTournoi: idTournoi, idCategory: idCategory, playerNumFed: playerNumFed, partnerNumFed: partnerNumFed }, function (res) {
+                if (res.subscriptionAuthorized == true) {
+                    var result = true;
+                    if (res.validationMessage) {
+                        result = confirm(res.validationMessage);
+                    }
+					if (result) {
+                        showPlayerOrPartnerInfo(idTournoi, idCategory,isPartner ? partnerNumFed : playerNumFed, isPartner);
+                    }
+                } else {
+                    if (res.validationMessage) {
+                        alert(res.validationMessage);
+                    }
+                }
+
+            });
+        }
+
+        function showAvailabilitiesForPlayerOrPartner(idTournoi, idCategory, playerNumFed, partnerNumFed) {
+            $.post("/MyAFT/TournamentSubscription/PlayerAvailabilitiesSubscription", { idTournoi: idTournoi, idCategory: idCategory, playerNumFed: playerNumFed, partnerNumFed: partnerNumFed }, function (html) {
+                $("#divRegisterProcess").html(html);
+            });
+        }
+
+        function showSelectNextOptions(idTournoi, idCategory, playerNumFed, isCoachSubscription) {
+            var selectedOption = $("input[name='nextSelection']:checked").val();
+            $.post("/MyAFT/TournamentSubscription/ConfirmNextOption", { idTournoi: idTournoi, idCategory: idCategory, playerNumFed: playerNumFed, option: selectedOption }, function (res) {
+                if (selectedOption == "1") {
+                    showSelectPlayerOrPartner(idTournoi, idCategory, "");
+                    $("#modalDialog").modal('show');
+                } else if (selectedOption == "2") {
+                    if (isCoachSubscription) {
+                        showSelectCategory(idTournoi, null, playerNumFed);
+                        $("#modalConfirm").modal("hide");
+                        $("#modalDialog").modal('show');
+                    } else {
+                        $("#categoryDescription").html("");
+                        $("#divRegisterProcess").html("");
+                        $("#collapse_categories").addClass("in");
+                        $("#collapse_categories dl").removeClass("border-highlight");
+                        $("#modalConfirm").modal("hide");
+                        $("#modalDialog").modal('show');
+                    }
+                } else {
+                    $("#modalConfirm").modal("hide");
+                    $("#modalDialog").modal('hide');
+                }
+            });
+        }
+
+        function showPopoverCategoriesTeam(ele, teams, categoriesTeams) {
+            //var url = "/MyAFT/Tooltip/TransferCategoriesTeamsData";
+            var data = { "teams": teams, "categoriesTeams": encodeURIComponent(categoriesTeams) };
+            showMyPopover(ele, data);
+        }
+        function showSelectTournament() {
+            $.post("/MyAFT/Competitions/TournamentNews", { sourceName: "SubscriptionByCoach" }, function (html) {
+                $("#divRegisterProcess").html(html);
+            });
+        }
+        function deleteSubscription(subscriptionId, funcName) {
+            var url = "/MyAFT/TournamentSubscription/DeleteSubscription";
+            var data = { "subscriptionId": subscriptionId };
+            var answer = confirm("Etes-vous sûr(e) de vouloir supprimer cette inscription?");
+            if (answer) {
+                $.BigLoading();
+                $.post(url, data, function (res) {
+                    if (res.result && res.message == "") {
+                        if (funcName != "" && typeof funcName != "undefined") {
+                            var tmpFunc = new Function(funcName);
+                            tmpFunc();
+                        }
+                    } else {
+                        alert(res.message);
+                    }
+                    $.RemoveBigLoading();
+                });
+            }
+        }
+        function nextSubscription(isNext) {
+            if (isNext === true) {
+                //leave popover open so that player can subscribe another category
+                $("#divRegisterProcess").html("");
+                $("#divRegisterProcess").hide();
+                $("#modalNextSubscription").modal('hide');
+                setTimeout("$('#modalDialog').modal('hide');", 333);
+
+                //reload categories list
+                refreshCategoriesList($("#hdRefreshIDTournoi").val());
+            } else {
+                $("#modalDialog").modal('hide');
+                $("#modalNextSubscription").modal('hide');
+            }
+        }
+    </script>
+
+    <script id="eventTemplate" type="text/x-kendo-template">
+        #var element = target.is(".k-task") ? target : target.parent();#
+        #var uid = element.attr("data-uid");#
+        #var scheduler = target.closest("[data-role=scheduler]").data("kendoScheduler");#
+        #var model = scheduler.occurrenceByUid(uid);#
+        #=kendo.format('{0:HH:mm}',model.start)# - #=kendo.format('{0:HH:mm}',model.end)#
+    </script>
+</body>
+</html>

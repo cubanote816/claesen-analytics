@@ -73,6 +73,11 @@ class ProspectResource extends Resource
                                 'RBFA' => 'Voetbal (RBFA)',
                                 'VAL' => 'Atletiek (VAL)',
                                 'LBFA' => 'Atletiek (LBFA)',
+                                'TPV' => 'Tennis & Padel (TPV)',
+                                'AFT' => 'Tennis (AFT)',
+                                'VHL' => 'Hockey (VHL)',
+                                'LFH' => 'Hockey (LFH)',
+                                'ARBH-KBHB' => 'Hockey (ARBH)',
                             ]),
                         Select::make('language')
                             ->label('Taal')
@@ -149,6 +154,11 @@ class ProspectResource extends Resource
                                     'RBFA' => 'success',
                                     'VAL' => 'warning',
                                     'LBFA' => 'info',
+                                    'TPV' => 'success',
+                                    'AFT' => 'danger',
+                                    'VHL' => 'info',
+                                    'LFH' => 'warning',
+                                    'ARBH-KBHB' => 'success',
                                     default => 'gray',
                                 }),
                             TextEntry::make('language')
@@ -225,6 +235,11 @@ class ProspectResource extends Resource
                         'RBFA' => 'success',
                         'VAL' => 'warning',
                         'LBFA' => 'info',
+                        'TPV' => 'success',
+                        'AFT' => 'danger',
+                        'VHL' => 'info',
+                        'LFH' => 'warning',
+                        'ARBH-KBHB' => 'success',
                         default => 'gray',
                     })
                     ->sortable(),
@@ -286,6 +301,8 @@ class ProspectResource extends Resource
                             ->options([
                                 'football_club' => 'Voetbal',
                                 'athletics_club' => 'Atletiek',
+                                'tennis_padel_club' => 'Tennis & Padel',
+                                'hockey_club' => 'Hockey',
                             ])
                             ->live(),
                     ])
@@ -302,6 +319,8 @@ class ProspectResource extends Resource
                             $label = match ($data['type']) {
                                 'football_club' => 'Voetbal',
                                 'athletics_club' => 'Atletiek',
+                                'tennis_padel_club' => 'Tennis & Padel',
+                                'hockey_club' => 'Hockey',
                                 default => $data['type'],
                             };
                             $indicators['type'] = 'Sport: ' . $label;
@@ -316,6 +335,11 @@ class ProspectResource extends Resource
                                 'RBFA' => 'RBFA (Voetbal)',
                                 'VAL' => 'VAL (Atletiek NL)',
                                 'LBFA' => 'LBFA (Atletiek FR)',
+                                'TPV' => 'Tennis & Padel VL.',
+                                'AFT' => 'AFT (Tennis FR)',
+                                'VHL' => 'VHL (Hockey NL)',
+                                'LFH' => 'LFH (Hockey FR)',
+                                'ARBH-KBHB' => 'ARBH (Koninklijk)',
                             ])
                             ->live(),
                     ])
