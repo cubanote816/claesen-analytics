@@ -165,8 +165,8 @@ class SyncHockeyClubsCommand extends Command
                 $federationRaw = $club[2];
                 
                 $federation = match ($federationRaw) {
-                    'Vlaamse Hockey Liga' => 'VHL',
-                    'Ligue Francophone de Hockey' => 'LFH',
+                    'Vlaamse Hockey Liga' => 'VL-VHL',
+                    'Ligue Francophone de Hockey' => 'FR-LFH',
                     default => 'ARBH-KBHB',
                 };
 
@@ -237,7 +237,7 @@ class SyncHockeyClubsCommand extends Command
                 $regionId = $this->getRegionIdFromPostalCode($postalCode);
 
                 $prospect = Prospect::updateOrCreate(
-                    ['external_id' => 'HOCKEY-' . $externalId],
+                    ['external_id' => (Str::startsWith($federation, 'VL-') || Str::startsWith($federation, 'FR-') ? Str::before($federation, '-') . '-' : '') . 'HOCKEY-' . $externalId],
                     [
                         'name' => $name,
                         'type' => 'hockey_club',

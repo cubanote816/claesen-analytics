@@ -124,11 +124,11 @@ class SyncValClubsCommand extends Command
 
             // Persistence
             $prospect = Prospect::updateOrCreate(
-                ['external_id' => $externalId, 'federation' => 'VAL'],
+                ['external_id' => 'VL-' . $externalId, 'federation' => 'VL-VAL'],
                 [
                     'name' => $name,
                     'type' => 'athletics_club',
-                    'federation' => 'VAL',
+                    'federation' => 'VL-VAL',
                     'language' => 'nl',
                     'contact_person' => $contactInfo['secretary'] ?? null,
                     'website' => $contactInfo['website'] ?? null,

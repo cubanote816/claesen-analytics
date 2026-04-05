@@ -148,12 +148,17 @@ class SyncRbfaGraphqlCommand extends Command
                     $name = $clubInfo['name'] ?? 'Unknown Club';
                     $this->logSyncEvent("Sincronizando: {$name}", 'info', '🔄');
 
+                    $isFlanders = in_array($clubData['region'], ['Antwerpen', 'Limburg', 'Oost-Vlaanderen', 'West-Vlaanderen', 'Vlaams-Brabant']);
+                    $federation = $isFlanders ? 'VL-VV' : 'FR-ACFF';
+                    $prefix = $isFlanders ? 'VL-' : 'FR-';
+
                     $prospect = Prospect::updateOrCreate(
-                        ['external_id' => 'RBFA-' . $clubId],
+                        ['external_id' => $prefix . 'RBFA-' . $clubId],
                         [
                             'name' => $name,
                             'type' => 'football_club',
-                            'federation' => 'RBFA',
+                            'federation' => $federation,
+                            'language' => $isFlanders ? 'nl' : 'fr',
                             'logo_url' => $clubData['logo'] ?? null,
                             'website' => $clubInfo['website'] ?? null,
                             'vat_number' => $clubInfo['vatNumber'] ?? null,

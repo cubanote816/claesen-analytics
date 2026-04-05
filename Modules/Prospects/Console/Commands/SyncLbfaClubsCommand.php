@@ -98,7 +98,7 @@ class SyncLbfaClubsCommand extends Command
                     'phone' => $phone,
                     'address' => $address,
                     'region_id' => $regionId,
-                    'external_id' => 'LBFA-' . Str::slug($name),
+                    'external_id' => 'FR-LBFA-' . Str::slug($name),
                 ];
             });
 
@@ -119,7 +119,7 @@ class SyncLbfaClubsCommand extends Command
                 $this->logSyncEvent("Syncing [{$syncedCount}/{$count}]: {$item['name']}", 'info', '🔄');
                 
                 $prospect = Prospect::updateOrCreate(
-                    ['external_id' => $item['external_id'], 'federation' => 'LBFA'],
+                    ['external_id' => $item['external_id'], 'federation' => 'FR-LBFA'],
                     [
                         'name' => $item['name'],
                         'type' => 'athletics_club',

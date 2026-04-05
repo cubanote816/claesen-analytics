@@ -162,12 +162,12 @@ class SyncTpvClubsCommand extends Command
 
         $prospect = Prospect::updateOrCreate(
             [
-                'external_id' => 'TPV-' . ($club['external_id'] ?? $club['internal_id']),
+                'external_id' => 'VL-TPV-' . ($club['external_id'] ?? $club['internal_id']),
             ],
             [
                 'name' => $club['name'],
                 'type' => 'tennis_padel_club',
-                'federation' => 'TPV',
+                'federation' => 'VL-TPV',
                 'language' => 'nl',
                 'website' => $data['website'] ?? "https://www.tennisenpadelvlaanderen.be/nl/clubdashboard/over-club?clubId=" . $club['internal_id'],
                 'region_id' => $regionId,

@@ -83,12 +83,12 @@ class SyncAftClubsCommand extends Command
 
                 $prospect = Prospect::updateOrCreate(
                     [
-                        'external_id' => 'AFT-' . Str::slug($item['name']),
+                        'external_id' => 'FR-AFT-' . Str::slug($item['name']),
                     ],
                     [
                         'name' => $item['name'],
                         'type' => 'tennis_padel_club',
-                        'federation' => 'AFT',
+                        'federation' => 'FR-AFT',
                         'language' => 'fr',
                         'contact_person' => $item['contact'],
                         'website' => $item['website'],
