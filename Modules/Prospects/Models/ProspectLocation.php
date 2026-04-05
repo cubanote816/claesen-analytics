@@ -15,7 +15,7 @@ class ProspectLocation extends Model
 
     protected $fillable = [
         'prospect_id',
-        'location_type',
+        'contact_type',
         'email',
         'phone',
         'address',

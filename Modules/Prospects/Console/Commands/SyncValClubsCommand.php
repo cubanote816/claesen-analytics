@@ -9,14 +9,19 @@ use Modules\Prospects\Models\ProspectLocation;
 use Modules\Prospects\Models\Region;
 use Symfony\Component\DomCrawler\Crawler;
 use Illuminate\Support\Str;
+use Modules\Prospects\Traits\LogsSyncEvents;
+use Modules\Prospects\Traits\HandlesClubRegions;
 
-class SyncVALClubsCommand extends Command
+class SyncValClubsCommand extends Command
 {
-    protected $signature = 'cafca:sync-val-clubs {--limit= : Limit the number of clubs to sync}';
+    use LogsSyncEvents, HandlesClubRegions;
+
+    protected $signature = 'prospects:sync-val-clubs {--limit= : Limit the number of clubs to sync} {--user= : User ID who triggered the sync} {--history= : Existing sync history record ID}';
     protected $description = 'Sync athletics clubs from Vlaamse Atletiekliga (VAL) - atletiek.be';
 
     public function handle(): void
     {
+        $this->startSyncLog($this->option('user'), $this->option('history'));
         $this->info('Starting VAL athletics clubs synchronization...');
 
         $baseUrl = 'https://www.atletiek.be';
@@ -45,21 +50,22 @@ class SyncVALClubsCommand extends Command
 
             $count = count($clubLinks);
             $this->info("Found {$count} clubs to sync.");
+            $this->logSyncEvent("Found {$count} clubs to process.", 'info', '🔍');
 
-            $bar = $this->output->createProgressBar($count);
-            $bar->start();
-
+            $syncedCount = 0;
             foreach ($clubLinks as $link) {
+                $syncedCount++;
+                $this->logSyncEvent("Syncing [{$syncedCount}/{$count}]: {$link}", 'info', '🔄');
                 $this->syncClub("{$baseUrl}{$link}");
-                $bar->advance();
             }
 
-            $bar->finish();
             $this->newLine();
             $this->info('Synchronization completed successfully.');
+            $this->finishSyncLog($count);
 
         } catch (\Exception $e) {
             $this->error("Error during synchronization: {$e->getMessage()}");
+            $this->failSyncLog($e->getMessage());
         }
     }
 
@@ -112,14 +118,9 @@ class SyncVALClubsCommand extends Command
             }
 
             // Determine Region from the first location's postal code
-            $regionId = null;
-            if (!empty($contactInfo['locations'])) {
-                $address = $contactInfo['locations'][0]['address'];
-                $postalCode = $this->extractPostalCode($address);
-                if ($postalCode) {
-                    $regionId = $this->getRegionIdFromPostalCode($postalCode);
-                }
-            }
+            $address = !empty($contactInfo['locations']) ? $contactInfo['locations'][0]['address'] : null;
+            $postalCode = $address ? $this->extractPostalCode($address) : null;
+            $regionId = $this->getRegionIdFromPostalCode($postalCode);
 
             // Persistence
             $prospect = Prospect::updateOrCreate(
@@ -145,7 +146,7 @@ class SyncVALClubsCommand extends Command
                             'address' => $loc['address']
                         ],
                         [
-                            'location_type' => 'venue_name',
+                            'contact_type' => 'venue_name',
                             'email' => $contactInfo['email'] ?? null,
                             'phone' => null, // Phone is rarely on the page in a structured way
                         ]
@@ -163,33 +164,6 @@ class SyncVALClubsCommand extends Command
         if (preg_match('/\b[1-9][0-9]{3}\b/', $address, $matches)) {
             return $matches[0];
         }
-        return null;
-    }
-
-    protected function getRegionIdFromPostalCode(string $zip): ?int
-    {
-        $code = (int) $zip;
-        $regionName = match (true) {
-            ($code >= 1000 && $code <= 1299) => 'Brussel',
-            ($code >= 1300 && $code <= 1499) => 'Brabant Wallon',
-            ($code >= 1500 && $code <= 1999) => 'Vlaams-Brabant',
-            ($code >= 2000 && $code <= 2999) => 'Antwerpen',
-            ($code >= 3000 && $code <= 3499) => 'Vlaams-Brabant',
-            ($code >= 3500 && $code <= 3999) => 'Limburg',
-            ($code >= 4000 && $code <= 4999) => 'Liège',
-            ($code >= 5000 && $code <= 5999) => 'Namur',
-            ($code >= 6000 && $code <= 6599) => 'Hainaut',
-            ($code >= 6600 && $code <= 6999) => 'Luxembourg',
-            ($code >= 7000 && $code <= 7999) => 'Hainaut',
-            ($code >= 8000 && $code <= 8999) => 'West-Vlaanderen',
-            ($code >= 9000 && $code <= 9999) => 'Oost-Vlaanderen',
-            default => null,
-        };
-
-        if ($regionName) {
-            return Region::where('name', $regionName)->first()?->id;
-        }
-
         return null;
     }
 }

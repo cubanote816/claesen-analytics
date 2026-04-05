@@ -22,7 +22,17 @@ class EmailTemplateResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Groei & Acquisitie';
+        return __('mailing::resource.navigation_group');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('mailing::resource.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('mailing::resource.plural_model_label');
     }
 
     protected static ?int $navigationSort = 2;

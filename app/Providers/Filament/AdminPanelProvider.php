@@ -11,6 +11,8 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -22,6 +24,17 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
+    public function register(): void
+    {
+        parent::register();
+
+        $this->app->booted(static function () {
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::BODY_END,
+                static fn (): string => view('prospects::filament.prospects.floating-mailing-button')->render(),
+            );
+        });
+    }
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -99,7 +112,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                \App\Http\Middleware\BrowserLocaleMiddleware::class,
+                \Modules\Core\Http\Middleware\BrowserLocaleMiddleware::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -119,12 +132,8 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Inhoud & Website')
                     ->icon('heroicon-o-globe-alt'),
                 NavigationGroup::make()
-                    ->label('User Management')
-                    ->icon('heroicon-o-users'),
-                NavigationGroup::make()
                     ->label('Systeem & Beheer')
                     ->icon('heroicon-o-cog-6-tooth'),
-            ])
-        ;
+            ]);
     }
 }

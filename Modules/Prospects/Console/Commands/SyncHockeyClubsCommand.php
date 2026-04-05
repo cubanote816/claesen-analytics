@@ -8,10 +8,14 @@ use Modules\Prospects\Models\Region;
 use Illuminate\Support\Str;
 use Symfony\Component\DomCrawler\Crawler;
 use GuzzleHttp\Client;
+use Modules\Prospects\Traits\LogsSyncEvents;
+use Modules\Prospects\Traits\HandlesClubRegions;
 
 class SyncHockeyClubsCommand extends Command
 {
-    protected $signature = 'cafca:sync-hockey-clubs';
+    use LogsSyncEvents, HandlesClubRegions;
+
+    protected $signature = 'prospects:sync-hockey-clubs {--user= : User ID who triggered the sync} {--history= : Existing sync history record ID}';
     protected $description = 'Synchronize Hockey clubs from hockey.be with full details';
 
     protected $clubsData = [
@@ -137,6 +141,7 @@ class SyncHockeyClubsCommand extends Command
 
     public function handle()
     {
+        $this->startSyncLog($this->option('user'), $this->option('history'));
         $this->info('Starting Hockey clubs enhancement sync...');
         
         $client = new Client([
@@ -146,9 +151,14 @@ class SyncHockeyClubsCommand extends Command
             ]
         ]);
 
-        $bar = $this->output->createProgressBar(count($this->clubsData));
+        $count = count($this->clubsData);
+        $this->logSyncEvent("Found {$count} clubs to process.", 'info', '🔍');
 
+        $syncedCount = 0;
         foreach ($this->clubsData as $club) {
+            $syncedCount++;
+            $name = $club[0];
+            $this->logSyncEvent("Syncing [{$syncedCount}/{$count}]: {$name}", 'info', '🔄');
             try {
                 $name = $club[0];
                 $externalId = $club[1];
@@ -162,13 +172,11 @@ class SyncHockeyClubsCommand extends Command
 
                 $language = ($federation === 'LFH') ? 'fr' : 'nl';
                 
-                // Fetch Detailed Page (nl-club has more info and logo)
                 $detailUrl = "https://hockey.be/nl/nl-club/?id=" . $externalId;
                 $response = $client->get($detailUrl);
                 $html = (string) $response->getBody();
                 $crawler = new Crawler($html);
 
-                // Scraped Fields
                 $scraped = [
                     'logo' => null,
                     'address' => null,
@@ -179,7 +187,6 @@ class SyncHockeyClubsCommand extends Command
                     'website' => null,
                 ];
 
-                // 1. Extract Logo (Club Crest)
                 try {
                     $allImages = $crawler->filter('img')->reduce(function (Crawler $node) {
                         $src = $node->attr('src') ?? '';
@@ -198,11 +205,8 @@ class SyncHockeyClubsCommand extends Command
                     if ($allImages->count()) {
                         $scraped['logo'] = $allImages->first()->attr('src');
                     }
-                } catch (\Exception $e) {
-                    // Silently fail logo if not found
-                }
+                } catch (\Exception $e) { }
 
-                // 2. Extract Informatie Table
                 $crawler->filter('table.sl-table tr')->each(function (Crawler $node) use (&$scraped) {
                     $labelNode = $node->filter('td')->first();
                     $valueNode = $node->filter('td')->last();
@@ -223,21 +227,15 @@ class SyncHockeyClubsCommand extends Command
                     }
                 });
 
-                // Combine Address
                 $fullAddress = trim(($scraped['address'] ?? '') . ' ' . ($scraped['postcode'] ?? '') . ' ' . ($scraped['stad'] ?? ''));
                 
-                // Extract Postal Code for Region Mapping
                 $postalCode = $scraped['postcode'] ?? null;
                 if (!$postalCode && preg_match('/\b[1-9][0-9]{3}\b/', $fullAddress, $matches)) {
                     $postalCode = $matches[0];
                 }
 
-                $regionId = null;
-                if ($postalCode) {
-                    $regionId = $this->getRegionIdFromPostalCode((int)$postalCode);
-                }
+                $regionId = $this->getRegionIdFromPostalCode($postalCode);
 
-                // Update or Create Prospect
                 $prospect = Prospect::updateOrCreate(
                     ['external_id' => 'HOCKEY-' . $externalId],
                     [
@@ -247,14 +245,13 @@ class SyncHockeyClubsCommand extends Command
                         'language' => $language,
                         'logo_url' => $scraped['logo'],
                         'website' => $scraped['website'] ?? "https://hockey.be/nl/club-details/?id=" . $externalId,
-                        'region_id' => $regionId ?? 11,
+                        'region_id' => $regionId,
                     ]
                 );
 
-                // Update Location Details
                 if ($fullAddress || $scraped['email'] || $scraped['phone']) {
                     $prospect->locations()->updateOrCreate(
-                        ['location_type' => 'venue_name'],
+                        ['contact_type' => 'venue_name'],
                         [
                             'address' => $fullAddress ?: $prospect->locations()->first()?->address,
                             'email' => $scraped['email'],
@@ -263,43 +260,15 @@ class SyncHockeyClubsCommand extends Command
                     );
                 }
 
-                usleep(700000); // 0.7s sleep
+                usleep(700000); 
 
             } catch (\Exception $e) {
                 $this->error("\nError syncing club " . ($club[0] ?? 'Unknown') . ": " . $e->getMessage());
             }
-
-            $bar->advance();
         }
 
-        $bar->finish();
         $this->newLine();
         $this->info('Hockey enhancement synchronization completed.');
-    }
-
-    protected function getRegionIdFromPostalCode(int $code): ?int
-    {
-        $regionName = match (true) {
-            ($code >= 1000 && $code <= 1299) => 'Brussel',
-            ($code >= 1300 && $code <= 1499) => 'Brabant Wallon',
-            ($code >= 1500 && $code <= 1999) => 'Vlaams-Brabant',
-            ($code >= 2000 && $code <= 2999) => 'Antwerpen',
-            ($code >= 3000 && $code <= 3499) => 'Vlaams-Brabant',
-            ($code >= 3500 && $code <= 3999) => 'Limburg',
-            ($code >= 4000 && $code <= 4999) => 'Liège',
-            ($code >= 5000 && $code <= 5999) => 'Namur',
-            ($code >= 6000 && $code <= 6599) => 'Hainaut',
-            ($code >= 6600 && $code <= 6999) => 'Luxembourg',
-            ($code >= 7000 && $code <= 7999) => 'Hainaut',
-            ($code >= 8000 && $code <= 8999) => 'West-Vlaanderen',
-            ($code >= 9000 && $code <= 9999) => 'Oost-Vlaanderen',
-            default => null,
-        };
-
-        if ($regionName) {
-            return Region::where('name', $regionName)->first()?->id;
-        }
-
-        return null;
+        $this->finishSyncLog($count);
     }
 }

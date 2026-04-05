@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('prospect_locations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('prospect_id')->constrained()->cascadeOnDelete();
-            $table->enum('location_type', ['headquarters', 'stadium', 'venue_name']);
+            $table->enum('location_type', ['headquarters', 'stadium', 'venue_name', 'club_house', 'contact_person', 'other']);
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->text('address')->nullable();

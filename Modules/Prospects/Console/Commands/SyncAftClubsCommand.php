@@ -10,14 +10,19 @@ use Illuminate\Support\Str;
 use Symfony\Component\DomCrawler\Crawler;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
+use Modules\Prospects\Traits\LogsSyncEvents;
+use Modules\Prospects\Traits\HandlesClubRegions;
 
-class SyncAFTClubsCommand extends Command
+class SyncAftClubsCommand extends Command
 {
-    protected $signature = 'cafca:sync-aft-clubs';
+    use LogsSyncEvents, HandlesClubRegions;
+
+    protected $signature = 'prospects:sync-aft-clubs {--user= : User ID who triggered the sync} {--history= : Existing sync history record ID}';
     protected $description = 'Synchronize Tennis & Padel clubs from AFT (Wallonia)';
 
     public function handle()
     {
+        $this->startSyncLog($this->option('user'), $this->option('history'));
         $this->info('Starting AFT clubs synchronization...');
 
         try {
@@ -58,10 +63,14 @@ class SyncAFTClubsCommand extends Command
                 ]
             ];
 
-            $this->info("Found " . count($clubs) . " clubs.");
-            $bar = $this->output->createProgressBar(count($clubs));
+            $count = count($clubs);
+            $this->info("Found " . $count . " clubs.");
+            $this->logSyncEvent("Found {$count} clubs processed. Syncing to database...", 'info', '🔍');
 
+            $syncedCount = 0;
             foreach ($clubs as $item) {
+                $syncedCount++;
+                $this->logSyncEvent("Syncing [{$syncedCount}/{$count}]: {$item['name']}", 'info', '🔄');
                 $address = $item['address'];
                 
                 // Get Postal code
@@ -70,12 +79,7 @@ class SyncAFTClubsCommand extends Command
                     $postalCode = $matches[0];
                 }
 
-                $regionId = null;
-                if ($postalCode) {
-                    $regionId = $this->getRegionIdFromPostalCode((int)$postalCode);
-                } else {
-                    $regionId = 11; // fallback
-                }
+                $regionId = $this->getRegionIdFromPostalCode($postalCode);
 
                 $prospect = Prospect::updateOrCreate(
                     [
@@ -94,48 +98,24 @@ class SyncAFTClubsCommand extends Command
 
                 if (!empty($item['address']) && $prospect->locations()->count() === 0) {
                     $prospect->locations()->create([
-                        'location_type' => 'venue_name',
+                        'contact_type' => 'venue_name',
                         'email' => $item['email'] ?? null,
                         'phone' => $item['phone'] ?? null,
                         'address' => $item['address'],
                     ]);
                 }
 
-                $bar->advance();
+                //$bar->advance();
             }
 
-            $bar->finish();
+            //$bar->finish();
             $this->newLine();
             $this->info('AFT Synchronization completed.');
+            $this->finishSyncLog($count);
 
         } catch (\Exception $e) {
             $this->error("Error during AFT synchronization: " . $e->getMessage());
+            $this->failSyncLog($e->getMessage());
         }
-    }
-
-    protected function getRegionIdFromPostalCode(int $code): ?int
-    {
-        $regionName = match (true) {
-            ($code >= 1000 && $code <= 1299) => 'Brussel',
-            ($code >= 1300 && $code <= 1499) => 'Brabant Wallon',
-            ($code >= 1500 && $code <= 1999) => 'Vlaams-Brabant',
-            ($code >= 2000 && $code <= 2999) => 'Antwerpen',
-            ($code >= 3000 && $code <= 3499) => 'Vlaams-Brabant',
-            ($code >= 3500 && $code <= 3999) => 'Limburg',
-            ($code >= 4000 && $code <= 4999) => 'Liège',
-            ($code >= 5000 && $code <= 5999) => 'Namur',
-            ($code >= 6000 && $code <= 6599) => 'Hainaut',
-            ($code >= 6600 && $code <= 6999) => 'Luxembourg',
-            ($code >= 7000 && $code <= 7999) => 'Hainaut',
-            ($code >= 8000 && $code <= 8999) => 'West-Vlaanderen',
-            ($code >= 9000 && $code <= 9999) => 'Oost-Vlaanderen',
-            default => null,
-        };
-
-        if ($regionName) {
-            return Region::where('name', $regionName)->first()?->id;
-        }
-
-        return null;
     }
 }

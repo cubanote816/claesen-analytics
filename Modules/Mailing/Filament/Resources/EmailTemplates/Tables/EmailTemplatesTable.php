@@ -14,14 +14,14 @@ class EmailTemplatesTable
         return $table
             ->columns([
                 \Filament\Tables\Columns\TextColumn::make('name')
-                    ->label('Naam')
+                    ->label(__('mailing::resource.fields.name'))
                     ->searchable()
                     ->sortable(),
                 \Filament\Tables\Columns\TextColumn::make('subject')
-                    ->label('Onderwerp')
+                    ->label(__('mailing::resource.fields.subject'))
                     ->searchable(),
                 \Filament\Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Laatst Gewijzigd')
+                    ->label(__('mailing::resource.fields.updated_at'))
                     ->dateTime()
                     ->sortable(),
             ])

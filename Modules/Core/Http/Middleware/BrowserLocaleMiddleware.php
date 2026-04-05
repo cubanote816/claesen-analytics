@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Middleware;
+namespace Modules\Core\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
@@ -16,10 +16,9 @@ class BrowserLocaleMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Only use 'nl' if it's the specifically preferred language, otherwise default to 'en'
         $preferredLocale = $request->getPreferredLanguage(['nl', 'en']);
-
-        // If Dutch is preferred, use nl, otherwise default to en
-        $locale = $preferredLocale === 'nl' ? 'nl' : 'en';
+        $locale = ($preferredLocale === 'nl') ? 'nl' : 'en';
 
         App::setLocale($locale);
         $request->session()->put('locale', $locale);

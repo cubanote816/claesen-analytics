@@ -9,14 +9,19 @@ use Modules\Prospects\Models\ProspectLocation;
 use Modules\Prospects\Models\Region;
 use Symfony\Component\DomCrawler\Crawler;
 use Illuminate\Support\Str;
+use Modules\Prospects\Traits\LogsSyncEvents;
+use Modules\Prospects\Traits\HandlesClubRegions;
 
-class SyncLBFAClubsCommand extends Command
+class SyncLbfaClubsCommand extends Command
 {
-    protected $signature = 'cafca:sync-lbfa-clubs {--limit= : Limit the number of clubs to sync}';
+    use LogsSyncEvents, HandlesClubRegions;
+
+    protected $signature = 'prospects:sync-lbfa-clubs {--limit= : Limit the number of clubs to sync} {--user= : User ID who triggered the sync} {--history= : Existing sync history record ID}';
     protected $description = 'Sync athletics clubs from Ligue Belge Francophone d\'Athlétisme (LBFA) - lbfa.be';
 
     public function handle(): void
     {
+        $this->startSyncLog($this->option('user'), $this->option('history'));
         $this->info('Starting LBFA athletics clubs synchronization...');
 
         $baseUrl = 'https://www.lbfa.be';
@@ -28,7 +33,9 @@ class SyncLBFAClubsCommand extends Command
             ])->get($listUrl);
 
             if (!$response->successful()) {
-                $this->error("Failed to fetch club list from LBFA: " . $response->status());
+                $errorMessage = "Failed to fetch club list from LBFA: " . $response->status();
+                $this->error($errorMessage);
+                $this->failSyncLog($errorMessage);
                 return;
             }
 
@@ -71,10 +78,6 @@ class SyncLBFAClubsCommand extends Command
                 }
 
                 // Address (Right Cell)
-                $address = trim(strip_tags($rightCell->filter('p')->last()->html()));
-                // Address (Right Cell)
-                $address = trim(strip_tags($rightCell->filter('p')->last()->html()));
-                // If it contains "Consulter un plan", take the paragraph before it
                 $paragraphs = $rightCell->filter('p');
                 if ($paragraphs->count() >= 2) {
                     $address = trim($paragraphs->eq($paragraphs->count() - 2)->text());
@@ -85,10 +88,7 @@ class SyncLBFAClubsCommand extends Command
                     $postalCode = $zipMatches[0];
                 }
 
-                $regionId = null;
-                if ($postalCode) {
-                    $regionId = $this->getRegionIdFromPostalCode($postalCode);
-                }
+                $regionId = $this->getRegionIdFromPostalCode($postalCode);
 
                 return [
                     'name' => $name,
@@ -111,8 +111,13 @@ class SyncLBFAClubsCommand extends Command
 
             $count = count($clubItems);
             $this->info("Found {$count} clubs to sync.");
+            $this->logSyncEvent("Found {$count} clubs to sync. Processing...", 'info', '🔍');
 
+            $syncedCount = 0;
             foreach ($clubItems as $item) {
+                $syncedCount++;
+                $this->logSyncEvent("Syncing [{$syncedCount}/{$count}]: {$item['name']}", 'info', '🔄');
+                
                 $prospect = Prospect::updateOrCreate(
                     ['external_id' => $item['external_id'], 'federation' => 'LBFA'],
                     [
@@ -126,7 +131,7 @@ class SyncLBFAClubsCommand extends Command
                 );
 
                 ProspectLocation::updateOrCreate(
-                    ['prospect_id' => $prospect->id, 'location_type' => 'headquarters'],
+                    ['prospect_id' => $prospect->id, 'contact_type' => 'headquarters'],
                     [
                         'email' => $item['email'],
                         'phone' => $item['phone'],
@@ -136,36 +141,11 @@ class SyncLBFAClubsCommand extends Command
             }
 
             $this->info('LBFA Synchronization completed.');
+            $this->finishSyncLog($count);
 
         } catch (\Exception $e) {
             $this->error("Error during LBFA synchronization: {$e->getMessage()}");
+            $this->failSyncLog($e->getMessage());
         }
-    }
-
-    protected function getRegionIdFromPostalCode(string $zip): ?int
-    {
-        $code = (int) $zip;
-        $regionName = match (true) {
-            ($code >= 1000 && $code <= 1299) => 'Brussel',
-            ($code >= 1300 && $code <= 1499) => 'Brabant Wallon',
-            ($code >= 1500 && $code <= 1999) => 'Vlaams-Brabant',
-            ($code >= 2000 && $code <= 2999) => 'Antwerpen',
-            ($code >= 3000 && $code <= 3499) => 'Vlaams-Brabant',
-            ($code >= 3500 && $code <= 3999) => 'Limburg',
-            ($code >= 4000 && $code <= 4999) => 'Liège',
-            ($code >= 5000 && $code <= 5999) => 'Namur',
-            ($code >= 6000 && $code <= 6599) => 'Hainaut',
-            ($code >= 6600 && $code <= 6999) => 'Luxembourg',
-            ($code >= 7000 && $code <= 7999) => 'Hainaut',
-            ($code >= 8000 && $code <= 8999) => 'West-Vlaanderen',
-            ($code >= 9000 && $code <= 9999) => 'Oost-Vlaanderen',
-            default => null,
-        };
-
-        if ($regionName) {
-            return Region::where('name', $regionName)->first()?->id;
-        }
-
-        return null;
     }
 }
