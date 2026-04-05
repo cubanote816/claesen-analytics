@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $user1->assignRole('super_admin');
-        $user2->assignRole('super_admin');
+        $user2->assignRole('admin');
         $user3->assignRole('super_admin');
     }
 }
