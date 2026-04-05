@@ -24,10 +24,15 @@ class ExecuteMailingCampaignJob implements ShouldQueue
     public function handle(MarketingCampaignInterface $mailer): void
     {
         $template = \Modules\Mailing\Models\EmailTemplate::findOrFail($this->templateId);
-        $prospects = Prospect::with(['locations', 'region'])->whereIn('id', $this->prospectIds)->get();
+        $prospects = Prospect::with(['locations', 'region'])
+            ->subscribed()
+            ->whereIn('id', $this->prospectIds)
+            ->get();
 
         if ($prospects->isEmpty()) {
-            \Illuminate\Support\Facades\Log::warning("ExecuteMailingCampaignJob: No prospects found for provided IDs.", ['ids' => $this->prospectIds]);
+            \Illuminate\Support\Facades\Log::warning("ExecuteMailingCampaignJob: No prospects found for provided IDs or all are unsubscribed.", ['ids' => $this->prospectIds]);
+            
+            // If all were unsubscribed, we still need to mark the campaign as completed if it was created
             return;
         }
 
@@ -47,6 +52,9 @@ class ExecuteMailingCampaignJob implements ShouldQueue
         $skippedCount = 0;
 
         foreach ($prospects as $prospect) {
+            // Set locale based on prospect language
+            \Illuminate\Support\Facades\App::setLocale($prospect->language ?? 'nl');
+
             $emails = $prospect->locations
                 ->whereNotNull('email')
                 ->where('email', '!=', '')
@@ -70,16 +78,22 @@ class ExecuteMailingCampaignJob implements ShouldQueue
                 continue;
             }
 
+            // Generate unsubscribe URL
+            $unsubscribeUrl = route('prospects.unsubscribe', [
+                'prospect' => $prospect->id,
+                'token' => $prospect->getUnsubscribeToken(),
+            ]);
+
             // Parse dynamic variables
             $parsedSubject = str_replace(
-                ['{{ name }}', '{{ regio }}'],
-                [$prospect->name, $prospect->region?->name ?? __('prospects::resource.defaults.region')],
+                ['{{ name }}', '{{ regio }}', '{{ unsubscribe_url }}'],
+                [$prospect->name, $prospect->region?->name ?? __('prospects::resource.defaults.region'), $unsubscribeUrl],
                 $template->subject
             );
 
             $parsedBody = str_replace(
-                ['{{ name }}', '{{ regio }}'],
-                ['<strong>' . $prospect->name . '</strong>', $prospect->region?->name ?? __('prospects::resource.defaults.region')],
+                ['{{ name }}', '{{ regio }}', '{{ unsubscribe_url }}'],
+                ['<strong>' . $prospect->name . '</strong>', $prospect->region?->name ?? __('prospects::resource.defaults.region'), $unsubscribeUrl],
                 $template->body
             );
 
@@ -90,7 +104,7 @@ class ExecuteMailingCampaignJob implements ShouldQueue
                     'user_id' => $this->userId,
                     'campaign_id' => $campaign->id,
                 ]);
-                $isSuccess = $mailer->sendCampaign($prospect, $emails, $parsedSubject, $parsedBody);
+                $isSuccess = $mailer->sendCampaign($prospect, $emails, $parsedSubject, $parsedBody, $unsubscribeUrl);
             } catch (\Exception $e) {
                 $isSuccess = false;
                 $errorMessage = $e->getMessage();

@@ -3,7 +3,7 @@
 return [
     'model_label' => 'Email Template',
     'plural_model_label' => 'Email Templates',
-    'navigation_group' => 'Content & Website',
+    'navigation_group' => 'Growth & Acquisition',
 
     'fields' => [
         'name' => 'Template Name',
@@ -15,8 +15,9 @@ return [
     ],
 
     'sections' => [
-        'general' => 'General Information',
+        'template_details' => 'Template Details',
         'content' => 'Email Content',
+        'content_desc' => 'Manage the email subject and message content.',
     ],
 
     'options' => [

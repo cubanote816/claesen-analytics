@@ -56,6 +56,7 @@ return [
         'success_count' => 'Success',
         'failed_count' => 'Failed',
         'skipped_count' => 'Skipped',
+        'unsubscribed_at' => 'Subscription Status',
     ],
 
     'options' => [
@@ -78,6 +79,9 @@ return [
             'failed' => 'Failed',
             'sent' => 'Sent',
             'skipped' => 'Skipped (No email)',
+            'active' => 'Active',
+            'unsubscribed' => 'Unsubscribed',
+            'all' => 'All',
         ],
         'sport_types' => [
             'football_club' => 'Football',

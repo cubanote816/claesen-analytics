@@ -14,110 +14,58 @@
 (function () {
     'use strict';
 
-    var fab    = document.getElementById('prospect-fab');
-    var badge  = document.getElementById('prospect-fab-badge');
-    var observer = null;
+    var fab   = document.getElementById('prospect-fab');
+    var badge = document.getElementById('prospect-fab-badge');
+    var lastN = 0;
+
+    // ✅ Guard: solo activar en /admin/prospects
+    function isProspectsPage() {
+        return window.location.pathname.replace(/\/$/, '') === '/admin/prospects';
+    }
 
     function sync() {
-        if (!fab) return;
-
-        // 1. Encontrar el contenedor principal de la tabla (Source of Truth)
-        var tableContainer = document.querySelector('[x-data^="filamentTable"]');
-        if (!tableContainer) {
-            fab.style.display = 'none';
+        // Si no estamos en la página correcta → ocultar y salir
+        if (!isProspectsPage()) {
+            if (lastN !== 0) { fab.style.display = 'none'; lastN = 0; }
             return;
         }
 
-        var n = 0;
-        
-        // 2. Mirror de la lógica de Filament: ¿Existe el indicador de selección? 
-        // En Filament V5, la barra ".fi-ta-selection-indicator" solo se muestra cuando hay registros
-        var indicator = tableContainer.querySelector('.fi-ta-selection-indicator');
-        var isVisible = indicator && !indicator.hasAttribute('hidden') && window.getComputedStyle(indicator).display !== 'none';
-
-        if (isVisible) {
-            // Intentar extraer el número del texto si Alpine no responde (para el badge)
-            var match = indicator.textContent.match(/\d+/);
-            n = match ? parseInt(match[0]) : 1;
-        } else {
-            // Fallback: Si no hay indicador, no hay botón flotante
-            n = 0;
-        }
-        
-        // 3. Match EXACTO de visibilidad
+        var n = document.querySelectorAll('table tbody input[type="checkbox"]:checked').length;
+        if (n === lastN) return; // sin cambios → no hacer nada
+        lastN = n;
         fab.style.display = n > 0 ? 'flex' : 'none';
-        if (badge) badge.textContent = n;
-        
-        // Si no tenemos un observer activo en este contenedor, lo creamos
-        if (!observer && tableContainer) {
-            observer = new MutationObserver(function() {
-                // Pequeño delay para dejar que Alpine termine sus transiciones
-                setTimeout(sync, 10);
-            });
-            observer.observe(tableContainer, { 
-                attributes: true, 
-                childList: true, 
-                subtree: true,
-                attributeFilter: ['class', 'style', 'hidden']
-            });
-        }
+        badge.textContent = n;
     }
 
     window.__prospectsStartMailing = function () {
-        var tableContainer = document.querySelector('[x-data^="filamentTable"]');
-        if (!tableContainer) return;
+        var table = document.querySelector('table');
+        if (!table) return;
 
-        // 1. Acceder al componente Alpine de la tabla para un Mirror perfecto
-        if (window.Alpine) {
-            try {
-                var alpineTable = Alpine.$data(tableContainer);
-                if (alpineTable && typeof alpineTable.mountAction === 'function') {
-                    console.log('[FAB] Lanzando Bulk Action "execute_campaign" vía Alpine Mirror (Sync automático)');
-                    
-                    // Replicamos el comportamiento exacto del dropdown nativo (visto en el DOM real)
-                    // mountAction(nombre, argumentos, contexto)
-                    alpineTable.mountAction('execute_campaign', {}, { table: true, bulk: true });
-                    
-                    // UX: Ocultar botón inmediatamente
-                    if (fab) fab.style.display = 'none';
-                    return;
-                }
-            } catch (e) {
-                console.warn('[FAB] Error al intentar usar Alpine hook:', e);
+        // Subir desde la tabla para encontrar el componente Livewire correcto
+        var el = table.closest('[wire\\:id]');
+        if (!el) {
+            var all = document.querySelectorAll('[wire\\:id]');
+            for (var i = 0; i < all.length; i++) {
+                if (all[i].contains(table)) { el = all[i]; break; }
             }
         }
 
-        // 2. Fallback: Si el bridge de Alpine falla, usamos el método directo de Livewire (aunque es menos seguro para sync)
-        var el = tableContainer.closest('[wire\\:id]');
-        if (!el) el = tableContainer;
+        if (!el) return;
 
         var component = window.Livewire && window.Livewire.find(el.getAttribute('wire:id'));
-        if (component) {
-            console.log('[FAB] Fallback a Livewire call directo');
-            component.call('mountTableBulkAction', 'execute_campaign');
-            
-            if (fab) fab.style.display = 'none';
-        }
+        if (component) component.call('mountTableBulkAction', 'execute_campaign');
     };
 
-    // Listeners de apoyo para cuando Livewire refresca el DOM (y perdemos el observer)
-    document.addEventListener('livewire:update', function() {
-        if (observer) {
-            observer.disconnect();
-            observer = null;
-        }
-        setTimeout(sync, 100);
-    });
-    
-    document.addEventListener('livewire:navigated', function() {
-        setTimeout(sync, 500);
+    // Eventos seguros — sin MutationObserver, sin setInterval
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.type === 'checkbox') sync();
     });
 
-    // Ejecución inicial y repetitiva por si el DOM tarda
-    sync();
-    setTimeout(sync, 500);
-    
-    // Heartbeat de 1 segundo como MÁXIMA seguridad (no es costoso solo mirar 1 selector)
-    setInterval(sync, 1000);
-})();
+    // Livewire 3: se dispara UNA VEZ por ciclo, no en bucle
+    document.addEventListener('livewire:update',    sync);
+    document.addEventListener('livewire:navigated', sync); // ocultar al navegar fuera
+    document.addEventListener('livewire:load',      sync);
+
+    sync(); // verificación inicial
+}());
 </script>

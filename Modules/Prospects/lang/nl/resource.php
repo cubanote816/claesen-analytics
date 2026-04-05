@@ -56,6 +56,7 @@ return [
         'success_count' => 'Succes',
         'failed_count' => 'Fout',
         'skipped_count' => 'Overgeslagen',
+        'unsubscribed_at' => 'Inschrijvingsstatus',
     ],
 
     'options' => [
@@ -78,6 +79,9 @@ return [
             'failed' => 'Mislukt',
             'sent' => 'Verzonden',
             'skipped' => 'Overgeslagen (Geen e-mail)',
+            'active' => 'Actief',
+            'unsubscribed' => 'Uitgeschreven',
+            'all' => 'Alle',
         ],
         'sport_types' => [
             'football_club' => 'Voetbal',
@@ -169,5 +173,13 @@ return [
 
     'defaults' => [
         'region' => 'Vlaanderen',
+    ],
+
+    'unsubscribe' => [
+        'link' => 'Uitschrijven',
+        'text' => 'Wilt u deze e-mails niet meer ontvangen?',
+        'success_title' => 'Uitgeschreven',
+        'success_body' => 'U bent succesvol uitgeschreven uit onze mailinglijst.',
+        'confirmation_button' => 'Bevestig Uitschrijving',
     ],
 ];

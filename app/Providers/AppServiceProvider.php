@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
             $driver = config('app.mailing_driver', env('MAILING_DRIVER', 'simulation'));
             return $driver === 'saas'
                 ? new \Modules\Mailing\Services\SaaSMailer()
-                : new \Modules\Mailing\Services\SimulationMailer();
+                : new \Modules\Mailing\Services\MicrosoftGraphMailer();
         });
     }
     public function boot(): void

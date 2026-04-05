@@ -26,7 +26,24 @@ class Prospect extends Model
         'website',
         'vat_number',
         'cafca_relation_id',
+        'unsubscribed_at',
     ];
+
+    /**
+     * Scope a query to only include subscribed prospects.
+     */
+    public function scopeSubscribed($query)
+    {
+        return $query->whereNull('unsubscribed_at');
+    }
+
+    /**
+     * Generate a secure unsubscribe token.
+     */
+    public function getUnsubscribeToken(): string
+    {
+        return hash_hmac('sha256', $this->id . $this->external_id, config('app.key'));
+    }
 
     public function region(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

@@ -8,6 +8,7 @@ return [
     'sections' => [
         'template_details' => 'Sjabloon Details',
         'content' => 'Inhoud',
+        'content_desc' => 'Beheer het e-mailonderwerp en de inhoud van het bericht.',
     ],
 
     'fields' => [

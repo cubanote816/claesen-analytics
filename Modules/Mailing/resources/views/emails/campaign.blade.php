@@ -88,8 +88,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <!-- <img src="{{ $message->embed(public_path('img/brand-logo-light.png')) }}" alt="Claesen Logo" class="logo"> -->
-            <img src="https://claesen-verlichting.be/v1/assets/brand-logo-dark.png" alt="Claesen Logo" class="logo">
+            <img src="{{ $message->embed(public_path('img/brand-logo-dark.png')) }}" alt="Claesen Logo" class="logo">
         </div>
 
         <!-- Body -->
@@ -109,6 +108,13 @@
             </div>
 
             <hr>
+
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">
+                {{ trans('prospects::resource.unsubscribe.text') }} 
+                <a href="{{ $unsubscribe_url ?? '#' }}" style="color: #1a56db; text-decoration: underline;">
+                    {{ trans('prospects::resource.unsubscribe.link') }}
+                </a>
+            </p>
 
             <p style="font-size: 12px; color: #94a3b8;">
                 Deze e-mail is verzonden naar u door de Claesen Intelligence Hub.<br>

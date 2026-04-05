@@ -8,13 +8,16 @@ use Illuminate\Support\Facades\Log;
 
 class SaaSMailer implements MarketingCampaignInterface
 {
-    public function sendCampaign(Prospect $prospect, array $emails, string $subject, string $htmlBody): bool
+    public function sendCampaign(Prospect $prospect, array $emails, string $subject, string $htmlBody, string $unsubscribeUrl): bool
     {
         Log::info("Sending to SaaS API for: " . implode(',', $emails));
 
         // Mocking HTTP SaaS Request
         try {
-            // Http::post('https://api.mailchimp.com/...', [...])
+            // Http::post('https://api.mailchimp.com/...', [
+            //    'unsubscribe_url' => $unsubscribeUrl,
+            //    ...
+            // ])
             return true;
         } catch (\Exception $e) {
             Log::error("SaaS Mailer Error: " . $e->getMessage());

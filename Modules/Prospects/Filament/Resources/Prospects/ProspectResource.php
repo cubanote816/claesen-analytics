@@ -275,6 +275,13 @@ class ProspectResource extends Resource
                 TextColumn::make('locations_count')
                     ->counts('locations')
                     ->label(__('prospects::resource.fields.locations_count')),
+                TextColumn::make('unsubscribed_at')
+                    ->label(__('prospects::resource.fields.unsubscribed_at'))
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->color('danger')
+                    ->placeholder(__('prospects::resource.options.status.active')),
             ])
             ->filters([
                 TernaryFilter::make('has_email')
@@ -282,6 +289,17 @@ class ProspectResource extends Resource
                     ->queries(
                         true: fn(Builder $query) => $query->whereHas('locations', fn($q) => $q->whereNotNull('email')->where('email', '!=', '')),
                         false: fn(Builder $query) => $query->whereDoesntHave('locations', fn($q) => $q->whereNotNull('email')->where('email', '!=', '')),
+                        blank: fn(Builder $query) => $query,
+                    )
+                    ->native(false),
+                TernaryFilter::make('unsubscribed')
+                    ->label(__('prospects::resource.fields.unsubscribed_at'))
+                    ->placeholder(__('prospects::resource.options.status.all'))
+                    ->trueLabel(__('prospects::resource.options.status.unsubscribed'))
+                    ->falseLabel(__('prospects::resource.options.status.active'))
+                    ->queries(
+                        true: fn(Builder $query) => $query->whereNotNull('unsubscribed_at'),
+                        false: fn(Builder $query) => $query->whereNull('unsubscribed_at'),
                         blank: fn(Builder $query) => $query,
                     )
                     ->native(false),

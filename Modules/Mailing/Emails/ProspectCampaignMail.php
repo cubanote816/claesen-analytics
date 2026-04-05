@@ -17,7 +17,8 @@ class ProspectCampaignMail extends Mailable
     public function __construct(
         public Prospect $prospect,
         public string $dynamicSubject,
-        public string $htmlBody
+        public string $htmlBody,
+        public string $unsubscribeUrl
     ) {}
 
     /**
@@ -41,6 +42,7 @@ class ProspectCampaignMail extends Mailable
                 'body' => $this->htmlBody,
                 'prospect' => $this->prospect,
                 'subject' => $this->dynamicSubject,
+                'unsubscribe_url' => $this->unsubscribeUrl,
             ],
         );
     }
