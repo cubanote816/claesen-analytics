@@ -33,8 +33,8 @@ class DatabaseSeeder extends Seeder
             ProjectInsightSeeder::class,
         ]);
 
-        $user1->assignRole('super_admin');
-        $user2->assignRole('admin');
-        $user3->assignRole('super_admin');
+        $user1->syncRoles(['super_admin']);
+        $user2->syncRoles(['admin']);
+        $user3->syncRoles(['super_admin']);
     }
 }
