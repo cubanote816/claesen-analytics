@@ -26,6 +26,6 @@ class SyncMasterCommand extends Command
         
         MasterSyncJob::dispatch();
         
-        $this->success('MasterSyncJob has been dispatched to the queue.');
+        $this->info('MasterSyncJob has been dispatched to the queue.');
     }
 }
