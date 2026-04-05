@@ -47,6 +47,15 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_active_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Check if the user is currently online.
+     */
+    public function isOnline(): bool
+    {
+        return \Illuminate\Support\Facades\Cache::has('user-is-online-' . $this->id);
     }
 }

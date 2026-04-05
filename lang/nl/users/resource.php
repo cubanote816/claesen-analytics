@@ -9,5 +9,9 @@ return [
         'email' => 'E-mail',
         'password' => 'Wachtwoord',
         'roles' => 'Rollen',
+        'status' => 'Status',
+        'last_active_at' => 'Laatst Actief',
+        'online' => 'Online',
+        'offline' => 'Offline',
     ],
 ];

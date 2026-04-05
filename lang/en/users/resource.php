@@ -9,5 +9,9 @@ return [
         'email' => 'Email',
         'password' => 'Password',
         'roles' => 'Roles',
+        'status' => 'Status',
+        'last_active_at' => 'Last Active',
+        'online' => 'Online',
+        'offline' => 'Offline',
     ],
 ];

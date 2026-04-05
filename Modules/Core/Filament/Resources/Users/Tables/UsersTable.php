@@ -19,6 +19,16 @@ class UsersTable
                     ->label(__('users/resource.fields.name'))
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('status')
+                    ->label(__('users/resource.fields.status'))
+                    ->getStateUsing(fn($record) => $record->isOnline() ? __('users/resource.fields.online') : __('users/resource.fields.offline'))
+                    ->badge()
+                    ->color(fn($state) => $state === __('users/resource.fields.online') ? 'success' : 'gray'),
+                TextColumn::make('last_active_at')
+                    ->label(__('users/resource.fields.last_active_at'))
+                    ->dateTime()
+                    ->since()
+                    ->sortable(),
                 TextColumn::make('email')
                     ->label(__('users/resource.fields.email'))
                     ->searchable()
