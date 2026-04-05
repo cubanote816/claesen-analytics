@@ -21,6 +21,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'microsoft_id',
+        'azure_token',
+        'azure_refresh_token',
+        'azure_token_expires_at',
     ];
 
     /**

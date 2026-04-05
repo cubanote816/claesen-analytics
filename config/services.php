@@ -47,4 +47,12 @@ return [
         'action_token' => env('GITHUB_ACTION_TOKEN'),
     ],
 
+    'azure' => [
+        'client_id' => env('MICROSOFT_GRAPH_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET'),
+        'redirect' => env('APP_URL') . '/auth/microsoft/callback',
+        'tenant' => env('MICROSOFT_GRAPH_TENANT_ID'),
+        'proxy' => env('PROXY'), // Optional
+    ],
+
 ];

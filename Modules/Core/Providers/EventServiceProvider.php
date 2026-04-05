@@ -11,7 +11,11 @@ class EventServiceProvider extends ServiceProvider
      *
      * @var array<string, array<int, string>>
      */
-    protected $listen = [];
+    protected $listen = [
+        \SocialiteProviders\Manager\SocialiteWasCalled::class => [
+            \SocialiteProviders\Azure\AzureExtendSocialite::class.'@handle',
+        ],
+    ];
 
     /**
      * Indicates if events should be discovered.

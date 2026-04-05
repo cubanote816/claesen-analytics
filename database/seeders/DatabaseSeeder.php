@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'bert.kenis@claesen-verlichting.be',
         ]);
         $user3 = User::factory()->create([
-            'name' => 'Toti',
+            'name' => 'Orelvys Cuellar',
             'email' => 'orelvys.cuellar@claesen-verlichting.be',
         ]);
 
