@@ -21,7 +21,7 @@
 
     <p>Met sportieve groeten,</p>
     <p><strong>Het Claesen Team</strong><br>
-        <a href="https://www.claesen.be">www.claesen.be</a>
+        <a href="https://claesen-verlichting.be/">claesen-verlichting.be</a>
     </p>
 
 </body>

@@ -10,23 +10,23 @@ class EmailTemplateForm
     {
         return $schema
             ->components([
-                \Filament\Schemas\Components\Section::make('Sjabloon Details')
+                \Filament\Schemas\Components\Section::make(__('mailing::resource.sections.template_details'))
                     ->components([
                         \Filament\Forms\Components\TextInput::make('name')
-                            ->label('Naam van Sjabloon')
+                            ->label(__('mailing::resource.fields.name'))
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
                         \Filament\Forms\Components\TextInput::make('subject')
-                            ->label('Onderwerp (E-mail Subject)')
+                            ->label(__('mailing::resource.fields.subject'))
                             ->required()
                             ->maxLength(255),
                     ]),
-                \Filament\Schemas\Components\Section::make('Inhoud')
-                    ->description('Je kunt variabelen gebruiken zoals {{ naam }} en {{ regio }}')
+                \Filament\Schemas\Components\Section::make(__('mailing::resource.sections.content'))
+                    ->description(__('mailing::resource.sections.content_desc'))
                     ->components([
                         \Filament\Forms\Components\RichEditor::make('body')
-                            ->label('E-mail Bericht')
+                            ->label(__('mailing::resource.fields.body'))
                             ->required()
                             ->columnSpanFull()
                             ->toolbarButtons([

@@ -27,6 +27,13 @@ class MailingServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        // Register Microsoft Graph Mail Driver
+        \Illuminate\Support\Facades\Mail::extend('microsoft-graph', function (array $config) {
+            return new \Modules\Mailing\Mail\Transport\MicrosoftGraphTransport(
+                new \Modules\Mailing\Services\MicrosoftGraphService()
+            );
+        });
     }
 
     /**

@@ -7,6 +7,10 @@ use Illuminate\Support\ServiceProvider;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Filament\Support\Facades\FilamentView;
+use Filament\Tables\View\TablesRenderHook;
+use Modules\Prospects\Filament\Resources\Prospects\Pages\ManageProspects;
+
 
 class ProspectsServiceProvider extends ServiceProvider
 {
@@ -43,7 +47,15 @@ class ProspectsServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            \Modules\Prospects\Console\Commands\SyncValClubsCommand::class,
+            \Modules\Prospects\Console\Commands\SyncLbfaClubsCommand::class,
+            \Modules\Prospects\Console\Commands\SyncAftClubsCommand::class,
+            \Modules\Prospects\Console\Commands\SyncTpvClubsCommand::class,
+            \Modules\Prospects\Console\Commands\SyncHockeyClubsCommand::class,
+            \Modules\Prospects\Console\Commands\SyncRbfaGraphqlCommand::class,
+            \Modules\Prospects\Console\Commands\SyncMasterCommand::class,
+        ]);
     }
 
     /**
@@ -51,10 +63,17 @@ class ProspectsServiceProvider extends ServiceProvider
      */
     protected function registerCommandSchedules(): void
     {
-        // $this->app->booted(function () {
-        //     $schedule = $this->app->make(Schedule::class);
-        //     $schedule->command('inspire')->hourly();
-        // });
+         $this->app->booted(function () {
+             $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
+             
+             // Production scheduled jobs for syncing sports clubs
+             $schedule->command('prospects:sync-val-clubs')->monthlyOn(1, '01:00');
+             $schedule->command('prospects:sync-lbfa-clubs')->monthlyOn(1, '01:30');
+             $schedule->command('prospects:sync-aft-clubs')->monthlyOn(1, '02:00');
+             $schedule->command('prospects:sync-tpv-clubs')->monthlyOn(1, '02:30');
+             $schedule->command('prospects:sync-hockey-clubs')->monthlyOn(1, '03:00');
+             $schedule->command('prospects:sync-rbfa-graphql')->monthlyOn(1, '03:30');
+         });
     }
 
     /**

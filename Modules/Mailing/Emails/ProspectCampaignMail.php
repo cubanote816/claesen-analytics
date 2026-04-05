@@ -36,7 +36,12 @@ class ProspectCampaignMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            htmlString: $this->htmlBody,
+            view: 'mailing::emails.campaign',
+            with: [
+                'body' => $this->htmlBody,
+                'prospect' => $this->prospect,
+                'subject' => $this->dynamicSubject,
+            ],
         );
     }
 

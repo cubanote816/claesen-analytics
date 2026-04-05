@@ -14,15 +14,24 @@ class Prospect extends Model
 
 
     protected $fillable = [
+        'external_id',
         'name',
         'type',
-        'region',
+        'region_id',
+        'federation',
+        'language',
+        'contact_person',
         'channel',
         'logo_url',
         'website',
         'vat_number',
         'cafca_relation_id',
     ];
+
+    public function region(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Region::class);
+    }
 
     public function locations(): HasMany
     {
