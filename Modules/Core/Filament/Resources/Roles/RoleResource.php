@@ -23,7 +23,7 @@ class RoleResource extends Resource
         return auth()->user()?->hasRole('super_admin') ?? false;
     }
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
@@ -31,7 +31,7 @@ class RoleResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('roles/resource.navigation_group');
+        return __('navigation.groups.user_management');
     }
 
     public static function getModelLabel(): string

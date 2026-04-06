@@ -23,7 +23,7 @@ class UserResource extends Resource
         return auth()->user()?->hasRole('super_admin') ?? false;
     }
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
@@ -31,7 +31,7 @@ class UserResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('users/resource.navigation_group');
+        return __('navigation.groups.user_management');
     }
 
     public static function getModelLabel(): string

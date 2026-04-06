@@ -21,8 +21,10 @@ class ProspectMailCampaignResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('prospects::resource.navigation_group');
+        return __('navigation.groups.growth_acquisition');
     }
+
+    protected static ?int $navigationSort = 2;
 
     public static function getModelLabel(): string
     {

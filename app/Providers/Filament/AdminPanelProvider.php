@@ -128,16 +128,13 @@ class AdminPanelProvider extends PanelProvider
                 //      ->label('Analyse & Intelligentie')
                 //      ->icon('heroicon-o-sparkles'),
                 NavigationGroup::make()
-                    ->label('Groei & Acquisitie')
+                    ->label(__('navigation.groups.growth_acquisition'))
                     ->icon('heroicon-o-chart-bar-square'),
-                // NavigationGroup::make()
-                //     ->label('Operatie & Personeel')
-                //     ->icon('heroicon-o-cpu-chip'),
                 NavigationGroup::make()
-                    ->label('Inhoud & Website')
+                    ->label(__('navigation.groups.content_website'))
                     ->icon('heroicon-o-globe-alt'),
                 NavigationGroup::make()
-                    ->label('Systeem & Beheer')
+                    ->label(__('navigation.groups.user_management'))
                     ->icon('heroicon-o-cog-6-tooth'),
             ]);
     }
