@@ -1,0 +1,281 @@
+<?php
+/**
+ * Claesen Verlichting - Unsubscribe Proxy
+ * Place this file in: https://claesen-verlichting.be/afmelden/index.php
+ */
+
+$prospectId = $_GET['p'] ?? null;
+$token = $_GET['t'] ?? null;
+$lang = $_GET['l'] ?? 'nl';
+
+// Basic validation
+if (!$prospectId || !$token) {
+    die("Toegang geweigerd / Accès refusé");
+}
+
+// Translations
+$translations = [
+    'nl' => [
+        'title' => 'Afmelden voor de nieuwsbrief',
+        'confirm' => 'Weet u zeker dat u zich wilt afmelden voor onze nieuwsbrief?',
+        'button' => 'Bevestig Afmelding',
+        'success' => 'U bent succesvol afgemeld.',
+        'error' => 'Er is een fout opgetreden. Probeer het later opnieuw.',
+        'footer' => 'Claesen Outdoor Lighting & Infrastructuur',
+        'redirect' => 'Terug naar de website',
+    ],
+    'fr' => [
+        'title' => 'Désinscription de la newsletter',
+        'confirm' => 'Êtes-vous sûr de vouloir vous désabonner de notre newsletter ?',
+        'button' => 'Confirmer la désinscription',
+        'success' => 'Vous avez été désabonné avec succès.',
+        'error' => 'Une erreur est survenue. Veuillez réessayer plus tard.',
+        'footer' => 'Claesen Outdoor Lighting & Infrastructure',
+        'redirect' => 'Retour au site web',
+    ],
+];
+
+$t = $translations[$lang] ?? $translations['nl'];
+$backendUrl = 'https://backend.claesen-verlichting.be/api/v1/unsubscribe-direct';
+?>
+<!DOCTYPE html>
+<html lang="<?php echo $lang; ?>">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $t['title']; ?> | Claesen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ffcd00;
+            --primary-hover: #e6b800;
+            --dark: #0f172a;
+            --text-main: #f8fafc;
+            --text-light: #94a3b8;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--text-main);
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            width: 180px;
+            margin-bottom: 32px;
+            /* Vivid colors maintained by removing filter */
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 16px;
+        }
+
+        p {
+            color: var(--text-light);
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: var(--dark);
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 10px 15px -3px rgba(255, 205, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(255, 205, 0, 0.3);
+            background-color: var(--primary-hover);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background-color: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .success-icon {
+            color: #10b981;
+            font-size: 64px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .hidden { display: none; }
+
+        .footer {
+            margin-top: 48px;
+            font-size: 11px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.8;
+        }
+
+        .lang-switch {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .lang-switch a {
+            text-decoration: none;
+            font-size: 13px;
+            color: var(--text-light);
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+        }
+
+        .lang-switch a.active {
+            background: rgba(255, 205, 0, 0.15);
+            color: var(--primary);
+            border-color: rgba(255, 205, 0, 0.3);
+        }
+
+        .lang-switch a:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="lang-switch">
+        <a href="?p=<?php echo $prospectId; ?>&t=<?php echo $token; ?>&l=nl" class="<?php echo $lang == 'nl' ? 'active' : ''; ?>">NL</a>
+        <a href="?p=<?php echo $prospectId; ?>&t=<?php echo $token; ?>&l=fr" class="<?php echo $lang == 'fr' ? 'active' : ''; ?>">FR</a>
+    </div>
+
+    <div class="card">
+        <img src="https://claesen-verlichting.be/v1/assets/brand-logo-dark.png" alt="Claesen" class="logo">
+        
+        <div id="initial-state">
+            <h1><?php echo $t['title']; ?></h1>
+            <p><?php echo $t['confirm']; ?></p>
+            <button id="unsubscribe-btn" class="btn" onclick="confirmUnsubscribe()">
+                <?php echo $t['button']; ?>
+            </button>
+        </div>
+
+        <div id="success-state" class="hidden">
+            <div class="success-icon">✓</div>
+            <h1>Gelukt! / Succès!</h1>
+            <p><?php echo $t['success']; ?></p>
+            <a href="https://claesen-verlichting.be" class="btn" style="text-decoration: none; display: inline-block; width: auto;">
+                <?php echo $t['redirect']; ?>
+            </a>
+        </div>
+
+        <div id="error-state" class="hidden">
+            <h1 style="color: #ef4444;">Oeps! / Oups!</h1>
+            <p id="error-message"><?php echo $t['error']; ?></p>
+            <button class="btn" onclick="location.reload()">Retry</button>
+        </div>
+
+        <div class="footer">
+            <?php echo $t['footer']; ?>
+        </div>
+    </div>
+
+    <script>
+        async function confirmUnsubscribe() {
+            const btn = document.getElementById('unsubscribe-btn');
+            const initialState = document.getElementById('initial-state');
+            const successState = document.getElementById('success-state');
+            const errorState = document.getElementById('error-state');
+            const errorMsg = document.getElementById('error-message');
+
+            btn.disabled = true;
+            btn.innerText = '...';
+
+            console.log('Attempting unsubscription for:', '<?php echo $prospectId; ?>');
+
+            try {
+                const response = await fetch('<?php echo $backendUrl; ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prospect_id: '<?php echo $prospectId; ?>',
+                        token: '<?php echo $token; ?>'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    initialState.classList.add('hidden');
+                    successState.classList.remove('hidden');
+                    document.querySelector('.success-icon').style.display = 'block';
+                } else {
+                    console.error('API Error Response:', data);
+                    throw new Error(data.message || 'Error ' + response.status);
+                }
+            } catch (error) {
+                console.error('Fetch Failed:', error);
+                
+                // Show more detailed error for troubleshooting
+                // alert('DEBUG ERROR: ' + error.message); 
+
+                initialState.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                if (error.message === 'Invalid token.') {
+                    errorMsg.innerText = 'De link is ongeldig of verlopen. / Le lien est invalide ou expiré.';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMsg.innerText = 'Netwerkfout. Controleer of de backend bereikbaar is. / Erreur réseau.';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

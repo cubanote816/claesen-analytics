@@ -99,11 +99,13 @@ class ExecuteMailingCampaignJob implements ShouldQueue
                     continue;
                 }
 
-                // Generate unsubscribe URL
-                $unsubscribeUrl = route('prospects.unsubscribe', [
-                    'prospect' => $prospect->id,
-                    'token' => $prospect->getUnsubscribeToken(),
-                ]);
+                // Generate professional unsubscribe URL (Proxy on corporate domain)
+                $unsubscribeUrl = sprintf(
+                    'https://claesen-verlichting.be/afmelden/?p=%s&t=%s&l=%s',
+                    $prospect->id,
+                    $prospect->getUnsubscribeToken(),
+                    $prospect->language ?? 'nl'
+                );
 
                 // Parse dynamic variables
                 $parsedSubject = str_replace(
