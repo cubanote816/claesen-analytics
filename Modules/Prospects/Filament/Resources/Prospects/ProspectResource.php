@@ -425,16 +425,24 @@ class ProspectResource extends Resource
                                 ?? auth()->id() 
                                 ?? auth()->user()?->getAuthIdentifier();
 
-                            if ($records->isEmpty()) {
+                            $unsubscribedCount = $records->filter(fn ($p) => !empty($p->unsubscribed_at))->count();
+                            $totalCount = $records->count();
+                            $subscribedCount = $totalCount - $unsubscribedCount;
+
+                            if ($subscribedCount === 0) {
                                 Notification::make()
                                     ->title(__('prospects::resource.notifications.no_prospects_selected.title'))
-                                    ->warning()
+                                    ->body(__('prospects::resource.options.status.unsubscribed'))
+                                    ->danger()
                                     ->send();
+                                
+                                $livewire->deselectAllTableRecords();
                                 return;
                             }
 
-                            // Verificar si al menos uno tiene email (Verificamos en las locaciones)
-                            $hasEmails = $records->contains(fn ($p) => $p->locations()->whereNotNull('email')->where('email', '!=', '')->exists());
+                            // Verificar si al menos uno tiene email (Verificamos en las locaciones de los SUBCRITOS)
+                            $hasEmails = $records->filter(fn($p) => empty($p->unsubscribed_at))
+                                ->contains(fn ($p) => $p->locations()->whereNotNull('email')->where('email', '!=', '')->exists());
 
                             if (!$hasEmails) {
                                 Notification::make()
@@ -446,6 +454,18 @@ class ProspectResource extends Resource
                                 // Importante: deseleccionar aunque falle para resetear el estado UI
                                 $livewire->deselectAllTableRecords();
                                 return;
+                            }
+
+                            if ($unsubscribedCount > 0) {
+                                Notification::make()
+                                    ->title(__('prospects::resource.notifications.partial_skip.title'))
+                                    ->warning()
+                                    ->persistent()
+                                    ->body(__('prospects::resource.notifications.partial_skip.body', [
+                                        'unsubscribed' => $unsubscribedCount,
+                                        'total' => $totalCount,
+                                    ]))
+                                    ->send();
                             }
 
                             \Illuminate\Support\Facades\Log::info("Dispatching Prospect Mailing Job", [

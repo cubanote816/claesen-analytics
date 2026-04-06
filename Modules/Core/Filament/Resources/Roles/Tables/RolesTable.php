@@ -14,6 +14,8 @@ class RolesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->reorderable('sort')
+            ->defaultSort('sort')
             ->columns([
                 TextColumn::make('name')
                     ->label(__('roles/resource.fields.name'))

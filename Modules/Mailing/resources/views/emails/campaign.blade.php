@@ -88,7 +88,12 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <img src="{{ $message->embed(public_path('img/brand-logo-dark.png')) }}" alt="Claesen Logo" class="logo">
+            <img src="https://claesen-verlichting.be/v1/assets/brand-logo-dark.png" 
+                 alt="Claesen Outdoor Lighting" 
+                 width="180" 
+                 border="0" 
+                 class="logo"
+                 style="display: block; margin: 0 auto; width: 180px; height: auto;">
         </div>
 
         <!-- Body -->

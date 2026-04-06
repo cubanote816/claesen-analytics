@@ -18,12 +18,12 @@ class SetPanelLocale
     {
         $acceptLanguage = $request->header('Accept-Language');
 
-        // Check if English is explicitly requested (en, en-US, en-GB, etc.)
-        if ($acceptLanguage && str_starts_with(strtolower($acceptLanguage), 'en')) {
-            App::setLocale('en');
-        } else {
-            // Default to Dutch for everything else (nl, es, fr, etc.)
+        // Check if Dutch is requested (nl, nl-BE, nl-NL, etc.)
+        if ($acceptLanguage && str_starts_with(strtolower($acceptLanguage), 'nl')) {
             App::setLocale('nl');
+        } else {
+            // Default to English for everything else (en, es, fr, etc.)
+            App::setLocale('en');
         }
 
         return $next($request);

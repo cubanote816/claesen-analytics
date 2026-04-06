@@ -6,7 +6,7 @@
 > 2.  **FILAMENT V5 SYNTAX:** Do NOT use Filament V3/V4 classes. Use strictly `Filament\Schemas\Schema` for Forms and Infolists.
 > 3.  **LANGUAGE PROTOCOL:**
 >     - **Code/Variables/Comments:** English.
->     - **UI/Labels/Notifications/PDFs:** Dutch (Neerlandés) ONLY.
+>     - **UI/Labels/Notifications/PDFs:** Dutch (NL) for Dutch browsers, English (EN) for all others.
 > 4.  **DATA INTEGRITY:** Never assume IDs are integers. Sanitize inputs (trim) from Legacy DB.
 
 ---
@@ -70,7 +70,7 @@ El sistema debe detectar y alertar sobre:
 
 - **"Sell the Smoke":** Priorizar visualización inmediata (Dashboards) sobre perfección del backend.
 - **Validación Pre-Mortem:** Comparar ofertas nuevas con 5 "Nearest Neighbors" históricos.
-- **Soberanía Lingüística:** Todo output al usuario final en **Neerlandés**.
+- **Soberanía Lingüística:** Output en **Holandés** para navegadores en holandés; de lo contrario, **Inglés**.
 
 ## 4. Arquitectura Técnica
 

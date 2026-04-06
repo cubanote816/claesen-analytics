@@ -33,7 +33,11 @@ class UserForm
                             ->required(fn(string $context): bool => $context === 'create'),
                         CheckboxList::make('roles')
                             ->label(__('users/resource.fields.roles'))
-                            ->relationship('roles', 'name')
+                            ->relationship(
+                                'roles', 
+                                'name',
+                                fn ($query) => $query->orderBy('sort')
+                            )
                             ->getOptionLabelFromRecordUsing(fn($record) => \Illuminate\Support\Str::headline($record->name))
                             ->columns(2)
                             ->gridDirection('row'),

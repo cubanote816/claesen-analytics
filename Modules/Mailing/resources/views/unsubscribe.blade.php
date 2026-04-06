@@ -23,7 +23,7 @@
     <div class="max-w-md w-full glass-card rounded-3xl p-8 text-center space-y-6">
         <!-- Company Logo -->
         <div class="flex justify-center mb-8">
-            <img src="{{ asset('img/brand-logo-dark.png') }}" alt="Claesen Outdoor Lighting" class="h-12 w-auto">
+            <img src="https://claesen-verlichting.be/v1/assets/brand-logo-dark.png" alt="Claesen Outdoor Lighting" class="h-12 w-auto">
         </div>
 
         <!-- Action Icon -->

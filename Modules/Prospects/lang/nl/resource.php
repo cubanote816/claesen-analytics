@@ -130,6 +130,10 @@ return [
             'title' => 'Campagne Gestart',
             'body' => 'De e-mails worden op de achtergrond verzonden met het gekozen sjabloon.',
         ],
+        'partial_skip' => [
+            'title' => 'Campagne Gestart',
+            'body' => 'Let op: :unsubscribed van de :total geselecteerde prospecten zijn uitgeschreven en worden overgeslagen.',
+        ],
         'master_sync_started' => [
             'title' => 'Master Sync Gestart',
             'body' => 'Alle federaties worden nu sequentieel op de achtergrond gesynchroniseerd.',

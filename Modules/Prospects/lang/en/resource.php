@@ -130,6 +130,10 @@ return [
             'title' => 'Campaign Started',
             'body' => 'Emails are being sent in the background using the selected template.',
         ],
+        'partial_skip' => [
+            'title' => 'Campaign Started',
+            'body' => 'Attention: :unsubscribed of the :total selected prospects are unsubscribed and will be skipped.',
+        ],
         'master_sync_started' => [
             'title' => 'Master Sync Started',
             'body' => 'All federations are now being synchronized sequentially in the background.',

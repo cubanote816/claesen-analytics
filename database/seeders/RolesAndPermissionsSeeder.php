@@ -14,17 +14,21 @@ class RolesAndPermissionsSeeder extends Seeder
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Create standard roles
+        // Create standard roles with logical sorting
         $roles = [
-            'super_admin',
-            'project_manager',
-            'financial_manager',
-            'hr_manager',
-            'viewer',
+            'super_admin' => 1,
+            'admin' => 2,
+            'project_manager' => 3,
+            'financial_manager' => 4,
+            'hr_manager' => 5,
+            'viewer' => 6,
         ];
-
-        foreach ($roles as $roleName) {
-            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+ 
+        foreach ($roles as $roleName => $sort) {
+            Role::updateOrCreate(
+                ['name' => $roleName, 'guard_name' => 'web'],
+                ['sort' => $sort]
+            );
         }
 
         $superAdminRole = Role::findByName('super_admin');
