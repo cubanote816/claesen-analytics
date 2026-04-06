@@ -24,9 +24,11 @@
         }
 
         .header {
+            background-color: #0f172a;
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             padding: 40px 20px;
             text-align: center;
+            width: 100%;
         }
 
         .logo {
@@ -87,14 +89,17 @@
 <body>
     <div class="container">
         <!-- Header -->
-        <div class="header">
-            <img src="https://claesen-verlichting.be/v1/assets/brand-logo-dark.png" 
-                 alt="Claesen Outdoor Lighting" 
-                 width="180" 
-                 border="0" 
-                 class="logo"
-                 style="display: block; margin: 0 auto; width: 180px; height: auto;">
-        </div>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td align="center" bgcolor="#0f172a" style="background-color: #0f172a; padding: 40px 20px;">
+                    <img src="https://claesen-verlichting.be/v1/assets/brand-logo-dark.png" 
+                         alt="Claesen Outdoor Lighting" 
+                         width="180" 
+                         border="0" 
+                         style="display: block; margin: 0 auto; width: 180px; height: auto;">
+                </td>
+            </tr>
+        </table>
 
         <!-- Body -->
         <div class="content">
