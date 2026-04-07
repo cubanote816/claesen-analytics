@@ -2,7 +2,7 @@
 
 namespace Modules\Analytics\Jobs;
 
-use App\DTOs\EmployeeAiPayload;
+use Modules\Analytics\DTOs\EmployeeAiPayload;
 use Modules\Cafca\Models\Employee as LegacyEmployee;
 use Modules\Cafca\Models\Labor;
 use Modules\Analytics\Models\EmployeeInsight;

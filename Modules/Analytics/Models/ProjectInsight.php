@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProjectInsight extends Model
 {
     protected $connection = 'mysql';
-    protected $table = 'project_insights';
+    protected $table = 'analytics_project_insights';
 
     public function getRouteKeyName()
     {

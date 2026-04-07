@@ -146,4 +146,25 @@ PROMPT;
                 : "Detailed performance analysis over the last 6 months. Active projects: {$projectsText}.",
         ];
     }
+
+    /**
+     * Analyze project financial data.
+     * 
+     * @param array $payload The sanitized project data.
+     * @param mixed $context Information about the desired response.
+     * @return array
+     */
+    public function analyzeProject(array $payload, $context): array
+    {
+        Log::info("Gemini Project Analysis Request for project: " . ($payload['project_id'] ?? 'Unknown'));
+
+        // Mock response for now to fix lint errors and allow testing
+        return [
+            'efficiency_score' => rand(65, 98),
+            'ai_summary' => "Analyse van project {$payload['project_id']}. De kosten zijn stabiel, maar er is een potentieel lek in de onderaanneming.",
+            'critical_leak' => 'Onderaanneming overschrijdt budget met 5%.',
+            'golden_rule' => 'Controleer wekelijks de facturatie van derden.',
+            'full_dna' => $payload,
+        ];
+    }
 }

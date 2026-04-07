@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs;
+namespace Modules\Analytics\DTOs;
 
 class EmployeeAiPayload
 {

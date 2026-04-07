@@ -9,11 +9,11 @@ use Spatie\Translatable\HasTranslations;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Modules\Website\App\Enums\ProjectCategory;
-use App\Traits\HasAiTranslations;
+use Modules\Analytics\Traits\HasAiTranslations;
 
 class Project extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia; // , HasAiTranslations;
+    use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia, HasAiTranslations;
 
     protected $table = 'website_projects';
 

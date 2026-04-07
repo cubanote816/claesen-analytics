@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Core\Traits;
+namespace Modules\Analytics\Traits;
 
 use Modules\Analytics\Services\GeminiService;
 use Illuminate\Support\Facades\Log;

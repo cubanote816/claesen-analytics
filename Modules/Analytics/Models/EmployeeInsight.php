@@ -2,6 +2,7 @@
 
 namespace Modules\Analytics\Models;
 
+use Modules\Cafca\Models\Employee;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class EmployeeInsight extends Model
 {
     use HasFactory;
+    
+    protected $connection = 'mysql';
+    protected $table = 'analytics_employee_insights';
 
     protected $fillable = [
         'employee_id',

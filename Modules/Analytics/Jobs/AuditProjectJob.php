@@ -2,7 +2,7 @@
 
 namespace Modules\Analytics\Jobs;
 
-use App\DTOs\ProjectAiPayload;
+use Modules\Analytics\DTOs\ProjectAiPayload;
 use Modules\Cafca\Models\Project;
 use Modules\Analytics\Models\ProjectInsight;
 use Modules\Analytics\Services\GeminiService;
@@ -60,12 +60,12 @@ class AuditProjectJob implements ShouldQueue
 
         // 3. Call Gemini API
         // Determine locale - passing 'nl' context via DTO.
-        $context = new \App\DTOs\GeminiContextDTO('nl');
+        $context = new \Modules\Analytics\DTOs\GeminiContextDTO('nl');
         $result = $geminiService->analyzeProject($payload->toArray(), $context);
 
         // 4. Update Insight Model
         $insight->efficiency_score = $result['efficiency_score'];
-        $insight->ai_summary = $result['summary'];
+        $insight->ai_summary = $result['ai_summary'];
         $insight->last_data_hash = $payload->hash;
         $insight->last_audited_at = now();
         $insight->save();
