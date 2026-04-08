@@ -23,6 +23,7 @@ class BudgetAssistant extends Page implements HasForms
     
     public ?array $data = [];
     public ?string $analysisResult = null;
+    public ?string $hashKey = null;
 
     public function mount(): void
     {
@@ -31,7 +32,7 @@ class BudgetAssistant extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return __('navigation.groups.growth_acquisition');
+        return app()->getLocale() === 'nl' ? 'Intelligentie Hub' : 'Intelligence Hub';
     }
 
     public static function getNavigationLabel(): string
@@ -44,28 +45,26 @@ class BudgetAssistant extends Page implements HasForms
         return app()->getLocale() === 'nl' ? 'Budget Assistent (IA Simulatie)' : 'Budget Assistant (AI Simulation)';
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $form): Schema
     {
         // V5 Strictly applying Filament\Schemas\Schema
         return $form
             ->schema([
-                Schema::make([
-                    Select::make('category')
-                        ->label(app()->getLocale() === 'nl' ? 'Project Categorie' : 'Project Category')
-                        ->options([
-                            'Sportverlichting' => 'Sportverlichting (Infraestructura Deportiva)',
-                            'Industrie' => 'Industrie (Iluminación Industrial)',
-                            'Openbare Verlichting' => 'Openbare Verlichting (Monumental y Pública)',
-                            'Masten' => 'Masten (Mástiles)',
-                            'Algemeen' => 'Algemeen',
-                        ])
-                        ->required(),
-                    TextInput::make('zipcode')
+                Select::make('category')
+                    ->label(app()->getLocale() === 'nl' ? 'Project Categorie' : 'Project Category')
+                    ->options([
+                        'Sportverlichting' => 'Sportverlichting (Infraestructura Deportiva)',
+                        'Industrie' => 'Industrie (Iluminación Industrial)',
+                        'Openbare Verlichting' => 'Openbare Verlichting (Monumental y Pública)',
+                        'Masten' => 'Masten (Mástiles)',
+                        'Algemeen' => 'Algemeen',
+                    ])
+                    ->required(),
+                TextInput::make('zipcode')
                         ->label(app()->getLocale() === 'nl' ? 'Postcode (Zipcode)' : 'Zipcode')
                         ->numeric()
                         ->required()
                         ->maxLength(4),
-                ])
             ])
             ->statePath('data');
     }
@@ -74,6 +73,18 @@ class BudgetAssistant extends Page implements HasForms
     {
         $service = app(BudgetAssistantService::class);
         $data = $this->form->getState();
-        $this->analysisResult = $service->simulateOffer($data, app()->getLocale());
+        $this->hashKey = $service->simulateOffer($data, app()->getLocale());
+        $this->checkProgress();
+    }
+
+    public function checkProgress(): void
+    {
+        if ($this->hashKey) {
+            $cached = \Illuminate\Support\Facades\Cache::get($this->hashKey);
+            if ($cached && $cached !== 'PROCESSING') {
+                $this->analysisResult = $cached;
+                $this->hashKey = null; // Terminate polling
+            }
+        }
     }
 }

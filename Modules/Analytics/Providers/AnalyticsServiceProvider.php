@@ -45,6 +45,7 @@ class AnalyticsServiceProvider extends ServiceProvider
     {
         $this->commands([
             \Modules\Analytics\Console\Commands\PopulateProjectInsightsCommand::class,
+            \Modules\Analytics\Console\Commands\SendWatchdogReportCommand::class,
         ]);
     }
 
@@ -53,10 +54,11 @@ class AnalyticsServiceProvider extends ServiceProvider
      */
     protected function registerCommandSchedules(): void
     {
-        // $this->app->booted(function () {
-        //     $schedule = $this->app->make(Schedule::class);
-        //     $schedule->command('inspire')->hourly();
-        // });
+        $this->app->booted(function () {
+            $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
+            $schedule->command('analytics:send-watchdog-report')->mondays()->at('08:00');
+            $schedule->command('analytics:populate-insights')->dailyAt('09:00');
+        });
     }
 
     /**

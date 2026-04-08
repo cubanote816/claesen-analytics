@@ -28,8 +28,17 @@
                 {{ app()->getLocale() === 'nl' ? 'IA Analyse & Feedback' : 'AI Analysis & Feedback' }}
             </x-slot>
 
-            <div class="prose dark:prose-invert max-w-none">
-                @if($analysisResult)
+            <div class="prose dark:prose-invert max-w-none"
+                 @if($hashKey) wire:poll.2s="checkProgress" @endif
+            >
+                @if($hashKey)
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg whitespace-pre-wrap font-mono text-sm border-l-4 border-blue-500 animate-pulse text-blue-700 dark:text-blue-300">
+                        <div class="flex items-center gap-3">
+                            <x-filament::loading-indicator class="h-5 w-5" />
+                            <span>{{ app()->getLocale() === 'nl' ? 'Consultando historial y construyendo contexto (RAG)...' : 'Querying history and building RAG context...' }}</span>
+                        </div>
+                    </div>
+                @elseif($analysisResult)
                     <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg whitespace-pre-wrap font-mono text-sm border-l-4 border-indigo-500">
                         {{ $analysisResult }}
                     </div>

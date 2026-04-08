@@ -11,8 +11,41 @@ class GeminiService
 
     public function __construct()
     {
-        $this->apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY');
-        $this->apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+        $this->apiKey = config('services.gemini.key');
+        $this->apiUrl = config('services.gemini.url') ?: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+    }
+
+    /**
+     * Generic method to call Gemini API with JSON output.
+     */
+    public function generateStructuredResponse(string $prompt): array
+    {
+        if (empty($this->apiKey)) {
+            Log::error("Gemini API Key is missing.");
+            return [];
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::post($this->apiUrl . "?key=" . $this->apiKey, [
+                'contents' => [['parts' => [['text' => $prompt]]]],
+                'generationConfig' => [
+                    'response_mime_type' => 'application/json',
+                    'temperature' => 0.2,
+                ]
+            ]);
+
+            if ($response->failed()) {
+                Log::error("Gemini API Error: " . $response->body());
+                return [];
+            }
+
+            $data = $response->json();
+            $content = $data['candidates'][0]['content']['parts'][0]['text'] ?? '{}';
+            return json_decode($content, true) ?: [];
+        } catch (\Exception $e) {
+            Log::error("Gemini Exception: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**
@@ -31,65 +64,18 @@ class GeminiService
             ];
         }
 
-        if (empty($this->apiKey)) {
-            Log::warning("Gemini API Key is missing. Skipping translation.");
-            return $this->fallbackResponse($text, $targetLocales);
-        }
-
         $localesList = implode(', ', $targetLocales);
         $prompt = <<<PROMPT
-You are a professional translator and native speaker of these languages: {$localesList}.
-
-Task:
-1. Detect the source language of: "{$text}".
-2. Translate it accurately into: {$localesList}.
-
-RULES:
-- If the source text is already in the target language, keep it as is.
-- If the source text is in a DIFFERENT language, you MUST translate it.
-- Do NOT just copy the source text for all languages.
-- Ensure the tone is professional and suitable for a business context.
-
-Return JSON:
-{
-  "detected_locale": "ISO 639-1 code",
-  "translations": {
-    "code": "translated text"
-  }
-}
+Task: Detect source language of "{$text}" and translate to: {$localesList}.
+Return JSON: {"detected_locale": "ISO", "translations": {"code": "text"}}
 PROMPT;
 
-        try {
-            $response = \Illuminate\Support\Facades\Http::post($this->apiUrl . "?key=" . $this->apiKey, [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => $prompt]
-                        ]
-                    ]
-                ],
-                'generationConfig' => [
-                    'response_mime_type' => 'application/json',
-                ]
-            ]);
+        $result = $this->generateStructuredResponse($prompt);
 
-            if ($response->failed()) {
-                Log::error("Gemini API Error: " . $response->body());
-                return $this->fallbackResponse($text, $targetLocales);
-            }
-
-            $data = $response->json();
-            $content = $data['candidates'][0]['content']['parts'][0]['text'] ?? '{}';
-            $result = json_decode($content, true);
-
-            return [
-                'detected_locale' => $result['detected_locale'] ?? 'nl',
-                'translations' => $result['translations'] ?? [],
-            ];
-        } catch (\Exception $e) {
-            Log::error("Gemini Service Exception: " . $e->getMessage());
-            return $this->fallbackResponse($text, $targetLocales);
-        }
+        return [
+            'detected_locale' => $result['detected_locale'] ?? 'nl',
+            'translations' => $result['translations'] ?? [],
+        ];
     }
 
     protected function fallbackResponse(string $text, array $targetLocales): array
@@ -102,69 +88,24 @@ PROMPT;
 
     /**
      * Analyze technician behavior and return archetypes.
-     * 
-     * @param array $payload The sanitized employee data.
-     * @param string $locale The locale for the response.
-     * @return array {'archetype_label': string, 'archetype_icon': string, 'manager_insight': string, 'analysis': string}
      */
     public function analyzeEmployee(array $payload, string $locale = 'nl'): array
     {
-        Log::info("Gemini Employee Analysis Request: " . ($payload['employee_id'] ?? 'Unknown'));
-
-        // Mock response based on the "Cerebro" archetypes
-        $archetypes = [
-            [
-                'label' => 'The Diesel',
-                'icon' => '🚜',
-                'insight' => $locale === 'nl' ? 'Constante prestaties, weinig risico.' : 'Steady performance, low risk.',
-            ],
-            [
-                'label' => 'The Sprinter',
-                'icon' => '🏎️',
-                'insight' => $locale === 'nl' ? 'Hoge snelheid op korte termijn, let op consistentie.' : 'High short-term speed, watch for consistency.',
-            ],
-            [
-                'label' => 'Road Warrior',
-                'icon' => '🛣️',
-                'insight' => $locale === 'nl' ? 'Veel onderweg, houdt efficiëntie hoog.' : 'Traveling a lot, keeps efficiency high.',
-            ],
-        ];
-
-        $selected = $archetypes[array_rand($archetypes)];
-
-        $activeProjects = $payload['performance_data']['active_projects'] ?? [];
-        $projectsText = !empty($activeProjects) ? implode(', ', $activeProjects) : 'Unknown';
-
-        return [
-            'archetype_label' => $selected['label'],
-            'archetype_icon' => $selected['icon'],
-            'efficiency_trend' => collect(['UP', 'DOWN', 'STABLE'])->random(),
-            'burnout_risk_score' => rand(5, 45),
-            'manager_insight' => $selected['insight'],
-            'analysis' => $locale === 'nl'
-                ? "Gedetailleerde analyse van prestaties over de afgelopen 6 maanden. Actieve projecten: {$projectsText}."
-                : "Detailed performance analysis over the last 6 months. Active projects: {$projectsText}.",
-        ];
+        $prompt = "Analyze this employee data: " . json_encode($payload) . ". Return JSON with archetype_label, archetype_icon, manager_insight, analysis in {$locale}.";
+        return $this->generateStructuredResponse($prompt);
     }
 
     /**
      * Analyze project financial data.
-     * 
-     * @param array $payload The sanitized project data.
-     * @param mixed $context Information about the desired response.
-     * @return array
      */
     public function analyzeProject(array $payload, $context): array
     {
-        Log::info("Gemini Project Analysis Request for project: " . ($payload['project_id'] ?? 'Unknown'));
-
-        // Mock response for now to fix lint errors and allow testing
-        return [
-            'efficiency_score' => rand(65, 98),
-            'ai_summary' => "Analyse van project {$payload['project_id']}. De kosten zijn stabiel, maar er is een potentieel lek in de onderaanneming.",
-            'critical_leak' => 'Onderaanneming overschrijdt budget met 5%.',
-            'golden_rule' => 'Controleer wekelijks de facturatie van derden.',
-            'full_dna' => $payload,
-        ];
+        $locale = $context->locale ?? 'nl';
+        $prompt = "Analyze this project data: " . json_encode($payload) . ". Return JSON: {efficiency_score: int, ai_summary: string, critical_leak: string, golden_rule: string} in {$locale}.";
+        
+        $result = $this->generateStructuredResponse($prompt);
+        $result['full_dna'] = $payload;
+        
+        return $result;
     }
 }

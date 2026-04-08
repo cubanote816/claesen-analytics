@@ -26,11 +26,13 @@ class ProjectInsight extends Model
         'full_dna',
         'last_data_hash',
         'last_audited_at',
+        'last_immediate_alert_at',
     ];
 
     protected $casts = [
         'efficiency_score' => 'decimal:2',
         'last_audited_at' => 'datetime',
+        'last_immediate_alert_at' => 'datetime',
         'full_dna' => 'array',
     ];
 
