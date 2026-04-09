@@ -18,9 +18,9 @@
     var badge = document.getElementById('prospect-fab-badge');
     var lastN = 0;
 
-    // ✅ Guard: solo activar en /admin/prospects
+    // ✅ Guard: solo activar en /prospects
     function isProspectsPage() {
-        return window.location.pathname.replace(/\/$/, '') === '/admin/prospects';
+        return window.location.pathname.replace(/\/$/, '') === '/prospects';
     }
 
     function sync() {

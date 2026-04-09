@@ -9,7 +9,7 @@ class Labor extends CafcaModel
     use ReadOnlyTrait;
 
     protected $table = 'followup_labor_analytical';
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'seqnr';
 
     // Legacy SQL Server IDs are strings
     protected $keyType = 'string';

@@ -35,29 +35,34 @@ class MicrosoftAuthController extends Controller
         try {
             $azureUser = Socialite::driver('azure')->user();
 
-            // Find or create the local user by email (only in 'mysql' connection)
-            $user = User::updateOrCreate([
-                'email' => $azureUser->getEmail(),
-            ], [
+            // Find the local user by email (only in 'mysql' connection)
+            $user = User::where('email', $azureUser->getEmail())->first();
+
+            // SECURITY: If user does not exist locally, deny access
+            if (!$user) {
+                return redirect('/login')
+                    ->withErrors(['microsoft' => 'U heeft geen toegang tot dit platform. Neem contact op met de beheerder.']);
+            }
+
+            // Update user with Azure details
+            $user->update([
                 'name' => $azureUser->getName(),
                 'microsoft_id' => $azureUser->getId(),
                 'azure_token' => $azureUser->token,
                 'azure_refresh_token' => $azureUser->refreshToken ?? null,
                 'azure_token_expires_at' => property_exists($azureUser, 'expiresIn') ? now()->addSeconds($azureUser->expiresIn) : null,
-                'password' => $user->password ?? bcrypt(str()->random(16)), // Dummy password for new users
             ]);
 
             // Synchronize roles based on Azure Groups (if available in the token/user data)
-            // Note: Depending on Socialite provider, you might need extra scopes for 'groups'
-            $groups = $azureUser->user['groups'] ?? []; // Tentative access to groups
+            $groups = $azureUser->user['groups'] ?? []; 
             $roleService->syncRolesFromAzure($user, $groups);
 
             Auth::login($user);
 
-            return redirect()->intended('/admin');
+            return redirect()->intended('/');
 
         } catch (Exception $e) {
-            return redirect('/admin/login')
+            return redirect('/login')
                 ->withErrors(['microsoft' => 'Inloggen via Microsoft is mislukt: ' . $e->getMessage()]);
         }
     }

@@ -124,9 +124,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->spa()
             ->navigationGroups([
-                // NavigationGroup::make()
-                //      ->label('Analyse & Intelligentie')
-                //      ->icon('heroicon-o-sparkles'),
+                NavigationGroup::make()
+                     ->label(app()->getLocale() === 'nl' ? 'Intelligentie Hub' : 'Intelligence Hub')
+                     ->icon('heroicon-o-sparkles'),
                 NavigationGroup::make()
                     ->label(__('navigation.groups.growth_acquisition'))
                     ->icon('heroicon-o-chart-bar-square'),
