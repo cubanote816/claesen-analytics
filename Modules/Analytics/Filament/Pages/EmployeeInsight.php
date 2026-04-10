@@ -33,7 +33,7 @@ class EmployeeInsight extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return app()->getLocale() === 'nl' ? 'Intelligentie Hub' : 'Intelligence Hub';
+        return __('navigation.groups.workforce_performance');
     }
 
     public static function getNavigationLabel(): string

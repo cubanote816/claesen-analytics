@@ -21,7 +21,7 @@ class EmployeeResource extends Resource
 {
     protected static ?string $model = Employee::class;
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
@@ -46,7 +46,7 @@ class EmployeeResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('employees/resource.navigation_group');
+        return __('navigation.groups.workforce_performance');
     }
 
     public static function canCreate(): bool

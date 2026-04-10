@@ -2,7 +2,9 @@
 
 namespace Modules\Cafca\Models;
 
+use Modules\Analytics\Models\EmployeeInsight;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -105,7 +107,7 @@ class Employee extends Model implements HasMedia
         return implode(', ', $parts);
     }
 
-    public function insight(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function insight(): HasOne
     {
         return $this->hasOne(EmployeeInsight::class, 'employee_id', 'id');
     }

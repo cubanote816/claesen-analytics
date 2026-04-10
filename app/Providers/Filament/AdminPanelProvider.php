@@ -134,6 +134,9 @@ class AdminPanelProvider extends PanelProvider
                     ->label(__('navigation.groups.content_website'))
                     ->icon('heroicon-o-globe-alt'),
                 NavigationGroup::make()
+                    ->label(__('navigation.groups.workforce_performance'))
+                    ->icon('heroicon-o-user-group'),
+                NavigationGroup::make()
                     ->label(__('navigation.groups.user_management'))
                     ->icon('heroicon-o-cog-6-tooth'),
             ]);
