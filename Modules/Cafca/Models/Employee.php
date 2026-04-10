@@ -2,7 +2,7 @@
 
 namespace Modules\Cafca\Models;
 
-use Modules\Analytics\Models\EmployeeInsight;
+use Modules\Intelligence\Models\EmployeeInsight;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\MediaLibrary\HasMedia;

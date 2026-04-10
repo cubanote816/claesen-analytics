@@ -1,0 +1,11 @@
+{
+    "name": "Intelligence",
+    "alias": "intelligence",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Intelligence\\Providers\\IntelligenceServiceProvider"
+    ],
+    "files": []
+}

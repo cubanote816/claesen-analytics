@@ -1,4 +1,4 @@
-use Modules\Analytics\Services\BudgetAssistantService;
+use Modules\Intelligence\Services\BudgetAssistantService;
 
 $service = app(BudgetAssistantService::class);
 $description = "Grootschalige installatie voor sportpark 2930 Brasschaat. We hebben 6 masten van 15m nodig met LED-verlichting, 400 meter ondergrondse bekabeling, 2 slimme IoT-bedieningskasten en funderingsankers. Trek leringen uit Dossier Sportinfrabouw.";

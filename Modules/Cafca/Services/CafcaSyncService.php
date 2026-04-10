@@ -2,7 +2,7 @@
 
 namespace Modules\Cafca\Services;
 
-use Modules\Analytics\Jobs\AuditProjectJob;
+use Modules\Intelligence\Jobs\AuditProjectJob;
 use Modules\Cafca\Models\Project;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;

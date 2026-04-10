@@ -9,7 +9,7 @@ use Spatie\Translatable\HasTranslations;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Modules\Website\App\Enums\ProjectCategory;
-use Modules\Analytics\Traits\HasAiTranslations;
+use Modules\Intelligence\Traits\HasAiTranslations;
 
 class Project extends Model implements HasMedia
 {
