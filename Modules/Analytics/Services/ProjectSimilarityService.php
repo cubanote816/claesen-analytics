@@ -49,28 +49,29 @@ class ProjectSimilarityService
     private function applyRanking($query, array $keywords, ?string $zipcode = null)
     {
         $scoringParts = [];
+        $isHighScale = in_array('stadion', $keywords) || in_array('arena', $keywords);
         
-        // Technical keyword matches (Weight: 10 each)
+        // 1. Technical keyword matches (Weight: 20 each)
         if (!empty($keywords)) {
             foreach ($keywords as $word) {
-                $scoringParts[] = "CASE WHEN name LIKE '%{$word}%' THEN 20 ELSE 0 END";
+                // Stadium/Arena matched specifically get even more weight if intended
+                $weight = ($word === 'stadion' || $word === 'arena') ? 50 : 20;
+                $scoringParts[] = "CASE WHEN name LIKE '%{$word}%' THEN {$weight} ELSE 0 END";
             }
         } else {
             $scoringParts[] = "0";
         }
 
-        // Proximity matches (Weight: 5)
-        if ($zipcode) {
-            $zipPrefix = substr(preg_replace('/[^0-9]/', '', $zipcode), 0, 2);
-            if ($zipPrefix) {
-                $scoringParts[] = "CASE WHEN zipcode LIKE '{$zipPrefix}%' THEN 5 ELSE 0 END";
-            }
+        // 2. Bidirectional Scale Matching (Crucial to avoid "Stadion vs Local Pitch" mismatch)
+        if ($isHighScale) {
+            // If searching for a stadium, prioritize stadiums and penalize generic small sport lights
+            $scoringParts[] = "CASE WHEN name LIKE '%Arena%' OR name LIKE '%Stadion%' THEN 500 ELSE -200 END";
+        } else {
+            // If NOT searching for a stadium, heavily penalize stadium projects to avoid scale hallucination
+            $scoringParts[] = "CASE WHEN name LIKE '%Arena%' OR name LIKE '%Stadion%' THEN -500 ELSE 0 END";
         }
 
-        // Scale recognition (Names with 'Arena' or 'Stadion' get massive boost for technical intent)
-        $scoringParts[] = "CASE WHEN name LIKE '%Arena%' OR name LIKE '%Stadion%' THEN 50 ELSE 0 END";
-
-        // Noise suppression (Fluvius/Maintenance is heavily penalized for specific technical requests)
+        // 3. Noise suppression (Maintenance/Fluvius)
         $noisePenalty = "CASE WHEN name LIKE '%Fluvius%' OR name LIKE '%S.O.%' OR name LIKE '%Onderhoud%' THEN -100 ELSE 0 END";
 
         $finalScoring = "(" . implode(' + ', $scoringParts) . " + {$noisePenalty})";

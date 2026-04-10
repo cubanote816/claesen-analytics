@@ -42,12 +42,12 @@ class OfferSimulator extends Page implements HasForms
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'nl' ? 'Offerte Simulator' : 'Offer Simulator';
+        return app()->getLocale() === 'nl' ? 'Offerte Simulator (DEMO)' : 'Offer Simulator (DEMO)';
     }
 
     public function getTitle(): string
     {
-        return app()->getLocale() === 'nl' ? 'AI Offerte Simulator' : 'AI Offer Simulator';
+        return app()->getLocale() === 'nl' ? 'AI Offerte Simulator (DEMO)' : 'AI Offer Simulator (DEMO)';
     }
 
     public function form(Schema $form): Schema

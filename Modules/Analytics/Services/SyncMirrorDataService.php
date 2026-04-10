@@ -13,6 +13,7 @@ use Modules\Analytics\Models\Mirror\MirrorLaborType;
 use Modules\Analytics\Models\Mirror\MirrorLabor;
 use Modules\Analytics\Models\Mirror\MirrorMaterial;
 use Modules\Analytics\Models\Mirror\MirrorCost;
+use Modules\Analytics\Models\Mirror\MirrorInvoice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -29,7 +30,8 @@ class SyncMirrorDataService
         $this->syncEmployees();
         $this->syncLaborTypes();
         $this->syncLabor($fullHistory);
-        $this->syncMaterials();
+        $this->syncMaterials($fullHistory);
+        $this->syncInvoices($fullHistory);
         $this->syncCosts($fullHistory);
 
         Log::info("Mirror Sync Process Completed.");
@@ -81,22 +83,6 @@ class SyncMirrorDataService
         });
     }
 
-    private function syncEmployees(): void
-    {
-        DB::connection('sqlsrv')->table('employee')->orderBy('id')->chunk(500, function ($employees) {
-            foreach ($employees as $employee) {
-                MirrorEmployee::updateOrCreate(
-                    ['id' => $employee->id],
-                    [
-                        'name' => trim($employee->name),
-                        'zipcode' => trim($employee->zip ?? ''),
-                        'specialty' => trim($employee->specialty ?? ''),
-                        'fl_active' => $employee->fl_active ?? true,
-                    ]
-                );
-            }
-        });
-    }
 
     private function syncLaborTypes(): void
     {
@@ -111,6 +97,24 @@ class SyncMirrorDataService
                     [
                         'ref' => trim($type->ref),
                         'name' => trim($type->descr_l1),
+                    ]
+                );
+            }
+        });
+    }
+
+    private function syncEmployees(): void
+    {
+        DB::connection('sqlsrv')->table('employee')->orderBy('id')->chunk(500, function ($employees) {
+            foreach ($employees as $employee) {
+                MirrorEmployee::updateOrCreate(
+                    ['id' => $employee->id],
+                    [
+                        'name' => trim($employee->name),
+                        'zipcode' => trim($employee->zip ?? ''),
+                        'specialty' => trim($employee->functie ?? 'Technician'),
+                        'hourly_cost' => $employee->costprice ?? $employee->hourly_rate ?? 0,
+                        'fl_active' => $employee->fl_active,
                     ]
                 );
             }
@@ -140,9 +144,15 @@ class SyncMirrorDataService
         });
     }
 
-    private function syncMaterials(): void
+    public function syncMaterials(bool $massive = false): void
     {
-        LegacyMaterial::where('fl_current', 1)->orderBy('id')->chunk(500, function ($materials) {
+        $query = LegacyMaterial::query();
+        
+        if (!$massive) {
+            $query->where('fl_current', 1);
+        }
+
+        $query->orderBy('id')->chunk(500, function ($materials) {
             foreach ($materials as $material) {
                 MirrorMaterial::updateOrCreate(
                     ['id' => $material->id],
@@ -152,6 +162,27 @@ class SyncMirrorDataService
                         'cost_price' => $material->costprice,
                         'last_price_date' => $material->date,
                         'fl_active' => $material->fl_current,
+                    ]
+                );
+            }
+        });
+    }
+
+    private function syncInvoices(bool $fullHistory): void
+    {
+        $query = DB::connection('sqlsrv')->table('invoice');
+        if (!$fullHistory) {
+            $query->where('date', '>=', now()->subMonths(6));
+        }
+
+        $query->orderBy('id')->chunk(500, function ($invoices) {
+            foreach ($invoices as $invoice) {
+                MirrorInvoice::updateOrCreate(
+                    ['id' => trim($invoice->id)],
+                    [
+                        'project_id' => trim($invoice->project_id),
+                        'total_price_vat_excl' => $invoice->total_price_vat_excl,
+                        'date' => $invoice->date,
                     ]
                 );
             }

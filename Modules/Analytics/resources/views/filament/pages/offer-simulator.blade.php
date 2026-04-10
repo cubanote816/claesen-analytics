@@ -1,4 +1,21 @@
 <x-filament-panels::page>
+    <div class="relative group mb-8">
+        <div class="absolute -inset-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+        <div class="relative px-8 py-4 bg-white dark:bg-gray-950 border border-amber-500/20 rounded-3xl flex items-center gap-6 shadow-xl">
+            <div class="flex-shrink-0 w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <x-heroicon-o-beaker class="w-6 h-6 text-amber-500 animate-pulse" />
+            </div>
+            <div class="flex-grow">
+                <p class="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-0.5">{{ app()->getLocale() === 'nl' ? 'PROTOTYPE (DEMO MODUS)' : 'PROTOTYPE (DEMO MODE)' }}</p>
+                <h4 class="text-gray-900 dark:text-gray-300 font-bold text-sm leading-tight tracking-tight">
+                    {{ app()->getLocale() === 'nl' 
+                        ? 'Deze simulator is in ontwikkeling. Alle resultaten zijn AI-ramingen en MOETEN worden gecontroleerd door een technisch expert van Claesen.' 
+                        : 'This simulator is in development. All results are AI estimations and MUST be verified by a Claesen technical expert.' }}
+                </h4>
+            </div>
+        </div>
+    </div>
+
     <form wire:submit.prevent="simulate">
         {{ $this->form }}
 
@@ -314,12 +331,91 @@
             </div>
 
             <!-- Tab Content: SWOT -->
-            <div x-show="activeTab === 'swot'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-8">
+            <div x-show="activeTab === 'swot'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-12">
                 <x-filament::section>
-                    <div class="prose prose-sm dark:prose-invert max-w-none">
-                        <div class="mb-12 overflow-hidden rounded-[2.5rem] border border-gray-200 dark:border-gray-800 shadow-3xl bg-white dark:bg-gray-950/50 p-4">
-                            <div class="swot-markdown-wrapper group">
-                                {!! Str::markdown($results['swot_table'] ?? '') !!}
+                    <div class="space-y-12">
+                        <!-- Premium 2x2 SWOT Matrix -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+                            <!-- Matrix Divider (Visual Only) -->
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 hidden md:flex">
+                                <div class="w-px h-full bg-gray-400"></div>
+                                <div class="h-px w-full bg-gray-400 absolute"></div>
+                            </div>
+
+                            <!-- Strengths (Sterktes) -->
+                            <div class="p-8 rounded-[2rem] bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-500/20 shadow-xl shadow-emerald-500/5 relative overflow-hidden group">
+                                <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all"></div>
+                                <div class="flex items-center gap-3 mb-6 relative z-10">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                                        <x-heroicon-s-check-badge class="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                                    </div>
+                                    <h4 class="text-sm font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-widest">{{ app()->getLocale() === 'nl' ? 'STERKTES' : 'STRENGTHS' }}</h4>
+                                </div>
+                                <ul class="space-y-3 relative z-10">
+                                    @foreach($results['swot']['strengths'] ?? [] as $item)
+                                        <li class="flex items-start gap-2 text-xs font-bold text-emerald-900/80 dark:text-emerald-200/70 leading-relaxed">
+                                            <span class="mt-1 w-1 h-1 rounded-full bg-emerald-500 shrink-0"></span>
+                                            {{ $item }}
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+
+                            <!-- Weaknesses (Zwaktes) -->
+                            <div class="p-8 rounded-[2rem] bg-amber-50/50 dark:bg-amber-500/5 border border-amber-500/20 shadow-xl shadow-amber-500/5 relative overflow-hidden group">
+                                <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all"></div>
+                                <div class="flex items-center gap-3 mb-6 relative z-10">
+                                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                                        <x-heroicon-s-exclamation-triangle class="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                                    </div>
+                                    <h4 class="text-sm font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest">{{ app()->getLocale() === 'nl' ? 'ZWAKTES' : 'WEAKNESSES' }}</h4>
+                                </div>
+                                <ul class="space-y-3 relative z-10">
+                                    @foreach($results['swot']['weaknesses'] ?? [] as $item)
+                                        <li class="flex items-start gap-2 text-xs font-bold text-amber-900/80 dark:text-amber-200/70 leading-relaxed">
+                                            <span class="mt-1 w-1 h-1 rounded-full bg-amber-500 shrink-0"></span>
+                                            {{ $item }}
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+
+                            <!-- Opportunities (Kansen) -->
+                            <div class="p-8 rounded-[2rem] bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-500/20 shadow-xl shadow-indigo-500/5 relative overflow-hidden group">
+                                <div class="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all"></div>
+                                <div class="flex items-center gap-3 mb-6 relative z-10">
+                                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                                        <x-heroicon-s-light-bulb class="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                                    </div>
+                                    <h4 class="text-sm font-black text-indigo-800 dark:text-indigo-300 uppercase tracking-widest">{{ app()->getLocale() === 'nl' ? 'KANSEN' : 'OPPORTUNITIES' }}</h4>
+                                </div>
+                                <ul class="space-y-3 relative z-10">
+                                    @foreach($results['swot']['opportunities'] ?? [] as $item)
+                                        <li class="flex items-start gap-2 text-xs font-bold text-indigo-900/80 dark:text-indigo-200/70 leading-relaxed">
+                                            <span class="mt-1 w-1 h-1 rounded-full bg-indigo-500 shrink-0"></span>
+                                            {{ $item }}
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+
+                            <!-- Threats (Bedreigingen) -->
+                            <div class="p-8 rounded-[2rem] bg-rose-50/50 dark:bg-rose-500/5 border border-rose-500/20 shadow-xl shadow-rose-500/5 relative overflow-hidden group">
+                                <div class="absolute -top-12 -right-12 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl group-hover:bg-rose-500/20 transition-all"></div>
+                                <div class="flex items-center gap-3 mb-6 relative z-10">
+                                    <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
+                                        <x-heroicon-s-shield-exclamation class="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                                    </div>
+                                    <h4 class="text-sm font-black text-rose-800 dark:text-rose-300 uppercase tracking-widest">{{ app()->getLocale() === 'nl' ? 'BEDREIGINGEN' : 'THREATS' }}</h4>
+                                </div>
+                                <ul class="space-y-3 relative z-10">
+                                    @foreach($results['swot']['threats'] ?? [] as $item)
+                                        <li class="flex items-start gap-2 text-xs font-bold text-rose-900/80 dark:text-rose-200/70 leading-relaxed">
+                                            <span class="mt-1 w-1 h-1 rounded-full bg-rose-500 shrink-0"></span>
+                                            {{ $item }}
+                                        </li>
+                                    @endforeach
+                                </ul>
                             </div>
                         </div>
                         

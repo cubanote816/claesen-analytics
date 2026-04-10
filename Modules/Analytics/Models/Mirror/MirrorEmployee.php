@@ -14,6 +14,7 @@ class MirrorEmployee extends Model
         'name',
         'zipcode',
         'specialty',
+        'hourly_cost',
         'fl_active',
     ];
 

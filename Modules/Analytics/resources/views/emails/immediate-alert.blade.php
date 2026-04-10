@@ -32,15 +32,19 @@
             <div class="project-details">
                 <div class="detail-row">
                     <span class="detail-label">Project:</span>
-                    <span class="detail-value">{{ $insight->project_id }} - {{ $insight->full_dna['name'] ?? 'Unknown' }}</span>
+                    <span class="detail-value">{{ $projectData['id'] }} - {{ $projectData['name'] ?? 'Unknown' }}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Huidige WIP (Onderhanden Werk):</span>
-                    <span class="detail-value" style="color: #ef4444;">€ {{ number_format($wipAmount, 2, ',', '.') }}</span>
+                    <span class="detail-value" style="color: #ef4444;">€ {{ number_format($projectData['wip'], 2, ',', '.') }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Dagen sinds laatste factuur:</span>
+                    <span class="detail-value">{{ $projectData['stale_days'] }} dagen</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Dringendheidsniveau:</span>
-                    <span class="detail-value" style="background: #ef4444; color: white; padding: 0 5px; border-radius: 3px;">CRITICAL</span>
+                    <span class="detail-value" style="background: #ef4444; color: white; padding: 0 5px; border-radius: 3px;">{{ $projectData['risk_level'] }}</span>
                 </div>
             </div>
 

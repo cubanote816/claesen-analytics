@@ -47,6 +47,7 @@ class AnalyticsServiceProvider extends ServiceProvider
             \Modules\Analytics\Console\Commands\PopulateProjectInsightsCommand::class,
             \Modules\Analytics\Console\Commands\SendWatchdogReportCommand::class,
             \Modules\Analytics\Console\Commands\SyncMirrorCommand::class,
+            \Modules\Analytics\Console\Commands\MapWarehouseCategoriesCommand::class,
             \Modules\Analytics\Console\Commands\BuildMaterialBrain::class,
         ]);
     }
