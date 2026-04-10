@@ -2,7 +2,7 @@
 
 namespace Modules\Cafca\Models;
 
-use Modules\Intelligence\Models\ProjectInsight;
+use Modules\Performance\Models\ProjectInsight;
 use Modules\Core\Traits\ReadOnlyTrait;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 

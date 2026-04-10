@@ -41,7 +41,7 @@ class ViewEmployee extends ViewRecord
                 ->modalHeading(__('employees/resource.actions.analyze.confirm.title'))
                 ->modalDescription(__('employees/resource.actions.analyze.confirm.body'))
                 ->action(function () {
-                    \Modules\Intelligence\Jobs\AnalyzeEmployeeJob::dispatchSync($this->record->id);
+                    \Modules\Performance\Jobs\AnalyzeEmployeeJob::dispatchSync($this->record->id);
                     \Filament\Notifications\Notification::make()
                         ->title(__('employees/resource.actions.analyze.notification.success'))
                         ->success()

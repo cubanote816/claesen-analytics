@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Intelligence\DTOs;
+namespace Modules\Performance\DTOs;
 
 class GeminiContextDTO
 {

@@ -1,11 +1,11 @@
 <?php
 
-namespace Modules\Intelligence\Jobs;
+namespace Modules\Performance\Jobs;
 
-use Modules\Intelligence\DTOs\ProjectAiPayload;
+use Modules\Performance\DTOs\ProjectAiPayload;
 use Modules\Cafca\Models\Project;
-use Modules\Intelligence\Models\ProjectInsight;
-use Modules\Intelligence\Services\GeminiService;
+use Modules\Performance\Models\ProjectInsight;
+use Modules\Performance\Services\GeminiService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -60,7 +60,7 @@ class AuditProjectJob implements ShouldQueue
 
         // 3. Call Gemini API
         // Determine locale - passing 'nl' context via DTO.
-        $context = new \Modules\Intelligence\DTOs\GeminiContextDTO('nl');
+        $context = new \Modules\Performance\DTOs\GeminiContextDTO('nl');
         $result = $geminiService->analyzeProject($payload->toArray(), $context);
 
         // 4. Update Insight Model

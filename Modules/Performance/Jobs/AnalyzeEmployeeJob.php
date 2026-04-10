@@ -1,12 +1,12 @@
 <?php
 
-namespace Modules\Intelligence\Jobs;
+namespace Modules\Performance\Jobs;
 
-use Modules\Intelligence\DTOs\EmployeeAiPayload;
+use Modules\Performance\DTOs\EmployeeAiPayload;
 use Modules\Cafca\Models\Employee as LegacyEmployee;
 use Modules\Cafca\Models\Labor;
-use Modules\Intelligence\Models\EmployeeInsight;
-use Modules\Intelligence\Services\GeminiService;
+use Modules\Performance\Models\EmployeeInsight;
+use Modules\Performance\Services\GeminiService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
