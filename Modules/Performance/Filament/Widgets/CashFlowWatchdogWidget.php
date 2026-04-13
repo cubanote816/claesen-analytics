@@ -10,7 +10,9 @@ class CashFlowWatchdogWidget extends Widget
     protected string $view = 'performance::filament.widgets.cash-flow-watchdog-widget';
     protected int | string | array $columnSpan = 'full';
     
-    public ?string $report = null;
+    protected static bool $isLazy = true;
+
+    public string|array|null $report = null;
 
     public function mount()
     {
@@ -21,5 +23,10 @@ class CashFlowWatchdogWidget extends Widget
         } catch (\Exception $e) {
             $this->report = "Could not load report.";
         }
+    }
+
+    public function getLoadingIndicator(): \Illuminate\Contracts\View\View
+    {
+        return view('performance::filament.widgets.skeletons.watchdog');
     }
 }

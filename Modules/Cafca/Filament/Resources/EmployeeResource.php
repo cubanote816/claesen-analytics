@@ -82,13 +82,14 @@ class EmployeeResource extends Resource
         return EmployeesTable::configure($table);
     }
 
-    // public static function getRecordSubNavigation(\Filament\Resources\Pages\Page $page): array
-    // {
-    //     return $page->generateNavigationItems([
-    //         ViewEmployee::class,
-    //         EditEmployee::class,
-    //     ]);
-    // }
+    public static function getRecordSubNavigation(\Filament\Resources\Pages\Page $page): array
+    {
+        return $page->generateNavigationItems([
+            ViewEmployee::class,
+            EditEmployee::class,
+            \Modules\Cafca\Filament\Resources\Employees\Pages\EmployeeAnalytics::class,
+        ]);
+    }
 
     public static function getRelations(): array
     {
@@ -104,6 +105,7 @@ class EmployeeResource extends Resource
             'create' => CreateEmployee::route('/create'),
             'view' => ViewEmployee::route('/{record}'),
             'edit' => EditEmployee::route('/{record}/edit'),
+            'analytics' => \Modules\Cafca\Filament\Resources\Employees\Pages\EmployeeAnalytics::route('/{record}/analytics'),
         ];
     }
 }

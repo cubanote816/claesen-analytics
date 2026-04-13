@@ -4,6 +4,11 @@ namespace Modules\Performance\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Performance\Services\EmployeePerformanceService;
+use Modules\Performance\Services\PerformanceDashboardService;
+use Modules\Performance\Transformers\PerformanceStatsResource;
+use Modules\Performance\Transformers\EmployeeProjectEfficiencyResource;
+use Modules\Cafca\Models\Employee;
 
 class PerformanceController extends Controller
 {
@@ -50,7 +55,23 @@ class PerformanceController extends Controller
     public function update(Request $request, $id) {}
 
     /**
-     * Remove the specified resource from storage.
+     * Get performance stats for a specific employee.
      */
-    public function destroy($id) {}
+    public function stats(string $id, EmployeePerformanceService $service)
+    {
+        $employee = Employee::findOrFail($id);
+        $stats = $service->getDailyStats($employee, now());
+        
+        return new PerformanceStatsResource($stats);
+    }
+ 
+    /**
+     * Get ranking of employees based on efficiency.
+     */
+    public function efficiencyRanking(PerformanceDashboardService $service)
+    {
+        $rankings = $service->getEmployeeRanking();
+        
+        return EmployeeProjectEfficiencyResource::collection($rankings);
+    }
 }

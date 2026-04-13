@@ -58,7 +58,7 @@ return new class extends Migration {
         Schema::dropIfExists('project_insights');
     }
 };
-4. Estándar de Código Filament V5 (Syntax Override)
+4. Estándar de Código Filament V5 o superior (Syntax Override)
 Regla de Oro: La arquitectura de formularios e infolists se ha unificado bajo la clase Schema.
 
 Formularios: NO usar Filament\Forms\Form. Usar Filament\Schemas\Schema.
@@ -117,7 +117,7 @@ You are using a SPECIFIC version of Filament (V5) with architectural changes. Yo
 
 **5. IDIOMA**
 * **Código/Comentarios:** INGLÉS.
-* **UI/Textos:** NEERLANDÉS (Nederlands).
+* **UI/Textos:** NEERLANDÉS (Nederlands) si el navegador esta en ese idioma sino en ingles.
 🧪 Prueba de Concepto: ProjectInsightResource (Versión V5)
 Para verificar que estamos alineados, así es como generaría ahora el recurso principal de tu aplicación (project_insights) aplicando tus reglas V5:
 

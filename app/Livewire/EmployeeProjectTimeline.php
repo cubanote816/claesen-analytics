@@ -5,10 +5,18 @@ namespace App\Livewire;
 use Modules\Cafca\Models\Employee;
 use Modules\Cafca\Models\Labor;
 use Livewire\Component;
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 
-class EmployeeProjectTimeline extends Component
+class EmployeeProjectTimeline extends Component implements HasForms, HasActions
 {
+    use InteractsWithForms, InteractsWithActions;
+
     public Employee $record;
     public $fromDate;
     public $toDate;
@@ -16,10 +24,13 @@ class EmployeeProjectTimeline extends Component
     // Stats for Dashboard
     public $totalHours = 0;
     public $distribution = [
-        'effective' => 0,
-        'loading' => 0,
-        'transport' => 0,
+        'Werf' => 0,
+        'Laden' => 0,
+        'Mobiliteit' => 0,
     ];
+
+    public $temporalDistribution = [];
+    public $temporalType = 'daily';
 
     public function mount(Employee $record)
     {
@@ -31,17 +42,40 @@ class EmployeeProjectTimeline extends Component
         $this->calculateStats();
     }
 
-    public function updated($property)
+    public function customRangeAction(): Action
     {
-        if (in_array($property, ['fromDate', 'toDate'])) {
-            $this->calculateStats();
-            $this->resetPage();
-        }
+        return Action::make('customRange')
+            ->label('Active Range')
+            ->modalHeading('Selecteer Periode (Aangepast)')
+            ->modalDescription('Kies een specifieke start- en einddatum voor de analyse.')
+            ->modalSubmitActionLabel('Toepassen')
+            ->modalWidth('md')
+            ->form([
+                DatePicker::make('from')
+                    ->label('Start Datum')
+                    ->default($this->fromDate)
+                    ->required(),
+                DatePicker::make('to')
+                    ->label('Eind Datum')
+                    ->default($this->toDate)
+                    ->afterOrEqual('from')
+                    ->required(),
+            ])
+            ->action(function (array $data): void {
+                $this->fromDate = $data['from'];
+                $this->toDate = $data['to'];
+                $this->calculateStats();
+                $this->resetPage();
+            });
     }
 
     public function setPeriod(string $period)
     {
         switch ($period) {
+            case 'last_month':
+                $this->fromDate = now()->subMonth()->startOfMonth()->format('Y-m-d');
+                $this->toDate = now()->subMonth()->endOfMonth()->format('Y-m-d');
+                break;
             case 'this_month':
                 $this->fromDate = now()->startOfMonth()->format('Y-m-d');
                 $this->toDate = now()->endOfMonth()->format('Y-m-d');
@@ -69,6 +103,7 @@ class EmployeeProjectTimeline extends Component
         $start = Carbon::parse($this->fromDate)->startOfDay();
         $end = Carbon::parse($this->toDate)->endOfDay();
 
+        if ($start->eq(now()->subMonth()->startOfMonth()) && $end->eq(now()->subMonth()->endOfMonth())) return 'last_month';
         if ($start->isStartOfMonth() && $end->isEndOfMonth() && $start->isCurrentMonth()) return 'this_month';
         if ($start->eq(now()->subQuarter()->startOfQuarter()) && $end->eq(now()->subQuarter()->endOfQuarter())) return 'last_quarter';
         if ($start->eq(now()->subMonths(6)->startOfMonth()) && $end->isToday()) return 'last_semester';
@@ -79,54 +114,99 @@ class EmployeeProjectTimeline extends Component
 
     protected function calculateStats()
     {
-        $start = Carbon::parse($this->fromDate)->startOfDay();
-        $end = Carbon::parse($this->toDate)->endOfDay();
+        $start = Carbon::parse($this->fromDate);
+        $end = Carbon::parse($this->toDate);
 
-        $logs = Labor::where('employee_id', $this->record->id)
-            ->whereBetween('date', [$start, $end])
-            ->get();
+        $stats = app(\Modules\Performance\Services\EmployeePerformanceService::class)
+            ->getStatsForPeriod($this->record, $start, $end);
 
-        $this->totalHours = $logs->sum('hours');
-
-        if ($this->totalHours > 0) {
-            $this->distribution = [
-                'effective' => round($logs->whereNotIn('labor_id', ['111', '114'])->sum('hours'), 1),
-                'loading' => round($logs->where('labor_id', '114')->sum('hours'), 1),
-                'transport' => round($logs->where('labor_id', '111')->sum('hours'), 1),
+        $this->totalHours = $stats['hours'];
+        $this->distribution = $stats['categories'];
+        $this->temporalDistribution = $stats['temporal_distribution'] ?? [];
+        $this->temporalType = $stats['temporal_type'] ?? 'daily';
+        
+        $categories = ['Werf', 'Laden', 'Mobiliteit'];
+        $temporalSeries = [];
+        foreach ($categories as $cat) {
+            $data = [];
+            foreach ($this->temporalDistribution as $date => $catData) {
+                $data[] = $catData[$cat] ?? 0;
+            }
+            $temporalSeries[] = [
+                'name' => $cat,
+                'data' => $data,
             ];
-        } else {
-            $this->distribution = ['effective' => 0, 'loading' => 0, 'transport' => 0];
         }
+
+        $temporalLabels = array_map(function($d) {
+            return $this->temporalType === 'monthly'
+                ? \Carbon\Carbon::parse($d)->format('M Y')
+                : \Carbon\Carbon::parse($d)->format('d M');
+        }, array_keys($this->temporalDistribution));
+
+        // Refresh the chart on the client side
+        $this->dispatch('statsUpdated', [
+            'totalHours' => $this->totalHours,
+            'distributionLabels' => array_keys($this->distribution),
+            'distributionSeries' => array_values($this->distribution),
+            'temporalLabels' => $temporalLabels,
+            'temporalSeries' => $temporalSeries,
+            'temporalTitle' => $this->temporalType === 'monthly' ? 'Monthly Trend' : 'Daily Trend',
+        ]);
+    }
+
+    public function getChartDataProperty()
+    {
+        $categories = ['Werf', 'Laden', 'Mobiliteit'];
+        $temporalSeries = [];
+        foreach ($categories as $cat) {
+            $data = [];
+            foreach ($this->temporalDistribution as $date => $catData) {
+                $data[] = $catData[$cat] ?? 0;
+            }
+            $temporalSeries[] = [
+                'name' => $cat,
+                'data' => $data,
+            ];
+        }
+
+        $temporalLabels = array_map(function($d) {
+            return $this->temporalType === 'monthly'
+                ? \Carbon\Carbon::parse($d)->format('M Y')
+                : \Carbon\Carbon::parse($d)->format('d M');
+        }, array_keys($this->temporalDistribution));
+
+        return [
+            'totalHours' => $this->totalHours,
+            'distributionLabels' => array_keys($this->distribution),
+            'distributionSeries' => array_values($this->distribution),
+            'temporalLabels' => $temporalLabels,
+            'temporalSeries' => $temporalSeries,
+            'temporalTitle' => $this->temporalType === 'monthly' ? 'Monthly Trend' : 'Daily Trend',
+        ];
     }
 
     use \Livewire\WithPagination;
 
     public function render()
     {
-        $start = Carbon::parse($this->fromDate)->startOfDay();
-        $end = Carbon::parse($this->toDate)->endOfDay();
+        $start = Carbon::parse($this->fromDate);
+        $end = Carbon::parse($this->toDate);
 
-        $logs = Labor::where('employee_id', $this->record->id)
-            ->whereBetween('date', [$start, $end])
-            ->with('project')
-            ->get();
+        $stats = app(\Modules\Performance\Services\EmployeePerformanceService::class)
+            ->getStatsForPeriod($this->record, $start, $end);
 
-        $timelineData = $logs->groupBy('project_id')
-            ->map(function ($logs) {
-                $project = $logs->first()->project;
-                $projectHours = $logs->sum('hours');
-
-                return [
-                    'project_id' => $logs->first()->project_id,
-                    'project_name' => $project ? $project->name : 'Unknown Project',
-                    'project_code' => $project ? $project->id : '---',
-                    'total_hours' => $projectHours,
-                    'percentage' => $this->totalHours > 0 ? round(($projectHours / $this->totalHours) * 100) : 0,
-                    'month_label' => $logs->max('date') ? str($logs->max('date')->format('M'))->upper() : '---',
-                ];
-            })
-            ->sortByDesc('total_hours')
-            ->values();
+        $timelineData = collect($stats['projects'])->map(function ($project) {
+            return [
+                'project_id' => $project['project_id'],
+                'project_name' => $project['project_name'],
+                'project_code' => $project['project_id'],
+                'total_hours' => $project['total_hours'],
+                'percentage' => $this->totalHours > 0 ? round(($project['total_hours'] / $this->totalHours) * 100) : 0,
+                'categories' => $project['categories'],
+                'month_label' => $project['last_active'] ? str($project['last_active']->format('M'))->upper() : '---',
+            ];
+        });
 
         // Manual Pagination for Collection
         $perPage = 6;

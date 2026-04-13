@@ -61,6 +61,7 @@ class Employee extends Model implements HasMedia
         'termination_date',
         'legacy_ts_modif',
         'notes',
+        'uren_per_week',
     ];
 
     /**
@@ -73,6 +74,7 @@ class Employee extends Model implements HasMedia
         'employment_date' => 'datetime',
         'termination_date' => 'datetime',
         'legacy_ts_modif' => 'datetime',
+        'uren_per_week' => 'float',
     ];
 
     /**
@@ -110,5 +112,22 @@ class Employee extends Model implements HasMedia
     public function insight(): HasOne
     {
         return $this->hasOne(EmployeeInsight::class, 'employee_id', 'id');
+    }
+ 
+    /**
+     * Relationship with Labor entries.
+     */
+    public function labors()
+    {
+        return $this->hasMany(Labor::class, 'employee_id', 'id');
+    }
+ 
+    /**
+     * Accessor for full name.
+     * Currently an alias for 'name' as name contains full name in legacy.
+     */
+    public function getFullNameAttribute(): string
+    {
+        return $this->name;
     }
 }

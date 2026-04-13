@@ -13,6 +13,7 @@ return [
         'ai_insights_loading' => 'AI-analyse wordt uitgevoerd...',
         'project_timeline_loading' => 'Recente projecten laden...',
         'last_6_months' => 'Laatste 6 maanden',
+        'last_month' => 'Vorige Maand',
         'this_month' => 'Deze Maand',
         'last_quarter' => 'Vorig Kwartaal',
         'last_semester' => 'Vorig Semester',
@@ -122,5 +123,28 @@ return [
         'total_hours' => 'Totaal Gewerkt',
         'efficiency' => 'Efficiëntie',
         'projects_count' => 'Actieve Projecten',
+    ],
+
+    'empty_state' => [
+        'title' => 'Geen Gegevens Beschikbaar',
+        'description' => 'Er zijn geen geregistreerde werkuren gevonden voor :name binnen de geselecteerde reeks.',
+        'action_this_month' => 'Bekijk Vorige Maand',
+        'action_previous_year' => 'Bekijk Vorig Jaar',
+    ],
+
+    'dashboard' => [
+        'active_range' => 'ACTIEF BEREIK',
+        'global_load' => 'TOTALE BELASTING',
+        'project_showcase' => 'PROJECT OVERZICHT',
+        'project_insight' => 'Project Inzicht',
+        'efficiency' => 'Efficiëntie',
+        'verified_match' => 'Geverifieerde Match',
+        'view_archives' => 'Archief Bekijken',
+        'custom_range' => 'Aangepast Bereik',
+        'loading' => [
+            'focus' => 'Intelligentie Focus',
+            'sync' => 'Analyses synchroniseren...',
+            'stage' => 'Analyse Fase',
+        ],
     ],
 ];

@@ -1,12 +1,12 @@
 <?php
 
-namespace Modules\Intelligence\Models\Mirror;
+namespace Modules\Performance\Models\Mirror;
 
 use Illuminate\Database\Eloquent\Model;
 
 class MirrorInvoice extends Model
 {
-    protected $table = 'intelligence_mirror_invoices';
+    protected $table = 'analytics_mirror_invoices';
     public $incrementing = false;
     protected $keyType = 'string';
 

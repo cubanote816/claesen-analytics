@@ -6,6 +6,40 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+    
+    /* Filament Signature Design Tokens */
+    --color-claesen-orange: #f97316;
+    --shadow-signature: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 40px -10px rgba(0, 0, 0, 0.07);
+    --shadow-signature-dark: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+@layer utilities {
+    .bg-mesh-signature {
+        background-color: #ffffff;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.05) 0, transparent 50%), 
+            radial-gradient(at 100% 0%, rgba(249, 115, 22, 0.05) 0, transparent 50%),
+            radial-gradient(at 50% 100%, rgba(244, 63, 94, 0.03) 0, transparent 50%);
+    }
+    
+    .dark .bg-mesh-signature {
+        background-color: #09090b;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.15) 0, transparent 50%), 
+            radial-gradient(at 100% 0%, rgba(249, 115, 22, 0.15) 0, transparent 50%),
+            radial-gradient(at 50% 100%, rgba(244, 63, 94, 0.1) 0, transparent 50%);
+    }
+
+    .glass-signature {
+        @apply bg-white/60 dark:bg-black/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 shadow-signature dark:shadow-signature-dark;
+    }
+
+    .inner-glow-orange {
+        box-shadow: inset 0 0 20px rgba(249, 115, 22, 0.05);
+    }
+    
+    .tracking-signature {
+        @apply tracking-tighter leading-tight;
+    }
 }

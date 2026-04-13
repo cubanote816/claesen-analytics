@@ -26,6 +26,37 @@
     --color-gray-950: var(--color-slate-950);
 
     --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+    /* Brand Signature Colors */
+    --color-claesen-orange: #f97316;
+    
+    /* Support for Signature Glassmorphism (Synced with public app) */
+    --shadow-signature: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 40px -10px rgba(0, 0, 0, 0.07);
+    --shadow-signature-dark: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+@layer utilities {
+    .glass-signature {
+        background-color: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: var(--shadow-signature);
+    }
+
+    .dark .glass-signature {
+        background-color: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: var(--shadow-signature-dark);
+    }
+
+    .inner-glow-orange {
+        box-shadow: inset 0 0 20px rgba(249, 115, 22, 0.05);
+    }
+
+    .tracking-signature {
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+    }
 }
 
 @source "../../../../app/Filament/**/*.php";

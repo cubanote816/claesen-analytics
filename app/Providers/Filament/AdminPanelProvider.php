@@ -104,8 +104,7 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
+                // Default widgets removed to clean up the dashboard
             ])
             ->middleware([
                 EncryptCookies::class,

@@ -30,7 +30,7 @@ class CafcaSyncService
         $jobs = [];
         $query->chunk(100, function ($projects) use (&$jobs) {
             foreach ($projects as $project) {
-                $jobs[] = new AuditProjectJob($project->project_id);
+                $jobs[] = new AuditProjectJob($project->id);
             }
         });
 

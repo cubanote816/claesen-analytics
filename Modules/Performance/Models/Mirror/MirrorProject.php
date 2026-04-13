@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Intelligence\Models\Mirror;
+namespace Modules\Performance\Models\Mirror;
 
 use Illuminate\Database\Eloquent\Model;
 

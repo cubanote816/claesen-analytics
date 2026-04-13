@@ -46,6 +46,7 @@ class PerformanceServiceProvider extends ServiceProvider
         $this->commands([
             \Modules\Performance\Console\Commands\PopulateProjectInsightsCommand::class,
             \Modules\Performance\Console\Commands\SendWatchdogReportCommand::class,
+            \Modules\Performance\Console\Commands\SyncAllCommand::class,
         ]);
     }
 
@@ -57,6 +58,7 @@ class PerformanceServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
             $schedule->command('performance:send-watchdog-report')->mondays()->at('08:00');
+            $schedule->command('performance:sync-all')->dailyAt('02:00');
             $schedule->command('performance:populate-insights')->dailyAt('09:00');
         });
     }

@@ -8,12 +8,16 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
+use Modules\Performance\Filament\Widgets\EmployeePerformanceStatsWidget;
+use Modules\Performance\Filament\Widgets\EmployeePerformanceChartWidget;
 use Modules\Performance\Services\TechnicianAnalysisService;
 use Modules\Cafca\Models\Employee;
 
 class EmployeeInsight extends Page implements HasForms
 {
     use InteractsWithForms;
+
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function getNavigationIcon(): ?string
     {
@@ -54,9 +58,25 @@ class EmployeeInsight extends Page implements HasForms
                     ->label(app()->getLocale() === 'nl' ? 'Selecteer Technicus' : 'Select Technician')
                     ->options(Employee::limit(100)->pluck('name', 'id'))
                     ->searchable()
+                    ->live()
                     ->required(),
             ])
             ->statePath('data');
+    }
+ 
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            EmployeePerformanceStatsWidget::class,
+            EmployeePerformanceChartWidget::class,
+        ];
+    }
+ 
+    protected function getHeaderWidgetsData(): array
+    {
+        return [
+            'employeeId' => $this->data['employee_id'] ?? null,
+        ];
     }
 
     public function analyze(): void

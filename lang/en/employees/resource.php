@@ -13,6 +13,7 @@ return [
         'ai_insights_loading' => 'AI analysis in progress...',
         'project_timeline_loading' => 'Loading recent projects...',
         'last_6_months' => 'Last 6 months',
+        'last_month' => 'Last Month',
         'this_month' => 'This Month',
         'last_quarter' => 'Last Quarter',
         'last_semester' => 'Last Semester',
@@ -123,5 +124,28 @@ return [
         'total_hours' => 'Total Worked',
         'efficiency' => 'Efficiency',
         'projects_count' => 'Active Projects',
+    ],
+
+    'empty_state' => [
+        'title' => 'No Data Available',
+        'description' => 'There are no registered working hours found for :name within the selected timeframe.',
+        'action_this_month' => 'View Previous Month',
+        'action_previous_year' => 'View Previous Year',
+    ],
+
+    'dashboard' => [
+        'active_range' => 'ACTIVE RANGE',
+        'global_load' => 'GLOBAL LOAD',
+        'project_showcase' => 'PROJECT OVERZICHT',
+        'project_insight' => 'Project Insight',
+        'efficiency' => 'Efficiency',
+        'verified_match' => 'Verified Match',
+        'view_archives' => 'View Archives',
+        'custom_range' => 'Custom Range',
+        'loading' => [
+            'focus' => 'Intelligence Focus',
+            'sync' => 'Synchronizing Analytics...',
+            'stage' => 'Intelligence Stage',
+        ],
     ],
 ];
