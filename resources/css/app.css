@@ -42,4 +42,13 @@
     .tracking-signature {
         @apply tracking-tighter leading-tight;
     }
+
+    .financial-blur {
+        @apply blur-md select-none pointer-events-none opacity-40 transition-all duration-700 ease-in-out;
+    }
+
+    .financial-blur:hover {
+        /* Optional: allow revealing on hover if we want, but for now strictly blurred as per user request */
+        /* @apply blur-none opacity-100; */
+    }
 }

@@ -136,4 +136,70 @@ class Project extends CafcaModel
 
         return round(($this->total_worked_hours / $planned) * 100, 1);
     }
+
+    /**
+     * Get the number of pending invoices.
+     */
+    public function getPendingInvoicesCountAttribute(): int
+    {
+        return $this->invoices()
+            ->get()
+            ->filter(fn($invoice) => $invoice->is_pending)
+            ->count();
+    }
+
+    /**
+     * Get the list of pending invoices.
+     */
+    public function getPendingInvoicesAttribute()
+    {
+        return $this->invoices()
+            ->get()
+            ->filter(fn($invoice) => $invoice->is_pending);
+    }
+
+    /**
+     * Total amount invoiced for this project.
+     */
+    public function getTotalInvoicedAmountAttribute(): float
+    {
+        return (float) $this->invoices()->sum('total_price');
+    }
+
+    /**
+     * Total amount actually paid by the client.
+     */
+    public function getTotalPaidAmountAttribute(): float
+    {
+        return (float) $this->invoices()->sum('total_paid');
+    }
+
+    /**
+     * Unpaid balance (Debt).
+     */
+    public function getPendingDebtAmountAttribute(): float
+    {
+        return max(0, $this->total_invoiced_amount - $this->total_paid_amount);
+    }
+
+    /**
+     * Amount yet to be invoiced (Unbilled).
+     */
+    public function getToBeInvoicedAmountAttribute(): float
+    {
+        $contract = (float) $this->contract_price;
+        if ($contract <= 0) {
+            return 0;
+        }
+
+        return max(0, $contract - $this->total_invoiced_amount);
+    }
+
+    /**
+     * Check if there are any pending (unpaid) invoices.
+     */
+    public function getHasPendingInvoicesAttribute(): bool
+    {
+        return $this->invoices()->get()->some->is_pending;
+    }
 }
