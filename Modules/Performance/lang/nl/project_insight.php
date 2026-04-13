@@ -1,0 +1,35 @@
+<?php
+
+return [
+    'model_label' => 'Project Inzicht',
+    'plural_model_label' => 'Project Inzichten',
+    'sections' => [
+        'project_dna' => 'Project DNA (Overzicht)',
+        'analysis_results' => 'Strategische Analyse',
+        'swot_matrix' => 'DAFO Matrix',
+        'metadata' => 'Systeemgegevens',
+    ],
+    'fields' => [
+        'project_name' => 'Projectnaam',
+        'project_manager' => 'Projectleider',
+        'project_type' => 'Type project',
+        'project_status' => 'Status',
+        'efficiency_score' => 'Efficiëntiescore',
+        'gemini_summary' => 'Strategisch Overzicht',
+        'golden_lesson' => 'Gouden Les voor Simulatie',
+        'last_analyzed' => 'Laatst Geanalyseerd',
+        'project_id' => 'Project ID',
+        'project_team' => 'Project Team',
+        'time_performance' => 'Tijdanalyse',
+        'planned_hours' => 'Geplande uren',
+        'worked_hours_active' => 'Geproduceerde uren (Actief)',
+        'worked_hours_finished' => 'Totale uren (Finaal)',
+        'efficiency' => 'Budget Verbruikt',
+        'score' => 'Score',
+        'strengths' => 'Sterktes',
+        'weaknesses' => 'Zwaktes',
+        'opportunities' => 'Kansen (Leermomenten)',
+        'threats' => 'Bedreigingen (Risico\'s)',
+        'reanalyze' => 'Analyse Verversen',
+    ],
+];

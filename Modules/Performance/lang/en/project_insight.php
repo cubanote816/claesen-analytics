@@ -1,0 +1,35 @@
+<?php
+
+return [
+    'model_label' => 'Project Insight',
+    'plural_model_label' => 'Project Insights',
+    'sections' => [
+        'project_dna' => 'Project DNA (Overview)',
+        'analysis_results' => 'Strategic Analysis',
+        'swot_matrix' => 'SWOT Matrix',
+        'metadata' => 'System Metadata',
+    ],
+    'fields' => [
+        'project_name' => 'Project Name',
+        'project_manager' => 'Project Manager',
+        'project_type' => 'Project Type',
+        'project_status' => 'Status',
+        'efficiency_score' => 'Efficiency Score',
+        'gemini_summary' => 'Strategic Overview',
+        'golden_lesson' => 'Golden Lesson for Simulation',
+        'last_analyzed' => 'Last Analyzed',
+        'project_id' => 'Project ID',
+        'project_team' => 'Project Team',
+        'time_performance' => 'Time Analysis',
+        'planned_hours' => 'Planned Hours',
+        'worked_hours_active' => 'Hours Produced (Active)',
+        'worked_hours_finished' => 'Total Hours (Final)',
+        'efficiency' => 'Budget Consumed',
+        'score' => 'Score',
+        'strengths' => 'Strengths',
+        'weaknesses' => 'Weaknesses',
+        'opportunities' => 'Opportunities (Learnings)',
+        'threats' => 'Threats (Risks)',
+        'reanalyze' => 'Repeat Analysis',
+    ],
+];

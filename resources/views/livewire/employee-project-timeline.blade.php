@@ -132,13 +132,13 @@
                             <div class="flex items-start justify-between">
                                 <div class="flex flex-col gap-1 max-w-[70%]">
                                     <span class="text-[9px] font-bold text-claesen-orange uppercase tracking-[0.15em]">
-                                        {{ __('employees/resource.dashboard.project_insight') }}
+                                        {{ $item['project_type'] }}
                                     </span>
                                     <h4 class="text-lg font-bold text-slate-950 dark:text-white tracking-signature group-hover:text-claesen-orange transition-colors truncate">
                                         {{ $item['project_name'] }}
                                     </h4>
                                     <span class="text-[9px] font-mono text-slate-400 tracking-tighter opacity-70 group-hover:opacity-100 uppercase">
-                                        #{{ $item['project_code'] }}
+                                        #{{ trim($item['project_code']) }}
                                     </span>
                                 </div>
                                 <div class="flex flex-col items-end">
@@ -152,8 +152,8 @@
                                     <span>{{ __('employees/resource.dashboard.efficiency') }}</span>
                                     <span>{{ $item['percentage'] }}%</span>
                                 </div>
-                                <div class="h-1.5 w-full glass-signature bg-slate-50 dark:bg-white/5 rounded-full overflow-hidden">
-                                    <div class="h-full bg-indigo-500 rounded-full transition-all duration-1000 group-hover:bg-gradient-to-r group-hover:from-indigo-500 group-hover:to-rose-500" @style(['width: ' . $item['percentage'] . '%'])></div>
+                                <div class="h-1.5 w-full glass-signature bg-slate-50 dark:bg-white/5 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]">
+                                    <div class="h-full bg-gradient-to-r from-claesen-orange to-indigo-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(242,105,34,0.3)]" @style(['width: ' . $item['percentage'] . '%'])></div>
                                 </div>
                                 <div class="flex items-center gap-2 mt-1">
                                     <div class="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/20 shrink-0">
@@ -178,16 +178,22 @@
             </div>
 
             <!-- C. EMPTY STATE -->
-            <div x-cloak x-show="totalHours == 0" x-transition.opacity.duration.500ms class="w-full glass-signature inner-glow-orange rounded-[3rem] p-16 flex flex-col items-center justify-center text-center opacity-80 min-h-[400px]" @style(['display: none' => $this->totalHours > 0])>
-                <div class="w-24 h-24 mb-6 rounded-[2rem] glass-signature flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-[inset_0_4px_10px_rgba(255,255,255,0.2)]">
-                    <x-heroicon-o-folder-open class="w-12 h-12 text-claesen-orange/50" />
+            <div x-cloak x-show="totalHours == 0" x-transition.opacity.duration.500ms class="w-full glass-signature inner-glow-orange rounded-[3rem] p-16 flex flex-col items-center justify-center text-center opacity-80 min-h-[400px] shadow-2xl overflow-hidden relative" @style(['display: none' => $this->totalHours > 0])>
+                <div class="absolute inset-0 bg-mesh-signature opacity-10"></div>
+                <div class="w-32 h-32 mb-8 rounded-[2.5rem] glass-signature flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-[inset_0_4px_10px_rgba(255,255,255,0.2)] group transition-transform duration-700 hover:rotate-12 hover:scale-110 relative z-10">
+                    <x-heroicon-o-folder-open class="w-16 h-16 text-claesen-orange/40" />
                 </div>
-                <h3 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-3">
+                <h3 class="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-4 relative z-10 uppercase italic tracking-[0.1em]">
                     {{ __('employees/resource.empty_state.title') }}
                 </h3>
-                <p class="text-slate-500 dark:text-slate-400 font-medium max-w-sm mb-10 leading-relaxed text-sm">
-                    {!! str_replace(':name', '<strong class="text-claesen-orange">' . e($record->name) . '</strong>', __('employees/resource.empty_state.description')) !!}
+                <p class="text-slate-500 dark:text-slate-300 font-medium max-w-sm mb-10 leading-relaxed text-sm relative z-10">
+                    {!! str_replace(':name', '<strong class="text-claesen-orange font-black">' . e($record->name) . '</strong>', __('employees/resource.empty_state.description')) !!}
                 </p>
+                <div class="flex gap-4 relative z-10">
+                    <div class="w-2 h-2 rounded-full bg-claesen-orange/20 animate-ping"></div>
+                    <div class="w-2 h-2 rounded-full bg-claesen-orange/40 animate-ping [animation-delay:200ms]"></div>
+                    <div class="w-2 h-2 rounded-full bg-claesen-orange/60 animate-ping [animation-delay:400ms]"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -326,7 +332,7 @@
                             background: 'transparent',
                             fontFamily: 'Inter, sans-serif'
                         },
-                        colors: ['#6366f1', '#f97316', '#10b981'], // Matching: Werf, Laden, Mobiliteit
+                        colors: ['#F26922', '#6366f1', '#10b981'], // Claesen Orange, Indigo, Emerald
                         plotOptions: {
                             bar: {
                                 borderRadius: 2,

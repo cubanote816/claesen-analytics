@@ -4,12 +4,17 @@ namespace Modules\Performance\Filament\Resources;
 
 use Modules\Performance\Filament\Resources\ProjectInsightResource\Pages;
 use Modules\Performance\Models\ProjectInsight;
+use Modules\Performance\Models\Mirror\MirrorProject;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\TextInput; // Inputs namespace
+use Filament\Schemas\Components\Group;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Actions\Action;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Schema; // Unified Schema
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
@@ -31,49 +36,169 @@ class ProjectInsightResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('performance::project_insights/resource.navigation_label');
+        return __('performance::project_insight.plural_model_label');
     }
 
     public static function getModelLabel(): string
     {
-        return __('performance::project_insights/resource.model_label');
+        return __('performance::project_insight.model_label');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return __('performance::project_insights/resource.plural_model_label');
+        return __('performance::project_insight.plural_model_label');
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->schema([
-                Section::make(__('performance::project_insights/resource.sections.analysis_results'))
+                Section::make(__('performance::project_insight.sections.analysis_results'))
                     ->schema([
-                        Grid::make(1)
-                            ->schema([
-                                TextInput::make('efficiency_score')
-                                    ->label(__('performance::project_insights/resource.fields.efficiency_score'))
-                                    ->numeric()
-                                    ->suffix('%')
-                                    ->disabled(),
-                                Textarea::make('ai_summary')
-                                    ->label(__('performance::project_insights/resource.fields.gemini_summary'))
-                                    ->rows(5)
-                                    ->disabled(),
-                            ]),
+                        TextInput::make('efficiency_score')
+                            ->label(__('performance::project_insight.fields.efficiency_score'))
+                            ->numeric(),
+                        Textarea::make('ai_summary')
+                            ->label(__('performance::project_insight.fields.gemini_summary')),
+                        TextInput::make('last_data_hash')
+                            ->disabled(),
+                    ])
+            ]);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make(__('performance::project_insight.sections.project_dna'))
+                    ->icon('heroicon-m-finger-print')
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('project.name')
+                            ->label(__('performance::project_insight.fields.project_name'))
+                            ->weight('bold')
+                            ->color('primary'),
+                        TextEntry::make('project.manager.name')
+                            ->label(__('performance::project_insight.fields.project_manager'))
+                            ->placeholder('N/A'),
+                        TextEntry::make('project.project_type_name')
+                            ->label(__('performance::project_insight.fields.project_type'))
+                            ->badge(),
                     ]),
-                Section::make(__('performance::project_insights/resource.sections.metadata'))
+
+                Section::make(__('performance::project_insight.sections.analysis_results'))
+                    ->icon('heroicon-m-sparkles')
                     ->schema([
-                        Grid::make(2)
+                        TextEntry::make('ai_summary')
+                            ->label(__('performance::project_insight.fields.gemini_summary'))
+                            ->prose(),
+                        TextEntry::make('golden_rule')
+                            ->label(__('performance::project_insight.fields.golden_lesson'))
+                            ->weight('black')
+                            ->color('warning')
+                            ->size('lg'),
+                    ]),
+
+                Section::make(__('performance::project_insight.sections.swot_matrix'))
+                    ->columns(2)
+                    ->schema([
+                        Group::make([
+                            TextEntry::make('full_dna.swot.strengths')
+                                ->label(__('performance::project_insight.fields.strengths'))
+                                ->listWithLineBreaks()
+                                ->bulleted()
+                                ->color('success'),
+                        ]),
+                        Group::make([
+                            TextEntry::make('full_dna.swot.weaknesses')
+                                ->label(__('performance::project_insight.fields.weaknesses'))
+                                ->listWithLineBreaks()
+                                ->bulleted()
+                                ->color('danger'),
+                        ]),
+                        Group::make([
+                            TextEntry::make('full_dna.swot.opportunities')
+                                ->label(__('performance::project_insight.fields.opportunities'))
+                                ->listWithLineBreaks()
+                                ->bulleted()
+                                ->color('info'),
+                        ]),
+                        Group::make([
+                            TextEntry::make('full_dna.swot.threats')
+                                ->label(__('performance::project_insight.fields.threats'))
+                                ->listWithLineBreaks()
+                                ->bulleted()
+                                ->color('warning'),
+                        ]),
+                    ]),
+
+                Section::make(__('performance::project_insight.fields.time_performance'))
+                    ->icon('heroicon-m-clock')
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('project.planned_hours')
+                            ->label(__('performance::project_insight.fields.planned_hours'))
+                            ->numeric(2)
+                            ->suffix('h')
+                            ->color('info'),
+                        TextEntry::make('project.total_worked_hours')
+                            ->label(fn($record) => $record->project?->fl_active 
+                                ? __('performance::project_insight.fields.worked_hours_active') 
+                                : __('performance::project_insight.fields.worked_hours_finished'))
+                            ->numeric(2)
+                            ->suffix('h')
+                            ->weight('bold'),
+                        TextEntry::make('project.time_efficiency')
+                            ->label(__('performance::project_insight.fields.efficiency'))
+                            ->numeric(2)
+                            ->suffix('%')
+                            ->weight('black')
+                            ->color(fn($state) => $state > 100 ? 'danger' : 'success')
+                            ->icon(fn($state) => $state > 100 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle'),
+                    ]),
+
+                Section::make(__('performance::project_insight.fields.project_team'))
+                    ->icon('heroicon-m-users')
+                    ->schema([
+                        \Filament\Infolists\Components\RepeatableEntry::make('project.labor_summary')
+                            ->label(false)
+                            ->grid(3)
+                            ->contained(false)
                             ->schema([
-                                TextInput::make('last_audited_at')
-                                    ->label(__('performance::project_insights/resource.fields.last_analyzed'))
-                                    ->disabled(),
-                                TextInput::make('project_id')
-                                    ->label(__('performance::project_insights/resource.fields.project_id'))
-                                    ->disabled(),
-                            ]),
+                                \Filament\Schemas\Components\Grid::make(1)
+                                    ->schema([
+                                        TextEntry::make('name')
+                                            ->label(false)
+                                            ->weight('bold')
+                                            ->color('primary')
+                                            ->icon('heroicon-m-user')
+                                            ->url(function ($record) {
+                                                if (! $record || ! isset($record->employee_id)) {
+                                                    return null;
+                                                }
+                                                return \Modules\Cafca\Filament\Resources\EmployeeResource::getUrl('view', ['record' => $record->employee_id]);
+                                            }),
+                                        TextEntry::make('hours')
+                                            ->label(false)
+                                            ->badge()
+                                            ->color('success')
+                                            ->suffix('h total'),
+                                    ])
+                            ])
+                    ]),
+
+                Section::make(__('performance::project_insight.sections.metadata'))
+                    ->collapsed()
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('efficiency_score')
+                            ->label(__('performance::project_insight.fields.efficiency_score'))
+                            ->suffix('%'),
+                        TextEntry::make('last_audited_at')
+                            ->label(__('performance::project_insight.fields.last_analyzed'))
+                            ->dateTime(),
+                        TextEntry::make('project_id')
+                            ->label(__('performance::project_insight.fields.project_id')),
                     ]),
             ]);
     }
@@ -83,27 +208,33 @@ class ProjectInsightResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('project_id')
-                    ->label(__('performance::project_insights/resource.fields.project_id'))
+                    ->label(__('performance::project_insight.fields.project_id'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('efficiency_score')
-                    ->label(__('performance::project_insights/resource.fields.score'))
+                    ->label(__('performance::project_insight.fields.score'))
                     ->sortable()
                     ->formatStateUsing(fn($state) => number_format($state, 2) . '%')
                     ->color(fn($state) => $state > 90 ? 'success' : ($state > 70 ? 'warning' : 'danger')),
 
                 TextColumn::make('last_audited_at')
-                    ->label(__('performance::project_insights/resource.fields.last_analyzed'))
+                    ->label(__('performance::project_insight.fields.last_analyzed'))
                     ->dateTime()
                     ->sortable(),
             ])
-            ->poll('10s') // Polling for updates as requested
+            ->poll('10s')
             ->filters([
                 //
             ])
             ->actions([
-                \Filament\Actions\ViewAction::make(),
+                ViewAction::make(),
+                Action::make('reanalyze')
+                    ->label(__('performance::project_insight.fields.reanalyze'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->action(fn($record) => \Modules\Performance\Jobs\AuditProjectJob::dispatch($record->project_id))
+                    ->requiresConfirmation()
+                    ->visible(fn($record) => $record->project && MirrorProject::find($record->project_id)?->fl_active === false),
             ])
             ->bulkActions([
                 //
@@ -121,9 +252,7 @@ class ProjectInsightResource extends Resource
     {
         return [
             'index' => Pages\ListProjectInsights::route('/'),
-            // 'create' => Pages\CreateProjectInsight::route('/create'), // Disabled creation
             'view' => Pages\ViewProjectInsight::route('/{record}'),
-            // 'edit' => Pages\EditProjectInsight::route('/{record}/edit'), // Disabled editing
         ];
     }
 }

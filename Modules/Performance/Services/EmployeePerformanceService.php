@@ -228,8 +228,9 @@ class EmployeePerformanceService
                 $categories = $this->aggregateCategories($labors);
                 
                 return [
-                    'project_id' => $labors->first()->project_id,
+                    'project_id' => trim($labors->first()->project_id),
                     'project_name' => $project?->name ?? 'Unknown Project',
+                    'project_type_name' => $project?->project_type_name ?? 'Industrie',
                     'total_hours' => array_sum($categories),
                     'last_active' => $labors->max('date'),
                     'categories' => $categories,

@@ -200,6 +200,7 @@ class EmployeeProjectTimeline extends Component implements HasForms, HasActions
             return [
                 'project_id' => $project['project_id'],
                 'project_name' => $project['project_name'],
+                'project_type' => $project['project_type_name'],
                 'project_code' => $project['project_id'],
                 'total_hours' => $project['total_hours'],
                 'percentage' => $this->totalHours > 0 ? round(($project['total_hours'] / $this->totalHours) * 100) : 0,

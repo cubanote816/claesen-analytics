@@ -22,7 +22,7 @@ class Labor extends CafcaModel
 
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'employee_id', 'id');
+        return $this->belongsTo(LegacyEmployee::class, 'employee_id', 'id');
     }
  
     public function project()
