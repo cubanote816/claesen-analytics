@@ -128,11 +128,10 @@ class EmployeeInfolist
                                     ->size('xs')
                                     ->limit(30),
 
-                                TextEntry::make('performance_trend')
-                                    ->label('Trend')
-                                    ->state(fn($record) => $record->insight?->efficiency_trend === 'UP' ? '↗ ' . __('employees/resource.insights.status.increasing') : '→ Stable')
-                                    ->badge()
-                                    ->color('success'),
+                                \Filament\Infolists\Components\ViewEntry::make('performance_trend')
+                                    ->label(app()->getLocale() === 'nl' ? 'Uren Trend (6m)' : 'Activity Trend (6m)')
+                                    ->view('filament.components.sparkline-trend')
+                                    ->state(fn($record) => app(\Modules\Performance\Services\EmployeePerformanceService::class)->getShortTrend($record)),
                             ])
                     ])
                     ->extraAttributes(['class' => 'bg-primary-50/10 border-primary-100/50 rounded-2xl p-2'])

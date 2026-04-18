@@ -41,44 +41,54 @@
     ];
     
     $theme = $themes[$color] ?? $themes['info'];
+
+    // Dynamic sizing for state
+    $stateSizeClass = strlen($state ?? '') > 12 ? 'text-lg' : 'text-xl';
 @endphp
 
 <div 
     {{ $attributes->merge($entry->getExtraAttributes())->class([
-        'relative group overflow-hidden rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.02]',
-        'backdrop-blur-xl shadow-lg',
+        'relative group overflow-hidden rounded-2xl border px-4 py-5 transition-all duration-300 hover:scale-[1.02]',
+        'backdrop-blur-xl shadow-lg h-full flex flex-col justify-between',
         $theme['bg'],
         $theme['border'],
         $theme['glow'],
     ]) }}
 >
-    <!-- Background Glow Effect -->
+    <!-- Background Glow Effect (Subtle Watermark) -->
     <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-current opacity-[0.03] transition-all duration-500 group-hover:scale-150 {{ $theme['icon'] }}"></div>
 
-    <div class="flex flex-col gap-y-3">
-        <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+    <div class="space-y-4">
+        <div class="flex items-start justify-between">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 leading-tight pr-2">
                 {{ $label }}
             </span>
             
             @if ($icon)
-                <x-filament::icon
-                    :icon="$icon"
-                    class="h-5 w-5 {{ $theme['icon'] }}"
-                />
-            @endif
-        </div>
-
-        <div class="flex items-end justify-between">
-            <div class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                {{ $state }}
-            </div>
-            
-            @if($entry->getAction('view_pending_details'))
-                <div class="relative z-10">
-                    {{ $entry->getAction('view_pending_details') }}
+                <div class="shrink-0 p-1 rounded-lg bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10">
+                    <x-filament::icon
+                        :icon="$icon"
+                        class="h-4 w-4 {{ $theme['icon'] }}"
+                    />
                 </div>
             @endif
         </div>
+
+        <div class="flex flex-col gap-y-1">
+            <div @class([
+                'font-black tracking-tight text-gray-900 dark:text-white tabular-nums truncate',
+                $stateSizeClass,
+            ]) title="{{ $state }}">
+                {{ $state }}
+            </div>
+        </div>
     </div>
+
+    @if($entry->getAction('view_pending_details'))
+        <div class="mt-4 flex justify-end">
+            <div class="relative z-10">
+                {{ $entry->getAction('view_pending_details') }}
+            </div>
+        </div>
+    @endif
 </div>

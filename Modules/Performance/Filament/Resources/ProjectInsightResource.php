@@ -195,100 +195,91 @@ class ProjectInsightResource extends Resource
                     ->compact()
                     ->contained(false)
                     ->schema([
-                        Grid::make([
-                            'default' => 1,
-                            'sm' => 2,
-                            'xl' => 5,
-                        ])
-                        ->schema([
-                            ViewEntry::make('project.total_invoiced_amount')
-                                ->label(__('performance::project_insight.fields.total_invoiced'))
-                                ->view('performance::components.glass-card')
-                                ->viewData(fn (Entry $entry) => [
-                                    'color' => 'info',
-                                    'icon' => 'heroicon-m-document-text',
-                                    'formattedState' => \Illuminate\Support\Number::currency($entry->getState() ?? 0, 'EUR'),
-                                ]),
-
-                            ViewEntry::make('project.total_paid_amount')
-                                ->label(__('performance::project_insight.fields.total_paid'))
-                                ->view('performance::components.glass-card')
-                                ->viewData(fn (Entry $entry) => [
-                                    'color' => 'success',
-                                    'icon' => 'heroicon-m-check-badge',
-                                    'formattedState' => \Illuminate\Support\Number::currency($entry->getState() ?? 0, 'EUR'),
-                                ]),
-
-                            ViewEntry::make('project.pending_debt_amount')
-                                ->label(__('performance::project_insight.fields.pending_balance'))
-                                ->view('performance::components.glass-card')
-                                ->viewData(fn (Entry $entry) => [
-                                    'color' => 'danger',
-                                    'icon' => 'heroicon-m-scale',
-                                    'formattedState' => \Illuminate\Support\Number::currency($entry->getState() ?? 0, 'EUR'),
-                                ]),
-
-                            ViewEntry::make('project.to_be_invoiced_amount')
-                                ->label(__('performance::project_insight.fields.to_be_invoiced'))
-                                ->view('performance::components.glass-card')
-                                ->viewData(fn (Entry $entry) => [
-                                    'color' => 'warning',
-                                    'icon' => 'heroicon-m-receipt-percent',
-                                    'formattedState' => \Illuminate\Support\Number::currency($entry->getState() ?? 0, 'EUR'),
-                                ]),
-
-                            ViewEntry::make('project.pending_invoices_count')
-                                ->label(__('performance::project_insight.fields.pending_invoices_count'))
-                                ->view('performance::components.glass-card')
-                                ->viewData(fn (Entry $entry) => [
-                                    'color' => ($state = $entry->getState()) > 0 ? 'danger' : 'info',
-                                    'icon' => $state > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle',
-                                ])
-                                ->registerActions([
-                                    Action::make('view_pending_details')
-                                        ->label('')
-                                        ->tooltip(__('performance::project_insight.fields.modal_title'))
-                                        ->icon('heroicon-m-eye')
-                                        ->color('danger')
-                                        ->size('sm')
-                                        ->extraAttributes([
-                                            'class' => 'transition-transform hover:scale-110',
-                                        ])
-                                        ->modalHeading(__('performance::project_insight.fields.modal_title'))
-                                        ->modalWidth('xl')
-                                        ->modalSubmitAction(false)
-                                        ->modalCancelActionLabel('Sluiten')
-                                        ->schema([
-                                            RepeatableEntry::make('project.pending_invoices')
-                                                ->label('')
-                                                ->schema([
-                                                    Grid::make(5)
-                                                        ->schema([
-                                                            TextEntry::make('id')
-                                                                ->label(__('performance::project_insight.fields.invoice_id'))
-                                                                ->weight('bold'),
-                                                            TextEntry::make('print_date')
-                                                                ->label(__('performance::project_insight.fields.invoice_date'))
-                                                                ->date(),
-                                                            TextEntry::make('total_price')
-                                                                ->label(__('performance::project_insight.fields.invoice_amount'))
-                                                                ->money('EUR')
-                                                                ->alignEnd(),
-                                                            TextEntry::make('total_paid')
-                                                                ->label(__('performance::project_insight.fields.invoice_paid'))
-                                                                ->money('EUR')
-                                                                ->color('success')
-                                                                ->alignEnd(),
-                                                            TextEntry::make('balance')
-                                                                ->label(__('performance::project_insight.fields.pending_balance'))
-                                                                ->money('EUR')
-                                                                ->color('danger')
-                                                                ->weight('black'),
-                                                        ])
-                                                ])
-                                        ])
-                                ]),
-                        ]),
+                        ViewEntry::make('project.financial_summary')
+                            ->label(false)
+                            ->view('performance::components.financial-status-list')
+                            ->viewData(fn (Entry $entry) => [
+                                'metrics' => [
+                                    'total_invoiced_amount' => [
+                                        'label' => __('performance::project_insight.fields.total_invoiced'),
+                                        'value' => $entry->getRecord()->project?->total_invoiced_amount ?? 0,
+                                        'formatted' => \Illuminate\Support\Number::currency($entry->getRecord()->project?->total_invoiced_amount ?? 0, 'EUR'),
+                                        'icon' => 'heroicon-m-document-text',
+                                        'color' => 'info',
+                                    ],
+                                    'total_paid_amount' => [
+                                        'label' => __('performance::project_insight.fields.total_paid'),
+                                        'value' => $entry->getRecord()->project?->total_paid_amount ?? 0,
+                                        'formatted' => \Illuminate\Support\Number::currency($entry->getRecord()->project?->total_paid_amount ?? 0, 'EUR'),
+                                        'icon' => 'heroicon-m-check-badge',
+                                        'color' => 'success',
+                                    ],
+                                    'pending_debt_amount' => [
+                                        'label' => __('performance::project_insight.fields.pending_balance'),
+                                        'value' => $entry->getRecord()->project?->pending_debt_amount ?? 0,
+                                        'formatted' => \Illuminate\Support\Number::currency($entry->getRecord()->project?->pending_debt_amount ?? 0, 'EUR'),
+                                        'icon' => 'heroicon-m-scale',
+                                        'color' => 'danger',
+                                    ],
+                                    'to_be_invoiced_amount' => [
+                                        'label' => __('performance::project_insight.fields.to_be_invoiced'),
+                                        'value' => $entry->getRecord()->project?->to_be_invoiced_amount ?? 0,
+                                        'formatted' => \Illuminate\Support\Number::currency($entry->getRecord()->project?->to_be_invoiced_amount ?? 0, 'EUR'),
+                                        'icon' => 'heroicon-m-receipt-percent',
+                                        'color' => 'warning',
+                                    ],
+                                    'pending_invoices_count' => [
+                                        'label' => __('performance::project_insight.fields.pending_invoices_count'),
+                                        'value' => $count = ($entry->getRecord()->project?->pending_invoices_count ?? 0),
+                                        'formatted' => $count,
+                                        'icon' => $count > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle',
+                                        'color' => $count > 0 ? 'danger' : 'info',
+                                        'action' => $entry->getAction('view_pending_details'),
+                                    ],
+                                ],
+                            ])
+                            ->registerActions([
+                                Action::make('view_pending_details')
+                                    ->label('')
+                                    ->tooltip(__('performance::project_insight.fields.modal_title'))
+                                    ->icon('heroicon-m-eye')
+                                    ->color('danger')
+                                    ->size('xs')
+                                    ->link()
+                                    ->modalHeading(__('performance::project_insight.fields.modal_title'))
+                                    ->modalWidth('xl')
+                                    ->modalSubmitAction(false)
+                                    ->modalCancelActionLabel('Sluiten')
+                                    ->schema([
+                                        RepeatableEntry::make('project.pending_invoices')
+                                            ->label('')
+                                            ->schema([
+                                                Grid::make(5)
+                                                    ->schema([
+                                                        TextEntry::make('id')
+                                                            ->label(__('performance::project_insight.fields.invoice_id'))
+                                                            ->weight('bold'),
+                                                        TextEntry::make('print_date')
+                                                            ->label(__('performance::project_insight.fields.invoice_date'))
+                                                            ->date(),
+                                                        TextEntry::make('total_price')
+                                                            ->label(__('performance::project_insight.fields.invoice_amount'))
+                                                            ->money('EUR')
+                                                            ->alignEnd(),
+                                                        TextEntry::make('total_paid')
+                                                            ->label(__('performance::project_insight.fields.invoice_paid'))
+                                                            ->money('EUR')
+                                                            ->color('success')
+                                                            ->alignEnd(),
+                                                        TextEntry::make('balance')
+                                                            ->label(__('performance::project_insight.fields.pending_balance'))
+                                                            ->money('EUR')
+                                                            ->color('danger')
+                                                            ->weight('black'),
+                                                    ])
+                                            ])
+                                    ])
+                            ]),
                     ]),
 
                 Section::make(__('performance::project_insight.sections.metadata'))

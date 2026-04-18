@@ -325,8 +325,53 @@ class EmployeePerformanceService
     /**
      * Get AI Profile integration.
      */
+    /**
+     * Get AI Profile integration.
+     */
     public function getPerformanceProfile(Employee $employee): array
     {
         return $this->analysisService->analyzeTechnician($employee->id, $employee->name);
+    }
+
+    /**
+     * Get a streamlined trend of hours worked for a short period.
+     * Ideal for Sparklines.
+     */
+    public function getShortTrend(Employee $employee, int $periods = 6, string $type = 'monthly'): array
+    {
+        $end = now();
+        $start = $type === 'monthly' ? now()->subMonths($periods - 1)->startOfMonth() : now()->subWeeks($periods - 1)->startOfWeek();
+        
+        $stats = $this->getStatsForPeriod($employee, $start, $end);
+        $distribution = $stats['temporal_distribution'] ?? [];
+        
+        $values = [];
+        foreach ($distribution as $periodData) {
+            $values[] = array_sum($periodData);
+        }
+
+        return [
+            'values' => $values,
+            'labels' => array_keys($distribution),
+            'total' => array_sum($values),
+            'average' => count($values) > 0 ? array_sum($values) / count($values) : 0,
+            'momentum' => $this->calculateMomentum($values),
+        ];
+    }
+
+    /**
+     * Calculate trend momentum (percentage change between last two periods).
+     */
+    protected function calculateMomentum(array $values): float
+    {
+        $count = count($values);
+        if ($count < 2) return 0;
+        
+        $current = $values[$count - 1];
+        $previous = $values[$count - 2];
+        
+        if ($previous <= 0) return $current > 0 ? 100 : 0;
+        
+        return (($current - $previous) / $previous) * 100;
     }
 }
