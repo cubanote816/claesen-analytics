@@ -28,7 +28,17 @@ class ProjectInsightResource extends Resource
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-sparkles';
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
+
+    public static function getNavigationBadge(): ?string
+    {
+        return 'DEMO';
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
 
     public static function getNavigationGroup(): ?string
     {

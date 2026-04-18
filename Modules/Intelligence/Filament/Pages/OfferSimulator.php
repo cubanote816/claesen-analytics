@@ -22,6 +22,16 @@ class OfferSimulator extends Page implements HasForms
     protected static ?string $slug = 'offer-simulator';
     protected static ?int $navigationSort = 1;
 
+    public static function getNavigationBadge(): ?string
+    {
+        return 'DEMO';
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
     protected string $view = 'intelligence::filament.pages.offer-simulator';
 
     public ?array $data = [];
@@ -42,12 +52,12 @@ class OfferSimulator extends Page implements HasForms
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'nl' ? 'Offerte Simulator (DEMO)' : 'Offer Simulator (DEMO)';
+        return app()->getLocale() === 'nl' ? 'Offerte Simulator' : 'Offer Simulator';
     }
 
     public function getTitle(): string
     {
-        return app()->getLocale() === 'nl' ? 'AI Offerte Simulator (DEMO)' : 'AI Offer Simulator (DEMO)';
+        return app()->getLocale() === 'nl' ? 'AI Offerte Simulator' : 'AI Offer Simulator';
     }
 
     public function form(Schema $form): Schema

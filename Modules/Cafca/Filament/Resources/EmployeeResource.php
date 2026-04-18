@@ -34,6 +34,16 @@ class EmployeeResource extends Resource
         return __('employees/resource.navigation_label');
     }
 
+    public static function getNavigationBadge(): ?string
+    {
+        return 'DEMO';
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
     public static function getModelLabel(): string
     {
         return __('employees/resource.label');

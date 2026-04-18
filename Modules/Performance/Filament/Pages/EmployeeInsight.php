@@ -25,7 +25,7 @@ class EmployeeInsight extends Page implements HasForms
     }
 
     protected string $view = 'performance::filament.pages.employee-insight';
-    
+
     public ?array $data = [];
     public ?array $analysisResult = null;
     public bool $isAnalyzing = false;
@@ -63,7 +63,7 @@ class EmployeeInsight extends Page implements HasForms
             ])
             ->statePath('data');
     }
- 
+
     protected function getHeaderWidgets(): array
     {
         return [
@@ -71,7 +71,7 @@ class EmployeeInsight extends Page implements HasForms
             EmployeePerformanceChartWidget::class,
         ];
     }
- 
+
     protected function getHeaderWidgetsData(): array
     {
         return [
@@ -82,7 +82,7 @@ class EmployeeInsight extends Page implements HasForms
     public function analyze(): void
     {
         $this->isAnalyzing = true;
-        
+
         $employeeId = $this->data['employee_id'] ?? null;
         if (!$employeeId) {
             $this->isAnalyzing = false;
@@ -93,7 +93,7 @@ class EmployeeInsight extends Page implements HasForms
 
         $service = app(TechnicianAnalysisService::class);
         $this->analysisResult = $service->analyzeTechnician($employeeId, $name);
-        
+
         $this->isAnalyzing = false;
     }
 }
