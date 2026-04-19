@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('analytics_mirror_employees', function (Blueprint $table) {
+        Schema::table('intelligence_mirror_employees', function (Blueprint $table) {
             $table->decimal('hourly_cost', 15, 2)->default(0)->after('name');
         });
     }
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('analytics_mirror_employees', function (Blueprint $table) {
+        Schema::table('intelligence_mirror_employees', function (Blueprint $table) {
             $table->dropColumn('hourly_cost');
         });
     }
