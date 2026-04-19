@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('analytics_offer_simulations', function (Blueprint $table) {
+        Schema::table('intelligence_offer_simulations', function (Blueprint $table) {
             $table->string('simulation_hash')->nullable()->index()->after('id');
         });
     }
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('analytics_offer_simulations', function (Blueprint $table) {
+        Schema::table('intelligence_offer_simulations', function (Blueprint $table) {
             $table->dropColumn('simulation_hash');
         });
     }
