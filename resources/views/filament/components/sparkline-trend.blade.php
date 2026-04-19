@@ -2,6 +2,7 @@
     $state = $getState();
     $values = $state['values'] ?? [];
     $momentum = $state['momentum'] ?? 0;
+    $periodLabel = $state['period_label'] ?? 'Maart vs Feb';
     
     // SVG Settings
     $width = 140;
@@ -42,8 +43,8 @@
             <svg viewBox="0 0 {{ $width }} {{ $height }}" class="w-full h-full overflow-visible">
                 <defs>
                     <linearGradient id="{{ $gradientId }}" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style="stop-color:{{ $color }};stop-opacity:0.2" />
-                        <stop offset="100%" style="stop-color:{{ $color }};stop-opacity:0" />
+                        <stop offset="0%" stop-color="{{ $color }}" stop-opacity="0.2" />
+                        <stop offset="100%" stop-color="{{ $color }}" stop-opacity="0" />
                     </linearGradient>
                 </defs>
                 
@@ -58,7 +59,7 @@
                     stroke-width="2.5"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    style="filter: drop-shadow(0px 2px 4px {{ $color }}44);"
+                    filter="drop-shadow(0px 2px 4px {{ $color }}44)"
                 />
                 
                 <!-- Latest Point Indicator -->
@@ -90,7 +91,7 @@
             @endif
         </div>
         <span class="text-[8px] font-bold text-slate-500 uppercase tracking-[0.2em] leading-none">
-            {{ app()->getLocale() === 'nl' ? 'TREND' : 'TREND' }}
+            {{ $periodLabel }}
         </span>
     </div>
 </div>

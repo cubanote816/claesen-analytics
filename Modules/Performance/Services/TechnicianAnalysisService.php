@@ -17,7 +17,7 @@ class TechnicianAnalysisService
     {
         $cacheKey = 'technician_archetype_' . md5($employeeId);
         
-        return Cache::remember($cacheKey, now()->addDays(7), function() use ($employeeId, $employeeName) {
+        $result = Cache::remember($cacheKey, now()->addDays(7), function() use ($employeeId, $employeeName) {
             
             // Gather last 6 months of data
             $labors = Labor::where('employee_id', $employeeId)
@@ -89,6 +89,21 @@ PROMPT;
                 return static::fallbackProfile();
             }
         });
+
+        // Persist to database to enable Infolist indicators and reporting
+        \Modules\Performance\Models\EmployeeInsight::updateOrCreate(
+            ['employee_id' => $employeeId],
+            [
+                'archetype_label' => $result['archetype_label'] ?? 'Unknown',
+                'archetype_icon' => $result['archetype_icon'] ?? '❓',
+                'efficiency_trend' => $result['efficiency_trend'] ?? 'STABLE',
+                'burnout_risk_score' => (int)($result['burnout_risk_score'] ?? 0),
+                'manager_insight' => $result['manager_insight'] ?? '',
+                'last_audited_at' => now(),
+            ]
+        );
+
+        return $result;
     }
     
     private static function fallbackProfile(): array

@@ -22,10 +22,9 @@ class EmployeeInfolist
                         Grid::make(['default' => 1, 'sm' => 2, 'md' => 3, 'lg' => 4, 'xl' => 6])
                             ->schema([
                                 ImageEntry::make('avatar_url')
-                                    ->label(__('employees/resource.fields.avatar'))
+                                    ->label(false)
                                     ->circular()
-                                    ->imageSize(80)
-                                    ->extraAttributes(['class' => 'ring-4 ring-primary-500/10 shadow-lg']),
+                                    ->imageSize(80),
 
                                 Grid::make(1)
                                     ->schema([
@@ -103,13 +102,15 @@ class EmployeeInfolist
                             ->components([
                                 TextEntry::make('insight.archetype_label')
                                     ->label(app()->getLocale() === 'nl' ? 'Talent Profiel' : 'Talent Profile')
+                                    ->placeholder(app()->getLocale() === 'nl' ? 'Wachten op AI...' : 'Pending AI...')
                                     ->weight('bold')
                                     ->color('primary')
-                                    ->prefix(fn($record) => $record->insight?->archetype_icon . ' '),
+                                    ->prefix(fn($record) => $record->insight?->archetype_icon ? $record->insight->archetype_icon . ' ' : ''),
                                 
                                 TextEntry::make('insight.burnout_risk_score')
                                     ->label(app()->getLocale() === 'nl' ? 'Burnout Risico' : 'Burnout Risk')
-                                    ->suffix('%')
+                                    ->placeholder('---')
+                                    ->suffix(fn($state) => $state !== null ? '%' : '')
                                     ->weight('bold')
                                     ->color(fn($state) => (int)$state > 70 ? 'danger' : ((int)$state > 40 ? 'warning' : 'success')),
                                 
@@ -129,7 +130,7 @@ class EmployeeInfolist
                                     ->limit(30),
 
                                 \Filament\Infolists\Components\ViewEntry::make('performance_trend')
-                                    ->label(app()->getLocale() === 'nl' ? 'Uren Trend (6m)' : 'Activity Trend (6m)')
+                                    ->label(app()->getLocale() === 'nl' ? 'Trend (Vorig r.)' : 'Previous Period Trend')
                                     ->view('filament.components.sparkline-trend')
                                     ->state(fn($record) => app(\Modules\Performance\Services\EmployeePerformanceService::class)->getShortTrend($record)),
                             ])

@@ -11,6 +11,11 @@ class EmployeePerformanceChartWidget extends ChartWidget
 {
     protected static bool $isLazy = true;
 
+    public static function canView(): bool
+    {
+        return ! request()->routeIs('filament.admin.pages.dashboard');
+    }
+
     public ?string $employeeId = null;
  
     protected ?string $heading = 'Horas Reales vs Target (Legacy)';

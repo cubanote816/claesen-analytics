@@ -47,6 +47,7 @@ class PerformanceServiceProvider extends ServiceProvider
             \Modules\Performance\Console\Commands\PopulateProjectInsightsCommand::class,
             \Modules\Performance\Console\Commands\SendWatchdogReportCommand::class,
             \Modules\Performance\Console\Commands\SyncAllCommand::class,
+            \Modules\Performance\Console\Commands\AnalyzeTechniciansCommand::class,
         ]);
     }
 

@@ -339,8 +339,11 @@ class EmployeePerformanceService
      */
     public function getShortTrend(Employee $employee, int $periods = 6, string $type = 'monthly'): array
     {
-        $end = now();
-        $start = $type === 'monthly' ? now()->subMonths($periods - 1)->startOfMonth() : now()->subWeeks($periods - 1)->startOfWeek();
+        // End at the last completed month for stability (as requested by user)
+        $end = now()->subMonth()->endOfMonth();
+        $start = $type === 'monthly' 
+            ? $end->copy()->subMonths($periods - 1)->startOfMonth() 
+            : $end->copy()->subWeeks($periods - 1)->startOfWeek();
         
         $stats = $this->getStatsForPeriod($employee, $start, $end);
         $distribution = $stats['temporal_distribution'] ?? [];
@@ -350,12 +353,18 @@ class EmployeePerformanceService
             $values[] = array_sum($periodData);
         }
 
+        // Generate period label in Dutch (e.g., "Maart vs Feb")
+        $lastMonthName = now()->subMonth()->translatedFormat('M');
+        $prevMonthName = now()->subMonths(2)->translatedFormat('M');
+        $periodLabel = "{$lastMonthName} vs {$prevMonthName}";
+
         return [
             'values' => $values,
             'labels' => array_keys($distribution),
             'total' => array_sum($values),
             'average' => count($values) > 0 ? array_sum($values) / count($values) : 0,
             'momentum' => $this->calculateMomentum($values),
+            'period_label' => $periodLabel,
         ];
     }
 
