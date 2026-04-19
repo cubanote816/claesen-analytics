@@ -6,12 +6,12 @@
                     <div class="p-2 bg-danger-500/10 rounded-lg">
                         <x-heroicon-o-shield-check class="h-6 w-6" />
                     </div>
-                    <span class="text-xl font-extrabold tracking-tight">Vanguard Financial Watchdog</span>
+                    <span class="text-xl font-extrabold tracking-tight">{{ __('performance::dashboard.vanguard_heading') }}</span>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <div class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] hidden sm:block">
-                        AI Powered Audit
+                        {{ __('performance::dashboard.vanguard_audit') }}
                     </div>
                     <x-filament::badge color="warning">
                         DEMO
@@ -37,7 +37,7 @@
                         <div class="flex justify-between items-start mb-3">
                             <span class="text-xs font-mono text-gray-400">{{ $p['id'] }}</span>
                             <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-danger-500/10 text-danger-600 border border-danger-500/20">
-                                WIP Risico
+                                {{ __('performance::dashboard.wip_risk') }}
                             </span>
                         </div>
 
@@ -47,7 +47,7 @@
                         </div>
 
                         <div class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-900">
-                            <p class="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-2">Aanbevolen Actie</p>
+                            <p class="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-bold mb-2">{{ __('performance::dashboard.recommended_action') }}</p>
                             <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                                 <x-heroicon-m-bolt class="h-4 w-4 text-warning-500" />
                                 {{ $p['action'] }}
@@ -66,7 +66,7 @@
             @else
             <div class="flex flex-col items-center justify-center p-12 text-gray-400 gap-4">
                 <x-filament::loading-indicator class="h-10 w-10 text-primary-500" />
-                <span class="font-medium animate-pulse">Vanguard is vást de cijfers aan het controleren...</span>
+                <span class="font-medium animate-pulse">{{ __('performance::dashboard.loading') }}</span>
             </div>
             @endif
         </div>

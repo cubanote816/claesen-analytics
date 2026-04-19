@@ -21,7 +21,7 @@ class CashFlowWatchdogWidget extends Widget
             $service = app(CashFlowWatchdogService::class);
             $this->report = $service->generateRiskReport();
         } catch (\Exception $e) {
-            $this->report = "Could not load report.";
+            $this->report = __('performance::dashboard.error_loading');
         }
     }
 

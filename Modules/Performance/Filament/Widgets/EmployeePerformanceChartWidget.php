@@ -22,7 +22,7 @@ class EmployeePerformanceChartWidget extends ChartWidget
  
     public function getHeading(): string
     {
-        return app()->getLocale() === 'nl' ? 'Gerealiseerde uren vs Doelstelling' : 'Real Hours vs Target';
+        return __('performance::dashboard.real_vs_target');
     }
  
     protected function getData(): array
@@ -62,13 +62,13 @@ class EmployeePerformanceChartWidget extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Real',
+                    'label' => __('performance::dashboard.real'),
                     'data' => $realHours,
                     'backgroundColor' => '#3b82f6',
                     'borderColor' => '#3b82f6',
                 ],
                 [
-                    'label' => 'Target',
+                    'label' => __('performance::dashboard.target'),
                     'data' => $targetHours,
                     'backgroundColor' => '#94a3b8',
                     'borderColor' => '#94a3b8',

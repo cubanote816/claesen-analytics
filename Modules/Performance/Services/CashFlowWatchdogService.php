@@ -31,7 +31,7 @@ class CashFlowWatchdogService
      */
     public function generateRiskReport(): array|string
     {
-        $cacheKey = 'cashflow_watchdog_report_v21_' . now()->format('Y-W');
+        $cacheKey = 'cashflow_watchdog_report_v21_' . app()->getLocale() . '_' . now()->format('Y-W');
         
         return Cache::remember($cacheKey, now()->addHours(2), function () {
             $activeProjects = MirrorProject::where('fl_active', 1)->get();
@@ -71,7 +71,9 @@ class CashFlowWatchdogService
             }
             
             if ($riskyProjects->isEmpty()) {
-                return "Goeiemorgen,\n\nEr zijn momenteel geen 'WIP Traps' of 'Stale Projects' gedetecteerd. De cashflow bij Claesen is stabiel.";
+                return app()->getLocale() === 'nl' 
+                    ? "Goeiemorgen,\n\nEr zijn momenteel geen 'WIP Traps' of 'Stale Projects' gedetecteerd. De cashflow bij Claesen is stabiel."
+                    : "Good morning,\n\nThere are currently no 'WIP Traps' or 'Stale Projects' detected. Cashflow at Claesen is stable.";
             }
             
             return $this->buildAndSendStructuredPrompt($riskyProjects->sortByDesc('wip'));
@@ -126,9 +128,15 @@ class CashFlowWatchdogService
             return "ID: {$p['id']}, Project: {$p['name']}, WIP: €".number_format($p['wip'], 2).", Stale Days: {$p['stale_days']}, Risk: {$p['risk_level']}";
         })->implode("\n");
 
+        $language = app()->getLocale() === 'nl' ? 'DUTCH (NL)' : 'ENGLISH (EN)';
+        $greeting = app()->getLocale() === 'nl' ? 'Goeiemorgen,' : 'Good morning,';
+        $intro = app()->getLocale() === 'nl' ? 'Dringende update over onderhanden werk (WIP) en facturatie-fouten.' : 'Urgent update on Work in Progress (WIP) and billing errors.';
+        $footer = app()->getLocale() === 'nl' ? 'Met vriendelijke groet, Uw Vanguard Auditor.' : 'Best regards, Your Vanguard Auditor.';
+        $actionExample = app()->getLocale() === 'nl' ? "'Onmiddellijk factureren', 'Nabeoordeling vereist'" : "'Invoice immediately', 'Review required'";
+
         $prompt = <<<PROMPT
 ROLE: Claesen Lead Financial Auditor.
-GOAL: Create a structured JSON 'Monday Morning Risk Report' in DUTCH.
+GOAL: Create a structured JSON 'Monday Morning Risk Report' in {$language}.
 CONTEXT: These projects have high WIP (Costs > Invoiced) or are stale (no billing > 30 days).
 
 DATA:
@@ -136,15 +144,15 @@ DATA:
 
 INSTRUCTIONS:
 1. Return ONLY JSON.
-2. Use professional Dutch (NL).
+2. Use professional {$language}.
 3. Structure:
 {
-  "greeting": "Goeiemorgen,",
-  "intro": "Dringende update over onderhanden werk (WIP) en facturatie-fouten.",
+  "greeting": "{$greeting}",
+  "intro": "{$intro}",
   "risky_projects": [
-     {"id": "String", "name": "String", "wip": "€ formatted", "action": "Dutch action recommendation (e.g. 'Onmiddellijk factureren', 'Nabeoordeling vereist')"}
+     {"id": "String", "name": "String", "wip": "€ formatted", "action": "{$language} action recommendation (e.g. {$actionExample})"}
   ],
-  "footer": "Met vriendelijke groet, Uw Vanguard Auditor."
+  "footer": "{$footer}"
 }
 PROMPT;
 
