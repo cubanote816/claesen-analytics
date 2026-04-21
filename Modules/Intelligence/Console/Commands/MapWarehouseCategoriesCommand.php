@@ -4,8 +4,8 @@ namespace Modules\Intelligence\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Modules\Intelligence\Models\Mirror\MirrorMaterial;
-use Modules\Intelligence\Models\Mirror\MirrorProject;
+use Modules\Performance\Models\Mirror\MirrorMaterial;
+use Modules\Performance\Models\Mirror\MirrorProject;
 use Illuminate\Support\Facades\Log;
 
 class MapWarehouseCategoriesCommand extends Command

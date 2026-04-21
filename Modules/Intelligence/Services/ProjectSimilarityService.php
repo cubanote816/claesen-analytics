@@ -2,9 +2,9 @@
 
 namespace Modules\Intelligence\Services;
 
-use Modules\Intelligence\Models\Mirror\MirrorProject;
-use Modules\Intelligence\Models\Mirror\MirrorCost;
-use Modules\Intelligence\Models\Mirror\MirrorLabor;
+use Modules\Performance\Models\Mirror\MirrorProject;
+use Modules\Performance\Models\Mirror\MirrorCost;
+use Modules\Performance\Models\Mirror\MirrorLabor;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -93,7 +93,7 @@ class ProjectSimilarityService
         $projectIds = $projects->pluck('id')->toArray();
         
         // Fetch insights (Lessons Learned) for these projects
-        $insights = \Modules\Intelligence\Models\ProjectInsight::whereIn('project_id', $projectIds)
+        $insights = \Modules\Performance\Models\ProjectInsight::whereIn('project_id', $projectIds)
             ->get(['project_id', 'efficiency_score', 'critical_leak', 'golden_rule'])
             ->keyBy('project_id');
 

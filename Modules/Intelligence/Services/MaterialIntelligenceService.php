@@ -2,9 +2,9 @@
 
 namespace Modules\Intelligence\Services;
 
-use Modules\Intelligence\Models\Mirror\MirrorMaterial;
-use Modules\Intelligence\Models\Mirror\MirrorCost;
-use Modules\Intelligence\Models\Mirror\MirrorProject;
+use Modules\Performance\Models\Mirror\MirrorMaterial;
+use Modules\Performance\Models\Mirror\MirrorCost;
+use Modules\Performance\Models\Mirror\MirrorProject;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 

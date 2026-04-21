@@ -5,7 +5,7 @@ namespace Modules\Intelligence\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Modules\Intelligence\Services\ProjectSimilarityService;
-use Modules\Intelligence\Models\Mirror\MirrorMaterial;
+use Modules\Performance\Models\Mirror\MirrorMaterial;
 use Modules\Intelligence\Models\OfferSimulation;
 use Illuminate\Support\Collection;
 

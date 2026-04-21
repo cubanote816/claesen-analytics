@@ -9,7 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Modules\Intelligence\Models\ProjectInsight;
+use Modules\Performance\Models\ProjectInsight;
 use Modules\Cafca\Models\Employee;
 use Illuminate\Support\Facades\Http;
 

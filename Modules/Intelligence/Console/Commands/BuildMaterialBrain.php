@@ -3,7 +3,7 @@
 namespace Modules\Intelligence\Console\Commands;
 
 use Illuminate\Console\Command;
-use Modules\Intelligence\Models\Mirror\MirrorMaterial;
+use Modules\Performance\Models\Mirror\MirrorMaterial;
 use Modules\Intelligence\Services\MaterialIntelligenceService;
 
 class BuildMaterialBrain extends Command
