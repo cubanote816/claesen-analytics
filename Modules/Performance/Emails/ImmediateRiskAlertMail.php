@@ -16,11 +16,20 @@ class ImmediateRiskAlertMail extends Mailable
 
     public ProjectInsight $insight;
     public float $wipAmount;
+    public array $projectData;
 
     public function __construct(ProjectInsight $insight, float $wipAmount)
     {
         $this->insight = $insight;
         $this->wipAmount = $wipAmount;
+
+        $this->projectData = [
+            'id' => $insight->project_id,
+            'name' => $insight->full_dna['name'] ?? 'Unknown',
+            'wip' => $wipAmount,
+            'stale_days' => 'Live ETL',
+            'risk_level' => $wipAmount > 20000 ? 'CRITICAL' : 'HIGH',
+        ];
     }
 
     public function envelope(): Envelope
