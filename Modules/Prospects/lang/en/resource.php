@@ -5,6 +5,12 @@ return [
     'plural_model_label' => 'Prospects',
     'navigation_group' => 'Growth & Acquisition',
 
+    'tabs' => [
+        'real_prospects' => 'Real Prospects',
+        'testers' => 'Testers (Management)',
+        'all' => 'All',
+    ],
+
     'sections' => [
         'club_info' => 'Club Information',
         'marketing_targets' => 'Marketing Targets',
@@ -31,6 +37,7 @@ return [
         'cafca_id' => 'CAFCA Relation ID',
         'locations' => 'Locations',
         'contact_type' => 'Contact Type',
+        'contact_name' => 'Contact Name',
         'email' => 'Email',
         'phone' => 'Phone Number',
         'address' => 'Address',
@@ -57,6 +64,9 @@ return [
         'failed_count' => 'Failed',
         'skipped_count' => 'Skipped',
         'unsubscribed_at' => 'Subscription Status',
+        'is_tester' => 'Tester (Test Environment)',
+        'is_tester_helper' => 'Mark as test prospect for management',
+        'tester' => 'Tester',
     ],
 
     'options' => [

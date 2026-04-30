@@ -147,6 +147,7 @@ class SyncValClubsCommand extends Command
                         ],
                         [
                             'contact_type' => 'venue_name',
+                            'contact_name' => $contactInfo['secretary'] ?? null,
                             'email' => $contactInfo['email'] ?? null,
                             'phone' => null, // Phone is rarely on the page in a structured way
                         ]

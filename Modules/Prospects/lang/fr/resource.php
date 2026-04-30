@@ -5,6 +5,12 @@ return [
     'plural_model_label' => 'Prospects',
     'navigation_group' => 'Croissance et Acquisition',
 
+    'tabs' => [
+        'real_prospects' => 'Vrais Prospects',
+        'testers' => 'Testeurs (Direction)',
+        'all' => 'Tous',
+    ],
+
     'sections' => [
         'club_info' => 'Informations du Club',
         'marketing_targets' => 'Cibles Marketing',
@@ -31,6 +37,7 @@ return [
         'cafca_id' => 'ID de Relation CAFCA',
         'locations' => 'Emplacements',
         'contact_type' => 'Type de Contact',
+        'contact_name' => 'Nom du Contact',
         'email' => 'E-mail',
         'phone' => 'Numéro de Téléphone',
         'address' => 'Adresse',
@@ -57,6 +64,9 @@ return [
         'failed_count' => 'Échec',
         'skipped_count' => 'Ignoré',
         'unsubscribed_at' => 'Désabonné le',
+        'is_tester' => 'Testeur (Environnement de test)',
+        'is_tester_helper' => 'Marquer comme prospect de test pour la direction',
+        'tester' => 'Testeur',
     ],
 
     'options' => [

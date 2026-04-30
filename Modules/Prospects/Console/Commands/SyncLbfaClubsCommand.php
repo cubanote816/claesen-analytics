@@ -79,6 +79,7 @@ class SyncLbfaClubsCommand extends Command
 
                 // Address (Right Cell)
                 $paragraphs = $rightCell->filter('p');
+                $address = null;
                 if ($paragraphs->count() >= 2) {
                     $address = trim($paragraphs->eq($paragraphs->count() - 2)->text());
                 }
@@ -133,6 +134,7 @@ class SyncLbfaClubsCommand extends Command
                 ProspectLocation::updateOrCreate(
                     ['prospect_id' => $prospect->id, 'contact_type' => 'headquarters'],
                     [
+                        'contact_name' => $item['contact_person'],
                         'email' => $item['email'],
                         'phone' => $item['phone'],
                         'address' => $item['address'],

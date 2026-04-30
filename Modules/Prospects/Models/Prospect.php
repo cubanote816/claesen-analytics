@@ -27,6 +27,12 @@ class Prospect extends Model
         'vat_number',
         'cafca_relation_id',
         'unsubscribed_at',
+        'is_tester',
+    ];
+
+    protected $casts = [
+        'is_tester' => 'boolean',
+        'unsubscribed_at' => 'datetime',
     ];
 
     /**

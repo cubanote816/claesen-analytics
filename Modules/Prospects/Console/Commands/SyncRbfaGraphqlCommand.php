@@ -21,6 +21,7 @@ class SyncRbfaGraphqlCommand extends Command
      */
     protected $signature = 'prospects:sync-rbfa-graphql 
                             {--province=all : Sync a specific province or all} 
+                            {--limit= : Limit the number of clubs to sync}
                             {--user= : User ID who triggered the sync}
                             {--history= : Existing sync history record ID}';
 
@@ -114,6 +115,10 @@ class SyncRbfaGraphqlCommand extends Command
             }
         }
 
+        if ($this->option('limit')) {
+            $uniqueClubs = array_slice($uniqueClubs, 0, (int) $this->option('limit'), true);
+        }
+
         $count = count($uniqueClubs);
         $this->info("Found {$count} unique clubs. Starting Enrichment...");
         $this->logSyncEvent("Encontrados {$count} clubes únicos. Iniciando enriquecimiento...", 'info', '📊');
@@ -169,22 +174,34 @@ class SyncRbfaGraphqlCommand extends Command
                     // Map contacts
                     $emails = [];
                     $phones = [];
+                    $contactNames = [];
                     foreach ($clubInfo['contacts'] ?? [] as $contact) {
                         if (!empty($contact['mail'])) $emails = array_merge($emails, (array)$contact['mail']);
                         if (!empty($contact['phone'])) $phones = array_merge($phones, (array)$contact['phone']);
+                        
+                        $fullName = trim(($contact['firstName'] ?? '') . ' ' . ($contact['lastName'] ?? ''));
+                        if (!empty($fullName)) {
+                            $contactNames[] = $fullName;
+                        }
                     }
 
                     $emailStr = substr(implode(', ', array_unique(array_filter($emails))), 0, 250);
                     $phoneStr = substr(implode(', ', array_unique(array_filter($phones))), 0, 250);
+                    $primaryContactName = !empty($contactNames) ? $contactNames[0] : null;
 
                     // Address
                     $addrParts = array_filter([$clubInfo['streetName'] ?? null, $clubInfo['postalCode'] ?? null, $clubInfo['localityName'] ?? null]);
                     $hqAddress = implode(', ', $addrParts);
 
-                    if ($hqAddress || $emailStr || $phoneStr) {
+                    if ($hqAddress || $emailStr || $phoneStr || $primaryContactName) {
                         ProspectLocation::updateOrCreate(
                             ['prospect_id' => $prospect->id, 'contact_type' => 'headquarters'],
-                            ['email' => $emailStr ?: null, 'phone' => $phoneStr ?: null, 'address' => $hqAddress]
+                            [
+                                'contact_name' => $primaryContactName,
+                                'email' => $emailStr ?: null, 
+                                'phone' => $phoneStr ?: null, 
+                                'address' => $hqAddress
+                            ]
                         );
                     }
 

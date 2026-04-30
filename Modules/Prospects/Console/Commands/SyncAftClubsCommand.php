@@ -99,6 +99,7 @@ class SyncAftClubsCommand extends Command
                 if (!empty($item['address']) && $prospect->locations()->count() === 0) {
                     $prospect->locations()->create([
                         'contact_type' => 'venue_name',
+                        'contact_name' => $item['contact'] ?? null,
                         'email' => $item['email'] ?? null,
                         'phone' => $item['phone'] ?? null,
                         'address' => $item['address'],

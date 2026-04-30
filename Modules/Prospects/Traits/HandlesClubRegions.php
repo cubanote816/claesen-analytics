@@ -53,6 +53,9 @@ trait HandlesClubRegions
      */
     protected function getFallbackRegionId(): int
     {
-        return Region::firstOrCreate(['name' => 'Overige'])->id;
+        return Region::firstOrCreate(
+            ['name' => 'Overige'],
+            ['slug' => 'overige']
+        )->id;
     }
 }

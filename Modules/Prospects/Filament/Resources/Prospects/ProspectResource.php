@@ -37,6 +37,8 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Actions\Action;
 use Filament\Tables\Enums\FiltersLayout;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\ToggleColumn;
 
 class ProspectResource extends Resource
 {
@@ -73,26 +75,30 @@ class ProspectResource extends Resource
                         Select::make('region_id')
                             ->label(__('prospects::resource.fields.region'))
                             ->relationship('region', 'name')
+                            ->searchable()
+                            ->preload()
                             ->required(),
                         Select::make('federation')
                             ->label(__('prospects::resource.fields.federation'))
                             ->options([
                                 'RBFA' => 'Voetbal (RBFA)',
-                                'VAL' => 'Atletiek (VAL)',
-                                'LBFA' => 'Atletiek (LBFA)',
-                                'TPV' => 'Tennis & Padel (TPV)',
-                                'AFT' => 'Tennis (AFT)',
-                                'VHL' => 'Hockey (VHL)',
-                                'LFH' => 'Hockey (LFH)',
+                                'VL-VAL' => 'Atletiek (VAL)',
+                                'FR-LBFA' => 'Atletiek (LBFA)',
+                                'VL-TPV' => 'Tennis & Padel (TPV)',
+                                'FR-AFT' => 'Tennis (AFT)',
+                                'VL-VHL' => 'Hockey (VHL)',
+                                'FR-LFH' => 'Hockey (LFH)',
                                 'ARBH-KBHB' => 'Hockey (ARBH)',
-                            ]),
+                            ])
+                            ->required(),
                         Select::make('language')
                             ->label(__('prospects::resource.fields.language'))
                             ->options([
                                 'nl' => __('prospects::resource.options.languages.nl'),
                                 'fr' => __('prospects::resource.options.languages.fr'),
                                 'en' => __('prospects::resource.options.languages.en'),
-                            ]),
+                            ])
+                            ->required(),
                         TextInput::make('contact_person')
                             ->label(__('prospects::resource.fields.contact_person')),
                         TextInput::make('channel')
@@ -104,11 +110,15 @@ class ProspectResource extends Resource
                             ->label(__('prospects::resource.fields.vat_number')),
                         TextInput::make('cafca_relation_id')
                             ->label(__('prospects::resource.fields.cafca_id')),
+                        Toggle::make('is_tester')
+                            ->label(__('prospects::resource.fields.is_tester'))
+                            ->helperText(__('prospects::resource.fields.is_tester_helper'))
+                            ->default(false),
                     ]),
                 Section::make(__('prospects::resource.sections.marketing_targets'))
                     ->components([
                         Repeater::make('locations')
-                            ->label(__('prospects::resource.fields.locations'))
+                            ->hiddenLabel()
                             ->relationship()
                             ->components([
                                 Select::make('contact_type')
@@ -121,17 +131,23 @@ class ProspectResource extends Resource
                                         'contact_person' => __('prospects::resource.options.contact_types.contact_person'),
                                         'other' => __('prospects::resource.options.contact_types.other'),
                                     ])
-                                    ->required(),
+                                    ->required()
+                                    ->columnSpanFull(),
+                                TextInput::make('contact_name')
+                                    ->label(__('prospects::resource.fields.contact_name'))
+                                    ->columnSpanFull(),
                                 TextInput::make('email')
                                     ->label(__('prospects::resource.fields.email'))
-                                    ->email(),
+                                    ->email()
+                                    ->columnSpanFull(),
                                 TextInput::make('phone')
-                                    ->label(__('prospects::resource.fields.phone')),
+                                    ->label(__('prospects::resource.fields.phone'))
+                                    ->columnSpanFull(),
                                 Textarea::make('address')
                                     ->label(__('prospects::resource.fields.address'))
                                     ->columnSpanFull(),
                             ])
-                            ->columns(2),
+                            ->columns(1),
                     ]),
             ]);
     }
@@ -154,7 +170,8 @@ class ProspectResource extends Resource
                                 ->size('lg'),
                             TextEntry::make('website')
                                 ->label(__('prospects::resource.fields.website'))
-                                ->url(fn($record) => $record->website, true),
+                                ->url(fn($record) => $record->website, true)
+                                ->visible(fn($state) => filled($state)),
                             TextEntry::make('region.name')
                                 ->label(__('prospects::resource.fields.region')),
                             TextEntry::make('federation')
@@ -180,47 +197,58 @@ class ProspectResource extends Resource
                                     default => $state,
                                 }),
                             TextEntry::make('contact_person')
-                                ->label(__('prospects::resource.fields.contact_person')),
+                                ->label(__('prospects::resource.fields.contact_person'))
+                                ->visible(fn($state) => filled($state)),
                             TextEntry::make('channel')
-                                ->label(__('prospects::resource.fields.channel')),
+                                ->label(__('prospects::resource.fields.channel'))
+                                ->visible(fn($state) => filled($state)),
                             TextEntry::make('vat_number')
-                                ->label(__('prospects::resource.fields.vat_number')),
+                                ->label(__('prospects::resource.fields.vat_number'))
+                                ->visible(fn($state) => filled($state)),
                             TextEntry::make('cafca_relation_id')
-                                ->label(__('prospects::resource.fields.cafca_id')),
+                                ->label(__('prospects::resource.fields.cafca_id'))
+                                ->visible(fn($state) => filled($state)),
                         ]),
                     ]),
                 Section::make(__('prospects::resource.sections.marketing_targets'))
                     ->components([
                         RepeatableEntry::make('locations')
-                            ->label(__('prospects::resource.fields.locations'))
+                            ->hiddenLabel()
                             ->components([
-                                Grid::make(3)->components([
-                                    TextEntry::make('contact_type')
-                                        ->label(__('prospects::resource.fields.contact_type'))
-                                        ->badge()
-                                        ->color('info')
-                                        ->formatStateUsing(fn(string $state): string => match ($state) {
-                                            'headquarters' => __('prospects::resource.options.contact_types.headquarters'),
-                                            'stadium' => __('prospects::resource.options.contact_types.stadium'),
-                                            'venue_name' => __('prospects::resource.options.contact_types.venue_name'),
-                                            'club_house' => __('prospects::resource.options.contact_types.club_house'),
-                                            'contact_person' => __('prospects::resource.options.contact_types.contact_person'),
-                                            'other' => __('prospects::resource.options.contact_types.other'),
-                                            default => $state,
-                                        })
-                                        ->columnSpanFull(),
-                                    TextEntry::make('email')
-                                        ->label(__('prospects::resource.fields.email'))
-                                        ->icon('heroicon-m-envelope')
-                                        ->columnSpan(2),
-                                    TextEntry::make('phone')
-                                        ->label(__('prospects::resource.fields.phone'))
-                                        ->icon('heroicon-m-phone'),
-                                    TextEntry::make('address')
-                                        ->label(__('prospects::resource.fields.address'))
-                                        ->icon('heroicon-m-map-pin')
-                                        ->columnSpanFull(),
-                                ]),
+                                TextEntry::make('contact_type')
+                                    ->label(__('prospects::resource.fields.contact_type'))
+                                    ->badge()
+                                    ->color('info')
+                                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                                        'headquarters' => __('prospects::resource.options.contact_types.headquarters'),
+                                        'stadium' => __('prospects::resource.options.contact_types.stadium'),
+                                        'venue_name' => __('prospects::resource.options.contact_types.venue_name'),
+                                        'club_house' => __('prospects::resource.options.contact_types.club_house'),
+                                        'contact_person' => __('prospects::resource.options.contact_types.contact_person'),
+                                        'other' => __('prospects::resource.options.contact_types.other'),
+                                        default => $state,
+                                    })
+                                    ->columnSpanFull(),
+                                TextEntry::make('email')
+                                    ->label(__('prospects::resource.fields.email'))
+                                    ->icon('heroicon-m-envelope')
+                                    ->columnSpanFull()
+                                    ->visible(fn($state) => filled($state)),
+                                TextEntry::make('contact_name')
+                                    ->label(__('prospects::resource.fields.contact_name'))
+                                    ->icon('heroicon-m-user')
+                                    ->columnSpanFull()
+                                    ->visible(fn($state) => filled($state)),
+                                TextEntry::make('phone')
+                                    ->label(__('prospects::resource.fields.phone'))
+                                    ->icon('heroicon-m-phone')
+                                    ->columnSpanFull()
+                                    ->visible(fn($state) => filled($state)),
+                                TextEntry::make('address')
+                                    ->label(__('prospects::resource.fields.address'))
+                                    ->icon('heroicon-m-map-pin')
+                                    ->columnSpanFull()
+                                    ->visible(fn($state) => filled($state)),
                             ])
                             ->columns(1),
                     ]),
@@ -269,9 +297,7 @@ class ProspectResource extends Resource
                 IconColumn::make('has_email')
                     ->label(__('prospects::resource.fields.email'))
                     ->boolean()
-                    ->state(function (Prospect $record): bool {
-                        return $record->locations()->whereNotNull('email')->where('email', '!=', '')->exists();
-                    }),
+                    ->state(fn (Prospect $record): bool => $record->locations_exists_with_email),
                 TextColumn::make('locations_count')
                     ->counts('locations')
                     ->label(__('prospects::resource.fields.locations_count')),
@@ -282,6 +308,10 @@ class ProspectResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->color('danger')
                     ->placeholder(__('prospects::resource.options.status.active')),
+                ToggleColumn::make('is_tester')
+                    ->label(__('prospects::resource.fields.tester'))
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 TernaryFilter::make('has_email')
@@ -493,6 +523,15 @@ class ProspectResource extends Resource
                         ->deselectRecordsAfterCompletion(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['region'])
+            ->withExists(['locations as locations_exists_with_email' => function (Builder $query) {
+                $query->whereNotNull('email')->where('email', '!=', '');
+            }]);
     }
 
     public static function getPages(): array

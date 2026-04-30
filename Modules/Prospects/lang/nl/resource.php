@@ -5,6 +5,12 @@ return [
     'plural_model_label' => 'Prospecten',
     'navigation_group' => 'Groei & Acquisitie',
 
+    'tabs' => [
+        'real_prospects' => 'Echte Prospecten',
+        'testers' => 'Testers (Management)',
+        'all' => 'Alle',
+    ],
+
     'sections' => [
         'club_info' => 'Club Informatie',
         'marketing_targets' => 'Marketing Doelwitten',
@@ -31,6 +37,7 @@ return [
         'cafca_id' => 'CAFCA Relatie ID',
         'locations' => 'Locaties',
         'contact_type' => 'Type Contact',
+        'contact_name' => 'Naam Contactpersoon',
         'email' => 'E-mail',
         'phone' => 'Telefoonnummer',
         'address' => 'Adres',
@@ -57,6 +64,9 @@ return [
         'failed_count' => 'Fout',
         'skipped_count' => 'Overgeslagen',
         'unsubscribed_at' => 'Inschrijvingsstatus',
+        'is_tester' => 'Tester (Testomgeving)',
+        'is_tester_helper' => 'Markeer als test prospect voor het management',
+        'tester' => 'Tester',
     ],
 
     'options' => [
