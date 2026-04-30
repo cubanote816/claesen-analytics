@@ -43,7 +43,7 @@ return [
         'address' => 'Address',
         'logo' => 'Logo',
         'has_email' => 'Has Email Address',
-        'locations_count' => 'Number of Locations',
+        'locations_count' => 'Locations',
         'command' => 'Command',
         'status' => 'Status',
         'started_by' => 'Started by',

@@ -82,6 +82,8 @@ class ProspectResource extends Resource
                             ->label(__('prospects::resource.fields.federation'))
                             ->options([
                                 'RBFA' => 'Voetbal (RBFA)',
+                                'VL-VV' => 'Voetbal (VL-VV)',
+                                'FR-ACFF' => 'Football (FR-ACFF)',
                                 'VL-VAL' => 'Atletiek (VAL)',
                                 'FR-LBFA' => 'Atletiek (LBFA)',
                                 'VL-TPV' => 'Tennis & Padel (TPV)',
@@ -179,12 +181,20 @@ class ProspectResource extends Resource
                                 ->badge()
                                 ->color(fn(string $state): string => match ($state) {
                                     'RBFA' => 'success',
+                                    'VL-VV' => 'success',
+                                    'FR-ACFF' => 'success',
                                     'VAL' => 'warning',
+                                    'VL-VAL' => 'warning',
                                     'LBFA' => 'info',
+                                    'FR-LBFA' => 'info',
                                     'TPV' => 'success',
+                                    'VL-TPV' => 'success',
                                     'AFT' => 'danger',
+                                    'FR-AFT' => 'danger',
                                     'VHL' => 'info',
+                                    'VL-VHL' => 'info',
                                     'LFH' => 'warning',
+                                    'FR-LFH' => 'warning',
                                     'ARBH-KBHB' => 'success',
                                     default => 'gray',
                                 }),
@@ -274,12 +284,20 @@ class ProspectResource extends Resource
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'RBFA' => 'success',
+                        'VL-VV' => 'success',
+                        'FR-ACFF' => 'success',
                         'VAL' => 'warning',
+                        'VL-VAL' => 'warning',
                         'LBFA' => 'info',
+                        'FR-LBFA' => 'info',
                         'TPV' => 'success',
+                        'VL-TPV' => 'success',
                         'AFT' => 'danger',
+                        'FR-AFT' => 'danger',
                         'VHL' => 'info',
+                        'VL-VHL' => 'info',
                         'LFH' => 'warning',
+                        'FR-LFH' => 'warning',
                         'ARBH-KBHB' => 'success',
                         default => 'gray',
                     })
@@ -394,12 +412,20 @@ class ProspectResource extends Resource
                             ->label(__('prospects::resource.fields.federation'))
                             ->options([
                                 'RBFA' => 'RBFA (Voetbal)',
+                                'VL-VV' => 'Voetbal (VL-VV)',
+                                'FR-ACFF' => 'Football (FR-ACFF)',
                                 'VAL' => 'VAL (Atletiek NL)',
+                                'VL-VAL' => 'Atletiek (VAL)',
                                 'LBFA' => 'LBFA (Atletiek FR)',
+                                'FR-LBFA' => 'Atletiek (LBFA)',
                                 'TPV' => 'Tennis & Padel VL.',
+                                'VL-TPV' => 'Tennis & Padel (TPV)',
                                 'AFT' => 'AFT (Tennis FR)',
+                                'FR-AFT' => 'Tennis (AFT)',
                                 'VHL' => 'VHL (Hockey NL)',
+                                'VL-VHL' => 'Hockey (VHL)',
                                 'LFH' => 'LFH (Hockey FR)',
+                                'FR-LFH' => 'Hockey (LFH)',
                                 'ARBH-KBHB' => 'ARBH (Koninklijk)',
                             ])
                             ->live(),
@@ -427,9 +453,12 @@ class ProspectResource extends Resource
                     ->close(),
             )
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                ViewAction::make()
+                    ->label(fn () => new \Illuminate\Support\HtmlString('<span class="hidden xl:inline">' . __('filament-actions::view.single.label') . '</span>')),
+                EditAction::make()
+                    ->label(fn () => new \Illuminate\Support\HtmlString('<span class="hidden xl:inline">' . __('filament-actions::edit.single.label') . '</span>')),
+                DeleteAction::make()
+                    ->label(fn () => new \Illuminate\Support\HtmlString('<span class="hidden xl:inline">' . __('filament-actions::delete.single.label') . '</span>')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

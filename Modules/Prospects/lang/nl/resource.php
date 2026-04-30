@@ -43,7 +43,7 @@ return [
         'address' => 'Adres',
         'logo' => 'Logo',
         'has_email' => 'Heeft E-mailadres',
-        'locations_count' => 'Aantal Locaties',
+        'locations_count' => 'Locaties',
         'command' => 'Commando',
         'status' => 'Status',
         'started_by' => 'Gestart door',
