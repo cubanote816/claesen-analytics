@@ -33,7 +33,7 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 static fn(): string =>
                 view('prospects::filament.prospects.floating-mailing-button')->render() .
-                \Illuminate\Support\Facades\Blade::render("@livewire('session-keeper', ['lifetime' => 60, 'warningThreshold' => 30])"),
+                \Illuminate\Support\Facades\Blade::render("@livewire('session-keeper', ['lifetime' => 7200, 'warningThreshold' => 300])"),
             );
 
             FilamentView::registerRenderHook(
