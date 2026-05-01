@@ -31,12 +31,14 @@ class AdminPanelProvider extends PanelProvider
         $this->app->booted(static function () {
             FilamentView::registerRenderHook(
                 PanelsRenderHook::BODY_END,
-                static fn (): string => view('prospects::filament.prospects.floating-mailing-button')->render(),
+                static fn(): string =>
+                view('prospects::filament.prospects.floating-mailing-button')->render() .
+                \Illuminate\Support\Facades\Blade::render("@livewire('session-keeper', ['lifetime' => 60, 'warningThreshold' => 30])"),
             );
 
             FilamentView::registerRenderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
-                static fn (): string => view('core::filament.auth.microsoft-login-button')->render(),
+                static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
         });
     }
@@ -124,8 +126,8 @@ class AdminPanelProvider extends PanelProvider
             ->spa()
             ->navigationGroups([
                 NavigationGroup::make()
-                     ->label(app()->getLocale() === 'nl' ? 'Intelligentie Hub' : 'Intelligence Hub')
-                     ->icon('heroicon-o-sparkles'),
+                    ->label(app()->getLocale() === 'nl' ? 'Intelligentie Hub' : 'Intelligence Hub')
+                    ->icon('heroicon-o-sparkles'),
                 NavigationGroup::make()
                     ->label(__('navigation.groups.growth_acquisition'))
                     ->icon('heroicon-o-chart-bar-square'),

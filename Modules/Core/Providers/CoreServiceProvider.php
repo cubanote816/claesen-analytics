@@ -27,6 +27,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        \Livewire\Livewire::component('session-keeper', \Modules\Core\Livewire\SessionKeeper::class);
     }
 
     /**

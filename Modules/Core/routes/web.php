@@ -5,6 +5,7 @@ use Modules\Core\Http\Controllers\CoreController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('cores', CoreController::class)->names('core');
+    Route::get('/heartbeat', \Modules\Core\Http\Controllers\HeartbeatController::class)->name('core.heartbeat');
 });
 
 // Microsoft Azure Auth Routes
