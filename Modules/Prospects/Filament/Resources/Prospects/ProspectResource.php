@@ -58,7 +58,7 @@ class ProspectResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('navigation.groups.growth_acquisition');
+        return 'Growth & Acquisition';
     }
 
     protected static ?int $navigationSort = 1;

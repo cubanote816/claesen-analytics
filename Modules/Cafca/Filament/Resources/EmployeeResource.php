@@ -56,7 +56,7 @@ class EmployeeResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('navigation.groups.workforce_performance');
+        return 'Workforce & Performance';
     }
 
     public static function canCreate(): bool

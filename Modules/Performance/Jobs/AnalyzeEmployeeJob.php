@@ -6,7 +6,7 @@ use Modules\Performance\DTOs\EmployeeAiPayload;
 use Modules\Cafca\Models\Employee as LegacyEmployee;
 use Modules\Cafca\Models\Labor;
 use Modules\Performance\Models\EmployeeInsight;
-use Modules\Performance\Services\GeminiService;
+use Modules\Intelligence\Services\GeminiService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

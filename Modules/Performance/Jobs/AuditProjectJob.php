@@ -5,7 +5,7 @@ namespace Modules\Performance\Jobs;
 use Modules\Performance\DTOs\ProjectAiPayload;
 use Modules\Cafca\Models\Project;
 use Modules\Performance\Models\ProjectInsight;
-use Modules\Performance\Services\GeminiService;
+use Modules\Intelligence\Services\GeminiService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;

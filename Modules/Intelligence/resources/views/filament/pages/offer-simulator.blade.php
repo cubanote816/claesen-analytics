@@ -300,7 +300,16 @@
                                                     </code>
                                                 </td>
                                                 <td class="px-6 py-5">
-                                                    <div class="text-sm text-gray-900 dark:text-gray-300 font-bold dark:font-medium group-hover:text-primary-600 dark:group-hover:text-white transition-colors">{{ $material['name'] }}</div>
+                                                    @if(($material['web_link'] ?? '#') !== '#')
+                                                        <a href="{{ $material['web_link'] }}" target="_blank" class="inline-flex items-center gap-1 group/link">
+                                                            <div class="text-sm text-gray-900 dark:text-gray-300 font-bold dark:font-medium group-hover/link:text-primary-600 dark:group-hover/link:text-primary-400 transition-colors underline decoration-primary-500/30 underline-offset-4 decoration-2">
+                                                                {{ $material['name'] }}
+                                                            </div>
+                                                            <x-heroicon-o-arrow-top-right-on-square class="w-3 h-3 shrink-0 text-gray-400 group-hover/link:text-primary-500 transition-colors" />
+                                                        </a>
+                                                    @else
+                                                        <div class="text-sm text-gray-900 dark:text-gray-300 font-bold dark:font-medium group-hover:text-primary-600 dark:group-hover:text-white transition-colors">{{ $material['name'] }}</div>
+                                                    @endif
                                                     <div class="text-[9px] text-gray-500 dark:text-gray-600 italic mt-1">{{ $material['reason'] }}</div>
                                                 </td>
                                                 <td class="px-6 py-5 text-center text-sm font-black text-gray-700 dark:text-gray-300 tabular-nums">{{ $material['quantity'] }}</td>

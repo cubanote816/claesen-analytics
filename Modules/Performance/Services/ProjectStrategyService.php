@@ -10,6 +10,7 @@ use Modules\Performance\Models\Mirror\MirrorLabor;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Modules\Intelligence\Services\GeminiService;
 
 class ProjectStrategyService
 {

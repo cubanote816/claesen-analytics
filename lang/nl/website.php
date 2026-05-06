@@ -2,6 +2,7 @@
 
 return [
     'cluster_label' => 'Website',
+    'v1_demo_link' => 'Bekijk Website V1 (Demo)',
     'projects' => [
         'label' => 'Project',
         'plural_label' => 'Projecten',

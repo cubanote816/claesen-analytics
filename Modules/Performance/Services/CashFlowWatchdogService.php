@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Modules\Performance\Emails\WatchdogRiskReportMail;
 use Modules\Performance\Emails\VanguardImmediateAlertMail;
+use Modules\Intelligence\Services\GeminiService;
 
 class CashFlowWatchdogService
 {

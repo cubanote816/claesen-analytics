@@ -12,11 +12,14 @@ class MirrorMaterial extends Model
 
     protected $fillable = [
         'id',
-        'name',
-        'unit',
+        'ref',
+        'description',
         'cost_price',
-        'ai_category',
-        'ai_labels',
+        'category_ai',
+        'tags',
+        'usage_summary',
+        'modern_id',
+        'fl_active',
         'last_audited_at',
     ];
 

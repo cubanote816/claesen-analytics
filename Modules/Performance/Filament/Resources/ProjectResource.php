@@ -28,7 +28,7 @@ class ProjectResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('navigation.groups.workforce_performance') ?? 'Workforce & Performance';
+        return 'Workforce & Performance';
     }
 
     public static function getNavigationLabel(): string

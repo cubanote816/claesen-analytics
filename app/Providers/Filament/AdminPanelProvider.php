@@ -8,6 +8,7 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -49,6 +50,26 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('')
             ->login()
+            ->navigationGroups([
+                NavigationGroup::make('Analyse & Intelligentie')
+                    ->label(__('navigation.groups.analyse_intelligentie'))
+                    ->icon('heroicon-o-presentation-chart-line'),
+                NavigationGroup::make('Workforce & Performance')
+                    ->label(__('navigation.groups.workforce_performance'))
+                    ->icon('heroicon-o-user-group'),
+                NavigationGroup::make('Growth & Acquisition')
+                    ->label(__('navigation.groups.growth_acquisition'))
+                    ->icon('heroicon-o-chart-bar-square'),
+                NavigationGroup::make('Intelligence Hub')
+                    ->label(__('navigation.groups.intelligence_hub'))
+                    ->icon('heroicon-o-sparkles'),
+                NavigationGroup::make('Content & Website')
+                    ->label(__('navigation.groups.content_website'))
+                    ->icon('heroicon-o-globe-alt'),
+                NavigationGroup::make('User Management')
+                    ->label(__('navigation.groups.user_management'))
+                    ->icon('heroicon-o-cog-6-tooth'),
+            ])
             ->colors([
                 'primary' => Color::Indigo,
                 'gray' => Color::Slate,
@@ -124,22 +145,12 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->spa()
-            ->navigationGroups([
-                NavigationGroup::make()
-                    ->label(app()->getLocale() === 'nl' ? 'Intelligentie Hub' : 'Intelligence Hub')
-                    ->icon('heroicon-o-sparkles'),
-                NavigationGroup::make()
-                    ->label(__('navigation.groups.growth_acquisition'))
-                    ->icon('heroicon-o-chart-bar-square'),
-                NavigationGroup::make()
-                    ->label(__('navigation.groups.content_website'))
-                    ->icon('heroicon-o-globe-alt'),
-                NavigationGroup::make()
-                    ->label(__('navigation.groups.workforce_performance'))
-                    ->icon('heroicon-o-user-group'),
-                NavigationGroup::make()
-                    ->label(__('navigation.groups.user_management'))
-                    ->icon('heroicon-o-cog-6-tooth'),
+            ->navigationItems([
+                NavigationItem::make(__('website.v1_demo_link'))
+                    ->url('https://claesen-verlichting.be/v1/', shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->group('Content & Website')
+                    ->sort(10),
             ]);
     }
 }

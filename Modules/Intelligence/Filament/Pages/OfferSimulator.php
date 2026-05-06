@@ -47,7 +47,7 @@ class OfferSimulator extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return app()->getLocale() === 'nl' ? 'Intelligentie Hub' : 'Intelligence Hub';
+        return 'Intelligence Hub';
     }
 
     public static function getNavigationLabel(): string

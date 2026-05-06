@@ -31,7 +31,7 @@ class RoleResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('navigation.groups.user_management');
+        return 'User Management';
     }
 
     public static function getModelLabel(): string

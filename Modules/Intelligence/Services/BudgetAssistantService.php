@@ -122,42 +122,39 @@ class BudgetAssistantService
             $systemText = <<<EOT
 {$systemInstruction}
 
-HIERARCHIE VOOR MATERIAALSELECTIE:
-1. WAREHOUSE FIRST: Gebruik EXACTE producten uit de onderstaande lijst als ze passen.
-2. MODERNISERING: Als een product in de lijst verouderd is, stel een "Updated Version" voor.
-3. EXTERNAL: Als er GEEN match is in de lijst, zoek via internet/AI raming.
+HIERARCHIE VOOR MATERIAALSELECTIE (WINNER SELECTION STRATEGY):
+1. INTERNE VERGELIJKING: Vergelijk voor elk hoofdbestanddeel (armaturen, masten) minimaal 3 markt-alternatieven op basis van:
+   - Kwaliteit & Levensduur (Expert niveau).
+   - Installatiegemak voor Claesen technici.
+   - Rendabiliteit (Hoogste marge bij doorverkoop).
+2. BEPAAL DE WINNAAR: Selecteer het product dat de beste balans biedt tussen Claesen's winst en de klantvraag.
+3. BRONVERWIJZING (BETROUWBAAR): 
+   - Referentieer de specifieke website of portal waar dit product te vinden is.
+   - Gebruik voorrang voor officiële distributeurs in België (bijv. Cebeo, Rexel) of de product-portal van de fabrikant (bijv. "Philips Lighting Portal").
+   - VOORKOM 404: Als de exacte diepe URL onbekend is, link naar de hoofdcatalogus van de fabrikant of een specifieke zoekactie op de distributeur-site.
 
-HUIDIG MAGAZIJN (STOCK):
+TECHNISCHE SPECIFICATIES (MOET):
+- Armaturen: Lumen, W, IP, IK, L-waarde (bijv. L80B10 100k h), CRI.
+- Masten: Staalkwaliteit S235/S355, windgebied validatie, wanddikte.
+
+STOCK FALLBACK (STANDAARD):
 {$activeCatalog}
 
-REFERENTIEPROJECTEN UIT CAFCA:
-{$projectNames}
-
-LESSONS FROM THE PAST:
-{$lessonsContext}
-
 TECHNICAL STANDARDS:
-- SPORT: 4-6 masten (18m), LED. Budget: €45k - €95k.
-- INDUSTRIAL: High-bay verlichting elke 6m. Focus op magazijn/loods.
-- PUBLIC SPACES: Parkverlichting, straatverlichting, pleinen.
-
-INSTRUCTIONS:
-1. PRIJSSTABILITEIT: Gebruik de "Price" uit de stocklijst voor Warehouse items.
-2. SOURCE ATTRIBUTION: Voor ELK item moet je aangeven waar het vandaan komt (source_location & source_type).
-3. De SWOT (DAFO) MOET direct verwijzen naar de 'Lessons from the Past'.
-4. Alle teksten in het Nederlands (NL).
+- SPORT: UEFA/KNVB Class II (200 lux gem).
+- INFRA: AREI conformiteit (XVB/EXVB).
 
 OUTPUT SCHEMA (JSON):
 {
   "is_off_topic": boolean, "is_incomplete": boolean, "is_gibberish": boolean,
   "missing_info_request": "string",
-  "assumptions_made": "string",
+  "assumptions_made": "string (zeer technisch)",
   "projected_cost": float,
   "breakdown": { "MATERIAAL (M)": float, "ARBEID (A)": float, "MATERIEEL (E)": float, "ONDERAANNEMING (S)": float },
   "budget_sections": [
-    { "title": "string", "items": [ { "omschrijving": "...", "ref": "id", "eenheid": "stk|m|h", "hoeveelheid": 0, "eenheidsprijs": 0, "arb_per_eenheid": 0, "source_type": "warehouse|modernized|external", "source_location": "string" } ] }
+    { "title": "string", "items": [ { "omschrijving": "WINNAAR: [Merk] [Model] + [Technische Specs]", "ref": "id", "eenheid": "stk|m|h", "hoeveelheid": 0, "eenheidsprijs": 0, "arb_per_eenheid": 0, "source_type": "external", "source_location": "Fabrikant/Distributeur Naam", "web_link": "string (URL naar Portaal of Zoekactie)" } ] }
   ],
-  "intro_text": "...", "outro_text": "...", "swot": { "strengths": [], "weaknesses": [], "opportunities": [], "threats": [] }, "swot_detailed": "...", "came_strategy": "...", "ai_insights": "..."
+  "intro_text": "...", "outro_text": "...", "swot_detailed": "...", "came_strategy": "..."
 }
 EOT;
 
@@ -261,6 +258,8 @@ EOT;
                 'external' => 'Marktonderzoek (Internet)',
             ];
 
+            $link = $p['web_link'] ?? '#';
+
             return [
                 'ref' => $ref ?? 'INC-' . strtoupper(substr(md5($p['omschrijving'] ?? 'unk'), 0, 4)),
                 'name' => $p['omschrijving'] ?? 'Onbekend',
@@ -271,6 +270,7 @@ EOT;
                 'line_total' => (float) (($p['hoeveelheid'] ?? 1) * ($p['eenheidsprijs'] ?? 0)),
                 'source_type' => $type,
                 'source_location' => $location,
+                'web_link' => $link,
                 'action' => $actionMap[$type] ?? 'Onbekend',
                 'reason' => $p['reason'] ?? 'Algemeen',
             ];
