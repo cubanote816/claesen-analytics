@@ -5,6 +5,7 @@ namespace Modules\Website\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Website\Services\PortfolioService;
+use Modules\Website\App\Http\Resources\ProjectResource;
 
 class ProjectController extends Controller
 {
@@ -22,18 +23,16 @@ class ProjectController extends Controller
             $request->input('per_page', 12)
         );
 
-        return response()->json($projects);
+        return ProjectResource::collection($projects);
     }
 
     public function show($slug)
     {
         $project = $this->portfolioService->getProjectBySlug($slug);
 
-        $project->related = $this->portfolioService->getRelatedProjects($project);
+        $project->setRelation('related', $this->portfolioService->getRelatedProjects($project));
 
-        return response()->json([
-            'data' => $project
-        ]);
+        return new ProjectResource($project);
     }
 
     public function categories()

@@ -105,11 +105,20 @@ class Project extends Model implements HasMedia
         $this->addMediaConversion('gallery')
             ->width(1200)
             ->height(800);
+
+        $this->addMediaConversion('optimized')
+            ->width(1200)
+            ->height(1200)
+            ->quality(80)
+            ->format('webp')
+            ->performOnCollections('featured_image', 'gallery');
     }
 
     public function getApiFeaturedImageUrlAttribute(): ?string
     {
-        return $this->getFirstMediaUrl('featured_image') ?: null;
+        // Try to get optimized version first, fallback to original
+        return $this->getFirstMediaUrl('featured_image', 'optimized') 
+            ?: ($this->getFirstMediaUrl('featured_image') ?: null);
     }
 
     public function getApiGalleryAttribute()
@@ -122,6 +131,7 @@ class Project extends Model implements HasMedia
                 'url' => $media->getUrl(),
                 'thumb' => $media->getUrl('thumb'),
                 'gallery' => $media->getUrl('gallery'),
+                'optimized' => $media->getUrl('optimized'),
                 'caption' => $media->getCustomProperty('caption'),
                 'alt' => $media->getCustomProperty('alt'),
             ];
