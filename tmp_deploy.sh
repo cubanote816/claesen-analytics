@@ -50,6 +50,13 @@ echo "✨ Actualizando Filament y limpiando caché..."
 php artisan optimize:clear
 php artisan filament:upgrade
 
+# 6.5. OPTIMIZACIÓN DE IMÁGENES (Para Frontend Astro)
+echo "🖼️  Generando versiones optimizadas (WebP) para proyectos..."
+php artisan media-library:regenerate "Modules\Website\Models\Project" --only="optimized" --force
+
+echo "🔒 Corrigiendo permisos de storage..."
+chmod -R 755 storage/app/public
+
 # 7. REINICIAR SERVICIOS
 echo "🔄 Reiniciando colas..."
 php artisan queue:restart

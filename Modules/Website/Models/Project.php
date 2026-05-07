@@ -111,7 +111,7 @@ class Project extends Model implements HasMedia
             ->height(1200)
             ->quality(80)
             ->format('webp')
-            ->performOnCollections('featured_image', 'gallery');
+            ->performOnCollections('featured_image', 'gallery', 'default');
     }
 
     public function getApiFeaturedImageUrlAttribute(): ?string
