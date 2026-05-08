@@ -114,11 +114,9 @@ class Project extends Model implements HasMedia
             ->performOnCollections('featured_image', 'gallery', 'default');
     }
 
-    public function getApiFeaturedImageUrlAttribute(): ?string
+    public function getApiFeaturedImageUrlAttribute()
     {
-        // Try to get optimized version first, fallback to original
-        return $this->getFirstMediaUrl('featured_image', 'optimized') 
-            ?: ($this->getFirstMediaUrl('featured_image') ?: null);
+        return $this->getFirstMediaUrl('featured_image');
     }
 
     public function getApiGalleryAttribute()
@@ -129,9 +127,9 @@ class Project extends Model implements HasMedia
                 'name' => $media->name,
                 'file_name' => $media->file_name,
                 'url' => $media->getUrl(),
+                'optimized' => $media->getUrl('optimized'),
                 'thumb' => $media->getUrl('thumb'),
                 'gallery' => $media->getUrl('gallery'),
-                'optimized' => $media->getUrl('optimized'),
                 'caption' => $media->getCustomProperty('caption'),
                 'alt' => $media->getCustomProperty('alt'),
             ];
