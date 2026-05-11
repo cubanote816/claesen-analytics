@@ -44,24 +44,24 @@ class SafetyStatsWidget extends BaseWidget
             ? round((($totalThisMonth - $totalLastMonth) / $totalLastMonth) * 100)
             : 0;
 
-        $trendDesc = $trend >= 0
-            ? "+{$trend}% t.o.v. vorige maand"
-            : "{$trend}% t.o.v. vorige maand";
+        $trendDesc = __('safety::inspections.widgets.stats.trend', [
+            'trend' => ($trend >= 0 ? '+' : '') . $trend . '%'
+        ]);
 
         return [
-            Stat::make('Inspecties deze maand', $totalThisMonth)
+            Stat::make(__('safety::inspections.widgets.stats.this_month'), $totalThisMonth)
                 ->description($trendDesc)
                 ->descriptionIcon($trend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->color($trend >= 0 ? 'success' : 'warning')
                 ->chart($dailyCounts ?: [0]),
 
-            Stat::make('Niet Akkoord (NOK) dit maand', $nokThisMonth)
-                ->description('Punten die directe aandacht vereisen')
+            Stat::make(__('safety::inspections.widgets.stats.nok_this_month'), $nokThisMonth)
+                ->description(__('safety::inspections.widgets.stats.nok_hint'))
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color($nokThisMonth > 5 ? 'danger' : ($nokThisMonth > 0 ? 'warning' : 'success')),
 
-            Stat::make('PDF Rapporten', "{$pdfGenerated} / {$totalInspections}")
-                ->description('Automatisch gegenereerde rapporten')
+            Stat::make(__('safety::inspections.widgets.stats.pdf_reports'), "{$pdfGenerated} / {$totalInspections}")
+                ->description(__('safety::inspections.widgets.stats.pdf_hint'))
                 ->descriptionIcon('heroicon-m-document-text')
                 ->color('info'),
         ];

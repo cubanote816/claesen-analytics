@@ -17,7 +17,7 @@ class LatestInspectionsWidget extends BaseWidget
 
     protected function getTableHeading(): string
     {
-        return 'Recente Werkplekinspecties';
+        return __('safety::inspections.widgets.latest_inspections');
     }
 
     public function table(Table $table): Table
@@ -31,19 +31,19 @@ class LatestInspectionsWidget extends BaseWidget
             )
             ->columns([
                 Tables\Columns\TextColumn::make('project_id')
-                    ->label('Project')
+                    ->label(__('safety::inspections.columns.project_id'))
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Inspecteur')
+                    ->label(__('safety::inspections.columns.inspector'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('checklist.name')
-                    ->label('Checklist')
+                    ->label(__('safety::inspections.columns.checklist'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('completed_at')
-                    ->label('Datum')
+                    ->label(__('safety::inspections.columns.date'))
                     ->dateTime('d-m-Y H:i')
                     ->sortable(),
 
@@ -54,7 +54,7 @@ class LatestInspectionsWidget extends BaseWidget
             ])
             ->actions([
                 \Filament\Actions\Action::make('download_pdf')
-                    ->label('PDF')
+                    ->label(__('safety::inspections.actions.download_pdf'))
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
                     ->url(fn (Inspection $record): ?string =>

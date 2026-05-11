@@ -28,9 +28,20 @@ class InspectionResource extends Resource
     protected static ?string $model = Inspection::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-shield-check';
-    protected static ?string $navigationLabel = 'Inspecties';
-    protected static ?string $modelLabel = 'Inspectie';
-    protected static ?string $pluralModelLabel = 'Inspecties';
+    public static function getNavigationLabel(): string
+    {
+        return __('safety::inspections.navigation');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('safety::inspections.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('safety::inspections.plural_model_label');
+    }
 
     protected static ?int $navigationSort = 1;
 
@@ -44,19 +55,19 @@ class InspectionResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('project_id')
-                    ->label('Project ID')
+                    ->label(__('safety::inspections.columns.project_id'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Inspecteur')
+                    ->label(__('safety::inspections.columns.inspector'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('checklist.name')
-                    ->label('Checklist')
+                    ->label(__('safety::inspections.columns.checklist'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('completed_at')
-                    ->label('Datum')
+                    ->label(__('safety::inspections.columns.date'))
                     ->dateTime('d-m-Y H:i')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('has_pdf')
@@ -90,6 +101,7 @@ class InspectionResource extends Resource
                         return $indicators;
                     }),
             ])
+            ->filtersFormColumns(3)
             ->filtersLayout(\Filament\Tables\Enums\FiltersLayout::AboveContent)
             ->actions([
                 ViewAction::make(),

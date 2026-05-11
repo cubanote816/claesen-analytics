@@ -22,9 +22,20 @@ class ChecklistResource extends Resource
     protected static ?string $model = Checklist::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clipboard-document-check';
-    protected static ?string $navigationLabel = 'Checklists';
-    protected static ?string $modelLabel = 'Checklist';
-    protected static ?string $pluralModelLabel = 'Checklists';
+    public static function getNavigationLabel(): string
+    {
+        return __('safety::checklists.navigation');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('safety::checklists.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('safety::checklists.plural_model_label');
+    }
 
     protected static ?int $navigationSort = 2;
 
@@ -37,22 +48,22 @@ class ChecklistResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Algemene Informatie')
+                Section::make(__('safety::checklists.sections.general'))
                     ->schema([
                         TextInput::make('name')
-                            ->label('Naam')
+                            ->label(__('safety::checklists.fields.name'))
                             ->required()
                             ->maxLength(255),
                         Toggle::make('is_active')
-                            ->label('Actief')
+                            ->label(__('safety::checklists.fields.is_active'))
                             ->default(true),
                     ]),
 
-                Section::make('Vragen')
+                Section::make(__('safety::checklists.sections.questions'))
                     ->schema([
                         Repeater::make('questions')
                             ->relationship()
-                            ->label('Inspectievragen')
+                            ->label(__('safety::checklists.plural_model_label'))
                             ->schema([
                                 Textarea::make('text_nl')
                                     ->label('Vraag (Nederlands)')
