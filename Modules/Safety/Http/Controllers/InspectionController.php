@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Safety\Models\Inspection;
 use Modules\Safety\Jobs\GenerateSafetyPdfJob;
+use Filament\Notifications\Notification;
+use Modules\Core\Models\User;
 
 class InspectionController extends Controller
 {
@@ -17,7 +19,7 @@ class InspectionController extends Controller
     {
         $validated = $request->validate([
             'checklist_id'          => ['required', 'exists:safety_checklists,id'],
-            'project_id'            => ['required', 'string'],
+            'project_id'            => ['required', 'string', 'exists:mirror_projects,id'],
             'answers'               => ['required', 'array'],
             'answers.*.question_id' => ['required', 'exists:safety_questions,id'],
             'answers.*.status'      => ['required', 'in:ok,nok,na'],
@@ -57,6 +59,22 @@ class InspectionController extends Controller
 
         // Despachar la generación del PDF asíncronamente
         GenerateSafetyPdfJob::dispatch($inspection->id);
+
+        // Notificar a los Super Admins
+        $admins = User::role('super_admin')->get();
+        if ($admins->count() > 0) {
+            Notification::make()
+                ->title('Nieuwe werkplekinspectie')
+                ->icon('heroicon-o-shield-check')
+                ->body("Inspecteur **{$request->user()->name}** heeft een inspectie ingediend voor project **{$projectId}**.")
+                ->success()
+                ->actions([
+                    \Filament\Actions\Action::make('view')
+                        ->label('Bekijken')
+                        ->url(\Modules\Safety\Filament\Resources\InspectionResource::getUrl('view', ['record' => $inspection]))
+                ])
+                ->sendToDatabase($admins);
+        }
 
         return response()->json([
             'message' => 'Inspectie succesvol opgeslagen.',

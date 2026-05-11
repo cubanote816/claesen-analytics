@@ -53,7 +53,7 @@ class LatestInspectionsWidget extends BaseWidget
                     ->getStateUsing(fn (Inspection $record): bool => !empty($record->pdf_path)),
             ])
             ->actions([
-                Tables\Actions\Action::make('download_pdf')
+                \Filament\Actions\Action::make('download_pdf')
                     ->label('PDF')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')

@@ -50,6 +50,8 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('')
             ->login()
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
             ->navigationGroups([
                 NavigationGroup::make('Analyse & Intelligentie')
                     ->label(__('navigation.groups.analyse_intelligentie'))

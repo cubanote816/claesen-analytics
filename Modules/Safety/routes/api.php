@@ -21,6 +21,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('safety.api.login'
 
 Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])->group(function () {
     Route::get('checklists/active', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'active'])->name('safety.api.checklists.active');
+    Route::get('projects', [\Modules\Safety\Http\Controllers\ProjectController::class, 'index'])->name('safety.api.projects.index');
     
     Route::prefix('inspections')->name('safety.api.inspections.')->group(function () {
         Route::post('/', [InspectionController::class, 'store'])->name('store');

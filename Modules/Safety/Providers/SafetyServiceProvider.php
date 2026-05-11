@@ -7,6 +7,8 @@ use Illuminate\Support\ServiceProvider;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Illuminate\Console\Scheduling\Schedule;
+use Modules\Safety\Console\CheckSafetyComplianceCommand;
 
 class SafetyServiceProvider extends ServiceProvider
 {
@@ -43,7 +45,9 @@ class SafetyServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            CheckSafetyComplianceCommand::class,
+        ]);
     }
 
     /**
@@ -51,10 +55,10 @@ class SafetyServiceProvider extends ServiceProvider
      */
     protected function registerCommandSchedules(): void
     {
-        // $this->app->booted(function () {
-        //     $schedule = $this->app->make(Schedule::class);
-        //     $schedule->command('inspire')->hourly();
-        // });
+        $this->app->booted(function () {
+            $schedule = $this->app->make(Schedule::class);
+            $schedule->command(CheckSafetyComplianceCommand::class)->dailyAt('08:00');
+        });
     }
 
     /**

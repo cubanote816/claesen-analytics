@@ -19,6 +19,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
+use Filament\Notifications\Notification;
 use Modules\Safety\Filament\Resources\InspectionResource\Pages;
 use Modules\Safety\Models\Inspection;
 
@@ -64,13 +65,17 @@ class InspectionResource extends Resource
                     ->getStateUsing(fn (Inspection $record): bool => !empty($record->pdf_path)),
             ])
             ->filters([
+                Filter::make('has_nok')
+                    ->label(__('safety::inspections.filters.has_nok'))
+                    ->query(fn (Builder $query) => $query->whereHas('answers', fn ($q) => $q->where('status', 'nok'))),
+
                 Filter::make('completed_at')
                     ->form([
                         DatePicker::make('from')
-                            ->label('Van')
+                            ->label(__('safety::inspections.filters.from'))
                             ->displayFormat('d-m-Y'),
                         DatePicker::make('until')
-                            ->label('Tot')
+                            ->label(__('safety::inspections.filters.until'))
                             ->displayFormat('d-m-Y'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
@@ -80,8 +85,8 @@ class InspectionResource extends Resource
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if ($data['from'] ?? null) $indicators[] = 'Van: ' . $data['from'];
-                        if ($data['until'] ?? null) $indicators[] = 'Tot: ' . $data['until'];
+                        if ($data['from'] ?? null) $indicators[] = __('safety::inspections.filters.from') . ': ' . $data['from'];
+                        if ($data['until'] ?? null) $indicators[] = __('safety::inspections.filters.until') . ': ' . $data['until'];
                         return $indicators;
                     }),
             ])
@@ -89,12 +94,23 @@ class InspectionResource extends Resource
             ->actions([
                 ViewAction::make(),
                 Action::make('download_pdf')
-                    ->label('Download PDF')
+                    ->label(__('safety::inspections.actions.download_pdf'))
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
                     ->url(fn (Inspection $record): ?string => $record->pdf_path ? Storage::disk('public')->url($record->pdf_path) : null)
                     ->openUrlInNewTab()
                     ->visible(fn (Inspection $record): bool => !empty($record->pdf_path)),
+                Action::make('regenerate_pdf')
+                    ->label(__('safety::inspections.actions.regenerate_pdf'))
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->action(function (Inspection $record) {
+                        \Modules\Safety\Jobs\GenerateSafetyPdfJob::dispatch($record->id);
+                        Notification::make()
+                            ->title(__('safety::inspections.actions.regenerate_success'))
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
