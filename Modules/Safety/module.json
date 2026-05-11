@@ -1,0 +1,11 @@
+{
+    "name": "Safety",
+    "alias": "safety",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Safety\\Providers\\SafetyServiceProvider"
+    ],
+    "files": []
+}
