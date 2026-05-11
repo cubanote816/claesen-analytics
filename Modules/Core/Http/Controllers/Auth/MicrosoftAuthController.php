@@ -41,7 +41,7 @@ class MicrosoftAuthController extends Controller
             // SECURITY: If user does not exist locally, deny access
             if (!$user) {
                 return redirect('/login')
-                    ->withErrors(['microsoft' => 'U heeft geen toegang tot dit platform. Neem contact op met de beheerder.']);
+                    ->withErrors(['microsoft' => 'Toegang Geweigerd: Uw account is niet geautoriseerd voor deze applicatie. Neem contact op met de beheerder.']);
             }
 
             // Update user with Azure details
