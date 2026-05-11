@@ -8,5 +8,6 @@ return [
         'intelligence_hub' => 'Intelligentie Hub',
         'user_management' => 'Systeem & Beheer',
         'analyse_intelligentie' => 'Analyse & Intelligentie',
+        'safety_vca' => 'Veiligheid & VCA',
     ],
 ];

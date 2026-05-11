@@ -26,9 +26,11 @@ class ChecklistResource extends Resource
     protected static ?string $modelLabel = 'Checklist';
     protected static ?string $pluralModelLabel = 'Checklists';
 
+    protected static ?int $navigationSort = 2;
+
     public static function getNavigationGroup(): ?string
     {
-        return __('navigation.groups.workforce_performance');
+        return __('navigation.groups.safety_vca');
     }
 
     public static function form(Schema $schema): Schema

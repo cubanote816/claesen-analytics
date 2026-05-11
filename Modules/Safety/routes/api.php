@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Safety\Http\Controllers\AuthController;
 use Modules\Safety\Http\Controllers\InspectionController;
-use Modules\Safety\Http\Middleware\EnsureProjectLeader;
+use Modules\Safety\Http\Middleware\EnsureSafetyAccess;
 
 /*
  *--------------------------------------------------------------------------
@@ -14,11 +14,12 @@ use Modules\Safety\Http\Middleware\EnsureProjectLeader;
  * routes are loaded by the RouteServiceProvider within a group which
  * is assigned the "api" middleware group. Enjoy building your API!
  *
+ *--------------------------------------------------------------------------
 */
 
 Route::post('/login', [AuthController::class, 'login'])->name('safety.api.login');
 
-Route::middleware(['auth:sanctum', EnsureProjectLeader::class])->group(function () {
+Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])->group(function () {
     Route::get('checklists/active', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'active'])->name('safety.api.checklists.active');
     
     Route::prefix('inspections')->name('safety.api.inspections.')->group(function () {

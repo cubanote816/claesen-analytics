@@ -2,9 +2,10 @@
 
 namespace Modules\Safety\Filament\Resources\InspectionResource\Pages;
 
-use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Modules\Safety\Filament\Resources\InspectionResource;
+use Modules\Safety\Filament\Widgets\SafetyStatsWidget;
+use Modules\Safety\Filament\Widgets\LatestInspectionsWidget;
 
 class ListInspections extends ListRecords
 {
@@ -14,6 +15,13 @@ class ListInspections extends ListRecords
     {
         return [
             //
+        ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            SafetyStatsWidget::class,
         ];
     }
 }

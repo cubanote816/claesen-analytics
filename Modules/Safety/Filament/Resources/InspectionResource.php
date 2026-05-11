@@ -10,11 +10,15 @@ use Filament\Infolists\Components\ImageEntry;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Forms\Components\DatePicker;
 use Filament\Actions\ViewAction;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 use Modules\Safety\Filament\Resources\InspectionResource\Pages;
 use Modules\Safety\Models\Inspection;
 
@@ -27,9 +31,11 @@ class InspectionResource extends Resource
     protected static ?string $modelLabel = 'Inspectie';
     protected static ?string $pluralModelLabel = 'Inspecties';
 
+    protected static ?int $navigationSort = 1;
+
     public static function getNavigationGroup(): ?string
     {
-        return __('navigation.groups.workforce_performance');
+        return __('navigation.groups.safety_vca');
     }
 
     public static function table(Table $table): Table
@@ -58,15 +64,35 @@ class InspectionResource extends Resource
                     ->getStateUsing(fn (Inspection $record): bool => !empty($record->pdf_path)),
             ])
             ->filters([
-                //
+                Filter::make('completed_at')
+                    ->form([
+                        DatePicker::make('from')
+                            ->label('Van')
+                            ->displayFormat('d-m-Y'),
+                        DatePicker::make('until')
+                            ->label('Tot')
+                            ->displayFormat('d-m-Y'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['from'], fn ($q, $date) => $q->whereDate('completed_at', '>=', $date))
+                            ->when($data['until'], fn ($q, $date) => $q->whereDate('completed_at', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['from'] ?? null) $indicators[] = 'Van: ' . $data['from'];
+                        if ($data['until'] ?? null) $indicators[] = 'Tot: ' . $data['until'];
+                        return $indicators;
+                    }),
             ])
+            ->filtersLayout(\Filament\Tables\Enums\FiltersLayout::AboveContent)
             ->actions([
                 ViewAction::make(),
                 Action::make('download_pdf')
                     ->label('Download PDF')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
-                    ->url(fn (Inspection $record): ?string => $record->pdf_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($record->pdf_path) : null)
+                    ->url(fn (Inspection $record): ?string => $record->pdf_path ? Storage::disk('public')->url($record->pdf_path) : null)
                     ->openUrlInNewTab()
                     ->visible(fn (Inspection $record): bool => !empty($record->pdf_path)),
             ])

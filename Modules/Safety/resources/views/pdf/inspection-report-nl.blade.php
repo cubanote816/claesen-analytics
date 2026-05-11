@@ -71,8 +71,27 @@
     </table>
 
     <div class="footer">
-        Dit document is automatisch gegenereerd. Claesen Verlichting
+        Dit document is automatisch gegenereerd door het Claesen Analytics Platform.
     </div>
+
+    @if($inspection->answers->whereNotNull('photo_path')->count() > 0)
+        <div style="page-break-before: always;"></div>
+        <div class="header">
+            <h2>Bijlagen: Foto's</h2>
+        </div>
+        
+        <div style="width: 100%;">
+            @foreach($inspection->answers->whereNotNull('photo_path') as $answer)
+                <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; display: inline-block; width: 45%; vertical-align: top; margin-right: 2%;">
+                    <p><strong>Vraag {{ $loop->iteration }}:</strong> {{ $answer->question->text_nl }}</p>
+                    <img src="{{ public_path('storage/' . $answer->photo_path) }}" style="width: 100%; height: auto; max-height: 250px; object-fit: contain;">
+                    @if($answer->remark)
+                        <p style="font-style: italic;">Opmerking: {{ $answer->remark }}</p>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    @endif
 
 </body>
 </html>

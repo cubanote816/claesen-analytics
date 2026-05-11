@@ -22,14 +22,32 @@ class SafetyChecklistSeeder extends Seeder
             $checklist->questions()->delete();
 
             $questions = [
-                'Zijn de werkplek en de toegangswegen ordelijk en veilig toegankelijk?',
+                // Regels & Instructies
+                'Worden de veiligheidsregels uit het instructieboekje strikt nageleefd?',
+                'Is het V&G-plan op de werkplek aanwezig en door iedereen getekend?',
+                'Is het startgesprekformulier door alle aanwezigen ingevuld en getekend?',
+                
+                // Arbeidsmiddelen
+                'Zijn alle steigers veilig gemonteerd en voorzien van een geldige steigerkaart?',
+                'Zijn alle elektrische gereedschappen voorzien van een geldige keuringssticker?',
+                'Zijn ladders, trappen en andere klimmaterialen in goede staat en gekeurd?',
+                
+                // PBM's
                 'Worden de vereiste Persoonlijke Beschermingsmiddelen (PBM) correct gedragen?',
-                'Zijn alle elektrische gereedschappen gekeurd en zonder zichtbare gebreken?',
-                'Is de valbeveiliging (steigers/harnassen) in orde en correct toegepast?',
-                'Zijn de brandblusmiddelen aanwezig, gekeurd en direct bereikbaar?',
-                'Is de werkplek voldoende verlicht voor een veilige uitvoering van de taken?', // Claesen context
-                'Zijn er EHBO-voorzieningen aanwezig en is de locatie bekend bij de medewerkers?',
-                'Worden gevaarlijke stoffen veilig opgeslagen en gebruikt conform de voorschriften?'
+                'Zijn er voldoende reserve-PBM\'s aanwezig op de projectlocatie?',
+                
+                // Opslag & Gevaarlijke stoffen
+                'Worden gevaarlijke stoffen veilig opgeslagen conform de voorschriften?',
+                'Zijn de Veiligheidsinformatiebladen (VIB) van gebruikte stoffen direct raadpleegbaar?',
+                
+                // Noodvoorzieningen & Orde
+                'Is de EHBO-trommel compleet, houdbaar en direct bereikbaar?',
+                'Zijn de brandblusmiddelen aanwezig, gekeurd en vrij van obstakels?',
+                'Is de werkplek ordelijk en zijn de toegangswegen veilig toegankelijk?',
+                
+                // Algemeen
+                'Wordt de Laatste Minuut Risico Analyse (LMRA) dagelijks consequent uitgevoerd?',
+                'Is de werkplek voldoende verlicht voor een veilige uitvoering van de taken?',
             ];
 
             foreach ($questions as $index => $text) {

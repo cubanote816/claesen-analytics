@@ -31,7 +31,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if (! $user->hasRole('project_leader')) {
+        if (! $user->hasAnyRole(['project_manager', 'super_admin'])) {
             return response()->json([
                 'message' => 'Je hebt geen toegang tot de veiligheidsinspecties.',
             ], 403);
@@ -43,7 +43,7 @@ class AuthController extends Controller
         $deviceName = $validated['device'] ?? 'mobile-app';
 
         // Issue a plain-text token with the explicit ability marker
-        $token = $user->createToken($deviceName, ['role:project_leader']);
+        $token = $user->createToken($deviceName, ['role:safety-access']);
 
         return response()->json([
             'access_token' => $token->plainTextToken,

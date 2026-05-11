@@ -8,7 +8,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureProjectLeader
+class EnsureSafetyAccess
 {
     /**
      * Handle an incoming request.
@@ -20,16 +20,16 @@ class EnsureProjectLeader
         $user = $request->user();
 
         // 1. Check if the token itself was issued with the correct ability
-        if (! $user || ! $user->tokenCan('role:project_leader')) {
+        if (! $user || ! $user->tokenCan('role:safety-access')) {
             return response()->json([
                 'message' => 'Niet geautoriseerd voor deze actie.'
             ], 403);
         }
 
         // 2. Double-check the user's real-time attribute/role in the DB 
-        if (! $user->hasRole('project_leader')) {
+        if (! $user->hasAnyRole(['project_manager', 'super_admin'])) {
             return response()->json([
-                'message' => 'Je bent niet (meer) toegewezen als projectleider.'
+                'message' => 'Je hebt geen toegang tot de veiligheidsinspecties.'
             ], 403);
         }
 

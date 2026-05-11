@@ -7,6 +7,7 @@ return [
         'workforce_performance' => 'Workforce & Performance',
         'intelligence_hub' => 'Intelligence Hub',
         'user_management' => 'User Management',
-        'analyse_intelligentie' => 'Analyse & Intelligentie',
+        'analyse_intelligentie' => 'Analyse & Intelligence',
+        'safety_vca' => 'Safety & VCA',
     ],
 ];
