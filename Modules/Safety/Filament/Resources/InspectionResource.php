@@ -80,26 +80,23 @@ class InspectionResource extends Resource
                     ->label(__('safety::inspections.filters.has_nok'))
                     ->query(fn (Builder $query) => $query->whereHas('answers', fn ($q) => $q->where('status', 'nok'))),
 
-                Filter::make('completed_at')
+                Filter::make('from')
                     ->form([
                         DatePicker::make('from')
                             ->label(__('safety::inspections.filters.from'))
                             ->displayFormat('d-m-Y'),
+                    ])
+                    ->query(fn (Builder $query, array $data) => $query->when($data['from'], fn ($q, $date) => $q->whereDate('completed_at', '>=', $date)))
+                    ->indicateUsing(fn (array $data) => $data['from'] ? __('safety::inspections.filters.from') . ': ' . $data['from'] : null),
+
+                Filter::make('until')
+                    ->form([
                         DatePicker::make('until')
                             ->label(__('safety::inspections.filters.until'))
                             ->displayFormat('d-m-Y'),
                     ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when($data['from'], fn ($q, $date) => $q->whereDate('completed_at', '>=', $date))
-                            ->when($data['until'], fn ($q, $date) => $q->whereDate('completed_at', '<=', $date));
-                    })
-                    ->indicateUsing(function (array $data): array {
-                        $indicators = [];
-                        if ($data['from'] ?? null) $indicators[] = __('safety::inspections.filters.from') . ': ' . $data['from'];
-                        if ($data['until'] ?? null) $indicators[] = __('safety::inspections.filters.until') . ': ' . $data['until'];
-                        return $indicators;
-                    }),
+                    ->query(fn (Builder $query, array $data) => $query->when($data['until'], fn ($q, $date) => $q->whereDate('completed_at', '<=', $date)))
+                    ->indicateUsing(fn (array $data) => $data['until'] ? __('safety::inspections.filters.until') . ': ' . $data['until'] : null),
             ])
             ->filtersFormColumns(3)
             ->filtersLayout(\Filament\Tables\Enums\FiltersLayout::AboveContent)

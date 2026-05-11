@@ -13,6 +13,10 @@ class EditChecklist extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('save')
+                ->label(__('filament-panels::resources/pages/edit-record.form.actions.save.label'))
+                ->action(fn () => $this->save())
+                ->color('primary'),
             Actions\DeleteAction::make(),
         ];
     }

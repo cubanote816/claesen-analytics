@@ -57,9 +57,25 @@ class ChecklistResource extends Resource
                         Toggle::make('is_active')
                             ->label(__('safety::checklists.fields.is_active'))
                             ->default(true),
-                    ]),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
 
                 Section::make(__('safety::checklists.sections.questions'))
+                    ->headerActions([
+                        \Filament\Actions\Action::make('add_question_header')
+                            ->label('Nieuwe Vraag Toevoegen')
+                            ->icon('heroicon-o-plus')
+                            ->color('primary')
+                            ->action(function ($set, $get) {
+                                $questions = $get('questions') ?? [];
+                                $questions[] = [
+                                    'text_nl' => '',
+                                    'order' => count($questions),
+                                ];
+                                $set('questions', $questions);
+                            }),
+                    ])
                     ->schema([
                         Repeater::make('questions')
                             ->relationship()
@@ -80,8 +96,10 @@ class ChecklistResource extends Resource
                             ->addActionLabel('Nieuwe Vraag Toevoegen')
                             ->collapsible()
                             ->itemLabel(fn (array $state): ?string => $state['text_nl'] ?? null)
+                            ->grid(3) // Gallery format
                             ->columnSpanFull(),
-                    ]),
+                    ])
+                    ->columnSpanFull(),
             ]);
     }
 
