@@ -8,6 +8,8 @@ use Laravel\Socialite\Facades\Socialite;
 use Modules\Core\Models\User;
 use Modules\Core\Services\Auth\AzureRoleService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Filament\Facades\Filament;
 use Exception;
 
 class MicrosoftAuthController extends Controller
@@ -17,8 +19,12 @@ class MicrosoftAuthController extends Controller
      * 
      * @return RedirectResponse
      */
-    public function redirect(): RedirectResponse
+    public function redirect(Request $request): RedirectResponse
     {
+        if ($request->has('source')) {
+            session(['auth_source' => $request->get('source')]);
+        }
+
         return Socialite::driver('azure')
             ->scopes(['openid', 'profile', 'email', 'offline_access', 'User.Read', 'GroupMember.Read.All'])
             ->redirect();
@@ -30,7 +36,7 @@ class MicrosoftAuthController extends Controller
      * @param AzureRoleService $roleService
      * @return RedirectResponse
      */
-    public function callback(AzureRoleService $roleService): RedirectResponse
+    public function callback(Request $request, AzureRoleService $roleService): RedirectResponse
     {
         try {
             $azureUser = Socialite::driver('azure')->user();
@@ -54,19 +60,27 @@ class MicrosoftAuthController extends Controller
             ]);
 
             // Synchronize roles based on Azure Groups (if available in the token/user data)
-            $groups = $azureUser->user['groups'] ?? []; 
+            $groups = $azureUser->user['groups'] ?? [];
             $roleService->syncRolesFromAzure($user, $groups);
 
             Auth::login($user);
 
-            // Generate token for the PWA/Frontend
+            $source = session()->pull('auth_source', 'frontend');
+
+            // 1. If coming from Filament, redirect back to Admin Panel
+            if ($source === 'filament') {
+                return redirect()->intended(Filament::getUrl());
+            }
+
+            // 2. If coming from Frontend (PWA), generate token and redirect
             $token = $user->createToken('auth_token')->plainTextToken;
-            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
 
-            // Pass only the token for security/privacy. 
-            // The frontend should then call /api/v1/me to get user details.
+            // Priority: .env > config > dynamic detection
+            $frontendUrl = env('FRONTEND_URL')
+                ?? config('app.frontend_url')
+                ?? (app()->environment('production') ? 'https://service.claesen-verlichting.be/safety/' : 'http://localhost:5173');
+
             return redirect()->to("{$frontendUrl}/?token={$token}");
-
         } catch (Exception $e) {
             return redirect('/login')
                 ->withErrors(['microsoft' => 'Inloggen via Microsoft is mislukt: ' . $e->getMessage()]);
