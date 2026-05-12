@@ -71,7 +71,7 @@
     </table>
 
     <div class="footer">
-        Dit document is automatisch gegenereerd door het Claesen Analytics Platform.
+        Dit document is automatisch gegenereerd door het Claesen Outdoor Lighting Platform.
     </div>
 
     @if($inspection->answers->whereNotNull('photo_path')->count() > 0)

@@ -15,6 +15,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Forms\Components\DatePicker;
 use Filament\Actions\ViewAction;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Illuminate\Database\Eloquent\Builder;
@@ -53,6 +54,7 @@ class InspectionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->poll('10s')
             ->columns([
                 Tables\Columns\TextColumn::make('project_id')
                     ->label(__('safety::inspections.columns.project_id'))
@@ -70,15 +72,16 @@ class InspectionResource extends Resource
                     ->label(__('safety::inspections.columns.date'))
                     ->dateTime('d-m-Y H:i')
                     ->sortable(),
-                Tables\Columns\IconColumn::make('has_pdf')
+                Tables\Columns\TextColumn::make('has_pdf')
                     ->label('PDF')
-                    ->boolean()
-                    ->getStateUsing(fn (Inspection $record): bool => !empty($record->pdf_path)),
+                    ->badge()
+                    ->state(fn(Inspection $record): string => $record->pdf_path ? 'Gegenereerd' : 'Niet gegenereerd')
+                    ->color(fn(string $state): string => $state === 'Gegenereerd' ? 'success' : 'gray'),
             ])
             ->filters([
                 Filter::make('has_nok')
                     ->label(__('safety::inspections.filters.has_nok'))
-                    ->query(fn (Builder $query) => $query->whereHas('answers', fn ($q) => $q->where('status', 'nok'))),
+                    ->query(fn(Builder $query) => $query->whereHas('answers', fn($q) => $q->where('status', 'nok'))),
 
                 Filter::make('from')
                     ->form([
@@ -86,8 +89,8 @@ class InspectionResource extends Resource
                             ->label(__('safety::inspections.filters.from'))
                             ->displayFormat('d-m-Y'),
                     ])
-                    ->query(fn (Builder $query, array $data) => $query->when($data['from'], fn ($q, $date) => $q->whereDate('completed_at', '>=', $date)))
-                    ->indicateUsing(fn (array $data) => $data['from'] ? __('safety::inspections.filters.from') . ': ' . $data['from'] : null),
+                    ->query(fn(Builder $query, array $data) => $query->when($data['from'], fn($q, $date) => $q->whereDate('completed_at', '>=', $date)))
+                    ->indicateUsing(fn(array $data) => $data['from'] ? __('safety::inspections.filters.from') . ': ' . $data['from'] : null),
 
                 Filter::make('until')
                     ->form([
@@ -95,31 +98,45 @@ class InspectionResource extends Resource
                             ->label(__('safety::inspections.filters.until'))
                             ->displayFormat('d-m-Y'),
                     ])
-                    ->query(fn (Builder $query, array $data) => $query->when($data['until'], fn ($q, $date) => $q->whereDate('completed_at', '<=', $date)))
-                    ->indicateUsing(fn (array $data) => $data['until'] ? __('safety::inspections.filters.until') . ': ' . $data['until'] : null),
+                    ->query(fn(Builder $query, array $data) => $query->when($data['until'], fn($q, $date) => $q->whereDate('completed_at', '<=', $date)))
+                    ->indicateUsing(fn(array $data) => $data['until'] ? __('safety::inspections.filters.until') . ': ' . $data['until'] : null),
             ])
             ->filtersFormColumns(3)
             ->filtersLayout(\Filament\Tables\Enums\FiltersLayout::AboveContent)
             ->actions([
-                ViewAction::make(),
-                Action::make('download_pdf')
-                    ->label(__('safety::inspections.actions.download_pdf'))
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->url(fn (Inspection $record): ?string => $record->pdf_path ? Storage::disk('public')->url($record->pdf_path) : null)
-                    ->openUrlInNewTab()
-                    ->visible(fn (Inspection $record): bool => !empty($record->pdf_path)),
-                Action::make('regenerate_pdf')
-                    ->label(__('safety::inspections.actions.regenerate_pdf'))
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('warning')
-                    ->action(function (Inspection $record) {
-                        \Modules\Safety\Jobs\GenerateSafetyPdfJob::dispatch($record->id);
-                        Notification::make()
-                            ->title(__('safety::inspections.actions.regenerate_success'))
-                            ->success()
-                            ->send();
-                    }),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    Action::make('download_pdf')
+                        ->label(__('safety::inspections.actions.download_pdf'))
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('success')
+                        ->url(fn(Inspection $record): ?string => $record->pdf_path ? Storage::disk('public')->url($record->pdf_path) : null)
+                        ->openUrlInNewTab()
+                        ->visible(fn(Inspection $record): bool => !empty($record->pdf_path)),
+                    Action::make('regenerate_pdf')
+                        ->label(__('safety::inspections.actions.regenerate_pdf'))
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->action(function (Inspection $record) {
+                            try {
+                                \Modules\Safety\Jobs\GenerateSafetyPdfJob::dispatchSync($record->id, auth()->id());
+
+                                Notification::make()
+                                    ->title(__('safety::inspections.actions.regenerate_success'))
+                                    ->success()
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error bij genereren PDF')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+
+                                \Illuminate\Support\Facades\Log::error("PDF Generation failed for inspection {$record->id}: " . $e->getMessage());
+                            }
+                        }),
+                ])->button()->label('Acties'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
@@ -154,13 +171,13 @@ class InspectionResource extends Resource
                                 TextEntry::make('status')
                                     ->label('Status')
                                     ->badge()
-                                    ->color(fn (string $state): string => match ($state) {
+                                    ->color(fn(string $state): string => match ($state) {
                                         'ok' => 'success',
                                         'nok' => 'danger',
                                         'na' => 'gray',
                                         default => 'gray',
                                     })
-                                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                                    ->formatStateUsing(fn(string $state): string => match ($state) {
                                         'ok' => 'Akkoord (OK)',
                                         'nok' => 'Niet Akkoord (NOK)',
                                         'na' => 'N/A',
@@ -173,7 +190,7 @@ class InspectionResource extends Resource
                                     ->label('Foto')
                                     ->disk('public')
                                     ->visibility('private')
-                                    ->hidden(fn ($state) => empty($state)),
+                                    ->hidden(fn($state) => empty($state)),
                             ])->columns(5),
                     ]),
             ]);

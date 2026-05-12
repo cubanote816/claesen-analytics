@@ -13,3 +13,7 @@ Route::prefix('auth/microsoft')->group(function () {
     Route::get('/redirect', [\Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::class, 'redirect'])->name('auth.microsoft.redirect');
     Route::get('/callback', [\Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::class, 'callback'])->name('auth.microsoft.callback');
 });
+
+// Alias for Frontend/PWA
+Route::get('api/auth/microsoft/redirect', [\Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::class, 'redirect']);
+Route::get('api/auth/microsoft/callback', [\Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::class, 'callback']);

@@ -52,7 +52,7 @@
             @endif
         </div>
         <div class="footer">
-            Dit is een automatisch gegenereerd rapport door <b>Claesen Intelligence Hub</b>.<br>
+            Dit is een automatisch gegenereerd rapport door het <b>Claesen Outdoor Lighting Platform</b>.<br>
             Antwoorden op deze e-mail worden niet verwerkt.
         </div>
     </div>

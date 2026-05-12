@@ -34,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 static fn(): string =>
                 view('prospects::filament.prospects.floating-mailing-button')->render() .
-                \Illuminate\Support\Facades\Blade::render("@livewire('session-keeper', ['lifetime' => 7200, 'warningThreshold' => 300])"),
+                    \Illuminate\Support\Facades\Blade::render("@livewire('session-keeper', ['lifetime' => 7200, 'warningThreshold' => 300])"),
             );
 
             FilamentView::registerRenderHook(
@@ -73,12 +73,12 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-cog-6-tooth'),
             ])
             ->colors([
-                'primary' => Color::Indigo,
+                'primary' => Color::hex('#00aeef'), // Claesen Cyan
+                'success' => Color::hex('#a5d610'), // Claesen Lime
+                'danger' => Color::hex('#e6007e'),  // Claesen Magenta
+                'warning' => Color::hex('#fcd34d'), // Claesen Amber
                 'gray' => Color::Slate,
-                'danger' => Color::Rose,
-                'success' => Color::Emerald,
-                'warning' => Color::Orange,
-                'info' => Color::Blue,
+                'info' => Color::hex('#00aeef'),
             ])
             ->font('Outfit')
             ->sidebarCollapsibleOnDesktop()
@@ -147,6 +147,7 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->spa()
+            ->defaultThemeMode(\Filament\Enums\ThemeMode::Dark)
             ->navigationItems([
                 NavigationItem::make(__('website.v1_demo_link'))
                     ->url('https://claesen-verlichting.be/v1/', shouldOpenInNewTab: true)

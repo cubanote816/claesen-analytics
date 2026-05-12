@@ -17,7 +17,7 @@ return [
     ],
     'actions' => [
         'regenerate_pdf' => 'PDF regenereren',
-        'download_pdf' => 'Download PDF',
+        'download_pdf' => 'PDF',
         'regenerate_success' => 'PDF regeneratie gestart in de achtergrond.',
     ],
     'widgets' => [

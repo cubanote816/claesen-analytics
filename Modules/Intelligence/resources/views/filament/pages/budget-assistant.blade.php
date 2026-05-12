@@ -39,7 +39,7 @@
                         </div>
                     </div>
                 @elseif($analysisResult)
-                    <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg whitespace-pre-wrap font-mono text-sm border-l-4 border-indigo-500">
+                    <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg whitespace-pre-wrap font-mono text-sm border-l-4 border-primary-500">
                         {{ $analysisResult }}
                     </div>
                 @else

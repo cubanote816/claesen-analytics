@@ -29,6 +29,8 @@ class SafetyServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        \Modules\Safety\Models\Checklist::observe(\Modules\Safety\Observers\ChecklistObserver::class);
     }
 
     /**

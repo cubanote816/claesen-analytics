@@ -105,7 +105,6 @@ return [
         'archetype' => 'Technician Archetype',
         'burnout_risk' => 'Burnout Risk',
         'efficiency_trend' => 'Efficiency Trend',
-        'efficiency_trend' => 'Efficiency Trend',
         'current_project' => 'Active Projects (30d)',
         'manager_insight' => 'Manager Insight',
         'last_audited' => 'Last audited',
@@ -136,16 +135,16 @@ return [
     'dashboard' => [
         'active_range' => 'ACTIVE RANGE',
         'global_load' => 'GLOBAL LOAD',
-        'project_showcase' => 'PROJECT OVERZICHT',
+        'project_showcase' => 'PROJECT OVERVIEW',
         'project_insight' => 'Project Insight',
         'efficiency' => 'Efficiency',
         'verified_match' => 'Verified Match',
         'view_archives' => 'View Archives',
         'custom_range' => 'Custom Range',
         'loading' => [
-            'focus' => 'Intelligence Focus',
-            'sync' => 'Synchronizing Analytics...',
-            'stage' => 'Intelligence Stage',
+            'focus' => 'Insights Focus',
+            'sync' => 'Synchronizing data...',
+            'stage' => 'Insights Stage',
         ],
     ],
 ];

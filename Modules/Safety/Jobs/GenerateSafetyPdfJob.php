@@ -17,7 +17,10 @@ class GenerateSafetyPdfJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public int $inspectionId) {}
+    public function __construct(
+        public int $inspectionId,
+        public ?int $userId = null
+    ) {}
 
     public function handle(): void
     {
@@ -43,5 +46,24 @@ class GenerateSafetyPdfJob implements ShouldQueue
         Storage::disk('public')->put($filePath, $pdf->output());
 
         $inspection->update(['pdf_path' => $filePath]);
+
+        // Notificar al usuario que lo solicitó
+        if ($this->userId) {
+            $recipient = \Modules\Core\Models\User::find($this->userId);
+            if ($recipient) {
+                \Filament\Notifications\Notification::make()
+                    ->title(__('safety::inspections.actions.download_pdf') . ' Gereed')
+                    ->body("Het rapport voor project {$inspection->project_id} is nu beschikbaar.")
+                    ->success()
+                    ->actions([
+                        \Filament\Actions\Action::make('download')
+                            ->label(__('safety::inspections.actions.download_pdf'))
+                            ->url(Storage::disk('public')->url($filePath))
+                            ->openUrlInNewTab()
+                            ->markAsRead(),
+                    ])
+                    ->sendToDatabase($recipient);
+            }
+        }
     }
 }

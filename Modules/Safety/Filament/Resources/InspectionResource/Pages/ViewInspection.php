@@ -14,7 +14,7 @@ class ViewInspection extends ViewRecord
     {
         return [
             Actions\Action::make('download_pdf')
-                ->label('Download PDF')
+                ->label('PDF')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('success')
                 ->url(fn (): ?string => $this->record->pdf_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->record->pdf_path) : null)

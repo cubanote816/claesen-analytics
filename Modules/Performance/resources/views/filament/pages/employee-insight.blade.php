@@ -39,7 +39,7 @@
                                 {{ $analysisResult['archetype_label'] ?? 'Unknown' }}
                             </h3>
                             <div class="flex gap-2 text-sm">
-                                <span class="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300 py-1 px-2 rounded-full font-medium">Trend: {{ $analysisResult['efficiency_trend'] ?? 'N/A' }}</span>
+                                <span class="bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-300 py-1 px-2 rounded-full font-medium">Trend: {{ $analysisResult['efficiency_trend'] ?? 'N/A' }}</span>
                                 <span class="bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-300 py-1 px-2 rounded-full font-medium">Burnout Risk: {{ $analysisResult['burnout_risk_score'] ?? 0 }}%</span>
                             </div>
                         </div>

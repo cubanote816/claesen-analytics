@@ -14,11 +14,11 @@ class EmployeeAnalytics extends ViewRecord
 {
     protected static string $resource = EmployeeResource::class;
 
-    protected static ?string $title = 'AI Performance Analytics';
+    protected static ?string $title = 'AI Performance Insights';
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'nl' ? 'IA Analitica' : 'AI Performance';
+        return app()->getLocale() === 'nl' ? 'IA Prestaties' : 'AI Performance';
     }
 
     public function infolist(Schema $schema): Schema

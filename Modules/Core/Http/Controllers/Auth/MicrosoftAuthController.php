@@ -59,7 +59,13 @@ class MicrosoftAuthController extends Controller
 
             Auth::login($user);
 
-            return redirect()->intended('/');
+            // Generate token for the PWA/Frontend
+            $token = $user->createToken('auth_token')->plainTextToken;
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+
+            // Pass only the token for security/privacy. 
+            // The frontend should then call /api/v1/me to get user details.
+            return redirect()->to("{$frontendUrl}/?token={$token}");
 
         } catch (Exception $e) {
             return redirect('/login')

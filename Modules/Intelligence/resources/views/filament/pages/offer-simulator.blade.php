@@ -48,14 +48,14 @@
             
             @if($results['is_gibberish'] ?? false)
                 <div class="relative group">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-                    <div class="relative px-8 py-6 bg-white dark:bg-gray-900 border border-indigo-500/20 rounded-3xl flex items-center gap-6 shadow-2xl overflow-hidden">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-                        <div class="flex-shrink-0 w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                            <x-heroicon-o-academic-cap class="w-8 h-8 text-indigo-500" />
+                    <div class="absolute -inset-1 bg-gradient-to-r from-primary-500 to-primary-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                    <div class="relative px-8 py-6 bg-white dark:bg-gray-900 border border-primary-500/20 rounded-3xl flex items-center gap-6 shadow-2xl overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                        <div class="flex-shrink-0 w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center border border-primary-500/20">
+                            <x-heroicon-o-academic-cap class="w-8 h-8 text-primary-500" />
                         </div>
                         <div class="flex-grow">
-                            <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">{{ app()->getLocale() === 'nl' ? 'LOGICA CHECK FAAL' : 'LOGIC CHECK FAILED' }}</p>
+                            <p class="text-[10px] font-black text-primary-500 uppercase tracking-widest mb-1">{{ app()->getLocale() === 'nl' ? 'LOGICA CHECK FAAL' : 'LOGIC CHECK FAILED' }}</p>
                             <h4 class="text-gray-900 dark:text-white font-bold text-lg leading-tight tracking-tight italic">
                                 "{{ $results['missing_info_request'] ?? '' }}"
                             </h4>
@@ -156,16 +156,16 @@
                                 <div class="grid grid-cols-1 gap-2">
                                     @foreach($results['historical_references'] ?? [] as $ref)
                                         <div 
-                                            class="group relative flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 cursor-pointer overflow-hidden"
+                                            class="group relative flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-primary-500/50 hover:shadow-lg hover:shadow-primary-500/5 transition-all duration-300 cursor-pointer overflow-hidden"
                                             title="Bekijk details van project {{ $ref['id'] }}"
                                         >
-                                            <div class="absolute inset-0 bg-blue-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                            <div class="absolute inset-0 bg-primary-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                             <div class="flex items-center gap-3 relative z-10">
-                                                <div class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-[10px] font-black text-gray-400 dark:text-gray-500 group-hover:bg-blue-500/10 group-hover:text-blue-500 transition-colors">
+                                                <div class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-[10px] font-black text-gray-400 dark:text-gray-500 group-hover:bg-primary-500/10 group-hover:text-primary-500 transition-colors">
                                                     {{ substr($ref['id'], -2) }}
                                                 </div>
                                                 <div class="flex flex-col">
-                                                    <span class="text-xs font-bold text-gray-900 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate max-w-[120px]">
+                                                    <span class="text-xs font-bold text-gray-900 dark:text-gray-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate max-w-[120px]">
                                                         {{ $ref['name'] }}
                                                     </span>
                                                     <span class="text-[9px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-tighter">
@@ -174,7 +174,7 @@
                                                 </div>
                                             </div>
                                             <div class="flex flex-col items-end relative z-10">
-                                                <span class="text-[10px] font-black text-gray-400 dark:text-gray-600 group-hover:text-blue-500 transition-colors tracking-tighter">{{ $ref['year'] }}</span>
+                                                <span class="text-[10px] font-black text-gray-400 dark:text-gray-600 group-hover:text-primary-500 transition-colors tracking-tighter">{{ $ref['year'] }}</span>
                                                 <x-heroicon-s-chevron-right class="w-3 h-3 text-gray-300 dark:text-gray-700 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                                             </div>
                                         </div>
@@ -293,7 +293,7 @@
                                                     <code @class([
                                                         'px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-tighter transition-colors',
                                                         'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' => $material['source_type'] === 'db_verified',
-                                                        'bg-blue-500/10 border-blue-500/20 text-blue-400' => in_array($material['source_type'], ['db_modern_substitute', 'db_ai_estimated']),
+                                                        'bg-primary-500/10 border-primary-500/20 text-primary-400' => in_array($material['source_type'], ['db_modern_substitute', 'db_ai_estimated']),
                                                         'bg-amber-500/10 border-amber-500/20 text-amber-500' => $material['source_type'] === 'internet',
                                                     ])>
                                                         {{ $material['ref'] }}
@@ -390,18 +390,18 @@
                             </div>
 
                             <!-- Opportunities (Kansen) -->
-                            <div class="p-8 rounded-[2rem] bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-500/20 shadow-xl shadow-indigo-500/5 relative overflow-hidden group">
-                                <div class="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all"></div>
+                            <div class="p-8 rounded-[2rem] bg-primary-50/50 dark:bg-primary-500/5 border border-primary-500/20 shadow-xl shadow-primary-500/5 relative overflow-hidden group">
+                                <div class="absolute -top-12 -right-12 w-32 h-32 bg-primary-500/10 rounded-full blur-3xl group-hover:bg-primary-500/20 transition-all"></div>
                                 <div class="flex items-center gap-3 mb-6 relative z-10">
-                                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                                        <x-heroicon-s-light-bulb class="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                                    <div class="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center border border-primary-500/20">
+                                        <x-heroicon-s-light-bulb class="w-6 h-6 text-primary-600 dark:text-primary-400" />
                                     </div>
-                                    <h4 class="text-sm font-black text-indigo-800 dark:text-indigo-300 uppercase tracking-widest">{{ app()->getLocale() === 'nl' ? 'KANSEN' : 'OPPORTUNITIES' }}</h4>
+                                    <h4 class="text-sm font-black text-primary-800 dark:text-primary-300 uppercase tracking-widest">{{ app()->getLocale() === 'nl' ? 'KANSEN' : 'OPPORTUNITIES' }}</h4>
                                 </div>
                                 <ul class="space-y-3 relative z-10">
                                     @foreach($results['swot']['opportunities'] ?? [] as $item)
-                                        <li class="flex items-start gap-2 text-xs font-bold text-indigo-900/80 dark:text-indigo-200/70 leading-relaxed">
-                                            <span class="mt-1 w-1 h-1 rounded-full bg-indigo-500 shrink-0"></span>
+                                        <li class="flex items-start gap-2 text-xs font-bold text-primary-900/80 dark:text-primary-200/70 leading-relaxed">
+                                            <span class="mt-1 w-1 h-1 rounded-full bg-primary-500 shrink-0"></span>
                                             {{ $item }}
                                         </li>
                                     @endforeach

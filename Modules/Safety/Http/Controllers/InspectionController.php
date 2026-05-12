@@ -17,14 +17,20 @@ class InspectionController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
+        // 1. Pre-process JSON answers if sent as string (common in FormData)
+        if ($request->has('answers') && is_string($request->get('answers'))) {
+            $request->merge([
+                'answers' => json_decode($request->get('answers'), true)
+            ]);
+        }
+
         $validated = $request->validate([
             'checklist_id'          => ['required', 'exists:safety_checklists,id'],
-            'project_id'            => ['required', 'string', 'exists:mirror_projects,id'],
+            'project_id'            => ['required', 'string', 'exists:intelligence_mirror_projects,id'],
             'answers'               => ['required', 'array'],
             'answers.*.question_id' => ['required', 'exists:safety_questions,id'],
-            'answers.*.status'      => ['required', 'in:ok,nok,na'],
+            'answers.*.value'       => ['required', 'in:YES,NO,NA'], // Map from Frontend values
             'answers.*.remark'      => ['nullable', 'string'],
-            'answers.*.photo'       => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:5120'],
         ]);
 
         $projectId = trim($validated['project_id']);
@@ -38,17 +44,26 @@ class InspectionController extends Controller
                 'completed_at' => now(),
             ]);
 
-            foreach ($validated['answers'] as $index => $answer) {
+            foreach ($validated['answers'] as $answer) {
+                $questionId = $answer['question_id'];
                 $photoPath = null;
 
-                if ($request->hasFile("answers.{$index}.photo")) {
-                    $file = $request->file("answers.{$index}.photo");
+                // Map Frontend status to Backend status
+                $statusMap = [
+                    'YES' => 'ok',
+                    'NO'  => 'nok',
+                    'NA'  => 'na'
+                ];
+
+                // Check for photo in the top-level 'photos' array (sent as photos[question_id])
+                if ($request->hasFile("photos.{$questionId}")) {
+                    $file = $request->file("photos.{$questionId}");
                     $photoPath = $file->store("safety-inspections/{$inspection->id}", 'public');
                 }
 
                 $inspection->answers()->create([
-                    'question_id' => $answer['question_id'],
-                    'status'      => $answer['status'],
+                    'question_id' => $questionId,
+                    'status'      => $statusMap[$answer['value']] ?? 'na',
                     'remark'      => $answer['remark'] ?? null,
                     'photo_path'  => $photoPath,
                 ]);
@@ -63,17 +78,21 @@ class InspectionController extends Controller
         // Notificar a los Super Admins
         $admins = User::role('super_admin')->get();
         if ($admins->count() > 0) {
-            Notification::make()
+            $notification = Notification::make()
                 ->title('Nieuwe werkplekinspectie')
                 ->icon('heroicon-o-shield-check')
-                ->body("Inspecteur **{$request->user()->name}** heeft een inspectie ingediend voor project **{$projectId}**.")
+                ->body("Inspecteur **{$request->user()->name}** heeft een inspectie ingediend for project **{$projectId}**.")
                 ->success()
+                ->viewData(['module' => 'safety'])
                 ->actions([
                     \Filament\Actions\Action::make('view')
                         ->label('Bekijken')
                         ->url(\Modules\Safety\Filament\Resources\InspectionResource::getUrl('view', ['record' => $inspection]))
-                ])
-                ->sendToDatabase($admins);
+                ]);
+
+            foreach ($admins as $admin) {
+                $admin->notifyNow($notification->toDatabase());
+            }
         }
 
         return response()->json([

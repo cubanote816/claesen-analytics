@@ -1,38 +1,65 @@
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
 
 @theme {
-    --color-primary-50: var(--color-indigo-50);
-    --color-primary-100: var(--color-indigo-100);
-    --color-primary-200: var(--color-indigo-200);
-    --color-primary-300: var(--color-indigo-300);
-    --color-primary-400: var(--color-indigo-400);
-    --color-primary-500: var(--color-indigo-500);
-    --color-primary-600: var(--color-indigo-600);
-    --color-primary-700: var(--color-indigo-700);
-    --color-primary-800: var(--color-indigo-800);
-    --color-primary-900: var(--color-indigo-900);
-    --color-primary-950: var(--color-indigo-950);
+    --color-primary-50: #e0f7ff;
+    --color-primary-100: #b3ecff;
+    --color-primary-200: #80dfff;
+    --color-primary-300: #4dd2ff;
+    --color-primary-400: #26c7ff;
+    --color-primary-500: #00aeef;
+    --color-primary-600: #009bd6;
+    --color-primary-700: #0084b8;
+    --color-primary-800: #006e99;
+    --color-primary-900: #004866;
+    --color-primary-950: #002a3d;
 
-    --color-gray-50: var(--color-slate-50);
-    --color-gray-100: var(--color-slate-100);
-    --color-gray-200: var(--color-slate-200);
-    --color-gray-300: var(--color-slate-300);
-    --color-gray-400: var(--color-slate-400);
-    --color-gray-500: var(--color-slate-500);
-    --color-gray-600: var(--color-slate-600);
-    --color-gray-700: var(--color-slate-700);
-    --color-gray-800: var(--color-slate-800);
-    --color-gray-900: var(--color-slate-900);
-    --color-gray-950: var(--color-slate-950);
+    --color-success-500: #a5d610;
+    --color-danger-500: #e6007e;
+    --color-warning-500: #fcd34d;
 
-    --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --color-gray-50: #f8f9fa;
+    --color-gray-100: #f1f3f5;
+    --color-gray-200: #e9ecef;
+    --color-gray-300: #dee2e6;
+    --color-gray-400: #adb5bd;
+    --color-gray-500: #6c757d;
+    --color-gray-600: #495057;
+    --color-gray-700: #343a40;
+    --color-gray-800: #212529;
+    --color-gray-900: #14141b;
+    --color-gray-950: #0b0b0f;
 
-    /* Brand Signature Colors */
-    --color-claesen-orange: #f97316;
+    --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+
+    /* Brand Signature Colors - Industrial Night */
+    --color-industrial: #0b0b0f;
+    --color-surface: #14141b;
+    --color-surface-lighter: #1c1c28;
+    --color-border: #252533;
     
-    /* Support for Signature Glassmorphism (Synced with public app) */
+    /* Support for Signature Glassmorphism (Refined for Industrial Night) */
     --shadow-signature: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 40px -10px rgba(0, 0, 0, 0.07);
-    --shadow-signature-dark: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+    --shadow-signature-dark: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 20px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+@layer base {
+    .dark body {
+        @apply bg-industrial text-gray-100;
+    }
+    
+    .dark .fi-sidebar {
+        @apply bg-surface border-r border-border;
+    }
+
+    .dark .fi-topbar {
+        @apply bg-surface/80 backdrop-blur-xl border-b border-border;
+    }
+
+    .dark .fi-section, 
+    .dark .fi-card,
+    .dark .fi-ta-ctn {
+        @apply bg-surface border-border shadow-xl;
+    }
 }
 
 @layer utilities {
