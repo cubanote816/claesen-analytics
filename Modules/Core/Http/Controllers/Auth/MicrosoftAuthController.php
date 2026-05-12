@@ -25,6 +25,16 @@ class MicrosoftAuthController extends Controller
             session(['auth_source' => $request->get('source')]);
         }
 
+        // Capture referer to handle dynamic redirection (e.g. Hostinger, Local, Production)
+        $referer = $request->headers->get('referer');
+        if ($referer) {
+            $urlParts = parse_url($referer);
+            if (isset($urlParts['scheme'], $urlParts['host'])) {
+                $baseUrl = $urlParts['scheme'] . '://' . $urlParts['host'] . ($urlParts['path'] ?? '/');
+                session(['custom_redirect_url' => $baseUrl]);
+            }
+        }
+
         return Socialite::driver('azure')
             ->scopes(['openid', 'profile', 'email', 'offline_access', 'User.Read', 'GroupMember.Read.All'])
             ->redirect();
@@ -47,7 +57,7 @@ class MicrosoftAuthController extends Controller
             // SECURITY: If user does not exist locally, deny access
             if (!$user) {
                 return redirect('/login')
-                    ->withErrors(['microsoft' => 'Toegang Geweigerd: Uw account is niet geautoriseerd voor deze applicatie. Neem contact op met de beheerder.']);
+                    ->withErrors(['microsoft' => 'Toegang Geweigerd: Uw account is niet geautoriseerd para deze applicatie. Neem contact op met de beheerder.']);
             }
 
             // Update user with Azure details
@@ -75,12 +85,16 @@ class MicrosoftAuthController extends Controller
             // 2. If coming from Frontend (PWA), generate token and redirect
             $token = $user->createToken('auth_token')->plainTextToken;
 
-            // Priority: .env > config > dynamic detection
-            $frontendUrl = env('FRONTEND_URL')
+            // Priority: Session (Custom) > .env > config > dynamic fallback
+            $frontendUrl = session()->pull('custom_redirect_url')
+                ?? env('FRONTEND_URL')
                 ?? config('app.frontend_url')
-                ?? (app()->environment('production') ? 'https://service.claesen-verlichting.be/safety/' : 'http://localhost:5173');
+                ?? (app()->environment('production') ? 'https://services.claesen-verlichting.be/safety/' : 'http://localhost:5173/');
 
-            return redirect()->to("{$frontendUrl}/?token={$token}");
+            // Ensure the URL ends with a slash before appending the token
+            $frontendUrl = rtrim($frontendUrl, '/') . '/';
+
+            return redirect()->to("{$frontendUrl}?token={$token}");
         } catch (Exception $e) {
             return redirect('/login')
                 ->withErrors(['microsoft' => 'Inloggen via Microsoft is mislukt: ' . $e->getMessage()]);
