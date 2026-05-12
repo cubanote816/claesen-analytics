@@ -154,6 +154,11 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->group('Content & Website')
                     ->sort(10),
+                NavigationItem::make(__('website.safety_pwa_link'))
+                    ->url('https://lightcoral-whale-907350.hostingersite.com/safety/', shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-shield-check')
+                    ->group('Content & Website')
+                    ->sort(11),
             ]);
     }
 }

@@ -3,6 +3,7 @@
 return [
     'cluster_label' => 'Website',
     'v1_demo_link' => 'Bekijk Website V1 (Demo)',
+    'safety_pwa_link' => 'Claesen safety',
     'projects' => [
         'label' => 'Project',
         'plural_label' => 'Projecten',
