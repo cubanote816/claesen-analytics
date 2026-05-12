@@ -12,7 +12,8 @@ class ProjectController extends Controller
 {
     public function index(): JsonResponse
     {
-        $projects = MirrorProject::where('fl_active', true)
+        // Usar el modelo principal de Cafca para asegurar que hay datos
+        $projects = \Modules\Cafca\Models\Project::where('fl_active', true)
             ->select(['id', 'name'])
             ->orderBy('name')
             ->get();
