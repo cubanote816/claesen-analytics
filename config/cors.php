@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*', 'https://www.claesen-verlichting.be', 'https://claesen-verlichting.be'],
+    'allowed_origins' => ['*', 'https://www.claesen-verlichting.be', 'https://claesen-verlichting.be', 'https://lightcoral-whale-907350.hostingersite.com'],
 
     'allowed_origins_patterns' => [],
 
