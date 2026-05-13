@@ -26,7 +26,7 @@ class InspectionController extends Controller
 
         $validated = $request->validate([
             'checklist_id'          => ['required', 'exists:safety_checklists,id'],
-            'project_id'            => ['required', 'string', 'exists:intelligence_mirror_projects,id'],
+            'project_id'            => ['required', 'string'],
             'answers'               => ['required', 'array'],
             'answers.*.question_id' => ['required', 'exists:safety_questions,id'],
             'answers.*.value'       => ['required', 'in:YES,NO,NA'], // Map from Frontend values
