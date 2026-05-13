@@ -25,12 +25,13 @@ class MicrosoftAuthController extends Controller
             session(['auth_source' => $request->get('source')]);
         }
 
-        // Capture referer to handle dynamic redirection (e.g. Hostinger, Local, Production)
-        $referer = $request->headers->get('referer');
-        if ($referer) {
+        if ($request->has('custom_redirect_url')) {
+            session(['custom_redirect_url' => $request->get('custom_redirect_url')]);
+        } elseif ($referer = $request->headers->get('referer')) {
             $urlParts = parse_url($referer);
             if (isset($urlParts['scheme'], $urlParts['host'])) {
-                $baseUrl = $urlParts['scheme'] . '://' . $urlParts['host'] . ($urlParts['path'] ?? '/');
+                $port = isset($urlParts['port']) ? ':' . $urlParts['port'] : '';
+                $baseUrl = $urlParts['scheme'] . '://' . $urlParts['host'] . $port . ($urlParts['path'] ?? '/');
                 session(['custom_redirect_url' => $baseUrl]);
             }
         }

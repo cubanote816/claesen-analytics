@@ -12,6 +12,7 @@ use Modules\Safety\Models\Inspection;
 use Modules\Safety\Jobs\GenerateSafetyPdfJob;
 use Filament\Notifications\Notification;
 use Modules\Core\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class InspectionController extends Controller
 {
@@ -72,27 +73,30 @@ class InspectionController extends Controller
             return $inspection;
         });
 
-        // Despachar la generación del PDF asíncronamente
-        GenerateSafetyPdfJob::dispatch($inspection->id);
+        try {
+            // Despachar la generación del PDF asíncronamente
+            GenerateSafetyPdfJob::dispatch($inspection->id);
 
-        // Notificar a los Super Admins
-        $admins = User::role('super_admin')->get();
-        if ($admins->count() > 0) {
-            $notification = Notification::make()
-                ->title('Nieuwe werkplekinspectie')
-                ->icon('heroicon-o-shield-check')
-                ->body("Inspecteur **{$request->user()->name}** heeft een inspectie ingediend for project **{$projectId}**.")
-                ->success()
-                ->viewData(['module' => 'safety'])
-                ->actions([
-                    \Filament\Actions\Action::make('view')
-                        ->label('Bekijken')
-                        ->url(\Modules\Safety\Filament\Resources\InspectionResource::getUrl('view', ['record' => $inspection]))
-                ]);
+            // Notificar a los Super Admins
+            $admins = User::role('super_admin')->get();
+            if ($admins->count() > 0) {
+                $notification = Notification::make()
+                    ->title('Nieuwe werkplekinspectie')
+                    ->icon('heroicon-o-shield-check')
+                    ->body("Inspecteur **{$request->user()->name}** heeft een inspectie ingediend for project **{$projectId}**.")
+                    ->success()
+                    ->viewData(['module' => 'safety'])
+                    ->actions([
+                        \Filament\Actions\Action::make('view')
+                            ->label('Bekijken')
+                            ->url(\Modules\Safety\Filament\Resources\InspectionResource::getUrl('view', ['record' => $inspection]))
+                    ]);
 
-            foreach ($admins as $admin) {
-                $admin->notifyNow($notification->toDatabase());
+                $notification->send($admins);
             }
+        } catch (\Exception $e) {
+            \Log::error("Post-inspection tasks failed: " . $e->getMessage());
+            // We don't fail the request if notifications or PDF fails
         }
 
         return response()->json([

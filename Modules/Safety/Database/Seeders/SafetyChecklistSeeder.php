@@ -18,8 +18,13 @@ class SafetyChecklistSeeder extends Seeder
                 ['is_active' => true]
             );
 
+            // Desactivamos temporalmente las llaves foráneas para permitir el borrado en cascada manual
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            
             // Borramos las preguntas previas si el seeder se corre múltiples veces
             $checklist->questions()->delete();
+            
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
             $questions = [
                 // Regels & Instructies
