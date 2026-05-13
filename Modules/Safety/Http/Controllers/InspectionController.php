@@ -100,4 +100,46 @@ class InspectionController extends Controller
             'data'    => ['inspection_id' => $inspection->id],
         ], 201);
     }
+
+    public function index(Request $request): JsonResponse
+    {
+        $inspections = Inspection::where('user_id', $request->user()->id)
+            ->orderBy('completed_at', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(function ($inspection) {
+                // Determine overall status based on answers
+                $hasDefects = $inspection->answers->contains('status', 'nok');
+                
+                return [
+                    'id'      => $inspection->id,
+                    'project' => $inspection->project_id,
+                    'date'    => $inspection->completed_at ? $inspection->completed_at->format('Y-m-d H:i') : now()->format('Y-m-d H:i'),
+                    'status'  => $hasDefects ? 'DEFECTEN' : 'VEILIG',
+                    'type'    => $hasDefects ? 'warning' : 'success',
+                ];
+            });
+
+        return response()->json([
+            'data' => $inspections
+        ]);
+    }
+
+    public function stats(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $totalInspections = Inspection::where('user_id', $userId)->count();
+        $defectsCount = Inspection::where('user_id', $userId)
+            ->whereHas('answers', function ($query) {
+                $query->where('status', 'nok');
+            })->count();
+
+        return response()->json([
+            'data' => [
+                'total'   => $totalInspections,
+                'defects' => $defectsCount,
+            ]
+        ]);
+    }
 }

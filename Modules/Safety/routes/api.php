@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Safety\Http\Controllers\AuthController;
 use Modules\Safety\Http\Controllers\InspectionController;
+use Modules\Safety\Http\Controllers\NotificationController;
 use Modules\Safety\Http\Middleware\EnsureSafetyAccess;
 
 /*
@@ -17,15 +18,26 @@ use Modules\Safety\Http\Middleware\EnsureSafetyAccess;
  *--------------------------------------------------------------------------
 */
 
-Route::post('/login', [AuthController::class, 'login'])->name('safety.api.login');
+Route::post('v1/login', [AuthController::class, 'login'])->name('safety.api.login');
+Route::get('v1/me', [\Modules\Safety\Http\Controllers\AuthController::class, 'me'])->name('safety.api.me');
+
+// Notifications
+Route::middleware('auth:sanctum')->prefix('v1/safety/notifications')->group(function () {
+    Route::get('/', [NotificationController::class, 'index'])->name('safety.api.notifications.index');
+    Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('safety.api.notifications.unread');
+    Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('safety.api.notifications.mark-read');
+    Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('safety.api.notifications.mark-all-read');
+});
 
 Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])
-    ->prefix('safety')
+    ->prefix('v1/safety')
     ->group(function () {
         Route::get('checklists/active', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'active'])->name('safety.api.checklists.active');
         Route::get('projects', [\Modules\Safety\Http\Controllers\ProjectController::class, 'index'])->name('safety.api.projects.index');
 
         Route::prefix('inspections')->name('safety.api.inspections.')->group(function () {
+            Route::get('/', [InspectionController::class, 'index'])->name('index');
+            Route::get('stats', [InspectionController::class, 'stats'])->name('stats');
             Route::post('/', [InspectionController::class, 'store'])->name('store');
         });
 

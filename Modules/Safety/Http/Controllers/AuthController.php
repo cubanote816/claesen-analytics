@@ -46,13 +46,28 @@ class AuthController extends Controller
         $token = $user->createToken($deviceName, ['role:safety-access']);
 
         return response()->json([
-            'access_token' => $token->plainTextToken,
-            'token_type'   => 'Bearer',
-            'user'         => [
+            'token'      => $token->plainTextToken,
+            'token_type' => 'Bearer',
+            'user'       => [
                 'id'    => $user->id,
                 'name'  => $user->name,
                 'email' => $user->email,
             ],
         ], 200);
+    }
+
+    /**
+     * Get the authenticated user.
+     */
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'id'    => $user->id,
+            'name'  => $user->name,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames(), // Assuming Spatie Roles
+        ]);
     }
 }
