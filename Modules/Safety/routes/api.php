@@ -19,7 +19,10 @@ use Modules\Safety\Http\Middleware\EnsureSafetyAccess;
 */
 
 Route::post('v1/login', [AuthController::class, 'login'])->name('safety.api.login');
-Route::get('v1/me', [\Modules\Safety\Http\Controllers\AuthController::class, 'me'])->name('safety.api.me');
+// Auth & Profile
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('v1/me', [AuthController::class, 'me'])->name('safety.api.me');
+});
 
 // Notifications
 Route::middleware('auth:sanctum')->prefix('v1/safety/notifications')->group(function () {
