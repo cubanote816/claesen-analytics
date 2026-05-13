@@ -13,6 +13,15 @@ class Question extends Model
         'checklist_id',
         'text_nl',
         'order',
+        'allow_yes',
+        'allow_no',
+        'allow_na',
+    ];
+
+    protected $casts = [
+        'allow_yes' => 'boolean',
+        'allow_no'  => 'boolean',
+        'allow_na'  => 'boolean',
     ];
 
     public function checklist(): BelongsTo

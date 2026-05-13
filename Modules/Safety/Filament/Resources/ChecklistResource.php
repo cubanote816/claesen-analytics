@@ -8,6 +8,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -85,6 +87,46 @@ class ChecklistResource extends Resource
                                     ->label('Vraag (Nederlands)')
                                     ->required()
                                     ->rows(2)
+                                    ->columnSpanFull(),
+                                Section::make('Toegestane Antwoorden')
+                                    ->description('Selecteer welke antwoordopties beschikbaar zijn voor deze vraag.')
+                                    ->schema([
+                                        Toggle::make('allow_yes')
+                                            ->label('Ja')
+                                            ->default(true)
+                                            ->inline(false)
+                                            ->rules([
+                                                fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    if (!$value && !$get('allow_no') && !$get('allow_na')) {
+                                                        $fail('Minstens één antwoordmogelijkheid moet zijn toegestaan.');
+                                                    }
+                                                },
+                                            ]),
+                                        Toggle::make('allow_no')
+                                            ->label('Nee')
+                                            ->default(true)
+                                            ->inline(false)
+                                            ->rules([
+                                                fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    if (!$value && !$get('allow_yes') && !$get('allow_na')) {
+                                                        $fail('Minstens één antwoordmogelijkheid moet zijn toegestaan.');
+                                                    }
+                                                },
+                                            ]),
+                                        Toggle::make('allow_na')
+                                            ->label('N.V.T.')
+                                            ->default(true)
+                                            ->inline(false)
+                                            ->rules([
+                                                fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    if (!$value && !$get('allow_yes') && !$get('allow_no')) {
+                                                        $fail('Minstens één antwoordmogelijkheid moet zijn toegestaan.');
+                                                    }
+                                                },
+                                            ]),
+                                    ])
+                                    ->columns(3)
+                                    ->compact()
                                     ->columnSpanFull(),
                                 TextInput::make('order')
                                     ->label('Volgorde')
