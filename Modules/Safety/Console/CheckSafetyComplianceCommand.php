@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Modules\Safety\Console;
 
 use Illuminate\Console\Command;
-use Modules\Performance\Models\Mirror\MirrorProject;
-use Modules\Safety\Models\Inspection;
 use Modules\Core\Models\User;
+use Modules\Safety\Services\ComplianceService;
 use Filament\Notifications\Notification;
 use Filament\Actions\Action;
 
@@ -16,37 +15,31 @@ class CheckSafetyComplianceCommand extends Command
     protected $signature = 'safety:check-compliance';
     protected $description = 'Checks for projects missing their monthly safety inspection and notifies admins.';
 
+    public function __construct(private readonly ComplianceService $compliance)
+    {
+        parent::__construct();
+    }
+
     public function handle(): void
     {
         $this->info('Checking safety compliance...');
 
-        // Solo proyectos activos
-        $activeProjects = MirrorProject::where('fl_active', true)->get();
-        $missingInspections = [];
+        $missing = $this->compliance->getMissingInspections();
 
-        foreach ($activeProjects as $project) {
-            $latestInspection = Inspection::where('project_id', $project->id)
-                ->latest('completed_at')
-                ->first();
-
-            if (!$latestInspection || $latestInspection->completed_at->diffInDays(now()) > 30) {
-                $missingInspections[] = $project;
-            }
-        }
-
-        if (count($missingInspections) > 0) {
-            $this->warn(count($missingInspections) . ' projects are missing inspections.');
+        if ($missing->isNotEmpty()) {
+            $this->warn($missing->count() . ' projects are missing inspections.');
 
             $admins = User::role('super_admin')->get();
-            
-            if ($admins->count() > 0) {
+
+            if ($admins->isNotEmpty()) {
                 Notification::make()
                     ->title('Veiligheid Alert: Inspecties over tijd')
                     ->warning()
                     ->icon('heroicon-o-exclamation-triangle')
                     ->body(sprintf(
-                        "Er zijn **%d** actieve projecten die al meer dan 30 dagen geen werkplekinspectie hebben gehad.",
-                        count($missingInspections)
+                        "Er zijn **%d** actieve projecten die al meer dan %d dagen geen werkplekinspectie hebben gehad.",
+                        $missing->count(),
+                        config('safety.compliance_days')
                     ))
                     ->actions([
                         Action::make('view_inspections')
