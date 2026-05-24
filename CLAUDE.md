@@ -1,0 +1,195 @@
+# CAFCA Intelligence Hub — Guía para Claude
+
+> Leer esto al inicio de cada sesión. Es la fuente de verdad del proyecto.
+
+---
+
+## Proyecto
+
+**CAFCA Intelligence Hub** — sistema de inteligencia de negocio para Claesen Verlichting (BV), contratista belga de iluminación exterior. Conecta el ERP legacy (SQL Server, ReadOnly) con una capa analítica moderna sobre MySQL + IA.
+
+**Objetivo:** "Guardián del Flujo de Caja" y "Auditor IA" bajo política de Cero Complacencia sobre riesgos financieros.
+
+---
+
+## Stack
+
+| Capa | Tecnología |
+|------|------------|
+| Backend | Laravel 12 / PHP 8.2+ |
+| Admin UI | Filament V5 (Bleeding Edge) |
+| DB local | MySQL 8.4 |
+| DB legacy | SQL Server 192.168.254.102 (ReadOnly) |
+| Módulos | nwidart/laravel-modules ^12.0 |
+| Auth | Laravel Sanctum + Azure OAuth (Microsoft Graph) |
+| RBAC | spatie/laravel-permission |
+| IA | Google Gemini 1.5 Flash |
+| Infra | Docker Sail, Redis, Meilisearch |
+
+---
+
+## Restricciones críticas — NUNCA ignorar
+
+1. **SQL Server es ReadOnly.** Jamás generar `save()`, `update()`, `create()`, `delete()` en conexión `sqlsrv`. Todos los modelos Cafca usan `ReadOnlyTrait`. Lanza `LogicException` si se intenta mutar.
+
+2. **Filament V5 únicamente.** Usar `Filament\Schemas\Schema` para Forms e Infolists. NO clases de V3/V4.
+
+3. **IDs nunca son enteros.** Los IDs del ERP legacy son strings. Siempre `trim()` en modelos Cafca.
+
+4. **Idioma:** código/variables/comentarios en inglés. UI/labels/notificaciones en holandés (NL) para navegadores NL, inglés para el resto.
+
+---
+
+## Módulos
+
+| Módulo | Descripción | Estado |
+|--------|-------------|--------|
+| **Cafca** | Modelos ReadOnly del SQL Server ERP (Project, Labor, Invoice, Employee…) | ✅ ~90% |
+| **Core** | Auth (Azure OAuth + Laravel), RBAC Spatie, Filament V5 admin panel | ✅ ~95% |
+| **Intelligence** | Gemini 1.5 Flash, Mirror SQL→MySQL, Similarity (Nearest Neighbors), Budget Assistant | ✅ ~90% |
+| **Performance** | Project insights, arquetipos de técnicos, Watchdog (€20k), SWOT | ✅ ~85% |
+| **Prospects** | Sync federaciones deportivas (RBFA, LBFA, AFT), CRM, campañas email | 🚧 ~75% |
+| **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint activo** | 🚧 ~75% |
+| **Mailing** | Templates Blade, campañas, unsubscribe | 🚧 ~70% |
+| **Website** | Sitio público, formulario de consulta, galería proyectos | 🚧 ~70% |
+
+---
+
+## Patrones arquitectónicos
+
+- **Service Layer** — lógica de negocio en servicios (`GeminiService`, `ComplianceService`, etc.)
+- **DTO Pattern** — normalización antes de enviar a IA (`ProjectAiPayload`, `GeminiContextDTO`)
+- **ReadOnlyTrait** — bloqueo de mutaciones en modelos legacy
+- **Mirror/Sync Pattern** — copia local de SQL Server en MySQL para queries analíticas
+- **Semantic Cache** — hash MD5 de payload para evitar llamadas redundantes a Gemini
+
+---
+
+## Umbrales de negocio
+
+- **WIP Trap:** (Costo Real − Facturado) > €2,500 → ALERTA
+- **Watchdog:** threshold €20,000 (`WATCHDOG_IMMEDIATE_THRESHOLD`)
+- **Vacío 30 días:** proyectos activos sin factura en >30 días → alerta
+- **Safety compliance:** 30 días (`config('safety.compliance_days')`)
+- **Report email:** orelvys.cuellar@claesen-verlichting.be (lunes por la mañana)
+
+---
+
+## Sprint activo — Safety (rama: `Safety_Inspections`)
+
+### Documento de referencia
+`docs/safety-sprint-linear-tickets.md` — fuente de verdad de los 15 tickets, con alcance exacto, cambios y criterios de aceptación tomados directamente de Linear.
+
+### Mapa SAF ↔ Linear
+
+| SAF | Linear | Título | Prioridad | Estado |
+|-----|--------|--------|-----------|--------|
+| SAF-001 | CLA-5 | Configuración base config/config.php | Alta | ✅ Done |
+| SAF-002 | CLA-6 | InspectionPolicy — Autorización por recurso | Urgente | ✅ Done |
+| SAF-003 | CLA-7 | Cambio de disco: fotos y PDFs a local privado | Urgente | ✅ Done |
+| SAF-004 | CLA-8 | Rutas web admin para servir archivos Filament | Alta | ⬜ Todo |
+| SAF-005 | CLA-9 | GET inspections/{id} — Detalle completo | Urgente | ✅ Done |
+| SAF-006 | CLA-10 | GET inspections/{id}/pdf — Descarga API | Urgente | ✅ Done |
+| SAF-007 | CLA-11 | GET answers/{id}/photo — Streaming seguro | Urgente | ⬜ Todo |
+| SAF-008 | CLA-12 | StoreInspectionRequest — Extracción validación | Alta | ✅ Done |
+| SAF-009 | CLA-13 | index() — Paginación y filtros | Alta | ✅ Done |
+| SAF-010a | CLA-14 | ComplianceService + refactor command | Media | ✅ Done |
+| SAF-010b | CLA-15 | GET /api/v1/safety/compliance | Baja | ⬜ Todo |
+| SAF-011 | CLA-16 | Factories + HasFactory en modelos Safety | Alta | ✅ Done |
+| SAF-012 | CLA-17 | Feature tests — Auth, Store e Index | Alta | ⬜ Todo |
+| SAF-013 | CLA-18 | Feature tests — Show, PDF y Photo | Alta | ⬜ Todo |
+| SAF-014 | CLA-19 | Tests rutas web admin /safety/files/... | Media | ⬜ Todo |
+| SAF-015 | CLA-50 | Incident type support — schema, checklist UI, worker endpoint, seeder | Alta | ⬜ Todo |
+| SAF-016 | CLA-51 | ProjectController SQL Server → mirror fallback | Media | ⬜ Todo |
+
+### Orden de ejecución (olas)
+
+```
+Ola 1 (sin deps):   SAF-002 → SAF-001 → SAF-008 → SAF-011
+Ola 2:              SAF-003 → SAF-009 → SAF-010a
+Ola 3:              SAF-005 → SAF-006 → SAF-007 → SAF-004 → SAF-012 → SAF-010b
+Ola 4:              SAF-013 → SAF-014
+```
+
+### Reglas Safety (no negociables)
+
+- Disco: `config('safety.disk')` → valor `local`
+- Autorización: `Gate::authorize()` por recurso, sin cambiar el padre del controller
+- `project_manager` → solo recursos propios (`inspection.user_id === user.id`)
+- `super_admin` → todos los recursos
+- Tests y factories dentro de `Modules/Safety`
+
+---
+
+## Flujo de trabajo con Claude
+
+Flujo obligatorio por ticket — no saltarse pasos:
+
+1. Mover issue Linear a **In Progress**.
+2. Presentar plan del ticket: alcance, archivos previstos, tests/checks.
+3. **Esperar aprobación** antes de editar cualquier archivo.
+4. Implementar solo el ticket activo.
+5. Ejecutar tests/checks relevantes.
+6. Presentar diff/resumen + criterios de aceptación cubiertos.
+7. **Esperar GO técnico** del auditor.
+8. Crear commit dedicado para ese ticket.
+   - Formato: `SAF-XXX / CLA-YY: resumen corto`
+   - No mezclar cambios de otros tickets salvo que estén declarados y aprobados.
+9. Mostrar hash del commit.
+10. Marcar issue Linear como **Done** con hash del commit en el comentario.
+11. **No avanzar al siguiente ticket** sin confirmación explícita.
+
+### Regla para cambios colaterales
+
+Si durante un ticket aparecen cambios que pertenecen a otro ticket:
+- No se mezclan silenciosamente.
+- Documentar el cambio y su ticket de origen.
+- Pedir decisión: mover a otro commit/ticket, incluir como dependencia aprobada, o revertir.
+
+### Actualizar estado en CLAUDE.md
+
+Usar la progresión: ⬜ Todo → 🚧 In Progress → ✅ Done
+
+### Cómo reanudar una sesión nueva
+
+```
+"Continuamos con SAF-00X / CLA-X. Lee CLAUDE.md y docs/safety-sprint-linear-tickets.md."
+```
+
+---
+
+## Tests
+
+```bash
+# Suite completa
+php artisan test
+
+# Solo módulo Safety (una vez añadido en SAF-011)
+php artisan test --testsuite=Modules
+
+# Un archivo concreto
+php artisan test Modules/Safety/Tests/Feature/InspectionTest.php
+```
+
+`phpunit.xml` actual solo tiene suites `Unit` y `Feature` (raíz). La suite `Modules` se añade en SAF-011.
+
+---
+
+## Estructura de módulo Safety
+
+```
+Modules/Safety/
+├── config/config.php
+├── Http/
+│   ├── Controllers/
+│   └── Requests/
+├── Models/
+├── Policies/          ← se crea en SAF-002
+├── Services/          ← se crea en SAF-010a
+├── Database/
+│   ├── Factories/     ← se crea en SAF-011
+│   └── Migrations/
+├── Jobs/
+├── Filament/Resources/
+└── Tests/Feature/     ← se crean en SAF-012/013/014
+```
