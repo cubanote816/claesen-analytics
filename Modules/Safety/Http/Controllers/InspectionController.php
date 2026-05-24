@@ -106,25 +106,54 @@ class InspectionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $inspections = Inspection::where('user_id', $request->user()->id)
-            ->orderBy('completed_at', 'desc')
-            ->limit(20)
-            ->get()
-            ->map(function ($inspection) {
-                $hasDefects = $inspection->answers->contains('status', 'nok');
+        $perPage = min(
+            (int) $request->query('per_page', config('safety.per_page')),
+            config('safety.per_page_max')
+        );
 
-                return [
-                    'id'      => $inspection->id,
-                    'project' => $inspection->project_id,
-                    'date'    => $inspection->completed_at ? $inspection->completed_at->format('Y-m-d H:i') : now()->format('Y-m-d H:i'),
-                    'status'  => $hasDefects ? 'DEFECTEN' : 'VEILIG',
-                    'type'    => $hasDefects ? 'warning' : 'success',
-                ];
-            });
+        $query = Inspection::with('answers')->orderBy('completed_at', 'desc');
 
-        return response()->json([
-            'data' => $inspections
-        ]);
+        if (! $request->user()->hasRole('super_admin')) {
+            $query->where('user_id', $request->user()->id);
+        }
+
+        if ($type = $request->query('type')) {
+            $query->where('type', $type);
+        }
+        if ($projectId = $request->query('project_id')) {
+            $query->where('project_id', $projectId);
+        }
+        if ($from = $request->query('from')) {
+            $query->whereDate('completed_at', '>=', $from);
+        }
+        if ($until = $request->query('until')) {
+            $query->whereDate('completed_at', '<=', $until);
+        }
+
+        $paginator = $query->paginate($perPage)->through(function ($inspection) {
+            $hasDefects = $inspection->answers->contains('status', 'nok');
+
+            if ($inspection->type === 'incident') {
+                $status = 'INCIDENT';
+                $color  = 'danger';
+            } else {
+                $status = $hasDefects ? 'DEFECTEN' : 'VEILIG';
+                $color  = $hasDefects ? 'warning' : 'success';
+            }
+
+            return [
+                'id'       => $inspection->id,
+                'project'  => $inspection->project_id,
+                'category' => $inspection->type,
+                'date'     => $inspection->completed_at
+                    ? $inspection->completed_at->format('Y-m-d H:i')
+                    : now()->format('Y-m-d H:i'),
+                'status'   => $status,
+                'type'     => $color,
+            ];
+        });
+
+        return response()->json($paginator);
     }
 
     public function stats(Request $request): JsonResponse
