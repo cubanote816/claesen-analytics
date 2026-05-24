@@ -3,7 +3,10 @@
 namespace Modules\Safety\Providers;
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Modules\Safety\Models\Inspection;
+use Modules\Safety\Policies\InspectionPolicy;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -29,6 +32,8 @@ class SafetyServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        Gate::policy(Inspection::class, InspectionPolicy::class);
 
         \Modules\Safety\Models\Checklist::observe(\Modules\Safety\Observers\ChecklistObserver::class);
     }
