@@ -10,14 +10,23 @@ use Modules\Safety\Models\Checklist;
 
 class ChecklistController extends Controller
 {
-    public function active(): JsonResponse
+    public function active(\Illuminate\Http\Request $request): JsonResponse
     {
-        $checklist = Checklist::with(['questions' => fn($query) => $query->orderBy('order')])
-            ->where('is_active', true)
-            ->firstOrFail();
+        $type = $request->query('type', 'inspection');
 
-        return response()->json([
-            'data' => $checklist
-        ], 200);
+        try {
+            $checklist = Checklist::with(['questions' => fn($query) => $query->orderBy('order')])
+                ->where('type', $type)
+                ->where('is_active', true)
+                ->firstOrFail();
+
+            return response()->json([
+                'data' => $checklist
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Geen actieve checklist gevonden voor dit type.'
+            ], 404);
+        }
     }
 }

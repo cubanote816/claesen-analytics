@@ -56,6 +56,19 @@ class InspectionResource extends Resource
         return $table
             ->poll('10s')
             ->columns([
+                Tables\Columns\TextColumn::make('type')
+                    ->label('Type')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'inspection' => 'Site Inspection',
+                        'incident' => 'Incident Report',
+                        default => $state,
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'inspection' => 'success',
+                        'incident' => 'warning',
+                        default => 'gray',
+                    }),
                 Tables\Columns\TextColumn::make('project_id')
                     ->label(__('safety::inspections.columns.project_id'))
                     ->searchable()
@@ -152,8 +165,24 @@ class InspectionResource extends Resource
             ->components([
                 Section::make('Inspectie Details')
                     ->schema([
+                        TextEntry::make('type')
+                            ->label('Type')
+                            ->badge()
+                            ->formatStateUsing(fn (string $state): string => match ($state) {
+                                'inspection' => 'Site Inspection',
+                                'incident' => 'Incident Report',
+                                default => $state,
+                            })
+                            ->color(fn (string $state): string => match ($state) {
+                                'inspection' => 'success',
+                                'incident' => 'warning',
+                                default => 'gray',
+                            }),
                         TextEntry::make('project_id')->label('Project ID'),
-                        TextEntry::make('user.name')->label('Inspecteur'),
+                        TextEntry::make('user.name')->label('Inspecteur / Melder'),
+                        TextEntry::make('incidentWorker.name')
+                            ->label('Betrokken Medewerker')
+                            ->visible(fn ($record) => $record->type === 'incident' && $record->incident_worker_id),
                         TextEntry::make('checklist.name')->label('Checklist'),
                         TextEntry::make('completed_at')
                             ->label('Voltooid op')
