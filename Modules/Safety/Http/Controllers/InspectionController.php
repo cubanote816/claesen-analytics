@@ -104,6 +104,35 @@ class InspectionController extends Controller
         ], 201);
     }
 
+    public function downloadPdf(Inspection $inspection): \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
+    {
+        Gate::authorize('downloadPdf', $inspection);
+
+        if ($inspection->pdf_path === null) {
+            return response()->json(['pdf_status' => 'pending'], 202);
+        }
+
+        $disk = Storage::disk(config('safety.disk'));
+
+        if (! $disk->exists($inspection->pdf_path)) {
+            return response()->json(['pdf_status' => 'failed'], 404);
+        }
+
+        return response()->streamDownload(function () use ($disk, $inspection) {
+            $stream = $disk->readStream($inspection->pdf_path);
+            if ($stream === false) {
+                return;
+            }
+            try {
+                fpassthru($stream);
+            } finally {
+                fclose($stream);
+            }
+        }, basename($inspection->pdf_path), [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
     public function show(Inspection $inspection): JsonResponse
     {
         Gate::authorize('view', $inspection);
