@@ -7,7 +7,10 @@ namespace Modules\Safety\Http\Controllers;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Safety\Http\Requests\StoreInspectionRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Modules\Safety\Models\Inspection;
 use Modules\Safety\Jobs\GenerateSafetyPdfJob;
 use Filament\Notifications\Notification;
@@ -16,50 +19,41 @@ use Illuminate\Support\Facades\Log;
 
 class InspectionController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(StoreInspectionRequest $request): JsonResponse
     {
-        // 1. Pre-process JSON answers if sent as string (common in FormData)
-        if ($request->has('answers') && is_string($request->get('answers'))) {
-            $request->merge([
-                'answers' => json_decode($request->get('answers'), true)
-            ]);
-        }
-
-        $validated = $request->validate([
-            'checklist_id'          => ['required', 'exists:safety_checklists,id'],
-            'project_id'            => ['required', 'string'],
-            'answers'               => ['required', 'array'],
-            'answers.*.question_id' => ['required', 'exists:safety_questions,id'],
-            'answers.*.value'       => ['required', 'in:YES,NO,NA'], // Map from Frontend values
-            'answers.*.remark'      => ['nullable', 'string'],
-        ]);
+        $validated = $request->validated();
 
         $projectId = trim($validated['project_id']);
         $userId = $request->user()->id;
 
         $inspection = DB::transaction(function () use ($validated, $request, $userId, $projectId) {
             $inspection = Inspection::create([
-                'user_id'      => $userId,
-                'checklist_id' => $validated['checklist_id'],
-                'project_id'   => $projectId,
-                'completed_at' => now(),
+                'user_id'            => $userId,
+                'checklist_id'       => $validated['checklist_id'],
+                'type'               => $validated['type'],
+                'incident_worker_id' => $validated['incident_worker_id'] ?? null,
+                'project_id'         => $projectId,
+                'completed_at'       => now(),
             ]);
+
+            // Conditionally sync present workers ONLY if type is inspection
+            if ($validated['type'] === 'inspection' && !empty($validated['present_workers'])) {
+                $inspection->presentWorkers()->sync($validated['present_workers']);
+            }
 
             foreach ($validated['answers'] as $answer) {
                 $questionId = $answer['question_id'];
                 $photoPath = null;
 
-                // Map Frontend status to Backend status
                 $statusMap = [
                     'YES' => 'ok',
                     'NO'  => 'nok',
                     'NA'  => 'na'
                 ];
 
-                // Check for photo in the top-level 'photos' array (sent as photos[question_id])
                 if ($request->hasFile("photos.{$questionId}")) {
                     $file = $request->file("photos.{$questionId}");
-                    $photoPath = $file->store("safety-inspections/{$inspection->id}", 'public');
+                    $photoPath = $file->store("safety-inspections/{$inspection->id}", config('safety.disk'));
                 }
 
                 $inspection->answers()->create([
@@ -80,10 +74,15 @@ class InspectionController extends Controller
             // Notificar a los Super Admins
             $admins = User::role('super_admin')->get();
             if ($admins->count() > 0) {
+                $title = $inspection->type === 'incident' ? 'Nieuw Incidentenrapport' : 'Nieuwe werkplekinspectie';
+                $body = $inspection->type === 'incident'
+                    ? "Medewerker **{$request->user()->name}** heeft een incident gemeld op project **{$projectId}**."
+                    : "Inspecteur **{$request->user()->name}** heeft een inspectie ingediend for project **{$projectId}**.";
+
                 $notification = Notification::make()
-                    ->title('Nieuwe werkplekinspectie')
+                    ->title($title)
                     ->icon('heroicon-o-shield-check')
-                    ->body("Inspecteur **{$request->user()->name}** heeft een inspectie ingediend for project **{$projectId}**.")
+                    ->body($body)
                     ->success()
                     ->viewData(['module' => 'safety'])
                     ->actions([
@@ -95,12 +94,12 @@ class InspectionController extends Controller
                 $notification->send($admins);
             }
         } catch (\Exception $e) {
-            \Log::error("Post-inspection tasks failed: " . $e->getMessage());
+            Log::error("Post-inspection tasks failed: " . $e->getMessage());
             // We don't fail the request if notifications or PDF fails
         }
 
         return response()->json([
-            'message' => 'Inspectie succesvol opgeslagen.',
+            'message' => $validated['type'] === 'incident' ? 'Incident succesvol gemeld.' : 'Inspectie succesvol opgeslagen.',
             'data'    => ['inspection_id' => $inspection->id],
         ], 201);
     }
@@ -112,9 +111,8 @@ class InspectionController extends Controller
             ->limit(20)
             ->get()
             ->map(function ($inspection) {
-                // Determine overall status based on answers
                 $hasDefects = $inspection->answers->contains('status', 'nok');
-                
+
                 return [
                     'id'      => $inspection->id,
                     'project' => $inspection->project_id,
