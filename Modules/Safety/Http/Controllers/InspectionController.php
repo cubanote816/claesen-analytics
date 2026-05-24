@@ -104,6 +104,79 @@ class InspectionController extends Controller
         ], 201);
     }
 
+    public function show(Inspection $inspection): JsonResponse
+    {
+        Gate::authorize('view', $inspection);
+
+        $inspection->load([
+            'checklist',
+            'user',
+            'incidentWorker',
+            'presentWorkers',
+            'answers.question',
+        ]);
+
+        $disk = config('safety.disk');
+
+        $pdfStatus = match (true) {
+            $inspection->pdf_path === null                              => 'pending',
+            Storage::disk($disk)->exists($inspection->pdf_path)        => 'available',
+            default                                                     => 'failed',
+        };
+
+        // URLs point to SAF-006 / SAF-007 endpoints; those routes must register exactly these paths
+        $pdfUrl = $inspection->pdf_path
+            ? url("api/v1/safety/inspections/{$inspection->id}/pdf")
+            : null;
+
+        $answers = $inspection->answers->map(function ($answer) use ($inspection) {
+            $photoUrl = $answer->photo_path
+                ? url("api/v1/safety/inspections/{$inspection->id}/answers/{$answer->id}/photo")
+                : null;
+
+            return [
+                'id'        => $answer->id,
+                'status'    => $answer->status,
+                'remark'    => $answer->remark,
+                'photo_url' => $photoUrl,
+                'question'  => [
+                    'id'   => $answer->question->id,
+                    'text' => $answer->question->text_nl,
+                ],
+            ];
+        });
+
+        return response()->json([
+            'data' => [
+                'id'              => $inspection->id,
+                'type'            => $inspection->type,
+                'project_id'      => $inspection->project_id,
+                'completed_at'    => $inspection->completed_at?->toIso8601String(),
+                'pdf_status'      => $pdfStatus,
+                'pdf_url'         => $pdfUrl,
+                'inspector'       => [
+                    'id'    => $inspection->user->id,
+                    'name'  => $inspection->user->name,
+                    'email' => $inspection->user->email,
+                ],
+                'incident_worker' => $inspection->incidentWorker ? [
+                    'id'   => $inspection->incidentWorker->id,
+                    'name' => $inspection->incidentWorker->name,
+                ] : null,
+                'present_workers' => $inspection->presentWorkers->map(fn ($u) => [
+                    'id'   => $u->id,
+                    'name' => $u->name,
+                ]),
+                'checklist'       => [
+                    'id'   => $inspection->checklist->id,
+                    'name' => $inspection->checklist->name,
+                    'type' => $inspection->checklist->type,
+                ],
+                'answers'         => $answers,
+            ],
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $perPage = min(

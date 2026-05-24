@@ -43,6 +43,7 @@ Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])
             Route::get('/', [InspectionController::class, 'index'])->name('index');
             Route::get('stats', [InspectionController::class, 'stats'])->name('stats');
             Route::post('/', [InspectionController::class, 'store'])->name('store');
+            Route::get('{inspection}', [InspectionController::class, 'show'])->name('show');
         });
 
         Route::prefix('notifications')->name('safety.api.notifications.')->group(function () {
