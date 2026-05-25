@@ -11,6 +11,7 @@ use Modules\Safety\Http\Requests\StoreInspectionRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Modules\Safety\Models\Answer;
 use Modules\Safety\Models\Inspection;
 use Modules\Safety\Jobs\GenerateSafetyPdfJob;
 use Filament\Notifications\Notification;
@@ -102,6 +103,42 @@ class InspectionController extends Controller
             'message' => $validated['type'] === 'incident' ? 'Incident succesvol gemeld.' : 'Inspectie succesvol opgeslagen.',
             'data'    => ['inspection_id' => $inspection->id],
         ], 201);
+    }
+
+    public function servePhoto(Inspection $inspection, Answer $answer): \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
+    {
+        if ($answer->inspection_id !== $inspection->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        Gate::authorize('viewPhoto', $inspection);
+
+        if (! $answer->photo_path) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        $disk = Storage::disk(config('safety.disk'));
+
+        if (! $disk->exists($answer->photo_path)) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        $mimeType = $disk->mimeType($answer->photo_path) ?: 'application/octet-stream';
+
+        return response()->stream(function () use ($disk, $answer) {
+            $stream = $disk->readStream($answer->photo_path);
+            if ($stream === false) {
+                return;
+            }
+            try {
+                fpassthru($stream);
+            } finally {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type'  => $mimeType,
+            'Cache-Control' => 'private, max-age=900',
+        ]);
     }
 
     public function downloadPdf(Inspection $inspection): \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse

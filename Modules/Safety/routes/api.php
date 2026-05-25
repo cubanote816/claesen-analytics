@@ -44,6 +44,7 @@ Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])
             Route::get('stats', [InspectionController::class, 'stats'])->name('stats');
             Route::post('/', [InspectionController::class, 'store'])->name('store');
             Route::get('{inspection}/pdf', [InspectionController::class, 'downloadPdf'])->name('pdf');
+            Route::get('{inspection}/answers/{answer}/photo', [InspectionController::class, 'servePhoto'])->name('photo');
             Route::get('{inspection}', [InspectionController::class, 'show'])->name('show');
         });
 
