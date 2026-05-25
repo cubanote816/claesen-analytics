@@ -19,9 +19,9 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Storage;
 use Filament\Notifications\Notification;
 use Modules\Safety\Filament\Resources\InspectionResource\Pages;
+use Modules\Safety\Models\Answer;
 use Modules\Safety\Models\Inspection;
 
 class InspectionResource extends Resource
@@ -123,7 +123,7 @@ class InspectionResource extends Resource
                         ->label(__('safety::inspections.actions.download_pdf'))
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('success')
-                        ->url(fn(Inspection $record): ?string => $record->pdf_path ? Storage::disk('public')->url($record->pdf_path) : null)
+                        ->url(fn (Inspection $record): ?string => $record->pdf_path ? route('safety.admin.pdf', $record) : null)
                         ->openUrlInNewTab()
                         ->visible(fn(Inspection $record): bool => !empty($record->pdf_path)),
                     Action::make('regenerate_pdf')
@@ -217,9 +217,9 @@ class InspectionResource extends Resource
                                     ->default('-'),
                                 ImageEntry::make('photo_path')
                                     ->label('Foto')
-                                    ->disk('public')
-                                    ->visibility('private')
-                                    ->hidden(fn($state) => empty($state)),
+                                    ->getStateUsing(fn (Answer $record): ?string =>
+                                        $record->photo_path ? route('safety.admin.photo', $record) : null)
+                                    ->hidden(fn ($state) => empty($state)),
                             ])->columns(5),
                     ]),
             ]);
