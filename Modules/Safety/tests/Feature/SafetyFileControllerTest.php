@@ -138,4 +138,57 @@ class SafetyFileControllerTest extends TestCase
             ->get(route('safety.admin.photo', $answer))
             ->assertOk();
     }
+
+    public function test_foreign_user_gets_403_on_photo(): void
+    {
+        $owner   = $this->userWithRole('project_manager');
+        $foreign = $this->userWithRole('project_manager');
+        [, $answer] = $this->makeInspectionWithPhoto($owner);
+
+        $this->actingAs($foreign)
+            ->get(route('safety.admin.photo', $answer))
+            ->assertForbidden();
+    }
+
+    public function test_super_admin_gets_200_pdf_for_foreign_inspection(): void
+    {
+        $owner = $this->userWithRole('project_manager');
+        $admin = $this->userWithRole('super_admin');
+        $inspection = $this->makeInspectionWithPdf($owner);
+
+        $this->actingAs($admin)
+            ->get(route('safety.admin.pdf', $inspection))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_super_admin_gets_200_photo_for_foreign_inspection(): void
+    {
+        $owner = $this->userWithRole('project_manager');
+        $admin = $this->userWithRole('super_admin');
+        [, $answer] = $this->makeInspectionWithPhoto($owner);
+
+        $this->actingAs($admin)
+            ->get(route('safety.admin.photo', $answer))
+            ->assertOk();
+    }
+
+    public function test_missing_photo_file_returns_404(): void
+    {
+        $owner     = $this->userWithRole('project_manager');
+        $checklist = Checklist::factory()->create();
+        $inspection = Inspection::factory()->create([
+            'user_id'      => $owner->id,
+            'checklist_id' => $checklist->id,
+        ]);
+
+        $answer = Answer::factory()->create([
+            'inspection_id' => $inspection->id,
+            'photo_path'    => 'safety-inspections/nonexistent/photo.jpg',
+        ]);
+
+        $this->actingAs($owner)
+            ->get(route('safety.admin.photo', $answer))
+            ->assertNotFound();
+    }
 }
