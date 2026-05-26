@@ -90,7 +90,7 @@
             @foreach($inspection->answers->whereNotNull('photo_path') as $answer)
                 <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; display: inline-block; width: 45%; vertical-align: top; margin-right: 2%;">
                     <p><strong>Vraag {{ $loop->iteration }}:</strong> {{ $answer->question->text_nl }}</p>
-                    <img src="{{ public_path('storage/' . $answer->photo_path) }}" style="width: 100%; height: auto; max-height: 250px; object-fit: contain;">
+                    <img src="{{ storage_path('app/' . $answer->photo_path) }}" style="width: 100%; height: auto; max-height: 250px; object-fit: contain;">
                     @if($answer->remark)
                         <p style="font-style: italic;">Opmerking: {{ $answer->remark }}</p>
                     @endif

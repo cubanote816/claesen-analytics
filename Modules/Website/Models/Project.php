@@ -102,16 +102,15 @@ class Project extends Model implements HasMedia
             ->width(300)
             ->height(200);
 
+        $this->addMediaConversion('optimized')
+            ->format('webp')
+            ->width(1200)
+            ->height(1200)
+            ->quality(80);
+            
         $this->addMediaConversion('gallery')
             ->width(1200)
             ->height(800);
-
-        $this->addMediaConversion('optimized')
-            ->width(1200)
-            ->height(1200)
-            ->quality(80)
-            ->format('webp')
-            ->performOnCollections('featured_image', 'gallery', 'default');
     }
 
     public function getApiFeaturedImageUrlAttribute()

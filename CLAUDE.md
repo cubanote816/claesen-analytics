@@ -49,7 +49,7 @@
 | **Intelligence** | Gemini 1.5 Flash, Mirror SQL→MySQL, Similarity (Nearest Neighbors), Budget Assistant | ✅ ~90% |
 | **Performance** | Project insights, arquetipos de técnicos, Watchdog (€20k), SWOT | ✅ ~85% |
 | **Prospects** | Sync federaciones deportivas (RBFA, LBFA, AFT), CRM, campañas email | 🚧 ~75% |
-| **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint activo** | 🚧 ~75% |
+| **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint completado** | ✅ ~100% |
 | **Mailing** | Templates Blade, campañas, unsubscribe | 🚧 ~70% |
 | **Website** | Sitio público, formulario de consulta, galería proyectos | 🚧 ~70% |
 
@@ -75,41 +75,31 @@
 
 ---
 
-## Sprint activo — Safety (rama: `Safety_Inspections`)
+## Sprint Safety — COMPLETADO (rama: `Safety_Inspections`)
 
-### Documento de referencia
-`docs/safety-sprint-linear-tickets.md` — fuente de verdad de los 15 tickets, con alcance exacto, cambios y criterios de aceptación tomados directamente de Linear.
+> Sprint cerrado el 2026-05-26. Todos los tickets en Done. Último commit: `93dfdd3`.
 
-### Mapa SAF ↔ Linear
+### Mapa SAF ↔ Linear — Estado final
 
-| SAF | Linear | Título | Prioridad | Estado |
-|-----|--------|--------|-----------|--------|
-| SAF-001 | CLA-5 | Configuración base config/config.php | Alta | ✅ Done |
-| SAF-002 | CLA-6 | InspectionPolicy — Autorización por recurso | Urgente | ✅ Done |
-| SAF-003 | CLA-7 | Cambio de disco: fotos y PDFs a local privado | Urgente | ✅ Done |
-| SAF-004 | CLA-8 | Rutas web admin para servir archivos Filament | Alta | ⬜ Todo |
-| SAF-005 | CLA-9 | GET inspections/{id} — Detalle completo | Urgente | ✅ Done |
-| SAF-006 | CLA-10 | GET inspections/{id}/pdf — Descarga API | Urgente | ✅ Done |
-| SAF-007 | CLA-11 | GET answers/{id}/photo — Streaming seguro | Urgente | ⬜ Todo |
-| SAF-008 | CLA-12 | StoreInspectionRequest — Extracción validación | Alta | ✅ Done |
-| SAF-009 | CLA-13 | index() — Paginación y filtros | Alta | ✅ Done |
-| SAF-010a | CLA-14 | ComplianceService + refactor command | Media | ✅ Done |
-| SAF-010b | CLA-15 | GET /api/v1/safety/compliance | Baja | ⬜ Todo |
-| SAF-011 | CLA-16 | Factories + HasFactory en modelos Safety | Alta | ✅ Done |
-| SAF-012 | CLA-17 | Feature tests — Auth, Store e Index | Alta | ⬜ Todo |
-| SAF-013 | CLA-18 | Feature tests — Show, PDF y Photo | Alta | ⬜ Todo |
-| SAF-014 | CLA-19 | Tests rutas web admin /safety/files/... | Media | ⬜ Todo |
-| SAF-015 | CLA-50 | Incident type support — schema, checklist UI, worker endpoint, seeder | Alta | ⬜ Todo |
-| SAF-016 | CLA-51 | ProjectController SQL Server → mirror fallback | Media | ⬜ Todo |
-
-### Orden de ejecución (olas)
-
-```
-Ola 1 (sin deps):   SAF-002 → SAF-001 → SAF-008 → SAF-011
-Ola 2:              SAF-003 → SAF-009 → SAF-010a
-Ola 3:              SAF-005 → SAF-006 → SAF-007 → SAF-004 → SAF-012 → SAF-010b
-Ola 4:              SAF-013 → SAF-014
-```
+| SAF | Linear | Título | Commit | Estado |
+|-----|--------|--------|--------|--------|
+| SAF-001 | CLA-5 | Configuración base config/config.php | 7e9958d | ✅ Done |
+| SAF-002 | CLA-6 | InspectionPolicy — Autorización por recurso | 868ff60 | ✅ Done |
+| SAF-003 | CLA-7 | Cambio de disco: fotos y PDFs a local privado | 3bf5408 | ✅ Done |
+| SAF-004 | CLA-8 | Rutas web admin para servir archivos Filament | 1d36496 | ✅ Done |
+| SAF-005 | CLA-9 | GET inspections/{id} — Detalle completo | a9638dc | ✅ Done |
+| SAF-006 | CLA-10 | GET inspections/{id}/pdf — Descarga API | b0a7f40 | ✅ Done |
+| SAF-007 | CLA-11 | GET answers/{id}/photo — Streaming seguro | cf77805 | ✅ Done |
+| SAF-008 | CLA-12 | StoreInspectionRequest — Extracción validación | 4556064 | ✅ Done |
+| SAF-009 | CLA-13 | index() — Paginación y filtros | e28ef5f | ✅ Done |
+| SAF-010a | CLA-14 | ComplianceService + refactor command | 824c4aa | ✅ Done |
+| SAF-010b | CLA-15 | GET /api/v1/safety/compliance | 93dfdd3 | ✅ Done |
+| SAF-011 | CLA-16 | Factories + HasFactory en modelos Safety | 0ada386 | ✅ Done |
+| SAF-012 | CLA-17 | Feature tests — Auth, Store e Index | cffee75 | ✅ Done |
+| SAF-013 | CLA-18 | Feature tests — Show, PDF y Photo | a9638dc/b0a7f40/cf77805 | ✅ Done |
+| SAF-014 | CLA-19 | Tests rutas web admin /safety/files/... | 3f07065 | ✅ Done |
+| SAF-015 | CLA-50 | Incident type support | c1ed9fa | ✅ Done |
+| SAF-016 | CLA-51 | ProjectController SQL Server → mirror fallback | dad5d70 | ✅ Done |
 
 ### Reglas Safety (no negociables)
 
