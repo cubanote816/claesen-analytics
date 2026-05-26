@@ -14,6 +14,8 @@ use Modules\Performance\Models\Mirror\MirrorLabor;
 use Modules\Performance\Models\Mirror\MirrorMaterial;
 use Modules\Performance\Models\Mirror\MirrorCost;
 use Modules\Performance\Models\Mirror\MirrorInvoice;
+use Modules\Performance\Models\Mirror\MirrorEstimateItem;
+use Modules\Performance\Models\Mirror\MirrorRelation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -27,12 +29,14 @@ class SyncMirrorDataService
         Log::info("Starting Mirror Sync Process...");
 
         $this->syncProjects($fullHistory);
+        $this->syncRelations();
         $this->syncEmployees();
         $this->syncLaborTypes();
         $this->syncLabor($fullHistory);
         $this->syncMaterials($fullHistory);
         $this->syncInvoices($fullHistory);
         $this->syncCosts($fullHistory);
+        $this->syncEstimateItems($fullHistory);
 
         Log::info("Mirror Sync Process Completed.");
     }
@@ -204,7 +208,7 @@ class SyncMirrorDataService
                         'project_id' => trim($cost->project_id),
                         'art_id' => $cost->art_id ?? null,
                         'descr' => trim($cost->descr ?? $cost->name ?? ''),
-                        'type' => $cost->price_type, // Using price_type for MAMO mapping
+                        'type' => $cost->price_type,
                         'cost_price' => $cost->costprice,
                         'quantity' => $cost->quantity,
                         'extra_type' => property_exists($cost, 'extra_type') ? trim($cost->extra_type) : null,
@@ -213,5 +217,106 @@ class SyncMirrorDataService
                 );
             }
         });
+    }
+
+    /**
+     * Sync clients from CAFCA's relation table.
+     * Required so simulations can reference a real client without hitting SQL Server.
+     *
+     * AUDITOR GATE: If relation column mapping changes, review this method.
+     */
+    public function syncRelations(): void
+    {
+        DB::connection('sqlsrv')->table('relation')->orderBy('id')->chunk(500, function ($relations) {
+            foreach ($relations as $relation) {
+                MirrorRelation::updateOrCreate(
+                    ['id' => $relation->id],
+                    [
+                        'name'         => trim($relation->name ?? ''),
+                        'zipcode'      => trim($relation->zip ?? $relation->zipcode ?? ''),
+                        'city'         => trim($relation->city ?? ''),
+                        'country'      => trim($relation->country ?? 'BE'),
+                        'language'     => trim($relation->language ?? $relation->lang ?? 'nl'),
+                        'vat_number'   => trim($relation->btwnr ?? $relation->vat ?? ''),
+                        'email'        => trim($relation->email ?? ''),
+                        'phone'        => trim($relation->phone ?? $relation->tel ?? ''),
+                        'contact_name' => trim($relation->contact ?? $relation->contact_name ?? ''),
+                    ]
+                );
+            }
+        });
+    }
+
+    /**
+     * Sync CAFCA offer/estimate lines — the most valuable training data for the AI.
+     *
+     * Joins project_estimates → estimate_item to obtain project_id for every line.
+     * Uses LEFT JOIN so that items without a matching project are still imported.
+     *
+     * AUDITOR GATE: Column names below are inferred from models and code patterns.
+     * Run the following SQL on SQL Server before syncing to production to confirm:
+     *
+     *   SELECT COLUMN_NAME, DATA_TYPE
+     *   FROM INFORMATION_SCHEMA.COLUMNS
+     *   WHERE TABLE_NAME = 'estimate_item'
+     *   ORDER BY ORDINAL_POSITION
+     *
+     * If column names differ, adjust the mapping below and create an adjustment
+     * migration if the mirror table structure also needs to change.
+     */
+    public function syncEstimateItems(bool $fullHistory = false): void
+    {
+        $query = DB::connection('sqlsrv')
+            ->table('estimate_item as ei')
+            ->leftJoin('project_estimates as pe', 'pe.estimate_id', '=', 'ei.estimate_id')
+            ->select([
+                'ei.estimate_id',
+                'pe.project_id',
+                // Sequence / ordering within the estimate
+                DB::raw('COALESCE(ei.seqnr, ei.seq, 0) as sequence'),
+                // Line classification (titulo / subtitulo / partida / tekst)
+                DB::raw('COALESCE(ei.type, ei.line_type, NULL) as line_type'),
+                // Material reference
+                DB::raw('COALESCE(ei.ref, ei.art_ref, NULL) as ref'),
+                // Description (try Dutch first, fall back to generic)
+                DB::raw('COALESCE(ei.descr_l1, ei.descr, ei.name, NULL) as description'),
+                DB::raw('COALESCE(ei.quantity, ei.qty, 0) as quantity'),
+                DB::raw('COALESCE(ei.unit, NULL) as unit'),
+                // Pricing columns
+                DB::raw('COALESCE(ei.costprice, ei.unit_price, 0) as unit_price_material'),
+                DB::raw('COALESCE(ei.labourprice, ei.unit_price_labor, 0) as unit_price_labor'),
+                DB::raw('COALESCE(ei.hours, ei.hours_per_unit, 0) as hours_per_unit'),
+                DB::raw('COALESCE(ei.total_hours, 0) as total_hours'),
+            ]);
+
+        $query->orderBy('ei.estimate_id')->chunk(1000, function ($items) {
+            foreach ($items as $item) {
+                if (empty($item->estimate_id)) {
+                    continue;
+                }
+
+                // Composite natural key: estimate_id + sequence
+                MirrorEstimateItem::updateOrCreate(
+                    [
+                        'estimate_id' => trim($item->estimate_id),
+                        'sequence'    => (int) $item->sequence,
+                    ],
+                    [
+                        'project_id'          => trim($item->project_id ?? ''),
+                        'line_type'           => $item->line_type ? trim($item->line_type) : null,
+                        'ref'                 => $item->ref ? trim($item->ref) : null,
+                        'description'         => $item->description ? trim($item->description) : null,
+                        'quantity'            => (float) ($item->quantity ?? 0),
+                        'unit'                => $item->unit ? trim($item->unit) : null,
+                        'unit_price_material' => (float) ($item->unit_price_material ?? 0),
+                        'unit_price_labor'    => (float) ($item->unit_price_labor ?? 0),
+                        'hours_per_unit'      => (float) ($item->hours_per_unit ?? 0),
+                        'total_hours'         => (float) ($item->total_hours ?? 0),
+                    ]
+                );
+            }
+        });
+
+        Log::info('SyncMirrorDataService: estimate_items sync completed.');
     }
 }

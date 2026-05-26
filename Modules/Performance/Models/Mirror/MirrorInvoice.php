@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MirrorInvoice extends Model
 {
-    protected $table = 'analytics_mirror_invoices';
+    protected $table = 'intelligence_mirror_invoices';
     public $incrementing = false;
     protected $keyType = 'string';
 
