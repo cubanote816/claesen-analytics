@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Safety\Http\Controllers\AuthController;
+use Modules\Safety\Http\Controllers\ComplianceController;
 use Modules\Safety\Http\Controllers\InspectionController;
 use Modules\Safety\Http\Controllers\NotificationController;
 use Modules\Safety\Http\Middleware\EnsureSafetyAccess;
@@ -36,6 +37,7 @@ Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])
     ->prefix('v1/safety')
     ->group(function () {
         Route::get('checklists/active', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'active'])->name('safety.api.checklists.active');
+        Route::get('compliance', [ComplianceController::class, 'index'])->name('safety.api.compliance.index');
         Route::get('projects', [\Modules\Safety\Http\Controllers\ProjectController::class, 'index'])->name('safety.api.projects.index');
         Route::get('workers', [\Modules\Safety\Http\Controllers\WorkerController::class, 'index'])->name('safety.api.workers.index');
 
