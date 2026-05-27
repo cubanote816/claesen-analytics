@@ -12,10 +12,13 @@ class MirrorCost extends Model
     protected $fillable = [
         'id',
         'project_id',
+        'art_id',
+        'descr',
+        'type',
         'cost_price',
         'quantity',
+        'extra_type',
         'date',
-        'cost_descr',
     ];
 
     protected $casts = [

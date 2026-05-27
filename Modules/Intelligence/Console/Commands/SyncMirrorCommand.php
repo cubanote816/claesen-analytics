@@ -9,6 +9,7 @@ class SyncMirrorCommand extends Command
 {
     protected $signature = 'intelligence:sync-mirror
                             {--full      : Sync all historical data (not just last 6 months)}
+                            {--force     : Skip confirmation prompt (use with --full in CI/scripts)}
                             {--materials : Sync the entire material catalog only}
                             {--relations : Sync CAFCA clients/relations only}
                             {--estimates : Sync CAFCA estimate items (offer lines) only}';
@@ -41,7 +42,7 @@ class SyncMirrorCommand extends Command
             return;
         }
 
-        if ($full && !$this->confirm('This will sync the entire historical database. Are you sure?')) {
+        if ($full && !$this->option('force') && !$this->confirm('This will sync the entire historical database. Are you sure?')) {
             return;
         }
 
