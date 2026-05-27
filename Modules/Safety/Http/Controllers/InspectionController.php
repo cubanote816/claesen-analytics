@@ -27,6 +27,19 @@ class InspectionController extends Controller
         $projectId = trim($validated['project_id']);
         $userId = $request->user()->id;
 
+        if (!empty($validated['idempotency_key'])) {
+            $existing = Inspection::where('user_id', $userId)
+                ->where('idempotency_key', $validated['idempotency_key'])
+                ->first();
+
+            if ($existing) {
+                return response()->json([
+                    'message' => $existing->type === 'incident' ? 'Incident succesvol gemeld.' : 'Inspectie succesvol opgeslagen.',
+                    'data'    => ['inspection_id' => $existing->id],
+                ], 200);
+            }
+        }
+
         $inspection = DB::transaction(function () use ($validated, $request, $userId, $projectId) {
             $inspection = Inspection::create([
                 'user_id'            => $userId,
@@ -34,6 +47,7 @@ class InspectionController extends Controller
                 'type'               => $validated['type'],
                 'incident_worker_id' => $validated['incident_worker_id'] ?? null,
                 'project_id'         => $projectId,
+                'idempotency_key'    => $validated['idempotency_key'] ?? null,
                 'completed_at'       => now(),
             ]);
 

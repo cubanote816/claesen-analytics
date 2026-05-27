@@ -196,4 +196,64 @@ class InspectionAuthStoreIndexTest extends TestCase
         $response->assertOk();
         $this->assertLessThanOrEqual(50, $response->json('per_page'));
     }
+
+    // =========================================================================
+    // Idempotency — repeated POST with same idempotency_key
+    // =========================================================================
+
+    public function test_store_with_idempotency_key_creates_once_and_returns_200_on_repeat(): void
+    {
+        [$owner, $token]  = $this->userWithRole('project_manager');
+        $checklist        = Checklist::factory()->create();
+        $question         = Question::factory()->create(['checklist_id' => $checklist->id]);
+        $idempotencyKey   = (string) \Illuminate\Support\Str::uuid();
+
+        $payload = [
+            'idempotency_key' => $idempotencyKey,
+            'checklist_id'    => $checklist->id,
+            'type'            => 'inspection',
+            'project_id'      => 'P-IDEM-001',
+            'present_workers' => [$owner->id],
+            'answers'         => json_encode([[
+                'question_id' => $question->id,
+                'value'       => 'YES',
+            ]]),
+        ];
+
+        // First POST creates the inspection
+        $first = $this->withToken($token)->postJson('/api/v1/safety/inspections', $payload);
+        $first->assertStatus(201);
+        $inspectionId = $first->json('data.inspection_id');
+
+        // Second POST with same key returns 200 with same inspection_id — no new row
+        $second = $this->withToken($token)->postJson('/api/v1/safety/inspections', $payload);
+        $second->assertStatus(200);
+        $this->assertSame($inspectionId, $second->json('data.inspection_id'));
+
+        // Only one inspection row in the DB
+        $this->assertDatabaseCount('safety_inspections', 1);
+    }
+
+    public function test_store_without_idempotency_key_always_creates(): void
+    {
+        [$owner, $token] = $this->userWithRole('project_manager');
+        $checklist       = Checklist::factory()->create();
+        $question        = Question::factory()->create(['checklist_id' => $checklist->id]);
+
+        $payload = [
+            'checklist_id'    => $checklist->id,
+            'type'            => 'inspection',
+            'project_id'      => 'P-NO-IDEM-001',
+            'present_workers' => [$owner->id],
+            'answers'         => json_encode([[
+                'question_id' => $question->id,
+                'value'       => 'YES',
+            ]]),
+        ];
+
+        $this->withToken($token)->postJson('/api/v1/safety/inspections', $payload)->assertStatus(201);
+        $this->withToken($token)->postJson('/api/v1/safety/inspections', $payload)->assertStatus(201);
+
+        $this->assertDatabaseCount('safety_inspections', 2);
+    }
 }

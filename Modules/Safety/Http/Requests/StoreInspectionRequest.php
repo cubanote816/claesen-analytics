@@ -23,6 +23,7 @@ class StoreInspectionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'idempotency_key'       => ['nullable', 'string', 'uuid'],
             'checklist_id'          => ['required', 'exists:safety_checklists,id'],
             'type'                  => ['required', 'in:inspection,incident'],
             'project_id'            => ['required', 'string'],

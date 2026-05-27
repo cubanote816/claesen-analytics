@@ -25,6 +25,7 @@ class Inspection extends Model
         'type',
         'incident_worker_id',
         'project_id',
+        'idempotency_key',
         'completed_at',
         'pdf_path',
     ];
