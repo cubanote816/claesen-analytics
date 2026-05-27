@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->prefix('v1/safety/notifications')->group(func
 Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])
     ->prefix('v1/safety')
     ->group(function () {
+        Route::get('checklists', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'index'])->name('safety.api.checklists.index');
         Route::get('checklists/active', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'active'])->name('safety.api.checklists.active');
         Route::get('compliance', [ComplianceController::class, 'index'])->name('safety.api.compliance.index');
         Route::get('projects', [\Modules\Safety\Http\Controllers\ProjectController::class, 'index'])->name('safety.api.projects.index');
