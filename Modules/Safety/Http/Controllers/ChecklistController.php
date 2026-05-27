@@ -32,6 +32,13 @@ class ChecklistController extends Controller
         return response()->json(['data' => $checklists]);
     }
 
+    public function show(Checklist $checklist): JsonResponse
+    {
+        $checklist->load(['questions' => fn($query) => $query->orderBy('order')]);
+
+        return response()->json(['data' => $checklist]);
+    }
+
     public function active(Request $request): JsonResponse
     {
         $type = $request->query('type', 'inspection');

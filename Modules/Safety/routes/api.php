@@ -38,6 +38,7 @@ Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])
     ->group(function () {
         Route::get('checklists', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'index'])->name('safety.api.checklists.index');
         Route::get('checklists/active', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'active'])->name('safety.api.checklists.active');
+        Route::get('checklists/{checklist}', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'show'])->name('safety.api.checklists.show');
         Route::get('compliance', [ComplianceController::class, 'index'])->name('safety.api.compliance.index');
         Route::get('projects', [\Modules\Safety\Http\Controllers\ProjectController::class, 'index'])->name('safety.api.projects.index');
         Route::get('workers', [\Modules\Safety\Http\Controllers\WorkerController::class, 'index'])->name('safety.api.workers.index');
