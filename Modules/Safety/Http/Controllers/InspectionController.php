@@ -40,7 +40,9 @@ class InspectionController extends Controller
             }
         }
 
-        $inspection = DB::transaction(function () use ($validated, $request, $userId, $projectId) {
+        $photoStorageFailures = [];
+
+        $inspection = DB::transaction(function () use ($validated, $request, $userId, $projectId, &$photoStorageFailures) {
             $inspection = Inspection::create([
                 'user_id'            => $userId,
                 'checklist_id'       => $validated['checklist_id'],
@@ -68,7 +70,13 @@ class InspectionController extends Controller
 
                 if ($request->hasFile("photos.{$questionId}")) {
                     $file = $request->file("photos.{$questionId}");
-                    $photoPath = $file->store("safety-inspections/{$inspection->id}", config('safety.disk'));
+                    try {
+                        $photoPath = $file->store("safety-inspections/{$inspection->id}", config('safety.disk'));
+                    } catch (\Exception $e) {
+                        Log::error("Photo storage failed for inspection {$inspection->id}, question {$questionId}: " . $e->getMessage());
+                        $photoStorageFailures[] = $questionId;
+                        $photoPath = null;
+                    }
                 }
 
                 $inspection->answers()->create([
@@ -113,9 +121,14 @@ class InspectionController extends Controller
             // We don't fail the request if notifications or PDF fails
         }
 
+        $responseData = ['inspection_id' => $inspection->id];
+        if (!empty($photoStorageFailures)) {
+            $responseData['photo_warnings'] = $photoStorageFailures;
+        }
+
         return response()->json([
             'message' => $validated['type'] === 'incident' ? 'Incident succesvol gemeld.' : 'Inspectie succesvol opgeslagen.',
-            'data'    => ['inspection_id' => $inspection->id],
+            'data'    => $responseData,
         ], 201);
     }
 
