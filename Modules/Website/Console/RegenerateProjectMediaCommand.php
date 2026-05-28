@@ -4,6 +4,8 @@ namespace Modules\Website\Console;
 
 use Illuminate\Console\Command;
 use Modules\Website\Models\Project;
+use Spatie\MediaLibrary\Conversions\ConversionCollection;
+use Spatie\MediaLibrary\Conversions\FileManipulator;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class RegenerateProjectMediaCommand extends Command
@@ -41,7 +43,8 @@ class RegenerateProjectMediaCommand extends Command
         $query->chunkById(50, function ($mediaItems) use ($bar, &$failed) {
             foreach ($mediaItems as $media) {
                 try {
-                    $media->model->regenerateMediaConversions($media);
+                    $conversions = ConversionCollection::createForMedia($media);
+                    app(FileManipulator::class)->performConversions($conversions, $media, false);
                 } catch (\Throwable $e) {
                     $failed++;
                     $this->newLine();
