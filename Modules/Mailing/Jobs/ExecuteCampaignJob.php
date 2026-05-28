@@ -10,9 +10,11 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Models\Campaign;
 use Modules\Mailing\Models\CampaignMessage;
+use Modules\Mailing\Models\TrackedLink;
 use Modules\Mailing\Services\SuppressionService;
 use Modules\Prospects\Models\Prospect;
 
@@ -136,13 +138,21 @@ class ExecuteCampaignJob implements ShouldQueue
                     $template->body
                 );
 
+                // Generate a tracking token for this prospect's message batch
+                $trackingToken = Str::random(64);
+
+                // Rewrite clickable links and inject the open-tracking pixel
+                $trackedBody = $this->rewriteLinksForTracking($parsedBody, $campaign, $trackingToken);
+                $pixelUrl    = route('mailing.track.open', $trackingToken) . '.gif';
+                $trackedBody .= "\n" . '<img src="' . $pixelUrl . '" width="1" height="1" alt="" style="display:none;">';
+
                 $errorMessage = null;
                 try {
                     Log::info('ExecuteCampaignJob: sending', [
                         'prospect_id' => $prospect->id,
                         'campaign_id' => $campaign->id,
                     ]);
-                    $isSuccess = $mailer->sendCampaign($prospect, $emails, $parsedSubject, $parsedBody, $unsubscribeUrl);
+                    $isSuccess = $mailer->sendCampaign($prospect, $emails, $parsedSubject, $trackedBody, $unsubscribeUrl);
                 } catch (\Exception $e) {
                     $isSuccess    = false;
                     $errorMessage = $e->getMessage();
@@ -163,9 +173,10 @@ class ExecuteCampaignJob implements ShouldQueue
                         'email'            => $recipientEmail,
                         'template_name'    => $template->name,
                         'subject_snapshot' => $parsedSubject,
-                        'body_snapshot'    => $parsedBody,
+                        'body_snapshot'    => $parsedBody,   // original without tracking
                         'status'           => $isSuccess ? 'sent' : 'failed',
                         'error_message'    => $isSuccess ? null : ($errorMessage ?? __('prospects::resource.notifications.error_mailer')),
+                        'tracking_token'   => $trackingToken,
                         'sent_at'          => now(),
                     ]);
                 }
@@ -186,5 +197,37 @@ class ExecuteCampaignJob implements ShouldQueue
         } finally {
             App::setLocale($originalLocale);
         }
+    }
+
+    /**
+     * Replace every http(s) href in the HTML with a click-tracking redirect URL,
+     * persisting the link hash in mailing_tracked_links for later resolution.
+     * Unsubscribe links are never rewritten.
+     */
+    private function rewriteLinksForTracking(string $html, Campaign $campaign, string $trackingToken): string
+    {
+        return preg_replace_callback(
+            '/\bhref=(["\'])(https?:\/\/[^"\']+)\1/i',
+            function (array $m) use ($campaign, $trackingToken): string {
+                $quote       = $m[1];
+                $originalUrl = $m[2];
+
+                if (str_contains($originalUrl, 'unsubscribe') || str_contains($originalUrl, 'afmelden')) {
+                    return $m[0];
+                }
+
+                $hash = substr(md5((string) $campaign->id . $originalUrl), 0, 12);
+
+                TrackedLink::firstOrCreate(
+                    ['campaign_id' => $campaign->id, 'hash' => $hash],
+                    ['original_url' => $originalUrl, 'created_at' => now()]
+                );
+
+                $trackingUrl = route('mailing.track.click', [$trackingToken, $hash]);
+
+                return "href={$quote}{$trackingUrl}{$quote}";
+            },
+            $html
+        );
     }
 }
