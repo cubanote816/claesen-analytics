@@ -166,6 +166,7 @@ class ProjectResource extends Resource
                                     ->multiple()
                                     ->maxFiles(1)
                                     ->maxSize(20480)
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
@@ -183,6 +184,7 @@ class ProjectResource extends Resource
                                     ->multiple()
                                     ->reorderable()
                                     ->maxSize(20480)
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();

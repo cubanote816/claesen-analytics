@@ -90,10 +90,14 @@ class Project extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('featured_image')
-            ->singleFile();
+        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
-        $this->addMediaCollection('gallery');
+        $this->addMediaCollection('featured_image')
+            ->singleFile()
+            ->acceptsMimeTypes($allowedMimeTypes);
+
+        $this->addMediaCollection('gallery')
+            ->acceptsMimeTypes($allowedMimeTypes);
     }
 
     public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
