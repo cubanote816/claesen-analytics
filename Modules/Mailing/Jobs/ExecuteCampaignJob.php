@@ -10,6 +10,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
+use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Models\Campaign;
 use Modules\Mailing\Models\CampaignMessage;
 use Modules\Mailing\Services\SuppressionService;
@@ -41,6 +42,8 @@ class ExecuteCampaignJob implements ShouldQueue
                 return;
             }
 
+            // Inline dispatch from Filament bulk action — treated as pre-approved.
+            // The full approval workflow (draft→review→approved) is enforced in MAI-018.
             $campaign = Campaign::create([
                 'created_by'       => $this->userId,
                 'template_name'    => $template->name,
@@ -48,7 +51,7 @@ class ExecuteCampaignJob implements ShouldQueue
                 'subject_snapshot' => $template->subject,
                 'body_snapshot'    => $template->body,
                 'total_count'      => $allProspects->count(),
-                'status'           => 'processing',
+                'status'           => CampaignStatus::SENDING,
             ]);
 
             $sentCount    = 0;
@@ -177,7 +180,7 @@ class ExecuteCampaignJob implements ShouldQueue
             }
 
             $campaign->update([
-                'status'      => 'completed',
+                'status'      => CampaignStatus::COMPLETED,
                 'finished_at' => now(),
             ]);
         } finally {
