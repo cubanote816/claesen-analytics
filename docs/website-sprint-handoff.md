@@ -49,10 +49,7 @@ Fix: `cp -r public/v1-media/. dist/v1-media/` (copia el contenido, no el directo
 
 Fix: separar en 3 invocaciones `lftp -c "..."` independientes. El `|| true` y `|| echo` quedan en bash, fuera del bloque LFTP.
 
-**Para completar:** Token necesita scope `workflow`. Ver sección "Bloqueante" en CLAUDE.md.
-
-Commit del fix preparado en `/tmp/website-claesen-v1` (clon temporal).
-Si el clon fue eliminado, el archivo corregido está en `/tmp/deploy_fixed.yml`.
+Commit pusheado al repo frontend: `7b2b28f` (main de `cubanote816/website-claesen-v1`).
 
 ### WEB-005 + WEB-006 / CLA-94 + CLA-95 — `2868699`
 **Archivo:** `Modules/Website/Models/Project.php`

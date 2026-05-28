@@ -204,21 +204,11 @@ Modules/Safety/
 |-----|-----|--------|--------|--------|
 | WEB-001 | CLA-90 | Fix event_type mismatch (update_portfolio → backend_update) | 132f98c | ✅ Done |
 | WEB-002 | CLA-91 | Fix repositorio is_published → published, eliminar filtro published_at | 141c3ab | ✅ Done |
-| WEB-003 | CLA-92 | Fix path duplication v1-media/v1-media en GitHub Actions | ⏳ pendiente push | 🚧 In Progress |
-| WEB-004 | CLA-93 | Fix errores LFTP (sftp:chmod-ignore, \|\| true) | ⏳ pendiente push | 🚧 In Progress |
+| WEB-003 | CLA-92 | Fix path duplication v1-media/v1-media en GitHub Actions | 7b2b28f (frontend) | ✅ Done |
+| WEB-004 | CLA-93 | Fix errores LFTP (sftp:chmod-ignore, \|\| true) | 7b2b28f (frontend) | ✅ Done |
 | WEB-005 | CLA-94 | Add .format('webp') a conversiones gallery y thumb | 2868699 | ✅ Done |
 | WEB-006 | CLA-95 | Servir URLs WebP en atributos API (optimized key en api_gallery) | 2868699 | ✅ Done |
 | WEB-007 | CLA-96 | Backfill: website:regenerate-media command | 90cc01b | ✅ Done |
-
-### Bloqueante pendiente (acción manual requerida)
-
-**CLA-92 + CLA-93**: el `deploy.yml` corregido está en `/tmp/website-claesen-v1` listo para push.
-El token `GITHUB_ACTION_TOKEN` necesita scope `workflow` para modificar `.github/workflows/`.
-
-**Pasos para desbloquear:**
-1. Añadir scope `workflow` al token en GitHub Settings → Developer settings → Personal access tokens
-2. `! cd /tmp/website-claesen-v1 && git push origin main`
-3. Marcar CLA-92 y CLA-93 como Done en Linear
 
 ### Backfill a ejecutar en producción
 
