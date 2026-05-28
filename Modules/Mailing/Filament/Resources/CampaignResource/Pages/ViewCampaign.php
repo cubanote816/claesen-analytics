@@ -7,10 +7,23 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Filament\Resources\CampaignResource;
+use Modules\Mailing\Filament\Widgets\CampaignMetricsWidget;
 
 class ViewCampaign extends ViewRecord
 {
     protected static string $resource = CampaignResource::class;
+
+    protected function getFooterWidgets(): array
+    {
+        return [CampaignMetricsWidget::class];
+    }
+
+    public function getWidgetData(): array
+    {
+        return array_merge(parent::getWidgetData(), [
+            'campaignId' => $this->record->id,
+        ]);
+    }
 
     protected function getHeaderActions(): array
     {

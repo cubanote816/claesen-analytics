@@ -72,4 +72,18 @@ return [
         'approved'         => 'Campaign approved and ready to send.',
         'cancelled'        => 'Campaign has been cancelled.',
     ],
+
+    'metrics' => [
+        'sent'              => 'Sent',
+        'delivered'         => 'Delivered',
+        'opens'             => 'Unique Opens',
+        'opens_note'        => '* Indicative — Apple MPP may inflate this value',
+        'clicks'            => 'Unique Clicks',
+        'hard_bounces'      => 'Hard Bounces',
+        'soft_bounces'      => 'Soft Bounces',
+        'complained'        => 'Spam Complaints',
+        'unsubscribed'      => 'Unsubscribed',
+        'alert_high_bounce' => '⚠ Above 5% threshold',
+        'alert_high_spam'   => '⚠ Above 0.08% threshold',
+    ],
 ];
