@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 class ProspectCampaignMail extends Mailable
@@ -20,6 +21,26 @@ class ProspectCampaignMail extends Mailable
         public string $htmlBody,
         public string $unsubscribeUrl
     ) {}
+
+    /**
+     * Get the message headers (RFC 8058 one-click unsubscribe compliance).
+     */
+    public function headers(): Headers
+    {
+        $oneClickUrl = route('mailing.unsubscribe.oneclick', [
+            'prospect' => $this->prospect->id,
+            'token'    => $this->prospect->getUnsubscribeToken(),
+        ]);
+
+        $mailtoFallback = 'mailto:afmelden@' . config('mailing.unsubscribe_domain', 'claesen-verlichting.be') . '?subject=afmelden';
+
+        return new Headers(
+            text: [
+                'List-Unsubscribe'      => "<{$oneClickUrl}>, <{$mailtoFallback}>",
+                'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+            ],
+        );
+    }
 
     /**
      * Get the message envelope.
