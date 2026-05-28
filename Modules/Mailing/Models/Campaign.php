@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Core\Models\User;
 use Modules\Mailing\Enums\CampaignStatus;
+use Modules\Mailing\Models\EmailTemplate;
 
 class Campaign extends Model
 {
@@ -17,6 +18,7 @@ class Campaign extends Model
 
     protected $fillable = [
         'created_by',
+        'template_id',
         'template_name',
         'description',
         'subject_snapshot',
@@ -48,6 +50,11 @@ class Campaign extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(EmailTemplate::class);
     }
 
     public function approver(): BelongsTo

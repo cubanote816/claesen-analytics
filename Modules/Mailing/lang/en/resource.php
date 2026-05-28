@@ -5,9 +5,15 @@ return [
     'plural_model_label' => 'Email Templates',
     'navigation_group' => 'Growth & Acquisition',
 
+    'campaign' => [
+        'model_label'        => 'Campaign',
+        'plural_model_label' => 'Campaigns',
+    ],
+
     'fields' => [
         'name'             => 'Template Name',
         'subject'          => 'Subject',
+        'subject_helper'   => 'You may override the subject for this campaign.',
         'body'             => 'Body Content',
         'category'         => 'Category',
         'variables'        => 'Variables',
@@ -15,21 +21,41 @@ return [
         'variable_label'   => 'Label',
         'variable_example' => 'Example',
         'version'          => 'Version',
+        'description'      => 'Campaign Name / Description',
+        'template'         => 'Template',
+        'status'           => 'Status',
+        'total_count'      => 'Total',
+        'success_count'    => 'Sent',
+        'failed_count'     => 'Failed',
+        'skipped_count'    => 'Skipped',
+        'started_by'       => 'Started By',
+        'started_at'       => 'Started At',
+        'approved_by'      => 'Approved By',
+        'approved_at'      => 'Approved At',
         'is_active'        => 'Is Active',
         'created_at'       => 'Created At',
         'updated_at'       => 'Updated At',
     ],
 
     'sections' => [
-        'template_details' => 'Template Details',
-        'variables'        => 'Template Variables',
-        'variables_desc'   => 'Define the dynamic variables available in this template (e.g. {{ name }}, {{ regio }}).',
-        'content'          => 'Email Content',
-        'content_desc'     => 'Manage the email subject and message content.',
+        'template_details'  => 'Template Details',
+        'variables'         => 'Template Variables',
+        'variables_desc'    => 'Define the dynamic variables available in this template (e.g. {{ name }}, {{ regio }}).',
+        'content'           => 'Email Content',
+        'content_desc'      => 'Manage the email subject and message content.',
+        'campaign_details'  => 'Campaign Details',
+        'campaign_summary'  => 'Campaign Summary',
+        'approval'          => 'Approval',
+        'snapshot'          => 'Content Snapshot',
+        'snapshot_desc'     => 'Subject and body as used in this campaign.',
     ],
 
     'actions' => [
-        'add_variable' => 'Add variable',
+        'add_variable'   => 'Add variable',
+        'submit_review'  => 'Submit for Review',
+        'approve'        => 'Approve',
+        'cancel'         => 'Cancel Campaign',
+        'cancel_confirm' => 'This action cannot be undone. The campaign will be permanently cancelled.',
     ],
 
     'options' => [
@@ -41,6 +67,9 @@ return [
     ],
 
     'notifications' => [
-        'template_saved' => 'Template successfully saved.',
+        'template_saved'   => 'Template successfully saved.',
+        'submitted_review' => 'Campaign submitted for review.',
+        'approved'         => 'Campaign approved and ready to send.',
+        'cancelled'        => 'Campaign has been cancelled.',
     ],
 ];
