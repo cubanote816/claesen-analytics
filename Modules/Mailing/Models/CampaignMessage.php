@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Modules\Core\Models\User;
+use Modules\Mailing\Enums\MessageEventType;
 use Modules\Prospects\Models\Prospect;
 
 class CampaignMessage extends Model
@@ -63,8 +64,8 @@ class CampaignMessage extends Model
         return $this->hasMany(MessageEvent::class, 'message_id');
     }
 
-    public function hasEvent(string $eventType): bool
+    public function hasEvent(MessageEventType $type): bool
     {
-        return $this->events()->where('event_type', $eventType)->exists();
+        return $this->events()->where('event_type', $type->value)->exists();
     }
 }
