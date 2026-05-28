@@ -99,39 +99,43 @@ class Project extends Model implements HasMedia
     public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
     {
         $this->addMediaConversion('thumb')
+            ->format('webp')
             ->width(300)
-            ->height(200);
-
-        $this->addMediaConversion('gallery')
-            ->width(1200)
-            ->height(800);
+            ->height(200)
+            ->quality(85);
 
         $this->addMediaConversion('optimized')
+            ->format('webp')
             ->width(1200)
             ->height(1200)
-            ->quality(80)
+            ->quality(80);
+
+        $this->addMediaConversion('gallery')
             ->format('webp')
-            ->performOnCollections('featured_image', 'gallery', 'default');
+            ->width(1200)
+            ->height(800)
+            ->quality(80);
     }
 
     public function getApiFeaturedImageUrlAttribute()
     {
-        return $this->getFirstMediaUrl('featured_image');
+        $webp = $this->getFirstMediaUrl('featured_image', 'optimized');
+        return $webp ?: ($this->getFirstMediaUrl('featured_image') ?: null);
     }
 
     public function getApiGalleryAttribute()
     {
         return $this->getMedia('gallery')->map(function ($media) {
             return [
-                'id' => $media->id,
-                'name' => $media->name,
+                'id'        => $media->id,
+                'name'      => $media->name,
                 'file_name' => $media->file_name,
-                'url' => $media->getUrl(),
+                'url'       => $media->getUrl(),
                 'optimized' => $media->getUrl('optimized'),
-                'thumb' => $media->getUrl('thumb'),
-                'gallery' => $media->getUrl('gallery'),
-                'caption' => $media->getCustomProperty('caption'),
-                'alt' => $media->getCustomProperty('alt'),
+                'thumb'     => $media->getUrl('thumb'),
+                'gallery'   => $media->getUrl('gallery'),
+                'caption'   => $media->getCustomProperty('caption'),
+                'alt'       => $media->getCustomProperty('alt'),
             ];
         });
     }
