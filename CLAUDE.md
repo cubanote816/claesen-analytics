@@ -50,7 +50,7 @@
 | **Performance** | Project insights, arquetipos de técnicos, Watchdog (€20k), SWOT | ✅ ~85% |
 | **Prospects** | Sync federaciones deportivas (RBFA, LBFA, AFT), CRM, campañas email | 🚧 ~75% |
 | **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint completado** | ✅ ~100% |
-| **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance — **sprint planificado** | 🚧 ~30% |
+| **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance — **Fase 0+1 completadas** | ✅ ~80% |
 | **Website** | Sitio público, formulario de consulta, galería proyectos — **sprint en curso** | 🚧 ~85% |
 
 ---
@@ -154,14 +154,18 @@ Usar la progresión: ⬜ Todo → 🚧 In Progress → ✅ Done
 # Suite completa
 php artisan test
 
-# Solo módulo Safety (una vez añadido en SAF-011)
+# Solo módulos (añadido en MAI-020)
 php artisan test --testsuite=Modules
 
+# Un módulo concreto
+php artisan test --testsuite=Modules --filter=Mailing
+php artisan test --testsuite=Modules --filter=Safety
+
 # Un archivo concreto
-php artisan test Modules/Safety/Tests/Feature/InspectionTest.php
+php artisan test Modules/Mailing/tests/Feature/CampaignWorkflowTest.php
 ```
 
-`phpunit.xml` actual solo tiene suites `Unit` y `Feature` (raíz). La suite `Modules` se añade en SAF-011.
+`phpunit.xml` tiene suites `Unit`, `Feature` (raíz) y `Modules` (todos los `*Test.php` bajo `Modules/`).
 
 ---
 
@@ -228,9 +232,9 @@ php artisan website:regenerate-media --project=<id>
 
 ---
 
-## Sprint Mailing — EN PLANIFICACIÓN (rama: `feature/mailing-platform`)
+## Sprint Mailing — COMPLETADO Fase 0+1 (rama: `feature/mailing-platform`)
 
-> Plan creado el 2026-05-27. Documento maestro: `docs/Mailing/mailing-platform-master.md`.
+> Fase 0+1 cerradas el 2026-05-29. PR: #1. Documento maestro: `docs/Mailing/mailing-platform-master.md`.
 
 ### Decisiones arquitectónicas fijadas
 
@@ -243,13 +247,68 @@ php artisan website:regenerate-media --project=<id>
 
 | Fase | Tickets | Estado |
 |------|---------|--------|
-| **Fase 0** — Consolidación | MAI-001 a MAI-005 | ⬜ Todo |
-| **Fase 1** — MVP Robusto | MAI-006 a MAI-020 | ⬜ Todo |
+| **Fase 0** — Consolidación | MAI-001 a MAI-005 | ✅ Done |
+| **Fase 1** — MVP Robusto | MAI-006 a MAI-020 | ✅ Done |
 | **Fase 2** — Automatización | MAI-021 a MAI-027 | ⬜ Backlog |
 | **Fase 3** — Inteligencia | MAI-031 a MAI-036 | ⬜ Backlog |
 
-### Cómo reanudar
+### Mapa MAI Fase 0+1 — Estado final
+
+| MAI | CLA | Título | Commit | Estado |
+|-----|-----|--------|--------|--------|
+| MAI-001 | CLA-99 | Campaign model + migración prospect_mail_campaigns → mailing_campaigns | 04950fc | ✅ Done |
+| MAI-002 | CLA-100 | CampaignMessage model + migración prospect_mail_logs → mailing_messages | dd53571 | ✅ Done |
+| MAI-003 | CLA-101 | ExecuteCampaignJob en Modules/Mailing + fix sleep(1) | 2f25fe8 | ✅ Done |
+| MAI-004 | CLA-102 | Filament CampaignResource → Modules/Mailing | 38095b2 | ✅ Done |
+| MAI-005 | CLA-103 | Limpiar Prospects — eliminar modelos/job/resources movidos a Mailing | ffa8bf4 | ✅ Done |
+| MAI-006 | CLA-104 | config/config.php + documento maestro Mailing | bdd80b1 | ✅ Done |
+| MAI-007 | CLA-105 | Migración mailing_suppression_list | f1e3bec | ✅ Done |
+| MAI-008 | CLA-106 | SuppressionEntry model + SuppressionService + check en job | 9094d40 | ✅ Done |
+| MAI-009 | CLA-107 | Migración mailing_message_events | eaa69bd | ✅ Done |
+| MAI-010 | CLA-108 | MessageEvent model + MessageEventType enum | fd28502 | ✅ Done |
+| MAI-011 | CLA-110 | EmailTemplate — category, variables, version | 8360a6c | ✅ Done |
+| MAI-012 | CLA-111 | Campaign workflow — estados, aprobación, transiciones | 3699f04 | ✅ Done |
+| MAI-013 | CLA-112 | Tracking pixel apertura (GET /mailing/track/open/{token}.gif) | 7ac8c27 | ✅ Done |
+| MAI-014 | CLA-113 | Tracking click redirect + mailing_tracked_links | 7ac8c27 | ✅ Done |
+| MAI-015 | CLA-109 | Headers List-Unsubscribe + endpoint one-click RFC 8058 | 742dba0 | ✅ Done |
+| MAI-017 | CLA-114 | CampaignPolicy — RBAC por recurso | 7c79260 | ✅ Done |
+| MAI-018 | CLA-115 | Filament Campaign management (create, review, approve, view) | b6d4914 | ✅ Done |
+| MAI-019 | CLA-116 | Dashboard métricas básicas (StatsOverviewWidget) | 183e2e3 | ✅ Done |
+| MAI-020 | CLA-117 | Feature tests Fase 1 (36 tests) | 3189ccd | ✅ Done |
+
+### Arquitectura Mailing
+
+- **Transporte:** `MarketingCampaignInterface` → `MicrosoftGraphMailer` (intercambiable)
+- **Workflow:** `draft → review → approved → sending → completed|failed|cancelled`
+- **Supresión:** `mailing_suppression_list` — permanente para `hard_bounce` y `spam_complaint`
+- **Tracking:** pixel apertura + click redirect vía `mailing_tracked_links`
+- **Eventos:** `mailing_message_events` append-only (KPI: clics únicos, CTR, CTOR)
+- **Compliance:** `List-Unsubscribe` + `List-Unsubscribe-Post` en todo correo comercial
+
+### Reglas Mailing (no negociables)
+
+- Transporte siempre via `MarketingCampaignInterface` — nunca `MicrosoftGraphMailer` directo
+- `mailing_message_events` es append-only — no se editan eventos registrados
+- `spam_complaint` y `hard_bounce` son permanentes — solo `super_admin` puede levantar
+- Sin aprobación (`status !== approved`) el job lanza `DomainException`
+- Aperturas no son KPI — siempre usar CTR/CTOR como criterio de éxito
+- `List-Unsubscribe` obligatorio en todo correo comercial (exento: transaccional)
+
+### Migraciones a ejecutar en producción
+
+```bash
+php artisan migrate
+# Tablas afectadas:
+# mailing_campaigns (rename + approved_by, approved_at, template_id, status ENUM)
+# mailing_messages (rename + tracking_token)
+# mailing_suppression_list (nueva)
+# mailing_message_events (nueva)
+# mailing_tracked_links (nueva)
+# email_templates (category, variables, version, parent_id, created_by)
+```
+
+### Cómo reanudar (Fase 2)
 
 ```
-"Continuamos con MAI-00X / CLA-Y. Lee CLAUDE.md y docs/Mailing/mailing-platform-master.md."
+"Continuamos con MAI-02X / CLA-Y. Lee CLAUDE.md y docs/Mailing/mailing-platform-master.md."
 ```
