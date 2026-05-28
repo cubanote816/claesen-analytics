@@ -10,16 +10,15 @@ class EloquentProjectRepository implements ProjectRepositoryInterface
 {
     public function getPublishedProjects(int $perPage = 9): LengthAwarePaginator
     {
-        return Project::where('is_published', true)
-            ->where('published_at', '<=', now())
-            ->orderBy('published_at', 'desc')
+        return Project::where('published', true)
+            ->orderBy('order_index')
             ->paginate($perPage);
     }
 
     public function findBySlug(string $slug): ?Project
     {
         return Project::where('slug', $slug)
-            ->where('is_published', true)
+            ->where('published', true)
             ->first();
     }
 }
