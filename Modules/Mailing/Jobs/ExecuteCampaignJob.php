@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 use Modules\Mailing\Models\Campaign;
 use Modules\Mailing\Models\CampaignMessage;
+use Modules\Mailing\Services\SuppressionService;
 use Modules\Prospects\Models\Prospect;
 
 class ExecuteCampaignJob implements ShouldQueue
@@ -25,7 +26,7 @@ class ExecuteCampaignJob implements ShouldQueue
         public ?string $description = null
     ) {}
 
-    public function handle(MarketingCampaignInterface $mailer): void
+    public function handle(MarketingCampaignInterface $mailer, SuppressionService $suppression): void
     {
         $template = \Modules\Mailing\Models\EmailTemplate::findOrFail($this->templateId);
         $originalLocale = App::getLocale();
@@ -70,14 +71,30 @@ class ExecuteCampaignJob implements ShouldQueue
 
                 if ($prospect->unsubscribed_at !== null) {
                     CampaignMessage::create([
-                        'campaign_id'  => $campaign->id,
-                        'prospect_id'  => $prospect->id,
-                        'user_id'      => $this->userId,
-                        'email'        => $primaryEmail,
-                        'status'       => 'skipped',
+                        'campaign_id'   => $campaign->id,
+                        'prospect_id'   => $prospect->id,
+                        'user_id'       => $this->userId,
+                        'email'         => $primaryEmail,
+                        'status'        => 'skipped',
                         'template_name' => $template->name,
                         'error_message' => __('prospects::resource.options.status.unsubscribed'),
-                        'sent_at'      => now(),
+                        'sent_at'       => now(),
+                    ]);
+                    $campaign->increment('skipped_count');
+                    continue;
+                }
+
+                if ($suppression->isSuppressed($primaryEmail)) {
+                    $reason = $suppression->getReason($primaryEmail)?->value ?? 'suppressed';
+                    CampaignMessage::create([
+                        'campaign_id'   => $campaign->id,
+                        'prospect_id'   => $prospect->id,
+                        'user_id'       => $this->userId,
+                        'email'         => $primaryEmail,
+                        'status'        => 'skipped',
+                        'template_name' => $template->name,
+                        'error_message' => 'suppressed: ' . $reason,
+                        'sent_at'       => now(),
                     ]);
                     $campaign->increment('skipped_count');
                     continue;
