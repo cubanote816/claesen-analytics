@@ -3,12 +3,21 @@
 namespace Modules\Mailing\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Mailing\Enums\MessageEventType;
 
 class MessageEvent extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): Factory
+    {
+        return \Modules\Mailing\Database\Factories\MessageEventFactory::new();
+    }
+
     protected $table = 'mailing_message_events';
 
     public const UPDATED_AT = null;

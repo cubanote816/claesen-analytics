@@ -2,6 +2,7 @@
 
 namespace Modules\Mailing\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,11 @@ use Modules\Mailing\Models\EmailTemplate;
 class Campaign extends Model
 {
     use HasFactory;
+
+    protected static function newFactory(): Factory
+    {
+        return \Modules\Mailing\Database\Factories\CampaignFactory::new();
+    }
 
     protected $table = 'mailing_campaigns';
 
