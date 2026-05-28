@@ -33,7 +33,7 @@ class NotifyAstroFrontendJob implements ShouldQueue
             'Accept' => 'application/vnd.github.v3+json',
             'Authorization' => 'token ' . $token,
         ])->post($url, [
-            'event_type' => 'update_portfolio',
+            'event_type' => 'backend_update',
         ]);
 
         if ($response->failed()) {
