@@ -1,7 +1,7 @@
 # Mailing Platform — Documento Maestro
 
 > Fuente de verdad del módulo Mailing. Leer al inicio de cada sesión del sprint.
-> Creado: 2026-05-27 | Rama de trabajo: `feature/mailing-platform`
+> Creado: 2026-05-27 | Fase 0+1 cerradas: 2026-05-29 | PR: #1 | Rama: `feature/mailing-platform`
 
 ---
 
@@ -189,44 +189,44 @@ prospect_mail_logs       →  mailing_messages     (con renaming de columnas)
 
 ## Fases de desarrollo
 
-### Fase 0 — Consolidación arquitectónica
+### Fase 0 — Consolidación arquitectónica ✅ COMPLETADA
 
 **Objetivo:** limpiar deuda técnica antes de construir encima. Cero funcionalidad nueva.
 
-| Ticket | Título | Tipo | Prioridad |
+| Ticket | Título | Commit | Estado |
 |---|---|---|---|
-| MAI-001 | Mover ProspectMailCampaign → Mailing module | Refactor | Urgente |
-| MAI-002 | Mover ProspectMailLog → Mailing module | Refactor | Urgente |
-| MAI-003 | Mover ExecuteMailingCampaignJob → Mailing + fix sleep(1) | Refactor | Urgente |
-| MAI-004 | Mover Filament Campaign resources → Mailing | Refactor | Alta |
-| MAI-005 | Actualizar referencias en Prospects — no romper compatibilidad | Chore | Alta |
+| MAI-001 | Mover ProspectMailCampaign → Mailing module | 04950fc | ✅ Done |
+| MAI-002 | Mover ProspectMailLog → Mailing module | dd53571 | ✅ Done |
+| MAI-003 | Mover ExecuteMailingCampaignJob → Mailing + fix sleep(1) | 2f25fe8 | ✅ Done |
+| MAI-004 | Mover Filament Campaign resources → Mailing | 38095b2 | ✅ Done |
+| MAI-005 | Actualizar referencias en Prospects — no romper compatibilidad | ffa8bf4 | ✅ Done |
 
-### Fase 1 — MVP Robusto
+### Fase 1 — MVP Robusto ✅ COMPLETADA
 
 **Objetivo:** cumplimiento técnico, visibilidad de eventos, supresión automática, aprobación antes de enviar.
 
-| Ticket | Título | Tipo | Prioridad | Depende de |
-|---|---|---|---|---|
-| MAI-006 | config/config.php — constantes del módulo | Chore | Alta | — |
-| MAI-007 | Migración mailing_suppression_list | Migration | Alta | — |
-| MAI-008 | SuppressionList model + SuppressionService | Feature | Alta | MAI-007 |
-| MAI-009 | Migración mailing_message_events | Migration | Alta | Fase 0 |
-| MAI-010 | MessageEvent model + enum MessageEventType | Feature | Alta | MAI-009 |
-| MAI-011 | EmailTemplate — añadir category, variables, version | Feature | Alta | MAI-006 |
-| MAI-012 | Campaign workflow — estados + approved_by | Feature | Alta | Fase 0 |
-| MAI-013 | Tracking pixel apertura (GET /mailing/track/open/{token}) | Feature | Alta | MAI-009, MAI-010 |
-| MAI-014 | Tracking click redirect (GET /mailing/track/click/{token}/{hash}) | Feature | Alta | MAI-009, MAI-010 |
-| MAI-015 | Headers List-Unsubscribe + List-Unsubscribe-Post en ProspectCampaignMail | Compliance | Urgente | — |
-| MAI-016 | NDR/bounce parser command (rebotes automáticos a suppression) | Feature | Media | MAI-008 |
-| MAI-017 | CampaignPolicy — RBAC por recurso | Security | Alta | Fase 0 |
-| MAI-018 | Filament — Campaign management (create, review, approve, view) | Feature | Alta | MAI-012, MAI-017 |
-| MAI-019 | Filament — Dashboard métricas básicas (widget) | Feature | Media | MAI-009, MAI-010 |
-| MAI-020 | Feature tests Fase 1 | Test | Alta | MAI-006 a MAI-018 |
+| Ticket | Título | Commit | Estado |
+|---|---|---|---|
+| MAI-006 | config/config.php — constantes del módulo | bdd80b1 | ✅ Done |
+| MAI-007 | Migración mailing_suppression_list | f1e3bec | ✅ Done |
+| MAI-008 | SuppressionList model + SuppressionService | 9094d40 | ✅ Done |
+| MAI-009 | Migración mailing_message_events | eaa69bd | ✅ Done |
+| MAI-010 | MessageEvent model + enum MessageEventType | fd28502 | ✅ Done |
+| MAI-011 | EmailTemplate — añadir category, variables, version | 8360a6c | ✅ Done |
+| MAI-012 | Campaign workflow — estados + approved_by | 3699f04 | ✅ Done |
+| MAI-013 | Tracking pixel apertura (GET /mailing/track/open/{token}) | 7ac8c27 | ✅ Done |
+| MAI-014 | Tracking click redirect (GET /mailing/track/click/{token}/{hash}) | 7ac8c27 | ✅ Done |
+| MAI-015 | Headers List-Unsubscribe + List-Unsubscribe-Post en ProspectCampaignMail | 742dba0 | ✅ Done |
+| MAI-017 | CampaignPolicy — RBAC por recurso | 7c79260 | ✅ Done |
+| MAI-018 | Filament — Campaign management (create, review, approve, view) | b6d4914 | ✅ Done |
+| MAI-019 | Filament — Dashboard métricas básicas (widget) | 183e2e3 | ✅ Done |
+| MAI-020 | Feature tests Fase 1 | 3189ccd | ✅ Done |
 
 ### Fase 2 — Automatización (backlog)
 
 | Ticket | Título | Tipo |
 |---|---|---|
+| MAI-016 | NDR/bounce parser command (rebotes automáticos a suppression) | Feature |
 | MAI-021 | Segmentos dinámicos basados en eventos | Feature |
 | MAI-022 | A/B testing de asunto (split + winner automático por CTR) | Feature |
 | MAI-023 | Follow-up automático por comportamiento | Feature |
