@@ -4,6 +4,14 @@
 
 ---
 
+## Regla operativa clave
+
+Todo cambio debe pasar por Linear.
+No se edita código sin ticket activo, plan presentado y aprobación explícita.
+Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y `handoff.md`, commit Git dedicado y GO técnico del usuario.
+
+---
+
 ## Proyecto
 
 **CAFCA Intelligence Hub** — sistema de inteligencia de negocio para Claesen Verlichting (BV), contratista belga de iluminación exterior. Conecta el ERP legacy (SQL Server, ReadOnly) con una capa analítica moderna sobre MySQL + IA.
