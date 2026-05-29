@@ -13,6 +13,7 @@ class SafetyDatabaseSeeder extends Seeder
     {
         $this->call([
             SafetyChecklistSeeder::class,
+            IncidentChecklistSeeder::class,
         ]);
     }
 }
