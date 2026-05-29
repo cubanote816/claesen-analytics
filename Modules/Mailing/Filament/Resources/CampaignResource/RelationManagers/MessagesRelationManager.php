@@ -1,20 +1,19 @@
 <?php
 
-namespace Modules\Prospects\Filament\Resources\ProspectMailCampaignResource\RelationManagers;
+namespace Modules\Mailing\Filament\Resources\CampaignResource\RelationManagers;
 
-use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Schemas\Components\Grid;
-use Filament\Support\Icons\Heroicon;
 use Filament\Actions\ViewAction;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 
-class LogsRelationManager extends RelationManager
+class MessagesRelationManager extends RelationManager
 {
-    protected static string $relationship = 'logs';
+    protected static string $relationship = 'messages';
 
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
@@ -40,16 +39,16 @@ class LogsRelationManager extends RelationManager
                     ->label(__('prospects::resource.fields.status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'sent' => 'success',
-                        'failed' => 'danger',
+                        'sent'    => 'success',
+                        'failed'  => 'danger',
                         'skipped' => 'warning',
-                        default => 'gray',
+                        default   => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'sent' => __('prospects::resource.options.status.sent'),
-                        'failed' => __('prospects::resource.options.status.failed'),
+                        'sent'    => __('prospects::resource.options.status.sent'),
+                        'failed'  => __('prospects::resource.options.status.failed'),
                         'skipped' => __('prospects::resource.options.status.skipped'),
-                        default => $state,
+                        default   => $state,
                     }),
 
                 TextColumn::make('sent_at')
@@ -58,12 +57,6 @@ class LogsRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->defaultSort('sent_at', 'desc')
-            ->filters([
-                //
-            ])
-            ->headerActions([
-                //
-            ])
             ->actions([
                 ViewAction::make()
                     ->infolist(fn (Schema $schema) => $schema->components([
@@ -78,10 +71,10 @@ class LogsRelationManager extends RelationManager
                                         ->label(__('prospects::resource.fields.status'))
                                         ->badge()
                                         ->color(fn (string $state): string => match ($state) {
-                                            'sent' => 'success',
-                                            'failed' => 'danger',
+                                            'sent'    => 'success',
+                                            'failed'  => 'danger',
                                             'skipped' => 'warning',
-                                            default => 'gray',
+                                            default   => 'gray',
                                         }),
                                     TextEntry::make('sent_at')
                                         ->label(__('prospects::resource.fields.sent_at'))
@@ -103,9 +96,6 @@ class LogsRelationManager extends RelationManager
                                     ->html(),
                             ]),
                     ])),
-            ])
-            ->bulkActions([
-                //
             ]);
     }
 }

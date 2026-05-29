@@ -11,7 +11,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Actions\BulkAction;
-use Modules\Prospects\Jobs\ExecuteMailingCampaignJob;
+use Modules\Mailing\Jobs\ExecuteCampaignJob;
 use Illuminate\Database\Eloquent\Collection;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -533,7 +533,7 @@ class ProspectResource extends Resource
                                 'description' => $data['description'],
                             ]);
 
-                            ExecuteMailingCampaignJob::dispatch(
+                            ExecuteCampaignJob::dispatch(
                                 $records->pluck('id')->toArray(), 
                                 $data['template_id'], 
                                 $userId,

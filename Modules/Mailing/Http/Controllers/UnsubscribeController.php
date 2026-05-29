@@ -95,6 +95,23 @@ class UnsubscribeController extends Controller
     }
 
     /**
+     * RFC 8058 one-click unsubscribe — called by email clients automatically.
+     * Accepts POST without a form, returns JSON 200. No CSRF required (API route).
+     */
+    public function oneClick(Prospect $prospect, string $token)
+    {
+        if ($prospect->getUnsubscribeToken() !== $token) {
+            return response()->json(['message' => 'Invalid token.'], 403);
+        }
+
+        if (! $prospect->unsubscribed_at) {
+            $prospect->update(['unsubscribed_at' => now()]);
+        }
+
+        return response()->json(['message' => 'Unsubscribed.'], 200);
+    }
+
+    /**
      * Verify the unsubscribe token.
      */
     protected function verifyToken(Prospect $prospect, string $token): void
