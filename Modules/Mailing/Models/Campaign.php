@@ -37,16 +37,22 @@ class Campaign extends Model
         'approved_by',
         'approved_at',
         'finished_at',
+        'audience_type',
+        'audience_filters',
+        'scheduled_at',
+        'timezone',
     ];
 
     protected $casts = [
-        'status'      => CampaignStatus::class,
-        'approved_at' => 'datetime',
-        'finished_at' => 'datetime',
-        'total_count'   => 'integer',
-        'sent_count'    => 'integer',
-        'failed_count'  => 'integer',
-        'skipped_count' => 'integer',
+        'status'           => CampaignStatus::class,
+        'approved_at'      => 'datetime',
+        'finished_at'      => 'datetime',
+        'scheduled_at'     => 'datetime',
+        'audience_filters' => 'array',
+        'total_count'      => 'integer',
+        'sent_count'       => 'integer',
+        'failed_count'     => 'integer',
+        'skipped_count'    => 'integer',
     ];
 
     // -------------------------------------------------------------------------
