@@ -55,7 +55,9 @@ class MailingServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            \Modules\Mailing\Console\ParseNdrBouncesCommand::class,
+        ]);
     }
 
     /**
@@ -63,10 +65,10 @@ class MailingServiceProvider extends ServiceProvider
      */
     protected function registerCommandSchedules(): void
     {
-        // $this->app->booted(function () {
-        //     $schedule = $this->app->make(Schedule::class);
-        //     $schedule->command('inspire')->hourly();
-        // });
+        $this->app->booted(function () {
+            $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
+            $schedule->command('mailing:parse-bounces')->everyThirtyMinutes();
+        });
     }
 
     /**

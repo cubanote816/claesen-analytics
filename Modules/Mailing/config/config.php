@@ -46,4 +46,18 @@ return [
     'from_address' => env('MAIL_FROM_ADDRESS', 'info@claesen-verlichting.be'),
     'from_name'    => env('MAIL_FROM_NAME', 'Claesen Verlichting'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | NDR bounce inbox
+    |--------------------------------------------------------------------------
+    | Dedicated mailbox that receives Non-Delivery Reports (NDRs).
+    | The Graph app must have Mail.Read permission for this mailbox.
+    | Processed messages are marked as read (not deleted).
+    |
+    | MAI-029: add X-Mailing-Token header to outgoing emails for exact NDR
+    | correlation with mailing_messages. Until then, correlation is by email only.
+    */
+    'ndr_inbox'      => env('MAILING_NDR_INBOX', 'bounces@claesen-verlichting.be'),
+    'ndr_batch_size' => env('MAILING_NDR_BATCH_SIZE', 50),
+
 ];
