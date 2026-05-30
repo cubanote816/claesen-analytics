@@ -2,12 +2,21 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Mailing\Http\Controllers\MailingController;
+use Modules\Mailing\Http\Controllers\PreferencesController;
 use Modules\Mailing\Http\Controllers\TrackingController;
 use Modules\Mailing\Http\Controllers\UnsubscribeController;
 
 // Public Unsubscribe Routes
 Route::get('prospects/unsubscribe/{prospect}/{token}', [UnsubscribeController::class, 'show'])->name('prospects.unsubscribe');
 Route::post('prospects/unsubscribe/{prospect}/{token}', [UnsubscribeController::class, 'store'])->name('prospects.unsubscribe.confirm');
+
+// MAI-025 — Category preference management (token-protected, throttled)
+Route::middleware(['throttle:10,1'])->group(function () {
+    Route::get('mailing/preferences/{prospect}/{token}', [PreferencesController::class, 'show'])
+        ->name('mailing.preferences.show');
+    Route::post('mailing/preferences/{prospect}/{token}', [PreferencesController::class, 'update'])
+        ->name('mailing.preferences.update');
+});
 
 // MAI-013 — Open pixel (token may arrive with .gif suffix)
 Route::get('mailing/track/open/{token}', [TrackingController::class, 'openPixel'])

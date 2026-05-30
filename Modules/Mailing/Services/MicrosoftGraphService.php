@@ -54,6 +54,74 @@ class MicrosoftGraphService
     }
 
     /**
+     * Fetch unread messages from a mailbox inbox.
+     * Throws RuntimeException on 403/404 so the caller can log and abort cleanly.
+     *
+     * @return array<int, array{id: string, subject: string, body: array, receivedDateTime: string}>
+     */
+    public function fetchUnreadMessages(string $mailbox, int $limit = 50): array
+    {
+        $token = $this->getAccessToken();
+
+        if (! $token) {
+            throw new \RuntimeException('Microsoft Graph: failed to obtain access token for NDR fetch.');
+        }
+
+        $url = "{$this->baseUrl}/users/{$mailbox}/mailFolders/inbox/messages"
+             . '?$filter=isRead eq false'
+             . "&\$top={$limit}"
+             . '&$select=id,subject,body,from,receivedDateTime';
+
+        $response = Http::withToken($token)->timeout(30)->get($url);
+
+        if ($response->status() === 403) {
+            throw new \RuntimeException(
+                "Microsoft Graph: 403 Forbidden reading mailbox {$mailbox}. "
+                . 'Grant Mail.Read application permission for this mailbox.'
+            );
+        }
+
+        if ($response->status() === 404) {
+            throw new \RuntimeException(
+                "Microsoft Graph: 404 Not Found for mailbox {$mailbox}. Verify the mailbox exists."
+            );
+        }
+
+        if ($response->failed()) {
+            throw new \RuntimeException(
+                "Microsoft Graph: failed to fetch messages from {$mailbox}. "
+                . "Status: {$response->status()}. Body: {$response->body()}"
+            );
+        }
+
+        return $response->json('value', []);
+    }
+
+    /**
+     * Mark a single message as read (non-destructive; preserves the NDR for audit).
+     */
+    public function markMessageRead(string $mailbox, string $messageId): void
+    {
+        $token = $this->getAccessToken();
+
+        if (! $token) {
+            Log::warning("Microsoft Graph: cannot mark message {$messageId} as read — no token.");
+            return;
+        }
+
+        $response = Http::withToken($token)
+            ->timeout(15)
+            ->patch("{$this->baseUrl}/users/{$mailbox}/messages/{$messageId}", ['isRead' => true]);
+
+        if ($response->failed()) {
+            Log::warning(
+                "Microsoft Graph: failed to mark message {$messageId} as read. "
+                . "Status: {$response->status()}"
+            );
+        }
+    }
+
+    /**
      * Send an email via Microsoft Graph API.
      */
     public function sendMail(string $senderEmail, array $payload): bool

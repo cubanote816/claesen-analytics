@@ -12,7 +12,7 @@ class ListUnsubscribeTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function makeMailable(): ProspectCampaignMail
+    private function makeMailable(?string $trackingToken = null): ProspectCampaignMail
     {
         $prospect = Mockery::mock(Prospect::class);
         $prospect->id = 42;
@@ -24,6 +24,7 @@ class ListUnsubscribeTest extends TestCase
             dynamicSubject: 'Test Subject',
             htmlBody: '<p>Test body</p>',
             unsubscribeUrl: 'https://claesen-verlichting.be/afmelden/?p=42&t=test-token-abc123&l=nl',
+            trackingToken: $trackingToken,
         );
     }
 
@@ -54,6 +55,35 @@ class ListUnsubscribeTest extends TestCase
         $textHeaders = $headers->text ?? [];
 
         $this->assertStringContainsString('claesen-verlichting.be', $textHeaders['List-Unsubscribe']);
+    }
+
+    // -------------------------------------------------------------------------
+    // X-Mailing-Token header (MAI-029)
+    // -------------------------------------------------------------------------
+
+    public function test_mailable_includes_x_mailing_token_when_provided(): void
+    {
+        $token   = str_repeat('x', 64);
+        $headers = $this->makeMailable($token)->headers();
+
+        $this->assertArrayHasKey('X-Mailing-Token', $headers->text ?? []);
+        $this->assertSame($token, $headers->text['X-Mailing-Token']);
+    }
+
+    public function test_mailable_omits_x_mailing_token_when_null(): void
+    {
+        $headers = $this->makeMailable(null)->headers();
+
+        $this->assertArrayNotHasKey('X-Mailing-Token', $headers->text ?? []);
+    }
+
+    public function test_x_mailing_token_does_not_affect_list_unsubscribe_headers(): void
+    {
+        $token   = str_repeat('y', 64);
+        $headers = $this->makeMailable($token)->headers();
+
+        $this->assertArrayHasKey('List-Unsubscribe', $headers->text);
+        $this->assertArrayHasKey('List-Unsubscribe-Post', $headers->text);
     }
 
     // -------------------------------------------------------------------------

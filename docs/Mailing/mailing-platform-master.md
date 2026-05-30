@@ -1,7 +1,7 @@
 # Mailing Platform — Documento Maestro
 
 > Fuente de verdad del módulo Mailing. Leer al inicio de cada sesión del sprint.
-> Creado: 2026-05-27 | Fase 0+1 cerradas: 2026-05-29 | PR: #1 | Rama: `feature/mailing-platform`
+> Creado: 2026-05-27 | Fase 0+1 cerradas: 2026-05-29 | PR #1 | Fase 2 cerrada: 2026-05-30 | Rama: `feature/mailing`
 
 ---
 
@@ -222,18 +222,46 @@ prospect_mail_logs       →  mailing_messages     (con renaming de columnas)
 | MAI-019 | Filament — Dashboard métricas básicas (widget) | 183e2e3 | ✅ Done |
 | MAI-020 | Feature tests Fase 1 | 3189ccd | ✅ Done |
 
-### Fase 2 — Automatización (backlog)
+### Fase 2 — Automatización ✅ COMPLETADA (2026-05-30)
 
-| Ticket | Título | Tipo |
+**Rama:** `feature/mailing` | **Objetivo:** automatizar el ciclo completo de campaña con visibilidad operativa.
+
+| Ticket | Título | Commit | Estado |
+|---|---|---|---|
+| MAI-028 | Schema foundation for Phase 2 (audience_type, scheduled_at, contact_preferences) | c689e38 | ✅ Done |
+| MAI-029 | X-Mailing-Token header — correlación NDR exacta | 4326a82 | ✅ Done |
+| MAI-016 | NDR bounce parser — inbox dedicado + command periódico | 48a3e45 | ✅ Done |
+| MAI-021 | Segmentos dinámicos basados en eventos (SegmentResolverService) | ab724bf | ✅ Done |
+| MAI-024 | Programación por franja horaria Europe/Brussels (mailing:dispatch-scheduled) | 7a30112 | ✅ Done |
+| MAI-025 | Página de preferencias de categoría (token-protegida, throttled) | 7b00685 | ✅ Done |
+| MAI-022 | A/B testing de asunto — split + winner automático por CTR | 79270f7 | ✅ Done |
+| MAI-023 | Follow-up automático por comportamiento (mailing:dispatch-followups) | 5699c75 | ✅ Done |
+| MAI-027 | Alertas de entregabilidad — hard bounce > 5%, spam > 0.08% | 3b20265 | ✅ Done |
+| MAI-026 | Webhook handler para ESP externo | — | ⏸ BLOQUEADO: pendiente decisión gerencia sobre ESP externo (Resend/Postmark/Mailgun). `MarketingCampaignInterface` ya está preparado para el cambio. |
+
+#### Commands programados (Fase 2)
+
+| Command | Schedule | Función |
 |---|---|---|
-| MAI-016 | NDR/bounce parser command (rebotes automáticos a suppression) | Feature |
-| MAI-021 | Segmentos dinámicos basados en eventos | Feature |
-| MAI-022 | A/B testing de asunto (split + winner automático por CTR) | Feature |
-| MAI-023 | Follow-up automático por comportamiento | Feature |
-| MAI-024 | Programación por franja horaria (Europe/Brussels) | Feature |
-| MAI-025 | Página de preferencias de categoría | Feature |
-| MAI-026 | Webhook handler para ESP externo (cuando se adopte) | Feature |
-| MAI-027 | Alertas de entregabilidad (queja > 0.08%, rebote > 5%) | Feature |
+| `mailing:parse-bounces` | `everyThirtyMinutes` | Parse NDR inbox, actualiza suppression list |
+| `mailing:dispatch-scheduled` | `everyMinute` (withoutOverlapping) | Despacha campañas aprobadas con scheduled_at vencido |
+| `mailing:ab-select-winner` | `everyFiveMinutes` (withoutOverlapping) | Selecciona ganador A/B por CTR y despacha winner send |
+| `mailing:dispatch-followups` | `everyFiveMinutes` (withoutOverlapping) | Despacha follow-ups cuyo delay ha pasado |
+| `mailing:check-deliverability-alerts` | `everyThirtyMinutes` (withoutOverlapping) | Detecta tasas de rebote/queja por encima del umbral |
+
+#### Deuda técnica conocida (no bloqueante para PR)
+
+- **Enforcement de preferencias de categoría en envío:** `PreferenceService` existe y gestiona preferencias, pero `ExecuteCampaignJob` no las consulta antes de enviar. El enforcement está pendiente — no implementado en MAI-025 ni MAI-023 por diseño (fuera del alcance del MVP).
+- **Follow-up ciclos A → B → A:** solo se valida auto-referencia directa (`id === id`). Un ciclo de dos pasos no está bloqueado por código; queda en manos del operador.
+- **A/B en SENDING sin substatus:** una campaña en estado SENDING esperando winner A/B no se distingue visualmente de una en SENDING enviando. Sin substatus en la UI por ahora.
+
+### Cómo reanudar (Fase 3)
+
+```
+"Continuamos con MAI-031. Lee CLAUDE.md y docs/Mailing/mailing-platform-master.md."
+```
+
+> Prerequisito para Fase 3: el sistema debe llevar al menos 4–6 semanas en producción con datos reales de campañas. Sin historial, el engagement scoring y las predicciones no tienen señal.
 
 ### Fase 3 — Inteligencia Comercial (backlog)
 

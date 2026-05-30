@@ -46,4 +46,76 @@ return [
     'from_address' => env('MAIL_FROM_ADDRESS', 'info@claesen-verlichting.be'),
     'from_name'    => env('MAIL_FROM_NAME', 'Claesen Verlichting'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | NDR bounce inbox
+    |--------------------------------------------------------------------------
+    | Dedicated mailbox that receives Non-Delivery Reports (NDRs).
+    | The Graph app must have Mail.Read permission for this mailbox.
+    | Processed messages are marked as read (not deleted).
+    |
+    | MAI-029: add X-Mailing-Token header to outgoing emails for exact NDR
+    | correlation with mailing_messages. Until then, correlation is by email only.
+    */
+    'ndr_inbox'      => env('MAILING_NDR_INBOX', 'bounces@claesen-verlichting.be'),
+    'ndr_batch_size' => env('MAILING_NDR_BATCH_SIZE', 50),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Contact preference categories
+    |--------------------------------------------------------------------------
+    | Defines the categories a prospect can opt out of individually.
+    | Keys are persisted in mailing_contact_preferences.category.
+    | Labels and descriptions are locale-keyed for the preferences page.
+    */
+    /*
+    |--------------------------------------------------------------------------
+    | A/B test minimum sample size
+    |--------------------------------------------------------------------------
+    | Minimum number of sent messages per variant before selecting a winner.
+    | If below this, a warning is logged but selection proceeds (MVP behaviour).
+    */
+    'ab_min_sample' => 5,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Deliverability alert window
+    |--------------------------------------------------------------------------
+    | How many days back to evaluate completed campaigns for threshold violations.
+    */
+    'alert_check_days' => 7,
+
+    'preference_categories' => [
+        'newsletter' => [
+            'label' => [
+                'nl' => 'Nieuwsbrief',
+                'en' => 'Newsletter',
+            ],
+            'description' => [
+                'nl' => 'Nieuws over onze projecten, producten en diensten.',
+                'en' => 'News about our projects, products and services.',
+            ],
+        ],
+        'offers' => [
+            'label' => [
+                'nl' => 'Aanbiedingen',
+                'en' => 'Offers',
+            ],
+            'description' => [
+                'nl' => 'Speciale aanbiedingen en seizoenspromoties.',
+                'en' => 'Special offers and seasonal promotions.',
+            ],
+        ],
+        'events' => [
+            'label' => [
+                'nl' => 'Evenementen',
+                'en' => 'Events',
+            ],
+            'description' => [
+                'nl' => 'Uitnodigingen voor beurzen en evenementen.',
+                'en' => 'Invitations to trade fairs and events.',
+            ],
+        ],
+    ],
+
 ];
