@@ -35,6 +35,7 @@ class CampaignMessage extends Model
         'error_message',
         'sent_at',
         'tracking_token',
+        'ab_variant',
     ];
 
     protected $casts = [

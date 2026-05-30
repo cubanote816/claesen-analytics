@@ -25,12 +25,13 @@ class ExecuteCampaignJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * @param  array    $prospectIds  Used only when $campaignId is null (inline path).
-     * @param  int      $templateId   Used only when $campaignId is null (inline path).
-     * @param  int|null $userId       Optional actor; used for audit in both paths.
-     * @param  string|null $description  Inline path only.
-     * @param  int|null $campaignId   When set: execute an existing pre-approved Campaign record.
-     *                                $prospectIds and $templateId are ignored.
+     * @param  array       $prospectIds   Used only when $campaignId is null (inline path).
+     * @param  int         $templateId    Used only when $campaignId is null (inline path).
+     * @param  int|null    $userId        Optional actor; used for audit in both paths.
+     * @param  string|null $description   Inline path only.
+     * @param  int|null    $campaignId    When set: execute an existing Campaign record.
+     *                                    $prospectIds and $templateId are ignored.
+     * @param  bool        $isWinnerSend  A/B: dispatch remaining with the winning variant subject.
      */
     public function __construct(
         public array $prospectIds = [],
@@ -38,6 +39,7 @@ class ExecuteCampaignJob implements ShouldQueue
         public ?int $userId = null,
         public ?string $description = null,
         public ?int $campaignId = null,
+        public bool $isWinnerSend = false,
     ) {}
 
     public function handle(MarketingCampaignInterface $mailer, SuppressionService $suppression): void
@@ -55,10 +57,6 @@ class ExecuteCampaignJob implements ShouldQueue
         }
     }
 
-    /**
-     * Called by the queue system when the job throws and exhausts retries.
-     * Sets the campaign to FAILED so it is visible in the dashboard.
-     */
     public function failed(\Throwable $exception): void
     {
         if ($this->campaignId === null) {
@@ -71,8 +69,9 @@ class ExecuteCampaignJob implements ShouldQueue
 
         if ($updated) {
             Log::error('ExecuteCampaignJob: job failed — campaign set to failed', [
-                'campaign_id' => $this->campaignId,
-                'error'       => $exception->getMessage(),
+                'campaign_id'    => $this->campaignId,
+                'is_winner_send' => $this->isWinnerSend,
+                'error'          => $exception->getMessage(),
             ]);
         }
     }
@@ -91,16 +90,23 @@ class ExecuteCampaignJob implements ShouldQueue
             );
         }
 
-        // If still APPROVED here (direct dispatch bypassing command), do atomic claim.
+        if ($campaign->isAbTest()) {
+            if ($this->isWinnerSend) {
+                $this->executeAbWinnerSend($campaign, $mailer, $suppression);
+            } else {
+                $this->executeAbTestFirstPass($campaign, $mailer, $suppression);
+            }
+            return;
+        }
+
+        // Normal scheduled campaign (no A/B)
         if ($campaign->status === CampaignStatus::APPROVED) {
             $claimed = Campaign::where('id', $campaign->id)
                 ->where('status', CampaignStatus::APPROVED->value)
                 ->update(['status' => CampaignStatus::SENDING->value]);
 
             if ($claimed === 0) {
-                Log::info('ExecuteCampaignJob: campaign claimed by another process — aborting.', [
-                    'campaign_id' => $campaign->id,
-                ]);
+                Log::info('ExecuteCampaignJob: campaign already claimed — aborting.', ['campaign_id' => $campaign->id]);
                 return;
             }
         }
@@ -116,13 +122,141 @@ class ExecuteCampaignJob implements ShouldQueue
             return;
         }
 
-        $allProspects = Prospect::with(['locations', 'region'])
-            ->whereIn('id', $prospectIds)
-            ->get();
+        $prospects = Prospect::with(['locations', 'region'])->whereIn('id', $prospectIds)->get();
+        $campaign->update(['total_count' => $prospects->count()]);
 
-        $campaign->update(['total_count' => $allProspects->count()]);
+        $this->sendToProspects($campaign, $template, $prospects, $mailer, $suppression,
+            subjectOverride: $campaign->subject_snapshot);
+    }
 
-        $this->sendToProspects($campaign, $template, $allProspects, $mailer, $suppression);
+    // -------------------------------------------------------------------------
+    // A/B test — first pass
+    // -------------------------------------------------------------------------
+
+    private function executeAbTestFirstPass(Campaign $campaign, MarketingCampaignInterface $mailer, SuppressionService $suppression): void
+    {
+        // Claim status APPROVED → SENDING
+        if ($campaign->status === CampaignStatus::APPROVED) {
+            $claimed = Campaign::where('id', $campaign->id)
+                ->where('status', CampaignStatus::APPROVED->value)
+                ->update(['status' => CampaignStatus::SENDING->value]);
+
+            if ($claimed === 0) {
+                Log::info('ExecuteCampaignJob: A/B campaign already claimed — aborting first pass.', ['campaign_id' => $campaign->id]);
+                return;
+            }
+        }
+
+        // Atomic claim of the A/B test start (idempotency guard against retries)
+        $claimedAb = Campaign::where('id', $campaign->id)
+            ->whereNull('ab_test_started_at')
+            ->update(['ab_test_started_at' => now()]);
+
+        if ($claimedAb === 0) {
+            Log::info('ExecuteCampaignJob: A/B test already started — skipping first pass.', ['campaign_id' => $campaign->id]);
+            return;
+        }
+
+        $splitPercent = (int) ($campaign->ab_split_percent ?? 10);
+        if ($splitPercent < 1 || $splitPercent > 50) {
+            throw new \InvalidArgumentException(
+                "Campaign #{$campaign->id}: ab_split_percent must be between 1 and 50. Got: {$splitPercent}."
+            );
+        }
+
+        $template   = EmailTemplate::findOrFail($campaign->template_id);
+        $fullIds    = $campaign->resolveAudience();
+        $totalCount = count($fullIds);
+
+        $campaign->update(['total_count' => $totalCount]);
+
+        // Audience too small — fall back to normal send with variant A subject
+        if ($totalCount < 2) {
+            Log::warning('ExecuteCampaignJob: audience too small for A/B test — falling back to normal send.', [
+                'campaign_id' => $campaign->id,
+                'count'       => $totalCount,
+            ]);
+            $prospects = Prospect::with(['locations', 'region'])->whereIn('id', $fullIds)->get();
+            $this->sendToProspects($campaign, $template, $prospects, $mailer, $suppression,
+                subjectOverride: $campaign->subject_snapshot);
+            return;
+        }
+
+        $testSize = max(1, (int) ceil($totalCount * $splitPercent / 100));
+        if ($testSize * 2 > $totalCount) {
+            $testSize = (int) floor($totalCount / 2);
+        }
+
+        $groupAIds = array_slice($fullIds, 0, $testSize);
+        $groupBIds = array_slice($fullIds, $testSize, $testSize);
+
+        if (empty($groupAIds) || empty($groupBIds)) {
+            throw new \DomainException(
+                "Campaign #{$campaign->id}: A/B test group is empty after split (total: {$totalCount}, split: {$splitPercent}%)."
+            );
+        }
+
+        $prospectsA = Prospect::with(['locations', 'region'])->whereIn('id', $groupAIds)->get();
+        $prospectsB = Prospect::with(['locations', 'region'])->whereIn('id', $groupBIds)->get();
+
+        // Variant A: subject_snapshot (does NOT complete campaign)
+        $this->sendToProspects($campaign, $template, $prospectsA, $mailer, $suppression,
+            abVariant: 'A', subjectOverride: $campaign->subject_snapshot, completeAfter: false);
+
+        // Variant B: ab_subject_b (does NOT complete campaign)
+        $this->sendToProspects($campaign, $template, $prospectsB, $mailer, $suppression,
+            abVariant: 'B', subjectOverride: $campaign->ab_subject_b, completeAfter: false);
+
+        Log::info('ExecuteCampaignJob: A/B test first pass complete — campaign awaiting winner selection.', [
+            'campaign_id'  => $campaign->id,
+            'group_a_size' => count($groupAIds),
+            'group_b_size' => count($groupBIds),
+            'remaining'    => $totalCount - count($groupAIds) - count($groupBIds),
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // A/B test — winner send (second pass)
+    // -------------------------------------------------------------------------
+
+    private function executeAbWinnerSend(Campaign $campaign, MarketingCampaignInterface $mailer, SuppressionService $suppression): void
+    {
+        if ($campaign->ab_winner_variant === null) {
+            throw new \DomainException(
+                "Campaign #{$campaign->id}: winner send requested but ab_winner_variant is not set."
+            );
+        }
+
+        $template = EmailTemplate::findOrFail($campaign->template_id);
+
+        $winnerSubject = $campaign->ab_winner_variant === 'A'
+            ? $campaign->subject_snapshot
+            : $campaign->ab_subject_b;
+
+        // Remaining = full audience − already sent (naturally idempotent)
+        $alreadySentIds = CampaignMessage::where('campaign_id', $campaign->id)
+            ->whereNotNull('prospect_id')
+            ->pluck('prospect_id')
+            ->toArray();
+
+        $fullAudience = $campaign->resolveAudience();
+        $remainingIds = array_values(array_diff($fullAudience, $alreadySentIds));
+
+        if (empty($remainingIds)) {
+            Log::info('ExecuteCampaignJob: no remaining prospects for winner send — completing campaign.', [
+                'campaign_id' => $campaign->id,
+            ]);
+            Campaign::where('id', $campaign->id)->update([
+                'status'      => CampaignStatus::COMPLETED->value,
+                'finished_at' => now(),
+            ]);
+            return;
+        }
+
+        $remaining = Prospect::with(['locations', 'region'])->whereIn('id', $remainingIds)->get();
+
+        $this->sendToProspects($campaign, $template, $remaining, $mailer, $suppression,
+            abVariant: null, subjectOverride: $winnerSubject);
     }
 
     // -------------------------------------------------------------------------
@@ -142,7 +276,6 @@ class ExecuteCampaignJob implements ShouldQueue
             return;
         }
 
-        // Inline dispatch from Filament bulk action — treated as pre-approved.
         $campaign = Campaign::create([
             'created_by'       => $this->userId,
             'template_name'    => $template->name,
@@ -166,10 +299,14 @@ class ExecuteCampaignJob implements ShouldQueue
         Collection $allProspects,
         MarketingCampaignInterface $mailer,
         SuppressionService $suppression,
+        ?string $abVariant = null,
+        ?string $subjectOverride = null,
+        bool $completeAfter = true,
     ): void {
         $sentCount    = 0;
         $failedCount  = 0;
-        $skippedCount = 0;
+
+        $subjectTemplate = $subjectOverride ?? $template->subject;
 
         foreach ($allProspects as $prospect) {
             App::setLocale($prospect->language ?? 'nl');
@@ -194,6 +331,7 @@ class ExecuteCampaignJob implements ShouldQueue
                     'status'        => 'skipped',
                     'template_name' => $template->name,
                     'error_message' => __('prospects::resource.options.status.unsubscribed'),
+                    'ab_variant'    => $abVariant,
                     'sent_at'       => now(),
                 ]);
                 $campaign->increment('skipped_count');
@@ -210,6 +348,7 @@ class ExecuteCampaignJob implements ShouldQueue
                     'status'        => 'skipped',
                     'template_name' => $template->name,
                     'error_message' => 'suppressed: ' . $reason,
+                    'ab_variant'    => $abVariant,
                     'sent_at'       => now(),
                 ]);
                 $campaign->increment('skipped_count');
@@ -224,6 +363,7 @@ class ExecuteCampaignJob implements ShouldQueue
                     'email'         => 'no-email@claesen.be',
                     'status'        => 'skipped',
                     'template_name' => $template->name,
+                    'ab_variant'    => $abVariant,
                     'sent_at'       => now(),
                 ]);
                 $campaign->increment('skipped_count');
@@ -240,7 +380,7 @@ class ExecuteCampaignJob implements ShouldQueue
             $parsedSubject = str_replace(
                 ['{{ name }}', '{{ regio }}', '{{ unsubscribe_url }}'],
                 [$prospect->name, $prospect->region?->name ?? __('prospects::resource.defaults.region'), $unsubscribeUrl],
-                $template->subject
+                $subjectTemplate
             );
 
             $parsedBody = str_replace(
@@ -260,6 +400,7 @@ class ExecuteCampaignJob implements ShouldQueue
                 Log::info('ExecuteCampaignJob: sending', [
                     'prospect_id' => $prospect->id,
                     'campaign_id' => $campaign->id,
+                    'ab_variant'  => $abVariant,
                 ]);
                 $isSuccess = $mailer->sendCampaign($prospect, $emails, $parsedSubject, $trackedBody, $unsubscribeUrl, $trackingToken);
             } catch (\Exception $e) {
@@ -286,22 +427,25 @@ class ExecuteCampaignJob implements ShouldQueue
                     'status'           => $isSuccess ? 'sent' : 'failed',
                     'error_message'    => $isSuccess ? null : ($errorMessage ?? __('prospects::resource.notifications.error_mailer')),
                     'tracking_token'   => $trackingToken,
+                    'ab_variant'       => $abVariant,
                     'sent_at'          => now(),
                 ]);
             }
 
             $campaign->update([
-                'sent_count'   => $sentCount,
-                'failed_count' => $failedCount,
+                'sent_count'   => $campaign->sent_count + $sentCount,
+                'failed_count' => $campaign->failed_count + $failedCount,
             ]);
 
             usleep(config('mailing.send_delay_ms', 500) * 1000);
         }
 
-        $campaign->update([
-            'status'      => CampaignStatus::COMPLETED,
-            'finished_at' => now(),
-        ]);
+        if ($completeAfter) {
+            $campaign->update([
+                'status'      => CampaignStatus::COMPLETED,
+                'finished_at' => now(),
+            ]);
+        }
     }
 
     // -------------------------------------------------------------------------

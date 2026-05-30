@@ -58,6 +58,12 @@ return [
         'rule_operator_in'         => 'Is one of (in)',
         'rule_value'               => 'Value',
         'rule_value_helper'        => 'For "is one of", separate values with commas: RBFA,LBFA',
+        // A/B test
+        'ab_subject_b'             => 'Variant B subject',
+        'ab_subject_b_helper'      => 'Leave empty to disable A/B testing. The campaign subject above becomes Variant A.',
+        'ab_split_percent'         => 'Split % per variant',
+        'ab_split_percent_helper'  => '10 means 10% to A + 10% to B. Max 50. Remainder receives the winner.',
+        'ab_winner_after_hours'    => 'Select winner after (hours)',
         // Scheduling
         'scheduled_at'        => 'Schedule send (optional)',
         'scheduled_at_helper' => 'Leave empty to send immediately after approval. Time is Europe/Brussels.',
@@ -76,6 +82,7 @@ return [
         'snapshot'          => 'Content Snapshot',
         'snapshot_desc'     => 'Subject and body as used in this campaign.',
         'audience'          => 'Audience',
+        'ab_test'           => 'A/B Subject Test (optional)',
     ],
 
     'actions' => [

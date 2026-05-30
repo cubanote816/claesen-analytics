@@ -68,6 +68,15 @@ return [
     | Keys are persisted in mailing_contact_preferences.category.
     | Labels and descriptions are locale-keyed for the preferences page.
     */
+    /*
+    |--------------------------------------------------------------------------
+    | A/B test minimum sample size
+    |--------------------------------------------------------------------------
+    | Minimum number of sent messages per variant before selecting a winner.
+    | If below this, a warning is logged but selection proceeds (MVP behaviour).
+    */
+    'ab_min_sample' => 5,
+
     'preference_categories' => [
         'newsletter' => [
             'label' => [

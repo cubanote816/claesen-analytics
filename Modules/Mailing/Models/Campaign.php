@@ -44,6 +44,12 @@ class Campaign extends Model
         'audience_filters',
         'scheduled_at',
         'timezone',
+        'ab_subject_b',
+        'ab_split_percent',
+        'ab_winner_after_hours',
+        'ab_winner_variant',
+        'ab_winner_selected_at',
+        'ab_test_started_at',
     ];
 
     protected $casts = [
@@ -53,10 +59,14 @@ class Campaign extends Model
         'finished_at'      => 'datetime',
         'scheduled_at'     => 'datetime',
         'audience_filters' => 'array',
-        'total_count'      => 'integer',
-        'sent_count'       => 'integer',
-        'failed_count'     => 'integer',
-        'skipped_count'    => 'integer',
+        'total_count'          => 'integer',
+        'sent_count'           => 'integer',
+        'failed_count'         => 'integer',
+        'skipped_count'        => 'integer',
+        'ab_split_percent'     => 'integer',
+        'ab_winner_after_hours' => 'integer',
+        'ab_winner_selected_at' => 'datetime',
+        'ab_test_started_at'   => 'datetime',
     ];
 
     // -------------------------------------------------------------------------
@@ -108,6 +118,12 @@ class Campaign extends Model
         }
 
         $this->update($attributes);
+    }
+
+    /** Returns true when this campaign has a variant B subject defined. */
+    public function isAbTest(): bool
+    {
+        return ! empty($this->ab_subject_b);
     }
 
     public function canBeApprovedBy(User $user): bool

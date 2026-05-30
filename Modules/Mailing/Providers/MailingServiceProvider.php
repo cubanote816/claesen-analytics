@@ -58,6 +58,7 @@ class MailingServiceProvider extends ServiceProvider
         $this->commands([
             \Modules\Mailing\Console\ParseNdrBouncesCommand::class,
             \Modules\Mailing\Console\DispatchScheduledCampaignsCommand::class,
+            \Modules\Mailing\Console\SelectAbWinnerCommand::class,
         ]);
     }
 
@@ -70,6 +71,7 @@ class MailingServiceProvider extends ServiceProvider
             $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
             $schedule->command('mailing:parse-bounces')->everyThirtyMinutes();
             $schedule->command('mailing:dispatch-scheduled')->everyMinute()->withoutOverlapping();
+            $schedule->command('mailing:ab-select-winner')->everyFiveMinutes()->withoutOverlapping();
         });
     }
 

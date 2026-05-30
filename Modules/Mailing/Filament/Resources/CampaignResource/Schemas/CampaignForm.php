@@ -59,6 +59,34 @@ class CampaignForm
                             ->columnSpanFull(),
                     ]),
 
+                Section::make(__('mailing::resource.sections.ab_test'))
+                    ->columns(2)
+                    ->collapsed()
+                    ->components([
+                        TextInput::make('ab_subject_b')
+                            ->label(__('mailing::resource.fields.ab_subject_b'))
+                            ->helperText(__('mailing::resource.fields.ab_subject_b_helper'))
+                            ->maxLength(255)
+                            ->nullable()
+                            ->columnSpanFull(),
+
+                        TextInput::make('ab_split_percent')
+                            ->label(__('mailing::resource.fields.ab_split_percent'))
+                            ->helperText(__('mailing::resource.fields.ab_split_percent_helper'))
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(50)
+                            ->default(10)
+                            ->visible(fn (Get $get): bool => (bool) $get('ab_subject_b')),
+
+                        TextInput::make('ab_winner_after_hours')
+                            ->label(__('mailing::resource.fields.ab_winner_after_hours'))
+                            ->numeric()
+                            ->minValue(1)
+                            ->default(4)
+                            ->visible(fn (Get $get): bool => (bool) $get('ab_subject_b')),
+                    ]),
+
                 Section::make(__('mailing::resource.sections.audience'))
                     ->columns(1)
                     ->components([
