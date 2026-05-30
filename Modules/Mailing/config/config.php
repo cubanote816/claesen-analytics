@@ -60,4 +60,45 @@ return [
     'ndr_inbox'      => env('MAILING_NDR_INBOX', 'bounces@claesen-verlichting.be'),
     'ndr_batch_size' => env('MAILING_NDR_BATCH_SIZE', 50),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Contact preference categories
+    |--------------------------------------------------------------------------
+    | Defines the categories a prospect can opt out of individually.
+    | Keys are persisted in mailing_contact_preferences.category.
+    | Labels and descriptions are locale-keyed for the preferences page.
+    */
+    'preference_categories' => [
+        'newsletter' => [
+            'label' => [
+                'nl' => 'Nieuwsbrief',
+                'en' => 'Newsletter',
+            ],
+            'description' => [
+                'nl' => 'Nieuws over onze projecten, producten en diensten.',
+                'en' => 'News about our projects, products and services.',
+            ],
+        ],
+        'offers' => [
+            'label' => [
+                'nl' => 'Aanbiedingen',
+                'en' => 'Offers',
+            ],
+            'description' => [
+                'nl' => 'Speciale aanbiedingen en seizoenspromoties.',
+                'en' => 'Special offers and seasonal promotions.',
+            ],
+        ],
+        'events' => [
+            'label' => [
+                'nl' => 'Evenementen',
+                'en' => 'Events',
+            ],
+            'description' => [
+                'nl' => 'Uitnodigingen voor beurzen en evenementen.',
+                'en' => 'Invitations to trade fairs and events.',
+            ],
+        ],
+    ],
+
 ];
