@@ -58,6 +58,10 @@ return [
         'rule_operator_in'         => 'Is one of (in)',
         'rule_value'               => 'Value',
         'rule_value_helper'        => 'For "is one of", separate values with commas: RBFA,LBFA',
+        // Scheduling
+        'scheduled_at'        => 'Schedule send (optional)',
+        'scheduled_at_helper' => 'Leave empty to send immediately after approval. Time is Europe/Brussels.',
+        'timezone'            => 'Timezone',
     ],
 
     'sections' => [

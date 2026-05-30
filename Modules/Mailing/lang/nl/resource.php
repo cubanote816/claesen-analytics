@@ -48,6 +48,10 @@ return [
         'rule_operator_in'         => 'Is één van (in)',
         'rule_value'               => 'Waarde',
         'rule_value_helper'        => 'Voor "is één van", waarden met komma scheiden: RBFA,LBFA',
+        // Plannen
+        'scheduled_at'        => 'Geplande verzending (optioneel)',
+        'scheduled_at_helper' => 'Leeg laten om onmiddellijk na goedkeuring te verzenden. Tijdstip is Europe/Brussels.',
+        'timezone'            => 'Tijdzone',
     ],
 
     'actions' => [

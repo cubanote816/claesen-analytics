@@ -2,8 +2,10 @@
 
 namespace Modules\Mailing\Filament\Resources\CampaignResource\Schemas;
 
+use Carbon\Carbon;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -85,6 +87,27 @@ class CampaignForm
                             ->defaultItems(0)
                             ->collapsible()
                             ->visible(fn (Get $get): bool => $get('audience_type') === AudienceType::SEGMENT->value),
+
+                        DateTimePicker::make('scheduled_at')
+                            ->label(__('mailing::resource.fields.scheduled_at'))
+                            ->helperText(__('mailing::resource.fields.scheduled_at_helper'))
+                            ->timezone('Europe/Brussels')
+                            ->displayFormat('d/m/Y H:i')
+                            ->minDate(now('Europe/Brussels'))
+                            ->nullable()
+                            ->dehydrateStateUsing(function (?string $state): ?string {
+                                if ($state === null) {
+                                    return null;
+                                }
+                                // Guarantee UTC storage regardless of Filament version behavior
+                                return Carbon::parse($state, 'Europe/Brussels')->utc()->toDateTimeString();
+                            }),
+
+                        Select::make('timezone')
+                            ->label(__('mailing::resource.fields.timezone'))
+                            ->options(['Europe/Brussels' => 'Europe/Brussels (CET/CEST)'])
+                            ->default('Europe/Brussels')
+                            ->disabled(),
 
                         Actions::make([
                             FormAction::make('preview_audience')
