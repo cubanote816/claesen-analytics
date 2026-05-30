@@ -6,5 +6,5 @@ use Modules\Prospects\Models\Prospect;
 
 interface MarketingCampaignInterface
 {
-    public function sendCampaign(Prospect $prospect, array $emails, string $subject, string $htmlBody, string $unsubscribeUrl): bool;
+    public function sendCampaign(Prospect $prospect, array $emails, string $subject, string $htmlBody, string $unsubscribeUrl, ?string $trackingToken = null): bool;
 }

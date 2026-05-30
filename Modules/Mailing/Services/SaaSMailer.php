@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 class SaaSMailer implements MarketingCampaignInterface
 {
-    public function sendCampaign(Prospect $prospect, array $emails, string $subject, string $htmlBody, string $unsubscribeUrl): bool
+    public function sendCampaign(Prospect $prospect, array $emails, string $subject, string $htmlBody, string $unsubscribeUrl, ?string $trackingToken = null): bool
     {
         Log::info("Sending to SaaS API for: " . implode(',', $emails));
 

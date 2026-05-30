@@ -149,4 +149,50 @@ class BounceParserTest extends TestCase
 
         $this->assertSame(BounceClassification::HARD, $this->parser->classifyBounce($body));
     }
+
+    // -------------------------------------------------------------------------
+    // extractMailingToken
+    // -------------------------------------------------------------------------
+
+    public function test_extracts_mailing_token_from_ndr_original_headers_section(): void
+    {
+        $token = str_repeat('a', 62) . 'Zz'; // 64 alphanumeric chars
+        $body = <<<NDR
+        Delivery has failed to these recipients or groups:
+
+        user@example.com
+
+        Original message headers:
+
+        Received: from mail.example.com
+        From: sender@claesen-verlichting.be
+        X-Mailing-Token: {$token}
+        Subject: Offerte
+        NDR;
+
+        $this->assertSame($token, $this->parser->extractMailingToken($body));
+    }
+
+    public function test_returns_null_when_no_mailing_token_in_ndr(): void
+    {
+        $body = <<<NDR
+        Delivery has failed to these recipients or groups:
+
+        user@example.com
+
+        Original message headers:
+
+        Received: from mail.example.com
+        Subject: Offerte
+        NDR;
+
+        $this->assertNull($this->parser->extractMailingToken($body));
+    }
+
+    public function test_returns_null_for_token_with_wrong_length(): void
+    {
+        $body = "X-Mailing-Token: tooshort123\nStatus: 5.1.1";
+
+        $this->assertNull($this->parser->extractMailingToken($body));
+    }
 }

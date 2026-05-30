@@ -152,7 +152,7 @@ class ExecuteCampaignJob implements ShouldQueue
                         'prospect_id' => $prospect->id,
                         'campaign_id' => $campaign->id,
                     ]);
-                    $isSuccess = $mailer->sendCampaign($prospect, $emails, $parsedSubject, $trackedBody, $unsubscribeUrl);
+                    $isSuccess = $mailer->sendCampaign($prospect, $emails, $parsedSubject, $trackedBody, $unsubscribeUrl, $trackingToken);
                 } catch (\Exception $e) {
                     $isSuccess    = false;
                     $errorMessage = $e->getMessage();

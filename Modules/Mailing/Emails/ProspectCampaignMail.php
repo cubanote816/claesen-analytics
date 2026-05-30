@@ -19,11 +19,12 @@ class ProspectCampaignMail extends Mailable
         public Prospect $prospect,
         public string $dynamicSubject,
         public string $htmlBody,
-        public string $unsubscribeUrl
+        public string $unsubscribeUrl,
+        public ?string $trackingToken = null,
     ) {}
 
     /**
-     * Get the message headers (RFC 8058 one-click unsubscribe compliance).
+     * Get the message headers (RFC 8058 one-click unsubscribe + NDR correlation token).
      */
     public function headers(): Headers
     {
@@ -34,12 +35,16 @@ class ProspectCampaignMail extends Mailable
 
         $mailtoFallback = 'mailto:afmelden@' . config('mailing.unsubscribe_domain', 'claesen-verlichting.be') . '?subject=afmelden';
 
-        return new Headers(
-            text: [
-                'List-Unsubscribe'      => "<{$oneClickUrl}>, <{$mailtoFallback}>",
-                'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
-            ],
-        );
+        $textHeaders = [
+            'List-Unsubscribe'      => "<{$oneClickUrl}>, <{$mailtoFallback}>",
+            'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+        ];
+
+        if ($this->trackingToken !== null) {
+            $textHeaders['X-Mailing-Token'] = $this->trackingToken;
+        }
+
+        return new Headers(text: $textHeaders);
     }
 
     /**

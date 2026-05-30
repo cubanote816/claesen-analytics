@@ -7,10 +7,6 @@ use Modules\Mailing\Enums\BounceClassification;
 /**
  * Parses NDR (Non-Delivery Report) messages received from Microsoft Graph.
  * Pure parsing logic — no HTTP, no database access.
- *
- * Correlation limitation: outgoing emails do not carry an X-Mailing-Token header,
- * so correlation with mailing_messages is best-effort by email address only.
- * See MAI-029 for adding a correlation header to ProspectCampaignMail.
  */
 class BounceParserService
 {
@@ -54,6 +50,19 @@ class BounceParserService
         // Dutch
         'mailbox vol', 'tijdelijk niet beschikbaar', 'probeer het later opnieuw',
     ];
+
+    /**
+     * Extracts the X-Mailing-Token from an NDR body (from "Original message headers" section).
+     * Returns null if the header is absent or malformed.
+     */
+    public function extractMailingToken(string $body): ?string
+    {
+        if (preg_match('/^X-Mailing-Token:\s*([a-zA-Z0-9]{64})\s*$/mi', $body, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
 
     public function extractEmail(string $subject, string $body): ?string
     {

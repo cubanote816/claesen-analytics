@@ -22,8 +22,10 @@ use Modules\Mailing\Services\SuppressionService;
  *   - SOFT event recorded every time.
  *   - Suppression applied only when count >= config('mailing.bounce_soft_limit').
  *
- * Correlation with mailing_messages is best-effort by email address (most recent sent message).
- * MAI-029 tracks adding X-Mailing-Token to outgoing emails for exact correlation.
+ * Correlation strategy (MAI-029):
+ *   1. Extract X-Mailing-Token from NDR body (Original message headers section).
+ *   2. If token found → exact lookup by tracking_token.
+ *   3. If not found or no match → fallback by email (most recent sent message) + log warning.
  */
 class ParseNdrBouncesCommand extends Command
 {
@@ -87,11 +89,13 @@ class ParseNdrBouncesCommand extends Command
             }
 
             $classification = $parser->classifyBounce($body);
+            $mailingToken   = $parser->extractMailingToken($body);
 
             if ($dryRun) {
                 $this->line(sprintf(
-                    '  [dry-run] email=%s  classification=%s  action=%s  graph_id=%s',
+                    '  [dry-run] email=%s  token=%s  classification=%s  action=%s  graph_id=%s',
                     $email,
+                    $mailingToken ?? 'none',
                     $classification->name,
                     $this->proposedAction($classification, $email, $softLimit),
                     $messageId,
@@ -99,7 +103,7 @@ class ParseNdrBouncesCommand extends Command
                 continue;
             }
 
-            $campaignMessage = $this->findLatestMessage($email);
+            $campaignMessage = $this->resolveMessage($email, $mailingToken);
 
             match ($classification) {
                 BounceClassification::HARD    => $this->handleHard($email, $campaignMessage, $suppression, $stats),
@@ -204,12 +208,34 @@ class ParseNdrBouncesCommand extends Command
         $stats['unknown']++;
     }
 
-    private function findLatestMessage(string $email): ?CampaignMessage
+    private function resolveMessage(string $email, ?string $token): ?CampaignMessage
     {
-        return CampaignMessage::where('email', $email)
+        if ($token !== null) {
+            $message = CampaignMessage::where('tracking_token', $token)->first();
+
+            if ($message !== null) {
+                return $message;
+            }
+
+            Log::warning('mailing:parse-bounces: token found in NDR but no matching message — falling back to email lookup', [
+                'email' => $email,
+                'token' => $token,
+            ]);
+        }
+
+        $message = CampaignMessage::where('email', $email)
             ->where('status', 'sent')
             ->orderByDesc('sent_at')
             ->first();
+
+        if ($token === null && $message !== null) {
+            Log::info('mailing:parse-bounces: no X-Mailing-Token in NDR — correlated by email (best-effort)', [
+                'email'      => $email,
+                'message_id' => $message->id,
+            ]);
+        }
+
+        return $message;
     }
 
     private function proposedAction(BounceClassification $classification, string $email, int $softLimit): string
