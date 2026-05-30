@@ -64,6 +64,12 @@ return [
         'ab_split_percent'         => 'Split % per variant',
         'ab_split_percent_helper'  => '10 means 10% to A + 10% to B. Max 50. Remainder receives the winner.',
         'ab_winner_after_hours'    => 'Select winner after (hours)',
+        // Follow-up
+        'followup_campaign'        => 'Follow-up campaign (child)',
+        'followup_campaign_helper' => 'Must be an approved campaign. It will be sent to the filtered audience of this campaign.',
+        'followup_trigger'         => 'Send to prospects who...',
+        'followup_delay_hours'     => 'Delay (hours after completion)',
+        'followup_delay_helper'    => 'e.g. 24 = 1 day, 72 = 3 days',
         // Scheduling
         'scheduled_at'        => 'Schedule send (optional)',
         'scheduled_at_helper' => 'Leave empty to send immediately after approval. Time is Europe/Brussels.',
@@ -83,6 +89,7 @@ return [
         'snapshot_desc'     => 'Subject and body as used in this campaign.',
         'audience'          => 'Audience',
         'ab_test'           => 'A/B Subject Test (optional)',
+        'followup'          => 'Follow-up (optional)',
     ],
 
     'actions' => [

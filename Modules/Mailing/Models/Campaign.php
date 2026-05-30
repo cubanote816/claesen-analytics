@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Core\Models\User;
 use Modules\Mailing\Enums\AudienceType;
 use Modules\Mailing\Enums\CampaignStatus;
+use Modules\Mailing\Enums\FollowUpTrigger;
 use Modules\Mailing\Models\EmailTemplate;
 use Modules\Mailing\Services\SegmentResolverService;
 use Modules\Prospects\Models\Prospect;
@@ -50,6 +51,10 @@ class Campaign extends Model
         'ab_winner_variant',
         'ab_winner_selected_at',
         'ab_test_started_at',
+        'followup_campaign_id',
+        'followup_trigger',
+        'followup_delay_hours',
+        'followup_dispatched_at',
     ];
 
     protected $casts = [
@@ -65,8 +70,11 @@ class Campaign extends Model
         'skipped_count'        => 'integer',
         'ab_split_percent'     => 'integer',
         'ab_winner_after_hours' => 'integer',
-        'ab_winner_selected_at' => 'datetime',
-        'ab_test_started_at'   => 'datetime',
+        'ab_winner_selected_at'  => 'datetime',
+        'ab_test_started_at'    => 'datetime',
+        'followup_trigger'      => FollowUpTrigger::class,
+        'followup_delay_hours'  => 'integer',
+        'followup_dispatched_at' => 'datetime',
     ];
 
     // -------------------------------------------------------------------------
@@ -91,6 +99,18 @@ class Campaign extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(CampaignMessage::class);
+    }
+
+    /** The campaign configured as follow-up child of this one. */
+    public function followUpCampaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class, 'followup_campaign_id');
+    }
+
+    /** The parent campaign that has this one as a follow-up (inverse). */
+    public function followUpParent(): HasMany
+    {
+        return $this->hasMany(Campaign::class, 'followup_campaign_id');
     }
 
     // -------------------------------------------------------------------------
@@ -118,6 +138,18 @@ class Campaign extends Model
         }
 
         $this->update($attributes);
+    }
+
+    /**
+     * Returns true when this campaign has a follow-up configured.
+     * Guards against self-reference: a campaign cannot follow up itself.
+     */
+    public function hasFollowUp(): bool
+    {
+        return $this->followup_campaign_id !== null
+            && $this->followup_campaign_id !== $this->id
+            && $this->followup_trigger !== null
+            && $this->followup_delay_hours !== null;
     }
 
     /** Returns true when this campaign has a variant B subject defined. */

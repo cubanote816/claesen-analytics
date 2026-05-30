@@ -16,6 +16,8 @@ use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Modules\Mailing\Enums\AudienceType;
+use Modules\Mailing\Enums\CampaignStatus;
+use Modules\Mailing\Enums\FollowUpTrigger;
 use Modules\Mailing\Enums\MessageEventType;
 use Modules\Mailing\Models\Campaign;
 use Modules\Mailing\Models\EmailTemplate;
@@ -165,6 +167,39 @@ class CampaignForm
                                 }),
                         ])
                         ->visible(fn (Get $get): bool => $get('audience_type') === AudienceType::SEGMENT->value),
+                    ]),
+
+                Section::make(__('mailing::resource.sections.followup'))
+                    ->columns(2)
+                    ->collapsed()
+                    ->components([
+                        Select::make('followup_campaign_id')
+                            ->label(__('mailing::resource.fields.followup_campaign'))
+                            ->helperText(__('mailing::resource.fields.followup_campaign_helper'))
+                            ->options(fn ($record) => Campaign::where('status', CampaignStatus::APPROVED->value)
+                                ->when($record?->id, fn ($q) => $q->where('id', '!=', $record->id))
+                                ->pluck('description', 'id')
+                            )
+                            ->searchable()
+                            ->nullable()
+                            ->live()
+                            ->columnSpanFull(),
+
+                        Select::make('followup_trigger')
+                            ->label(__('mailing::resource.fields.followup_trigger'))
+                            ->options(collect(FollowUpTrigger::cases())
+                                ->mapWithKeys(fn (FollowUpTrigger $t) => [$t->value => $t->label()])
+                            )
+                            ->nullable()
+                            ->visible(fn (Get $get): bool => (bool) $get('followup_campaign_id')),
+
+                        TextInput::make('followup_delay_hours')
+                            ->label(__('mailing::resource.fields.followup_delay_hours'))
+                            ->helperText(__('mailing::resource.fields.followup_delay_helper'))
+                            ->numeric()
+                            ->minValue(1)
+                            ->default(24)
+                            ->visible(fn (Get $get): bool => (bool) $get('followup_campaign_id')),
                     ]),
 
                 Hidden::make('template_name'),

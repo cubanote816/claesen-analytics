@@ -31,7 +31,10 @@ class ExecuteCampaignJob implements ShouldQueue
      * @param  string|null $description   Inline path only.
      * @param  int|null    $campaignId    When set: execute an existing Campaign record.
      *                                    $prospectIds and $templateId are ignored.
-     * @param  bool        $isWinnerSend  A/B: dispatch remaining with the winning variant subject.
+     * @param  bool        $isWinnerSend        A/B: dispatch remaining with the winning variant subject.
+     * @param  array|null  $overrideProspectIds Follow-up: exact audience provided by DispatchFollowUpsCommand.
+     *                                          When present, resolveAudience() is NOT called — prevents
+     *                                          sending to more prospects than intended.
      */
     public function __construct(
         public array $prospectIds = [],
@@ -40,6 +43,7 @@ class ExecuteCampaignJob implements ShouldQueue
         public ?string $description = null,
         public ?int $campaignId = null,
         public bool $isWinnerSend = false,
+        public ?array $overrideProspectIds = null,
     ) {}
 
     public function handle(MarketingCampaignInterface $mailer, SuppressionService $suppression): void
@@ -111,8 +115,11 @@ class ExecuteCampaignJob implements ShouldQueue
             }
         }
 
-        $template    = EmailTemplate::findOrFail($campaign->template_id);
-        $prospectIds = $campaign->resolveAudience();
+        $template = EmailTemplate::findOrFail($campaign->template_id);
+
+        // Use override IDs when provided (follow-up path) — never re-resolve to avoid
+        // sending to a broader audience than the command calculated.
+        $prospectIds = $this->overrideProspectIds ?? $campaign->resolveAudience();
 
         if (empty($prospectIds)) {
             Campaign::where('id', $campaign->id)->update([
