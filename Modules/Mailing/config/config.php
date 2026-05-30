@@ -77,6 +77,14 @@ return [
     */
     'ab_min_sample' => 5,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Deliverability alert window
+    |--------------------------------------------------------------------------
+    | How many days back to evaluate completed campaigns for threshold violations.
+    */
+    'alert_check_days' => 7,
+
     'preference_categories' => [
         'newsletter' => [
             'label' => [
