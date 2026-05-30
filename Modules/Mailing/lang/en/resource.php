@@ -35,6 +35,29 @@ return [
         'is_active'        => 'Is Active',
         'created_at'       => 'Created At',
         'updated_at'       => 'Updated At',
+        // Audience
+        'audience_type'            => 'Audience Type',
+        'segment_operator'         => 'Rule Combination',
+        'segment_operator_and'     => 'Match ALL rules (AND)',
+        'segment_operator_or'      => 'Match ANY rule (OR)',
+        'segment_rules'            => 'Segment Rules',
+        'rule_type'                => 'Rule Type',
+        'rule_has_event'           => 'Has performed event',
+        'rule_has_no_event'        => 'Has NOT performed event',
+        'rule_prospect_field'      => 'Prospect field matches',
+        'rule_event_type'          => 'Event Type',
+        'rule_campaign'            => 'From campaign (optional)',
+        'rule_campaign_any'        => 'Any campaign',
+        'rule_within_days'         => 'Within last N days (optional)',
+        'rule_field'               => 'Field',
+        'rule_field_language'      => 'Language',
+        'rule_field_federation'    => 'Federation',
+        'rule_field_region'        => 'Region',
+        'rule_operator'            => 'Operator',
+        'rule_operator_equals'     => 'Equals (=)',
+        'rule_operator_in'         => 'Is one of (in)',
+        'rule_value'               => 'Value',
+        'rule_value_helper'        => 'For "is one of", separate values with commas: RBFA,LBFA',
     ],
 
     'sections' => [
@@ -48,14 +71,17 @@ return [
         'approval'          => 'Approval',
         'snapshot'          => 'Content Snapshot',
         'snapshot_desc'     => 'Subject and body as used in this campaign.',
+        'audience'          => 'Audience',
     ],
 
     'actions' => [
-        'add_variable'   => 'Add variable',
-        'submit_review'  => 'Submit for Review',
-        'approve'        => 'Approve',
-        'cancel'         => 'Cancel Campaign',
-        'cancel_confirm' => 'This action cannot be undone. The campaign will be permanently cancelled.',
+        'add_variable'    => 'Add variable',
+        'submit_review'   => 'Submit for Review',
+        'approve'         => 'Approve',
+        'cancel'          => 'Cancel Campaign',
+        'cancel_confirm'  => 'This action cannot be undone. The campaign will be permanently cancelled.',
+        'add_rule'        => 'Add rule',
+        'preview_audience' => 'Preview audience size',
     ],
 
     'options' => [
@@ -67,10 +93,12 @@ return [
     ],
 
     'notifications' => [
-        'template_saved'   => 'Template successfully saved.',
-        'submitted_review' => 'Campaign submitted for review.',
-        'approved'         => 'Campaign approved and ready to send.',
-        'cancelled'        => 'Campaign has been cancelled.',
+        'template_saved'    => 'Template successfully saved.',
+        'submitted_review'  => 'Campaign submitted for review.',
+        'approved'          => 'Campaign approved and ready to send.',
+        'cancelled'         => 'Campaign has been cancelled.',
+        'audience_preview'  => 'Estimated audience: :count prospects',
+        'segment_error'     => 'Segment configuration error',
     ],
 
     'metrics' => [

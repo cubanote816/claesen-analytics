@@ -2,13 +2,22 @@
 
 namespace Modules\Mailing\Filament\Resources\CampaignResource\Schemas;
 
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Modules\Mailing\Enums\AudienceType;
+use Modules\Mailing\Enums\MessageEventType;
+use Modules\Mailing\Models\Campaign;
 use Modules\Mailing\Models\EmailTemplate;
+use Modules\Mailing\Services\SegmentResolverService;
 
 class CampaignForm
 {
@@ -48,9 +57,142 @@ class CampaignForm
                             ->columnSpanFull(),
                     ]),
 
-                // Hidden fields populated from the template picker — not shown to the user
-                \Filament\Forms\Components\Hidden::make('template_name'),
-                \Filament\Forms\Components\Hidden::make('body_snapshot'),
+                Section::make(__('mailing::resource.sections.audience'))
+                    ->columns(1)
+                    ->components([
+                        Select::make('audience_type')
+                            ->label(__('mailing::resource.fields.audience_type'))
+                            ->options(collect(AudienceType::cases())->mapWithKeys(
+                                fn (AudienceType $t) => [$t->value => $t->label()]
+                            ))
+                            ->default(AudienceType::ALL_SUBSCRIBED->value)
+                            ->required()
+                            ->live(),
+
+                        Select::make('audience_filters.operator')
+                            ->label(__('mailing::resource.fields.segment_operator'))
+                            ->options([
+                                'AND' => __('mailing::resource.fields.segment_operator_and'),
+                                'OR'  => __('mailing::resource.fields.segment_operator_or'),
+                            ])
+                            ->default('AND')
+                            ->visible(fn (Get $get): bool => $get('audience_type') === AudienceType::SEGMENT->value),
+
+                        Repeater::make('audience_filters.rules')
+                            ->label(__('mailing::resource.fields.segment_rules'))
+                            ->schema(self::ruleSchema())
+                            ->addActionLabel(__('mailing::resource.actions.add_rule'))
+                            ->defaultItems(0)
+                            ->collapsible()
+                            ->visible(fn (Get $get): bool => $get('audience_type') === AudienceType::SEGMENT->value),
+
+                        Actions::make([
+                            FormAction::make('preview_audience')
+                                ->label(__('mailing::resource.actions.preview_audience'))
+                                ->icon('heroicon-o-users')
+                                ->color('gray')
+                                ->action(function (Get $get): void {
+                                    $filters = [
+                                        'operator' => $get('audience_filters.operator') ?? 'AND',
+                                        'rules'    => $get('audience_filters.rules') ?? [],
+                                    ];
+
+                                    try {
+                                        $count = app(SegmentResolverService::class)->count($filters);
+
+                                        Notification::make()
+                                            ->title(__('mailing::resource.notifications.audience_preview', ['count' => $count]))
+                                            ->success()
+                                            ->send();
+                                    } catch (\InvalidArgumentException $e) {
+                                        Notification::make()
+                                            ->title(__('mailing::resource.notifications.segment_error'))
+                                            ->body($e->getMessage())
+                                            ->danger()
+                                            ->send();
+                                    }
+                                }),
+                        ])
+                        ->visible(fn (Get $get): bool => $get('audience_type') === AudienceType::SEGMENT->value),
+                    ]),
+
+                Hidden::make('template_name'),
+                Hidden::make('body_snapshot'),
             ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Repeater rule schema
+    // -------------------------------------------------------------------------
+
+    private static function ruleSchema(): array
+    {
+        $eventTypeOptions = collect(MessageEventType::cases())
+            ->mapWithKeys(fn (MessageEventType $t) => [$t->value => $t->label()])
+            ->toArray();
+
+        $campaignOptions = Campaign::orderByDesc('created_at')
+            ->limit(50)
+            ->pluck('description', 'id')
+            ->toArray();
+
+        return [
+            Select::make('type')
+                ->label(__('mailing::resource.fields.rule_type'))
+                ->options([
+                    'has_event'      => __('mailing::resource.fields.rule_has_event'),
+                    'has_no_event'   => __('mailing::resource.fields.rule_has_no_event'),
+                    'prospect_field' => __('mailing::resource.fields.rule_prospect_field'),
+                ])
+                ->required()
+                ->live(),
+
+            Select::make('event_type')
+                ->label(__('mailing::resource.fields.rule_event_type'))
+                ->options($eventTypeOptions)
+                ->required()
+                ->visible(fn (Get $get): bool => in_array($get('type'), ['has_event', 'has_no_event'], true)),
+
+            Select::make('campaign_id')
+                ->label(__('mailing::resource.fields.rule_campaign'))
+                ->options($campaignOptions)
+                ->placeholder(__('mailing::resource.fields.rule_campaign_any'))
+                ->nullable()
+                ->visible(fn (Get $get): bool => in_array($get('type'), ['has_event', 'has_no_event'], true)),
+
+            TextInput::make('within_days')
+                ->label(__('mailing::resource.fields.rule_within_days'))
+                ->numeric()
+                ->minValue(1)
+                ->nullable()
+                ->placeholder('—')
+                ->visible(fn (Get $get): bool => in_array($get('type'), ['has_event', 'has_no_event'], true)),
+
+            Select::make('field')
+                ->label(__('mailing::resource.fields.rule_field'))
+                ->options([
+                    'language'   => __('mailing::resource.fields.rule_field_language'),
+                    'federation' => __('mailing::resource.fields.rule_field_federation'),
+                    'region_id'  => __('mailing::resource.fields.rule_field_region'),
+                ])
+                ->required()
+                ->visible(fn (Get $get): bool => $get('type') === 'prospect_field'),
+
+            Select::make('operator')
+                ->label(__('mailing::resource.fields.rule_operator'))
+                ->options([
+                    '=' => __('mailing::resource.fields.rule_operator_equals'),
+                    'in' => __('mailing::resource.fields.rule_operator_in'),
+                ])
+                ->default('=')
+                ->required()
+                ->visible(fn (Get $get): bool => $get('type') === 'prospect_field'),
+
+            TextInput::make('value')
+                ->label(__('mailing::resource.fields.rule_value'))
+                ->helperText(__('mailing::resource.fields.rule_value_helper'))
+                ->required()
+                ->visible(fn (Get $get): bool => $get('type') === 'prospect_field'),
+        ];
     }
 }

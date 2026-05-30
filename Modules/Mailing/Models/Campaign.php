@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Core\Models\User;
+use Modules\Mailing\Enums\AudienceType;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Models\EmailTemplate;
+use Modules\Mailing\Services\SegmentResolverService;
+use Modules\Prospects\Models\Prospect;
 
 class Campaign extends Model
 {
@@ -44,6 +47,7 @@ class Campaign extends Model
     ];
 
     protected $casts = [
+        'audience_type'    => AudienceType::class,
         'status'           => CampaignStatus::class,
         'approved_at'      => 'datetime',
         'finished_at'      => 'datetime',
@@ -110,5 +114,41 @@ class Campaign extends Model
     {
         return $this->status === CampaignStatus::REVIEW
             && $user->hasAnyRole(['super_admin', 'admin', 'campaign_manager']);
+    }
+
+    // -------------------------------------------------------------------------
+    // Audience resolution
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the list of prospect IDs for this campaign's audience.
+     *
+     * - ALL_SUBSCRIBED: every subscribed, non-suppressed prospect.
+     * - SEGMENT: resolved dynamically via SegmentResolverService.
+     * - MANUAL: not implemented — must be resolved before dispatch.
+     *
+     * @return array<int>
+     */
+    public function resolveAudience(): array
+    {
+        return match ($this->audience_type ?? AudienceType::ALL_SUBSCRIBED) {
+            AudienceType::ALL_SUBSCRIBED => Prospect::query()
+                ->whereNull('unsubscribed_at')
+                ->whereNotIn('id', function ($sub): void {
+                    $sub->select('prospect_id')
+                        ->from('mailing_suppression_list')
+                        ->whereNotNull('prospect_id');
+                })
+                ->pluck('id')
+                ->toArray(),
+
+            AudienceType::SEGMENT => app(SegmentResolverService::class)
+                ->resolveIds($this->audience_filters ?? []),
+
+            AudienceType::MANUAL => throw new \DomainException(
+                "Campaign #{$this->id}: manual audience must be resolved before dispatch. "
+                . 'Pass prospect IDs explicitly when dispatching the campaign job.'
+            ),
+        };
     }
 }
