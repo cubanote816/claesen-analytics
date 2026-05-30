@@ -58,7 +58,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | **Performance** | Project insights, arquetipos de técnicos, Watchdog (€20k), SWOT | ✅ ~85% |
 | **Prospects** | Sync federaciones deportivas (RBFA, LBFA, AFT), CRM, campañas email | 🚧 ~75% |
 | **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint completado** | ✅ ~100% |
-| **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance — **Fase 0+1 completadas** | ✅ ~80% |
+| **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance, automatización — **Fase 0+1+2 completadas** | ✅ ~98% |
 | **Website** | Sitio público, formulario de consulta, galería proyectos — **sprint en curso** | 🚧 ~85% |
 
 ---
@@ -240,13 +240,14 @@ php artisan website:regenerate-media --project=<id>
 
 ---
 
-## Sprint Mailing — COMPLETADO Fase 0+1 (rama: `feature/mailing-platform`)
+## Sprint Mailing — COMPLETADO Fase 0+1+2 (rama: `feature/mailing`)
 
-> Fase 0+1 cerradas el 2026-05-29. PR: #1. Documento maestro: `docs/Mailing/mailing-platform-master.md`.
+> Fase 0+1 cerradas: 2026-05-29 | Fase 2 cerrada: 2026-05-30 | PR: #1 (Fase 0+1) | PR Fase 2: pendiente
+> Documento maestro: `docs/Mailing/mailing-platform-master.md`
 
 ### Decisiones arquitectónicas fijadas
 
-- **Transporte:** Microsoft Graph (Fase 1) → ESP externo configurable (Fase futura)
+- **Transporte:** Microsoft Graph (Fase 1) → ESP externo configurable (Fase futura, MAI-026 bloqueado)
 - **DB:** MySQL 8.4 (no PostgreSQL — cross-join con `prospects_prospects`)
 - **KPI principal:** clics y CTR, no aperturas (Apple MPP invalida open rate)
 - **Audiencias:** `Modules/Prospects` es fuente de verdad. Mailing solo referencia `prospect_id`.
@@ -257,41 +258,65 @@ php artisan website:regenerate-media --project=<id>
 |------|---------|--------|
 | **Fase 0** — Consolidación | MAI-001 a MAI-005 | ✅ Done |
 | **Fase 1** — MVP Robusto | MAI-006 a MAI-020 | ✅ Done |
-| **Fase 2** — Automatización | MAI-021 a MAI-027 | ⬜ Backlog |
+| **Fase 2** — Automatización | MAI-016, MAI-021–025, MAI-027–029 | ✅ Done |
+| **Fase 2** — MAI-026 | Webhook ESP externo | ⏸ Bloqueado (decisión gerencia) |
 | **Fase 3** — Inteligencia | MAI-031 a MAI-036 | ⬜ Backlog |
 
-### Mapa MAI Fase 0+1 — Estado final
+### Mapa MAI Fase 2 — Estado final
 
-| MAI | CLA | Título | Commit | Estado |
-|-----|-----|--------|--------|--------|
-| MAI-001 | CLA-99 | Campaign model + migración prospect_mail_campaigns → mailing_campaigns | 04950fc | ✅ Done |
-| MAI-002 | CLA-100 | CampaignMessage model + migración prospect_mail_logs → mailing_messages | dd53571 | ✅ Done |
-| MAI-003 | CLA-101 | ExecuteCampaignJob en Modules/Mailing + fix sleep(1) | 2f25fe8 | ✅ Done |
-| MAI-004 | CLA-102 | Filament CampaignResource → Modules/Mailing | 38095b2 | ✅ Done |
-| MAI-005 | CLA-103 | Limpiar Prospects — eliminar modelos/job/resources movidos a Mailing | ffa8bf4 | ✅ Done |
-| MAI-006 | CLA-104 | config/config.php + documento maestro Mailing | bdd80b1 | ✅ Done |
-| MAI-007 | CLA-105 | Migración mailing_suppression_list | f1e3bec | ✅ Done |
-| MAI-008 | CLA-106 | SuppressionEntry model + SuppressionService + check en job | 9094d40 | ✅ Done |
-| MAI-009 | CLA-107 | Migración mailing_message_events | eaa69bd | ✅ Done |
-| MAI-010 | CLA-108 | MessageEvent model + MessageEventType enum | fd28502 | ✅ Done |
-| MAI-011 | CLA-110 | EmailTemplate — category, variables, version | 8360a6c | ✅ Done |
-| MAI-012 | CLA-111 | Campaign workflow — estados, aprobación, transiciones | 3699f04 | ✅ Done |
-| MAI-013 | CLA-112 | Tracking pixel apertura (GET /mailing/track/open/{token}.gif) | 7ac8c27 | ✅ Done |
-| MAI-014 | CLA-113 | Tracking click redirect + mailing_tracked_links | 7ac8c27 | ✅ Done |
-| MAI-015 | CLA-109 | Headers List-Unsubscribe + endpoint one-click RFC 8058 | 742dba0 | ✅ Done |
-| MAI-017 | CLA-114 | CampaignPolicy — RBAC por recurso | 7c79260 | ✅ Done |
-| MAI-018 | CLA-115 | Filament Campaign management (create, review, approve, view) | b6d4914 | ✅ Done |
-| MAI-019 | CLA-116 | Dashboard métricas básicas (StatsOverviewWidget) | 183e2e3 | ✅ Done |
-| MAI-020 | CLA-117 | Feature tests Fase 1 (36 tests) | 3189ccd | ✅ Done |
+| MAI | Título | Commit | Estado |
+|-----|--------|--------|--------|
+| MAI-028 | Schema foundation for Phase 2 | c689e38 | ✅ Done |
+| MAI-029 | X-Mailing-Token header — correlación NDR exacta | 4326a82 | ✅ Done |
+| MAI-016 | NDR bounce parser — inbox dedicado + command periódico | 48a3e45 | ✅ Done |
+| MAI-021 | Segmentos dinámicos basados en eventos | ab724bf | ✅ Done |
+| MAI-024 | Programación por franja horaria (Europe/Brussels) | 7a30112 | ✅ Done |
+| MAI-025 | Página de preferencias de categoría | 7b00685 | ✅ Done |
+| MAI-022 | A/B testing de asunto — split + winner automático por CTR | 79270f7 | ✅ Done |
+| MAI-023 | Follow-up automático por comportamiento | 5699c75 | ✅ Done |
+| MAI-027 | Alertas de entregabilidad — hard bounce > 5%, spam > 0.08% | 3b20265 | ✅ Done |
+| MAI-026 | Webhook handler ESP externo | — | ⏸ Bloqueado |
 
-### Arquitectura Mailing
+### Arquitectura Mailing (Fase 2 añadida)
 
 - **Transporte:** `MarketingCampaignInterface` → `MicrosoftGraphMailer` (intercambiable)
 - **Workflow:** `draft → review → approved → sending → completed|failed|cancelled`
 - **Supresión:** `mailing_suppression_list` — permanente para `hard_bounce` y `spam_complaint`
-- **Tracking:** pixel apertura + click redirect vía `mailing_tracked_links`
+- **Tracking:** pixel apertura + click redirect vía `mailing_tracked_links` + `X-Mailing-Token` para NDR
 - **Eventos:** `mailing_message_events` append-only (KPI: clics únicos, CTR, CTOR)
 - **Compliance:** `List-Unsubscribe` + `List-Unsubscribe-Post` en todo correo comercial
+- **Segmentos:** `SegmentResolverService` — reglas has_event/has_no_event/prospect_field con invariantes de seguridad
+- **Scheduling:** `mailing:dispatch-scheduled` — campaña con `scheduled_at`, claim atómico, antiduplicado
+- **A/B testing:** split por % configurable, winner por CTR, claim doble (status + ab_test_started_at)
+- **Follow-up:** parent completado → child con audiencia filtrada por evento; claim atomic + empty-audience safe
+- **Alertas:** `mailing:check-deliverability-alerts` → `mailing_deliverability_alerts` + notificaciones DB
+
+### Migraciones a ejecutar en producción (Fase 2)
+
+```bash
+php artisan migrate
+# Nuevas tablas/columnas Fase 2:
+# mailing_campaigns: audience_type, audience_filters, scheduled_at, timezone
+# mailing_campaigns: ab_subject_b, ab_split_percent, ab_winner_*, ab_test_started_at
+# mailing_campaigns: followup_campaign_id, followup_trigger, followup_delay_hours, followup_dispatched_at
+# mailing_messages: ab_variant
+# mailing_contact_preferences (nueva tabla)
+# mailing_deliverability_alerts (nueva tabla)
+```
+
+### Configuración requerida (.env)
+
+```env
+MAILING_NDR_INBOX=bounces@claesen-verlichting.be   # inbox para NDR bounces
+MAILING_SEND_DELAY_MS=500                           # throttle entre envíos
+MAILING_UNSUBSCRIBE_DOMAIN=claesen-verlichting.be
+```
+
+### Cómo reanudar (Fase 3)
+
+```
+"Continuamos con MAI-031. Lee CLAUDE.md y docs/Mailing/mailing-platform-master.md."
+```
 
 ### Reglas Mailing (no negociables)
 
