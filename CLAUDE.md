@@ -6,6 +6,8 @@
 
 ## AI Harnesses
 
+Reglas de arranque persistentes: `AGENTS.md` y `.agents/rules/00-project-startup.md`.
+
 Al iniciar cada sesión, leer en este orden:
 
 1. `CLAUDE.md` — este archivo (reglas permanentes, estado macro)

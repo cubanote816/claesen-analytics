@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-02 (DOCS-AI-001 / CLA-105)
+> Última actualización: 2026-06-02 (DOCS-AI-002 / CLA-106)
 
 ---
 
@@ -9,8 +9,17 @@
 
 - **Sprint activo:** Documentación / AI Harnesses
 - **Rama actual:** `main`
-- **Último ticket cerrado:** DOCS-AI-001 / CLA-105 — "Crear AI harnesses del proyecto" — commit pendiente de GO técnico
+- **Último ticket cerrado:** DOCS-AI-002 / CLA-106 — "Add Antigravity persistent startup rules" — commit pendiente de GO técnico
 - **Próximo ticket:** A definir (ver secciones de módulos abajo)
+
+## Reglas de arranque persistentes
+
+Las reglas de arranque de Antigravity viven en:
+
+- `AGENTS.md` — reglas del repositorio (leído automáticamente por agentes compatibles)
+- `.agents/rules/00-project-startup.md` — protocolo completo de arranque
+
+Todo agente debe leer estos archivos antes de cualquier acción.
 
 ---
 
@@ -52,6 +61,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-02 | DOCS-AI-002 / CLA-106 | Creado `AGENTS.md` + `.agents/rules/00-project-startup.md` — reglas de arranque persistentes |
 | 2026-06-02 | DOCS-AI-001 / CLA-105 | Creado sistema AI harnesses en `docs/ai/` + `handoff.md` raíz |
 | 2026-05-30 | MAI-030 / CLA-105 | Cerrada Fase 2 Mailing — documentación y preparación PR |
 | 2026-05-30 | MAI-027 / CLA-3b20265 | Alertas de entregabilidad — hard bounce + spam complaint |
