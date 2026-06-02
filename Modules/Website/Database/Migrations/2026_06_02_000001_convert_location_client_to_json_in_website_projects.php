@@ -14,16 +14,22 @@ return new class extends Migration
             $table->json('client_json')->nullable()->after('client');
         });
 
-        // Wrap existing plain-string values as {"nl": "value"} so spatie/translatable can read them
+        // Preserve existing JSON objects; wrap plain strings as {"nl": "value"}
         DB::statement("
             UPDATE website_projects
-            SET location_json = JSON_OBJECT('nl', location)
+            SET location_json = CASE
+                WHEN JSON_VALID(location) THEN CAST(location AS JSON)
+                ELSE JSON_OBJECT('nl', location)
+            END
             WHERE location IS NOT NULL AND location != ''
         ");
 
         DB::statement("
             UPDATE website_projects
-            SET client_json = JSON_OBJECT('nl', client)
+            SET client_json = CASE
+                WHEN JSON_VALID(client) THEN CAST(client AS JSON)
+                ELSE JSON_OBJECT('nl', client)
+            END
             WHERE client IS NOT NULL AND client != ''
         ");
 
