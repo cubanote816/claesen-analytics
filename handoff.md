@@ -9,8 +9,8 @@
 
 - **Sprint activo:** Documentación / AI Harnesses
 - **Rama actual:** `main`
-- **Último ticket cerrado:** WEB-008 / CLA-108 — "Base multidioma del portfolio (nl/en/fr/de)" — commit `9a626cd`
-- **Próximo ticket:** WEB-009 / CLA-109 — "IA para caption/alt de imágenes de galería"
+- **Último ticket cerrado:** WEB-009 / CLA-109 — "IA para caption/alt de imágenes de galería" — commit `5c1c972`
+- **Próximo ticket:** WEB-010 / CLA-110 — "Email transaccional para Consultation Requests"
 
 ## Reglas de arranque persistentes
 
@@ -61,6 +61,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-02 | WEB-009 / CLA-109 | IA caption/alt galería portfolio — commits `f3d57c8` `112aef8` `5c1c972` |
 | 2026-06-02 | WEB-008 / CLA-108 | Base multidioma portfolio nl/en/fr/de — commits `28e19aa` `80865c8` `9a626cd` |
 | 2026-06-02 | DOCS-AI-003 / CLA-107 | Verificación arranque persistente Antigravity — commit `0ad1529` |
 | 2026-06-02 | DOCS-AI-002 / CLA-106 | Creado `AGENTS.md` + `.agents/rules/00-project-startup.md` — reglas de arranque persistentes |
