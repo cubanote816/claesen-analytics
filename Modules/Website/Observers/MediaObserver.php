@@ -4,6 +4,7 @@ namespace Modules\Website\Observers;
 
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Modules\Website\Models\Project;
+use Modules\Website\Jobs\GenerateGalleryMediaMetadataJob;
 use Modules\Website\Jobs\NotifyAstroFrontendJob;
 
 class MediaObserver
@@ -12,6 +13,10 @@ class MediaObserver
     {
         if ($media->model_type === Project::class) {
             NotifyAstroFrontendJob::dispatch();
+
+            if ($media->collection_name === 'gallery') {
+                GenerateGalleryMediaMetadataJob::dispatch($media->id);
+            }
         }
     }
 
