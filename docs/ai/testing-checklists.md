@@ -1,7 +1,10 @@
 # Checklists de testing — CAFCA Intelligence Hub
 
 > Qué testear según el tipo de cambio y módulo.
-> Última actualización: 2026-06-02 (DOCS-AI-001 / CLA-105)
+> Última actualización: 2026-06-03 (TEST-GATE-001)
+
+> **Este archivo es el checklist técnico de referencia.**
+> La obligatoriedad, la matriz de tests por tipo de cambio, los criterios de waiver y la plantilla de cierre están en **`docs/ai/test-gate-harness.md`**. Leer ese archivo antes de planificar o revisar cualquier ticket que toque código.
 
 ---
 
@@ -206,3 +209,145 @@ Verificar que cada comando:
 - **Queues síncronas:** `QUEUE_CONNECTION=sync` en tests (los jobs se ejecutan inline).
 - **Mail en array:** `MAIL_MAILER=array` (los emails se capturan en memoria, no se envían).
 - **Sin Graph API real:** los tests de Mailing mockean `MicrosoftGraphMailer` o usan `Mail::fake()`.
+- **Sin Gemini real:** `GeminiService` siempre mockeado en tests — nunca llamadas reales a la API.
+
+---
+
+## Lecciones del módulo Website — sprint WEB-008 → WEB-011
+
+Estos patrones emergieron del primer sprint multidioma del módulo Website. Se implementaron sin tests automatizados (waiver implícito por ser sprint inicial). Los tests recomendados a continuación deben añadirse en WEB-012 o en la primera iteración que toque estos componentes.
+
+### i18n — middleware de locale y traducciones
+
+**Archivos afectados:** `SetPanelLocale.php`, `BrowserLocaleMiddleware.php`, `lang/en,nl,fr,de/website.php`
+
+Tests recomendados:
+```php
+// Feature: middleware resuelve locale correcto por Accept-Language
+it('sets locale from Accept-Language header', function () {
+    $this->withHeader('Accept-Language', 'fr-BE,fr;q=0.9')
+         ->getJson('/v1/website/projects')
+         ->assertOk();
+    expect(app()->getLocale())->toBe('fr');
+});
+
+// Unit: locale desconocido cae a 'en'
+it('falls back to en for unsupported locale', function () {
+    // SetPanelLocale::resolveLocale('es') → 'en'
+});
+```
+
+### AI de galería — HasAiTranslations + GenerateGalleryMediaMetadataJob
+
+**Archivos afectados:** `HasAiTranslations.php`, `GenerateGalleryMediaMetadataJob.php`, `GeminiService.php`
+
+Tests recomendados:
+```php
+// Feature: subir imagen de galería dispara job
+it('dispatches GenerateGalleryMediaMetadataJob on gallery media saved', function () {
+    Bus::fake();
+    // crear proyecto + adjuntar media a gallery
+    Bus::assertDispatched(GenerateGalleryMediaMetadataJob::class);
+});
+
+// Unit: job con GeminiService mockeado rellena caption/alt en 4 locales
+it('stores caption and alt in all locales on success', function () {
+    $gemini = Mockery::mock(GeminiService::class);
+    $gemini->shouldReceive('generateMediaMetadata')->andReturn([
+        'caption' => ['nl' => 'Cap NL', 'en' => 'Cap EN', 'fr' => 'Cap FR', 'de' => 'Cap DE'],
+        'alt'     => ['nl' => 'Alt NL', 'en' => 'Alt EN', 'fr' => 'Alt FR', 'de' => 'Alt DE'],
+    ]);
+    // ejecutar job → assertar custom_properties en media
+});
+
+// Unit: Gemini falla → media guardada, caption vacío, no excepción propagada
+it('stores empty metadata and logs on Gemini failure', function () { ... });
+```
+
+### Email de Consultation Requests
+
+**Archivos afectados:** `ConsultationService.php`, `NewConsultationRequestMail.php`
+
+Tests recomendados:
+```php
+// Feature: POST /consultations envía correo después del commit
+it('sends NewConsultationRequestMail on consultation created', function () {
+    Mail::fake();
+    $this->postJson('/v1/website/consultations', [...datos válidos...])
+         ->assertCreated();
+    Mail::assertSent(NewConsultationRequestMail::class, fn($mail) =>
+        $mail->hasTo('orelvys.cuellar@claesen-verlichting.be')
+    );
+});
+
+// Feature: fallo de correo no impide guardar la consulta
+it('saves consultation even if mail fails', function () {
+    Mail::shouldReceive('mailer')->andThrow(new \Exception('Graph error'));
+    $this->postJson('/v1/website/consultations', [...])
+         ->assertCreated();
+    $this->assertDatabaseHas('website_consultation_requests', ['email' => '...']);
+});
+```
+
+### ProcessConsultationRemindersCommand — claim atómico
+
+**Archivos afectados:** `ProcessConsultationRemindersCommand.php`, `ConsultationService.php`
+
+Tests recomendados:
+```php
+// Feature: reminder vencido se procesa y queda 'completed'
+it('marks due reminder as completed and logs activity', function () {
+    Notification::fake();
+    $reminder = ConsultationReminder::factory()->create([
+        'remind_at' => now()->subMinute(),
+        'status' => 'pending',
+    ]);
+    $this->artisan('website:process-reminders')->assertExitCode(0);
+    expect($reminder->fresh()->status)->toBe('completed');
+    $this->assertDatabaseHas('website_consultation_activities', [
+        'consultation_request_id' => $reminder->consultation_request_id,
+        'type' => 'reminder_triggered',
+    ]);
+});
+
+// Feature: reminder en 'processing' no se duplica
+it('skips reminder already in processing state', function () { ... });
+```
+
+### Double logging — updateQuietly en ConsultationService
+
+**Archivos afectados:** `ConsultationService.php`, `ConsultationRequestObserver.php`
+
+Tests recomendados:
+```php
+// Feature: updateStatus() crea exactamente 1 actividad de tipo status_change
+it('logs exactly one status_change activity via updateStatus', function () {
+    $request = ConsultationRequest::factory()->create(['status' => 'pending']);
+    app(ConsultationService::class)->updateStatus($request, 'contacted');
+    $this->assertDatabaseCount('website_consultation_activities', 1);
+    $this->assertDatabaseHas('website_consultation_activities', ['type' => 'status_change']);
+});
+```
+
+### Migración varchar → JSON con JSON_VALID
+
+**Archivos afectados:** `2026_06_02_000001_convert_location_client_to_json_in_website_projects.php`
+
+Tests recomendados:
+```php
+// Feature: migración convierte string plano a {"nl": "valor"}
+it('wraps plain strings as nl JSON on migration', function () {
+    DB::table('website_projects')->insert(['location' => 'Gent', ...]);
+    Artisan::call('migrate', ['--path' => '...migration...']);
+    $row = DB::table('website_projects')->first();
+    expect(json_decode($row->location, true))->toBe(['nl' => 'Gent']);
+});
+
+// Feature: migración preserva JSON existente intacto
+it('preserves existing JSON object on migration', function () {
+    DB::table('website_projects')->insert([
+        'location' => json_encode(['nl' => 'Gent', 'en' => 'Ghent']), ...
+    ]);
+    // después de migrate: location sigue siendo {"nl":"Gent","en":"Ghent"}
+});
+```
