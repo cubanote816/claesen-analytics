@@ -4,6 +4,7 @@ namespace Modules\Website\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Modules\Website\Console\RegenerateProjectMediaCommand;
+use Modules\Website\Console\Commands\ProcessConsultationRemindersCommand;
 use Modules\Website\Contracts\ProjectRepositoryInterface;
 use Modules\Website\Repositories\EloquentProjectRepository;
 use Modules\Website\Contracts\MessageRepositoryInterface;
@@ -34,7 +35,10 @@ class WebsiteServiceProvider extends ServiceProvider
         \Spatie\MediaLibrary\MediaCollections\Models\Media::observe(\Modules\Website\Observers\MediaObserver::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([RegenerateProjectMediaCommand::class]);
+            $this->commands([
+                RegenerateProjectMediaCommand::class,
+                ProcessConsultationRemindersCommand::class,
+            ]);
         }
     }
 }

@@ -124,6 +124,7 @@ return [
             'follow_up_update' => 'Folgetermin aktualisiert',
             'comment' => 'Kommentar',
             'created' => 'Erstellt',
+            'reminder_triggered' => 'Erinnerung ausgelöst',
         ],
         'logs' => [
             'created' => 'Neue Beratungsanfrage über :source eingegangen',
@@ -132,10 +133,13 @@ return [
             'assignment_change' => 'Zugewiesen an :user',
             'follow_up_update' => 'Folgetermin festgelegt auf :date',
             'comment' => 'Interne Notizen aktualisiert',
+            'reminder_triggered' => 'Erinnerung ausgelöst: :title',
         ],
         'notifications' => [
             'new_request_title' => 'Neue Beratungsanfrage',
             'new_request_body' => ':name hat eine neue Anfrage gestellt.',
+            'reminder_due_title' => 'Erinnerung fällig',
+            'reminder_due_body' => ':title — :name',
         ],
     ],
 ];

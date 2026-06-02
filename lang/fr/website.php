@@ -124,6 +124,7 @@ return [
             'follow_up_update' => 'Suivi mis à jour',
             'comment' => 'Commentaire',
             'created' => 'Créé',
+            'reminder_triggered' => 'Rappel déclenché',
         ],
         'logs' => [
             'created' => 'Nouvelle demande de consultation reçue via :source',
@@ -132,10 +133,13 @@ return [
             'assignment_change' => 'Attribué à :user',
             'follow_up_update' => 'Date de suivi fixée au :date',
             'comment' => 'Notes internes mises à jour',
+            'reminder_triggered' => 'Rappel déclenché : :title',
         ],
         'notifications' => [
             'new_request_title' => 'Nouvelle demande de consultation',
             'new_request_body' => ':name a soumis une nouvelle demande.',
+            'reminder_due_title' => 'Rappel échu',
+            'reminder_due_body' => ':title — :name',
         ],
     ],
 ];

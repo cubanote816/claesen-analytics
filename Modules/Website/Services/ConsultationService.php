@@ -80,7 +80,7 @@ class ConsultationService
         }
 
         $oldStatus = $request->status;
-        $request->update(['status' => $newStatus]);
+        $request->updateQuietly(['status' => $newStatus]);
 
         $this->logActivity(
             $request,
