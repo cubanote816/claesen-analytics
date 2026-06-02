@@ -243,7 +243,7 @@ php artisan website:regenerate-media --project=<id>
 
 ## Sprint Mailing — COMPLETADO Fase 0+1+2 (rama: `feature/mailing`)
 
-> Fase 0+1 cerradas: 2026-05-29 | Fase 2 cerrada: 2026-05-30 | PR: #1 (Fase 0+1) | PR Fase 2: pendiente
+> Fase 0+1 cerradas: 2026-05-29 | Fase 2 cerrada: 2026-05-30 | PR: #1 (Fase 0+1) | PR: #2 (Fase 2)
 > Documento maestro: `docs/Mailing/mailing-platform-master.md`
 
 ### Decisiones arquitectónicas fijadas
