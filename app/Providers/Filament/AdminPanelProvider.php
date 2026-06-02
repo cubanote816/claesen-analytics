@@ -89,7 +89,7 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->plugin(
                 \LaraZeus\SpatieTranslatable\SpatieTranslatablePlugin::make()
-                    ->defaultLocales(['nl', 'en'])
+                    ->defaultLocales(['nl', 'en', 'fr', 'de'])
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')

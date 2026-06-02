@@ -9,23 +9,51 @@ use Illuminate\Support\Facades\App;
 
 class SetPanelLocale
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
+    private const SUPPORTED_LOCALES = ['nl', 'en', 'fr', 'de'];
+    private const DEFAULT_LOCALE    = 'en';
+
     public function handle(Request $request, Closure $next): Response
     {
-        $acceptLanguage = $request->header('Accept-Language');
+        $header = $request->header('Accept-Language', '');
 
-        // Check if Dutch is requested (nl, nl-BE, nl-NL, etc.)
-        if ($acceptLanguage && str_starts_with(strtolower($acceptLanguage), 'nl')) {
-            App::setLocale('nl');
-        } else {
-            // Default to English for everything else (en, es, fr, etc.)
-            App::setLocale('en');
-        }
+        App::setLocale($this->resolveLocale($header));
 
         return $next($request);
+    }
+
+    private function resolveLocale(string $header): string
+    {
+        foreach ($this->parseAcceptLanguage($header) as $tag) {
+            $primary = strtolower(explode('-', $tag)[0]);
+            if (in_array($primary, self::SUPPORTED_LOCALES, true)) {
+                return $primary;
+            }
+        }
+
+        return self::DEFAULT_LOCALE;
+    }
+
+    private function parseAcceptLanguage(string $header): array
+    {
+        if (empty(trim($header))) {
+            return [];
+        }
+
+        $tags = array_map('trim', explode(',', $header));
+
+        usort($tags, function (string $a, string $b): int {
+            return $this->quality($b) <=> $this->quality($a);
+        });
+
+        return array_map(fn(string $tag) => explode(';', $tag)[0], $tags);
+    }
+
+    private function quality(string $tag): float
+    {
+        if (preg_match('/;q=([\d.]+)/', $tag, $m)) {
+            return (float) $m[1];
+        }
+
+        return 1.0;
     }
 }
