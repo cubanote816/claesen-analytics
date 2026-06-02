@@ -30,6 +30,9 @@ class ProcessConsultationRemindersCommand extends Command
                 continue;
             }
 
+            // Sync model state so subsequent Eloquent operations reflect 'processing'
+            $reminder->refresh();
+
             try {
                 if ($reminder->user) {
                     \Filament\Notifications\Notification::make()
@@ -52,13 +55,16 @@ class ProcessConsultationRemindersCommand extends Command
                     );
                 }
 
-                $reminder->update([
-                    'status'       => 'completed',
-                    'completed_at' => now(),
-                ]);
+                // Raw update guarded by current status to avoid stale-model races
+                ConsultationReminder::whereKey($reminder->id)
+                    ->where('status', 'processing')
+                    ->update(['status' => 'completed', 'completed_at' => now()]);
 
             } catch (\Exception $e) {
-                $reminder->update(['status' => 'pending']);
+                // Raw revert: model may have status='processing' or be stale — bypass Eloquent dirty check
+                ConsultationReminder::whereKey($reminder->id)
+                    ->where('status', 'processing')
+                    ->update(['status' => 'pending']);
                 Log::error("ProcessConsultationRemindersCommand: failed for reminder #{$reminder->id}: " . $e->getMessage());
             }
         }
