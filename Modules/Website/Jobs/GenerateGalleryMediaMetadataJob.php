@@ -22,6 +22,8 @@ class GenerateGalleryMediaMetadataJob implements ShouldQueue
 
     public function handle(GeminiService $gemini): void
     {
+        $notifyFrontend = false;
+
         try {
             $media = Media::find($this->mediaId);
             if (!$media) {
@@ -32,6 +34,9 @@ class GenerateGalleryMediaMetadataJob implements ShouldQueue
             if (!$project instanceof Project) {
                 return;
             }
+
+            // Media confirmed as a Project gallery item — frontend must be notified regardless of outcome
+            $notifyFrontend = true;
 
             $rawCaption = $media->getCustomProperty('caption');
             $rawAlt     = $media->getCustomProperty('alt');
@@ -70,11 +75,12 @@ class GenerateGalleryMediaMetadataJob implements ShouldQueue
             $media->setCustomProperty('alt', $result['alt']);
             $media->saveQuietly();
 
-            // Notify frontend only after metadata is persisted (saveQuietly bypasses observer)
-            NotifyAstroFrontendJob::dispatch();
-
         } catch (\Exception $e) {
             Log::error("GenerateGalleryMediaMetadataJob failed for media #{$this->mediaId}: " . $e->getMessage());
+        } finally {
+            if ($notifyFrontend) {
+                NotifyAstroFrontendJob::dispatch();
+            }
         }
     }
 
