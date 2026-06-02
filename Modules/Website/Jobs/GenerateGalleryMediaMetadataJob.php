@@ -22,48 +22,64 @@ class GenerateGalleryMediaMetadataJob implements ShouldQueue
 
     public function handle(GeminiService $gemini): void
     {
-        $media = Media::find($this->mediaId);
-        if (!$media) {
-            return;
-        }
-
-        $project = $media->model;
-        if (!$project instanceof Project) {
-            return;
-        }
-
-        if ($this->isComplete($media)) {
-            return;
-        }
-
-        $projectContext = [
-            'title'       => $project->getTranslation('title', 'nl') ?: $project->getTranslation('title', 'en'),
-            'category'    => $project->category instanceof \BackedEnum ? $project->category->value : (string) $project->category,
-            'client'      => $project->getTranslation('client', 'nl') ?: $project->getTranslation('client', 'en'),
-            'location'    => $project->getTranslation('location', 'nl') ?: $project->getTranslation('location', 'en'),
-            'year'        => $project->year,
-            'description' => $project->getTranslation('description', 'nl') ?: $project->getTranslation('description', 'en'),
-        ];
-
-        $userCaption = $media->getCustomProperty('caption_source') ?: null;
-        $userAlt     = $media->getCustomProperty('alt_source') ?: null;
-
         try {
+            $media = Media::find($this->mediaId);
+            if (!$media) {
+                return;
+            }
+
+            $project = $media->model;
+            if (!$project instanceof Project) {
+                return;
+            }
+
+            $rawCaption = $media->getCustomProperty('caption');
+            $rawAlt     = $media->getCustomProperty('alt');
+
+            // Normalize: plain strings are legacy values — promote to source candidates
+            $captionArray = is_array($rawCaption) ? $rawCaption : [];
+            $altArray     = is_array($rawAlt)     ? $rawAlt     : [];
+
+            if ($this->isComplete($captionArray, $altArray)) {
+                return;
+            }
+
+            // Use explicit source fields first; fall back to legacy plain strings
+            $userCaption = $media->getCustomProperty('caption_source') ?: null;
+            $userAlt     = $media->getCustomProperty('alt_source') ?: null;
+
+            if (!$userCaption && is_string($rawCaption) && !empty($rawCaption)) {
+                $userCaption = $rawCaption;
+            }
+            if (!$userAlt && is_string($rawAlt) && !empty($rawAlt)) {
+                $userAlt = $rawAlt;
+            }
+
+            $projectContext = [
+                'title'       => $project->getTranslation('title', 'nl') ?: $project->getTranslation('title', 'en'),
+                'category'    => $project->category instanceof \BackedEnum ? $project->category->value : (string) $project->category,
+                'client'      => $project->getTranslation('client', 'nl') ?: $project->getTranslation('client', 'en'),
+                'location'    => $project->getTranslation('location', 'nl') ?: $project->getTranslation('location', 'en'),
+                'year'        => $project->year,
+                'description' => $project->getTranslation('description', 'nl') ?: $project->getTranslation('description', 'en'),
+            ];
+
             $result = $gemini->generateMediaMetadata($projectContext, $userCaption, $userAlt, self::LOCALES);
 
             $media->setCustomProperty('caption', $result['caption']);
             $media->setCustomProperty('alt', $result['alt']);
             $media->saveQuietly();
+
+            // Notify frontend only after metadata is persisted (saveQuietly bypasses observer)
+            NotifyAstroFrontendJob::dispatch();
+
         } catch (\Exception $e) {
             Log::error("GenerateGalleryMediaMetadataJob failed for media #{$this->mediaId}: " . $e->getMessage());
         }
     }
 
-    private function isComplete(Media $media): bool
+    private function isComplete(array $caption, array $alt): bool
     {
-        $caption = $media->getCustomProperty('caption', []);
-        $alt     = $media->getCustomProperty('alt', []);
-
         foreach (self::LOCALES as $locale) {
             if (empty($caption[$locale] ?? '') || empty($alt[$locale] ?? '')) {
                 return false;

@@ -151,12 +151,14 @@ PROMPT;
         $result = $this->generateStructuredResponse($prompt);
 
         return [
-            'caption' => (isset($result['caption']) && is_array($result['caption']))
-                ? $result['caption']
-                : $empty,
-            'alt' => (isset($result['alt']) && is_array($result['alt']))
-                ? $result['alt']
-                : $empty,
+            'caption' => array_merge(
+                $empty,
+                (isset($result['caption']) && is_array($result['caption'])) ? $result['caption'] : []
+            ),
+            'alt' => array_merge(
+                $empty,
+                (isset($result['alt']) && is_array($result['alt'])) ? $result['alt'] : []
+            ),
         ];
     }
 }

@@ -12,10 +12,11 @@ class MediaObserver
     public function saved(Media $media): void
     {
         if ($media->model_type === Project::class) {
-            NotifyAstroFrontendJob::dispatch();
-
             if ($media->collection_name === 'gallery') {
+                // Notify frontend after the metadata job persists caption/alt (job handles it)
                 GenerateGalleryMediaMetadataJob::dispatch($media->id);
+            } else {
+                NotifyAstroFrontendJob::dispatch();
             }
         }
     }
