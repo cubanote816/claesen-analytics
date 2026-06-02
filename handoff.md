@@ -9,7 +9,7 @@
 
 - **Sprint activo:** Website — completado (WEB-008 → WEB-011)
 - **Rama actual:** `main`
-- **Último ticket cerrado:** WEB-011 / CLA-111 — "Seguimiento real de Consultation Requests" — commit `569c2c0`
+- **Último ticket cerrado:** TEST-GATE-001 — "Mandatory test gate harness" — commits `0278d05` `92199c3`
 - **Próximo ticket:** A definir (ver secciones de módulos abajo)
 
 ## Reglas de arranque persistentes
@@ -61,6 +61,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-03 | TEST-GATE-001 | Arnés obligatorio de testing — commits `0278d05` `92199c3` |
 | 2026-06-03 | WEB-011 / CLA-111 | Seguimiento Consultation Requests — commits `2b500b1` `569c2c0` |
 | 2026-06-02 | WEB-010 / CLA-110 | Email transaccional Consultation Requests — commit `0588594` |
 | 2026-06-02 | WEB-009 / CLA-109 | IA caption/alt galería portfolio — commits `f3d57c8` `112aef8` `5c1c972` |
