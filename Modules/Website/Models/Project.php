@@ -53,9 +53,10 @@ class Project extends Model implements HasMedia
     public function getAiTranslatableAttributes(): array
     {
         return [
+            'title',
             'description',
             'location',
-            'title',
+            'client',
         ];
     }
 
