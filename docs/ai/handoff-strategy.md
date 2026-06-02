@@ -21,6 +21,8 @@ docs/Mailing/mailing-platform-master.md   ← estado técnico completo de Mailin
 docs/website-sprint-handoff.md            ← estado del sprint Website
 docs/safety-sprint-linear-tickets.md      ← mapa de tickets Safety (cerrado)
 docs/ai/                               ← harnesses operativos
+AGENTS.md                              ← reglas del repositorio (leído por agentes compatibles)
+.agents/rules/00-project-startup.md   ← protocolo completo de arranque de Antigravity
 ```
 
 **Jerarquía de verdad** (en caso de conflicto):
@@ -118,6 +120,7 @@ Los documentos de módulo contienen el contexto técnico profundo de cada sprint
 2. Leer handoff.md       → estado global vivo, próximo paso
 3. Leer docs/ai/README.md → qué documento consultar según la tarea
 4. Leer doc del módulo   → contexto técnico profundo del sprint activo
+5. (Antigravity) Leer AGENTS.md y .agents/rules/00-project-startup.md
 ```
 
 No asumir que la sesión anterior terminó limpiamente. Verificar siempre `handoff.md` para el estado real.

@@ -71,6 +71,34 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 ---
 
+## Verificación de arranque persistente Antigravity
+
+- Fecha: 2026-06-02
+- Ticket: DOCS-AI-003 / CLA-107
+- Resultado: OK
+
+Se verificó que una nueva sesión de Antigravity lee y aplica correctamente:
+
+1. `CLAUDE.md`
+2. `handoff.md`
+3. `docs/ai/README.md`
+4. `AGENTS.md`
+5. `.agents/rules/00-project-startup.md`
+
+Reglas confirmadas activas:
+
+- Sin ticket Linear activo → sin edición de archivos.
+- Sin plan aprobado → sin implementación.
+- Sin GO técnico → no se marca Done.
+- No se leen ni copian secretos.
+- Mailing Fase 3 bloqueada hasta 4–6 semanas de datos reales en producción.
+- MAI-026 bloqueado hasta decisión de gerencia.
+- SQL Server legacy / Cafca sigue siendo ReadOnly.
+
+Próximo paso: definir el próximo ticket Linear antes de iniciar cualquier trabajo nuevo.
+
+---
+
 ## Cómo reanudar una sesión
 
 ```
