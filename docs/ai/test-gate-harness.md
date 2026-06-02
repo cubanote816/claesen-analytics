@@ -50,7 +50,7 @@ Esta regla tiene la misma jerarquía que el protocolo de tickets. El GO técnico
 | Tipo de cambio | Tests mínimos requeridos | Herramienta |
 |---|---|---|
 | **Servicio puro** (lógica de negocio) | Unit o Feature del método principal; happy path + caso de error | PHPUnit |
-| **API / Resource** | Feature test: 200 OK, 401 sin auth, 422 input inválido; validar estructura JSON | `$this->getJson()` / `postJson()` |
+| **API / Resource** | **Protegido:** 200 OK, 401 sin auth, 403 sin permiso, 422 input inválido. **Público:** 200 OK, 422 si acepta input, estructura JSON correcta, locale/fallback si devuelve campos traducibles | `$this->getJson()` / `postJson()` |
 | **Job / Command / Scheduler** | Verificar efecto del job; command registrado; comportamiento con datos vacíos | `artisan()` / `Queue::fake()` / `Bus::fake()` |
 | **Mail / Notification** | Verificar que se envía, a quién, con qué datos; nunca envío real | `Mail::fake()` / `Notification::fake()` |
 | **Migración / Transformación de datos** | Test con datos representativos incluyendo casos legacy (nulls, strings, JSON existente) | `RefreshDatabase` + fixtures |
@@ -157,7 +157,7 @@ Este sprint fue implementado y auditado manualmente sin tests automatizados. Los
 |---|---|---|
 | Middleware `SetPanelLocale` + `BrowserLocaleMiddleware` | Locale incorrecto silencioso | Feature test con `Accept-Language: nl/fr/de/en` y verificar `app()->getLocale()` |
 | `HasAiTranslations` con `['nl','en','fr','de']` | Locale faltante, texto vacío en producción | Unit test del trait con mock de Gemini; verificar 4 locales rellenos |
-| `GenerateGalleryMediaMetadataJob` — claim atómico + finally | Reminder atascado en `processing` / frontend sin notify | Feature test: media guardada → job mockeando Gemini → `custom_properties` rellenos |
+| `GenerateGalleryMediaMetadataJob` — claim atómico + finally | Metadata incompleta, strings legacy no promovidos como fuente, Gemini fail sin guardar vacío, frontend sin notify en algún camino | Feature test: media guardada → job mockeando Gemini → `custom_properties` rellenos; test de Gemini fail → metadata vacía + notify igual disparado |
 | `ConsultationService` + `DB::afterCommit()` + `Mail::fake()` | Correo enviado aunque transacción haga rollback | Feature test: POST /consultations → `Mail::assertSent(NewConsultationRequestMail::class)` |
 | `ProcessConsultationRemindersCommand` — doble procesamiento | Notificación duplicada en retry | Test: reminder `remind_at` en pasado → artisan → 1 actividad, status `completed` |
 | `updateQuietly()` en `ConsultationService::updateStatus()` | Double logging si se revierte a `update()` | Test: llamar `updateStatus()` → exactamente 1 `ConsultationActivity` de tipo `status_change` |

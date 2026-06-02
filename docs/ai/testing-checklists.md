@@ -148,8 +148,18 @@ Modules/Safety/tests/Feature/
 
 - [ ] Ruta registrada en `routes/api.php` del módulo correcto
 - [ ] Middleware de autenticación correcto (`auth:sanctum` o público)
-- [ ] Feature test con: 200 OK (happy path), 401 sin auth, 403 sin permiso, 422 input inválido
-- [ ] Respuesta JSON consistente con el resto de la API
+
+**Endpoint protegido (`auth:sanctum` requerido):**
+- [ ] 200 OK happy path con token válido
+- [ ] 401 sin token
+- [ ] 403 sin permiso (rol insuficiente)
+- [ ] 422 input inválido
+
+**Endpoint público (sin auth, p. ej. `/v1/website/*`):**
+- [ ] 200 OK happy path
+- [ ] 422 si recibe input inválido (solo si el endpoint acepta input)
+- [ ] Estructura JSON consistente con el resto de la API
+- [ ] Si devuelve campos traducibles: verificar locale correcto según `Accept-Language` y fallback
 
 ### Cambio en módulo Mailing
 
@@ -215,7 +225,7 @@ Verificar que cada comando:
 
 ## Lecciones del módulo Website — sprint WEB-008 → WEB-011
 
-Estos patrones emergieron del primer sprint multidioma del módulo Website. Se implementaron sin tests automatizados (waiver implícito por ser sprint inicial). Los tests recomendados a continuación deben añadirse en WEB-012 o en la primera iteración que toque estos componentes.
+Estos patrones emergieron del primer sprint multidioma del módulo Website. Se implementaron sin tests automatizados — deuda histórica documentada; no constituye waiver para tickets futuros. Los tests recomendados a continuación deben añadirse en WEB-012 o en la primera iteración que toque estos componentes.
 
 ### i18n — middleware de locale y traducciones
 
