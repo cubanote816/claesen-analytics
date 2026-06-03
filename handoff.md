@@ -1,16 +1,33 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-02 (DOCS-AI-002 / CLA-106)
+> Última actualización: 2026-06-03 (CLA-121/122/123/124)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** Website — completado (WEB-008 → WEB-011)
+- **Sprint activo:** ninguno (sesión de hotfixes)
 - **Rama actual:** `main`
-- **Último ticket cerrado:** TEST-GATE-001 — "Mandatory test gate harness" — commits `0278d05` `92199c3`
-- **Próximo ticket:** A definir (ver secciones de módulos abajo)
+- **Último ticket cerrado:** CLA-124 — fix Mailing migration down() MySQL 1553 — commit `1809aee`
+- **Próximo ticket:** A definir
+
+### Hotfixes cerrados en esta sesión (2026-06-03)
+
+| Ticket | Commit | Descripción |
+|--------|--------|-------------|
+| CLA-121 | `270f47c` | `User` implementa `FilamentUser` + `canAccessPanel()` — necesario para acceso al panel en producción |
+| CLA-122 | `3d4c1cc` | Website: 5 factories, 5 feature tests, locale-aware API (27 tests) |
+| CLA-123 | `da9ce63` | 4 migraciones raíz: down() robusto contra tabla renombrada |
+| CLA-124 | `1809aee` | Mailing migration: eliminar dropIndex explícito (MySQL 1553) |
+
+### Causa raíz login Microsoft (resuelto)
+
+Dos problemas encadenados:
+1. `User` no implementaba `FilamentUser` → Filament bloqueaba acceso en producción (CLA-121)
+2. El usuario `orelvys.cuellar@claesen-verlichting.be` no existía en la tabla `users` local → callback retornaba 403 silencioso
+
+**Fix permanente:** correr `RolesAndPermissionsSeeder` + crear usuario con rol `super_admin` al provisionar un entorno nuevo.
 
 ## Reglas de arranque persistentes
 
