@@ -23,8 +23,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('employees', function (Blueprint $table) {
-            $table->string('avatar_path')->nullable();
-        });
+        // create_employees_table.down() runs first in reverse order and drops the table,
+        // so employees may not exist here — guard to avoid a fatal error.
+        if (Schema::hasTable('employees') && !Schema::hasColumn('employees', 'avatar_path')) {
+            Schema::table('employees', function (Blueprint $table) {
+                $table->string('avatar_path')->nullable();
+            });
+        }
     }
 };
