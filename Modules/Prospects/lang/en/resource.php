@@ -161,6 +161,17 @@ return [
         'manually_completed' => [
             'title' => 'Status updated to Completed',
         ],
+        'sync_blocked_master' => [
+            'title' => 'Master sync is active',
+            'body'  => 'Wait for the master sync to finish before triggering an individual sync.',
+        ],
+        'sync_already_running' => [
+            'title' => 'Sync already in progress',
+        ],
+        'sync_blocked_any' => [
+            'title' => 'Syncs already running',
+            'body'  => 'Wait for all active synchronizations to finish before launching a master sync.',
+        ],
         'no_emails_found' => [
             'title' => 'No email addresses found',
             'body' => 'The selected prospects do not have any locations with registered email addresses.',

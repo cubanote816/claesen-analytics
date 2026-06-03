@@ -161,6 +161,17 @@ return [
         'manually_completed' => [
             'title' => 'Status bijgewerkt naar Voltooid',
         ],
+        'sync_blocked_master' => [
+            'title' => 'Master sync is actief',
+            'body'  => 'Wacht tot de master sync klaar is voordat je een individuele sync start.',
+        ],
+        'sync_already_running' => [
+            'title' => 'Sync loopt al',
+        ],
+        'sync_blocked_any' => [
+            'title' => 'Er lopen al syncs',
+            'body'  => 'Wacht tot alle actieve synchronisaties klaar zijn voordat je een master sync start.',
+        ],
         'no_emails_found' => [
             'title' => 'Geen e-mailadressen gevonden',
             'body' => 'De geselecteerde prospecten hebben geen locaties met geregistreerde e-mailadressen.',

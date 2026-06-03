@@ -157,6 +157,17 @@ return [
         'manually_completed' => [
             'title' => 'Statut mis à jour vers Terminé',
         ],
+        'sync_blocked_master' => [
+            'title' => 'Master sync actif',
+            'body'  => 'Attendez que le master sync se termine avant de lancer une sync individuelle.',
+        ],
+        'sync_already_running' => [
+            'title' => 'Sync déjà en cours',
+        ],
+        'sync_blocked_any' => [
+            'title' => 'Des syncs sont déjà en cours',
+            'body'  => 'Attendez que toutes les synchronisations actives se terminent avant de lancer un master sync.',
+        ],
         'no_emails_found' => [
             'title' => 'Aucune adresse e-mail trouvée',
             'body' => 'Les prospects sélectionnés n\'ont pas d\'emplacements avec des adresses e-mail enregistrées.',
