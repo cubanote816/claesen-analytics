@@ -5,6 +5,7 @@ namespace Modules\Website\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\Core\Models\User;
+use Modules\Website\Database\Factories\ConsultationRequestFactory;
 
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -13,6 +14,11 @@ class ConsultationRequest extends Model
 {
     use HasFactory;
     use LogsActivity;
+
+    protected static function newFactory(): ConsultationRequestFactory
+    {
+        return ConsultationRequestFactory::new();
+    }
 
     protected $table = 'website_consultation_requests';
 

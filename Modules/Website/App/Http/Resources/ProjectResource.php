@@ -14,10 +14,10 @@ class ProjectResource extends JsonResource
         return [
             'id' => $this->id,
             'slug' => $this->slug,
-            'title' => $this->title,
-            'description' => $this->description,
+            'title' => $this->resolveLocaleValue($this->getTranslations('title')),
+            'description' => $this->resolveLocaleValue($this->getTranslations('description')),
             'category' => $this->category,
-            'location' => $this->location,
+            'location' => $this->resolveLocaleValue($this->getTranslations('location')),
             'year' => $this->year,
             'featured' => $this->featured,
             'order_index' => $this->order_index,

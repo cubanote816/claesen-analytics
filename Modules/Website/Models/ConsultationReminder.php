@@ -2,11 +2,20 @@
 
 namespace Modules\Website\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Core\Models\User;
+use Modules\Website\Database\Factories\ConsultationReminderFactory;
 
 class ConsultationReminder extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): ConsultationReminderFactory
+    {
+        return ConsultationReminderFactory::new();
+    }
+
     protected $table = 'website_consultation_reminders';
 
     protected $fillable = [

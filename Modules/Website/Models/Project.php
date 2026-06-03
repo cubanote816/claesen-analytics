@@ -5,6 +5,7 @@ namespace Modules\Website\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Website\Database\Factories\ProjectFactory;
 use Spatie\Translatable\HasTranslations;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -14,6 +15,11 @@ use Modules\Intelligence\Traits\HasAiTranslations;
 class Project extends Model implements HasMedia
 {
     use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia, HasAiTranslations;
+
+    protected static function newFactory(): ProjectFactory
+    {
+        return ProjectFactory::new();
+    }
 
     protected $table = 'website_projects';
 
