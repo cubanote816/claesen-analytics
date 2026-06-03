@@ -95,6 +95,20 @@ class SyncHistoryResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('last_activity')
+                    ->label(__('prospects::resource.fields.last_activity'))
+                    ->getStateUsing(function (SyncHistory $record): ?string {
+                        if ($record->status !== 'running' || empty($record->logs)) {
+                            return null;
+                        }
+                        $last = last($record->logs);
+                        return ($last['icon'] ?? '') . ' ' . ($last['message'] ?? '');
+                    })
+                    ->wrap()
+                    ->color('warning')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('started_at', 'desc')
             ->poll('5s')
@@ -309,6 +323,7 @@ class SyncHistoryResource extends Resource
     {
         return [
             'index' => \Modules\Prospects\Filament\Resources\SyncHistoryResource\Pages\ListSyncHistories::route('/'),
+            'view'  => \Modules\Prospects\Filament\Resources\SyncHistoryResource\Pages\ViewSyncHistory::route('/{record}'),
         ];
     }
 }

@@ -51,6 +51,7 @@ return [
         'started_at' => 'Started at',
         'finished_at' => 'Finished at',
         'total_items' => 'Total items processed',
+        'last_activity' => 'Last Activity',
         'prospect' => 'Prospect',
         'template' => 'Template / Campaign',
         'sent_at' => 'Sent at',
@@ -129,6 +130,7 @@ return [
         'mark_completed' => [
             'label' => 'Mark as Completed',
         ],
+        'back_to_list' => 'Back to List',
     ],
 
     'notifications' => [

@@ -48,7 +48,7 @@ trait LogsSyncEvents
 
         // Optionally update in real-time if not too frequent, or just keep in memory for the end.
         // For "Professional" feel, we'll update every 10 events or so.
-        if (count($this->accumulatedLogs) % 10 === 0) {
+        if (count($this->accumulatedLogs) % 5 === 0) {
             $this->syncHistory?->update([
                 'logs' => $this->accumulatedLogs,
             ]);

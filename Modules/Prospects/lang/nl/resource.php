@@ -51,6 +51,7 @@ return [
         'started_at' => 'Gestart op',
         'finished_at' => 'Klaar op',
         'total_items' => 'Totaal Items processed',
+        'last_activity' => 'Laatste Activiteit',
         'prospect' => 'Prospect',
         'template' => 'Template / Campagne',
         'sent_at' => 'Verzonden op',
@@ -129,6 +130,7 @@ return [
         'mark_completed' => [
             'label' => 'Als Voltooid Markeren',
         ],
+        'back_to_list' => 'Terug naar Lijst',
     ],
 
     'notifications' => [
