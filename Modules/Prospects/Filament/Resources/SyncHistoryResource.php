@@ -126,7 +126,7 @@ class SyncHistoryResource extends Resource
                             ->info()
                             ->body(__('prospects::resource.notifications.master_sync_started.body'))
                             ->send();
-                    })
+                    }),
                 ActionGroup::make([
                     Action::make('sync_rbfa')
                         ->label(__('prospects::resource.actions.individual_sync.rbfa'))
