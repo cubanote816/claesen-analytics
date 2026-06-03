@@ -12,15 +12,8 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Infolists\Components\IconEntry;
-use Filament\Pages\Page;
-use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
-use Modules\Prospects\Jobs\ExecuteSyncJob;
-use Modules\Prospects\Jobs\MasterSyncJob;
 use Filament\Notifications\Notification;
-use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Database\Eloquent\Builder;
 
 class SyncHistoryResource extends Resource
 {
@@ -114,66 +107,6 @@ class SyncHistoryResource extends Resource
             ])
             ->defaultSort('started_at', 'desc')
             ->poll('5s')
-            ->headerActions([
-                Action::make('sync_master')
-                    ->label(__('prospects::resource.actions.sync_master.label'))
-                    ->icon(Heroicon::Bolt)
-                    ->color('primary')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $history = SyncHistory::create([
-                            'command' => 'prospects:sync-master',
-                            'type' => 'master',
-                            'status' => 'running',
-                            'started_at' => now(),
-                            'user_id' => auth()->id(),
-                            'logs' => [[
-                                'time' => now()->format('H:i:s'),
-                                'message' => __('prospects::resource.sync_history.logs.master_requested'),
-                                'type' => 'info',
-                                'icon' => '🚀',
-                            ]],
-                        ]);
-
-                        MasterSyncJob::dispatch(auth()->id(), $history->id);
-
-                        Notification::make()
-                            ->title(__('prospects::resource.notifications.master_sync_started.title'))
-                            ->info()
-                            ->body(__('prospects::resource.notifications.master_sync_started.body'))
-                            ->send();
-                    }),
-                ActionGroup::make([
-                    Action::make('sync_rbfa')
-                        ->label(__('prospects::resource.actions.individual_sync.rbfa'))
-                        ->color('success')
-                        ->action(fn () => self::runSync('prospects:sync-rbfa-graphql')),
-
-                    Action::make('sync_lbfa')
-                        ->label(__('prospects::resource.actions.individual_sync.lbfa'))
-                        ->action(fn () => self::runSync('prospects:sync-lbfa-clubs')),
-                    
-                    Action::make('sync_val')
-                        ->label(__('prospects::resource.actions.individual_sync.val'))
-                        ->action(fn () => self::runSync('prospects:sync-val-clubs')),
-
-                    Action::make('sync_hockey')
-                        ->label(__('prospects::resource.actions.individual_sync.hockey'))
-                        ->action(fn () => self::runSync('prospects:sync-hockey-clubs')),
-
-                    Action::make('sync_tpv')
-                        ->label(__('prospects::resource.actions.individual_sync.tpv'))
-                        ->action(fn () => self::runSync('prospects:sync-tpv-clubs')),
-                    
-                    Action::make('sync_aft')
-                        ->label(__('prospects::resource.actions.individual_sync.aft'))
-                        ->action(fn () => self::runSync('prospects:sync-aft-clubs')),
-                ])
-                ->label(__('prospects::resource.actions.individual_sync.label'))
-                ->icon('heroicon-o-play-circle')
-                ->color('gray'),
-            ])
-
             ->actions([
                 \Filament\Actions\ViewAction::make(),
                 \Filament\Actions\Action::make('mark_failed')
@@ -236,17 +169,6 @@ class SyncHistoryResource extends Resource
                     \Filament\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
-    }
-
-    protected static function runSync(string $command): void
-    {
-        ExecuteSyncJob::dispatch($command, auth()->id());
-        
-        Notification::make()
-            ->title(__('prospects::resource.notifications.sync_started.title'))
-            ->info()
-            ->body(__('prospects::resource.notifications.sync_started.body', ['command' => $command]))
-            ->send();
     }
 
     public static function infolist(Schema $schema): Schema
