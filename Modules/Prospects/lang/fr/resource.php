@@ -51,6 +51,7 @@ return [
         'started_at' => 'Démarré le',
         'finished_at' => 'Terminé le',
         'total_items' => 'Total des Articles traités',
+        'last_activity' => 'Dernière Activité',
         'prospect' => 'Prospect',
         'template' => 'Modèle / Campagne',
         'sent_at' => 'Envoyé le',
@@ -84,6 +85,7 @@ return [
             'en' => 'Anglais',
         ],
         'status' => [
+            'pending' => 'En attente...',
             'running' => 'En cours...',
             'completed' => 'Terminé',
             'failed' => 'Échoué',
@@ -129,6 +131,7 @@ return [
         'mark_completed' => [
             'label' => 'Marquer comme Terminé',
         ],
+        'back_to_list' => 'Retour à la Liste',
     ],
 
     'notifications' => [

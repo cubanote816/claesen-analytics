@@ -63,16 +63,18 @@ class SyncHistoryResource extends Resource
                     ->label(__('prospects::resource.fields.status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'running' => 'warning',
+                        'pending'   => 'info',
+                        'running'   => 'warning',
                         'completed' => 'success',
-                        'failed' => 'danger',
-                        default => 'gray',
+                        'failed'    => 'danger',
+                        default     => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'running' => __('prospects::resource.options.status.running'),
+                        'pending'   => __('prospects::resource.options.status.pending'),
+                        'running'   => __('prospects::resource.options.status.running'),
                         'completed' => __('prospects::resource.options.status.completed'),
-                        'failed' => __('prospects::resource.options.status.failed'),
-                        default => $state,
+                        'failed'    => __('prospects::resource.options.status.failed'),
+                        default     => $state,
                     }),
 
                 TextColumn::make('user.name')
@@ -179,7 +181,7 @@ class SyncHistoryResource extends Resource
                     ->icon(Heroicon::XCircle)
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->visible(fn ($record) => $record->status === 'running')
+                    ->visible(fn ($record) => in_array($record->status, ['pending', 'running']))
                     ->action(function ($record) {
                         $record->update([
                             'status' => 'failed',
@@ -206,7 +208,7 @@ class SyncHistoryResource extends Resource
                     ->icon(Heroicon::CheckCircle)
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn ($record) => $record->status === 'running')
+                    ->visible(fn ($record) => in_array($record->status, ['pending', 'running']))
                     ->action(function ($record) {
                         $record->update([
                             'status' => 'completed',
@@ -259,11 +261,19 @@ class SyncHistoryResource extends Resource
                             TextEntry::make('status')
                                 ->label(__('prospects::resource.fields.status'))
                                 ->badge()
+                                ->formatStateUsing(fn ($state) => match ($state) {
+                                    'pending'   => __('prospects::resource.options.status.pending'),
+                                    'running'   => __('prospects::resource.options.status.running'),
+                                    'completed' => __('prospects::resource.options.status.completed'),
+                                    'failed'    => __('prospects::resource.options.status.failed'),
+                                    default     => $state,
+                                })
                                 ->color(fn (string $state): string => match ($state) {
-                                    'running' => 'warning',
+                                    'pending'   => 'info',
+                                    'running'   => 'warning',
                                     'completed' => 'success',
-                                    'failed' => 'danger',
-                                    default => 'gray',
+                                    'failed'    => 'danger',
+                                    default     => 'gray',
                                 }),
                             TextEntry::make('records_count')
                                 ->label(__('prospects::resource.fields.total_items')),

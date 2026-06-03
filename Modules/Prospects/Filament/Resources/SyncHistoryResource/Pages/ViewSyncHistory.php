@@ -5,6 +5,7 @@ namespace Modules\Prospects\Filament\Resources\SyncHistoryResource\Pages;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Prospects\Filament\Resources\SyncHistoryResource;
 
 class ViewSyncHistory extends ViewRecord
@@ -21,6 +22,18 @@ class ViewSyncHistory extends ViewRecord
             ->replace('-', ' ')
             ->title()
             ->value();
+    }
+
+    // Force fresh DB query while pending/running so wire:poll.3s sees updated logs and status
+    public function getRecord(): Model
+    {
+        $record = parent::getRecord();
+
+        if (in_array($record->status, ['pending', 'running'])) {
+            return $record->fresh();
+        }
+
+        return $record;
     }
 
     protected function getHeaderActions(): array

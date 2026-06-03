@@ -85,6 +85,7 @@ return [
             'en' => 'Engels',
         ],
         'status' => [
+            'pending' => 'In wachtrij...',
             'running' => 'Bezig...',
             'completed' => 'Voltooid',
             'failed' => 'Mislukt',

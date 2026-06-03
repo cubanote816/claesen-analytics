@@ -1,5 +1,5 @@
 <x-filament-panels::page>
-    @if($this->record->status === 'running')
+    @if(in_array($this->record->status, ['pending', 'running']))
         <div wire:poll.3s>
             {{ $this->content }}
         </div>

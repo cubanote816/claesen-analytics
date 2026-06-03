@@ -85,6 +85,7 @@ return [
             'en' => 'English',
         ],
         'status' => [
+            'pending' => 'Queued...',
             'running' => 'Running...',
             'completed' => 'Completed',
             'failed' => 'Failed',
