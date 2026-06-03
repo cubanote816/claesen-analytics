@@ -3,8 +3,8 @@
 namespace Modules\Mailing\Filament\Resources\CampaignResource\Schemas;
 
 use Carbon\Carbon;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Actions\Action as FormAction;
+use Filament\Schemas\Components\Actions;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
