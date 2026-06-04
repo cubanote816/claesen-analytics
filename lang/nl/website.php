@@ -11,6 +11,7 @@ return [
             'details' => 'Projectdetails',
             'media' => 'Media',
             'settings' => 'Instellingen',
+            'work_details' => 'In Actie',
         ],
         'fields' => [
             'title' => 'Titel',
@@ -26,6 +27,11 @@ return [
             'order_index_helper' => 'Bepaalt de positie op de website (1 = eerste, 0 = standaard of onderaan).',
             'featured_image' => 'Uitgelichte afbeelding',
             'gallery' => 'Galerij',
+            'detail_gallery' => 'Detailgalerij',
+            'work_story' => 'Projectverhaal',
+            'challenge' => 'Uitdaging',
+            'solution' => 'Oplossing',
+            'result' => 'Resultaat',
         ],
     ],
     'pages' => [

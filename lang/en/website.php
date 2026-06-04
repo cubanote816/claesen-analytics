@@ -11,6 +11,7 @@ return [
             'details' => 'Project Details',
             'media' => 'Media',
             'settings' => 'Settings',
+            'work_details' => 'Work Details / In Action',
         ],
         'fields' => [
             'title' => 'Title',
@@ -26,6 +27,11 @@ return [
             'order_index_helper' => 'Determines the position on the website (1 = first, 0 = default or at the bottom).',
             'featured_image' => 'Featured Image',
             'gallery' => 'Gallery',
+            'detail_gallery' => 'Detail Gallery',
+            'work_story' => 'Project Story',
+            'challenge' => 'Challenge',
+            'solution' => 'Solution',
+            'result' => 'Result',
         ],
     ],
     'pages' => [
