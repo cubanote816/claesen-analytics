@@ -20,10 +20,10 @@ class SyncTpvClubsCommand extends Command
 
     protected $client;
 
-    public function __construct()
+    public function __construct(?Client $client = null)
     {
         parent::__construct();
-        $this->client = new Client([
+        $this->client = $client ?? new Client([
             'verify'          => false,
             'timeout'         => 20,
             'connect_timeout' => 5,
