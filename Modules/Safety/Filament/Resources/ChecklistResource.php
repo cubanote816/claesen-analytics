@@ -8,8 +8,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -56,6 +56,14 @@ class ChecklistResource extends Resource
                             ->label(__('safety::checklists.fields.name'))
                             ->required()
                             ->maxLength(255),
+                        \Filament\Forms\Components\Select::make('type')
+                            ->label('Type Checklist / Groep')
+                            ->options([
+                                'inspection' => 'Site Inspection (VCA)',
+                                'incident' => 'Incident Report',
+                            ])
+                            ->required()
+                            ->default('inspection'),
                         Toggle::make('is_active')
                             ->label(__('safety::checklists.fields.is_active'))
                             ->default(true),
@@ -152,6 +160,19 @@ class ChecklistResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Naam')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('type')
+                    ->label('Type / Groep')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'inspection' => 'Site Inspection',
+                        'incident' => 'Incident Report',
+                        default => $state,
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'inspection' => 'success',
+                        'incident' => 'warning',
+                        default => 'gray',
+                    }),
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Actief')
                     ->boolean(),

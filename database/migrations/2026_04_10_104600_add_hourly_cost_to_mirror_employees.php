@@ -21,7 +21,13 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('intelligence_mirror_employees', function (Blueprint $table) {
+        // After the rename migration's down() reverts tables to 'analytics_mirror_*',
+        // this migration must use whichever name is current at rollback time.
+        $tableName = Schema::hasTable('intelligence_mirror_employees')
+            ? 'intelligence_mirror_employees'
+            : 'analytics_mirror_employees';
+
+        Schema::table($tableName, function (Blueprint $table) {
             $table->dropColumn('hourly_cost');
         });
     }

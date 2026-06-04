@@ -6,18 +6,56 @@ namespace Modules\Safety\Http\Controllers;
 
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Modules\Safety\Models\Checklist;
 
 class ChecklistController extends Controller
 {
-    public function active(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $checklist = Checklist::with(['questions' => fn($query) => $query->orderBy('order')])
-            ->where('is_active', true)
-            ->firstOrFail();
+        $request->validate([
+            'type' => ['required', Rule::in(['inspection', 'incident'])],
+        ]);
 
-        return response()->json([
-            'data' => $checklist
-        ], 200);
+        $checklists = Checklist::where('type', $request->query('type'))
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'type', 'is_active'])
+            ->map(fn ($c) => [
+                'id'        => (string) $c->id,
+                'name'      => $c->name,
+                'type'      => $c->type,
+                'is_active' => (bool) $c->is_active,
+            ]);
+
+        return response()->json(['data' => $checklists]);
+    }
+
+    public function show(Checklist $checklist): JsonResponse
+    {
+        $checklist->load(['questions' => fn($query) => $query->orderBy('order')]);
+
+        return response()->json(['data' => $checklist]);
+    }
+
+    public function active(Request $request): JsonResponse
+    {
+        $type = $request->query('type', 'inspection');
+
+        try {
+            $checklist = Checklist::with(['questions' => fn($query) => $query->orderBy('order')])
+                ->where('type', $type)
+                ->where('is_active', true)
+                ->firstOrFail();
+
+            return response()->json([
+                'data' => $checklist
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Geen actieve checklist gevonden voor dit type.'
+            ], 404);
+        }
     }
 }

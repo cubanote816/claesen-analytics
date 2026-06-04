@@ -4,7 +4,10 @@ namespace Modules\Website\Services;
 
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\ConsultationActivity;
+use Modules\Website\Mail\NewConsultationRequestMail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Exception;
 
 class ConsultationService
@@ -51,6 +54,18 @@ class ConsultationService
                 \Illuminate\Support\Facades\Log::error('Failed to send consultation notification: ' . $e->getMessage());
             }
 
+            // Schedule email after transaction commits — avoids sending on rollback
+            // and keeps the DB lock free from external HTTP calls
+            DB::afterCommit(function () use ($request) {
+                try {
+                    Mail::mailer('microsoft-graph')
+                        ->to('orelvys.cuellar@claesen-verlichting.be')
+                        ->send(new NewConsultationRequestMail($request));
+                } catch (\Exception $e) {
+                    Log::error('Failed to send consultation email: ' . $e->getMessage());
+                }
+            });
+
             return $request;
         });
     }
@@ -65,7 +80,7 @@ class ConsultationService
         }
 
         $oldStatus = $request->status;
-        $request->update(['status' => $newStatus]);
+        $request->updateQuietly(['status' => $newStatus]);
 
         $this->logActivity(
             $request,

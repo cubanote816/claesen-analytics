@@ -6,7 +6,7 @@ use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\RepeatableEntry;
-use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,9 +19,9 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Storage;
 use Filament\Notifications\Notification;
 use Modules\Safety\Filament\Resources\InspectionResource\Pages;
+use Modules\Safety\Models\Answer;
 use Modules\Safety\Models\Inspection;
 
 class InspectionResource extends Resource
@@ -56,6 +56,19 @@ class InspectionResource extends Resource
         return $table
             ->poll('10s')
             ->columns([
+                Tables\Columns\TextColumn::make('type')
+                    ->label('Type')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'inspection' => 'Site Inspection',
+                        'incident' => 'Incident Report',
+                        default => $state,
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'inspection' => 'success',
+                        'incident' => 'warning',
+                        default => 'gray',
+                    }),
                 Tables\Columns\TextColumn::make('project_id')
                     ->label(__('safety::inspections.columns.project_id'))
                     ->searchable()
@@ -110,7 +123,7 @@ class InspectionResource extends Resource
                         ->label(__('safety::inspections.actions.download_pdf'))
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('success')
-                        ->url(fn(Inspection $record): ?string => $record->pdf_path ? Storage::disk('public')->url($record->pdf_path) : null)
+                        ->url(fn (Inspection $record): ?string => $record->pdf_path ? route('safety.admin.pdf', $record) : null)
                         ->openUrlInNewTab()
                         ->visible(fn(Inspection $record): bool => !empty($record->pdf_path)),
                     Action::make('regenerate_pdf')
@@ -152,22 +165,41 @@ class InspectionResource extends Resource
             ->components([
                 Section::make('Inspectie Details')
                     ->schema([
+                        TextEntry::make('type')
+                            ->label('Type')
+                            ->badge()
+                            ->formatStateUsing(fn (string $state): string => match ($state) {
+                                'inspection' => 'Site Inspection',
+                                'incident' => 'Incident Report',
+                                default => $state,
+                            })
+                            ->color(fn (string $state): string => match ($state) {
+                                'inspection' => 'success',
+                                'incident' => 'warning',
+                                default => 'gray',
+                            }),
                         TextEntry::make('project_id')->label('Project ID'),
-                        TextEntry::make('user.name')->label('Inspecteur'),
+                        TextEntry::make('user.name')->label('Inspecteur / Melder'),
+                        TextEntry::make('incidentWorker.name')
+                            ->label('Betrokken Medewerker')
+                            ->visible(fn ($record) => $record->type === 'incident' && $record->incident_worker_id),
                         TextEntry::make('checklist.name')->label('Checklist'),
                         TextEntry::make('completed_at')
                             ->label('Voltooid op')
                             ->dateTime('d-m-Y H:i:s'),
-                    ])->columns(4),
+                    ])
+                    ->columns(4)
+                    ->columnSpanFull(),
 
                 Section::make('Antwoorden')
                     ->schema([
                         RepeatableEntry::make('answers')
                             ->label('')
+                            ->grid(2)
                             ->schema([
                                 TextEntry::make('question.text_nl')
                                     ->label('Vraag')
-                                    ->columnSpan(2),
+                                    ->columnSpan(3),
                                 TextEntry::make('status')
                                     ->label('Status')
                                     ->badge()
@@ -182,17 +214,21 @@ class InspectionResource extends Resource
                                         'nok' => 'Niet Akkoord (NOK)',
                                         'na' => 'N/A',
                                         default => $state,
-                                    }),
+                                    })
+                                    ->columnSpan(1),
                                 TextEntry::make('remark')
                                     ->label('Opmerking')
-                                    ->default('-'),
-                                ImageEntry::make('photo_path')
-                                    ->label('Foto')
-                                    ->disk('public')
-                                    ->visibility('private')
-                                    ->hidden(fn($state) => empty($state)),
-                            ])->columns(5),
-                    ]),
+                                    ->default('-')
+                                    ->columnSpan(3),
+                                ViewEntry::make('photo_path')
+                                    ->view('safety::components.infolists.answer-photo')
+                                    ->getStateUsing(fn (Answer $record): ?string =>
+                                        $record->photo_path ? route('safety.admin.photo', $record) : null)
+                                    ->hidden(fn ($state) => empty($state))
+                                    ->columnSpan(1),
+                            ])->columns(4),
+                    ])
+                    ->columnSpanFull(),
             ]);
     }
 

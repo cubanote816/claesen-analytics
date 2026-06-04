@@ -124,6 +124,7 @@ return [
             'follow_up_update' => 'Opvolging bijgewerkt',
             'comment' => 'Opmerking',
             'created' => 'Aangemaakt',
+            'reminder_triggered' => 'Herinnering geactiveerd',
         ],
         'logs' => [
             'created' => 'Nieuwe adviesaanvraag ontvangen via :source',
@@ -132,10 +133,13 @@ return [
             'assignment_change' => 'Toegewezen aan :user',
             'follow_up_update' => 'Opvolgdatum ingesteld op :date',
             'comment' => 'Interne opmerkingen bijgewerkt',
+            'reminder_triggered' => 'Herinnering geactiveerd: :title',
         ],
         'notifications' => [
             'new_request_title' => 'Nieuwe Adviesaanvraag',
             'new_request_body' => ':name heeft een nieuwe aanvraag ingediend.',
+            'reminder_due_title' => 'Herinnering vervallen',
+            'reminder_due_body' => ':title — :name',
         ],
     ],
 ];

@@ -37,13 +37,15 @@ class GenerateSafetyPdfJob implements ShouldQueue
             'user' => \Modules\Core\Models\User::find($inspection->user_id) 
         ]);
 
-        $fileName = sprintf('werkplekinspectie_%s_%s.pdf', 
+        $prefix = $inspection->type === 'incident' ? 'incidentenrapport' : 'werkplekinspectie';
+        $fileName = sprintf('%s_%s_%s.pdf', 
+            $prefix,
             $inspection->project_id, 
             $inspection->completed_at->format('Ymd_His')
         );
         $filePath = "safety-inspections/{$inspection->id}/{$fileName}";
 
-        Storage::disk('public')->put($filePath, $pdf->output());
+        Storage::disk(config('safety.disk'))->put($filePath, $pdf->output());
 
         $inspection->update(['pdf_path' => $filePath]);
 
@@ -58,7 +60,7 @@ class GenerateSafetyPdfJob implements ShouldQueue
                     ->actions([
                         \Filament\Actions\Action::make('download')
                             ->label(__('safety::inspections.actions.download_pdf'))
-                            ->url(Storage::disk('public')->url($filePath))
+                            ->url(route('safety.admin.pdf', ['inspection' => $inspection->id]))
                             ->openUrlInNewTab()
                             ->markAsRead(),
                     ])

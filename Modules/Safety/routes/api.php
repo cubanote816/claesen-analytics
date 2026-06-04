@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Safety\Http\Controllers\AuthController;
+use Modules\Safety\Http\Controllers\ComplianceController;
 use Modules\Safety\Http\Controllers\InspectionController;
 use Modules\Safety\Http\Controllers\NotificationController;
 use Modules\Safety\Http\Middleware\EnsureSafetyAccess;
@@ -35,13 +36,20 @@ Route::middleware('auth:sanctum')->prefix('v1/safety/notifications')->group(func
 Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])
     ->prefix('v1/safety')
     ->group(function () {
+        Route::get('checklists', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'index'])->name('safety.api.checklists.index');
         Route::get('checklists/active', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'active'])->name('safety.api.checklists.active');
+        Route::get('checklists/{checklist}', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'show'])->name('safety.api.checklists.show');
+        Route::get('compliance', [ComplianceController::class, 'index'])->name('safety.api.compliance.index');
         Route::get('projects', [\Modules\Safety\Http\Controllers\ProjectController::class, 'index'])->name('safety.api.projects.index');
+        Route::get('workers', [\Modules\Safety\Http\Controllers\WorkerController::class, 'index'])->name('safety.api.workers.index');
 
         Route::prefix('inspections')->name('safety.api.inspections.')->group(function () {
             Route::get('/', [InspectionController::class, 'index'])->name('index');
             Route::get('stats', [InspectionController::class, 'stats'])->name('stats');
             Route::post('/', [InspectionController::class, 'store'])->name('store');
+            Route::get('{inspection}/pdf', [InspectionController::class, 'downloadPdf'])->name('pdf');
+            Route::get('{inspection}/answers/{answer}/photo', [InspectionController::class, 'servePhoto'])->name('photo');
+            Route::get('{inspection}', [InspectionController::class, 'show'])->name('show');
         });
 
         Route::prefix('notifications')->name('safety.api.notifications.')->group(function () {

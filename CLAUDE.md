@@ -4,6 +4,35 @@
 
 ---
 
+## AI Harnesses
+
+Reglas de arranque persistentes: `AGENTS.md` y `.agents/rules/00-project-startup.md`.
+
+Al iniciar cada sesión, leer en este orden:
+
+1. `CLAUDE.md` — este archivo (reglas permanentes, estado macro)
+2. `handoff.md` — estado global vivo (sprint activo, último ticket, bloqueantes)
+3. `docs/ai/README.md` — índice de harnesses y qué documento leer según la tarea
+4. Documento específico del módulo activo
+
+### Índice de harnesses (`docs/ai/`)
+
+| Archivo | Propósito |
+|---------|-----------|
+| `README.md` | Índice completo y guía de lectura por tipo de tarea |
+| `project-protocol.md` | Flujo obligatorio: ticket → plan → aprobación → implementar → commit → GO |
+| `context-map.md` | Mapa real del proyecto: stack, módulos, rutas, jobs, dependencias |
+| `module-contracts.md` | Reglas no negociables por módulo (Mailing, Safety, Website, Cafca…) |
+| `testing-checklists.md` | Qué testear según el tipo de cambio; comandos de test por módulo |
+| `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
+| `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, reglas por módulo |
+| `known-risks.md` | Riesgos abiertos, deuda técnica, bloqueantes y decisiones pendientes |
+| `prompt-templates.md` | Prompts reutilizables para las tareas más comunes |
+| `commands-runbook.md` | Todos los comandos Artisan con descripción y notas operativas |
+| `handoff-strategy.md` | Cómo mantener y usar `handoff.md` y los documentos de módulo |
+
+---
+
 ## Regla operativa clave
 
 Todo cambio debe pasar por Linear.
@@ -11,6 +40,7 @@ No se edita código sin ticket activo, plan presentado y aprobación explícita.
 Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y `handoff.md`, commit Git dedicado y GO técnico del usuario.
 
 ---
+
 
 ## Proyecto
 
@@ -242,7 +272,7 @@ php artisan website:regenerate-media --project=<id>
 
 ## Sprint Mailing — COMPLETADO Fase 0+1+2 (rama: `feature/mailing`)
 
-> Fase 0+1 cerradas: 2026-05-29 | Fase 2 cerrada: 2026-05-30 | PR: #1 (Fase 0+1) | PR Fase 2: pendiente
+> Fase 0+1 cerradas: 2026-05-29 | Fase 2 cerrada: 2026-05-30 | PR: #1 (Fase 0+1) | PR: #2 (Fase 2)
 > Documento maestro: `docs/Mailing/mailing-platform-master.md`
 
 ### Decisiones arquitectónicas fijadas

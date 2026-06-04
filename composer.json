@@ -38,6 +38,7 @@
     "autoload": {
         "psr-4": {
             "App\\": "app/",
+            "Modules\\Safety\\Database\\Factories\\": "Modules/Safety/database/factories/",
             "Modules\\": "Modules/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
@@ -45,7 +46,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "Tests\\": "tests/",
+            "Modules\\Safety\\Tests\\": "Modules/Safety/tests/",
+            "Modules\\Website\\Tests\\": "Modules/Website/tests/"
         }
     },
     "scripts": {

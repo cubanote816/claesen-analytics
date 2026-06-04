@@ -21,7 +21,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('intelligence_offer_simulations', function (Blueprint $table) {
+        $tableName = Schema::hasTable('intelligence_offer_simulations')
+            ? 'intelligence_offer_simulations'
+            : 'analytics_offer_simulations';
+
+        Schema::table($tableName, function (Blueprint $table) {
             $table->dropColumn('simulation_hash');
         });
     }

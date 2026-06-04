@@ -105,7 +105,60 @@ PROMPT;
         
         $result = $this->generateStructuredResponse($prompt);
         $result['full_dna'] = $payload;
-        
+
         return $result;
+    }
+
+    /**
+     * Generate caption and alt text for a gallery image in all target locales.
+     *
+     * @param array       $projectContext title, category, client, location, year, description
+     * @param string|null $userCaption    manual caption source — translated if set; generated if null
+     * @param string|null $userAlt        manual alt source — translated if set; generated if null
+     * @param array       $locales        target locales, e.g. ['nl','en','fr','de']
+     * @return array{caption: array<string,string>, alt: array<string,string>}
+     */
+    public function generateMediaMetadata(
+        array $projectContext,
+        ?string $userCaption,
+        ?string $userAlt,
+        array $locales
+    ): array {
+        $empty = array_fill_keys($locales, '');
+
+        $contextStr  = json_encode($projectContext, JSON_UNESCAPED_UNICODE);
+        $localesList = implode(', ', $locales);
+
+        $captionInstruction = !empty(trim((string) $userCaption))
+            ? "Caption source (translate only, do not change meaning): \"{$userCaption}\""
+            : 'Generate a concise, descriptive caption (max 15 words) based on the project context.';
+
+        $altInstruction = !empty(trim((string) $userAlt))
+            ? "Alt text source (translate only, do not change meaning): \"{$userAlt}\""
+            : 'Generate a concise SEO-friendly alt text (max 12 words) based on the project context.';
+
+        $prompt = <<<PROMPT
+You are writing image metadata for a Belgian exterior lighting contractor's portfolio website.
+Project context: {$contextStr}
+
+Task 1 — Caption: {$captionInstruction}
+Task 2 — Alt text: {$altInstruction}
+
+Return JSON exactly like this, with all {$localesList} locales filled:
+{"caption":{"nl":"...","en":"...","fr":"...","de":"..."},"alt":{"nl":"...","en":"...","fr":"...","de":"..."}}
+PROMPT;
+
+        $result = $this->generateStructuredResponse($prompt);
+
+        return [
+            'caption' => array_merge(
+                $empty,
+                (isset($result['caption']) && is_array($result['caption'])) ? $result['caption'] : []
+            ),
+            'alt' => array_merge(
+                $empty,
+                (isset($result['alt']) && is_array($result['alt'])) ? $result['alt'] : []
+            ),
+        ];
     }
 }

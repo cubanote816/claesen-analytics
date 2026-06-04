@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Werkplekinspectie Rapport</title>
+    <title>{{ $inspection->type === 'incident' ? 'Incidentenrapport' : 'Werkplekinspectie Rapport' }}</title>
     <style>
         body { font-family: sans-serif; font-size: 12px; }
         .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
@@ -21,7 +21,7 @@
 <body>
 
     <div class="header">
-        <h1>Werkplekinspectie Rapport</h1>
+        <h1>{{ $inspection->type === 'incident' ? 'Incidentenrapport' : 'Werkplekinspectie Rapport' }}</h1>
     </div>
 
     <div class="details">
@@ -29,9 +29,15 @@
             <tr>
                 <th>Project ID:</th>
                 <td>{{ $inspection->project_id }}</td>
-                <th>Inspecteur:</th>
+                <th>{{ $inspection->type === 'incident' ? 'Gemeld door' : 'Inspecteur' }}:</th>
                 <td>{{ $user->name ?? 'Onbekend' }}</td>
             </tr>
+            @if($inspection->type === 'incident' && $inspection->incidentWorker)
+            <tr>
+                <th>Betrokken Medewerker:</th>
+                <td colspan="3">{{ $inspection->incidentWorker->name }}</td>
+            </tr>
+            @endif
             <tr>
                 <th>Checklist:</th>
                 <td>{{ $inspection->checklist->name ?? 'N/A' }}</td>
@@ -45,7 +51,7 @@
         <thead>
             <tr>
                 <th>Nr.</th>
-                <th>Inspectiepunt</th>
+                <th>{{ $inspection->type === 'incident' ? 'Vraag / Item' : 'Inspectiepunt' }}</th>
                 <th>Status</th>
                 <th>Opmerking</th>
             </tr>
@@ -84,7 +90,7 @@
             @foreach($inspection->answers->whereNotNull('photo_path') as $answer)
                 <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; display: inline-block; width: 45%; vertical-align: top; margin-right: 2%;">
                     <p><strong>Vraag {{ $loop->iteration }}:</strong> {{ $answer->question->text_nl }}</p>
-                    <img src="{{ public_path('storage/' . $answer->photo_path) }}" style="width: 100%; height: auto; max-height: 250px; object-fit: contain;">
+                    <img src="{{ \Illuminate\Support\Facades\Storage::disk(config('safety.disk', 'local'))->path($answer->photo_path) }}" style="width: 100%; height: auto; max-height: 250px; object-fit: contain;">
                     @if($answer->remark)
                         <p style="font-style: italic;">Opmerking: {{ $answer->remark }}</p>
                     @endif

@@ -2,11 +2,20 @@
 
 namespace Modules\Safety\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Safety\Database\Factories\AnswerFactory;
 
 class Answer extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): AnswerFactory
+    {
+        return AnswerFactory::new();
+    }
+
     protected $table = 'safety_answers';
 
     protected $fillable = [

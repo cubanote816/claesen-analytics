@@ -14,9 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \Modules\Core\Http\Middleware\UpdateUserActivity::class,
         ]);
+        $middleware->redirectGuestsTo(fn () => route('filament.admin.auth.login'));
     })
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         $schedule->command('app:sync-employees')->dailyAt('04:00');
+        $schedule->command('website:process-reminders')->everyFifteenMinutes()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
