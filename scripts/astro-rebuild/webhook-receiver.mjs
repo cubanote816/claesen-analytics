@@ -198,16 +198,32 @@ async function executeBuild() {
 }
 
 /**
- * Run `npm run <script> -- --outDir <releaseDir>` in the project directory.
- * Streams stdout/stderr to the console for systemd journal capture.
+ * Run the build command and stream output to stdout/stderr.
+ *
+ * Production: npm run <WEBHOOK_NPM_SCRIPT> -- --outDir <releaseDir>
+ * Tests:      WEBHOOK_BUILD_CMD="node /path/to/test-build.mjs"
+ *             The command receives <releaseDir> as its last positional argument.
  */
 function spawnBuild(releaseDir) {
-    return new Promise((resolve, reject) => {
-        const args = ['run', CONFIG.npmScript, '--', '--outDir', releaseDir];
-        log('info', `Exec: npm ${args.join(' ')} (cwd: ${CONFIG.projectDir})`);
+    const testCmd = process.env.WEBHOOK_BUILD_CMD;
 
-        const child = spawn('npm', args, {
-            cwd:   CONFIG.projectDir,
+    let cmd, args, cwd;
+    if (testCmd) {
+        const parts = testCmd.trim().split(/\s+/);
+        cmd  = parts[0];
+        args = [...parts.slice(1), releaseDir];
+        cwd  = process.cwd();
+    } else {
+        cmd  = 'npm';
+        args = ['run', CONFIG.npmScript, '--', '--outDir', releaseDir];
+        cwd  = CONFIG.projectDir;
+    }
+
+    log('info', `Exec: ${cmd} ${args.join(' ')}`);
+
+    return new Promise((resolve, reject) => {
+        const child = spawn(cmd, args, {
+            cwd,
             stdio: 'pipe',
             env:   { ...process.env, FORCE_COLOR: '0' },
         });
@@ -219,11 +235,11 @@ function spawnBuild(releaseDir) {
             if (code === 0) {
                 resolve();
             } else {
-                reject(new Error(`npm ${CONFIG.npmScript} exited with code ${code}`));
+                reject(new Error(`${cmd} exited with code ${code}`));
             }
         });
 
-        child.on('error', err => reject(new Error(`Failed to start npm: ${err.message}`)));
+        child.on('error', err => reject(new Error(`Failed to start ${cmd}: ${err.message}`)));
     });
 }
 
