@@ -142,4 +142,27 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    'publication' => [
+        'status' => [
+            'idle'     => 'No changes',
+            'pending'  => 'Queued',
+            'accepted' => 'Publication requested',
+            'error'    => 'Publication error',
+        ],
+        'widget' => [
+            'status_label'  => 'Publication Status',
+            'last_accepted' => 'Last Request',
+            'build_status'  => 'Frontend Build Status',
+            'building'      => 'Building...',
+            'unreachable'   => 'Unreachable',
+            'no_data'       => '—',
+            'release'       => 'Release: :release',
+        ],
+        'actions' => [
+            'publish_now'                => 'Publish now',
+            'publish_now_confirm_title'  => 'Start publication',
+            'publish_now_confirm_body'   => 'This will request a full rebuild of the website. The current version stays live until the build completes.',
+            'publish_now_success'        => 'Publication requested',
+        ],
+    ],
 ];

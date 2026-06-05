@@ -142,4 +142,27 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    'publication' => [
+        'status' => [
+            'idle'     => 'Geen wijzigingen',
+            'pending'  => 'In de wachtrij',
+            'accepted' => 'Publicatie aangevraagd',
+            'error'    => 'Publicatiefout',
+        ],
+        'widget' => [
+            'status_label'  => 'Publicatiestatus',
+            'last_accepted' => 'Laatste aanvraag',
+            'build_status'  => 'Bouwstatus frontend',
+            'building'      => 'Aan het bouwen...',
+            'unreachable'   => 'Niet bereikbaar',
+            'no_data'       => '—',
+            'release'       => 'Release: :release',
+        ],
+        'actions' => [
+            'publish_now'                => 'Nu publiceren',
+            'publish_now_confirm_title'  => 'Publicatie starten',
+            'publish_now_confirm_body'   => 'Dit vraagt een volledige herbouw van de website aan. De huidige versie blijft actief tot de bouw klaar is.',
+            'publish_now_success'        => 'Publicatie aangevraagd',
+        ],
+    ],
 ];
