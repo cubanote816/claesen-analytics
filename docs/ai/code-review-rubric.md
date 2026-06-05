@@ -8,22 +8,49 @@
 ## Cómo iniciar un review
 
 1. Leer el ticket Linear asociado al PR para entender el objetivo.
-2. Revisar el diff completo antes de hacer comentarios.
-3. Ejecutar los tests del módulo afectado.
-4. Seguir las prioridades en el orden indicado abajo.
-5. Reportar cada hallazgo con severidad y ubicación exacta.
+2. **Verificar el Test Gate antes de cualquier otra revisión** (ver sección abajo).
+3. Revisar el diff completo.
+4. Ejecutar los tests del módulo afectado.
+5. Seguir las prioridades en el orden indicado abajo.
+6. Reportar cada hallazgo con severidad y ubicación exacta.
+
+---
+
+## Testing Gate (verificar primero)
+
+Antes de evaluar arquitectura o correctitud, responder estas cuatro preguntas:
+
+1. **¿Qué tipo de cambio es?** (servicio, job, migración, mail, IA, i18n…)
+2. **¿Qué tests exige `test-gate-harness.md` para ese tipo?**
+3. **¿Qué tests se añadieron en este PR?**
+4. **¿Se ejecutaron? ¿Cuál fue el resultado?**
+
+### Clasificación de hallazgos de testing
+
+| Nivel | Cuándo aplica |
+|---|---|
+| **P1 — BLOCKER** | Falta test en lógica crítica: migraciones con transformación de datos, envío de dinero/facturas, emails transaccionales, jobs de cola, permisos/autorización, riesgo de pérdida de datos, integraciones externas (Graph, Gemini), side effects de IA |
+| **P2 — MAJOR** | Falta test en lógica de negocio normal: services, commands, observers, API endpoints |
+| **P3 — MINOR** | Solo falta cobertura de caso borde menor que no afecta flujo principal |
+
+### Regla de bloqueo
+
+**Sin tests y sin waiver explícito aprobado → el review no puede dar GO.**
+
+Si el PR no incluye tests y no declara un waiver con formato estándar (ver `test-gate-harness.md`), el finding es automáticamente P1.
 
 ---
 
 ## Prioridades de review (orden de atención)
 
 ```
-P1 — Seguridad          ← siempre primero
+P0 — Test Gate          ← verificar antes que todo lo demás
+P1 — Seguridad          ← siempre primero entre el código
 P2 — Correctitud        ← bugs, lógica incorrecta, race conditions
 P3 — Autorización       ← permisos, políticas, exposición de datos
 P4 — Idempotencia       ← operaciones que deben ser seguras de repetir
 P5 — Duplicados         ← código duplicado, lógica ya existente
-P6 — Tests faltantes    ← cobertura de ramas críticas
+P6 — Tests faltantes    ← cobertura de ramas críticas (ya capturado en P0)
 P7 — Calidad            ← legibilidad, naming, estructura
 ```
 
@@ -160,8 +187,9 @@ Sugerencia: llamar SuppressionService::isSuppressed($prospectId) antes de proces
 
 ## Checklist de cierre de review
 
+- [ ] **Test Gate verificado**: tests presentes o waiver documentado con formato estándar
 - [ ] Todos los BLOCKERs y CRITICALs resueltos
 - [ ] Tests pasan: `php artisan test --testsuite=Modules --filter=<Modulo>`
 - [ ] No hay secrets en el diff (verificar con `git diff | grep -i "key\|token\|password\|secret"`)
 - [ ] El commit sigue el formato `TICKET-ID / CLA-YY: resumen`
-- [ ] Pronto el GO técnico si todo pasa
+- [ ] GO técnico solo si Test Gate + todos los BLOCKERs/CRITICALs están resueltos

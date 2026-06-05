@@ -76,17 +76,34 @@ El plan debe incluir:
 
 ---
 
-## Actualizar documentación al cerrar ticket
+## Definition of Done (DoD)
 
-Cada ticket cerrado debe terminar con:
+Todo ticket debe cumplir **todos** los puntos siguientes antes de recibir GO técnico:
 
-- [ ] Tests relevantes ejecutados y pasando
+- [ ] **Tests automatizados** creados o actualizados según `test-gate-harness.md`
+- [ ] **Tests ejecutados** y resultado documentado (comando + output)
+- [ ] **Waiver explícito** documentado y aprobado si no aplican tests automatizados
 - [ ] `CLAUDE.md` actualizado si cambian reglas permanentes o estado macro de módulo
 - [ ] `handoff.md` actualizado con estado global actual
 - [ ] Documento del módulo actualizado si cambió contexto técnico
 - [ ] Commit dedicado creado
 - [ ] GO técnico recibido
 - [ ] Issue Linear marcado Done con hash del commit
+
+> **Regla:** el GO técnico no puede concederse si faltan los tests requeridos por `test-gate-harness.md` y no existe waiver explícito aprobado por el auditor.
+
+---
+
+## Test Gate — referencia rápida
+
+Para cualquier ticket que toque código:
+
+1. Al **planificar**: declarar qué tests se crearán, qué fakes se usarán.
+2. Al **implementar**: crear los tests junto al código.
+3. Al **presentar para review**: incluir qué tests se ejecutaron y el resultado.
+4. Al **cerrar**: usar la plantilla de cierre de `test-gate-harness.md`.
+
+Ver `docs/ai/test-gate-harness.md` para la matriz completa, criterios de waiver y plantilla.
 
 ---
 

@@ -51,6 +51,7 @@ return [
         'started_at' => 'Gestart op',
         'finished_at' => 'Klaar op',
         'total_items' => 'Totaal Items processed',
+        'last_activity' => 'Laatste Activiteit',
         'prospect' => 'Prospect',
         'template' => 'Template / Campagne',
         'sent_at' => 'Verzonden op',
@@ -84,6 +85,7 @@ return [
             'en' => 'Engels',
         ],
         'status' => [
+            'pending' => 'In wachtrij...',
             'running' => 'Bezig...',
             'completed' => 'Voltooid',
             'failed' => 'Mislukt',
@@ -129,6 +131,7 @@ return [
         'mark_completed' => [
             'label' => 'Als Voltooid Markeren',
         ],
+        'back_to_list' => 'Terug naar Lijst',
     ],
 
     'notifications' => [
@@ -157,6 +160,17 @@ return [
         ],
         'manually_completed' => [
             'title' => 'Status bijgewerkt naar Voltooid',
+        ],
+        'sync_blocked_master' => [
+            'title' => 'Master sync is actief',
+            'body'  => 'Wacht tot de master sync klaar is voordat je een individuele sync start.',
+        ],
+        'sync_already_running' => [
+            'title' => 'Sync loopt al',
+        ],
+        'sync_blocked_any' => [
+            'title' => 'Er lopen al syncs',
+            'body'  => 'Wacht tot alle actieve synchronisaties klaar zijn voordat je een master sync start.',
         ],
         'no_emails_found' => [
             'title' => 'Geen e-mailadressen gevonden',

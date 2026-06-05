@@ -3,14 +3,22 @@
 namespace Modules\Core\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use \Laravel\Sanctum\HasApiTokens, HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles;
+
+    protected static function newFactory(): Factory
+    {
+        return UserFactory::new();
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -54,6 +62,11 @@ class User extends Authenticatable
     /**
      * Check if the user is currently online.
      */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+
     public function isOnline(): bool
     {
         return \Illuminate\Support\Facades\Cache::has('user-is-online-' . $this->id);

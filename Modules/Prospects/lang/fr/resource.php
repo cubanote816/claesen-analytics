@@ -51,6 +51,7 @@ return [
         'started_at' => 'Démarré le',
         'finished_at' => 'Terminé le',
         'total_items' => 'Total des Articles traités',
+        'last_activity' => 'Dernière Activité',
         'prospect' => 'Prospect',
         'template' => 'Modèle / Campagne',
         'sent_at' => 'Envoyé le',
@@ -84,6 +85,7 @@ return [
             'en' => 'Anglais',
         ],
         'status' => [
+            'pending' => 'En attente...',
             'running' => 'En cours...',
             'completed' => 'Terminé',
             'failed' => 'Échoué',
@@ -129,6 +131,7 @@ return [
         'mark_completed' => [
             'label' => 'Marquer comme Terminé',
         ],
+        'back_to_list' => 'Retour à la Liste',
     ],
 
     'notifications' => [
@@ -153,6 +156,17 @@ return [
         ],
         'manually_completed' => [
             'title' => 'Statut mis à jour vers Terminé',
+        ],
+        'sync_blocked_master' => [
+            'title' => 'Master sync actif',
+            'body'  => 'Attendez que le master sync se termine avant de lancer une sync individuelle.',
+        ],
+        'sync_already_running' => [
+            'title' => 'Sync déjà en cours',
+        ],
+        'sync_blocked_any' => [
+            'title' => 'Des syncs sont déjà en cours',
+            'body'  => 'Attendez que toutes les synchronisations actives se terminent avant de lancer un master sync.',
         ],
         'no_emails_found' => [
             'title' => 'Aucune adresse e-mail trouvée',

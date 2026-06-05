@@ -9,6 +9,7 @@
 
 Detener el deploy si cualquiera de estas condiciones se cumple:
 
+- [ ] **Test Gate no pasado** — falta tests requeridos o waiver documentado (ver `test-gate-harness.md`)
 - [ ] Tests de la suite relevante fallan
 - [ ] Hay migraciones sin ejecutar en staging que están en `main`
 - [ ] El scheduler no está activo en producción

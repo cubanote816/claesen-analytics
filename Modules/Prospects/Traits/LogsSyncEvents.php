@@ -25,7 +25,8 @@ trait LogsSyncEvents
                 'logs' => [],
             ]);
         } else {
-            // Update existing record to running if it wasn't already
+            // Load existing logs so subsequent chained commands append rather than overwrite
+            $this->accumulatedLogs = $this->syncHistory->fresh()->logs ?? [];
             $this->syncHistory->update([
                 'status' => 'running',
                 'started_at' => $this->syncHistory->started_at ?? Carbon::now(),
@@ -46,9 +47,7 @@ trait LogsSyncEvents
 
         $this->accumulatedLogs[] = $logEntry;
 
-        // Optionally update in real-time if not too frequent, or just keep in memory for the end.
-        // For "Professional" feel, we'll update every 10 events or so.
-        if (count($this->accumulatedLogs) % 10 === 0) {
+        if (count($this->accumulatedLogs) % 5 === 0) {
             $this->syncHistory?->update([
                 'logs' => $this->accumulatedLogs,
             ]);

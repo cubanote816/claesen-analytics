@@ -124,6 +124,7 @@ return [
             'follow_up_update' => 'Opvolging bijgewerkt',
             'comment' => 'Opmerking',
             'created' => 'Aangemaakt',
+            'reminder_triggered' => 'Herinnering geactiveerd',
         ],
         'logs' => [
             'created' => 'Nieuwe adviesaanvraag ontvangen via :source',
@@ -132,10 +133,36 @@ return [
             'assignment_change' => 'Toegewezen aan :user',
             'follow_up_update' => 'Opvolgdatum ingesteld op :date',
             'comment' => 'Interne opmerkingen bijgewerkt',
+            'reminder_triggered' => 'Herinnering geactiveerd: :title',
         ],
         'notifications' => [
             'new_request_title' => 'Nieuwe Adviesaanvraag',
             'new_request_body' => ':name heeft een nieuwe aanvraag ingediend.',
+            'reminder_due_title' => 'Herinnering vervallen',
+            'reminder_due_body' => ':title — :name',
+        ],
+    ],
+    'publication' => [
+        'status' => [
+            'idle'     => 'Geen wijzigingen',
+            'pending'  => 'In de wachtrij',
+            'accepted' => 'Publicatie aangevraagd',
+            'error'    => 'Publicatiefout',
+        ],
+        'widget' => [
+            'status_label'  => 'Publicatiestatus',
+            'last_accepted' => 'Laatste aanvraag',
+            'build_status'  => 'Bouwstatus frontend',
+            'building'      => 'Aan het bouwen...',
+            'unreachable'   => 'Niet bereikbaar',
+            'no_data'       => '—',
+            'release'       => 'Release: :release',
+        ],
+        'actions' => [
+            'publish_now'                => 'Nu publiceren',
+            'publish_now_confirm_title'  => 'Publicatie starten',
+            'publish_now_confirm_body'   => 'Dit vraagt een volledige herbouw van de website aan. De huidige versie blijft actief tot de bouw klaar is.',
+            'publish_now_success'        => 'Publicatie aangevraagd',
         ],
     ],
 ];

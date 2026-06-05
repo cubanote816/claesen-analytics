@@ -91,8 +91,9 @@ Rama activa: [main|feature/mailing|website|...]
 Antes de crear el ticket:
 1. Lee CLAUDE.md y handoff.md para verificar el contexto actual.
 2. Lee docs/ai/module-contracts.md para el módulo afectado.
-3. Propón título, descripción y criterios de aceptación.
-4. Espera aprobación antes de crear el ticket o editar código.
+3. Lee docs/ai/test-gate-harness.md — identifica qué tipo de cambio es y qué tests requerirá.
+4. Propón título, descripción, criterios de aceptación y tests previstos.
+5. Espera aprobación antes de crear el ticket o editar código.
 ```
 
 ---
@@ -102,11 +103,17 @@ Antes de crear el ticket:
 ```
 Revisa el PR [número o URL] del módulo [Mailing|Safety|Website|...].
 
-Lee docs/ai/code-review-rubric.md antes de empezar.
+Lee docs/ai/code-review-rubric.md y docs/ai/test-gate-harness.md antes de empezar.
 
 El objetivo del ticket era: [descripción del objetivo].
 
-Prioriza en este orden:
+Verifica primero el Test Gate:
+- ¿Qué tipo de cambio es?
+- ¿Qué tests exige test-gate-harness.md?
+- ¿Qué tests se añadieron?
+- ¿Se ejecutaron? ¿Resultado?
+
+Luego prioriza en este orden:
 1. Seguridad
 2. Correctitud
 3. Autorización
@@ -118,7 +125,7 @@ Reporta cada hallazgo con formato:
 Impacto: ...
 Sugerencia: ...
 
-Al terminar: ¿hay BLOCKERs o CRITICALs que impiden el GO?
+Al terminar: ¿hay BLOCKERs o CRITICALs? ¿Test Gate pasado?
 ```
 
 ---
@@ -128,11 +135,26 @@ Al terminar: ¿hay BLOCKERs o CRITICALs que impiden el GO?
 ```
 El ticket [TICKET-ID] / CLA-[N] está listo para cerrar.
 
-Antes del commit:
-1. Confirma que los tests pasan: php artisan test --filter=[Modulo]
-2. Actualiza handoff.md con el estado actual.
-3. Actualiza CLAUDE.md si cambió el estado macro del módulo.
-4. Confirma que no hay secretos en el diff.
+Antes del commit, documenta el Test Gate:
+
+### Tests añadidos
+- Archivo: ... — casos: ...
+
+### Tests ejecutados
+php artisan test --filter=[Modulo]
+
+### Resultado
+PASS | FAIL — [N tests, N assertions]
+
+### Waiver (si no hay tests automatizados)
+Motivo: ...
+Riesgo residual: ...
+Cobertura alternativa: ...
+
+Luego:
+1. Actualiza handoff.md con el estado actual.
+2. Actualiza CLAUDE.md si cambió el estado macro del módulo.
+3. Confirma que no hay secretos en el diff.
 
 Crea el commit con formato:
 [TICKET-ID] / CLA-[N]: resumen corto

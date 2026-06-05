@@ -1,16 +1,63 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-02 (DOCS-AI-002 / CLA-106)
+> Última actualización: 2026-06-05 (WEB-017→025 / CLA-138→146 — PR #3 abierto)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** Documentación / AI Harnesses
-- **Rama actual:** `main`
-- **Último ticket cerrado:** DOCS-AI-003 / CLA-107 — "Verify Antigravity persistent startup rules" — commit `0ad1529`
-- **Próximo ticket:** A definir (ver secciones de módulos abajo)
+- **Sprint activo:** Static Site Auto-Publish — `feature/static-site-publish`
+- **Rama actual:** `feature/static-site-publish`
+- **Último ticket cerrado:** WEB-025 / CLA-146 — Feature tests static site publication — commit `057f1bf` + fix `2e8732d`
+- **PR abierto:** [#3 — WEB-017→025: Static site auto-publish pipeline](https://github.com/cubanote816/claesen-analytics/pull/3) — pendiente de revisión y merge manual a `main`
+- **Próximo ticket:** A definir tras merge del PR #3
+
+### Sprint Static Site — tickets completados (2026-06-05)
+
+| WEB | CLA | Título | Commit | Estado |
+|-----|-----|--------|--------|--------|
+| WEB-017 | CLA-138 | `config/static_site.php` — foundation config | `4285b72` | ✅ Done |
+| WEB-018 | CLA-139 | `PublicationState` — migration, model, enum | `fbfdafc` | ✅ Done |
+| WEB-019 | CLA-140 | `StaticSitePublicationService` + `WebhookResult` + job stub | `5458047` | ✅ Done |
+| WEB-020 | CLA-141 | `TriggerStaticSiteRebuildJob` — debounce + retry | `0c7c51c` | ✅ Done |
+| WEB-021 | CLA-142 | Wire observers → `StaticSitePublicationService` | `fb5bb05` | ✅ Done |
+| WEB-022+023 | CLA-143+144 | Filament publication widget + botón manual + traducciones | `9cf47f9` | ✅ Done |
+| WEB-024 | CLA-145 | Node.js webhook receiver (`scripts/astro-rebuild/`) | `2c34a3f` | ✅ Done |
+| WEB-025 | CLA-146 | Feature tests — static site publication (Laravel + Node) | `057f1bf` | ✅ Done |
+| Fix | — | GalleryMetadataJobTest: aserción + enable flag corregidos | `2e8732d` | ✅ Done |
+
+### Arquitectura del pipeline
+
+```
+Admin guarda proyecto / media
+  → ProjectObserver / MediaObserver
+  → StaticSitePublicationService::requestRebuild()
+      → PublicationState::markPending()          (MySQL)
+      → TriggerStaticSiteRebuildJob::dispatch()  (debounce + dispatch_key)
+          → StaticSitePublicationService::sendWebhook()
+              → POST /rebuild  (HMAC-SHA256, anti-replay 300s)
+              → 202 = solicitud aceptada; build corre async en frontend
+              → GET /health    = estado real del build
+
+Frontend: Node.js webhook-receiver.mjs en 192.168.60.20
+  → responde 202 inmediatamente
+  → npm run build -- --outDir releases/<YYYYMMDDTHHmmss>/
+  → rename(2) → swap atómico del symlink current
+```
+
+### Riesgos pendientes antes de merge/producción
+
+1. `STATIC_SITE_REBUILD_ENABLED=false` por defecto — activar explícitamente en .env
+2. Ghost migration `add_work_details_to_website_projects_table` de `feature/website-work-details` (commit `7f7f4f9`) no está en esta rama — verificar orden de merge
+3. Permisos de escritura de `astro-deploy` sobre `WEBHOOK_RELEASES_DIR` y `WEBHOOK_PROJECT_DIR`
+4. Configurar `tries`/`backoff` de `TriggerStaticSiteRebuildJob` antes de activar con Redis en producción
+
+### Tests ejecutados en verificación previa al PR
+
+- Laravel: 51/51 ✅ (módulo Website completo)
+- Node.js: 16/16 ✅ (HMAC, health, deploy, failed build, concurrent builds, pruning)
+- Secret scan: limpio
 
 ## Reglas de arranque persistentes
 
@@ -28,7 +75,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | Módulo | Estado | Rama | Documento específico |
 |--------|--------|------|---------------------|
 | **Mailing** | ✅ Fase 0+1+2 completadas / Fase 3 en Backlog | `feature/mailing` | `docs/Mailing/mailing-platform-master.md` |
-| **Website** | ✅ Sprint completado (WEB-001 a WEB-007) | `website` | `docs/website-sprint-handoff.md` |
+| **Website** | 🚧 PR #3 abierto (WEB-017→025) — pendiente merge | `feature/static-site-publish` | `docs/website-sprint-handoff.md` |
 | **Safety** | ✅ Sprint completado (SAF-001 a SAF-016) | `Safety_Inspections` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
 | **Intelligence** | 🚧 ~90% | `main` | Ver `CLAUDE.md` |
@@ -50,10 +97,11 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 ## Próximos pasos recomendados
 
-1. **Mailing Fase 3:** esperar datos reales de campañas en producción antes de iniciar MAI-031.
-2. **Website backfill:** ejecutar `php artisan website:regenerate-media` en producción.
-3. **Performance:** continuar mejoras de insights y Watchdog según prioridad.
-4. **Prospects:** completar CRM y campañas email (~75%).
+1. **Merge PR #3** (`feature/static-site-publish`) tras revisión — instalación del receiver Node.js en 192.168.60.20 y configuración del .env de producción.
+2. **Website backfill:** ejecutar `php artisan website:regenerate-media` en producción (pendiente desde WEB-007).
+3. **Mailing Fase 3:** esperar datos reales de campañas en producción antes de iniciar MAI-031.
+4. **Performance:** continuar mejoras de insights y Watchdog según prioridad.
+5. **Prospects:** completar CRM y campañas email (~75%).
 
 ---
 
@@ -61,6 +109,12 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-05 | WEB-017→025 | Sprint static site auto-publish completado — PR #3 abierto |
+| 2026-06-03 | TEST-GATE-001 | Arnés obligatorio de testing — commits `0278d05` `92199c3` |
+| 2026-06-03 | WEB-011 / CLA-111 | Seguimiento Consultation Requests — commits `2b500b1` `569c2c0` |
+| 2026-06-02 | WEB-010 / CLA-110 | Email transaccional Consultation Requests — commit `0588594` |
+| 2026-06-02 | WEB-009 / CLA-109 | IA caption/alt galería portfolio — commits `f3d57c8` `112aef8` `5c1c972` |
+| 2026-06-02 | WEB-008 / CLA-108 | Base multidioma portfolio nl/en/fr/de — commits `28e19aa` `80865c8` `9a626cd` |
 | 2026-06-02 | DOCS-AI-003 / CLA-107 | Verificación arranque persistente Antigravity — commit `0ad1529` |
 | 2026-06-02 | DOCS-AI-002 / CLA-106 | Creado `AGENTS.md` + `.agents/rules/00-project-startup.md` — reglas de arranque persistentes |
 | 2026-06-02 | DOCS-AI-001 / CLA-105 | Creado sistema AI harnesses en `docs/ai/` + `handoff.md` raíz |

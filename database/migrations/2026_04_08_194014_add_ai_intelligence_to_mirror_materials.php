@@ -25,7 +25,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('intelligence_mirror_materials', function (Blueprint $table) {
+        $tableName = Schema::hasTable('intelligence_mirror_materials')
+            ? 'intelligence_mirror_materials'
+            : 'analytics_mirror_materials';
+
+        Schema::table($tableName, function (Blueprint $table) {
             $table->dropColumn(['category_ai', 'tags', 'usage_summary', 'modern_id', 'last_learned_at']);
         });
     }

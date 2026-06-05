@@ -32,7 +32,8 @@ Leer siempre en este orden:
 | Website (cualquier ticket WEB) | `docs/website-sprint-handoff.md` |
 | Safety (cualquier ticket SAF) | `docs/safety-sprint-linear-tickets.md` |
 | Contratos y reglas por módulo | `docs/ai/module-contracts.md` |
-| Tests y verificación | `docs/ai/testing-checklists.md` |
+| **Tests y obligatoriedad de testing** | **`docs/ai/test-gate-harness.md` ← leer antes de Plan, Review y Done** |
+| Tests técnicos por tipo de cambio | `docs/ai/testing-checklists.md` |
 | Revisar código de un PR | `docs/ai/code-review-rubric.md` |
 | Preparar deploy / staging | `docs/ai/production-readiness.md` |
 | Riesgos y deuda técnica | `docs/ai/known-risks.md` |
@@ -50,11 +51,12 @@ Leer siempre en este orden:
 | `project-protocol.md` | Flujo obligatorio: ticket → plan → aprobación → implementar → commit → GO |
 | `context-map.md` | Mapa real del proyecto: stack, módulos, rutas, jobs, providers, dependencias |
 | `module-contracts.md` | Reglas no negociables por módulo (Mailing, Safety, Website, Cafca, etc.) |
-| `testing-checklists.md` | Qué testear según el tipo de cambio; comandos de test por módulo |
+| **`test-gate-harness.md`** | **Arnés obligatorio de testing: matriz, waiver, plantilla de cierre — leer antes de Plan/Review/Done** |
+| `testing-checklists.md` | Checklists técnicos por tipo de cambio y módulo (referenciados desde el test-gate) |
 | `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
-| `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, reglas específicas por módulo |
+| `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, Testing Gate, reglas por módulo |
 | `known-risks.md` | Riesgos abiertos, deuda técnica, bloqueantes y decisiones pendientes |
-| `prompt-templates.md` | Prompts reutilizables para las tareas más comunes |
+| `prompt-templates.md` | Prompts reutilizables con sección "Tests requeridos" obligatoria |
 | `commands-runbook.md` | Todos los comandos Artisan con descripción, opciones y notas operativas |
 | `handoff-strategy.md` | Cómo mantener y usar `handoff.md` y los documentos de módulo |
 

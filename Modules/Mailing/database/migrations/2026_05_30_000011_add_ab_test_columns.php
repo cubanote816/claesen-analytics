@@ -39,7 +39,9 @@ return new class extends Migration
         });
 
         Schema::table('mailing_messages', function (Blueprint $table) {
-            $table->dropIndex('mailing_messages_ab_idx');
+            // Dropping ab_variant automatically reduces the composite index
+            // (campaign_id, ab_variant) to (campaign_id), which keeps the FK satisfied.
+            // Explicit dropIndex would fail with MySQL 1553.
             $table->dropColumn('ab_variant');
         });
     }

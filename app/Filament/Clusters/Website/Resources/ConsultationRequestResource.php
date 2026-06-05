@@ -244,9 +244,10 @@ class ConsultationRequestResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListConsultationRequests::route('/'),
-            'create' => Pages\CreateConsultationRequest::route('/create'), // Optional
-            'edit' => Pages\EditConsultationRequest::route('/{record}/edit'),
+            'index'  => Pages\ListConsultationRequests::route('/'),
+            'create' => Pages\CreateConsultationRequest::route('/create'),
+            'view'   => Pages\ViewConsultationRequest::route('/{record}'),
+            'edit'   => Pages\EditConsultationRequest::route('/{record}/edit'),
         ];
     }
 }

@@ -51,6 +51,7 @@ return [
         'started_at' => 'Started at',
         'finished_at' => 'Finished at',
         'total_items' => 'Total items processed',
+        'last_activity' => 'Last Activity',
         'prospect' => 'Prospect',
         'template' => 'Template / Campaign',
         'sent_at' => 'Sent at',
@@ -84,6 +85,7 @@ return [
             'en' => 'English',
         ],
         'status' => [
+            'pending' => 'Queued...',
             'running' => 'Running...',
             'completed' => 'Completed',
             'failed' => 'Failed',
@@ -129,6 +131,7 @@ return [
         'mark_completed' => [
             'label' => 'Mark as Completed',
         ],
+        'back_to_list' => 'Back to List',
     ],
 
     'notifications' => [
@@ -157,6 +160,17 @@ return [
         ],
         'manually_completed' => [
             'title' => 'Status updated to Completed',
+        ],
+        'sync_blocked_master' => [
+            'title' => 'Master sync is active',
+            'body'  => 'Wait for the master sync to finish before triggering an individual sync.',
+        ],
+        'sync_already_running' => [
+            'title' => 'Sync already in progress',
+        ],
+        'sync_blocked_any' => [
+            'title' => 'Syncs already running',
+            'body'  => 'Wait for all active synchronizations to finish before launching a master sync.',
         ],
         'no_emails_found' => [
             'title' => 'No email addresses found',

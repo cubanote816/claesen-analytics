@@ -16,9 +16,7 @@ class BrowserLocaleMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Only use 'nl' if it's the specifically preferred language, otherwise default to 'en'
-        $preferredLocale = $request->getPreferredLanguage(['nl', 'en']);
-        $locale = ($preferredLocale === 'nl') ? 'nl' : 'en';
+        $locale = $request->getPreferredLanguage(['nl', 'en', 'fr', 'de']) ?? 'en';
 
         App::setLocale($locale);
         $request->session()->put('locale', $locale);

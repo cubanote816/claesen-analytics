@@ -20,14 +20,16 @@ class SyncTpvClubsCommand extends Command
 
     protected $client;
 
-    public function __construct()
+    public function __construct(?Client $client = null)
     {
         parent::__construct();
-        $this->client = new Client([
-            'verify' => false,
-            'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            ]
+        $this->client = $client ?? new Client([
+            'verify'          => false,
+            'timeout'         => 20,
+            'connect_timeout' => 5,
+            'headers'         => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            ],
         ]);
     }
 
@@ -106,16 +108,32 @@ class SyncTpvClubsCommand extends Command
             try {
                 $this->syncClubDetails($club);
                 //$bar->advance();
-                usleep(1000000); // 1s wait
+                usleep(300000); // 300ms
             } catch (\Exception $e) {
                 $this->error("\nError syncing club {$club['name']}: " . $e->getMessage());
                 $this->logSyncEvent("Error syncing {$club['name']}: {$e->getMessage()}", 'error', '⚠️');
             }
         }
 
-        //$bar->finish();
         $this->newLine();
         $this->info('TPV Synchronization completed.');
+
+        $overige         = Region::where('name', 'Overige')->first();
+        $totalInDb       = Prospect::where('federation', 'VL-TPV')->count();
+        $withRealRegion  = $overige
+            ? Prospect::where('federation', 'VL-TPV')->where('region_id', '!=', $overige->id)->count()
+            : Prospect::where('federation', 'VL-TPV')->whereNotNull('region_id')->count();
+        $withRealWebsite = Prospect::where('federation', 'VL-TPV')
+            ->whereNotNull('website')
+            ->where('website', 'NOT LIKE', '%clubdashboard%')
+            ->count();
+
+        $this->logSyncEvent(
+            "Quality: {$syncedCount}/{$count} processed | non-fallback region: {$withRealRegion}/{$totalInDb} | real website: {$withRealWebsite}/{$totalInDb}",
+            'info',
+            '📊'
+        );
+
         $this->finishSyncLog($count);
     }
 

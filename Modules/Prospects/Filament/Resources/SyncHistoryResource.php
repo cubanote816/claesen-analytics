@@ -12,15 +12,8 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Infolists\Components\IconEntry;
-use Filament\Pages\Page;
-use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
-use Modules\Prospects\Jobs\ExecuteSyncJob;
-use Modules\Prospects\Jobs\MasterSyncJob;
 use Filament\Notifications\Notification;
-use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Database\Eloquent\Builder;
 
 class SyncHistoryResource extends Resource
 {
@@ -63,16 +56,18 @@ class SyncHistoryResource extends Resource
                     ->label(__('prospects::resource.fields.status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'running' => 'warning',
+                        'pending'   => 'info',
+                        'running'   => 'warning',
                         'completed' => 'success',
-                        'failed' => 'danger',
-                        default => 'gray',
+                        'failed'    => 'danger',
+                        default     => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'running' => __('prospects::resource.options.status.running'),
+                        'pending'   => __('prospects::resource.options.status.pending'),
+                        'running'   => __('prospects::resource.options.status.running'),
                         'completed' => __('prospects::resource.options.status.completed'),
-                        'failed' => __('prospects::resource.options.status.failed'),
-                        default => $state,
+                        'failed'    => __('prospects::resource.options.status.failed'),
+                        default     => $state,
                     }),
 
                 TextColumn::make('user.name')
@@ -95,72 +90,23 @@ class SyncHistoryResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('last_activity')
+                    ->label(__('prospects::resource.fields.last_activity'))
+                    ->getStateUsing(function (SyncHistory $record): ?string {
+                        if ($record->status !== 'running' || empty($record->logs)) {
+                            return null;
+                        }
+                        $last = last($record->logs);
+                        return ($last['icon'] ?? '') . ' ' . ($last['message'] ?? '');
+                    })
+                    ->wrap()
+                    ->color('warning')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->defaultSort('started_at', 'desc')
             ->poll('5s')
-            ->headerActions([
-                Action::make('sync_master')
-                    ->label(__('prospects::resource.actions.sync_master.label'))
-                    ->icon(Heroicon::Bolt)
-                    ->color('primary')
-                    ->requiresConfirmation()
-                    ->action(function () {
-                        $history = SyncHistory::create([
-                            'command' => 'prospects:sync-master',
-                            'type' => 'master',
-                            'status' => 'running',
-                            'started_at' => now(),
-                            'user_id' => auth()->id(),
-                            'logs' => [[
-                                'time' => now()->format('H:i:s'),
-                                'message' => __('prospects::resource.sync_history.logs.master_requested'),
-                                'type' => 'info',
-                                'icon' => '🚀',
-                            ]],
-                        ]);
-
-                        MasterSyncJob::dispatch(auth()->id(), $history->id);
-
-                        Notification::make()
-                            ->title(__('prospects::resource.notifications.master_sync_started.title'))
-                            ->info()
-                            ->body(__('prospects::resource.notifications.master_sync_started.body'))
-                            ->send();
-                    })
-                    ->visible(false),
-
-                ActionGroup::make([
-                    Action::make('sync_rbfa')
-                        ->label(__('prospects::resource.actions.individual_sync.rbfa'))
-                        ->color('success')
-                        ->action(fn () => self::runSync('prospects:sync-rbfa-graphql')),
-
-                    Action::make('sync_lbfa')
-                        ->label(__('prospects::resource.actions.individual_sync.lbfa'))
-                        ->action(fn () => self::runSync('prospects:sync-lbfa-clubs')),
-                    
-                    Action::make('sync_val')
-                        ->label(__('prospects::resource.actions.individual_sync.val'))
-                        ->action(fn () => self::runSync('prospects:sync-val-clubs')),
-
-                    Action::make('sync_hockey')
-                        ->label(__('prospects::resource.actions.individual_sync.hockey'))
-                        ->action(fn () => self::runSync('prospects:sync-hockey-clubs')),
-
-                    Action::make('sync_tpv')
-                        ->label(__('prospects::resource.actions.individual_sync.tpv'))
-                        ->action(fn () => self::runSync('prospects:sync-tpv-clubs')),
-                    
-                    Action::make('sync_aft')
-                        ->label(__('prospects::resource.actions.individual_sync.aft'))
-                        ->action(fn () => self::runSync('prospects:sync-aft-clubs')),
-                ])
-                ->label(__('prospects::resource.actions.individual_sync.label'))
-                ->icon('heroicon-o-play-circle')
-                ->color('gray')
-                ->visible(false),
-            ])
-
             ->actions([
                 \Filament\Actions\ViewAction::make(),
                 \Filament\Actions\Action::make('mark_failed')
@@ -168,7 +114,7 @@ class SyncHistoryResource extends Resource
                     ->icon(Heroicon::XCircle)
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->visible(fn ($record) => $record->status === 'running')
+                    ->visible(fn ($record) => in_array($record->status, ['pending', 'running']))
                     ->action(function ($record) {
                         $record->update([
                             'status' => 'failed',
@@ -195,7 +141,7 @@ class SyncHistoryResource extends Resource
                     ->icon(Heroicon::CheckCircle)
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn ($record) => $record->status === 'running')
+                    ->visible(fn ($record) => in_array($record->status, ['pending', 'running']))
                     ->action(function ($record) {
                         $record->update([
                             'status' => 'completed',
@@ -225,17 +171,6 @@ class SyncHistoryResource extends Resource
             ]);
     }
 
-    protected static function runSync(string $command): void
-    {
-        ExecuteSyncJob::dispatch($command, auth()->id());
-        
-        Notification::make()
-            ->title(__('prospects::resource.notifications.sync_started.title'))
-            ->info()
-            ->body(__('prospects::resource.notifications.sync_started.body', ['command' => $command]))
-            ->send();
-    }
-
     public static function infolist(Schema $schema): Schema
     {
         return $schema
@@ -248,11 +183,19 @@ class SyncHistoryResource extends Resource
                             TextEntry::make('status')
                                 ->label(__('prospects::resource.fields.status'))
                                 ->badge()
+                                ->formatStateUsing(fn ($state) => match ($state) {
+                                    'pending'   => __('prospects::resource.options.status.pending'),
+                                    'running'   => __('prospects::resource.options.status.running'),
+                                    'completed' => __('prospects::resource.options.status.completed'),
+                                    'failed'    => __('prospects::resource.options.status.failed'),
+                                    default     => $state,
+                                })
                                 ->color(fn (string $state): string => match ($state) {
-                                    'running' => 'warning',
+                                    'pending'   => 'info',
+                                    'running'   => 'warning',
                                     'completed' => 'success',
-                                    'failed' => 'danger',
-                                    default => 'gray',
+                                    'failed'    => 'danger',
+                                    default     => 'gray',
                                 }),
                             TextEntry::make('records_count')
                                 ->label(__('prospects::resource.fields.total_items')),
@@ -312,6 +255,7 @@ class SyncHistoryResource extends Resource
     {
         return [
             'index' => \Modules\Prospects\Filament\Resources\SyncHistoryResource\Pages\ListSyncHistories::route('/'),
+            'view'  => \Modules\Prospects\Filament\Resources\SyncHistoryResource\Pages\ViewSyncHistory::route('/{record}'),
         ];
     }
 }

@@ -10,6 +10,11 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @deprecated Replaced by StaticSitePublicationService::requestRebuild() + TriggerStaticSiteRebuildJob.
+ *             Kept to avoid breaking any queued jobs that may still reference this class.
+ *             Do not dispatch from new code.
+ */
 class NotifyAstroFrontendJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;

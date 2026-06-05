@@ -27,7 +27,7 @@ trait HasAiTranslations
         $gemini = app(GeminiService::class);
 
         // Use the locales configured in the plugin or a sensible default
-        $targetLocales = ['nl', 'en', 'fr'];
+        $targetLocales = ['nl', 'en', 'fr', 'de'];
 
         $attributesToTranslate = method_exists($this, 'getAiTranslatableAttributes')
             ? $this->getAiTranslatableAttributes()
