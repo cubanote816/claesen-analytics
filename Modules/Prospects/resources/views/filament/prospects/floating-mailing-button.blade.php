@@ -16,32 +16,38 @@
 
     var fab   = document.getElementById('prospect-fab');
     var badge = document.getElementById('prospect-fab-badge');
-    var lastN = 0;
+    var lastN = -1; // -1 forces first sync() to always run
 
-    // ✅ Guard: solo activar en /prospects
     function isProspectsPage() {
         return window.location.pathname.replace(/\/$/, '') === '/prospects';
     }
 
     function sync() {
-        // Si no estamos en la página correcta → ocultar y salir
         if (!isProspectsPage()) {
             if (lastN !== 0) { fab.style.display = 'none'; lastN = 0; }
             return;
         }
 
         var n = document.querySelectorAll('table tbody input[type="checkbox"]:checked').length;
-        if (n === lastN) return; // sin cambios → no hacer nada
+        if (n === lastN) return;
         lastN = n;
         fab.style.display = n > 0 ? 'flex' : 'none';
         badge.textContent = n;
+    }
+
+    // Runs sync() after a Livewire commit settles: morph done, PHP-dispatched
+    // browser events fired, Alpine reactive effects flushed.
+    // setTimeout(0) is a macro-task — runs after all pending micro-tasks
+    // (including the 3x-nested queueMicrotask Livewire uses to dispatch PHP events
+    // and Alpine's own reactive-effect micro-tasks).
+    function syncAfterSettle() {
+        setTimeout(sync, 0);
     }
 
     window.__prospectsStartMailing = function () {
         var table = document.querySelector('table');
         if (!table) return;
 
-        // Subir desde la tabla para encontrar el componente Livewire correcto
         var el = table.closest('[wire\\:id]');
         if (!el) {
             var all = document.querySelectorAll('[wire\\:id]');
@@ -49,23 +55,47 @@
                 if (all[i].contains(table)) { el = all[i]; break; }
             }
         }
-
         if (!el) return;
 
         var component = window.Livewire && window.Livewire.find(el.getAttribute('wire:id'));
-        if (component) component.call('mountTableBulkAction', 'execute_campaign');
+        if (!component) return;
+
+        // Collect selected IDs from the DOM (same source of truth as Alpine's selectedRecords Set).
+        // Then sync them to PHP via $wire.set() BEFORE calling mountAction, mirroring exactly
+        // what Filament's own Alpine table.mountAction() does. Without this, the floating button
+        // bypasses Alpine's mountAction() and PHP always reads the stale snapshot value ([]).
+        var selectedIds = Array.from(
+            document.querySelectorAll('table tbody input[type="checkbox"]:checked')
+        ).map(function (cb) { return cb.value; });
+
+        component.set('isTrackingDeselectedTableRecords', false, false);
+        component.set('selectedTableRecords', selectedIds, false);
+        component.set('deselectedTableRecords', [], false);
+
+        // mountAction with Filament V5 context (table + bulk) — replaces deprecated mountTableBulkAction.
+        component.call('mountAction', 'execute_campaign', {}, { table: true, bulk: true });
     };
 
-    // Eventos seguros — sin MutationObserver, sin setInterval
+    // Update badge on user checkbox interaction (same tab, no Livewire round-trip).
     document.addEventListener('change', function (e) {
         if (e.target && e.target.type === 'checkbox') sync();
     });
 
-    // Livewire 3: se dispara UNA VEZ por ciclo, no en bucle
-    document.addEventListener('livewire:update',    sync);
-    document.addEventListener('livewire:navigated', sync); // ocultar al navegar fuera
+    // livewire:update does not exist in Livewire 3 (it was Livewire 2 only).
+    // Livewire.hook('commit') is the Livewire 3 equivalent: fires once per
+    // network round-trip after the response is processed. The succeed() callback
+    // fires after the DOM is morphed and effects are queued. syncAfterSettle()
+    // uses setTimeout(0) so it runs after PHP-dispatched browser events AND
+    // Alpine's reactive micro-tasks have both completed, giving the correct DOM state.
+    window.addEventListener('livewire:initialized', function () {
+        Livewire.hook('commit', function (hookData) {
+            hookData.succeed(syncAfterSettle);
+        });
+    });
+
+    document.addEventListener('livewire:navigated', sync);
     document.addEventListener('livewire:load',      sync);
 
-    sync(); // verificación inicial
+    sync();
 }());
 </script>

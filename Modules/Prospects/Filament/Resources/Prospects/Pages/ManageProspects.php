@@ -20,12 +20,19 @@ class ManageProspects extends ManageRecords
 
     // Filament resets selection when filters change (shouldDeselectAllRecordsWhenFiltered),
     // but not when tabs change — even though tabs also modify the query via modifyQueryUsing().
-    // Without this override, IDs selected in one tab remain in $selectedTableRecords after
-    // switching tabs, causing the BulkAction to run against a filtered query that excludes
-    // those IDs, resulting in 0 records and a stale FAB badge.
+    // Without this override, IDs from the previous tab persist in the PHP snapshot and the
+    // Alpine selectedRecords Set, causing the FAB to show a stale badge count and BulkActions
+    // to run against a tab-filtered query that excludes those IDs (0 results).
     public function updatedActiveTab(): void
     {
         parent::updatedActiveTab();
+        // Directly wipe the PHP snapshot — deselectAllTableRecords() only dispatches a browser
+        // event (for Alpine visual state) and never clears these PHP-side properties.
+        $this->selectedTableRecords = [];
+        $this->deselectedTableRecords = [];
+        $this->isTrackingDeselectedTableRecords = false;
+        // Also dispatch the browser event so Alpine clears its local selectedRecords Set and
+        // re-evaluates x-bind:checked, unchecking all visible rows.
         $this->deselectAllTableRecords();
     }
 
