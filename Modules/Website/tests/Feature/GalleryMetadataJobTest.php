@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Modules\Intelligence\Services\GeminiService;
 use Modules\Website\Jobs\GenerateGalleryMediaMetadataJob;
-use Modules\Website\Jobs\NotifyAstroFrontendJob;
+use Modules\Website\Jobs\TriggerStaticSiteRebuildJob;
 use Modules\Website\Models\Project;
 use Tests\TestCase;
 
@@ -82,10 +82,11 @@ class GalleryMetadataJobTest extends TestCase
                 ]);
         });
 
+        config(['static_site.enabled' => true]);
         Queue::fake(); // Reset captures from addMedia above
         (new GenerateGalleryMediaMetadataJob($media->id))->handle($gemini);
 
-        Queue::assertPushed(NotifyAstroFrontendJob::class);
+        Queue::assertPushed(TriggerStaticSiteRebuildJob::class);
     }
 
     // =========================================================================
