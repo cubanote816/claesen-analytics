@@ -18,6 +18,17 @@ class ManageProspects extends ManageRecords
         ];
     }
 
+    // Filament resets selection when filters change (shouldDeselectAllRecordsWhenFiltered),
+    // but not when tabs change — even though tabs also modify the query via modifyQueryUsing().
+    // Without this override, IDs selected in one tab remain in $selectedTableRecords after
+    // switching tabs, causing the BulkAction to run against a filtered query that excludes
+    // those IDs, resulting in 0 records and a stale FAB badge.
+    public function updatedActiveTab(): void
+    {
+        parent::updatedActiveTab();
+        $this->deselectAllTableRecords();
+    }
+
     public function getTabs(): array
     {
         return [
