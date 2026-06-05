@@ -1,19 +1,34 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-05 (WEB-017→025 / CLA-138→146 — PR #3 abierto)
+> Última actualización: 2026-06-05 (WEB-012→016 / CLA-133→137 — merge website-work-details → main)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** Static Site Auto-Publish — `feature/static-site-publish`
-- **Rama actual:** `feature/static-site-publish`
-- **Último ticket cerrado:** WEB-025 / CLA-146 — Feature tests static site publication — commit `057f1bf` + fix `2e8732d`
-- **PR abierto:** [#3 — WEB-017→025: Static site auto-publish pipeline](https://github.com/cubanote816/claesen-analytics/pull/3) — pendiente de revisión y merge manual a `main`
-- **Próximo ticket:** A definir tras merge del PR #3
+- **Sprint activo:** ninguno — `main` al día con todos los sprints Website
+- **Rama actual:** `main`
+- **Último ticket cerrado:** WEB-016 / CLA-137 — Feature tests Work Details — merge `1169646` + fix comentario `2d6c882`
+- **Próximo ticket:** A definir
 
-### Sprint Static Site — tickets completados (2026-06-05)
+### Work Details / In Action — tickets mergeados (2026-06-05)
+
+| WEB | CLA | Título | Commit | Estado |
+|-----|-----|--------|--------|--------|
+| WEB-012 | CLA-133 | `work_story`, `challenge`, `solution`, `result` + `detail_gallery` collection | `7f7f4f9` | ✅ Done |
+| WEB-013 | CLA-134 | Translations NL + EN — Work Details section | `020a5f3` | ✅ Done |
+| WEB-014 | CLA-135 | Filament — Work Details / In Action section | `b4c4ab4` | ✅ Done |
+| WEB-015 | CLA-136 | API Resource — expose Work Details + `detail_gallery` | `a1aa7e4` | ✅ Done |
+| WEB-016 | CLA-137 | Feature tests — Work Details / In Action | `76360c4` | ✅ Done |
+| Fix | — | Comentario erróneo locale `de` — Gemini traduce nl/en/fr/**de** | `2d6c882` | ✅ Done |
+
+Merge commit: `1169646` — resolución de conflictos en `ProjectResource.php` y `Project.php`:
+- `work_story/challenge/solution/result` usan `resolveLocaleValue()` (consistente con WEB-008)
+- `detail_gallery` caption/alt también usan `resolveLocaleValue()` (feature branch dejaba valores raw)
+- `getAiTranslatableAttributes()` incluye `client` (HEAD) + los 4 campos Work Details
+
+### Sprint Static Site Auto-Publish — tickets mergeados (2026-06-05)
 
 | WEB | CLA | Título | Commit | Estado |
 |-----|-----|--------|--------|--------|
@@ -26,6 +41,8 @@
 | WEB-024 | CLA-145 | Node.js webhook receiver (`scripts/astro-rebuild/`) | `2c34a3f` | ✅ Done |
 | WEB-025 | CLA-146 | Feature tests — static site publication (Laravel + Node) | `057f1bf` | ✅ Done |
 | Fix | — | GalleryMetadataJobTest: aserción + enable flag corregidos | `2e8732d` | ✅ Done |
+
+Merge commit: `ff11888` (PR #3)
 
 ### Arquitectura del pipeline
 
@@ -46,10 +63,10 @@ Frontend: Node.js webhook-receiver.mjs en 192.168.60.20
   → rename(2) → swap atómico del symlink current
 ```
 
-### Riesgos pendientes antes de merge/producción
+### Riesgos pendientes antes de producción
 
 1. `STATIC_SITE_REBUILD_ENABLED=false` por defecto — activar explícitamente en .env
-2. Ghost migration `add_work_details_to_website_projects_table` de `feature/website-work-details` (commit `7f7f4f9`) no está en esta rama — verificar orden de merge
+2. ~~Ghost migration `add_work_details_to_website_projects_table`~~ — resuelto: `feature/website-work-details` ya mergeado en `main`
 3. Permisos de escritura de `astro-deploy` sobre `WEBHOOK_RELEASES_DIR` y `WEBHOOK_PROJECT_DIR`
 4. Configurar `tries`/`backoff` de `TriggerStaticSiteRebuildJob` antes de activar con Redis en producción
 
@@ -75,7 +92,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | Módulo | Estado | Rama | Documento específico |
 |--------|--------|------|---------------------|
 | **Mailing** | ✅ Fase 0+1+2 completadas / Fase 3 en Backlog | `feature/mailing` | `docs/Mailing/mailing-platform-master.md` |
-| **Website** | 🚧 PR #3 abierto (WEB-017→025) — pendiente merge | `feature/static-site-publish` | `docs/website-sprint-handoff.md` |
+| **Website** | ✅ WEB-001→025 mergeados en `main` (incl. Work Details + Static Site) | `main` | `docs/website-sprint-handoff.md` |
 | **Safety** | ✅ Sprint completado (SAF-001 a SAF-016) | `Safety_Inspections` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
 | **Intelligence** | 🚧 ~90% | `main` | Ver `CLAUDE.md` |
@@ -97,7 +114,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 ## Próximos pasos recomendados
 
-1. **Merge PR #3** (`feature/static-site-publish`) tras revisión — instalación del receiver Node.js en 192.168.60.20 y configuración del .env de producción.
+1. **Deploy Website en producción:** instalar receiver Node.js en 192.168.60.20, configurar `.env` (`STATIC_SITE_REBUILD_ENABLED=true`, `STATIC_SITE_WEBHOOK_SECRET`, etc.), ejecutar `php artisan migrate`.
 2. **Website backfill:** ejecutar `php artisan website:regenerate-media` en producción (pendiente desde WEB-007).
 3. **Mailing Fase 3:** esperar datos reales de campañas en producción antes de iniciar MAI-031.
 4. **Performance:** continuar mejoras de insights y Watchdog según prioridad.
@@ -109,7 +126,9 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
-| 2026-06-05 | WEB-017→025 | Sprint static site auto-publish completado — PR #3 abierto |
+| 2026-06-05 | WEB-012→016 | Merge `feature/website-work-details` → `main` — Work Details / In Action — `1169646` |
+| 2026-06-05 | Fix | Comentario erróneo locale `de` corregido — `2d6c882` |
+| 2026-06-05 | WEB-017→025 | Merge `feature/static-site-publish` → `main` (PR #3) — Static site pipeline — `ff11888` |
 | 2026-06-03 | TEST-GATE-001 | Arnés obligatorio de testing — commits `0278d05` `92199c3` |
 | 2026-06-03 | WEB-011 / CLA-111 | Seguimiento Consultation Requests — commits `2b500b1` `569c2c0` |
 | 2026-06-02 | WEB-010 / CLA-110 | Email transaccional Consultation Requests — commit `0588594` |
