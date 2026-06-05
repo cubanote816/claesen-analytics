@@ -19,9 +19,7 @@ class ProjectResource extends JsonResource
             'title' => $this->resolveLocaleValue($this->getTranslations('title')),
             'description' => $this->resolveLocaleValue($this->getTranslations('description')),
 
-            // Work Details — translatable (nl/en/fr via Gemini auto-translate).
-            // 'de' has no auto-translation; HasTranslations falls back to 'nl'
-            // (config app.fallback_locale) when no manual 'de' translation is present.
+            // Work Details — translatable (nl/en/fr/de via Gemini auto-translate).
             // Null means the field was never filled on this project.
             'work_story'  => $this->resolveLocaleValue($this->getTranslations('work_story')),
             'challenge'   => $this->resolveLocaleValue($this->getTranslations('challenge')),

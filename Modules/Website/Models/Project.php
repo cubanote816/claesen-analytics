@@ -66,8 +66,8 @@ class Project extends Model implements HasMedia
 
     public function getAiTranslatableAttributes(): array
     {
-        // work_story, challenge, solution, result are included so Gemini auto-translates nl/en/fr.
-        // 'de' is not in HasAiTranslations targetLocales — it falls back to 'nl' via app.fallback_locale.
+        // Gemini auto-translates all four locales: nl, en, fr, de.
+        // HasAiTranslations::$targetLocales = ['nl','en','fr','de'].
         return [
             'title',
             'description',
