@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-05 (WEB-012→016 / CLA-133→137 — merge website-work-details → main)
+> Última actualización: 2026-06-05 (verificación backend Work Details — API pública operativa)
 
 ---
 
@@ -9,8 +9,17 @@
 
 - **Sprint activo:** ninguno — `main` al día con todos los sprints Website
 - **Rama actual:** `main`
-- **Último ticket cerrado:** WEB-016 / CLA-137 — Feature tests Work Details — merge `1169646` + fix comentario `2d6c882`
-- **Próximo ticket:** A definir
+- **Último ticket cerrado:** WEB-016 / CLA-137 — Feature tests Work Details — merge `1169646` + fix `2d6c882`
+- **Próximo ticket:** A definir — candidatos: deploy producción Website, Mailing Fase 3 (datos reales), Performance
+
+### Estado de ramas feature
+
+| Rama | Estado vs `main` |
+|------|-----------------|
+| `feature/mailing` | ✅ Ya en main |
+| `Safety_Inspections` | ✅ Ya en main |
+| `feature/static-site-publish` | ✅ Mergeada `ff11888` |
+| `feature/website-work-details` | ✅ Mergeada `1169646` |
 
 ### Work Details / In Action — tickets mergeados (2026-06-05)
 
@@ -63,12 +72,24 @@ Frontend: Node.js webhook-receiver.mjs en 192.168.60.20
   → rename(2) → swap atómico del symlink current
 ```
 
+### API pública Website — URLs operativas
+
+| Método | URL | Descripción |
+|--------|-----|-------------|
+| `GET` | `/v1/website/projects` | Listado paginado (`?category`, `?year`, `?featured`, `?per_page`) |
+| `GET` | `/v1/website/projects/{slug}` | Detalle completo — incluye `work_story/challenge/solution/result/detail_gallery` |
+| `GET` | `/v1/website/projects/categories` | Enum de categorías |
+| `GET` | `/v1/website/projects/years` | Años con proyectos publicados |
+
+Locale resuelto por `Accept-Language` vía `SetPanelLocale` middleware (nl/en/fr/de).
+
 ### Riesgos pendientes antes de producción
 
-1. `STATIC_SITE_REBUILD_ENABLED=false` por defecto — activar explícitamente en .env
-2. ~~Ghost migration `add_work_details_to_website_projects_table`~~ — resuelto: `feature/website-work-details` ya mergeado en `main`
+1. `STATIC_SITE_REBUILD_ENABLED=false` por defecto — activar explícitamente en .env de producción
+2. ~~Ghost migration `add_work_details_to_website_projects_table`~~ — resuelto: `feature/website-work-details` mergeado en `main`
 3. Permisos de escritura de `astro-deploy` sobre `WEBHOOK_RELEASES_DIR` y `WEBHOOK_PROJECT_DIR`
 4. Configurar `tries`/`backoff` de `TriggerStaticSiteRebuildJob` antes de activar con Redis en producción
+5. Proyectos publicados en producción sin `work_story/challenge/solution/result` rellenos — la API devuelve `null`; requiere que editores rellenen en Filament o se lance auto-traducción Gemini
 
 ### Tests ejecutados en verificación previa al PR
 
@@ -114,8 +135,13 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 ## Próximos pasos recomendados
 
-1. **Deploy Website en producción:** instalar receiver Node.js en 192.168.60.20, configurar `.env` (`STATIC_SITE_REBUILD_ENABLED=true`, `STATIC_SITE_WEBHOOK_SECRET`, etc.), ejecutar `php artisan migrate`.
-2. **Website backfill:** ejecutar `php artisan website:regenerate-media` en producción (pendiente desde WEB-007).
+1. **Deploy Website en producción:**
+   - `php artisan migrate` (columnas `work_story/challenge/solution/result` + tabla `publication_states`)
+   - Instalar receiver Node.js en 192.168.60.20 (`scripts/astro-rebuild/README.md`)
+   - Configurar `.env`: `STATIC_SITE_REBUILD_ENABLED=true`, `STATIC_SITE_WEBHOOK_SECRET`, `STATIC_SITE_WEBHOOK_URL`, `STATIC_SITE_HEALTH_URL`
+   - Firewall: puerto 9000 solo desde 192.168.60.10
+2. **Website backfill media:** ejecutar `php artisan website:regenerate-media` en producción (pendiente desde WEB-007).
+3. **Rellenar Work Details en Filament:** `work_story/challenge/solution/result` vacíos en proyectos publicados — editores o trigger Gemini manual.
 3. **Mailing Fase 3:** esperar datos reales de campañas en producción antes de iniciar MAI-031.
 4. **Performance:** continuar mejoras de insights y Watchdog según prioridad.
 5. **Prospects:** completar CRM y campañas email (~75%).
@@ -126,6 +152,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-05 | verificación | API pública `/v1/website/projects/{slug}` confirma `work_story/challenge/solution/result/detail_gallery` operativos |
 | 2026-06-05 | WEB-012→016 | Merge `feature/website-work-details` → `main` — Work Details / In Action — `1169646` |
 | 2026-06-05 | Fix | Comentario erróneo locale `de` corregido — `2d6c882` |
 | 2026-06-05 | WEB-017→025 | Merge `feature/static-site-publish` → `main` (PR #3) — Static site pipeline — `ff11888` |
