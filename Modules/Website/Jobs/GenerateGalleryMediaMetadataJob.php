@@ -10,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Modules\Intelligence\Services\GeminiService;
 use Modules\Website\Models\Project;
+use Modules\Website\Services\StaticSitePublicationService;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class GenerateGalleryMediaMetadataJob implements ShouldQueue
@@ -79,7 +80,7 @@ class GenerateGalleryMediaMetadataJob implements ShouldQueue
             Log::error("GenerateGalleryMediaMetadataJob failed for media #{$this->mediaId}: " . $e->getMessage());
         } finally {
             if ($notifyFrontend) {
-                NotifyAstroFrontendJob::dispatch();
+                app(StaticSitePublicationService::class)->requestRebuild('content_changed');
             }
         }
     }
