@@ -489,12 +489,16 @@ class ProspectResource extends Resource
                             $subscribedCount = $totalCount - $unsubscribedCount;
 
                             if ($subscribedCount === 0) {
+                                $key = $totalCount === 0
+                                    ? 'no_prospects_selected'
+                                    : 'all_prospects_unsubscribed';
+
                                 Notification::make()
-                                    ->title(__('prospects::resource.notifications.no_prospects_selected.title'))
-                                    ->body(__('prospects::resource.options.status.unsubscribed'))
+                                    ->title(__("prospects::resource.notifications.{$key}.title"))
+                                    ->body(__("prospects::resource.notifications.{$key}.body"))
                                     ->danger()
                                     ->send();
-                                
+
                                 $livewire->deselectAllTableRecords();
                                 return;
                             }

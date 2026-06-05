@@ -139,6 +139,10 @@ return [
             'title' => 'Aucun prospect sélectionné',
             'body' => 'Veuillez sélectionner au moins un prospect pour démarrer un mailing.',
         ],
+        'all_prospects_unsubscribed' => [
+            'title' => 'Tous les prospects sélectionnés sont désabonnés',
+            'body' => 'Aucun des prospects sélectionnés ne peut recevoir des e-mails. Retirez-les d\'abord de la liste de suppression.',
+        ],
         'campaign_started' => [
             'title' => 'Campagne Démarrée',
             'body' => 'Les e-mails sont envoyés en arrière-plan avec le modèle choisi.',

@@ -139,6 +139,10 @@ return [
             'title' => 'Geen prospecten geselecteerd',
             'body' => 'Selecteer minstens één prospect om een mailing te starten.',
         ],
+        'all_prospects_unsubscribed' => [
+            'title' => 'Alle geselecteerde prospecten zijn uitgeschreven',
+            'body' => 'Geen van de geselecteerde prospecten kan e-mails ontvangen. Verwijder ze eerst uit de onderdrukkingslijst.',
+        ],
         'campaign_started' => [
             'title' => 'Campagne Gestart',
             'body' => 'De e-mails worden op de achtergrond verzonden met het gekozen sjabloon.',

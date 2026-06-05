@@ -139,6 +139,10 @@ return [
             'title' => 'No prospects selected',
             'body' => 'Please select at least one prospect to start the mailing.',
         ],
+        'all_prospects_unsubscribed' => [
+            'title' => 'All selected prospects are unsubscribed',
+            'body' => 'None of the selected prospects can receive emails. Remove them from the suppression list first.',
+        ],
         'campaign_started' => [
             'title' => 'Campaign Started',
             'body' => 'Emails are being sent in the background using the selected template.',
