@@ -28,6 +28,10 @@ class Project extends Model implements HasMedia
         'title',
         'content', // Legacy field, kept for safety
         'description',
+        'work_story',
+        'challenge',
+        'solution',
+        'result',
         'category',
         'location',
         'year',
@@ -51,6 +55,10 @@ class Project extends Model implements HasMedia
         'title',
         'content',
         'description',
+        'work_story',
+        'challenge',
+        'solution',
+        'result',
         'location',
         'client',
         'seo_tags',
@@ -58,11 +66,17 @@ class Project extends Model implements HasMedia
 
     public function getAiTranslatableAttributes(): array
     {
+        // work_story, challenge, solution, result are included so Gemini auto-translates nl/en/fr.
+        // 'de' is not in HasAiTranslations targetLocales — it falls back to 'nl' via app.fallback_locale.
         return [
             'title',
             'description',
             'location',
             'client',
+            'work_story',
+            'challenge',
+            'solution',
+            'result',
         ];
     }
 
@@ -104,6 +118,9 @@ class Project extends Model implements HasMedia
             ->acceptsMimeTypes($allowedMimeTypes);
 
         $this->addMediaCollection('gallery')
+            ->acceptsMimeTypes($allowedMimeTypes);
+
+        $this->addMediaCollection('detail_gallery')
             ->acceptsMimeTypes($allowedMimeTypes);
     }
 

@@ -150,6 +150,28 @@ class ProjectResource extends Resource
                                     ->numeric()
                                     ->default(0),
                             ])->columns(3),
+
+                        Section::make(__('website.projects.sections.work_details'))
+                            ->schema([
+                                RichEditor::make('work_story')
+                                    ->label(__('website.projects.fields.work_story'))
+                                    ->toolbarButtons(['bold', 'italic', 'underline', 'strike', 'bulletList', 'orderedList', 'link', 'undo', 'redo'])
+                                    ->columnSpanFull(),
+                                RichEditor::make('challenge')
+                                    ->label(__('website.projects.fields.challenge'))
+                                    ->toolbarButtons(['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link'])
+                                    ->columnSpanFull(),
+                                RichEditor::make('solution')
+                                    ->label(__('website.projects.fields.solution'))
+                                    ->toolbarButtons(['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link'])
+                                    ->columnSpanFull(),
+                                RichEditor::make('result')
+                                    ->label(__('website.projects.fields.result'))
+                                    ->toolbarButtons(['bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link'])
+                                    ->columnSpanFull(),
+                            ])
+                            ->collapsible()
+                            ->collapsed(),
                     ])
                     ->columnSpan(['default' => 5, 'lg' => 3]),
 
@@ -208,6 +230,45 @@ class ProjectResource extends Resource
                                         }
                                     }),
                             ])->collapsible(),
+
+                        Section::make(__('website.projects.fields.detail_gallery'))
+                            ->schema([
+                                SpatieMediaLibraryFileUpload::make('detail_gallery')
+                                    ->label(__('website.projects.fields.detail_gallery'))
+                                    ->collection('detail_gallery')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->imagePreviewHeight('150')
+                                    ->panelLayout('grid')
+                                    ->multiple()
+                                    ->reorderable()
+                                    ->maxSize(20480)
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                                    ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
+                                        $component->saveUploadedFiles();
+                                        $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
+
+                                        $record->getMedia('detail_gallery')
+                                            ->whereNotIn('uuid', $activeUuids)
+                                            ->each(fn($media) => $media->delete());
+
+                                        if (!empty($activeUuids)) {
+                                            $mediaClass = config('media-library.media_model', \Spatie\MediaLibrary\MediaCollections\Models\Media::class);
+                                            $mappedIds = $mediaClass::query()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
+
+                                            $orderedIds = collect($activeUuids)
+                                                ->map(fn($uuid) => $mappedIds[$uuid] ?? null)
+                                                ->filter()
+                                                ->toArray();
+
+                                            if (!empty($orderedIds)) {
+                                                $mediaClass::setNewOrder($orderedIds);
+                                            }
+                                        }
+                                    }),
+                            ])
+                            ->collapsible()
+                            ->collapsed(),
                     ])
                     ->columnSpan(['default' => 5, 'lg' => 2]),
             ])->columns(['default' => 5, 'lg' => 5]);
