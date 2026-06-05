@@ -1,0 +1,39 @@
+[Unit]
+Description=Claesen Astro Webhook Receiver
+Documentation=https://github.com/cubanote816/claesen-analytics/tree/main/scripts/astro-rebuild
+After=network.target
+
+[Service]
+Type=simple
+# Run as the user that owns the Astro source and releases directories.
+# Create a dedicated user: useradd -r -s /bin/false astro-deploy
+User=astro-deploy
+Group=astro-deploy
+
+# Load all WEBHOOK_* variables from this file.
+# Copy .env.example → /etc/claesen/webhook-receiver.env and fill in values.
+EnvironmentFile=/etc/claesen/webhook-receiver.env
+
+# Absolute path to the script file on the frontend server.
+ExecStart=/usr/bin/node /opt/claesen/webhook-receiver.mjs
+
+# Restart on any non-zero exit.
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+# Allow writes to the releases and current-link directories.
+# Adjust these paths to match your WEBHOOK_RELEASES_DIR and WEBHOOK_CURRENT_LINK.
+ReadWritePaths=/var/www/claesen-verlichting/v1
+ReadWritePaths=/var/www/claesen-verlichting-staging/v1
+
+# Standard output goes to the systemd journal (journalctl -u webhook-receiver -f).
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=webhook-receiver
+
+[Install]
+WantedBy=multi-user.target
