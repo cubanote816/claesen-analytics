@@ -65,14 +65,21 @@
         return window.location.pathname.replace(/\/$/, '') === '/prospects';
     }
 
-    // fi-ta-record-checkbox is Filament's class for per-row checkboxes only.
-    // It excludes the "select all page" header checkbox (fi-ta-page-checkbox)
-    // and is scoped to the Livewire component root so other tables on the page
-    // (if any) are never counted.
     function getCheckedRecordCount() {
         var root = document.querySelector('[wire\\:id]');
         var scope = root || document;
-        return scope.querySelectorAll('input.fi-ta-record-checkbox:checked').length;
+
+        // Individual per-row selection (fi-ta-record-checkbox present in DOM)
+        var n = scope.querySelectorAll('input.fi-ta-record-checkbox:checked').length;
+        if (n > 0) return n;
+
+        // Page-select mode: Filament removes individual checkboxes from the DOM
+        // when "select all on page" is active. Fall back to counting tbody rows.
+        if (scope.querySelector('input.fi-ta-page-checkbox:checked')) {
+            return scope.querySelectorAll('table tbody tr').length || 1;
+        }
+
+        return 0;
     }
 
     function sync() {
@@ -111,18 +118,20 @@
         var component = window.Livewire && window.Livewire.find(el.getAttribute('wire:id'));
         if (!component) return;
 
-        // Read selected IDs from the component's own record checkboxes, scoped to
-        // the Livewire root so other page tables and the header page-checkbox are excluded.
+        // Read selected IDs from individual per-row checkboxes.
         var selectedIds = Array.from(
             el.querySelectorAll('input.fi-ta-record-checkbox:checked')
         ).map(function (cb) { return cb.value; });
 
-        // Sync selection to PHP before mounting — mirrors what Filament's Alpine
-        // table.mountAction() does via $wire.set(). Without this PHP always receives
-        // selectedTableRecords=[].
-        component.set('isTrackingDeselectedTableRecords', false, false);
-        component.set('selectedTableRecords', selectedIds, false);
-        component.set('deselectedTableRecords', [], false);
+        // Only override Livewire's selection state for individual-checkbox mode.
+        // In page-select mode (fi-ta-page-checkbox checked, individual checkboxes
+        // absent from DOM), selectedIds=[] — overriding would clear Filament's own
+        // selectedTableRecords, which already holds all page IDs.
+        if (selectedIds.length > 0) {
+            component.set('isTrackingDeselectedTableRecords', false, false);
+            component.set('selectedTableRecords', selectedIds, false);
+            component.set('deselectedTableRecords', [], false);
+        }
 
         component.call('mountAction', 'execute_campaign', {}, { table: true, bulk: true });
     };
