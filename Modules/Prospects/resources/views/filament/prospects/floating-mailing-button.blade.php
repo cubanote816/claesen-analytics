@@ -65,16 +65,25 @@
         return window.location.pathname.replace(/\/$/, '') === '/prospects';
     }
 
-    function getCheckedRecordCount() {
-        var root = document.querySelector('[wire\\:id]');
-        var scope = root || document;
+    // Find the Livewire component that owns the prospects table.
+    // document.querySelector('[wire:id]') returns the first component in the DOM
+    // (the topbar), not the resource page. We must find the one containing <table>.
+    function getProspectsRoot() {
+        var all = document.querySelectorAll('[wire\\:id]');
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].querySelector('table')) return all[i];
+        }
+        return null;
+    }
 
-        // Individual per-row selection (fi-ta-record-checkbox present in DOM)
+    function getCheckedRecordCount() {
+        var scope = getProspectsRoot() || document;
+
+        // Individual per-row selection
         var n = scope.querySelectorAll('input.fi-ta-record-checkbox:checked').length;
         if (n > 0) return n;
 
-        // Page-select mode: Filament removes individual checkboxes from the DOM
-        // when "select all on page" is active. Fall back to counting tbody rows.
+        // Page-select mode: fall back to counting tbody rows
         if (scope.querySelector('input.fi-ta-page-checkbox:checked')) {
             return scope.querySelectorAll('table tbody tr').length || 1;
         }
