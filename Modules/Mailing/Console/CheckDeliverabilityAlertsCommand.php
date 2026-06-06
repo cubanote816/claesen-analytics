@@ -5,6 +5,7 @@ namespace Modules\Mailing\Console;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Modules\Core\Models\User;
+use Spatie\Permission\Models\Role;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Enums\DeliverabilityAlertType;
 use Modules\Mailing\Enums\MessageEventType;
@@ -135,7 +136,7 @@ class CheckDeliverabilityAlertsCommand extends Command
             return 0;
         }
 
-        [$alert, $created] = DeliverabilityAlert::firstOrCreate(
+        $alert = DeliverabilityAlert::firstOrCreate(
             ['campaign_id' => $campaign->id, 'alert_type' => $type->value],
             [
                 'rate'        => $rate,
@@ -145,13 +146,14 @@ class CheckDeliverabilityAlertsCommand extends Command
             ]
         );
 
-        if (! $created) {
+        if (! $alert->wasRecentlyCreated) {
             // Already alerted for this campaign + type — idempotent, skip
             return 0;
         }
 
-        // Notify admins and campaign managers
-        $recipients = User::role(['super_admin', 'admin', 'campaign_manager'])->get();
+        // Notify admins and campaign managers (resilient: skip roles that don't exist yet)
+        $roleIds = Role::whereIn('name', ['super_admin', 'admin', 'campaign_manager'])->pluck('id');
+        $recipients = User::whereHas('roles', fn ($q) => $q->whereIn('id', $roleIds))->get();
         $recipients->each->notify(new DeliverabilityAlertNotification($alert));
 
         $alert->update(['notified_at' => now()]);

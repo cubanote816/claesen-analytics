@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-06 (MAI-BUG-002 — campaign send failure accounting fixed)
+> Última actualización: 2026-06-06 (MAI-TEST-001 / CLA-144 — fix 68 failing Mailing tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 - **Sprint activo:** ninguno — `main` al día con todos los sprints
 - **Rama actual:** `main`
-- **Último ticket cerrado:** PROS-BUG-001 / CLA-133 — Prospect mailing selection state mismatch (3 commits: `85a9100`, `69246d6`, `e5c22d9`)
+- **Último ticket cerrado:** MAI-TEST-001 / CLA-144 — fix 68 failing Mailing tests (factory infra + production bugs)
 - **Próximo ticket:** A definir — candidatos: deploy producción Website, Mailing Fase 3 (datos reales), Performance
 
 ### Estado de ramas feature
@@ -123,6 +123,30 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 
 ---
 
+## Backlog Mailing — completado
+
+| Ticket | Linear | Título | Commit | Estado |
+|--------|--------|--------|--------|--------|
+| MAI-BUG-001 | CLA-133 | Approve visible en campañas terminales | `c837782` | ✅ Done |
+| MAI-BUG-002 | CLA-134 | Contadores dobles + FAILED + OAuth null cacheado | `6189e47` | ✅ Done |
+| MAI-BUG-003 | CLA-135 | Submit visible en campañas terminales | `50c3a93` | ✅ Done |
+| MAI-BUG-004 | CLA-136 | Ruta unsubscribe incorrecta bloqueaba envío | `fe0638a` | ✅ Done |
+| MAI-BUG-005 | CLA-137 | Cancel visible en estados terminales (listado) | `10c6324` | ✅ Done |
+| MAI-BUG-006 | CLA-139 | Cancel/Approve/Submit en detalle campaña | `db8605d` | ✅ Done |
+| MAI-UX-001 | CLA-138 | Campaign engagement detail view | `51fa208` | ✅ Done |
+
+## Hoja de ruta — prioridades
+
+| Prioridad | Ticket | Linear | Título | Estado |
+|-----------|--------|--------|--------|--------|
+| 1 | OPS-MAI-001 | CLA-140 | Mailing production readiness validation | ⬜ Todo |
+| 2 | — | — | Website backfill media (`website:regenerate-media`) + validar deploy frontend | Operativo |
+| 3 | — | — | Prospects CRM — calidad de datos, filtros, segmentos | 🚧 ~78% |
+| 4 | — | — | Performance / Watchdog — impacto financiero si gerencia lo prioriza | 🚧 ~85% |
+| Bloqueado | Mailing Fase 3 | MAI-031→036 | Scoring, predicciones, IA | ⏸ Hasta 4–6 sem datos reales |
+
+---
+
 ## Bloqueantes actuales
 
 - **MAI-026** — Webhook handler ESP externo: bloqueado por decisión de gerencia. No tocar.
@@ -152,6 +176,12 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-06 | MAI-TEST-001 / CLA-144 | Done — Fix 68 failing Mailing tests: EmailTemplateFactory (new), ProspectFactory (new + afterCreating), CampaignMessageFactory fixes, EmailTemplate/MessageEvent/Prospect model fixes, CheckDeliverabilityAlertsCommand production bugs (`[$alert,$created]`→`wasRecentlyCreated`, resilient role query), SelectAbWinnerCommand GROUP BY, DeliverabilityAlertTest/SchemaFoundationTest fixes — `(commit pendiente)` |
+| 2026-06-06 | MAI-UX-002 / CLA-143 | Done — Campaign content snapshot preview: subject + plain-text preview visible sin accordion; Full Content expandible — `fac901f` |
+| 2026-06-06 | MAI-BUG-007 / CLA-142 | Done — ONLY_FULL_GROUP_BY crash en CampaignMetricsWidget (chronological global scope) — `742c4f6` |
+| 2026-06-06 | MAI-CONTENT-001 / CLA-141 | Done — Seeder LED 2027 templates (3 plantillas comerciales NL) — `0f79447` |
+| 2026-06-06 | MAI-BUG-005 / CLA-137 | Done — Cancel action hidden on terminal campaigns (canTransitionTo guard) — `10c6324` |
+| 2026-06-06 | MAI-BUG-004 / CLA-136 | Done — One-click unsubscribe route incorrecto (`mailing.unsubscribe.oneclick` → `api.mailing.unsubscribe.oneclick`) — `fe0638a`. Confirmado: Sent 2 / Failed 0 |
 | 2026-06-06 | MAI-BUG-003 | Submit button visible on non-draft campaigns for super_admin — `50c3a93` |
 | 2026-06-06 | MAI-BUG-002 | Campaign send accounting fixed — double count, completed-when-all-fail, null token cached — `6189e47` |
 | 2026-06-06 | MAI-BUG-001 | Approve button visible on terminal campaigns for super_admin — `c837782` |

@@ -21,7 +21,7 @@ class SchemaFoundationTest extends TestCase
     {
         $campaign = Campaign::factory()->create();
 
-        $this->assertSame('all_subscribed', $campaign->fresh()->audience_type);
+        $this->assertSame('all_subscribed', $campaign->fresh()->audience_type->value);
     }
 
     public function test_campaign_accepts_segment_audience_with_filters(): void
@@ -34,8 +34,8 @@ class SchemaFoundationTest extends TestCase
         ]);
 
         $fresh = $campaign->fresh();
-        $this->assertSame('segment', $fresh->audience_type);
-        $this->assertSame($filters, $fresh->audience_filters);
+        $this->assertSame('segment', $fresh->audience_type->value);
+        $this->assertEquals($filters, $fresh->audience_filters);
     }
 
     public function test_audience_filters_cast_to_array(): void

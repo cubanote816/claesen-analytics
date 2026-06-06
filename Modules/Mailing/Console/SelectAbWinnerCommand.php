@@ -59,6 +59,7 @@ class SelectAbWinnerCommand extends Command
             ->where('status', 'sent')
             ->whereIn('ab_variant', ['A', 'B'])
             ->selectRaw('ab_variant, COUNT(*) as cnt')
+            ->groupBy('ab_variant')
             ->pluck('cnt', 'ab_variant');
 
         $sentA = (int) ($sentCounts['A'] ?? 0);

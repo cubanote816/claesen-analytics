@@ -15,11 +15,18 @@ use Modules\Mailing\Models\EmailTemplate;
 use Modules\Mailing\Models\MessageEvent;
 use Modules\Mailing\Notifications\DeliverabilityAlertNotification;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class DeliverabilityAlertTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->app->make(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
 
     // -------------------------------------------------------------------------
     // Helpers

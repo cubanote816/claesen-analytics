@@ -2,6 +2,8 @@
 
 namespace Modules\Mailing\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +12,13 @@ use Modules\Mailing\Enums\TemplateCategory;
 
 class EmailTemplate extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory(): Factory
+    {
+        return \Modules\Mailing\Database\Factories\EmailTemplateFactory::new();
+    }
+
     protected $fillable = [
         'name',
         'subject',
