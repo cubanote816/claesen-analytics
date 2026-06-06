@@ -113,7 +113,12 @@ class CampaignResource extends Resource
                     ->label(__('mailing::resource.actions.submit_review'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('info')
-                    ->visible(fn (Campaign $record): bool => auth()->user()?->can('submit', $record) ?? false)
+                    // Same guard as Approve — Gate::before bypasses policy for super_admin,
+                    // so without canTransitionTo() the button appears on failed/completed campaigns.
+                    ->visible(fn (Campaign $record): bool =>
+                        $record->canTransitionTo(CampaignStatus::REVIEW)
+                        && (auth()->user()?->can('submit', $record) ?? false)
+                    )
                     ->requiresConfirmation()
                     ->action(function (Campaign $record): void {
                         $record->transitionTo(CampaignStatus::REVIEW);
