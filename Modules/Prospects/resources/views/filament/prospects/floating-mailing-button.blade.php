@@ -1,7 +1,39 @@
+<style>
+#prospect-fab {
+    display: none;
+    position: fixed;
+    right: 32px;
+    bottom: 32px;
+    z-index: 9999;
+    align-items: center;
+    gap: 0.5rem;
+    background: #00aeef;
+    color: white;
+    padding: 0.625rem 1.25rem;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0,174,239,0.4);
+}
+#prospect-fab.is-visible {
+    display: inline-flex;
+}
+@media (max-width: 640px) {
+    #prospect-fab.is-visible {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        justify-content: center;
+    }
+}
+</style>
+
 <button
     id="prospect-fab"
     type="button"
-    style="display:none;position:fixed;bottom:4rem;right:2rem;z-index:9999;align-items:center;gap:0.5rem;background:#00aeef;color:white;padding:0.625rem 1.25rem;border-radius:9999px;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;white-space:nowrap;box-shadow:0 4px 16px rgba(0,174,239,0.4);"
     onclick="window.__prospectsStartMailing()"
     title="{{ __('prospects::resource.actions.execute_campaign.label') }}"
 >
@@ -18,7 +50,16 @@
 
     var fab   = document.getElementById('prospect-fab');
     var badge = document.getElementById('prospect-fab-badge');
-    var lastN = -1; // -1 forces first sync() to always run
+    var lastN = -1;
+
+    // Move to document.body to escape any stacking context created by
+    // Filament's panel containers (transform / will-change / filter),
+    // which would break position:fixed relative to the viewport.
+    // On SPA re-navigation, remove any stale instance before appending the fresh one.
+    document.querySelectorAll('body > #prospect-fab').forEach(function (el) {
+        if (el !== fab) el.remove();
+    });
+    document.body.appendChild(fab);
 
     function isProspectsPage() {
         return window.location.pathname.replace(/\/$/, '') === '/prospects';
@@ -36,27 +77,25 @@
 
     function sync() {
         if (!isProspectsPage()) {
-            if (lastN !== 0) { fab.style.display = 'none'; lastN = 0; }
+            if (lastN !== 0) { fab.classList.remove('is-visible'); lastN = 0; }
             return;
         }
 
         var n = getCheckedRecordCount();
         if (n === lastN) return;
         lastN = n;
-        fab.style.display = n > 0 ? 'flex' : 'none';
+        if (n > 0) { fab.classList.add('is-visible'); }
+        else        { fab.classList.remove('is-visible'); }
         badge.textContent = n;
     }
 
-    // Runs sync() after a Livewire commit fully settles: DOM morphed, PHP-dispatched
-    // browser events fired (via Livewire's 3× nested queueMicrotask), and Alpine's
-    // reactive x-bind:checked effects flushed (also micro-tasks).
-    // setTimeout(0) is a macro-task so it always runs after all of those.
+    // Runs sync() after Alpine's reactive x-bind:checked effects have flushed.
+    // setTimeout(0) is a macro-task so it always runs after Alpine's micro-tasks.
     function syncAfterSettle() {
         setTimeout(sync, 0);
     }
 
     window.__prospectsStartMailing = function () {
-        // Locate the Livewire component that owns the prospects table.
         var table = document.querySelector('table');
         if (!table) return;
 
@@ -72,42 +111,36 @@
         var component = window.Livewire && window.Livewire.find(el.getAttribute('wire:id'));
         if (!component) return;
 
-        // Read selected IDs from the component's own record checkboxes (fi-ta-record-checkbox),
-        // scoped to the Livewire root so other page tables are excluded and the header
-        // "select all" checkbox (fi-ta-page-checkbox) is never picked up.
+        // Read selected IDs from the component's own record checkboxes, scoped to
+        // the Livewire root so other page tables and the header page-checkbox are excluded.
         var selectedIds = Array.from(
             el.querySelectorAll('input.fi-ta-record-checkbox:checked')
         ).map(function (cb) { return cb.value; });
 
-        // Sync selection to PHP before mounting — mirrors exactly what Filament's own
-        // Alpine table.mountAction() does via $wire.set(). The floating button bypasses
-        // Alpine's mountAction(), so without this PHP always receives selectedTableRecords=[].
+        // Sync selection to PHP before mounting — mirrors what Filament's Alpine
+        // table.mountAction() does via $wire.set(). Without this PHP always receives
+        // selectedTableRecords=[].
         component.set('isTrackingDeselectedTableRecords', false, false);
         component.set('selectedTableRecords', selectedIds, false);
         component.set('deselectedTableRecords', [], false);
 
-        // Filament V5: mountAction with table+bulk context (replaces deprecated mountTableBulkAction).
         component.call('mountAction', 'execute_campaign', {}, { table: true, bulk: true });
     };
 
-    // Badge update on direct checkbox interaction.
-    // Uses click in CAPTURING phase (runs before Alpine's own handler) so Alpine's
-    // stopPropagation() never blocks us. syncAfterSettle() defers to a macro-task
-    // so Alpine's reactive x-bind:checked effects have already run before we count.
+    // Detect table row/checkbox clicks. In Filament V5, clicking a row fires on
+    // <tr>/<td>/<span> — not on the <input> itself — so we cannot filter by
+    // fi-ta-record-checkbox class. Scoping to [wire:id] avoids firing on nav
+    // clicks outside the table. Capturing phase runs before Alpine's own handlers.
     document.addEventListener('click', function (e) {
-        if (e.target && e.target.classList.contains('fi-ta-record-checkbox')) syncAfterSettle();
-    }, true); // true = capturing phase
+        if (!isProspectsPage()) return;
+        if (e.target.closest('[wire\\:id]')) syncAfterSettle();
+    }, true);
 
-    // Livewire.hook('commit') fires once per network round-trip. The succeed()
-    // callback fires after DOM is morphed and effects are queued; syncAfterSettle()
-    // defers to a macro-task so Alpine's reactive effects have already run.
-    // Guard prevents duplicate hook registration if the view re-renders.
-    //
+    // Livewire.hook('commit') fires once per network round-trip (pagination, filters,
+    // tab changes). Guard prevents duplicate registration on re-render.
     // With Filament SPA (->spa()), livewire:initialized fires BEFORE the BODY_END
-    // script loads, so the event listener below would never fire. We therefore
-    // register the hook immediately when Livewire is already on the window, and
-    // fall back to the event only for the rare hard-refresh case where Livewire
-    // hasn't bootstrapped yet.
+    // script loads, so we register immediately when Livewire is present and fall
+    // back to the event only for the hard-refresh case.
     function registerLivewireHook() {
         if (window.__prospectsFabHookRegistered) return;
         window.__prospectsFabHookRegistered = true;
@@ -124,7 +157,7 @@
     }
 
     document.addEventListener('livewire:navigated', function () {
-        window.__prospectsFabHookRegistered = false; // reset on SPA navigation
+        window.__prospectsFabHookRegistered = false;
         sync();
     });
     document.addEventListener('livewire:load', sync);
