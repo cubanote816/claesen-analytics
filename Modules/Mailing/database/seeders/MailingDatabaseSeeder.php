@@ -11,6 +11,8 @@ class MailingDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            Led2027HighConversionTemplatesSeeder::class,
+        ]);
     }
 }
