@@ -6,6 +6,9 @@ return [
     'navigation_group' => 'Groei & Acquisitie',
 
     'sections' => [
+        'engagement'      => 'Betrokkenheid',
+        'engagement_note' => 'Opentracking is indicatief. Apple Mail Privacy Protection en beveiligingsproxy\'s kunnen opens opblazen of verbergen. Klikken zijn het primaire engagementsignaal.',
+        'no_events'       => 'Geen betrokkenheidsgebeurtenissen geregistreerd voor dit bericht.',
         'template_details' => 'Sjabloon Details',
         'variables'        => 'Sjabloon Variabelen',
         'variables_desc'   => 'Definieer de dynamische variabelen van dit sjabloon (bijv. {{ name }}, {{ regio }}).',
@@ -48,6 +51,13 @@ return [
         'rule_operator_in'         => 'Is één van (in)',
         'rule_value'               => 'Waarde',
         'rule_value_helper'        => 'Voor "is één van", waarden met komma scheiden: RBFA,LBFA',
+        // Betrokkenheid
+        'opened'         => 'Geopend',
+        'clicked'        => 'Geklikt',
+        'last_event_at'  => 'Laatste activiteit',
+        'event_type'     => 'Gebeurtenis',
+        'link_url'       => 'Geklikt URL',
+        'occurred_at'    => 'Wanneer',
         // Plannen
         'scheduled_at'        => 'Geplande verzending (optioneel)',
         'scheduled_at_helper' => 'Leeg laten om onmiddellijk na goedkeuring te verzenden. Tijdstip is Europe/Brussels.',

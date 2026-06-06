@@ -64,6 +64,13 @@ return [
         'ab_split_percent'         => 'Split % per variant',
         'ab_split_percent_helper'  => '10 means 10% to A + 10% to B. Max 50. Remainder receives the winner.',
         'ab_winner_after_hours'    => 'Select winner after (hours)',
+        // Engagement
+        'opened'         => 'Opened',
+        'clicked'        => 'Clicked',
+        'last_event_at'  => 'Last Activity',
+        'event_type'     => 'Event',
+        'link_url'       => 'Clicked URL',
+        'occurred_at'    => 'When',
         // Follow-up
         'followup_campaign'        => 'Follow-up campaign (child)',
         'followup_campaign_helper' => 'Must be an approved campaign. It will be sent to the filtered audience of this campaign.',
@@ -88,6 +95,9 @@ return [
         'snapshot'          => 'Content Snapshot',
         'snapshot_desc'     => 'Subject and body as used in this campaign.',
         'audience'          => 'Audience',
+        'engagement'        => 'Engagement Events',
+        'engagement_note'   => 'Open tracking is indicative only. Apple Mail Privacy Protection and security proxies may inflate or hide opens. Clicks are the primary engagement signal.',
+        'no_events'         => 'No engagement events recorded for this message.',
         'ab_test'           => 'A/B Subject Test (optional)',
         'followup'          => 'Follow-up (optional)',
     ],
