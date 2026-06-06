@@ -22,29 +22,39 @@
         return window.location.pathname.replace(/\/$/, '') === '/prospects';
     }
 
+    // fi-ta-record-checkbox is Filament's class for per-row checkboxes only.
+    // It excludes the "select all page" header checkbox (fi-ta-page-checkbox)
+    // and is scoped to the Livewire component root so other tables on the page
+    // (if any) are never counted.
+    function getCheckedRecordCount() {
+        var root = document.querySelector('[wire\\:id]');
+        var scope = root || document;
+        return scope.querySelectorAll('input.fi-ta-record-checkbox:checked').length;
+    }
+
     function sync() {
         if (!isProspectsPage()) {
             if (lastN !== 0) { fab.style.display = 'none'; lastN = 0; }
             return;
         }
 
-        var n = document.querySelectorAll('table tbody input[type="checkbox"]:checked').length;
+        var n = getCheckedRecordCount();
         if (n === lastN) return;
         lastN = n;
         fab.style.display = n > 0 ? 'flex' : 'none';
         badge.textContent = n;
     }
 
-    // Runs sync() after a Livewire commit settles: morph done, PHP-dispatched
-    // browser events fired, Alpine reactive effects flushed.
-    // setTimeout(0) is a macro-task — runs after all pending micro-tasks
-    // (including the 3x-nested queueMicrotask Livewire uses to dispatch PHP events
-    // and Alpine's own reactive-effect micro-tasks).
+    // Runs sync() after a Livewire commit fully settles: DOM morphed, PHP-dispatched
+    // browser events fired (via Livewire's 3× nested queueMicrotask), and Alpine's
+    // reactive x-bind:checked effects flushed (also micro-tasks).
+    // setTimeout(0) is a macro-task so it always runs after all of those.
     function syncAfterSettle() {
         setTimeout(sync, 0);
     }
 
     window.__prospectsStartMailing = function () {
+        // Locate the Livewire component that owns the prospects table.
         var table = document.querySelector('table');
         if (!table) return;
 
@@ -60,41 +70,48 @@
         var component = window.Livewire && window.Livewire.find(el.getAttribute('wire:id'));
         if (!component) return;
 
-        // Collect selected IDs from the DOM (same source of truth as Alpine's selectedRecords Set).
-        // Then sync them to PHP via $wire.set() BEFORE calling mountAction, mirroring exactly
-        // what Filament's own Alpine table.mountAction() does. Without this, the floating button
-        // bypasses Alpine's mountAction() and PHP always reads the stale snapshot value ([]).
+        // Read selected IDs from the component's own record checkboxes (fi-ta-record-checkbox),
+        // scoped to the Livewire root so other page tables are excluded and the header
+        // "select all" checkbox (fi-ta-page-checkbox) is never picked up.
         var selectedIds = Array.from(
-            document.querySelectorAll('table tbody input[type="checkbox"]:checked')
+            el.querySelectorAll('input.fi-ta-record-checkbox:checked')
         ).map(function (cb) { return cb.value; });
 
+        // Sync selection to PHP before mounting — mirrors exactly what Filament's own
+        // Alpine table.mountAction() does via $wire.set(). The floating button bypasses
+        // Alpine's mountAction(), so without this PHP always receives selectedTableRecords=[].
         component.set('isTrackingDeselectedTableRecords', false, false);
         component.set('selectedTableRecords', selectedIds, false);
         component.set('deselectedTableRecords', [], false);
 
-        // mountAction with Filament V5 context (table + bulk) — replaces deprecated mountTableBulkAction.
+        // Filament V5: mountAction with table+bulk context (replaces deprecated mountTableBulkAction).
         component.call('mountAction', 'execute_campaign', {}, { table: true, bulk: true });
     };
 
-    // Update badge on user checkbox interaction (same tab, no Livewire round-trip).
+    // Badge update on direct checkbox interaction (no Livewire round-trip needed).
     document.addEventListener('change', function (e) {
-        if (e.target && e.target.type === 'checkbox') sync();
+        if (e.target && e.target.classList.contains('fi-ta-record-checkbox')) sync();
     });
 
-    // livewire:update does not exist in Livewire 3 (it was Livewire 2 only).
-    // Livewire.hook('commit') is the Livewire 3 equivalent: fires once per
-    // network round-trip after the response is processed. The succeed() callback
-    // fires after the DOM is morphed and effects are queued. syncAfterSettle()
-    // uses setTimeout(0) so it runs after PHP-dispatched browser events AND
-    // Alpine's reactive micro-tasks have both completed, giving the correct DOM state.
+    // livewire:update does not exist in Livewire 3 (it was a Livewire 2 event).
+    // Livewire.hook('commit') fires once per network round-trip. The succeed()
+    // callback fires after DOM is morphed and effects are queued; syncAfterSettle()
+    // defers to a macro-task so Alpine's reactive effects have already run.
+    // Guard prevents duplicate hook registration if the view re-renders.
     window.addEventListener('livewire:initialized', function () {
+        if (window.__prospectsFabHookRegistered) return;
+        window.__prospectsFabHookRegistered = true;
+
         Livewire.hook('commit', function (hookData) {
             hookData.succeed(syncAfterSettle);
         });
     });
 
-    document.addEventListener('livewire:navigated', sync);
-    document.addEventListener('livewire:load',      sync);
+    document.addEventListener('livewire:navigated', function () {
+        window.__prospectsFabHookRegistered = false; // reset on SPA navigation
+        sync();
+    });
+    document.addEventListener('livewire:load', sync);
 
     sync();
 }());
