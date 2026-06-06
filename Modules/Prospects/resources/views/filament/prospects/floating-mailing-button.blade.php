@@ -1,14 +1,16 @@
-<div
+<button
     id="prospect-fab"
-    style="display:none;position:fixed;bottom:2.5rem;right:2.5rem;z-index:9999;width:72px;height:72px;background:#ea580c;border-radius:18px;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 32px rgba(234,88,12,0.5);border:none;flex-direction:column;"
+    type="button"
+    style="display:none;position:fixed;bottom:4rem;right:2rem;z-index:9999;align-items:center;gap:0.5rem;background:#00aeef;color:white;padding:0.625rem 1.25rem;border-radius:9999px;border:none;cursor:pointer;font-size:0.875rem;font-weight:600;white-space:nowrap;box-shadow:0 4px 16px rgba(0,174,239,0.4);"
     onclick="window.__prospectsStartMailing()"
-    title="Mailing campagne starten"
+    title="{{ __('prospects::resource.actions.execute_campaign.label') }}"
 >
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="white" style="width:32px;height:32px;transform:rotate(-45deg);">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="white" style="width:18px;height:18px;flex-shrink:0;transform:rotate(-45deg);">
         <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
     </svg>
-    <span id="prospect-fab-badge" style="position:absolute;top:-8px;right:-8px;background:white;color:#ea580c;font-size:11px;font-weight:700;min-width:22px;height:22px;border-radius:11px;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 2px 6px rgba(0,0,0,0.25);border:2px solid #ea580c;">0</span>
-</div>
+    <span>{{ __('prospects::resource.actions.execute_campaign.label') }}</span>
+    <span id="prospect-fab-badge" style="background:white;color:#00aeef;font-size:11px;font-weight:700;min-width:20px;height:20px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;">0</span>
+</button>
 
 <script>
 (function () {
