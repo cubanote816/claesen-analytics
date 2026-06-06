@@ -32,7 +32,10 @@ class ViewCampaign extends ViewRecord
                 ->label(__('mailing::resource.actions.submit_review'))
                 ->icon('heroicon-o-paper-airplane')
                 ->color('info')
-                ->visible(fn (): bool => auth()->user()?->can('submit', $this->record) ?? false)
+                ->visible(fn (): bool =>
+                    $this->record->canTransitionTo(CampaignStatus::REVIEW)
+                    && (auth()->user()?->can('submit', $this->record) ?? false)
+                )
                 ->requiresConfirmation()
                 ->action(function (): void {
                     $this->record->transitionTo(CampaignStatus::REVIEW);
@@ -47,7 +50,10 @@ class ViewCampaign extends ViewRecord
                 ->label(__('mailing::resource.actions.approve'))
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->visible(fn (): bool => auth()->user()?->can('approve', $this->record) ?? false)
+                ->visible(fn (): bool =>
+                    $this->record->canTransitionTo(CampaignStatus::APPROVED)
+                    && (auth()->user()?->can('approve', $this->record) ?? false)
+                )
                 ->requiresConfirmation()
                 ->action(function (): void {
                     $this->record->transitionTo(CampaignStatus::APPROVED, auth()->id());
@@ -62,7 +68,10 @@ class ViewCampaign extends ViewRecord
                 ->label(__('mailing::resource.actions.cancel'))
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
-                ->visible(fn (): bool => auth()->user()?->can('cancel', $this->record) ?? false)
+                ->visible(fn (): bool =>
+                    $this->record->canTransitionTo(CampaignStatus::CANCELLED)
+                    && (auth()->user()?->can('cancel', $this->record) ?? false)
+                )
                 ->requiresConfirmation()
                 ->modalDescription(__('mailing::resource.actions.cancel_confirm'))
                 ->action(function (): void {
