@@ -127,7 +127,12 @@ class CampaignResource extends Resource
                     ->label(__('mailing::resource.actions.approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (Campaign $record): bool => auth()->user()?->can('approve', $record) ?? false)
+                    // canTransitionTo() guards against Gate::before bypassing the policy for super_admin.
+                    // Without it, super_admin sees Approve on completed/cancelled campaigns and gets a DomainException.
+                    ->visible(fn (Campaign $record): bool =>
+                        $record->canTransitionTo(CampaignStatus::APPROVED)
+                        && (auth()->user()?->can('approve', $record) ?? false)
+                    )
                     ->requiresConfirmation()
                     ->action(function (Campaign $record): void {
                         $record->transitionTo(CampaignStatus::APPROVED, auth()->id());
