@@ -31,26 +31,55 @@ class MicrosoftGraphService
      */
     public function getAccessToken(): ?string
     {
-        return Cache::remember('microsoft_graph_token', 3500, function () {
-            try {
-                $response = Http::asForm()->timeout(15)->post("https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token", [
-                    'client_id' => $this->clientId,
-                    'scope' => 'https://graph.microsoft.com/.default',
+        // Never use Cache::remember() here — it caches null on auth failure, locking
+        // out retries for ~58 min even after credentials are corrected.
+        $cached = Cache::get('microsoft_graph_token');
+        if ($cached) {
+            return $cached;
+        }
+
+        try {
+            $response = Http::asForm()->timeout(15)->post(
+                "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token",
+                [
+                    'client_id'     => $this->clientId,
+                    'scope'         => 'https://graph.microsoft.com/.default',
                     'client_secret' => $this->clientSecret,
-                    'grant_type' => 'client_credentials',
+                    'grant_type'    => 'client_credentials',
+                ]
+            );
+
+            if ($response->failed()) {
+                Log::error('Microsoft Graph: OAuth token request failed.', [
+                    'status'    => $response->status(),
+                    'error'     => $response->json('error'),
+                    'error_desc' => $response->json('error_description'),
+                    'tenant_id' => $this->tenantId,
                 ]);
-
-                if ($response->failed()) {
-                    Log::error("Microsoft Graph Auth Failure: " . $response->body());
-                    return null;
-                }
-
-                return $response->json('access_token');
-            } catch (\Exception $e) {
-                Log::error("Microsoft Graph Auth Exception: " . $e->getMessage());
+                Cache::forget('microsoft_graph_token');
                 return null;
             }
-        });
+
+            $token = $response->json('access_token');
+
+            if (! $token) {
+                Log::error('Microsoft Graph: OAuth response succeeded but access_token is missing.', [
+                    'tenant_id' => $this->tenantId,
+                ]);
+                Cache::forget('microsoft_graph_token');
+                return null;
+            }
+
+            Cache::put('microsoft_graph_token', $token, 3500);
+            return $token;
+        } catch (\Exception $e) {
+            Log::error('Microsoft Graph: OAuth token request threw exception.', [
+                'message'   => $e->getMessage(),
+                'tenant_id' => $this->tenantId,
+            ]);
+            Cache::forget('microsoft_graph_token');
+            return null;
+        }
     }
 
     /**
@@ -128,7 +157,10 @@ class MicrosoftGraphService
     {
         $token = $this->getAccessToken();
 
-        if (!$token) {
+        if (! $token) {
+            Log::error('Microsoft Graph: sendMail aborted — no access token available.', [
+                'sender' => $senderEmail,
+            ]);
             return false;
         }
 
@@ -138,13 +170,23 @@ class MicrosoftGraphService
                 ->post("{$this->baseUrl}/users/{$senderEmail}/sendMail", $payload);
 
             if ($response->failed()) {
-                Log::error("Microsoft Graph Mail Send Failure: " . $response->body());
+                Log::error('Microsoft Graph: sendMail failed.', [
+                    'status'  => $response->status(),
+                    'sender'  => $senderEmail,
+                    // 'error' key from Graph (e.g. ErrorSendAsDenied, ErrorInvalidRecipients)
+                    'code'    => $response->json('error.code'),
+                    'message' => $response->json('error.message'),
+                    // 403 = Mail.Send not granted; 404 = sender mailbox not found in tenant
+                ]);
                 return false;
             }
 
             return true;
         } catch (\Exception $e) {
-            Log::error("Microsoft Graph Mail Send Exception: " . $e->getMessage());
+            Log::error('Microsoft Graph: sendMail threw exception.', [
+                'message' => $e->getMessage(),
+                'sender'  => $senderEmail,
+            ]);
             return false;
         }
     }

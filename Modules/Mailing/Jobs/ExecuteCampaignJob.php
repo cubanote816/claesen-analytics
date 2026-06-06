@@ -439,17 +439,29 @@ class ExecuteCampaignJob implements ShouldQueue
                 ]);
             }
 
-            $campaign->update([
-                'sent_count'   => $campaign->sent_count + $sentCount,
-                'failed_count' => $campaign->failed_count + $failedCount,
-            ]);
-
             usleep(config('mailing.send_delay_ms', 500) * 1000);
         }
 
+        // Write counters once after the loop using the local deltas.
+        // increment() is atomic — safe when sendToProspects() is called multiple
+        // times for the same campaign (A/B first pass + winner send).
+        if ($sentCount > 0) {
+            $campaign->increment('sent_count', $sentCount);
+        }
+        if ($failedCount > 0) {
+            $campaign->increment('failed_count', $failedCount);
+        }
+
         if ($completeAfter) {
+            // A campaign where every delivery attempt failed must not appear as "completed" —
+            // that masks the operational failure. Only mark failed when there were actual
+            // failures and zero successes; all-skipped (suppressed/unsubscribed) is still completed.
+            $finalStatus = ($sentCount === 0 && $failedCount > 0)
+                ? CampaignStatus::FAILED
+                : CampaignStatus::COMPLETED;
+
             $campaign->update([
-                'status'      => CampaignStatus::COMPLETED,
+                'status'      => $finalStatus,
                 'finished_at' => now(),
             ]);
         }
