@@ -13,6 +13,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Filament\Resources\CampaignResource\Pages;
 use Modules\Mailing\Filament\Resources\CampaignResource\RelationManagers\MessagesRelationManager;
@@ -219,13 +220,30 @@ class CampaignResource extends Resource
 
                 Section::make(__('mailing::resource.sections.snapshot'))
                     ->description(__('mailing::resource.sections.snapshot_desc'))
-                    ->collapsed()
                     ->components([
                         TextEntry::make('subject_snapshot')
-                            ->label(__('mailing::resource.fields.subject')),
-                        TextEntry::make('body_snapshot')
-                            ->label(__('mailing::resource.fields.body'))
-                            ->html(),
+                            ->label(__('mailing::resource.fields.subject'))
+                            ->placeholder('—')
+                            ->columnSpanFull(),
+
+                        TextEntry::make('body_snapshot_preview')
+                            ->label(__('mailing::resource.fields.body_preview'))
+                            ->getStateUsing(fn (Campaign $record): string =>
+                                Str::limit(strip_tags($record->body_snapshot ?? ''), 350)
+                            )
+                            ->placeholder(__('mailing::resource.fields.body_empty'))
+                            ->columnSpanFull(),
+
+                        Section::make(__('mailing::resource.sections.full_content'))
+                            ->collapsible()
+                            ->collapsed()
+                            ->visible(fn (Campaign $record): bool => filled($record->body_snapshot))
+                            ->components([
+                                TextEntry::make('body_snapshot')
+                                    ->label('')
+                                    ->html()
+                                    ->columnSpanFull(),
+                            ]),
                     ]),
             ]);
     }

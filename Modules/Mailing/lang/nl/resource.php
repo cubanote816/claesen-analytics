@@ -7,6 +7,9 @@ return [
 
     'sections' => [
         'engagement'      => 'Betrokkenheid',
+        'snapshot'        => 'Inhoudsmomentopname',
+        'snapshot_desc'   => 'Onderwerp en berichttekst zoals gebruikt in deze campagne.',
+        'full_content'    => 'Volledige Inhoud',
         'engagement_note' => 'Opentracking is indicatief. Apple Mail Privacy Protection en beveiligingsproxy\'s kunnen opens opblazen of verbergen. Klikken zijn het primaire engagementsignaal.',
         'no_events'       => 'Geen betrokkenheidsgebeurtenissen geregistreerd voor dit bericht.',
         'template_details' => 'Sjabloon Details',
@@ -21,6 +24,8 @@ return [
         'name'             => 'Naam van Sjabloon',
         'subject'          => 'Onderwerp (E-mail Subject)',
         'body'             => 'E-mail Bericht',
+        'body_preview'     => 'Berichtvoorvertoning',
+        'body_empty'       => 'Geen berichtinhoud opgeslagen voor deze campagne.',
         'category'         => 'Categorie',
         'variables'        => 'Variabelen',
         'variable_key'     => 'Sleutel',
