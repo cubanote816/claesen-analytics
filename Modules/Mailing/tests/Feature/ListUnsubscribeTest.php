@@ -15,7 +15,6 @@ class ListUnsubscribeTest extends TestCase
     private function makeMailable(?string $trackingToken = null): ProspectCampaignMail
     {
         $prospect = Mockery::mock(Prospect::class);
-        $prospect->id = 42;
         $prospect->shouldReceive('getUnsubscribeToken')->andReturn('test-token-abc123');
         $prospect->shouldReceive('getAttribute')->with('id')->andReturn(42);
 
@@ -34,7 +33,7 @@ class ListUnsubscribeTest extends TestCase
 
         $textHeaders = $headers->text ?? [];
         $this->assertArrayHasKey('List-Unsubscribe', $textHeaders);
-        $this->assertStringContainsString('https://', $textHeaders['List-Unsubscribe']);
+        $this->assertStringContainsString('/api/v1/mailing/unsubscribe/', $textHeaders['List-Unsubscribe']);
         $this->assertStringContainsString('mailto:', $textHeaders['List-Unsubscribe']);
     }
 
@@ -84,6 +83,24 @@ class ListUnsubscribeTest extends TestCase
 
         $this->assertArrayHasKey('List-Unsubscribe', $headers->text);
         $this->assertArrayHasKey('List-Unsubscribe-Post', $headers->text);
+    }
+
+    public function test_list_unsubscribe_one_click_url_points_to_correct_api_route(): void
+    {
+        // Verifies MAI-BUG-004 fix: route was 'mailing.unsubscribe.oneclick' (undefined).
+        // The RouteServiceProvider wraps API routes with ->name('api.'), so the registered
+        // name is 'api.mailing.unsubscribe.oneclick'. The URL must resolve correctly.
+        $headers     = $this->makeMailable()->headers();
+        $textHeaders = $headers->text ?? [];
+
+        $this->assertArrayHasKey('List-Unsubscribe', $textHeaders);
+        $this->assertStringContainsString(
+            '/api/v1/mailing/unsubscribe/',
+            $textHeaders['List-Unsubscribe'],
+        );
+        // Prospect ID and token must appear in the URL
+        $this->assertStringContainsString('42', $textHeaders['List-Unsubscribe']);
+        $this->assertStringContainsString('test-token-abc123', $textHeaders['List-Unsubscribe']);
     }
 
     // -------------------------------------------------------------------------

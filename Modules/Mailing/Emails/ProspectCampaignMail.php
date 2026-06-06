@@ -28,7 +28,7 @@ class ProspectCampaignMail extends Mailable
      */
     public function headers(): Headers
     {
-        $oneClickUrl = route('mailing.unsubscribe.oneclick', [
+        $oneClickUrl = route('api.mailing.unsubscribe.oneclick', [
             'prospect' => $this->prospect->id,
             'token'    => $this->prospect->getUnsubscribeToken(),
         ]);
