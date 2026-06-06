@@ -28,8 +28,12 @@ class CampaignMetricsWidget extends BaseWidget
             ->where('status', 'sent')
             ->count();
 
-        // Unique-message counts per event type
-        $eventCounts = MessageEvent::whereIn('message_id', $messageIds)
+        // Unique-message counts per event type.
+        // withoutGlobalScope('chronological') drops the ORDER BY occurred_at that the
+        // MessageEvent model injects globally — MySQL ONLY_FULL_GROUP_BY rejects it
+        // when occurred_at is not in the GROUP BY clause.
+        $eventCounts = MessageEvent::withoutGlobalScope('chronological')
+            ->whereIn('message_id', $messageIds)
             ->selectRaw('event_type, COUNT(DISTINCT message_id) as cnt')
             ->groupBy('event_type')
             ->pluck('cnt', 'event_type');
