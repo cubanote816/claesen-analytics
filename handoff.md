@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-06 (PROS-BUG-001 / CLA-133 — bug mailing selection FAB cerrado)
+> Última actualización: 2026-06-06 (MAI-BUG-001 — Approve button visible on terminal campaigns for super_admin)
 
 ---
 
@@ -152,6 +152,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-06 | MAI-BUG-001 | Approve button visible on terminal campaigns for super_admin — `c837782` |
 | 2026-06-06 | PROS-BUG-001 / CLA-133 | Bug FAB mailing cerrado — 3 causas raíz: `$selectedTableRecords` no limpiado en PHP al cambiar tab; FAB saltaba Alpine `mountAction()` (PHP siempre recibía `[]`); `livewire:update` no existe en Livewire 3 — commits `85a9100` `69246d6` `e5c22d9` |
 | 2026-06-05 | verificación | API pública `/v1/website/projects/{slug}` confirma `work_story/challenge/solution/result/detail_gallery` operativos |
 | 2026-06-05 | WEB-012→016 | Merge `feature/website-work-details` → `main` — Work Details / In Action — `1169646` |
