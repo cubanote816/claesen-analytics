@@ -151,7 +151,10 @@ class CampaignResource extends Resource
                     ->label(__('mailing::resource.actions.cancel'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn (Campaign $record): bool => auth()->user()?->can('cancel', $record) ?? false)
+                    ->visible(fn (Campaign $record): bool =>
+                        $record->canTransitionTo(CampaignStatus::CANCELLED)
+                        && (auth()->user()?->can('cancel', $record) ?? false)
+                    )
                     ->requiresConfirmation()
                     ->action(function (Campaign $record): void {
                         $record->transitionTo(CampaignStatus::CANCELLED);
