@@ -163,5 +163,6 @@
     document.addEventListener('livewire:load', sync);
 
     sync();
+    setInterval(function () { if (isProspectsPage()) sync(); }, 200);
 }());
 </script>
