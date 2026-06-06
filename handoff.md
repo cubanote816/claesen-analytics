@@ -1,15 +1,15 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-05 (verificación backend Work Details — API pública operativa)
+> Última actualización: 2026-06-06 (PROS-BUG-001 / CLA-133 — bug mailing selection FAB cerrado)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** ninguno — `main` al día con todos los sprints Website
+- **Sprint activo:** ninguno — `main` al día con todos los sprints
 - **Rama actual:** `main`
-- **Último ticket cerrado:** WEB-016 / CLA-137 — Feature tests Work Details — merge `1169646` + fix `2d6c882`
+- **Último ticket cerrado:** PROS-BUG-001 / CLA-133 — Prospect mailing selection state mismatch (3 commits: `85a9100`, `69246d6`, `e5c22d9`)
 - **Próximo ticket:** A definir — candidatos: deploy producción Website, Mailing Fase 3 (datos reales), Performance
 
 ### Estado de ramas feature
@@ -117,7 +117,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | **Safety** | ✅ Sprint completado (SAF-001 a SAF-016) | `Safety_Inspections` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
 | **Intelligence** | 🚧 ~90% | `main` | Ver `CLAUDE.md` |
-| **Prospects** | 🚧 ~75% | `main` | Ver `CLAUDE.md` |
+| **Prospects** | 🚧 ~78% (PROS-BUG-001 cerrado) | `main` | Ver `CLAUDE.md` |
 | **Cafca** | ✅ ~90% | `main` | Ver `CLAUDE.md` |
 | **Core** | ✅ ~95% | `main` | Ver `CLAUDE.md` |
 
@@ -152,6 +152,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-06 | PROS-BUG-001 / CLA-133 | Bug FAB mailing cerrado — 3 causas raíz: `$selectedTableRecords` no limpiado en PHP al cambiar tab; FAB saltaba Alpine `mountAction()` (PHP siempre recibía `[]`); `livewire:update` no existe en Livewire 3 — commits `85a9100` `69246d6` `e5c22d9` |
 | 2026-06-05 | verificación | API pública `/v1/website/projects/{slug}` confirma `work_story/challenge/solution/result/detail_gallery` operativos |
 | 2026-06-05 | WEB-012→016 | Merge `feature/website-work-details` → `main` — Work Details / In Action — `1169646` |
 | 2026-06-05 | Fix | Comentario erróneo locale `de` corregido — `2d6c882` |
