@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-06 (MAI-TEST-001 / CLA-144 — fix 68 failing Mailing tests)
+> Última actualización: 2026-06-07 (PROS-BUG-002 / CLA-147 — fix mailing FAB sync + fixed positioning)
 
 ---
 
@@ -9,7 +9,7 @@
 
 - **Sprint activo:** ninguno — `main` al día con todos los sprints
 - **Rama actual:** `main`
-- **Último ticket cerrado:** MAI-TEST-001 / CLA-144 — fix 68 failing Mailing tests (factory infra + production bugs)
+- **Último ticket cerrado:** PROS-BUG-002 / CLA-147 — fix mailing FAB sync + fixed positioning
 - **Próximo ticket:** A definir — candidatos: deploy producción Website, Mailing Fase 3 (datos reales), Performance
 
 ### Estado de ramas feature
@@ -117,9 +117,23 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | **Safety** | ✅ Sprint completado (SAF-001 a SAF-016) | `Safety_Inspections` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
 | **Intelligence** | 🚧 ~90% | `main` | Ver `CLAUDE.md` |
-| **Prospects** | 🚧 ~78% (PROS-BUG-001 cerrado) | `main` | Ver `CLAUDE.md` |
+| **Prospects** | 🚧 ~80% (PROS-BUG-001+002 cerrados, FAB mailing operativo) | `main` | Ver `CLAUDE.md` |
 | **Cafca** | ✅ ~90% | `main` | Ver `CLAUDE.md` |
 | **Core** | ✅ ~95% | `main` | Ver `CLAUDE.md` |
+
+---
+
+## Cambios recientes — UX / Bugs (2026-06-07)
+
+| Ticket | Linear | Título | Commits | Estado |
+|--------|--------|--------|---------|--------|
+| MAI-UX-002 | CLA-143 | Improve campaign content snapshot preview | `fac901f` | ✅ Done |
+| MAI-TEST-001 | CLA-144 | Fix 68 failing Mailing feature tests + 2 production bugs | `2bdd181` | ✅ Done |
+| MAI-UX-003 | CLA-145 | Campaign view: accordion → modal "View full content" | pendiente GO visual | 🚧 Uncommitted |
+| PROS-UX-001 | CLA-146 | Prospects: contextual mailing FAB para selección | `285a8f3`, `c5c65b9` | ✅ Done |
+| PROS-BUG-002 | CLA-147 | Fix FAB sync + posición fixed (scope, page-select, interval) | `3d8a7b9`→`ca581e1` | ✅ Done |
+
+> **MAI-UX-003 pendiente**: cambios en `CampaignResource.php` + lang files sin commit. Requiere verificación visual del modal antes de cerrar CLA-145.
 
 ---
 
