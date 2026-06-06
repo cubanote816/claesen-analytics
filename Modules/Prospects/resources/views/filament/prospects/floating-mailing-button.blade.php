@@ -90,24 +90,38 @@
         component.call('mountAction', 'execute_campaign', {}, { table: true, bulk: true });
     };
 
-    // Badge update on direct checkbox interaction (no Livewire round-trip needed).
-    document.addEventListener('change', function (e) {
-        if (e.target && e.target.classList.contains('fi-ta-record-checkbox')) sync();
-    });
+    // Badge update on direct checkbox interaction.
+    // Uses click in CAPTURING phase (runs before Alpine's own handler) so Alpine's
+    // stopPropagation() never blocks us. syncAfterSettle() defers to a macro-task
+    // so Alpine's reactive x-bind:checked effects have already run before we count.
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.classList.contains('fi-ta-record-checkbox')) syncAfterSettle();
+    }, true); // true = capturing phase
 
-    // livewire:update does not exist in Livewire 3 (it was a Livewire 2 event).
     // Livewire.hook('commit') fires once per network round-trip. The succeed()
     // callback fires after DOM is morphed and effects are queued; syncAfterSettle()
     // defers to a macro-task so Alpine's reactive effects have already run.
     // Guard prevents duplicate hook registration if the view re-renders.
-    window.addEventListener('livewire:initialized', function () {
+    //
+    // With Filament SPA (->spa()), livewire:initialized fires BEFORE the BODY_END
+    // script loads, so the event listener below would never fire. We therefore
+    // register the hook immediately when Livewire is already on the window, and
+    // fall back to the event only for the rare hard-refresh case where Livewire
+    // hasn't bootstrapped yet.
+    function registerLivewireHook() {
         if (window.__prospectsFabHookRegistered) return;
         window.__prospectsFabHookRegistered = true;
 
         Livewire.hook('commit', function (hookData) {
             hookData.succeed(syncAfterSettle);
         });
-    });
+    }
+
+    if (window.Livewire) {
+        registerLivewireHook();
+    } else {
+        window.addEventListener('livewire:initialized', registerLivewireHook);
+    }
 
     document.addEventListener('livewire:navigated', function () {
         window.__prospectsFabHookRegistered = false; // reset on SPA navigation
