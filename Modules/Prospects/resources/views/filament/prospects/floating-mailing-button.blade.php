@@ -22,8 +22,11 @@
     display: inline-flex;
 }
 @media (max-width: 640px) {
-    #prospect-fab {
-        display: none !important;
+    #prospect-fab.is-visible {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        justify-content: center;
     }
 }
 </style>
