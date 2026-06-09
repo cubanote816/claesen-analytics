@@ -18,7 +18,7 @@ return new class extends Migration
         DB::statement("
             UPDATE website_projects
             SET location_json = CASE
-                WHEN JSON_VALID(location) THEN CAST(location AS JSON)
+                WHEN JSON_VALID(location) THEN location
                 ELSE JSON_OBJECT('nl', location)
             END
             WHERE location IS NOT NULL AND location != ''
@@ -27,7 +27,7 @@ return new class extends Migration
         DB::statement("
             UPDATE website_projects
             SET client_json = CASE
-                WHEN JSON_VALID(client) THEN CAST(client AS JSON)
+                WHEN JSON_VALID(client) THEN client
                 ELSE JSON_OBJECT('nl', client)
             END
             WHERE client IS NOT NULL AND client != ''
