@@ -1,0 +1,220 @@
+name: Build and deploy Laravel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PHP_VERSION: "8.3"
+  NODE_VERSION: "22"
+
+jobs:
+  build:
+    name: Build production artifact
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, ctype, curl, dom, exif, fileinfo, gd, intl, mbstring, openssl, pdo_mysql, tokenizer, xml, zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-dev --prefer-dist --no-progress --no-interaction --optimize-autoloader --no-scripts
+
+      - name: Prepare Laravel for build
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+          php artisan package:discover --ansi
+          php artisan filament:upgrade --no-interaction
+          php artisan optimize:clear
+          rm -f .env
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Package release
+        run: |
+          mkdir -p release
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='node_modules/' \
+            --exclude='tests/' \
+            --exclude='tmp/' \
+            --exclude='scratch/' \
+            --exclude='storage/app/*' \
+            --exclude='storage/framework/cache/*' \
+            --exclude='storage/framework/sessions/*' \
+            --exclude='storage/framework/testing/*' \
+            --exclude='storage/framework/views/*' \
+            --exclude='storage/logs/*' \
+            --exclude='*.sql' \
+            ./ release/
+          tar -czf release.tar.gz -C release .
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-release-${{ github.sha }}
+          path: release.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy to production
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.ref == 'refs/heads/main' && vars.ENABLE_PRODUCTION_DEPLOY == 'true'
+
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: production-release-${{ github.sha }}
+
+      - name: Configure SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?Missing DEPLOY_HOST secret}"
+          : "${DEPLOY_USER:?Missing DEPLOY_USER secret}"
+          : "${DEPLOY_PATH:?Missing DEPLOY_PATH secret}"
+          : "${DEPLOY_SSH_KEY:?Missing DEPLOY_SSH_KEY secret}"
+          : "${DEPLOY_KNOWN_HOSTS:?Missing DEPLOY_KNOWN_HOSTS secret}"
+
+          DEPLOY_PORT="${DEPLOY_PORT:-22}"
+          echo "DEPLOY_PORT=$DEPLOY_PORT" >> "$GITHUB_ENV"
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+
+      - name: Create remote release directory
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          REMOTE_DEPLOY_PATH=$(printf '%q' "$DEPLOY_PATH")
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH=$REMOTE_DEPLOY_PATH bash -s" <<'REMOTE'
+          set -euo pipefail
+          DEPLOY_PATH="${DEPLOY_PATH%/}"
+          mkdir -p "$DEPLOY_PATH/releases" "$DEPLOY_PATH/shared"
+          REMOTE
+
+      - name: Upload release package
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          rsync -az --progress \
+            -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT" \
+            release.tar.gz \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/releases/${GITHUB_SHA}.tar.gz"
+
+      - name: Activate release
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_MAINTENANCE_SECRET: ${{ secrets.DEPLOY_MAINTENANCE_SECRET }}
+        run: |
+          set -euo pipefail
+          REMOTE_DEPLOY_PATH=$(printf '%q' "$DEPLOY_PATH")
+          REMOTE_RELEASE=$(printf '%q' "$GITHUB_SHA")
+          REMOTE_MAINTENANCE_SECRET=$(printf '%q' "${DEPLOY_MAINTENANCE_SECRET:-admin-update}")
+
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH=$REMOTE_DEPLOY_PATH RELEASE=$REMOTE_RELEASE MAINTENANCE_SECRET=$REMOTE_MAINTENANCE_SECRET bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          DEPLOY_PATH="${DEPLOY_PATH%/}"
+          RELEASE_PATH="$DEPLOY_PATH/releases/$RELEASE"
+          SHARED_PATH="$DEPLOY_PATH/shared"
+          CURRENT_PATH="$DEPLOY_PATH/current"
+          ARCHIVE_PATH="$DEPLOY_PATH/releases/$RELEASE.tar.gz"
+
+          if [ ! -f "$SHARED_PATH/.env" ]; then
+            echo "Missing $SHARED_PATH/.env. Create it once on the server before the first deploy."
+            exit 1
+          fi
+
+          mkdir -p "$RELEASE_PATH" \
+                   "$SHARED_PATH/storage/app/public" \
+                   "$SHARED_PATH/storage/framework/cache" \
+                   "$SHARED_PATH/storage/framework/sessions" \
+                   "$SHARED_PATH/storage/framework/views" \
+                   "$SHARED_PATH/storage/logs"
+
+          tar -xzf "$ARCHIVE_PATH" -C "$RELEASE_PATH"
+          rm -f "$ARCHIVE_PATH"
+
+          rm -rf "$RELEASE_PATH/storage"
+          ln -sfn "$SHARED_PATH/storage" "$RELEASE_PATH/storage"
+          ln -sfn "$SHARED_PATH/.env" "$RELEASE_PATH/.env"
+          mkdir -p "$RELEASE_PATH/bootstrap/cache"
+          chmod -R ug+rwX "$SHARED_PATH/storage" "$RELEASE_PATH/bootstrap/cache" || true
+
+          if [ -f "$CURRENT_PATH/artisan" ]; then
+            php "$CURRENT_PATH/artisan" down --refresh=15 --secret="$MAINTENANCE_SECRET" || true
+          fi
+
+          cd "$RELEASE_PATH"
+          php artisan migrate --force
+          php artisan optimize:clear
+          php artisan filament:upgrade --no-interaction || true
+          php artisan storage:link || true
+          php artisan config:cache
+          php artisan view:cache
+          php artisan event:cache
+
+          ln -sfn "$RELEASE_PATH" "$DEPLOY_PATH/current.tmp"
+          mv -Tf "$DEPLOY_PATH/current.tmp" "$CURRENT_PATH"
+
+          php artisan queue:restart || true
+          php artisan up || true
+
+          cd "$DEPLOY_PATH/releases"
+          ls -1dt */ 2>/dev/null | tail -n +6 | xargs -r rm -rf
+          REMOTE
