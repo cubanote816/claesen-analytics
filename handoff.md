@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-09 (WEB-BUG-001 / CLA-149 — Fix syntax error in JSON migration on MariaDB)
+> Última actualización: 2026-06-09 (WEB-BUG-002 / CLA-150 — Resilient website migration)
 
 ---
 
@@ -9,7 +9,7 @@
 
 - **Sprint activo:** ninguno — `main` al día con todos los sprints
 - **Rama actual:** `main`
-- **Último ticket cerrado:** WEB-BUG-001 / CLA-149 — Fix syntax error in JSON migration on MariaDB
+- **Último ticket cerrado:** WEB-BUG-002 / CLA-150 — Resilient website migration to handle duplicate/partial columns
 - **Próximo ticket:** A definir — candidatos: deploy producción Website, Mailing Fase 3 (datos reales), Performance
 
 ### Estado de ramas feature
@@ -190,6 +190,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-09 | WEB-BUG-002 / CLA-150 | Done — Make website projects JSON migration idempotent by wrapping table and column alter statements in schema checks. Verified with tests passing. |
 | 2026-06-09 | WEB-BUG-001 / CLA-149 | Done — Remove CAST(AS JSON) from website_projects migration to avoid syntax errors on MariaDB. Verified with tests passing. |
 | 2026-06-06 | MAI-TEST-001 / CLA-144 | Done — Fix 68 failing Mailing tests: EmailTemplateFactory (new), ProspectFactory (new + afterCreating), CampaignMessageFactory fixes, EmailTemplate/MessageEvent/Prospect model fixes, CheckDeliverabilityAlertsCommand production bugs (`[$alert,$created]`→`wasRecentlyCreated`, resilient role query), SelectAbWinnerCommand GROUP BY, DeliverabilityAlertTest/SchemaFoundationTest fixes — `2bdd181` |
 | 2026-06-06 | MAI-UX-002 / CLA-143 | Done — Campaign content snapshot preview: subject + plain-text preview visible sin accordion; Full Content expandible — `fac901f` |
