@@ -46,18 +46,16 @@ class MessagesRelationManager extends RelationManager
                     ->label(__('prospects::resource.fields.status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'sent'          => 'success',
-                        'failed'        => 'danger',
-                        'skipped'       => 'warning',
-                        'unsubscribed'  => 'warning',
-                        default         => 'gray',
+                        'sent'    => 'success',
+                        'failed'  => 'danger',
+                        'skipped' => 'warning',
+                        default   => 'gray',
                     })
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'sent'          => __('prospects::resource.options.status.sent'),
-                        'failed'        => __('prospects::resource.options.status.failed'),
-                        'skipped'       => __('prospects::resource.options.status.skipped'),
-                        'unsubscribed'  => __('prospects::resource.options.status.unsubscribed'),
-                        default         => $state,
+                        'sent'    => __('prospects::resource.options.status.sent'),
+                        'failed'  => __('prospects::resource.options.status.failed'),
+                        'skipped' => __('prospects::resource.options.status.skipped'),
+                        default   => $state,
                     }),
 
                 TextColumn::make('sent_at')
@@ -113,18 +111,10 @@ class MessagesRelationManager extends RelationManager
                                         ->label(__('prospects::resource.fields.status'))
                                         ->badge()
                                         ->color(fn (string $state): string => match ($state) {
-                                            'sent'          => 'success',
-                                            'failed'        => 'danger',
-                                            'skipped'       => 'warning',
-                                            'unsubscribed'  => 'warning',
-                                            default         => 'gray',
-                                        })
-                                        ->formatStateUsing(fn ($state) => match ($state) {
-                                            'sent'          => __('prospects::resource.options.status.sent'),
-                                            'failed'        => __('prospects::resource.options.status.failed'),
-                                            'skipped'       => __('prospects::resource.options.status.skipped'),
-                                            'unsubscribed'  => __('prospects::resource.options.status.unsubscribed'),
-                                            default         => $state,
+                                            'sent'    => 'success',
+                                            'failed'  => 'danger',
+                                            'skipped' => 'warning',
+                                            default   => 'gray',
                                         }),
                                     TextEntry::make('sent_at')
                                         ->label(__('prospects::resource.fields.sent_at'))
