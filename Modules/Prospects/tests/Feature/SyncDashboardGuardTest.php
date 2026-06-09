@@ -75,6 +75,42 @@ class SyncDashboardGuardTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // loadData — exception feed
+    // -------------------------------------------------------------------------
+
+    public function test_sync_dashboard_lists_only_recent_failed_federation_syncs(): void
+    {
+        $user = $this->superAdmin();
+
+        $recentFailure = $this->syncHistory([
+            'command' => 'prospects:sync-lbfa-clubs',
+            'status' => 'failed',
+            'started_at' => now()->subDays(2),
+        ]);
+
+        $this->syncHistory([
+            'command' => 'prospects:sync-aft-clubs',
+            'status' => 'completed',
+            'started_at' => now()->subDay(),
+        ]);
+
+        $this->syncHistory([
+            'command' => 'prospects:sync-hockey-clubs',
+            'status' => 'failed',
+            'started_at' => now()->subDays(8),
+        ]);
+
+        $failedSyncs = Livewire::actingAs($user)
+            ->test(SyncDashboardPage::class)
+            ->get('failedSyncs');
+
+        $this->assertCount(1, $failedSyncs);
+        $this->assertSame($recentFailure->id, $failedSyncs[0]['id']);
+        $this->assertSame('prospects:sync-lbfa-clubs', $failedSyncs[0]['command']);
+        $this->assertSame('LBFA', $failedSyncs[0]['label']);
+    }
+
+    // -------------------------------------------------------------------------
     // syncFederation — guard: master active
     // -------------------------------------------------------------------------
 

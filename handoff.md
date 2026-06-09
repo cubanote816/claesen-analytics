@@ -132,7 +132,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | MAI-UX-003 | CLA-145 | Campaign view: accordion → modal "View full content" | — | ✅ Done |
 | PROS-UX-001 | CLA-146 | Prospects: contextual mailing FAB para selección | `285a8f3`, `c5c65b9` | ✅ Done |
 | PROS-BUG-002 | CLA-147 | Fix FAB sync + posición fixed (scope, page-select, interval) | `3d8a7b9`→`ca581e1` | ✅ Done |
-| PROS-UX-003 | CLA-148 | Sync Dashboard: Aandacht vereist exception feed | `PENDING_HASH` | ✅ Done |
+| PROS-UX-003 | CLA-148 | Sync Dashboard: Aandacht vereist exception feed | `a1c0b8a` | ✅ Done |
 | PROS-UX-002 | — | Compact mailing FAB on mobile (circular icon+badge on ≤640px) | `8a9cc51` | ✅ Done |
 
 

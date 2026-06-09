@@ -32,7 +32,7 @@ class SyncDashboardPage extends Page
 
     public array $federations = [];
     public ?array $activeMaster = null;
-    public array $recentActivity = [];
+    public array $failedSyncs = [];
 
     public static function canAccess(): bool
     {
@@ -99,10 +99,28 @@ class SyncDashboardPage extends Page
             })
             ->toArray();
 
-        // Recent activity feed — max 10 rows, minimal columns
-        $this->recentActivity = SyncHistory::latest('started_at')
-            ->take(10)
+        $federationsByCommand = collect(self::FEDERATIONS)->keyBy('command');
+
+        // Exception feed — only failed federation syncs from the last 7 days.
+        $this->failedSyncs = SyncHistory::whereIn('command', $commands)
+            ->where('status', 'failed')
+            ->where('started_at', '>=', now()->subDays(7))
+            ->latest('started_at')
+            ->take(5)
             ->get(['id', 'command', 'status', 'records_count', 'started_at'])
+            ->map(function (SyncHistory $history) use ($federationsByCommand): array {
+                $federation = $federationsByCommand->get($history->command, []);
+
+                return [
+                    'id' => $history->id,
+                    'command' => $history->command,
+                    'label' => $federation['label'] ?? str($history->command)->afterLast(':')->replace('-', ' ')->title()->toString(),
+                    'sport' => $federation['sport'] ?? null,
+                    'icon' => $federation['icon'] ?? '⚠️',
+                    'records_count' => $history->records_count,
+                    'started_at' => $history->started_at?->toDateTimeString(),
+                ];
+            })
             ->toArray();
     }
 
