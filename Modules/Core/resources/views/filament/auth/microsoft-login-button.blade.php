@@ -1,5 +1,5 @@
 {{-- Divider --}}
-<div class="relative flex items-center justify-center my-6">
+<div class="relative flex items-center justify-center my-4">
     <div class="absolute inset-0 flex items-center">
         <div class="w-full border-t border-gray-200 dark:border-white/10"></div>
     </div>
@@ -22,9 +22,3 @@
         <span class="text-sm font-medium">Aanmelden met Microsoft</span>
     </a>
 </div>
-
-@error('microsoft')
-    <div class="mt-4 p-3 rounded-lg bg-danger-500/10 text-danger-500 text-sm font-semibold border border-danger-500/20 text-center dark:bg-danger-500/20">
-        {{ $message }}
-    </div>
-@enderror

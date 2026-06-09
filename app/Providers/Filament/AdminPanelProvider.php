@@ -38,6 +38,11 @@ class AdminPanelProvider extends PanelProvider
             );
 
             FilamentView::registerRenderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
+                static fn(): string => view('core::filament.auth.microsoft-login-errors')->render(),
+            );
+
+            FilamentView::registerRenderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
