@@ -19,10 +19,12 @@ class UnsubscribeController extends Controller
         // Set locale based on prospect language
         App::setLocale($prospect->language ?? 'nl');
 
+        $completed = $prospect->unsubscribed_at !== null;
+
         return view('mailing::unsubscribe', [
             'prospect' => $prospect,
             'token' => $token,
-            'completed' => false,
+            'completed' => $completed,
         ]);
     }
 
@@ -83,9 +85,11 @@ class UnsubscribeController extends Controller
         // Set locale based on prospect language
         App::setLocale($prospect->language ?? 'nl');
 
-        $prospect->update([
-            'unsubscribed_at' => now(),
-        ]);
+        if ($prospect->unsubscribed_at === null) {
+            $prospect->update([
+                'unsubscribed_at' => now(),
+            ]);
+        }
 
         return view('mailing::unsubscribe', [
             'prospect' => $prospect,

@@ -12,6 +12,8 @@ class CampaignMetricsWidget extends BaseWidget
 {
     public ?int $campaignId = null;
 
+    protected ?string $pollingInterval = '5s';
+
     protected static bool $isLazy = true;
 
     protected int|string|array $columnSpan = 'full';

@@ -136,4 +136,43 @@ class ListUnsubscribeTest extends TestCase
             'Requires a real Prospect (SQL Server ReadOnly). Covered by integration test.'
         );
     }
+
+    public function test_unsubscribe_show_renders_confirmation_form_when_subscribed(): void
+    {
+        $region = \Modules\Prospects\Models\Region::firstOrCreate(['name' => 'West-Vlaanderen'], ['slug' => 'west-vlaanderen']);
+        $prospect = Prospect::create([
+            'name' => 'Test Club',
+            'region_id' => $region->id,
+            'unsubscribed_at' => null,
+            'federation' => 'RBFA',
+            'language' => 'nl',
+        ]);
+
+        $token = $prospect->getUnsubscribeToken();
+
+        $response = $this->get("/prospects/unsubscribe/{$prospect->id}/{$token}");
+
+        $response->assertStatus(200);
+        $response->assertSee(__('prospects::resource.unsubscribe.confirmation_button'));
+    }
+
+    public function test_unsubscribe_show_renders_success_view_when_already_unsubscribed(): void
+    {
+        $region = \Modules\Prospects\Models\Region::firstOrCreate(['name' => 'West-Vlaanderen'], ['slug' => 'west-vlaanderen']);
+        $prospect = Prospect::create([
+            'name' => 'Test Club',
+            'region_id' => $region->id,
+            'unsubscribed_at' => now(),
+            'federation' => 'RBFA',
+            'language' => 'nl',
+        ]);
+
+        $token = $prospect->getUnsubscribeToken();
+
+        $response = $this->get("/prospects/unsubscribe/{$prospect->id}/{$token}");
+
+        $response->assertStatus(200);
+        $response->assertSee(__('prospects::resource.unsubscribe.success_body'));
+        $response->assertDontSee(__('prospects::resource.unsubscribe.confirmation_button'));
+    }
 }

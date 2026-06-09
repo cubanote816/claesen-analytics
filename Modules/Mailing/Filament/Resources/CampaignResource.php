@@ -109,6 +109,7 @@ class CampaignResource extends Resource
                     )),
             ])
             ->defaultSort('created_at', 'desc')
+            ->poll('5s')
             ->recordActions([
                 ViewAction::make(),
 

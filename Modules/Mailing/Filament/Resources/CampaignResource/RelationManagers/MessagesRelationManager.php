@@ -99,6 +99,7 @@ class MessagesRelationManager extends RelationManager
                     ->placeholder('—'),
             ])
             ->defaultSort('sent_at', 'desc')
+            ->poll('5s')
             ->actions([
                 ViewAction::make()
                     ->infolist(fn (Schema $schema) => $schema->components([
