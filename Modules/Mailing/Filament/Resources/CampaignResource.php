@@ -7,12 +7,14 @@ use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions as SchemaActions;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Filament\Resources\CampaignResource\Pages;
@@ -234,16 +236,38 @@ class CampaignResource extends Resource
                             ->placeholder(__('mailing::resource.fields.body_empty'))
                             ->columnSpanFull(),
 
-                        Section::make(__('mailing::resource.sections.full_content'))
-                            ->collapsible()
-                            ->collapsed()
-                            ->visible(fn (Campaign $record): bool => filled($record->body_snapshot))
-                            ->components([
-                                TextEntry::make('body_snapshot')
-                                    ->label('')
-                                    ->html()
-                                    ->columnSpanFull(),
-                            ]),
+                        SchemaActions::make([
+                            Action::make('view_full_content')
+                                ->label(__('mailing::resource.actions.view_full_content'))
+                                ->icon('heroicon-o-eye')
+                                ->link()
+                                ->color('primary')
+                                ->modalHeading(__('mailing::resource.actions.full_content_modal_title'))
+                                ->modalWidth('3xl')
+                                ->modalSubmitAction(false)
+                                ->modalCancelActionLabel(__('mailing::resource.actions.close'))
+                                ->modalContent(fn (Campaign $record): HtmlString => new HtmlString(
+                                    '<div class="space-y-4 p-1">'
+                                    . '<div>'
+                                    .   '<p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">'
+                                    .   e(__('mailing::resource.fields.subject'))
+                                    .   '</p>'
+                                    .   '<p class="text-sm text-gray-900 dark:text-white">'
+                                    .   e($record->subject_snapshot ?? '—')
+                                    .   '</p>'
+                                    . '</div>'
+                                    . '<div>'
+                                    .   '<p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">'
+                                    .   e(__('mailing::resource.fields.body'))
+                                    .   '</p>'
+                                    .   '<div class="overflow-y-auto max-h-[55vh] rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-900 prose dark:prose-invert max-w-none text-sm">'
+                                    .   ($record->body_snapshot ?? '<em class="text-gray-400">' . e(__('mailing::resource.fields.body_empty')) . '</em>')
+                                    .   '</div>'
+                                    . '</div>'
+                                    . '</div>'
+                                )),
+                        ])
+                        ->visible(fn (Campaign $record): bool => filled($record->body_snapshot)),
                     ]),
             ]);
     }

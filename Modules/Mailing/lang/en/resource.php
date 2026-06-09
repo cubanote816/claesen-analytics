@@ -106,13 +106,16 @@ return [
     ],
 
     'actions' => [
-        'add_variable'    => 'Add variable',
-        'submit_review'   => 'Submit for Review',
-        'approve'         => 'Approve',
-        'cancel'          => 'Cancel Campaign',
-        'cancel_confirm'  => 'This action cannot be undone. The campaign will be permanently cancelled.',
-        'add_rule'        => 'Add rule',
-        'preview_audience' => 'Preview audience size',
+        'add_variable'             => 'Add variable',
+        'submit_review'            => 'Submit for Review',
+        'approve'                  => 'Approve',
+        'cancel'                   => 'Cancel Campaign',
+        'cancel_confirm'           => 'This action cannot be undone. The campaign will be permanently cancelled.',
+        'add_rule'                 => 'Add rule',
+        'preview_audience'         => 'Preview audience size',
+        'view_full_content'        => 'View full content',
+        'full_content_modal_title' => 'Full Email Content',
+        'close'                    => 'Close',
     ],
 
     'options' => [

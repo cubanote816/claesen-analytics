@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-07 (PROS-BUG-002 / CLA-147 — fix mailing FAB sync + fixed positioning)
+> Última actualización: 2026-06-09 (MAI-UX-003 / CLA-145 — accordion → modal "View full content")
 
 ---
 
@@ -9,7 +9,7 @@
 
 - **Sprint activo:** ninguno — `main` al día con todos los sprints
 - **Rama actual:** `main`
-- **Último ticket cerrado:** PROS-BUG-002 / CLA-147 — fix mailing FAB sync + fixed positioning
+- **Último ticket cerrado:** MAI-UX-003 / CLA-145 — Campaign view: accordion → modal "View full content"
 - **Próximo ticket:** A definir — candidatos: deploy producción Website, Mailing Fase 3 (datos reales), Performance
 
 ### Estado de ramas feature
@@ -129,11 +129,11 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 |--------|--------|--------|---------|--------|
 | MAI-UX-002 | CLA-143 | Improve campaign content snapshot preview | `fac901f` | ✅ Done |
 | MAI-TEST-001 | CLA-144 | Fix 68 failing Mailing feature tests + 2 production bugs | `2bdd181` | ✅ Done |
-| MAI-UX-003 | CLA-145 | Campaign view: accordion → modal "View full content" | pendiente GO visual | 🚧 Uncommitted |
+| MAI-UX-003 | CLA-145 | Campaign view: accordion → modal "View full content" | — | ✅ Done |
 | PROS-UX-001 | CLA-146 | Prospects: contextual mailing FAB para selección | `285a8f3`, `c5c65b9` | ✅ Done |
 | PROS-BUG-002 | CLA-147 | Fix FAB sync + posición fixed (scope, page-select, interval) | `3d8a7b9`→`ca581e1` | ✅ Done |
+| PROS-UX-002 | — | Compact mailing FAB on mobile (circular icon+badge on ≤640px) | `8a9cc51` | ✅ Done |
 
-> **MAI-UX-003 pendiente**: cambios en `CampaignResource.php` + lang files sin commit. Requiere verificación visual del modal antes de cerrar CLA-145.
 
 ---
 

@@ -70,9 +70,12 @@ return [
     ],
 
     'actions' => [
-        'add_variable'     => 'Variabele toevoegen',
-        'add_rule'         => 'Regel toevoegen',
-        'preview_audience' => 'Doelgroep voorvertonen',
+        'add_variable'             => 'Variabele toevoegen',
+        'add_rule'                 => 'Regel toevoegen',
+        'preview_audience'         => 'Doelgroep voorvertonen',
+        'view_full_content'        => 'Volledige inhoud bekijken',
+        'full_content_modal_title' => 'Volledige e-mailinhoud',
+        'close'                    => 'Sluiten',
     ],
 
     'notifications' => [
