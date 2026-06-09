@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-09 (CORE-BUG-003 / CLA-153 — Fix seeder and push remote)
+> Última actualización: 2026-06-09 (Mailing — Log and display 'Unsubscribed' status for unsubscribed or suppressed recipients)
 
 ---
 
@@ -9,7 +9,7 @@
 
 - **Sprint activo:** ninguno — `main` al día con todos los sprints
 - **Rama actual:** `main`
-- **Último ticket cerrado:** CORE-BUG-003 / CLA-153 — Fix ProjectInsight namespace import in ProjectInsightSeeder and push commits to origin main
+- **Último ticket cerrado:** Mailing — Log and display 'Unsubscribed' status (Uitgeschreven) for unsubscribed or suppressed recipients instead of displaying 'Skipped (No email)' in campaign recipients list.
 - **Próximo ticket:** A definir — candidatos: deploy producción Website, Mailing Fase 3 (datos reales), Performance
 
 ### Estado de ramas feature
@@ -181,9 +181,9 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
    - Firewall: puerto 9000 solo desde 192.168.60.10
 2. **Website backfill media:** ejecutar `php artisan website:regenerate-media` en producción (pendiente desde WEB-007).
 3. **Rellenar Work Details en Filament:** `work_story/challenge/solution/result` vacíos en proyectos publicados — editores o trigger Gemini manual.
-3. **Mailing Fase 3:** esperar datos reales de campañas en producción antes de iniciar MAI-031.
-4. **Performance:** continuar mejoras de insights y Watchdog según prioridad.
-5. **Prospects:** completar CRM y campañas email (~75%).
+4. **Mailing Fase 3:** esperar datos reales de campañas en producción antes de iniciar MAI-031.
+5. **Performance:** continuar mejoras de insights y Watchdog según prioridad.
+6. **Prospects:** completar CRM y campañas email (~75%).
 
 ---
 
@@ -191,6 +191,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-09 | Mailing | Done — Log and display 'Unsubscribed' status (Uitgeschreven) for unsubscribed or suppressed (unsubscribed) recipients instead of displaying 'Skipped (No email)'. Verified with tests passing in Sail. |
 | 2026-06-09 | CORE-BUG-003 / CLA-153 | Done — Fix ProjectInsight namespace import in ProjectInsightSeeder and push all local commits to remote origin main. |
 | 2026-06-09 | CORE-BUG-002 / CLA-152 | Done — Optimize login layout (reduce margins) and display the attempted Microsoft email address in the access denied error at the top of the login form using AUTH_LOGIN_FORM_BEFORE hook. |
 | 2026-06-09 | PROS-UX-003 / CLA-148 | Done — Replace Sync Dashboard recent activity feed with exception-based Aandacht vereist section, retry action, and healthy empty state. Verified with Sail Prospects tests passing. |
