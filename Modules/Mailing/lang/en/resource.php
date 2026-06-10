@@ -18,7 +18,8 @@ return [
         'body_preview'     => 'Body Preview',
         'body_empty'       => 'No body snapshot recorded for this campaign.',
         'category'         => 'Category',
-        'variables'        => 'Variables',
+        'variables'        => 'Additional variables (documentation only)',
+        'variables_helper' => 'These entries do not create new tokens — they are notes for whoever edits this template.',
         'variable_key'     => 'Key',
         'variable_label'   => 'Label',
         'variable_example' => 'Example',
@@ -85,10 +86,20 @@ return [
         'timezone'            => 'Timezone',
     ],
 
+    'system_vars' => [
+        'panel_title'        => 'System tokens — always available in every template',
+        'name_label'         => 'Prospect name',
+        'name_example'       => 'KFC Diest',
+        'regio_label'        => 'Prospect region',
+        'regio_example'      => 'Vlaams-Brabant',
+        'unsubscribe_label'  => 'Unsubscribe link (required in commercial email)',
+        'unsubscribe_example' => 'https://claesen-verlichting.be/afmelden/…',
+    ],
+
     'sections' => [
         'template_details'  => 'Template Details',
         'variables'         => 'Template Variables',
-        'variables_desc'    => 'Define the dynamic variables available in this template (e.g. {{ name }}, {{ regio }}).',
+        'variables_desc'    => 'The three tokens above are replaced automatically on every send. Use the list below to document any additional tokens you reference in the body — for your own reference only.',
         'content'           => 'Email Content',
         'content_desc'      => 'Manage the email subject and message content.',
         'campaign_details'  => 'Campaign Details',

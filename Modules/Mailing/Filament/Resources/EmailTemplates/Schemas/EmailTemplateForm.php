@@ -6,6 +6,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Modules\Mailing\Enums\TemplateCategory;
 
@@ -43,8 +44,12 @@ class EmailTemplateForm
                     ->description(__('mailing::resource.sections.variables_desc'))
                     ->collapsed()
                     ->components([
+                        View::make('mailing::filament.system-variables-reference')
+                            ->columnSpanFull(),
+
                         Repeater::make('variables')
                             ->label(__('mailing::resource.fields.variables'))
+                            ->helperText(__('mailing::resource.fields.variables_helper'))
                             ->schema([
                                 TextInput::make('key')
                                     ->label(__('mailing::resource.fields.variable_key'))
