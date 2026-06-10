@@ -4,6 +4,7 @@ namespace Modules\Mailing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Mailing\Models\CampaignMessage;
 use Modules\Prospects\Models\Prospect;
 use Illuminate\Support\Facades\App;
 
@@ -63,6 +64,7 @@ class UnsubscribeController extends Controller
         $prospect->update([
             'unsubscribed_at' => now(),
         ]);
+        $this->markMessagesUnsubscribed($prospect);
 
         \Illuminate\Support\Facades\Log::info('Unsubscribe API: Success', ['id' => $prospect->id]);
 
@@ -89,6 +91,7 @@ class UnsubscribeController extends Controller
             $prospect->update([
                 'unsubscribed_at' => now(),
             ]);
+            $this->markMessagesUnsubscribed($prospect);
         }
 
         return view('mailing::unsubscribe', [
@@ -110,6 +113,7 @@ class UnsubscribeController extends Controller
 
         if (! $prospect->unsubscribed_at) {
             $prospect->update(['unsubscribed_at' => now()]);
+            $this->markMessagesUnsubscribed($prospect);
         }
 
         return response()->json(['message' => 'Unsubscribed.'], 200);
@@ -123,5 +127,17 @@ class UnsubscribeController extends Controller
         if ($prospect->getUnsubscribeToken() !== $token) {
             abort(403, 'Invalid unsubscribe token.');
         }
+    }
+
+    /**
+     * Mark any sent campaign messages for this prospect as unsubscribed so that
+     * CampaignMetricsWidget can count them without relying on MessageEvent records
+     * (which are never written for the unsubscribe action).
+     */
+    protected function markMessagesUnsubscribed(Prospect $prospect): void
+    {
+        CampaignMessage::where('prospect_id', $prospect->id)
+            ->where('status', 'sent')
+            ->update(['status' => 'unsubscribed']);
     }
 }

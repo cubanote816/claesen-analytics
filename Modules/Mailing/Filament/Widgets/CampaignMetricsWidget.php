@@ -40,13 +40,19 @@ class CampaignMetricsWidget extends BaseWidget
             ->groupBy('event_type')
             ->pluck('cnt', 'event_type');
 
-        $delivered    = (int) ($eventCounts[MessageEventType::DELIVERED->value]    ?? 0);
-        $opened       = (int) ($eventCounts[MessageEventType::OPENED->value]       ?? 0);
-        $clicked      = (int) ($eventCounts[MessageEventType::CLICKED->value]      ?? 0);
-        $bouncedHard  = (int) ($eventCounts[MessageEventType::BOUNCED_HARD->value] ?? 0);
-        $bouncedSoft  = (int) ($eventCounts[MessageEventType::BOUNCED_SOFT->value] ?? 0);
-        $complained   = (int) ($eventCounts[MessageEventType::COMPLAINED->value]   ?? 0);
-        $unsubscribed = (int) ($eventCounts[MessageEventType::UNSUBSCRIBED->value] ?? 0);
+        $delivered   = (int) ($eventCounts[MessageEventType::DELIVERED->value]    ?? 0);
+        $opened      = (int) ($eventCounts[MessageEventType::OPENED->value]       ?? 0);
+        $clicked     = (int) ($eventCounts[MessageEventType::CLICKED->value]      ?? 0);
+        $bouncedHard = (int) ($eventCounts[MessageEventType::BOUNCED_HARD->value] ?? 0);
+        $bouncedSoft = (int) ($eventCounts[MessageEventType::BOUNCED_SOFT->value] ?? 0);
+        $complained  = (int) ($eventCounts[MessageEventType::COMPLAINED->value]   ?? 0);
+
+        // Unsubscribed is read from message status, not events — no MessageEvent is
+        // written for pre-send skips or post-send link clicks (only prospect.unsubscribed_at
+        // is updated), so counting events always yields 0.
+        $unsubscribed = CampaignMessage::where('campaign_id', $this->campaignId)
+            ->where('status', 'unsubscribed')
+            ->count();
 
         $ctr  = $sent > 0 ? round(($clicked  / $sent)   * 100, 2) : 0;
         $ctor = $opened > 0 ? round(($clicked / $opened) * 100, 2) : 0;
