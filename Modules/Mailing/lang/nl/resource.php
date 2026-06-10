@@ -6,13 +6,11 @@ return [
     'navigation_group' => 'Groei & Acquisitie',
 
     'system_vars' => [
-        'panel_title'         => 'Systeemtokens — altijd beschikbaar in elk sjabloon',
-        'name_label'          => 'Naam van het contact',
-        'name_example'        => 'KFC Diest',
-        'regio_label'         => 'Regio van het contact',
-        'regio_example'       => 'Vlaams-Brabant',
-        'unsubscribe_label'   => 'Afmeldlink (verplicht in commerciële e-mail)',
-        'unsubscribe_example' => 'https://claesen-verlichting.be/afmelden/…',
+        'panel_title'   => 'Systeemtokens — altijd beschikbaar in elk sjabloon',
+        'name_label'    => 'Naam van het contact',
+        'name_example'  => 'KFC Diest',
+        'regio_label'   => 'Regio van het contact',
+        'regio_example' => 'Vlaams-Brabant',
     ],
 
     'sections' => [
@@ -24,7 +22,7 @@ return [
         'no_events'       => 'Geen betrokkenheidsgebeurtenissen geregistreerd voor dit bericht.',
         'template_details' => 'Sjabloon Details',
         'variables'        => 'Sjabloon Variabelen',
-        'variables_desc'   => 'De drie tokens hierboven worden automatisch vervangen bij elke verzending. Gebruik de lijst hieronder om extra tokens te documenteren die je in de berichttekst gebruikt — uitsluitend ter referentie.',
+        'variables_desc'   => 'De twee tokens hierboven worden automatisch vervangen bij elke verzending. De afmeldlink wordt automatisch toegevoegd in de voettekst. Gebruik de lijst hieronder om extra tokens te documenteren — uitsluitend ter referentie.',
         'content'          => 'Inhoud',
         'content_desc'     => 'Beheer het e-mailonderwerp en de inhoud van het bericht.',
         'audience'         => 'Doelgroep',

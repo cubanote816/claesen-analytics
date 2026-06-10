@@ -87,19 +87,17 @@ return [
     ],
 
     'system_vars' => [
-        'panel_title'        => 'System tokens — always available in every template',
-        'name_label'         => 'Prospect name',
-        'name_example'       => 'KFC Diest',
-        'regio_label'        => 'Prospect region',
-        'regio_example'      => 'Vlaams-Brabant',
-        'unsubscribe_label'  => 'Unsubscribe link (required in commercial email)',
-        'unsubscribe_example' => 'https://claesen-verlichting.be/afmelden/…',
+        'panel_title'  => 'System tokens — always available in every template',
+        'name_label'   => 'Prospect name',
+        'name_example' => 'KFC Diest',
+        'regio_label'  => 'Prospect region',
+        'regio_example' => 'Vlaams-Brabant',
     ],
 
     'sections' => [
         'template_details'  => 'Template Details',
         'variables'         => 'Template Variables',
-        'variables_desc'    => 'The three tokens above are replaced automatically on every send. Use the list below to document any additional tokens you reference in the body — for your own reference only.',
+        'variables_desc'    => 'The two tokens above are replaced automatically on every send. The unsubscribe link is added automatically in the footer. Use the list below to document any additional tokens — for your own reference only.',
         'content'           => 'Email Content',
         'content_desc'      => 'Manage the email subject and message content.',
         'campaign_details'  => 'Campaign Details',
