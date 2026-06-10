@@ -40,9 +40,32 @@ class EmailTemplateForm
                     ])
                     ->columns(2),
 
+                Section::make(__('mailing::resource.sections.content'))
+                    ->description(__('mailing::resource.sections.content_desc'))
+                    ->components([
+                        \Filament\Forms\Components\RichEditor::make('body')
+                            ->label(__('mailing::resource.fields.body'))
+                            ->required()
+                            ->columnSpanFull()
+                            ->toolbarButtons([
+                                'bold',
+                                'italic',
+                                'underline',
+                                'strike',
+                                'link',
+                                'h2',
+                                'h3',
+                                'bulletList',
+                                'orderedList',
+                                'redo',
+                                'undo',
+                            ]),
+                    ]),
+
                 Section::make(__('mailing::resource.sections.variables'))
                     ->description(__('mailing::resource.sections.variables_desc'))
                     ->collapsed()
+                    ->columnSpanFull()
                     ->components([
                         View::make('mailing::filament.system-variables-reference')
                             ->columnSpanFull(),
@@ -69,28 +92,6 @@ class EmailTemplateForm
                             ->addActionLabel(__('mailing::resource.actions.add_variable'))
                             ->reorderable()
                             ->columnSpanFull(),
-                    ]),
-
-                Section::make(__('mailing::resource.sections.content'))
-                    ->description(__('mailing::resource.sections.content_desc'))
-                    ->components([
-                        \Filament\Forms\Components\RichEditor::make('body')
-                            ->label(__('mailing::resource.fields.body'))
-                            ->required()
-                            ->columnSpanFull()
-                            ->toolbarButtons([
-                                'bold',
-                                'italic',
-                                'underline',
-                                'strike',
-                                'link',
-                                'h2',
-                                'h3',
-                                'bulletList',
-                                'orderedList',
-                                'redo',
-                                'undo',
-                            ]),
                     ]),
             ]);
     }
