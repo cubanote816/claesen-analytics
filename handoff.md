@@ -1,22 +1,22 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-13 (BI — Plan Sprint BI aprobado por auditor; Sprint 0 + Sprint 1 + Sprint 2B autorizados)
+> Última actualización: 2026-06-13 (BI-000 ✅ — feature/bi-foundation creada; 2 commits BI integrados en main)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** BI — Sprint 0 aprobado para ejecutar (cherry-pick 3 commits + verificación migraciones)
-- **Rama actual:** `main` → crear `feature/bi-foundation` para Sprint 0
-- **Último ticket cerrado:** Mailing — Log and display 'Unsubscribed' status
-- **Próximo ticket:** BI-000 — Cherry-pick 3 commits rama `BI` sobre `main` (`8d563e8`, `a8eedcf`, `5796a32`)
+- **Sprint activo:** BI — Sprint 0 ✅ Done / Sprint 1 es el próximo
+- **Rama actual:** `feature/bi-foundation` (lista para PR → merge en main)
+- **Último ticket cerrado:** BI-000 — Cherry-pick commits BI sobre main (`9d2dd14`, `13fccdd`)
+- **Próximo ticket:** BI-001 — Verificar no-colisión de las 6 migraciones en entorno real
 
 ### Sprint BI — Estado (aprobado 2026-06-13)
 
 | Sprint | Estado | Aprobación |
 |--------|--------|------------|
-| Sprint 0 — Integración BI→main | ⬜ Todo | ✅ Auditor GO |
+| Sprint 0 — Integración BI→main | ✅ Done — `feature/bi-foundation` lista | ✅ Auditor GO |
 | Sprint 1 — Mirrors + bi_config | ⬜ Todo | ✅ Auditor GO |
 | Sprint 2 — Motor financiero | ⬜ Todo | ✅ (no requiere auditor gate) |
 | Sprint 2B — Monthly Billing Guardian | ⬜ Todo | ✅ GO con **Auditor Gate en BI-052/053/054** |
@@ -269,6 +269,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-13 | BI-000 | Done — `feature/bi-foundation` creada desde `main`. Cherry-pick `8d563e8`+`a8eedcf` aplicados (`9d2dd14`, `13fccdd`). Conflictos resueltos: `CLAUDE.md` (--ours), `MirrorMaterial.php` (--ours), `HANDOFF.md` legacy (rm -f + skip). 6 migraciones `2026_05_27_*` incorporadas. `CLAUDE.md` y `MirrorMaterial.php` idénticos a main. |
 | 2026-06-13 | BI-PLAN | Done — Plan Sprint BI completado y aprobado por auditor. Sprint 0+1+2B GO. Auditor Gate formalizado en BI-052/053/054 con 5-ejemplo obligatorio. Documento: `docs/bi-sprint-plan.md`. |
 | 2026-06-12 | OPS | Done — Fix GitHub Actions deploy workflow (5 bugs: actions versions @v4, PHP 8.3→8.4, .env.example `\nMAILING_DRIVER`, sqlite touch, CACHE/SESSION array, rsync self-copy). Fix deploy.sh (cd APP_DIR, artisan down \|\| true, sha256 verify, filament --no-interaction, php artisan optimize). Release `production-latest` operativa. |
 | 2026-06-09 | Mailing | Done — One-time unsubscribe links (renders success immediately if already unsubscribed) and Livewire real-time auto-polling (5s) for campaign list, recipients table, and metrics widget. Verified with passing tests. |
