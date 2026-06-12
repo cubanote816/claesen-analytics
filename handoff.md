@@ -1,31 +1,44 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-13 (BI-000 ✅ — PR #4 abierto; validación Sail pendiente antes de merge)
+> Última actualización: 2026-06-13 (BI-000 ✅ código e integración — PR #4 abierto — merge bloqueado hasta validación Sail)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** BI — PR #4 abierto, pendiente validación Sail antes de merge
+- **Sprint activo:** BI — Sprint 0 completo a nivel de código. Merge del PR #4 bloqueado hasta validación Sail.
 - **Rama actual:** `feature/bi-foundation` — PR #4 → `main`
-- **Último ticket:** BI-000 ✅ — `feature/bi-foundation` (`9d2dd14`, `13fccdd`, `e374a1f`) — PR: https://github.com/cubanote816/claesen-analytics/pull/4
-- **Bloqueante:** Docker caído — validación Sail pendiente antes de merge del PR #4
-- **Próximo ticket:** BI-001 (`feature/bi-sprint1-data`) — ampliar mirrors una vez PR #4 mergeado
+- **Último ticket:** BI-000 ✅ código e integración — PR: https://github.com/cubanote816/claesen-analytics/pull/4
+- **Bloqueante:** Docker/Sail no disponible. Completar checklist runtime antes de merge.
+- **Próximo paso:** Levantar Docker y completar validación Sail del PR #4. **No iniciar BI-001 hasta que PR #4 esté mergeado en main.**
+
+### Checklist de merge — PR #4 (pendiente)
+
+```bash
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate --pretend
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan intelligence:sync-mirror --force
+./vendor/bin/sail artisan test --testsuite=Modules --filter=Intelligence
+```
+
+Si todo pasa → merge PR #4 → crear `feature/bi-sprint1-data` desde `main` actualizado.
+**No abrir `feature/bi-sprint1-data` antes del merge.**
 
 ### Sprint BI — Estado (aprobado 2026-06-13)
 
 | Sprint | Estado | Aprobación |
 |--------|--------|------------|
-| Sprint 0 — Integración BI→main | ✅ Done — `feature/bi-foundation` lista | ✅ Auditor GO |
-| Sprint 1 — Mirrors + bi_config | ⬜ Todo | ✅ Auditor GO |
+| Sprint 0 — Integración BI→main | ✅ Código completo — merge pendiente Sail | ✅ Auditor GO |
+| Sprint 1 — Mirrors + bi_config | ⬜ Bloqueado hasta merge PR #4 | ✅ Auditor GO |
 | Sprint 2 — Motor financiero | ⬜ Todo | ✅ (no requiere auditor gate) |
 | Sprint 2B — Monthly Billing Guardian | ⬜ Todo | ✅ GO con **Auditor Gate en BI-052/053/054** |
 | Sprint 3 — UI simulador | ⬜ Todo | ✅ (no requiere auditor gate) |
 | Sprint 4 — Métricas | ⬜ Todo | ✅ (no requiere auditor gate) |
 
 **Documento maestro:** `docs/bi-sprint-plan.md`
-**Ramas:** Sprint 0→ `feature/bi-foundation` | Sprint 1 → `feature/bi-sprint1-data` | Sprint 2B → ejecutar desde `feature/bi-sprint1-data` una vez completado Sprint 1
+**Ramas:** Sprint 1 → `feature/bi-sprint1-data` desde `main` post-merge PR #4 | Sprint 2B → desde `feature/bi-sprint1-data` una vez Sprint 1 completo
 
 ### Estado de ramas feature
 
