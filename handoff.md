@@ -1,37 +1,38 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-13 (BI-000 ✅ código e integración — PR #4 abierto — merge bloqueado hasta validación Sail)
+> Última actualización: 2026-06-13 (BI-000 ✅ validación Sail completa — PR #4 listo para merge)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** BI — Sprint 0 completo a nivel de código. Merge del PR #4 bloqueado hasta validación Sail.
-- **Rama actual:** `feature/bi-foundation` — PR #4 → `main`
-- **Último ticket:** BI-000 ✅ código e integración — PR: https://github.com/cubanote816/claesen-analytics/pull/4
-- **Bloqueante:** Docker/Sail no disponible. Completar checklist runtime antes de merge.
-- **Próximo paso:** Levantar Docker y completar validación Sail del PR #4. **No iniciar BI-001 hasta que PR #4 esté mergeado en main.**
+- **Sprint activo:** BI — Sprint 0 ✅ Done. PR #4 validado. Listo para merge a `main`.
+- **Rama actual:** `feature/bi-foundation` — PR #4 listo → merge autorizado
+- **Último ticket:** BI-000 ✅ validación Sail completa — PR: https://github.com/cubanote816/claesen-analytics/pull/4
+- **Próximo paso:** Mergear PR #4 → crear `feature/bi-sprint1-data` desde `main` actualizado → iniciar BI-010.
+- **Deuda técnica detectada:** `syncProjects` tiene N+1 (query SQL Server por proyecto para obtener relation.zipcode/city). Funciona pero es lento. Añadir como BI-022 en Sprint 1.
 
-### Checklist de merge — PR #4 (pendiente)
+### Checklist de merge — PR #4 ✅ COMPLETO
 
-```bash
-./vendor/bin/sail up -d
-./vendor/bin/sail artisan migrate --pretend
-./vendor/bin/sail artisan migrate
-./vendor/bin/sail artisan intelligence:sync-mirror --force
-./vendor/bin/sail artisan test --testsuite=Modules --filter=Intelligence
-```
+| Paso | Resultado |
+|------|-----------|
+| `sail up -d` | ✅ Todos los contenedores arriba |
+| `migrate --pretend` | ✅ 6 migraciones sin errores |
+| `migrate` | ✅ 6/6 aplicadas (84ms–1s cada una) |
+| `sync-mirror --relations` | ✅ 3.259 relaciones sincronizadas |
+| `sync-mirror --estimates` | ✅ 144.051 estimate items sincronizados |
+| `test --filter=Intelligence` | ✅ No tests yet — esperado (BI-021) |
+| N+1 en `syncProjects` | ⚠️ Conocido — funciona, lento — ticket BI-022 |
 
-Si todo pasa → merge PR #4 → crear `feature/bi-sprint1-data` desde `main` actualizado.
-**No abrir `feature/bi-sprint1-data` antes del merge.**
+**PR #4 puede mergearse.**
 
 ### Sprint BI — Estado (aprobado 2026-06-13)
 
 | Sprint | Estado | Aprobación |
 |--------|--------|------------|
-| Sprint 0 — Integración BI→main | ✅ Código completo — merge pendiente Sail | ✅ Auditor GO |
-| Sprint 1 — Mirrors + bi_config | ⬜ Bloqueado hasta merge PR #4 | ✅ Auditor GO |
+| Sprint 0 — Integración BI→main | ✅ Done — validación Sail completa | ✅ Auditor GO |
+| Sprint 1 — Mirrors + bi_config | ⬜ Listo para iniciar post-merge PR #4 | ✅ Auditor GO |
 | Sprint 2 — Motor financiero | ⬜ Todo | ✅ (no requiere auditor gate) |
 | Sprint 2B — Monthly Billing Guardian | ⬜ Todo | ✅ GO con **Auditor Gate en BI-052/053/054** |
 | Sprint 3 — UI simulador | ⬜ Todo | ✅ (no requiere auditor gate) |
