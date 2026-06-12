@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 env:
-  PHP_VERSION: "8.3"
+  PHP_VERSION: "8.4"
   NODE_VERSION: "22"
 
 jobs:
