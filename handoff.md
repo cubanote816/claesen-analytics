@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-09 (Mailing — Log and display 'Unsubscribed' status for unsubscribed or suppressed recipients)
+> Última actualización: 2026-06-12 (OPS — Fix deploy workflow + deploy.sh; release production-latest operativa)
 
 ---
 
@@ -162,6 +162,61 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 
 ---
 
+## Flujo de deploy a producción
+
+### Resumen
+
+```
+git push origin main
+       ↓
+GitHub Actions — "Build Laravel release" (composer, npm build, tar.gz)
+       ↓  artefacto listo en GitHub Releases como 'production-latest'
+ssh bert@192.168.60.10
+bash /var/www/backend.claesen-verlichting.be/deploy.sh
+```
+
+El deploy al servidor es **manual** — el CI construye el artefacto pero no despliega automáticamente. Esto da control sobre cuándo entra cada cambio a producción.
+
+### Lo que hace cada parte
+
+**GitHub Actions (`.github/workflows/deploy.yml`)**
+- Instala dependencias PHP (composer --no-dev) y Node (npm ci)
+- Compila assets frontend (npm run build)
+- Empaqueta el release en `release.tar.gz` (excluye `.git`, `node_modules`, `tests`, `storage/app/*`, etc.)
+- Sube a GitHub Releases tag `production-latest` tres assets: `release.tar.gz`, `release.tar.gz.sha256`, `release.env`
+
+**deploy.sh (`/var/www/backend.claesen-verlichting.be/deploy.sh`)**
+1. `cd $APP_DIR` — garantiza que todos los comandos operen en el directorio correcto
+2. `php artisan down` — modo mantenimiento (`|| true` si ya estaba activo)
+3. `mysqldump` — backup BD antes del deploy
+4. `gh release download` — descarga `release.tar.gz` + `release.tar.gz.sha256`
+5. `sha256sum -c` — verifica integridad del tarball
+6. `rsync --delete` — aplica el release preservando `.env` y `storage/`
+7. `php artisan migrate --force`
+8. `php artisan optimize:clear` + `filament:upgrade --no-interaction` + `php artisan optimize`
+9. `php artisan queue:restart`
+10. `php artisan up` — sale de mantenimiento
+
+### Configuración CI relevante
+
+| Variable | Valor |
+|----------|-------|
+| PHP_VERSION | 8.4 (alineado con producción y composer.lock) |
+| NODE_VERSION | 22 |
+| RELEASE_TAG | `production-latest` (mutable, siempre apunta al último build) |
+| CACHE_STORE (build) | `array` (override en CI; producción usa `database`) |
+| SESSION_DRIVER (build) | `array` (override en CI; producción usa `database`) |
+
+### Notas operativas
+
+- El workflow requiere `permissions: contents: write` para crear/actualizar la GitHub Release.
+- El servidor usa `gh` CLI autenticado como `cubanote816` (`/home/bert/.config/gh/hosts.yml`).
+- El backup de BD se guarda en `storage/app/backups/db_pre_deploy_YYYY-MM-DD_HH-MM.sql`.
+- Si el deploy falla después de `artisan down`, ejecutar manualmente `php artisan up` desde `APP_DIR`.
+- Para automatizar el deploy (sin SSH manual) habría que añadir un paso SSH al workflow con la clave privada como GitHub Secret — decisión pendiente.
+
+---
+
 ## Bloqueantes actuales
 
 - **MAI-026** — Webhook handler ESP externo: bloqueado por decisión de gerencia. No tocar.
@@ -191,6 +246,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-12 | OPS | Done — Fix GitHub Actions deploy workflow (5 bugs: actions versions @v4, PHP 8.3→8.4, .env.example `\nMAILING_DRIVER`, sqlite touch, CACHE/SESSION array, rsync self-copy). Fix deploy.sh (cd APP_DIR, artisan down \|\| true, sha256 verify, filament --no-interaction, php artisan optimize). Release `production-latest` operativa. |
 | 2026-06-09 | Mailing | Done — One-time unsubscribe links (renders success immediately if already unsubscribed) and Livewire real-time auto-polling (5s) for campaign list, recipients table, and metrics widget. Verified with passing tests. |
 | 2026-06-09 | Mailing | Done — Log and display 'Unsubscribed' status (Uitgeschreven) for unsubscribed or suppressed (unsubscribed) recipients instead of displaying 'Skipped (No email)'. Verified with tests passing in Sail. |
 | 2026-06-09 | CORE-BUG-003 / CLA-153 | Done — Fix ProjectInsight namespace import in ProjectInsightSeeder and push all local commits to remote origin main. |
