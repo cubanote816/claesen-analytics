@@ -13,12 +13,17 @@ class MirrorInvoice extends Model
     protected $fillable = [
         'id',
         'project_id',
+        'relation_id',
         'total_price_vat_excl',
         'date',
+        'date_expiration',
+        'fl_paid',
     ];
 
     protected $casts = [
         'total_price_vat_excl' => 'float',
-        'date' => 'date',
+        'date'                 => 'date',
+        'date_expiration'      => 'date',
+        'fl_paid'              => 'boolean',
     ];
 }
