@@ -47,6 +47,7 @@ jobs:
         run: |
           cp .env.example .env
           touch database/database.sqlite
+          printf '\nCACHE_STORE=array\nSESSION_DRIVER=array\n' >> .env
           php artisan key:generate --force
           php artisan package:discover --ansi
           php artisan filament:upgrade --no-interaction
