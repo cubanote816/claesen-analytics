@@ -13,9 +13,9 @@ class MirrorLabor extends Model
         'id',
         'project_id',
         'employee_id',
+        'labor_id',
         'hours',
         'date',
-        'labor_descr',
     ];
 
     protected $casts = [
