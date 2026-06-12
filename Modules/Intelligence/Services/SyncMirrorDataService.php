@@ -17,6 +17,7 @@ use Modules\Performance\Models\Mirror\MirrorInvoice;
 use Modules\Performance\Models\Mirror\MirrorEstimateItem;
 use Modules\Performance\Models\Mirror\MirrorEstimateCalc;
 use Modules\Performance\Models\Mirror\MirrorProjectLink;
+use Modules\Performance\Models\Mirror\MirrorProjectResult;
 use Modules\Performance\Models\Mirror\MirrorRelation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -41,6 +42,7 @@ class SyncMirrorDataService
         $this->syncEstimateItems($fullHistory);
         $this->syncEstimateCalc();
         $this->syncProjectLinks();
+        $this->syncProjectResults();
 
         Log::info("Mirror Sync Process Completed.");
     }
@@ -433,5 +435,53 @@ class SyncMirrorDataService
             });
 
         Log::info('SyncMirrorDataService: project_links sync completed.');
+    }
+
+    public function syncProjectResults(): void
+    {
+        $now = now();
+
+        DB::connection('sqlsrv')
+            ->table('rpt_project_results')
+            ->orderBy('project_id')
+            ->chunk(500, function ($rows) use ($now) {
+                foreach ($rows as $row) {
+                    if (empty(trim($row->project_id ?? ''))) {
+                        continue;
+                    }
+
+                    MirrorProjectResult::updateOrCreate(
+                        ['project_id' => trim($row->project_id)],
+                        [
+                            'project_name'             => trim($row->project_name ?? ''),
+                            'relation_id'              => $row->project_relation_id ?? null,
+                            'relation_name'            => trim($row->project_relation_name ?? ''),
+                            'dossier'                  => trim($row->dossier ?? ''),
+                            'costprice_material'       => $row->costprice_material ?? null,
+                            'costprice_labor'          => $row->costprice_labor ?? null,
+                            'costprice_equipment'      => $row->costprice_equipment ?? null,
+                            'costprice_subcontract'    => $row->costprice_subcontract ?? null,
+                            'costprice_extra'          => $row->costprice_extra ?? null,
+                            'costprice_transport'      => $row->costprice_transport ?? null,
+                            'costprice_total'          => $row->costprice_total ?? null,
+                            'invoiced'                 => $row->invoiced ?? null,
+                            'profit'                   => $row->profit ?? null,
+                            'profit_percent'           => $row->profit_percent ?? null,
+                            'profit_percent_estimates' => $row->profit_percent_estimates ?? null,
+                            'total_estimates'          => $row->total_estimates ?? null,
+                            'total_regie'              => $row->total_regie ?? null,
+                            'hours_regie'              => $row->hours_regie ?? null,
+                            'oh'                       => $row->oH ?? null,
+                            'project_uren'             => $row->project_uren ?? null,
+                            'voorz_uren'               => $row->voorz_uren ?? null,
+                            'uren_projectleader'       => $row->uren_projectleader ?? null,
+                            'current_costs_booked'     => (bool) ($row->current_costs_booked ?? false),
+                            'synced_at'                => $now,
+                        ]
+                    );
+                }
+            });
+
+        Log::info('SyncMirrorDataService: project_results sync completed.');
     }
 }
