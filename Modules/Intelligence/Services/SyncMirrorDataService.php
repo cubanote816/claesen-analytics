@@ -15,6 +15,7 @@ use Modules\Performance\Models\Mirror\MirrorMaterial;
 use Modules\Performance\Models\Mirror\MirrorCost;
 use Modules\Performance\Models\Mirror\MirrorInvoice;
 use Modules\Performance\Models\Mirror\MirrorEstimateItem;
+use Modules\Performance\Models\Mirror\MirrorEstimateCalc;
 use Modules\Performance\Models\Mirror\MirrorRelation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -37,6 +38,7 @@ class SyncMirrorDataService
         $this->syncInvoices($fullHistory);
         $this->syncCosts($fullHistory);
         $this->syncEstimateItems($fullHistory);
+        $this->syncEstimateCalc();
 
         Log::info("Mirror Sync Process Completed.");
     }
@@ -347,5 +349,63 @@ class SyncMirrorDataService
         });
 
         Log::info('SyncMirrorDataService: estimate_items sync completed.');
+    }
+
+    public function syncEstimateCalc(): void
+    {
+        DB::connection('sqlsrv')
+            ->table('estimate_calculation')
+            ->orderBy('estimate_id')
+            ->chunk(500, function ($rows) {
+                foreach ($rows as $row) {
+                    if (empty(trim($row->estimate_id ?? ''))) {
+                        continue;
+                    }
+
+                    $extraCosts = [
+                        'transport'    => $row->extra_cost_transport ?? null,
+                        'management'   => $row->extra_cost_management ?? null,
+                        'insurance'    => $row->extra_cost_insurance ?? null,
+                        'design'       => $row->extra_cost_design ?? null,
+                        'company'      => $row->extra_cost_company ?? null,
+                        'calculation'  => $row->extra_cost_calculation ?? null,
+                        'building_site' => [
+                            $row->extra_cost_building_site1 ?? null,
+                            $row->extra_cost_building_site2 ?? null,
+                            $row->extra_cost_building_site3 ?? null,
+                            $row->extra_cost_building_site4 ?? null,
+                        ],
+                        'any' => [
+                            $row->extra_cost_any1 ?? null,
+                            $row->extra_cost_any2 ?? null,
+                            $row->extra_cost_any3 ?? null,
+                        ],
+                        'factor_total' => [
+                            ['value' => $row->factor_total_1 ?? null, 'descr' => $row->factor_total_1_descr ?? null],
+                            ['value' => $row->factor_total_2 ?? null, 'descr' => $row->factor_total_2_descr ?? null],
+                            ['value' => $row->factor_total_3 ?? null, 'descr' => $row->factor_total_3_descr ?? null],
+                        ],
+                    ];
+
+                    MirrorEstimateCalc::updateOrCreate(
+                        ['estimate_id' => trim($row->estimate_id)],
+                        [
+                            'factor_material'     => $row->factor_material ?? 0,
+                            'factor_labor'        => $row->factor_labor ?? 0,
+                            'factor_equipment'    => $row->factor_equipment ?? 0,
+                            'factor_subcontract'  => $row->factor_subcontract ?? 0,
+                            'factor_qty_labor'    => $row->factor_qty_labor ?? 0,
+                            'factor_qty_material' => $row->factor_qty_material ?? 0,
+                            'factor_unitprice'    => $row->factor_unitprice ?? 0,
+                            'labor_c_price'       => $row->labor_c_price ?? null,
+                            'additional_hours'    => $row->additional_hours ?? null,
+                            'qty_employees'       => $row->qty_employees ?? null,
+                            'extra_costs_json'    => $extraCosts,
+                        ]
+                    );
+                }
+            });
+
+        Log::info('SyncMirrorDataService: estimate_calc sync completed.');
     }
 }
