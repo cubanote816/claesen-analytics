@@ -19,6 +19,7 @@ use Modules\Performance\Models\Mirror\MirrorEstimateCalc;
 use Modules\Performance\Models\Mirror\MirrorProjectLink;
 use Modules\Performance\Models\Mirror\MirrorProjectResult;
 use Modules\Performance\Models\Mirror\MirrorRelation;
+use Modules\Performance\Models\Mirror\MirrorWorkdoc;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -43,6 +44,7 @@ class SyncMirrorDataService
         $this->syncEstimateCalc();
         $this->syncProjectLinks();
         $this->syncProjectResults();
+        $this->syncWorkdocs();
 
         Log::info("Mirror Sync Process Completed.");
     }
@@ -483,5 +485,38 @@ class SyncMirrorDataService
             });
 
         Log::info('SyncMirrorDataService: project_results sync completed.');
+    }
+
+    public function syncWorkdocs(): void
+    {
+        $now = now();
+
+        DB::connection('sqlsrv')
+            ->table('workdoc')
+            ->whereNotNull('project_id')
+            ->whereRaw("LEN(TRIM(project_id)) > 0")
+            ->orderBy('id')
+            ->chunk(500, function ($rows) use ($now) {
+                foreach ($rows as $row) {
+                    MirrorWorkdoc::updateOrCreate(
+                        ['id' => trim($row->id)],
+                        [
+                            'project_id'  => trim($row->project_id),
+                            'relation_id' => $row->relation_id ?? null,
+                            'name'        => trim($row->name ?? ''),
+                            'date'        => $row->date ? date('Y-m-d', strtotime($row->date)) : null,
+                            'status'      => $row->status ?? null,
+                            'fl_invoice'  => (bool) $row->fl_invoice,
+                            'fl_finished' => (bool) $row->fl_finished,
+                            'fl_paid'     => (bool) $row->fl_paid,
+                            'total_price' => $row->total_price ?? 0,
+                            'total_paid'  => $row->total_paid ?? 0,
+                            'synced_at'   => $now,
+                        ]
+                    );
+                }
+            });
+
+        Log::info('SyncMirrorDataService: workdocs sync completed.');
     }
 }
