@@ -16,6 +16,7 @@ use Modules\Performance\Models\Mirror\MirrorCost;
 use Modules\Performance\Models\Mirror\MirrorInvoice;
 use Modules\Performance\Models\Mirror\MirrorEstimateItem;
 use Modules\Performance\Models\Mirror\MirrorEstimateCalc;
+use Modules\Performance\Models\Mirror\MirrorProjectLink;
 use Modules\Performance\Models\Mirror\MirrorRelation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -39,6 +40,7 @@ class SyncMirrorDataService
         $this->syncCosts($fullHistory);
         $this->syncEstimateItems($fullHistory);
         $this->syncEstimateCalc();
+        $this->syncProjectLinks();
 
         Log::info("Mirror Sync Process Completed.");
     }
@@ -407,5 +409,29 @@ class SyncMirrorDataService
             });
 
         Log::info('SyncMirrorDataService: estimate_calc sync completed.');
+    }
+
+    private function syncProjectLinks(): void
+    {
+        DB::connection('sqlsrv')
+            ->table('project_estimates')
+            ->orderBy('project_id')
+            ->chunk(500, function ($rows) {
+                foreach ($rows as $row) {
+                    if (empty(trim($row->project_id ?? '')) || empty(trim($row->estimate_id ?? ''))) {
+                        continue;
+                    }
+
+                    MirrorProjectLink::updateOrCreate(
+                        [
+                            'project_id'  => trim($row->project_id),
+                            'estimate_id' => trim($row->estimate_id),
+                        ],
+                        ['link_type' => $row->type]
+                    );
+                }
+            });
+
+        Log::info('SyncMirrorDataService: project_links sync completed.');
     }
 }
