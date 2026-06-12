@@ -66,6 +66,7 @@ jobs:
           rsync -a \
             --exclude='.git/' \
             --exclude='.github/' \
+            --exclude='release/' \
             --exclude='.env' \
             --exclude='.env.*' \
             --exclude='node_modules/' \
