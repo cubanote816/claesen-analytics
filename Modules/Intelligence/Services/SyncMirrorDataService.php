@@ -229,13 +229,14 @@ class SyncMirrorDataService
                     ['id' => $cost->id],
                     [
                         'project_id' => trim($cost->project_id),
-                        'art_id' => $cost->art_id ?? null,
-                        'descr' => trim($cost->descr ?? $cost->name ?? ''),
-                        'type' => $cost->price_type ?? null,
+                        'art_id'     => $cost->art_id ?? null,
+                        'descr'      => trim($cost->descr ?? $cost->name ?? ''),
+                        'type'       => $cost->price_type ?? null,
                         'cost_price' => $cost->costprice,
-                        'quantity' => $cost->quantity,
+                        'quantity'   => $cost->quantity,
                         'extra_type' => property_exists($cost, 'extra_type') ? trim($cost->extra_type) : null,
-                        'date' => $cost->date,
+                        'date'       => $cost->date,
+                        'invoiced'   => (bool) $cost->already_invoiced,
                     ]
                 );
             }

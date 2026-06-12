@@ -19,11 +19,13 @@ class MirrorCost extends Model
         'quantity',
         'extra_type',
         'date',
+        'invoiced',
     ];
 
     protected $casts = [
         'cost_price' => 'float',
-        'quantity' => 'float',
-        'date' => 'date',
+        'quantity'   => 'float',
+        'date'       => 'date',
+        'invoiced'   => 'boolean',
     ];
 }
