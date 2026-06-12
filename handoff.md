@@ -1,16 +1,30 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-12 (OPS — Fix deploy workflow + deploy.sh; release production-latest operativa)
+> Última actualización: 2026-06-13 (BI — Plan Sprint BI aprobado por auditor; Sprint 0 + Sprint 1 + Sprint 2B autorizados)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** ninguno — `main` al día con todos los sprints
-- **Rama actual:** `main`
-- **Último ticket cerrado:** Mailing — Log and display 'Unsubscribed' status (Uitgeschreven) for unsubscribed or suppressed recipients instead of displaying 'Skipped (No email)' in campaign recipients list.
-- **Próximo ticket:** A definir — candidatos: deploy producción Website, Mailing Fase 3 (datos reales), Performance
+- **Sprint activo:** BI — Sprint 0 aprobado para ejecutar (cherry-pick 3 commits + verificación migraciones)
+- **Rama actual:** `main` → crear `feature/bi-foundation` para Sprint 0
+- **Último ticket cerrado:** Mailing — Log and display 'Unsubscribed' status
+- **Próximo ticket:** BI-000 — Cherry-pick 3 commits rama `BI` sobre `main` (`8d563e8`, `a8eedcf`, `5796a32`)
+
+### Sprint BI — Estado (aprobado 2026-06-13)
+
+| Sprint | Estado | Aprobación |
+|--------|--------|------------|
+| Sprint 0 — Integración BI→main | ⬜ Todo | ✅ Auditor GO |
+| Sprint 1 — Mirrors + bi_config | ⬜ Todo | ✅ Auditor GO |
+| Sprint 2 — Motor financiero | ⬜ Todo | ✅ (no requiere auditor gate) |
+| Sprint 2B — Monthly Billing Guardian | ⬜ Todo | ✅ GO con **Auditor Gate en BI-052/053/054** |
+| Sprint 3 — UI simulador | ⬜ Todo | ✅ (no requiere auditor gate) |
+| Sprint 4 — Métricas | ⬜ Todo | ✅ (no requiere auditor gate) |
+
+**Documento maestro:** `docs/bi-sprint-plan.md`
+**Ramas:** Sprint 0→ `feature/bi-foundation` | Sprint 1 → `feature/bi-sprint1-data` | Sprint 2B → ejecutar desde `feature/bi-sprint1-data` una vez completado Sprint 1
 
 ### Estado de ramas feature
 
@@ -116,7 +130,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | **Website** | ✅ WEB-001→025 mergeados en `main` (incl. Work Details + Static Site) | `main` | `docs/website-sprint-handoff.md` |
 | **Safety** | ✅ Sprint completado (SAF-001 a SAF-016) | `Safety_Inspections` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
-| **Intelligence** | 🚧 ~90% | `main` | Ver `CLAUDE.md` |
+| **Intelligence / BI** | 🚧 ~90% — Sprint BI aprobado, Sprint 0 ⬜ Todo | `main` → `feature/bi-foundation` | `docs/bi-sprint-plan.md` |
 | **Prospects** | 🚧 ~80% (PROS-BUG-001+002 cerrados, FAB mailing operativo, sync dashboard exception feed) | `main` | Ver `CLAUDE.md` |
 | **Cafca** | ✅ ~90% | `main` | Ver `CLAUDE.md` |
 | **Core** | ✅ ~95% | `main` | Ver `CLAUDE.md` |
@@ -154,10 +168,12 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 
 | Prioridad | Ticket | Linear | Título | Estado |
 |-----------|--------|--------|--------|--------|
-| 1 | OPS-MAI-001 | CLA-140 | Mailing production readiness validation | ⬜ Todo |
-| 2 | — | — | Website backfill media (`website:regenerate-media`) + validar deploy frontend | Operativo |
-| 3 | — | — | Prospects CRM — calidad de datos, filtros, segmentos | 🚧 ~78% |
-| 4 | — | — | Performance / Watchdog — impacto financiero si gerencia lo prioriza | 🚧 ~85% |
+| **1** | BI-000 | — | Sprint BI — Sprint 0: cherry-pick + verificar migraciones | ⬜ Todo |
+| **2** | BI-010→021 | — | Sprint BI — Sprint 1: mirrors + bi_config | ⬜ Todo |
+| 3 | OPS-MAI-001 | CLA-140 | Mailing production readiness validation | ⬜ Todo |
+| 4 | — | — | Website backfill media (`website:regenerate-media`) + validar deploy frontend | Operativo |
+| 5 | — | — | Prospects CRM — calidad de datos, filtros, segmentos | 🚧 ~78% |
+| 6 | — | — | Performance / Watchdog — impacto financiero si gerencia lo prioriza | 🚧 ~85% |
 | Bloqueado | Mailing Fase 3 | MAI-031→036 | Scoring, predicciones, IA | ⏸ Hasta 4–6 sem datos reales |
 
 ---
@@ -229,7 +245,14 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 ## Próximos pasos recomendados
 
-1. **Deploy Website en producción:**
+1. **Sprint BI — Sprint 0** (ahora, rama `feature/bi-foundation`):
+   ```
+   git checkout -b feature/bi-foundation
+   git cherry-pick 8d563e8 a8eedcf 5796a32
+   # verificar no-colisión de las 6 migraciones con main
+   php artisan test --testsuite=Modules --filter=Intelligence
+   ```
+2. **Deploy Website en producción:**
    - `php artisan migrate` (columnas `work_story/challenge/solution/result` + tabla `publication_states`)
    - Instalar receiver Node.js en 192.168.60.20 (`scripts/astro-rebuild/README.md`)
    - Configurar `.env`: `STATIC_SITE_REBUILD_ENABLED=true`, `STATIC_SITE_WEBHOOK_SECRET`, `STATIC_SITE_WEBHOOK_URL`, `STATIC_SITE_HEALTH_URL`
@@ -246,6 +269,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-13 | BI-PLAN | Done — Plan Sprint BI completado y aprobado por auditor. Sprint 0+1+2B GO. Auditor Gate formalizado en BI-052/053/054 con 5-ejemplo obligatorio. Documento: `docs/bi-sprint-plan.md`. |
 | 2026-06-12 | OPS | Done — Fix GitHub Actions deploy workflow (5 bugs: actions versions @v4, PHP 8.3→8.4, .env.example `\nMAILING_DRIVER`, sqlite touch, CACHE/SESSION array, rsync self-copy). Fix deploy.sh (cd APP_DIR, artisan down \|\| true, sha256 verify, filament --no-interaction, php artisan optimize). Release `production-latest` operativa. |
 | 2026-06-09 | Mailing | Done — One-time unsubscribe links (renders success immediately if already unsubscribed) and Livewire real-time auto-polling (5s) for campaign list, recipients table, and metrics widget. Verified with passing tests. |
 | 2026-06-09 | Mailing | Done — Log and display 'Unsubscribed' status (Uitgeschreven) for unsubscribed or suppressed (unsubscribed) recipients instead of displaying 'Skipped (No email)'. Verified with tests passing in Sail. |
