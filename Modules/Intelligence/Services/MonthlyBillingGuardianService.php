@@ -341,10 +341,75 @@ class MonthlyBillingGuardianService
         return $name !== null && trim($name) !== '' ? trim($name) : "relatie #{$relationId}";
     }
 
-    /** BI-054 — followup costs in period not flagged invoiced. */
+    /**
+     * BI-054 — followup costs in period not flagged as invoiced.
+     *
+     * Trigger: costs with invoiced=false dated within the period, where the
+     * project's total unbilled amount (sum of cost_price * quantity) exceeds
+     * min_cost_amount (strict >). Threshold is evaluated at project level —
+     * individual low-value items for the same project are aggregated.
+     *
+     * Severity: total > €10,000 → high; otherwise medium.
+     *
+     * evidence_json: { count_items, total_amount, cost_types[] }
+     */
     protected function detectUnbilledFollowupCosts(int $year, int $month): array
     {
-        return []; // implemented in BI-054
+        $start = Carbon::create($year, $month, 1)->startOfDay();
+        $end   = $start->copy()->endOfMonth()->endOfDay();
+
+        $rules         = $this->config->get('billing_guardian_rules', []);
+        $minCostAmount = (float) ($rules['min_cost_amount'] ?? 500);
+
+        $allCosts = MirrorCost::whereBetween('date', [$start, $end])
+            ->where('invoiced', false)
+            ->get();
+
+        if ($allCosts->isEmpty()) {
+            return [];
+        }
+
+        // Batch-load projects to avoid N+1
+        $projectIds = $allCosts->pluck('project_id')->unique()->values();
+        $projects   = MirrorProject::whereIn('id', $projectIds)->get()->keyBy('id');
+
+        $alerts = [];
+
+        foreach ($allCosts->groupBy('project_id') as $projectId => $items) {
+            $totalAmount = $items->sum(fn($c) => (float) $c->cost_price * (float) $c->quantity);
+
+            if ($totalAmount <= $minCostAmount) {
+                continue; // strict >: exactly at threshold does NOT trigger
+            }
+
+            $costTypes = $items->pluck('type')->filter()->unique()->sort()->values()->all();
+            $project   = $projects->get($projectId);
+
+            $alerts[] = [
+                'alert_type'           => BillingAlert::TYPE_UNBILLED_FOLLOWUP_COST,
+                'severity'             => $totalAmount > 10000 ? 'high' : 'medium',
+                'project_id'           => $projectId,
+                'relation_id'          => $project?->relation_id,
+                'amount_activity_cost' => round($totalAmount, 2),
+                'evidence_json'        => [
+                    'count_items'  => $items->count(),
+                    'total_amount' => round($totalAmount, 2),
+                    'cost_types'   => $costTypes,
+                ],
+                'recommendation' => sprintf(
+                    '%d %s voor €%s niet gemarkeerd als gefactureerd in %d-%02d voor project %s. '
+                    . 'Controleer of een factuur is opgemaakt of markeer de kosten als gefactureerd in CAFCA.',
+                    $items->count(),
+                    $items->count() === 1 ? 'kost' : 'kosten',
+                    number_format($totalAmount, 2, ',', '.'),
+                    $year,
+                    $month,
+                    $projectId
+                ),
+            ];
+        }
+
+        return $alerts;
     }
 
     /** BI-055 — active projects with no invoice for N+ days. */
