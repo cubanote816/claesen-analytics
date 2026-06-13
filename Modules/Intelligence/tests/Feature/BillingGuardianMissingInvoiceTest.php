@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 /**
  * BI-052 rule tests — detectMissingCustomerInvoices.
- * Threshold semantics (Auditor Gate case L): strict > min_cost_amount,
+ * Threshold semantics (Auditor Gate case L): strict > min_activity_amount,
  * so activity at exactly the threshold does NOT trigger.
  */
 class BillingGuardianMissingInvoiceTest extends TestCase
@@ -97,7 +97,7 @@ class BillingGuardianMissingInvoiceTest extends TestCase
 
     public function test_case_L_exactly_at_threshold_does_not_trigger(): void
     {
-        // Auditor Gate case L: min_cost_amount = 500 (seeder default).
+        // Auditor Gate case L: min_activity_amount = 500 (seeder default).
         // Strict > comparison: exactly €500.00 must NOT trigger.
         $this->makeProject('PEXACT');
         $this->addCost('PEXACT', 500.00);
@@ -193,6 +193,7 @@ class BillingGuardianMissingInvoiceTest extends TestCase
         app(BiConfigService::class)->set('billing_guardian_rules', [
             'days_without_invoice'              => 30,
             'min_amount'                        => 500,
+            'min_activity_amount'               => 500,
             'min_cost_amount'                   => 500,
             'include_projects_without_contract' => true,
         ]);

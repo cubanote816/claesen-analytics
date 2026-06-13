@@ -111,7 +111,9 @@ class MonthlyBillingGuardianService
         $end   = $start->copy()->endOfMonth()->endOfDay();
 
         $rules             = $this->config->get('billing_guardian_rules', []);
-        $minActivity       = (float) ($rules['min_cost_amount'] ?? 500);
+        // min_activity_amount is this rule's threshold (auditor-approved name);
+        // min_cost_amount fallback covers configs seeded before the rename.
+        $minActivity       = (float) ($rules['min_activity_amount'] ?? $rules['min_cost_amount'] ?? 500);
         $includeNoContract = (bool) ($rules['include_projects_without_contract'] ?? false);
 
         // Cost activity per project in the period

@@ -85,6 +85,7 @@ class BiConfigPage extends Page implements HasForms
             // Section 5
             'guardian_days'                => $guardian['days_without_invoice']              ?? 30,
             'guardian_min_amount'          => $guardian['min_amount']                        ?? 500,
+            'guardian_min_activity_amount' => $guardian['min_activity_amount']               ?? 500,
             'guardian_min_cost_amount'     => $guardian['min_cost_amount']                   ?? 500,
             'guardian_include_no_contract' => $guardian['include_projects_without_contract'] ?? false,
         ]);
@@ -188,6 +189,10 @@ class BiConfigPage extends Page implements HasForms
                             ->label($nl ? 'Min. openstaand bedrag (€)' : 'Min. open amount (€)')
                             ->numeric()->minValue(0)->prefix('€')
                             ->helperText($nl ? 'Vervallen facturen onder dit bedrag worden overgeslagen' : 'Overdue invoices below this amount are skipped'),
+                        TextInput::make('guardian_min_activity_amount')
+                            ->label($nl ? 'Min. maandactiviteit (€)' : 'Min. monthly activity (€)')
+                            ->numeric()->minValue(0)->prefix('€')
+                            ->helperText($nl ? 'Ontbrekende-factuur alerts vereisen maandkosten boven dit bedrag' : 'Missing-invoice alerts require monthly costs above this amount'),
                         TextInput::make('guardian_min_cost_amount')
                             ->label($nl ? 'Min. niet-gefactureerde kost (€)' : 'Min. unbilled cost (€)')
                             ->numeric()->minValue(0)->prefix('€')
@@ -250,6 +255,7 @@ class BiConfigPage extends Page implements HasForms
         $svc->set('billing_guardian_rules', [
             'days_without_invoice'              => (int) $d['guardian_days'],
             'min_amount'                        => (int) $d['guardian_min_amount'],
+            'min_activity_amount'               => (int) $d['guardian_min_activity_amount'],
             'min_cost_amount'                   => (int) $d['guardian_min_cost_amount'],
             'include_projects_without_contract' => (bool) $d['guardian_include_no_contract'],
         ], $uid);
