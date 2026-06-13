@@ -57,6 +57,7 @@ class BiConfigServiceTest extends TestCase
 
         $this->assertSame(30, $rules['days_without_invoice']);
         $this->assertSame(500, $rules['min_amount']);
+        $this->assertSame(500, $rules['min_activity_amount']);
         $this->assertSame(500, $rules['min_cost_amount']);
         $this->assertFalse($rules['include_projects_without_contract']);
     }

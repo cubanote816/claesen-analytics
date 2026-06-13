@@ -15,6 +15,8 @@ class MirrorInvoice extends Model
         'project_id',
         'relation_id',
         'total_price_vat_excl',
+        'total_price',
+        'total_paid',
         'date',
         'date_expiration',
         'fl_paid',
@@ -22,6 +24,8 @@ class MirrorInvoice extends Model
 
     protected $casts = [
         'total_price_vat_excl' => 'float',
+        'total_price'          => 'decimal:4',
+        'total_paid'           => 'decimal:4',
         'date'                 => 'date',
         'date_expiration'      => 'date',
         'fl_paid'              => 'boolean',

@@ -52,6 +52,7 @@ class IntelligenceServiceProvider extends ServiceProvider
             \Modules\Intelligence\Console\Commands\SyncMirrorCommand::class,
             \Modules\Intelligence\Console\Commands\MapWarehouseCategoriesCommand::class,
             \Modules\Intelligence\Console\Commands\BuildMaterialBrain::class,
+            \Modules\Intelligence\Console\Commands\BillingGuardianCommand::class,
         ]);
     }
 
@@ -63,6 +64,12 @@ class IntelligenceServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
             $schedule->command('intelligence:sync-mirror')->dailyAt('04:00');
+            // Monthly Billing Guardian: day 2 of each month at 07:00 Brussels time.
+            // Analyses the previous month so all data has settled.
+            $schedule->command('intelligence:billing-guardian --previous-month')
+                ->monthlyOn(2, '07:00')
+                ->timezone('Europe/Brussels')
+                ->withoutOverlapping();
         });
     }
 

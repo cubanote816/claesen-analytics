@@ -86,7 +86,11 @@ class BiConfigSeeder extends Seeder
                     'days_without_invoice'            => 30,
                     // min_amount: minimum open balance (€) for overdue_receivable alerts.
                     'min_amount'                      => 500,
-                    // min_cost_amount: minimum unbilled cost (€) per project/month for alert.
+                    // min_activity_amount: minimum monthly activity cost (€) for
+                    // missing_customer_invoice alerts (BI-052).
+                    'min_activity_amount'             => 500,
+                    // min_cost_amount: minimum unbilled cost (€) per project/month
+                    // for unbilled_followup_cost alerts (BI-054).
                     'min_cost_amount'                 => 500,
                     // include_projects_without_contract: alert even if no contract_price set.
                     'include_projects_without_contract' => false,
@@ -95,6 +99,7 @@ class BiConfigSeeder extends Seeder
                 'description' => 'Configurable thresholds for the Monthly Billing Guardian. '
                                . 'days_without_invoice: alert after N days with no invoice on active project (default 30). '
                                . 'min_amount: skip overdue invoices below this € threshold (default €500). '
+                               . 'min_activity_amount: skip missing-invoice alerts when monthly activity is at or below this € threshold (default €500). '
                                . 'min_cost_amount: skip unbilled cost alerts below this € threshold (default €500). '
                                . 'include_projects_without_contract: if false, skip projects with no contract_price.',
             ],
