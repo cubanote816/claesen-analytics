@@ -2,10 +2,17 @@
 
 namespace Modules\Intelligence\Services;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Modules\Intelligence\DTOs\BillingGuardianReport;
 use Modules\Intelligence\Models\BillingAlert;
+use Modules\Performance\Models\Mirror\MirrorCost;
+use Modules\Performance\Models\Mirror\MirrorInvoice;
+use Modules\Performance\Models\Mirror\MirrorLabor;
+use Modules\Performance\Models\Mirror\MirrorProject;
+use Modules\Performance\Models\Mirror\MirrorProjectLink;
+use Modules\Performance\Models\Mirror\MirrorWorkdoc;
 
 /**
  * Monthly Billing Guardian — detects billing anomalies on mirror data only.
@@ -87,10 +94,115 @@ class MonthlyBillingGuardianService
     //    evidence_json, recommendation]
     // -------------------------------------------------------------------------
 
-    /** BI-052 — active projects with monthly activity but no invoice issued. */
+    /**
+     * BI-052 — projects with monthly cost activity but no invoice issued.
+     *
+     * Trigger condition: costs_in_month > min_cost_amount (strict >) AND no
+     * non-credit-note invoice dated within the month for the project.
+     * Hours/workdocs enrich evidence but do not trigger on their own — labor
+     * costs already flow into followup_cost, so the cost threshold covers them.
+     *
+     * Exclusion: contract_price IS NULL AND no estimate linked → internal /
+     * non-billable project, skipped unless include_projects_without_contract.
+     */
     protected function detectMissingCustomerInvoices(int $year, int $month): array
     {
-        return []; // implemented in BI-052
+        $start = Carbon::create($year, $month, 1)->startOfDay();
+        $end   = $start->copy()->endOfMonth()->endOfDay();
+
+        $rules             = $this->config->get('billing_guardian_rules', []);
+        $minActivity       = (float) ($rules['min_cost_amount'] ?? 500);
+        $includeNoContract = (bool) ($rules['include_projects_without_contract'] ?? false);
+
+        // Cost activity per project in the period
+        $costsByProject = MirrorCost::whereBetween('date', [$start, $end])
+            ->selectRaw('project_id, SUM(cost_price * quantity) AS total')
+            ->groupBy('project_id')
+            ->pluck('total', 'project_id');
+
+        // Supporting evidence: hours and workdocs in the period
+        $hoursByProject = MirrorLabor::whereBetween('date', [$start, $end])
+            ->selectRaw('project_id, SUM(hours) AS total')
+            ->groupBy('project_id')
+            ->pluck('total', 'project_id');
+
+        $workdocsByProject = MirrorWorkdoc::whereBetween('date', [$start, $end])
+            ->selectRaw('project_id, COUNT(*) AS cnt')
+            ->groupBy('project_id')
+            ->pluck('cnt', 'project_id');
+
+        // Projects already invoiced in the period (credit notes don't count)
+        $invoicedProjects = MirrorInvoice::whereBetween('date', [$start, $end])
+            ->where('id', 'NOT LIKE', 'CN%')
+            ->pluck('project_id')
+            ->unique()
+            ->flip();
+
+        $alerts = [];
+
+        foreach ($costsByProject as $projectId => $costTotal) {
+            $costTotal = (float) $costTotal;
+
+            if ($costTotal <= $minActivity) {
+                continue; // strict >: exactly at threshold does NOT trigger
+            }
+
+            if ($invoicedProjects->has($projectId)) {
+                continue; // invoice exists this month
+            }
+
+            $project = MirrorProject::find($projectId);
+            if (!$project) {
+                continue;
+            }
+
+            $hasContract = $project->contract_price !== null;
+            $hasEstimate = MirrorProjectLink::where('project_id', $projectId)->exists();
+
+            if (!$hasContract && !$hasEstimate && !$includeNoContract) {
+                continue; // internal / non-billable project
+            }
+
+            $lastInvoiceDate = MirrorInvoice::where('project_id', $projectId)
+                ->where('id', 'NOT LIKE', 'CN%')
+                ->max('date');
+
+            $daysSinceLastInvoice = $lastInvoiceDate
+                ? (int) Carbon::parse($lastInvoiceDate)->diffInDays($end)
+                : null;
+
+            $alerts[] = [
+                'alert_type'           => BillingAlert::TYPE_MISSING_CUSTOMER_INVOICE,
+                'severity'             => 'high',
+                'project_id'           => $projectId,
+                'relation_id'          => $project->relation_id,
+                'amount_activity_cost' => round($costTotal, 2),
+                'amount_estimated'     => $hasContract ? (float) $project->contract_price : null,
+                'evidence_json'        => [
+                    'costs_in_month'          => round($costTotal, 2),
+                    'hours_in_month'          => round((float) ($hoursByProject[$projectId] ?? 0), 2),
+                    'workdocs_in_month'       => (int) ($workdocsByProject[$projectId] ?? 0),
+                    'last_invoice_date'       => $lastInvoiceDate ? Carbon::parse($lastInvoiceDate)->toDateString() : null,
+                    'days_since_last_invoice' => $daysSinceLastInvoice,
+                    'has_contract'            => $hasContract,
+                    'has_estimate_link'       => $hasEstimate,
+                ],
+                'recommendation'       => sprintf(
+                    'Project %s (%s) heeft €%s aan kosten in %d-%02d zonder uitgereikte factuur. %s '
+                    . 'Controleer of een (deel)factuur moet worden opgemaakt in CAFCA.',
+                    $projectId,
+                    trim($project->name ?? ''),
+                    number_format($costTotal, 2, ',', '.'),
+                    $year,
+                    $month,
+                    $lastInvoiceDate
+                        ? sprintf('Laatste factuur: %s (%d dagen geleden).', Carbon::parse($lastInvoiceDate)->toDateString(), $daysSinceLastInvoice)
+                        : 'Nog geen enkele factuur voor dit project.'
+                ),
+            ];
+        }
+
+        return $alerts;
     }
 
     /** BI-053 — invoices past date_expiration with open balance. */
