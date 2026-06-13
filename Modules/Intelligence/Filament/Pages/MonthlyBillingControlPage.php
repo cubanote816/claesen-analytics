@@ -161,7 +161,13 @@ class MonthlyBillingControlPage extends Page
             'status'           => BillingAlert::STATUS_CONFIRMED,
             'resolution_notes' => $notes ?: null,
         ]);
-        Notification::make()->title('Alert bevestigd.')->success()->send();
+        Notification::make()
+            ->title(app()->getLocale() === 'nl' ? 'Melding bevestigd.' : 'Alert confirmed.')
+            ->body(app()->getLocale() === 'nl'
+                ? 'Voer de actie uit in CAFCA en klik daarna op Oplossen.'
+                : 'Take the required action in CAFCA, then click Resolve.')
+            ->success()
+            ->send();
     }
 
     public function dismissAlert(int $alertId, string $notes = ''): void
@@ -174,7 +180,13 @@ class MonthlyBillingControlPage extends Page
             'status'           => BillingAlert::STATUS_DISMISSED,
             'resolution_notes' => $notes ?: null,
         ]);
-        Notification::make()->title('Alert gesloten (afgewezen).')->info()->send();
+        Notification::make()
+            ->title(app()->getLocale() === 'nl' ? 'Melding afgewezen.' : 'Alert dismissed.')
+            ->body(app()->getLocale() === 'nl'
+                ? 'Gebruik Heropenen als dit onjuist blijkt.'
+                : 'Use Reopen if this turns out to be incorrect.')
+            ->info()
+            ->send();
     }
 
     public function resolveAlert(int $alertId, string $notes = ''): void
@@ -188,7 +200,13 @@ class MonthlyBillingControlPage extends Page
             'resolved_at'      => now(),
             'resolution_notes' => $notes ?: $alert->resolution_notes,
         ]);
-        Notification::make()->title('Alert opgelost.')->success()->send();
+        Notification::make()
+            ->title(app()->getLocale() === 'nl' ? 'Melding opgelost.' : 'Alert resolved.')
+            ->body(app()->getLocale() === 'nl'
+                ? 'De melding telt niet meer mee voor de maandafsluiting.'
+                : 'This alert no longer counts towards the monthly close.')
+            ->success()
+            ->send();
     }
 
     public function reopenAlert(int $alertId): void
@@ -215,8 +233,8 @@ class MonthlyBillingControlPage extends Page
                 ->modalHeading(app()->getLocale() === 'nl' ? 'Guardian uitvoeren?' : 'Run Guardian?')
                 ->modalDescription(
                     app()->getLocale() === 'nl'
-                        ? 'Dit detecteert facturatieafwijkingen voor de geselecteerde periode en slaat de resultaten op.'
-                        : 'This will detect billing anomalies for the selected period and persist the results.'
+                        ? 'Voer de Guardian uit nadat u wijzigingen in CAFCA heeft opgeslagen, of aan het begin van de maand voor de analyse van de vorige periode. Open meldingen worden bijgewerkt met de laatste gegevens. Bevestigde en afgesloten meldingen worden NIET gewijzigd.'
+                        : 'Run after saving changes in CAFCA, or at the start of the month to analyse the previous period. Open alerts are updated with the latest data. Confirmed and resolved alerts are NOT modified.'
                 )
                 ->action(function () {
                     [$year, $month] = $this->parsePeriod();
