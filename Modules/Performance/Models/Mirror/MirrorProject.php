@@ -18,11 +18,15 @@ class MirrorProject extends Model
         'zipcode',
         'city',
         'fl_active',
+        'contract_price',
+        'type',
+        'state',
         'last_modified_at',
     ];
 
     protected $casts = [
-        'fl_active' => 'boolean',
+        'fl_active'      => 'boolean',
+        'contract_price' => 'decimal:2',
         'last_modified_at' => 'datetime',
     ];
 }

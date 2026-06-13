@@ -46,6 +46,18 @@ class SyncMirrorCommand extends Command
             return;
         }
 
+        // Warn if labor sync will be skipped due to the configured time window
+        if (!$syncService->isLaborSyncAllowed()) {
+            $schedule = app(\Modules\Intelligence\Services\BiConfigService::class)
+                ->get('labor_sync_schedule', []);
+            $this->warn(sprintf(
+                'Labor sync will be SKIPPED — current time (Brussels) is outside the safe window (%s – %s). '
+                . 'followup_labor_analytical is locked during CAFCA production hours.',
+                $schedule['start'] ?? '?',
+                $schedule['end']   ?? '?'
+            ));
+        }
+
         $syncService->syncAll($full);
         $this->info('Mirror Sync Finished Successfully.');
     }

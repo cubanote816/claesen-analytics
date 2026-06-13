@@ -40,6 +40,7 @@
             "App\\": "app/",
             "Modules\\Mailing\\Database\\Factories\\": "Modules/Mailing/database/factories/",
             "Modules\\Mailing\\Database\\Seeders\\": "Modules/Mailing/database/seeders/",
+            "Modules\\Intelligence\\Database\\Seeders\\": "Modules/Intelligence/database/seeders/",
             "Modules\\Prospects\\Database\\Factories\\": "Modules/Prospects/database/factories/",
             "Modules\\Safety\\Database\\Factories\\": "Modules/Safety/database/factories/",
             "Modules\\": "Modules/",
@@ -50,6 +51,7 @@
     "autoload-dev": {
         "psr-4": {
             "Tests\\": "tests/",
+            "Modules\\Intelligence\\Tests\\": "Modules/Intelligence/tests/",
             "Modules\\Mailing\\Tests\\": "Modules/Mailing/tests/",
             "Modules\\Prospects\\Tests\\": "Modules/Prospects/tests/",
             "Modules\\Safety\\Tests\\": "Modules/Safety/tests/",

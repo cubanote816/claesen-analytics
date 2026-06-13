@@ -15,7 +15,12 @@ use Modules\Performance\Models\Mirror\MirrorMaterial;
 use Modules\Performance\Models\Mirror\MirrorCost;
 use Modules\Performance\Models\Mirror\MirrorInvoice;
 use Modules\Performance\Models\Mirror\MirrorEstimateItem;
+use Modules\Performance\Models\Mirror\MirrorEstimateCalc;
+use Modules\Performance\Models\Mirror\MirrorProjectLink;
+use Modules\Performance\Models\Mirror\MirrorProjectResult;
 use Modules\Performance\Models\Mirror\MirrorRelation;
+use Modules\Performance\Models\Mirror\MirrorWorkdoc;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -37,6 +42,10 @@ class SyncMirrorDataService
         $this->syncInvoices($fullHistory);
         $this->syncCosts($fullHistory);
         $this->syncEstimateItems($fullHistory);
+        $this->syncEstimateCalc();
+        $this->syncProjectLinks();
+        $this->syncProjectResults();
+        $this->syncWorkdocs();
 
         Log::info("Mirror Sync Process Completed.");
     }
@@ -48,38 +57,47 @@ class SyncMirrorDataService
             $query->where('fl_active', 1);
         }
 
-        $query->orderBy('id')->chunk(500, function ($projects) {
+        // Mapping project.type to human-readable categories
+        $categoryMap = [
+            0 => 'Industrie',
+            1 => 'Industrie',
+            2 => 'Openbare Verlichting',
+            3 => 'Openbare Verlichting',
+            4 => 'Sportverlichting',
+            5 => 'Sportverlichting',
+            6 => 'Masten',
+            7 => 'Industrie',
+            8 => 'Algemeen',
+        ];
+
+        $query->orderBy('id')->chunk(500, function ($projects) use ($categoryMap) {
+            // Batch-load relation locations for the whole chunk in one query
+            // (previously one SQL Server round-trip per project — N+1).
+            $relationIds = $projects->pluck('relation_id')->filter()->unique()->values();
+            $relations = $relationIds->isEmpty()
+                ? collect()
+                : DB::connection('sqlsrv')->table('relation')
+                    ->whereIn('id', $relationIds)
+                    ->select('id', 'zipcode', 'city')
+                    ->get()
+                    ->keyBy('id');
+
             foreach ($projects as $project) {
-                // Mapping project.type to human-readable categories
-                $categoryMap = [
-                    0 => 'Industrie',
-                    1 => 'Industrie',
-                    2 => 'Openbare Verlichting',
-                    3 => 'Openbare Verlichting',
-                    4 => 'Sportverlichting',
-                    5 => 'Sportverlichting',
-                    6 => 'Masten',
-                    7 => 'Industrie',
-                    8 => 'Algemeen',
-                ];
-
                 $category = $categoryMap[$project->type] ?? 'Algemeen';
-
-                // Fetch location from relation table
-                $relation = DB::connection('sqlsrv')->table('relation')
-                    ->where('id', $project->relation_id)
-                    ->select('zipcode', 'city')
-                    ->first();
+                $relation = $relations->get($project->relation_id);
 
                 MirrorProject::updateOrCreate(
                     ['id' => trim($project->id)],
                     [
-                        'name' => trim($project->name),
-                        'relation_id' => $project->relation_id,
-                        'category' => $category,
-                        'zipcode' => trim($relation?->zipcode ?? ''),
-                        'city' => trim($relation?->city ?? ''),
-                        'fl_active' => $project->fl_active,
+                        'name'           => trim($project->name),
+                        'relation_id'    => $project->relation_id,
+                        'category'       => $category,
+                        'zipcode'        => trim($relation?->zipcode ?? ''),
+                        'city'           => trim($relation?->city ?? ''),
+                        'fl_active'      => $project->fl_active,
+                        'contract_price' => $project->contract_price,
+                        'type'           => $project->type,
+                        'state'          => $project->state,
                         'last_modified_at' => $project->ts_modif ?? $project->ts_crea,
                     ]
                 );
@@ -125,11 +143,52 @@ class SyncMirrorDataService
         });
     }
 
+    /**
+     * Check whether the current time (Europe/Brussels) falls inside the configured
+     * labor sync window. Returns true if no window is configured (null start/end).
+     * Handles midnight-spanning windows (e.g. 22:00-06:00).
+     */
+    public function isLaborSyncAllowed(): bool
+    {
+        $schedule = app(BiConfigService::class)->get('labor_sync_schedule', []);
+        $start    = $schedule['start'] ?? null;
+        $end      = $schedule['end']   ?? null;
+
+        if ($start === null || $end === null) {
+            return true;
+        }
+
+        $now        = Carbon::now('Europe/Brussels');
+        $nowMinutes = $now->hour * 60 + $now->minute;
+
+        [$sh, $sm] = array_map('intval', explode(':', $start));
+        [$eh, $em] = array_map('intval', explode(':', $end));
+        $startMin  = $sh * 60 + $sm;
+        $endMin    = $eh * 60 + $em;
+
+        // Window spans midnight (e.g. 22:00-06:00): allowed outside the gap
+        if ($startMin > $endMin) {
+            return $nowMinutes >= $startMin || $nowMinutes < $endMin;
+        }
+
+        // Normal window (e.g. 01:00-05:00)
+        return $nowMinutes >= $startMin && $nowMinutes < $endMin;
+    }
+
     private function syncLabor(bool $fullHistory): void
     {
         // followup_labor_analytical can be locked during CAFCA production hours.
         // Wrap in try/catch so a temporary lock does not abort the entire syncAll.
         try {
+            if (!$this->isLaborSyncAllowed()) {
+                $schedule = app(BiConfigService::class)->get('labor_sync_schedule', []);
+                Log::warning('syncLabor skipped — outside configured safe window.', [
+                    'window_start' => $schedule['start'],
+                    'window_end'   => $schedule['end'],
+                    'now_brussels' => Carbon::now('Europe/Brussels')->format('H:i'),
+                ]);
+                return;
+            }
             $query = DB::connection('sqlsrv')->table('followup_labor_analytical');
             if (!$fullHistory) {
                 $query->where('date', '>=', now()->subMonths(6));
@@ -201,9 +260,12 @@ class SyncMirrorDataService
                 MirrorInvoice::updateOrCreate(
                     ['id' => trim($invoice->id)],
                     [
-                        'project_id' => trim($invoice->project_id),
+                        'project_id'           => trim($invoice->project_id),
+                        'relation_id'          => $invoice->relation_id ?? null,
                         'total_price_vat_excl' => $invoice->total_price_vat_excl ?? 0,
-                        'date' => $invoice->date,
+                        'date'                 => $invoice->date,
+                        'date_expiration'      => $invoice->date_expiration ?? null,
+                        'fl_paid'              => (bool) ($invoice->fl_paid ?? false),
                     ]
                 );
             }
@@ -226,13 +288,14 @@ class SyncMirrorDataService
                     ['id' => $cost->id],
                     [
                         'project_id' => trim($cost->project_id),
-                        'art_id' => $cost->art_id ?? null,
-                        'descr' => trim($cost->descr ?? $cost->name ?? ''),
-                        'type' => $cost->price_type ?? null,
+                        'art_id'     => $cost->art_id ?? null,
+                        'descr'      => trim($cost->descr ?? $cost->name ?? ''),
+                        'type'       => $cost->price_type ?? null,
                         'cost_price' => $cost->costprice,
-                        'quantity' => $cost->quantity,
+                        'quantity'   => $cost->quantity,
                         'extra_type' => property_exists($cost, 'extra_type') ? trim($cost->extra_type) : null,
-                        'date' => $cost->date,
+                        'date'       => $cost->date,
+                        'invoiced'   => (bool) $cost->already_invoiced,
                     ]
                 );
             }
@@ -340,5 +403,168 @@ class SyncMirrorDataService
         });
 
         Log::info('SyncMirrorDataService: estimate_items sync completed.');
+    }
+
+    public function syncEstimateCalc(): void
+    {
+        DB::connection('sqlsrv')
+            ->table('estimate_calculation')
+            ->orderBy('estimate_id')
+            ->chunk(500, function ($rows) {
+                foreach ($rows as $row) {
+                    if (empty(trim($row->estimate_id ?? ''))) {
+                        continue;
+                    }
+
+                    $extraCosts = [
+                        'transport'    => $row->extra_cost_transport ?? null,
+                        'management'   => $row->extra_cost_management ?? null,
+                        'insurance'    => $row->extra_cost_insurance ?? null,
+                        'design'       => $row->extra_cost_design ?? null,
+                        'company'      => $row->extra_cost_company ?? null,
+                        'calculation'  => $row->extra_cost_calculation ?? null,
+                        'building_site' => [
+                            $row->extra_cost_building_site1 ?? null,
+                            $row->extra_cost_building_site2 ?? null,
+                            $row->extra_cost_building_site3 ?? null,
+                            $row->extra_cost_building_site4 ?? null,
+                        ],
+                        'any' => [
+                            $row->extra_cost_any1 ?? null,
+                            $row->extra_cost_any2 ?? null,
+                            $row->extra_cost_any3 ?? null,
+                        ],
+                        'factor_total' => [
+                            ['value' => $row->factor_total_1 ?? null, 'descr' => $row->factor_total_1_descr ?? null],
+                            ['value' => $row->factor_total_2 ?? null, 'descr' => $row->factor_total_2_descr ?? null],
+                            ['value' => $row->factor_total_3 ?? null, 'descr' => $row->factor_total_3_descr ?? null],
+                        ],
+                    ];
+
+                    MirrorEstimateCalc::updateOrCreate(
+                        ['estimate_id' => trim($row->estimate_id)],
+                        [
+                            'factor_material'     => $row->factor_material ?? 0,
+                            'factor_labor'        => $row->factor_labor ?? 0,
+                            'factor_equipment'    => $row->factor_equipment ?? 0,
+                            'factor_subcontract'  => $row->factor_subcontract ?? 0,
+                            'factor_qty_labor'    => $row->factor_qty_labor ?? 0,
+                            'factor_qty_material' => $row->factor_qty_material ?? 0,
+                            'factor_unitprice'    => $row->factor_unitprice ?? 0,
+                            'labor_c_price'       => $row->labor_c_price ?? null,
+                            'additional_hours'    => $row->additional_hours ?? null,
+                            'qty_employees'       => $row->qty_employees ?? null,
+                            'extra_costs_json'    => $extraCosts,
+                        ]
+                    );
+                }
+            });
+
+        Log::info('SyncMirrorDataService: estimate_calc sync completed.');
+    }
+
+    private function syncProjectLinks(): void
+    {
+        DB::connection('sqlsrv')
+            ->table('project_estimates')
+            ->orderBy('project_id')
+            ->chunk(500, function ($rows) {
+                foreach ($rows as $row) {
+                    if (empty(trim($row->project_id ?? '')) || empty(trim($row->estimate_id ?? ''))) {
+                        continue;
+                    }
+
+                    MirrorProjectLink::updateOrCreate(
+                        [
+                            'project_id'  => trim($row->project_id),
+                            'estimate_id' => trim($row->estimate_id),
+                        ],
+                        ['link_type' => $row->type]
+                    );
+                }
+            });
+
+        Log::info('SyncMirrorDataService: project_links sync completed.');
+    }
+
+    public function syncProjectResults(): void
+    {
+        $now = now();
+
+        DB::connection('sqlsrv')
+            ->table('rpt_project_results')
+            ->orderBy('project_id')
+            ->chunk(500, function ($rows) use ($now) {
+                foreach ($rows as $row) {
+                    if (empty(trim($row->project_id ?? ''))) {
+                        continue;
+                    }
+
+                    MirrorProjectResult::updateOrCreate(
+                        ['project_id' => trim($row->project_id)],
+                        [
+                            'project_name'             => trim($row->project_name ?? ''),
+                            'relation_id'              => $row->project_relation_id ?? null,
+                            'relation_name'            => trim($row->project_relation_name ?? ''),
+                            'dossier'                  => trim($row->dossier ?? ''),
+                            'costprice_material'       => $row->costprice_material ?? null,
+                            'costprice_labor'          => $row->costprice_labor ?? null,
+                            'costprice_equipment'      => $row->costprice_equipment ?? null,
+                            'costprice_subcontract'    => $row->costprice_subcontract ?? null,
+                            'costprice_extra'          => $row->costprice_extra ?? null,
+                            'costprice_transport'      => $row->costprice_transport ?? null,
+                            'costprice_total'          => $row->costprice_total ?? null,
+                            'invoiced'                 => $row->invoiced ?? null,
+                            'profit'                   => $row->profit ?? null,
+                            'profit_percent'           => $row->profit_percent ?? null,
+                            'profit_percent_estimates' => $row->profit_percent_estimates ?? null,
+                            'total_estimates'          => $row->total_estimates ?? null,
+                            'total_regie'              => $row->total_regie ?? null,
+                            'hours_regie'              => $row->hours_regie ?? null,
+                            'oh'                       => $row->oH ?? null,
+                            'project_uren'             => $row->project_uren ?? null,
+                            'voorz_uren'               => $row->voorz_uren ?? null,
+                            'uren_projectleader'       => $row->uren_projectleader ?? null,
+                            'current_costs_booked'     => (bool) ($row->current_costs_booked ?? false),
+                            'synced_at'                => $now,
+                        ]
+                    );
+                }
+            });
+
+        Log::info('SyncMirrorDataService: project_results sync completed.');
+    }
+
+    public function syncWorkdocs(): void
+    {
+        $now = now();
+
+        DB::connection('sqlsrv')
+            ->table('workdoc')
+            ->whereNotNull('project_id')
+            ->whereRaw("LEN(TRIM(project_id)) > 0")
+            ->orderBy('id')
+            ->chunk(500, function ($rows) use ($now) {
+                foreach ($rows as $row) {
+                    MirrorWorkdoc::updateOrCreate(
+                        ['id' => trim($row->id)],
+                        [
+                            'project_id'  => trim($row->project_id),
+                            'relation_id' => $row->relation_id ?? null,
+                            'name'        => trim($row->name ?? ''),
+                            'date'        => $row->date ? date('Y-m-d', strtotime($row->date)) : null,
+                            'status'      => $row->status ?? null,
+                            'fl_invoice'  => (bool) $row->fl_invoice,
+                            'fl_finished' => (bool) $row->fl_finished,
+                            'fl_paid'     => (bool) $row->fl_paid,
+                            'total_price' => $row->total_price ?? 0,
+                            'total_paid'  => $row->total_paid ?? 0,
+                            'synced_at'   => $now,
+                        ]
+                    );
+                }
+            });
+
+        Log::info('SyncMirrorDataService: workdocs sync completed.');
     }
 }
