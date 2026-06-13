@@ -310,8 +310,15 @@
                                     {{ $alert->recommendation ?? '—' }}
                                 @endif
                             </td>
-                            {{-- BI-059 Workflow actions --}}
+                            {{-- BI-2B-UX-02 + BI-059: Details button + Workflow actions --}}
                             <td class="px-4 py-3 text-right whitespace-nowrap">
+                                {{-- Details button — always visible --}}
+                                <button
+                                    wire:click="openModal({{ $alert->id }})"
+                                    class="mr-2 text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                                    title="{{ $isNl ? 'Volledige details bekijken' : 'View full details' }}"
+                                >&#9432; {{ $isNl ? 'Details' : 'Details' }}</button>
+                                {{-- Workflow actions --}}
                                 @if($alert->status === 'open')
                                     <button
                                         wire:click="markInReview({{ $alert->id }})"
@@ -350,4 +357,275 @@
             {{ $alerts->count() }} {{ $isNl ? 'melding(en) gevonden' : 'alert(s) found' }}
         </p>
     @endif
+
+{{-- BI-2B-UX-02: Detail modal — lazy loaded, read-only --}}
+@if($this->selectedAlertId !== null)
+    @php
+        $md  = $this->getModalData();
+        $ma  = $md['alert']      ?? null;
+        $mp  = $md['project']    ?? null;
+        $mr  = $md['relation']   ?? null;
+        $mi  = $md['invoice']    ?? null;
+        $mhl = $md['hasInsight'] ?? false;
+    @endphp
+    @if($ma)
+    <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 pt-10 sm:pt-4"
+         x-data
+         @keydown.escape.window="$wire.closeModal()">
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/70"
+             wire:click="closeModal"></div>
+
+        {{-- Panel --}}
+        <div class="relative z-10 w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+
+            {{-- Header --}}
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between gap-4">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-semibold text-gray-900 dark:text-white text-sm">
+                        {{ $typeLabels[$ma->alert_type] ?? $ma->alert_type }}
+                    </span>
+                    <span @class(['inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', $severityColors[$ma->severity] ?? ''])>
+                        {{ ucfirst($ma->severity) }}
+                    </span>
+                    <span @class(['inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium cursor-help', $statusColors[$ma->status] ?? ''])
+                          title="{{ $statusTooltips[$ma->status] ?? '' }}">
+                        {{ $statusLabels[$ma->status] ?? $ma->status }}
+                        @if($ma->status === 'confirmed')<span>&#9888;</span>@elseif($ma->status === 'resolved')<span>&#10003;</span>@endif
+                    </span>
+                </div>
+                <button wire:click="closeModal"
+                        class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-xl leading-none"
+                        aria-label="{{ $isNl ? 'Sluiten' : 'Close' }}">
+                    &#10005;
+                </button>
+            </div>
+
+            {{-- Scrollable body --}}
+            <div class="overflow-y-auto max-h-[72vh] px-6 py-5 space-y-5 text-sm">
+
+                {{-- Period --}}
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                    {{ $isNl ? 'Periode' : 'Period' }}:
+                    {{ \Carbon\Carbon::create($ma->period_year, $ma->period_month, 1)->translatedFormat('F Y') }}
+                </p>
+
+                {{-- Project & client --}}
+                <section>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+                        {{ $isNl ? 'Project & klant' : 'Project & client' }}
+                    </h3>
+                    <dl class="space-y-2">
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Referentie' : 'Reference' }}</dt>
+                            <dd class="text-xs font-mono text-gray-900 dark:text-white">
+                                {{ $ma->project_id ?? $ma->invoice_id ?? ($isNl ? 'Niet beschikbaar' : 'N/A') }}
+                            </dd>
+                        </div>
+                        @if($mp?->name)
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Projectnaam' : 'Project name' }}</dt>
+                            <dd class="text-xs text-gray-700 dark:text-gray-300">{{ $mp->name }}</dd>
+                        </div>
+                        @endif
+                        @if($mr?->name)
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Klant' : 'Client' }}</dt>
+                            <dd class="text-xs text-gray-700 dark:text-gray-300">{{ $mr->name }}</dd>
+                        </div>
+                        @endif
+                    </dl>
+                </section>
+
+                {{-- Invoice (only when invoice data is available) --}}
+                @if($mi)
+                <section>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+                        {{ $isNl ? 'Factuur' : 'Invoice' }}
+                    </h3>
+                    <dl class="space-y-2">
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Factuurnr.' : 'Invoice no.' }}</dt>
+                            <dd class="text-xs font-mono text-gray-900 dark:text-white">{{ $mi->id }}</dd>
+                        </div>
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Totaal (incl. BTW)' : 'Total (incl. VAT)' }}</dt>
+                            <dd class="text-xs tabular-nums text-gray-700 dark:text-gray-300">
+                                €{{ number_format((float)$mi->total_price, 2, ',', '.') }}
+                            </dd>
+                        </div>
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Betaald' : 'Paid' }}</dt>
+                            <dd class="text-xs tabular-nums text-gray-700 dark:text-gray-300">
+                                €{{ number_format((float)$mi->total_paid, 2, ',', '.') }}
+                            </dd>
+                        </div>
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Open saldo' : 'Open balance' }}</dt>
+                            <dd class="text-xs tabular-nums font-semibold text-gray-900 dark:text-white">
+                                €{{ number_format(max(0.0, (float)$mi->total_price - (float)$mi->total_paid), 2, ',', '.') }}
+                            </dd>
+                        </div>
+                        @if($mi->date_expiration)
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Vervaldatum' : 'Due date' }}</dt>
+                            <dd class="text-xs text-gray-700 dark:text-gray-300">
+                                {{ $mi->date_expiration->format('d M Y') }}
+                                @if(!$mi->fl_paid && $mi->date_expiration->isPast())
+                                    <span class="ml-1 text-xs text-red-600 dark:text-red-400 font-medium">
+                                        ({{ (int)$mi->date_expiration->diffInDays(now()) }} {{ $isNl ? 'dagen achterstallig' : 'days overdue' }})
+                                    </span>
+                                @endif
+                            </dd>
+                        </div>
+                        @endif
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Betaalstatus' : 'Payment status' }}</dt>
+                            <dd class="text-xs">
+                                @if($mi->fl_paid)
+                                    <span class="text-green-600 dark:text-green-400 font-medium">&#10003; {{ $isNl ? 'Betaald (CAFCA)' : 'Paid (CAFCA)' }}</span>
+                                @else
+                                    <span class="text-red-600 dark:text-red-400 font-medium">&#9888; {{ $isNl ? 'Niet betaald (CAFCA)' : 'Not paid (CAFCA)' }}</span>
+                                @endif
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
+                @endif
+
+                {{-- Amount with contextual label --}}
+                <section>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+                        {{ $isNl ? 'Bedrag' : 'Amount' }}
+                    </h3>
+                    @php
+                        $modalAmountLabel  = $amountLabels[$ma->alert_type] ?? ($isNl ? 'Bedrag' : 'Amount');
+                        $modalAmountValue  = $ma->amount_open ?? $ma->amount_activity_cost;
+                        $isInvoicingType   = in_array($ma->alert_type, ['missing_customer_invoice', 'project_billing_gap']);
+                    @endphp
+                    <div class="rounded-lg bg-gray-50 dark:bg-gray-800 px-4 py-3">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{{ $modalAmountLabel }}</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">
+                            {{ $modalAmountValue !== null ? '€' . number_format((float)$modalAmountValue, 2, ',', '.') : '—' }}
+                        </p>
+                        @if($ma->amount_estimated !== null)
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                {{ $isNl ? 'Contractprijs:' : 'Contract price:' }}
+                                €{{ number_format((float)$ma->amount_estimated, 2, ',', '.') }}
+                            </p>
+                        @endif
+                    </div>
+                    {{-- Warning: detected cost ≠ invoice amount --}}
+                    @if($isInvoicingType)
+                        <p class="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2">
+                            &#9888; {{ $isNl
+                                ? 'Gedetecteerde kost is geen automatisch factuurbedrag. Het te factureren bedrag bepaalt u zelf in CAFCA.'
+                                : 'Detected cost is not an automatic invoice amount. The billable amount is determined by you in CAFCA.' }}
+                        </p>
+                    @endif
+                </section>
+
+                {{-- Recommendation (full text) --}}
+                <section>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+                        {{ $isNl ? 'Aanbeveling' : 'Recommendation' }}
+                    </h3>
+                    <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {{ $ma->recommendation ?? ($isNl ? 'Niet beschikbaar' : 'N/A') }}
+                    </p>
+                </section>
+
+                {{-- Evidence (human-readable) --}}
+                @if(!empty($ma->evidence_json))
+                <section>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+                        {{ $isNl ? 'Bewijs (uit CAFCA)' : 'Evidence (from CAFCA)' }}
+                    </h3>
+                    @php
+                        $evidenceLabels = [
+                            'costs_in_month'          => $isNl ? 'Kosten in periode'    : 'Costs in period',
+                            'hours_in_month'          => $isNl ? 'Uren in periode'      : 'Hours in period',
+                            'workdocs_in_month'       => $isNl ? 'Werkdocumenten'       : 'Work documents',
+                            'last_invoice_date'       => $isNl ? 'Laatste factuur'      : 'Last invoice',
+                            'days_since_last_invoice' => $isNl ? 'Dagen zonder factuur' : 'Days without invoice',
+                            'count_items'             => $isNl ? 'Kostenlijnen'         : 'Cost line items',
+                            'total_amount'            => $isNl ? 'Totaal niet-gefact.'  : 'Total unbilled',
+                            'cost_types'              => $isNl ? 'Kostentypes'          : 'Cost types',
+                        ];
+                        $evidenceMonetary = ['costs_in_month', 'total_amount'];
+                        $evidenceHours    = ['hours_in_month'];
+                        $ev               = $ma->evidence_json ?? [];
+                    @endphp
+                    <dl class="space-y-2">
+                        @foreach($ev as $evKey => $evVal)
+                            @if($evVal !== null && $evVal !== '' && $evVal !== [])
+                            <div class="flex gap-3">
+                                <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $evidenceLabels[$evKey] ?? $evKey }}
+                                </dt>
+                                <dd class="text-xs text-gray-700 dark:text-gray-300">
+                                    @if(is_array($evVal))
+                                        {{ implode(', ', array_map('strval', $evVal)) }}
+                                    @elseif(in_array($evKey, $evidenceMonetary))
+                                        <span class="tabular-nums">€{{ number_format((float)$evVal, 2, ',', '.') }}</span>
+                                    @elseif(in_array($evKey, $evidenceHours))
+                                        <span class="tabular-nums">{{ number_format((float)$evVal, 2, ',', '.') }} h</span>
+                                    @else
+                                        {{ $evVal }}
+                                    @endif
+                                </dd>
+                            </div>
+                            @endif
+                        @endforeach
+                    </dl>
+                </section>
+                @endif
+
+                {{-- Project Insights link (conditional) --}}
+                @if($mhl && $ma->project_id)
+                <section>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">Links</h3>
+                    <a href="{{ \Modules\Performance\Filament\Resources\ProjectInsightResource::getUrl('view', ['record' => trim($ma->project_id)]) }}"
+                       target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                        &#8599; {{ $isNl ? 'Projectinzichten bekijken' : 'View project insights' }}
+                    </a>
+                </section>
+                @endif
+
+                {{-- Audit trail --}}
+                <section class="border-t border-gray-100 dark:border-gray-800 pt-4">
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">Audit</h3>
+                    <dl class="space-y-2">
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Aangemaakt' : 'Created' }}</dt>
+                            <dd class="text-xs text-gray-700 dark:text-gray-300">{{ $ma->created_at?->format('d M Y H:i') ?? '—' }}</dd>
+                        </div>
+                        @if($ma->reviewed_at)
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Beoordeeld op' : 'Reviewed at' }}</dt>
+                            <dd class="text-xs text-gray-700 dark:text-gray-300">{{ $ma->reviewed_at->format('d M Y H:i') }}</dd>
+                        </div>
+                        @endif
+                        @if($ma->resolved_at)
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Opgelost op' : 'Resolved at' }}</dt>
+                            <dd class="text-xs text-gray-700 dark:text-gray-300">{{ $ma->resolved_at->format('d M Y H:i') }}</dd>
+                        </div>
+                        @endif
+                        @if($ma->resolution_notes)
+                        <div class="flex gap-3">
+                            <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Notities' : 'Notes' }}</dt>
+                            <dd class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{{ $ma->resolution_notes }}</dd>
+                        </div>
+                        @endif
+                    </dl>
+                </section>
+
+            </div>{{-- /scrollable body --}}
+        </div>{{-- /panel --}}
+    </div>{{-- /modal wrapper --}}
+    @endif
+@endif
+
 </x-filament-panels::page>

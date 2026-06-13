@@ -8,6 +8,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Modules\Intelligence\Models\BillingAlert;
 use Modules\Intelligence\Services\MonthlyBillingGuardianService;
+use Modules\Performance\Models\Mirror\MirrorInvoice;
 use Modules\Performance\Models\Mirror\MirrorProject;
 use Modules\Performance\Models\Mirror\MirrorRelation;
 use Modules\Performance\Models\ProjectInsight;
@@ -22,6 +23,7 @@ class MonthlyBillingControlPage extends Page
 
     public string $period = '';
     public string $activeTab = 'all';
+    public ?int $selectedAlertId = null;
 
     public static function canAccess(): bool
     {
@@ -259,6 +261,48 @@ class MonthlyBillingControlPage extends Page
                         ->send();
                 }),
         ];
+    }
+
+    // -------------------------------------------------------------------------
+    // BI-2B-UX-02 — Detail modal (lazy load by PK — no N+1)
+    // -------------------------------------------------------------------------
+
+    public function openModal(int $alertId): void
+    {
+        $this->selectedAlertId = $alertId;
+    }
+
+    public function closeModal(): void
+    {
+        $this->selectedAlertId = null;
+    }
+
+    /**
+     * Lazy context for the detail modal. Called only when selectedAlertId is set.
+     * All lookups are by PK — maximum 5 queries, zero N+1.
+     *
+     * @return array{alert: ?BillingAlert, project: mixed, relation: mixed, invoice: mixed, hasInsight: bool}
+     */
+    public function getModalData(): array
+    {
+        if (!$this->selectedAlertId) {
+            return [];
+        }
+
+        $alert = BillingAlert::find($this->selectedAlertId);
+        if (!$alert) {
+            return [];
+        }
+
+        $project    = $alert->project_id  ? MirrorProject::find($alert->project_id)  : null;
+        $relId      = $project?->relation_id ?? $alert->relation_id;
+        $relation   = $relId               ? MirrorRelation::find($relId)             : null;
+        $invoice    = $alert->invoice_id   ? MirrorInvoice::find($alert->invoice_id)  : null;
+        $hasInsight = $alert->project_id
+            ? ProjectInsight::where('project_id', $alert->project_id)->exists()
+            : false;
+
+        return compact('alert', 'project', 'relation', 'invoice', 'hasInsight');
     }
 
     // -------------------------------------------------------------------------
