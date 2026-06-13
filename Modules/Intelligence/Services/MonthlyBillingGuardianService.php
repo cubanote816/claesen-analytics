@@ -412,22 +412,209 @@ class MonthlyBillingGuardianService
         return $alerts;
     }
 
-    /** BI-055 — active projects with no invoice for N+ days. */
+    /**
+     * BI-055 — active projects with cost activity in the period but no invoice
+     * for the last N days (configurable via billing_guardian_rules.days_without_invoice).
+     *
+     * Requires activity in period (cost > 0) to avoid noise on paused projects.
+     * Severity: medium.
+     */
     protected function detectProjectBillingGaps(int $year, int $month): array
     {
-        return []; // implemented in BI-055
+        $start = Carbon::create($year, $month, 1)->startOfDay();
+        $end   = $start->copy()->endOfMonth()->endOfDay();
+
+        $rules           = $this->config->get('billing_guardian_rules', []);
+        $daysWithout     = (int) ($rules['days_without_invoice'] ?? 30);
+        $gapCutoff       = Carbon::now('Europe/Brussels')->subDays($daysWithout)->startOfDay();
+
+        // Only projects with cost activity in the period
+        $activeProjectIds = MirrorCost::whereBetween('date', [$start, $end])
+            ->pluck('project_id')
+            ->unique();
+
+        if ($activeProjectIds->isEmpty()) {
+            return [];
+        }
+
+        // Find the last non-CN invoice date per project
+        $lastInvoiceDates = MirrorInvoice::whereIn('project_id', $activeProjectIds)
+            ->where('id', 'NOT LIKE', 'CN%')
+            ->selectRaw('project_id, MAX(date) AS last_date')
+            ->groupBy('project_id')
+            ->pluck('last_date', 'project_id');
+
+        $projects = MirrorProject::whereIn('id', $activeProjectIds)
+            ->where('fl_active', true)
+            ->get()
+            ->keyBy('id');
+
+        $alerts = [];
+
+        foreach ($activeProjectIds as $projectId) {
+            if (!$projects->has($projectId)) {
+                continue; // skip inactive / unknown
+            }
+
+            $lastDate = $lastInvoiceDates->get($projectId);
+
+            // If never invoiced OR last invoice older than cutoff
+            if ($lastDate !== null && Carbon::parse($lastDate)->gte($gapCutoff)) {
+                continue; // recently invoiced, no gap
+            }
+
+            $daysSince = $lastDate
+                ? (int) Carbon::parse($lastDate)->diffInDays(Carbon::now('Europe/Brussels'))
+                : null;
+
+            $project = $projects->get($projectId);
+
+            $alerts[] = [
+                'alert_type'    => 'project_billing_gap',
+                'severity'      => 'medium',
+                'project_id'    => $projectId,
+                'relation_id'   => $project->relation_id,
+                'evidence_json' => [
+                    'last_invoice_date'    => $lastDate ? Carbon::parse($lastDate)->toDateString() : null,
+                    'days_since_invoice'   => $daysSince,
+                    'gap_threshold_days'   => $daysWithout,
+                    'never_invoiced'       => $lastDate === null,
+                ],
+                'recommendation' => $lastDate
+                    ? sprintf(
+                        'Project %s heeft %d dagen geen factuur (drempel: %d). '
+                        . 'Laatste factuur: %s. Controleer of een (deel)factuur nodig is.',
+                        $projectId,
+                        $daysSince,
+                        $daysWithout,
+                        Carbon::parse($lastDate)->toDateString()
+                    )
+                    : sprintf(
+                        'Project %s heeft nooit een factuur gehad maar toont activiteit in %d-%02d. '
+                        . 'Controleer of het project facturabel is.',
+                        $projectId,
+                        $year,
+                        $month
+                    ),
+            ];
+        }
+
+        return $alerts;
     }
 
-    /** BI-055 — credit notes (CN%) in period for management visibility. */
+    /**
+     * BI-055 — credit notes (CN%) issued in the period.
+     *
+     * Management visibility only — no blocking implication.
+     * Severity: low. Not included in monthly_close_blocker calculation.
+     */
     protected function detectCreditNotes(int $year, int $month): array
     {
-        return []; // implemented in BI-055
+        $start = Carbon::create($year, $month, 1)->startOfDay();
+        $end   = $start->copy()->endOfMonth()->endOfDay();
+
+        $creditNotes = MirrorInvoice::where('id', 'LIKE', 'CN%')
+            ->whereBetween('date', [$start, $end])
+            ->get();
+
+        $alerts = [];
+
+        foreach ($creditNotes as $cn) {
+            $amountOpen = round((float) $cn->total_price - (float) $cn->total_paid, 2);
+
+            $alerts[] = [
+                'alert_type'    => 'credit_note',
+                'severity'      => 'low',
+                'project_id'    => $cn->project_id,
+                'relation_id'   => $cn->relation_id,
+                'invoice_id'    => $cn->id,
+                'amount_open'   => $amountOpen,
+                'evidence_json' => [
+                    'invoice_id'    => $cn->id,
+                    'date'          => $cn->date?->toDateString(),
+                    'total_price'   => round((float) $cn->total_price, 2),
+                    'client_name'   => $this->resolveClientName($cn->relation_id),
+                ],
+                'recommendation' => sprintf(
+                    'Creditnota %s van %s uitgereikt op %s voor project %s. Geen actie vereist.',
+                    $cn->id,
+                    $this->resolveClientName($cn->relation_id),
+                    $cn->date?->toDateString() ?? 'onbekende datum',
+                    $cn->project_id ?? '—'
+                ),
+            ];
+        }
+
+        return $alerts;
     }
 
-    /** BI-055 — projects marked inactive/closed with open balance. */
+    /**
+     * BI-055 — inactive/closed projects with unpaid invoices and open balance.
+     *
+     * A project is considered closed when fl_active = false.
+     * Trigger: at least one unpaid non-CN invoice with open balance > min_amount.
+     * Severity: high (open balance on closed project is always anomalous).
+     */
     protected function detectClosedProjectsWithBalance(int $year, int $month): array
     {
-        return []; // implemented in BI-055
+        $rules     = $this->config->get('billing_guardian_rules', []);
+        $minAmount = (float) ($rules['min_amount'] ?? 500);
+
+        // Closed projects with unpaid invoices
+        $unpaidInvoices = MirrorInvoice::where('fl_paid', false)
+            ->where('id', 'NOT LIKE', 'CN%')
+            ->whereRaw('(total_price - total_paid) > ?', [$minAmount])
+            ->get();
+
+        if ($unpaidInvoices->isEmpty()) {
+            return [];
+        }
+
+        $projectIds      = $unpaidInvoices->pluck('project_id')->unique();
+        $closedProjectIds = MirrorProject::whereIn('id', $projectIds)
+            ->where('fl_active', false)
+            ->pluck('id')
+            ->flip();
+
+        if ($closedProjectIds->isEmpty()) {
+            return [];
+        }
+
+        $projects = MirrorProject::whereIn('id', $closedProjectIds->keys())->get()->keyBy('id');
+
+        // Group unpaid invoices by project, only closed ones
+        $byProject = $unpaidInvoices
+            ->filter(fn($inv) => $closedProjectIds->has($inv->project_id))
+            ->groupBy('project_id');
+
+        $alerts = [];
+
+        foreach ($byProject as $projectId => $invoices) {
+            $totalOpen = $invoices->sum(fn($inv) => (float) $inv->total_price - (float) $inv->total_paid);
+            $project   = $projects->get($projectId);
+
+            $alerts[] = [
+                'alert_type'    => BillingAlert::TYPE_CLOSED_WITH_BALANCE,
+                'severity'      => 'high',
+                'project_id'    => $projectId,
+                'relation_id'   => $project?->relation_id,
+                'amount_open'   => round($totalOpen, 2),
+                'evidence_json' => [
+                    'invoice_count' => $invoices->count(),
+                    'total_open'    => round($totalOpen, 2),
+                    'invoice_ids'   => $invoices->pluck('id')->all(),
+                ],
+                'recommendation' => sprintf(
+                    'Project %s is inactief maar heeft %d openstaande factuur(en) met €%s onbetaald saldo. '
+                    . 'Volg op bij de klant of zet het project terug op actief in CAFCA.',
+                    $projectId,
+                    $invoices->count(),
+                    number_format($totalOpen, 2, ',', '.')
+                ),
+            ];
+        }
+
+        return $alerts;
     }
 
     /** Backlog — clients with recurring late-payment patterns. */
