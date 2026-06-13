@@ -7,11 +7,20 @@
 
 ## Estado actual
 
-- **Sprint activo:** BI — Sprint 2B UX (Monthly Billing Guardian mejoras UX)
-- **Rama actual:** `feature/bi-sprint2b-billing-guardian`
-- **Último ticket:** BI-2B-UX-06/07/08 ✅ — revisión visual OK (95/95 tests, Blade sin errores, ruta activa, todos los checks del checklist pasados)
-- **Próximo paso:** merge PR #6 `feature/bi-sprint2b-billing-guardian` → `main` (https://github.com/cubanote816/claesen-analytics/pull/6)
-- **Tests:** 95 passed / 200 assertions (módulo Intelligence)
+- **Sprint activo:** BI — Vista de Águila (Project Intelligence Detail page)
+- **Rama actual:** `feature/bi-project-intelligence-detail`
+- **Último ticket:** BI-PROJ-02 ✅ `7db83ae` — ProjectIntelligenceDetail page (Vista de Águila MVP, auditor GO)
+- **Próximo paso:** BI-PROJ-03: botón "Projectdetails openen" en modal Meer details · BI-PROJ-04: quitar class_exists guard
+- **Tests:** 95/95 Intelligence (post merge PR #6) — `sail artisan test --testsuite=Modules --filter=Intelligence`
+
+### BI-PROJ — Vista de Águila
+
+| Ticket | Título | Commit | Estado |
+|--------|--------|--------|--------|
+| BI-PROJ-01 | Auditoría ProjectInsightResource — confirma nueva page en Intelligence | (docblock en clase) | ✅ Done |
+| BI-PROJ-02 | `ProjectIntelligenceDetail` page MVP — `/project-detail/{projectId}` | `7db83ae` | ✅ Done — GO |
+| BI-PROJ-03 | Wire "Projectdetails openen" button en billing-control modal | — | 🚧 In Progress |
+| BI-PROJ-04 | Quitar class_exists guard, importar BillingAlert directo | — | ⬜ Todo |
 
 ### Sprint BI — Estado
 
@@ -243,7 +252,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | **Website** | ✅ WEB-001→025 mergeados en `main` (incl. Work Details + Static Site) | `main` | `docs/website-sprint-handoff.md` |
 | **Safety** | ✅ Sprint completado (SAF-001 a SAF-016) | `Safety_Inspections` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
-| **Intelligence / BI** | ✅ Sprint 1 completo (BI-010→022) — pendiente GO + merge | `feature/bi-sprint1-data` | `docs/bi-sprint-plan.md` |
+| **Intelligence / BI** | ✅ Sprint 1 ✅ Sprint 2B — PR #6 pendiente merge; BI-PROJ-02 ✅ (Vista de Águila) | `feature/bi-project-intelligence-detail` | `docs/bi-sprint-plan.md` |
 | **Prospects** | 🚧 ~80% (PROS-BUG-001+002 cerrados, FAB mailing operativo, sync dashboard exception feed) | `main` | Ver `CLAUDE.md` |
 | **Cafca** | ✅ ~90% | `main` | Ver `CLAUDE.md` |
 | **Core** | ✅ ~95% | `main` | Ver `CLAUDE.md` |

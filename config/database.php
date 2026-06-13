@@ -111,6 +111,7 @@ return [
             'prefix_indexes' => true,
             'encrypt' => env('DB_ENCRYPT_SQLSRV', 'no'),
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_SQLSRV', 'true'),
+            'login_timeout' => 3,
         ],
 
     ],
