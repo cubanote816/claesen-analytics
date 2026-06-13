@@ -8,6 +8,9 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Modules\Intelligence\Models\BillingAlert;
 use Modules\Intelligence\Services\MonthlyBillingGuardianService;
+use Modules\Performance\Models\Mirror\MirrorProject;
+use Modules\Performance\Models\Mirror\MirrorRelation;
+use Modules\Performance\Models\ProjectInsight;
 
 class MonthlyBillingControlPage extends Page
 {
@@ -256,6 +259,66 @@ class MonthlyBillingControlPage extends Page
                         ->send();
                 }),
         ];
+    }
+
+    // -------------------------------------------------------------------------
+    // BI-2B-UX-03 — Project / relation / insight context (no N+1)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns maps keyed by ID for the alerts currently visible in the active tab.
+     * Four indexed whereIn queries total — zero N+1.
+     *
+     * @return array{
+     *   projects: \Illuminate\Support\Collection,
+     *   relations: \Illuminate\Support\Collection,
+     *   insightSet: array<string, int>
+     * }
+     */
+    public function getProjectContext(): array
+    {
+        [$year, $month] = $this->parsePeriod();
+
+        $base = BillingAlert::where('period_year', $year)->where('period_month', $month);
+
+        if ($this->activeTab !== 'all') {
+            $typeMap = [
+                'invoicing'   => ['missing_customer_invoice', 'project_billing_gap'],
+                'receivables' => ['overdue_receivable', 'partial_payment'],
+                'costs'       => ['unbilled_followup_cost', 'closed_with_balance'],
+                'credits'     => ['credit_note'],
+                'system'      => ['monthly_close_blocker'],
+            ];
+            $types = $typeMap[$this->activeTab] ?? [];
+            if (!empty($types)) {
+                $base->whereIn('alert_type', $types);
+            }
+        }
+
+        $alertRows = $base->get(['project_id', 'relation_id']);
+
+        $projectIds  = $alertRows->pluck('project_id')->filter()->unique()->values()->all();
+        $alertRelIds = $alertRows->pluck('relation_id')->filter()->unique()->values()->all();
+
+        $projects = $projectIds
+            ? MirrorProject::whereIn('id', $projectIds)->get(['id', 'name', 'relation_id'])->keyBy('id')
+            : collect();
+
+        $allRelationIds = collect($alertRelIds)
+            ->merge($projects->pluck('relation_id')->filter())
+            ->unique()
+            ->values()
+            ->all();
+
+        $relations = $allRelationIds
+            ? MirrorRelation::whereIn('id', $allRelationIds)->get(['id', 'name'])->keyBy('id')
+            : collect();
+
+        $insightSet = $projectIds
+            ? ProjectInsight::whereIn('project_id', $projectIds)->pluck('project_id')->flip()->toArray()
+            : [];
+
+        return compact('projects', 'relations', 'insightSet');
     }
 
     private function parsePeriod(): array

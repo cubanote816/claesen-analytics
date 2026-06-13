@@ -10,7 +10,7 @@
 - **Sprint activo:** BI — Sprint 2B UX (Monthly Billing Guardian mejoras UX)
 - **Rama actual:** `feature/bi-sprint2b-billing-guardian`
 - **Último ticket:** BI-2B-UX-01/04/05 ✅ — quick wins UX (status labels NL, Bedrag contextual, tab Maandafsluiting, recomendación expandible, KPI tooltips, notificaciones orientativas)
-- **Próximo paso:** BI-2B-UX-03 (columna Project con nombre+cliente+link) → BI-2B-UX-02 (modal Meer details) → BI-2B-UX-06/07/08 (docs) → PR
+- **Próximo paso:** BI-2B-UX-02 (modal Meer details) → BI-2B-UX-06/07/08 (docs) → PR
 - **Tests:** 95 passed / 200 assertions (módulo Intelligence)
 
 ### Sprint BI — Estado
@@ -42,7 +42,7 @@
 | BI-061 | Tests — suite completa 95 tests / 200 assertions | `37cdf8b` | ✅ Done |
 | BI-062 | Documentación `docs/bi-monthly-billing-guardian.md` | `37cdf8b` | ✅ Done |
 | BI-2B-UX-01/04/05 | Quick wins UX — status labels NL, Bedrag contextual, tab Maandafsluiting, banner link, recomendación expandible, KPI sublabels+tooltips, notificaciones orientativas, modal Guardian texto | `pending` | ✅ Done |
-| BI-2B-UX-03 | Columna Project con nombre + cliente + link ProjectInsights | — | ⬜ Siguiente |
+| BI-2B-UX-03 | Columna Project con nombre + cliente + link ProjectInsights | `pending` | ✅ Done |
 | BI-2B-UX-02 | Modal "Meer details" — contexto completo + evidence legible | — | ⬜ Todo |
 | BI-2B-UX-06/07/08 | Documentación UX (user-guide + data-sources + technical doc) | — | ⬜ Todo |
 

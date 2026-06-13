@@ -14,10 +14,16 @@
     </div>
 
     @php
-        $kpis   = $this->getKpis();
-        $counts = $this->getTabCounts();
-        $alerts = $this->getAlerts();
-        $isNl   = app()->getLocale() === 'nl';
+        $kpis    = $this->getKpis();
+        $counts  = $this->getTabCounts();
+        $alerts  = $this->getAlerts();
+        $isNl    = app()->getLocale() === 'nl';
+
+        // BI-2B-UX-03 — project / relation / insight context (4 indexed whereIn, zero N+1)
+        $ctx        = $this->getProjectContext();
+        $projects   = $ctx['projects'];    // keyed by project_id
+        $relations  = $ctx['relations'];   // keyed by relation_id
+        $insightSet = $ctx['insightSet'];  // flip-array: project_id => 0 if insight exists
 
         $severityColors = [
             'critical' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
@@ -219,10 +225,41 @@
                                     {{ $typeLabels[$alert->alert_type] ?? $alert->alert_type }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3">
-                                <span class="font-medium text-gray-900 dark:text-white text-xs">
-                                    {{ $alert->project_id ?? $alert->invoice_id ?? '—' }}
-                                </span>
+                            {{-- BI-2B-UX-03: enriched project / invoice column --}}
+                            <td class="px-4 py-3 min-w-[10rem]">
+                                @if($alert->project_id)
+                                    @php
+                                        $proj    = $projects->get($alert->project_id);
+                                        $relId   = $proj?->relation_id ?? $alert->relation_id;
+                                        $rel     = $relId ? $relations->get($relId) : null;
+                                        $hasLink = array_key_exists($alert->project_id, $insightSet);
+                                    @endphp
+                                    <span class="font-mono font-medium text-gray-900 dark:text-white text-xs block">
+                                        {{ $alert->project_id }}
+                                    </span>
+                                    @if($proj?->name)
+                                        <span class="text-xs text-gray-600 dark:text-gray-300 block leading-tight mt-0.5">
+                                            {{ $proj->name }}
+                                        </span>
+                                    @endif
+                                    @if($rel?->name)
+                                        <span class="text-xs text-gray-400 dark:text-gray-500 block leading-tight">
+                                            {{ $rel->name }}
+                                        </span>
+                                    @endif
+                                    @if($hasLink)
+                                        <a href="{{ \Modules\Performance\Filament\Resources\ProjectInsightResource::getUrl('view', ['record' => trim($alert->project_id)]) }}"
+                                           target="_blank"
+                                           rel="noopener"
+                                           class="mt-1 inline-flex items-center gap-0.5 text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                                            &#8599; {{ $isNl ? 'Inzichten' : 'Insights' }}
+                                        </a>
+                                    @endif
+                                @else
+                                    <span class="font-mono font-medium text-gray-900 dark:text-white text-xs">
+                                        {{ $alert->invoice_id ?? '—' }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-4 py-3">
                                 <span @class(['inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', $severityColors[$alert->severity] ?? ''])>
