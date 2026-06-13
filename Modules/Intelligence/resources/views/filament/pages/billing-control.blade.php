@@ -581,15 +581,24 @@
                 </section>
                 @endif
 
-                {{-- Project Insights link (conditional) --}}
-                @if($mhl && $ma->project_id)
+                {{-- Project links — always when project_id is set --}}
+                @if($ma->project_id)
                 <section>
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">Links</h3>
-                    <a href="{{ \Modules\Performance\Filament\Resources\ProjectInsightResource::getUrl('view', ['record' => trim($ma->project_id)]) }}"
-                       target="_blank" rel="noopener"
-                       class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline font-medium">
-                        &#8599; {{ $isNl ? 'Projectinzichten bekijken' : 'View project insights' }}
-                    </a>
+                    <div class="flex flex-col gap-2">
+                        <a href="{{ \Modules\Intelligence\Filament\Pages\ProjectIntelligenceDetail::getProjectUrl(trim($ma->project_id)) }}"
+                           target="_blank" rel="noopener"
+                           class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                            &#8599; {{ $isNl ? 'Projectdetails openen' : 'Open project details' }}
+                        </a>
+                        @if($mhl)
+                        <a href="{{ \Modules\Performance\Filament\Resources\ProjectInsightResource::getUrl('view', ['record' => trim($ma->project_id)]) }}"
+                           target="_blank" rel="noopener"
+                           class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                            &#8599; {{ $isNl ? 'Projectinzichten bekijken' : 'View project insights' }}
+                        </a>
+                        @endif
+                    </div>
                 </section>
                 @endif
 
