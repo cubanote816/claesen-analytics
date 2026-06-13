@@ -1,50 +1,57 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-13 (BI-010 ✅ — columnas contract_price/type/state añadidas a mirror_projects)
+> Última actualización: 2026-06-13 (Sprint 1 ✅ COMPLETO — BI-010→022, 13/13 tickets, 27 tests en verde)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** BI — Sprint 1 🚧 In Progress
+- **Sprint activo:** BI — Sprint 1 ✅ COMPLETO (13/13 tickets). Pendiente: GO del auditor + merge a `main`.
 - **Rama actual:** `feature/bi-sprint1-data`
-- **Último ticket:** BI-010 ✅ `5002265` — `contract_price`, `type`, `state` en `intelligence_mirror_projects`
-- **Próximo paso:** Sync completo cuando SQL Server accesible → luego BI-011
-- **Pendiente operativo:** `./vendor/bin/sail artisan intelligence:sync-mirror` (sin flags) para poblar las nuevas columnas. SQL Server (192.168.254.102) no alcanzable desde Docker al momento del commit.
-- **Deuda técnica:** `syncProjects` N+1 (un query SQL Server por proyecto para relation.zipcode/city) → BI-022 Sprint 1.
+- **Último ticket:** BI-022 ✅ `c46db98` — fix N+1 en `syncProjects` (de colgado → 1.14s)
+- **Próximo paso:** GO del auditor → PR `feature/bi-sprint1-data` → `main` → Sprint 2B (Billing Guardian) puede arrancar.
+- **Tests:** 27 passed (61 assertions) — `sail artisan test --testsuite=Modules --filter=Intelligence`
 
 ### Sprint BI — Estado
 
 | Sprint | Estado | Aprobación |
 |--------|--------|------------|
 | Sprint 0 — Integración BI→main | ✅ Done — PR #4 mergeado | ✅ Auditor GO |
-| Sprint 1 — Mirrors + bi_config | 🚧 In Progress — BI-010 ✅ | ✅ Auditor GO |
+| Sprint 1 — Mirrors + bi_config | ✅ COMPLETO — pendiente GO + merge | ✅ Auditor GO |
 | Sprint 2 — Motor financiero | ⬜ Todo | ✅ (no requiere auditor gate) |
-| Sprint 2B — Monthly Billing Guardian | ⬜ Todo | ✅ GO con **Auditor Gate en BI-052/053/054** |
+| Sprint 2B — Monthly Billing Guardian | ⬜ Desbloqueado tras merge Sprint 1 | ✅ GO con **Auditor Gate en BI-052/053/054** |
 | Sprint 3 — UI simulador | ⬜ Todo | ✅ (no requiere auditor gate) |
 | Sprint 4 — Métricas | ⬜ Todo | ✅ (no requiere auditor gate) |
 
-### Sprint 1 — Tickets
+### Sprint 1 — Tickets (todos ✅)
 
 | Ticket | Título | Commit | Estado |
 |--------|--------|--------|--------|
 | BI-010 | `contract_price`, `type`, `state` → `intelligence_mirror_projects` | `5002265` | ✅ Done |
-| BI-011 | `invoiced` (boolean) → `intelligence_mirror_costs` + sync | — | ⬜ Todo |
-| BI-012 | `relation_id`, `date_expiration`, `fl_paid` → `intelligence_mirror_invoices` + sync | — | ⬜ Todo |
-| BI-013 | Crear `intelligence_mirror_estimate_calc` | — | ⬜ Todo |
-| BI-014 | Crear `intelligence_mirror_project_links` | — | ⬜ Todo |
-| BI-015 | Crear `intelligence_mirror_project_results` | — | ⬜ Todo |
-| BI-016 | Crear `intelligence_mirror_workdocs` | — | ⬜ Todo |
-| BI-017 | Crear `intelligence_bi_config` + seeder | — | ⬜ Todo |
-| BI-018 | `BiConfigService` con Redis cache | — | ⬜ Todo |
-| BI-019 | `BiConfigPage` Filament V5 | — | ⬜ Todo |
-| BI-020 | Labor sync warning + ventana temporal configurable | — | ⬜ Todo |
-| BI-021 | Tests módulo Intelligence | — | ⬜ Todo |
-| BI-022 | Fix N+1 en `syncProjects` (batch-load relation zipcode/city) | — | ⬜ Todo |
+| BI-011 | `invoiced` (boolean) → `intelligence_mirror_costs` + sync (`already_invoiced`) | `f8383fd` | ✅ Done |
+| BI-012 | `relation_id`, `date_expiration`, `fl_paid` → `intelligence_mirror_invoices` + sync | `7984209` | ✅ Done |
+| BI-013 | `intelligence_mirror_estimate_calc` — factores MAMO (6.677 filas 1:1) | `358cbe5` | ✅ Done |
+| BI-014 | `intelligence_mirror_project_links` (1.658 filas) + fix composite-key save | `ec89fcc`+`a0b8604` | ✅ Done |
+| BI-015 | `intelligence_mirror_project_results` — 45 filas validadas, profit_percent decimal(10,4) | `eb1ae6a` | ✅ Done |
+| BI-016 | `intelligence_mirror_workdocs` — 1.782 filas validadas | `e86255a` | ✅ Done |
+| BI-017 | `intelligence_bi_config` + seeder 5 entradas (firstOrCreate) | `a118d92` | ✅ Done |
+| BI-018 | `BiConfigService` — get/set/dot-notation/cache 1h + invalidación | `04c35b2` | ✅ Done |
+| BI-019 | `BiConfigPage` Filament V5 — 5 secciones, super_admin only | `3280d83` | ✅ Done |
+| BI-020 | Labor sync window — respeta `labor_sync_schedule`, ventanas que cruzan medianoche | `9740181` | ✅ Done |
+| BI-021 | Tests Intelligence — 27 tests / 61 assertions (3 archivos Feature) | `b2b6d8f` | ✅ Done |
+| BI-022 | Fix N+1 `syncProjects` — batch whereIn por chunk; colgado → 1.14s | `c46db98` | ✅ Done |
+
+### Hallazgos clave Sprint 1 (para el auditor)
+
+- **BI-011:** campo correcto es `followup_cost.already_invoiced` (12.735 true / 190 false). `invoice` bit es flag de tipo, NO estado de facturación. `fl_booked_to_invoice` tiene 1 sola fila.
+- **BI-015:** `profit_percent` requiere `decimal(10,4)` — caso real P20180031 NMBS: 11.852% (cost €920, invoiced €110.005). `rpt_project_results.invoiced` es importe float €, no boolean.
+- **BI-016:** `workdoc.fl_invoice=1` en 75% de filas → flag de tipo facturable. `fl_paid=1` en solo 1 fila — no es señal fiable aún. `fl_needinvoiced` descartado (9 filas).
+- **BI-014 fix:** `updateOrCreate` con PK compuesta generaba `UPDATE WHERE id IS NULL` — bug latente que habría fallado en el primer re-sync de producción. Detectado por los tests de BI-021.
+- **Mirrors poblados:** projects 127 (contract_price/type/state OK, zipcode 126/127), project_results 45/45, workdocs 1.782/1.782, relations 3.259, estimate_items 144.051.
 
 **Documento maestro:** `docs/bi-sprint-plan.md`
-**Rama Sprint 1:** `feature/bi-sprint1-data` | Sprint 2B → desde `feature/bi-sprint1-data` una vez Sprint 1 completo
+**Rama Sprint 1:** `feature/bi-sprint1-data` | Sprint 2B → desde `main` tras merge de Sprint 1
 
 ### Estado de ramas feature
 
@@ -150,7 +157,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | **Website** | ✅ WEB-001→025 mergeados en `main` (incl. Work Details + Static Site) | `main` | `docs/website-sprint-handoff.md` |
 | **Safety** | ✅ Sprint completado (SAF-001 a SAF-016) | `Safety_Inspections` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
-| **Intelligence / BI** | 🚧 Sprint 1 In Progress — BI-010 ✅ | `feature/bi-sprint1-data` | `docs/bi-sprint-plan.md` |
+| **Intelligence / BI** | ✅ Sprint 1 completo (BI-010→022) — pendiente GO + merge | `feature/bi-sprint1-data` | `docs/bi-sprint-plan.md` |
 | **Prospects** | 🚧 ~80% (PROS-BUG-001+002 cerrados, FAB mailing operativo, sync dashboard exception feed) | `main` | Ver `CLAUDE.md` |
 | **Cafca** | ✅ ~90% | `main` | Ver `CLAUDE.md` |
 | **Core** | ✅ ~95% | `main` | Ver `CLAUDE.md` |
@@ -189,11 +196,12 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | Prioridad | Ticket | Linear | Título | Estado |
 |-----------|--------|--------|--------|--------|
 | **1** | BI-000 | — | Sprint BI — Sprint 0: integración + PR #4 | ✅ Done |
-| **2** | BI-011→022 | — | Sprint BI — Sprint 1: mirrors + bi_config (BI-010 ✅) | 🚧 In Progress |
-| 3 | OPS-MAI-001 | CLA-140 | Mailing production readiness validation | ⬜ Todo |
-| 4 | — | — | Website backfill media (`website:regenerate-media`) + validar deploy frontend | Operativo |
-| 5 | — | — | Prospects CRM — calidad de datos, filtros, segmentos | 🚧 ~78% |
-| 6 | — | — | Performance / Watchdog — impacto financiero si gerencia lo prioriza | 🚧 ~85% |
+| **2** | BI-010→022 | — | Sprint BI — Sprint 1: mirrors + bi_config | ✅ Done — pendiente GO + merge |
+| **3** | BI-050→062 | — | Sprint BI — Sprint 2B: Monthly Billing Guardian | ⬜ Desbloqueado tras merge |
+| 4 | OPS-MAI-001 | CLA-140 | Mailing production readiness validation | ⬜ Todo |
+| 5 | — | — | Website backfill media (`website:regenerate-media`) + validar deploy frontend | Operativo |
+| 6 | — | — | Prospects CRM — calidad de datos, filtros, segmentos | 🚧 ~78% |
+| 7 | — | — | Performance / Watchdog — impacto financiero si gerencia lo prioriza | 🚧 ~85% |
 | Bloqueado | Mailing Fase 3 | MAI-031→036 | Scoring, predicciones, IA | ⏸ Hasta 4–6 sem datos reales |
 
 ---
@@ -289,6 +297,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-13 | BI-011→022 | Sprint 1 completado en una sesión: 12 tickets + 1 fix colateral. Mirrors nuevos (estimate_calc, project_links, project_results, workdocs), bi_config + service + página Filament, ventana labor sync, 27 tests, fix N+1. Todos los commits en `feature/bi-sprint1-data`. |
 | 2026-06-13 | BI-010 | `contract_price`, `type`, `state` añadidos a `intelligence_mirror_projects`. Migración `2026_06_13_100000` aplicada. Sync completo pendiente (SQL Server no alcanzable desde Docker al momento del commit). Commit `5002265` en `feature/bi-sprint1-data`. |
 | 2026-06-13 | BI-000 | PR #4 mergeado — `feature/bi-foundation` → `main`. Cherry-pick `8d563e8`+`a8eedcf` aplicados. 6 migraciones `2026_05_27_*` en main. Sail validado (migrate, sync --relations 3.259, sync --estimates 144.051). |
 | 2026-06-13 | BI-PLAN | Done — Plan Sprint BI completado y aprobado por auditor. Sprint 0+1+2B GO. Auditor Gate formalizado en BI-052/053/054 con 5-ejemplo obligatorio. Documento: `docs/bi-sprint-plan.md`. |
