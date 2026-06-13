@@ -3,6 +3,7 @@
 namespace Modules\Intelligence\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Intelligence\Database\Seeders\BiConfigSeeder;
 
 class IntelligenceDatabaseSeeder extends Seeder
 {
@@ -11,6 +12,8 @@ class IntelligenceDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            BiConfigSeeder::class,
+        ]);
     }
 }
