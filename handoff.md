@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-13 (Sprint 2B en curso — BI-050/051/052 ✅, gate BI-052 APPROVED)
+> Última actualización: 2026-06-13 (Sprint 2B en curso — BI-050→054 ✅, gate BI-054 APPROVED)
 
 ---
 
@@ -9,9 +9,9 @@
 
 - **Sprint activo:** BI — Sprint 2B (Monthly Billing Guardian) 🚧 In Progress
 - **Rama actual:** `feature/bi-sprint2b-billing-guardian` (desde `main` post-merge PR #5)
-- **Último ticket:** BI-052 ✅ — Auditor Gate APPROVED (ver registro abajo)
-- **Próximo paso:** BI-053 — facturas vencidas + cobros parciales (Auditor Gate aplica)
-- **Tests:** 59 passed acumulados módulo Intelligence
+- **Último ticket:** BI-054 ✅ — Auditor Gate APPROVED (ver registro abajo)
+- **Próximo paso:** BI-055 — reglas restantes sin gate (billing gaps, credit notes, closed with balance)
+- **Tests:** 77 passed acumulados módulo Intelligence
 
 ### Sprint BI — Estado
 
@@ -20,7 +20,7 @@
 | Sprint 0 — Integración BI→main | ✅ Done — PR #4 mergeado | ✅ Auditor GO |
 | Sprint 1 — Mirrors + bi_config | ✅ Done — PR #5 mergeado a `main` (`558ec32`) | ✅ Auditor GO |
 | Sprint 2 — Motor financiero | ⬜ Todo | ✅ (no requiere auditor gate) |
-| Sprint 2B — Monthly Billing Guardian | 🚧 BI-050/051/052 ✅ — BI-053 siguiente | ✅ GO con **Auditor Gate en BI-052/053/054** |
+| Sprint 2B — Monthly Billing Guardian | 🚧 BI-050→054 ✅ — BI-055 siguiente | ✅ GO con **Auditor Gate en BI-052/053/054** |
 | Sprint 3 — UI simulador | ⬜ Todo | ✅ (no requiere auditor gate) |
 | Sprint 4 — Métricas | ⬜ Todo | ✅ (no requiere auditor gate) |
 
@@ -31,8 +31,8 @@
 | BI-050 | Migración `intelligence_billing_alerts` + modelo | `5ba0ec7` | ✅ Done |
 | BI-051 | `MonthlyBillingGuardianService` — estructura + §4.4.1 rerun policy | `4b262b7` | ✅ Done |
 | BI-052 | Regla `missing_customer_invoice` — **Gate APPROVED** | `a3004b8`+`4490bcc` | ✅ Done |
-| BI-053 | Regla: facturas vencidas + cobros parciales | — | ⬜ Todo (gate) |
-| BI-054 | Regla: costes followup no facturados | — | ⬜ Todo (gate) |
+| BI-053 | Reglas `overdue_receivable`+`partial_payment` — **Gate APPROVED** | `610dff7` | ✅ Done |
+| BI-054 | Regla `unbilled_followup_cost` — costes followup no facturados — **Gate APPROVED** | `108f928` | ✅ Done |
 | BI-055 | Reglas: proyectos cerrados con saldo + notas de crédito | — | ⬜ Todo |
 | BI-056 | Comando `intelligence:billing-guardian` | — | ⬜ Todo |
 | BI-057 | Scheduler mensual (día 2, 7:00) | — | ⬜ Todo |
@@ -65,6 +65,46 @@
 - Caso N: P20260024 Balteau — €9.016,05 PERO facturado en mayo → excluido ✓
 - Caso L: sin fila real en €500,00 exacto — comportamiento fijado por tests (500,00 no dispara / 500,01 dispara)
 - **Hallazgo demo:** P20260029 vs P20260030 (ambos Derriks, €5.600) — uno facturado, otro no → alerta correcta. Caso ideal para demo interna del módulo.
+
+### BI-053 — Auditor Gate: APPROVED (2026-06-13)
+
+**Regla `overdue_receivable`:** dispara cuando `fl_paid=false`, no es CN%, `date_expiration < hoy`, y saldo abierto `(total_price − total_paid) > min_amount` (€500, estricto `>`). Severity: >60 días vencida → critical, si no → high (frontera 60/61 fijada por tests).
+
+**Regla `partial_payment`:** dispara cuando `fl_paid=false`, `total_paid > 0`, saldo > min_amount, y **aún no vencida** (o sin fecha). Severity: medium.
+
+**Decisiones aprobadas:**
+- Exclusión mutua por `date_expiration`: al vencer, la parcial pasa a overdue — nunca doble alerta.
+- Umbral compartido `min_amount` (€500) para ambas reglas.
+- Semántica snapshot: saldo que sigue abierto re-alerta el periodo siguiente (dedup_key incluye periodo) — intencional.
+- `fl_paid=true` excluye siempre (el bit manda sobre el cálculo).
+- Schema: `total_price`/`total_paid` añadidos al mirror; sync ampliado a "6 meses O fl_paid=0" (mirror: 113 → 130 facturas; la impagada más vieja es de 2009).
+
+**Evidencia del gate (datos reales, dry-run — 32 overdue: 20 critical / 12 high):**
+- Caso A: F25260007 TC Tenkie — €65.867,48, 286 días, critical
+- Caso B: F25260201 Happy Waregem — €33.903,52, 12 días, high (severity distinta)
+- Caso C (edge): F21220158 K.F.C. St-Job — €550,55, justo sobre umbral
+- Caso N: F24250178 — €420,93 ≤ €500 → excluido ✓
+- Caso L: sin fila real en €500,00 — fijado por tests (500,00 no / 500,01 sí)
+- Partial real hoy: 0 (todas las parciales ya vencieron → overdue, exclusión mutua correcta)
+
+### BI-054 — Auditor Gate: APPROVED (2026-06-13)
+
+**Regla:** `unbilled_followup_cost` dispara cuando el total de costes con `invoiced=false` en el período, agrupado por proyecto, supera `min_cost_amount` (€500, estricto `>`).
+
+**Decisiones aprobadas:**
+- **Evaluación a nivel proyecto** (no por ítem individual): `SUM(cost_price × quantity) > min_cost_amount`. Aprobado explícitamente porque detecta acumulación de costes pequeños no facturados que suman riesgo operativo real.
+- Comparador estricto `>`: exactamente €500 NO dispara.
+- Campo fuente: `intelligence_mirror_costs.invoiced = false` → mapea a `followup_cost.already_invoiced` del ERP.
+- Solo suma costes `uninvoiced`; los `invoiced=true` del mismo proyecto no entran.
+- Threshold configurable: `billing_guardian_rules.min_cost_amount` (reservado para esta regla, separado de `min_activity_amount` de BI-052).
+- Severity tiers: `medium ≤ €10k`, `high > €10k`. No `critical` por ahora — observar datos reales antes de añadir tier adicional.
+- evidence_json: `{ count_items, total_amount, cost_types[] }`.
+- recommendation: holandés, texto claro con ref proyecto + instrucción CAFCA.
+
+**Desviación aprobada del spec original:**
+> Auditor approved project-level aggregation instead of per-item threshold because multiple small uninvoiced costs on the same project represent a real billing risk.
+
+**Tests:** 15 pasados / 26 assertions (BillingGuardianUnbilledCostTest.php). Commit `108f928`.
 
 ### Sprint 1 — Tickets (todos ✅)
 
