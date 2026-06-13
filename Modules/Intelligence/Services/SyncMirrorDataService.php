@@ -57,28 +57,34 @@ class SyncMirrorDataService
             $query->where('fl_active', 1);
         }
 
-        $query->orderBy('id')->chunk(500, function ($projects) {
+        // Mapping project.type to human-readable categories
+        $categoryMap = [
+            0 => 'Industrie',
+            1 => 'Industrie',
+            2 => 'Openbare Verlichting',
+            3 => 'Openbare Verlichting',
+            4 => 'Sportverlichting',
+            5 => 'Sportverlichting',
+            6 => 'Masten',
+            7 => 'Industrie',
+            8 => 'Algemeen',
+        ];
+
+        $query->orderBy('id')->chunk(500, function ($projects) use ($categoryMap) {
+            // Batch-load relation locations for the whole chunk in one query
+            // (previously one SQL Server round-trip per project — N+1).
+            $relationIds = $projects->pluck('relation_id')->filter()->unique()->values();
+            $relations = $relationIds->isEmpty()
+                ? collect()
+                : DB::connection('sqlsrv')->table('relation')
+                    ->whereIn('id', $relationIds)
+                    ->select('id', 'zipcode', 'city')
+                    ->get()
+                    ->keyBy('id');
+
             foreach ($projects as $project) {
-                // Mapping project.type to human-readable categories
-                $categoryMap = [
-                    0 => 'Industrie',
-                    1 => 'Industrie',
-                    2 => 'Openbare Verlichting',
-                    3 => 'Openbare Verlichting',
-                    4 => 'Sportverlichting',
-                    5 => 'Sportverlichting',
-                    6 => 'Masten',
-                    7 => 'Industrie',
-                    8 => 'Algemeen',
-                ];
-
                 $category = $categoryMap[$project->type] ?? 'Algemeen';
-
-                // Fetch location from relation table
-                $relation = DB::connection('sqlsrv')->table('relation')
-                    ->where('id', $project->relation_id)
-                    ->select('zipcode', 'city')
-                    ->first();
+                $relation = $relations->get($project->relation_id);
 
                 MirrorProject::updateOrCreate(
                     ['id' => trim($project->id)],
