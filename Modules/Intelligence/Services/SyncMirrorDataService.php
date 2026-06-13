@@ -20,6 +20,7 @@ use Modules\Performance\Models\Mirror\MirrorProjectLink;
 use Modules\Performance\Models\Mirror\MirrorProjectResult;
 use Modules\Performance\Models\Mirror\MirrorRelation;
 use Modules\Performance\Models\Mirror\MirrorWorkdoc;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -136,11 +137,52 @@ class SyncMirrorDataService
         });
     }
 
+    /**
+     * Check whether the current time (Europe/Brussels) falls inside the configured
+     * labor sync window. Returns true if no window is configured (null start/end).
+     * Handles midnight-spanning windows (e.g. 22:00-06:00).
+     */
+    public function isLaborSyncAllowed(): bool
+    {
+        $schedule = app(BiConfigService::class)->get('labor_sync_schedule', []);
+        $start    = $schedule['start'] ?? null;
+        $end      = $schedule['end']   ?? null;
+
+        if ($start === null || $end === null) {
+            return true;
+        }
+
+        $now        = Carbon::now('Europe/Brussels');
+        $nowMinutes = $now->hour * 60 + $now->minute;
+
+        [$sh, $sm] = array_map('intval', explode(':', $start));
+        [$eh, $em] = array_map('intval', explode(':', $end));
+        $startMin  = $sh * 60 + $sm;
+        $endMin    = $eh * 60 + $em;
+
+        // Window spans midnight (e.g. 22:00-06:00): allowed outside the gap
+        if ($startMin > $endMin) {
+            return $nowMinutes >= $startMin || $nowMinutes < $endMin;
+        }
+
+        // Normal window (e.g. 01:00-05:00)
+        return $nowMinutes >= $startMin && $nowMinutes < $endMin;
+    }
+
     private function syncLabor(bool $fullHistory): void
     {
         // followup_labor_analytical can be locked during CAFCA production hours.
         // Wrap in try/catch so a temporary lock does not abort the entire syncAll.
         try {
+            if (!$this->isLaborSyncAllowed()) {
+                $schedule = app(BiConfigService::class)->get('labor_sync_schedule', []);
+                Log::warning('syncLabor skipped — outside configured safe window.', [
+                    'window_start' => $schedule['start'],
+                    'window_end'   => $schedule['end'],
+                    'now_brussels' => Carbon::now('Europe/Brussels')->format('H:i'),
+                ]);
+                return;
+            }
             $query = DB::connection('sqlsrv')->table('followup_labor_analytical');
             if (!$fullHistory) {
                 $query->where('date', '>=', now()->subMonths(6));
