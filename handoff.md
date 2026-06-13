@@ -1,28 +1,70 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-13 (Sprint 1 ✅ COMPLETO — BI-010→022, 13/13 tickets, 27 tests en verde)
+> Última actualización: 2026-06-13 (Sprint 2B en curso — BI-050/051/052 ✅, gate BI-052 APPROVED)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** BI — Sprint 1 ✅ COMPLETO (13/13 tickets). Pendiente: GO del auditor + merge a `main`.
-- **Rama actual:** `feature/bi-sprint1-data`
-- **Último ticket:** BI-022 ✅ `c46db98` — fix N+1 en `syncProjects` (de colgado → 1.14s)
-- **Próximo paso:** GO del auditor → PR `feature/bi-sprint1-data` → `main` → Sprint 2B (Billing Guardian) puede arrancar.
-- **Tests:** 27 passed (61 assertions) — `sail artisan test --testsuite=Modules --filter=Intelligence`
+- **Sprint activo:** BI — Sprint 2B (Monthly Billing Guardian) 🚧 In Progress
+- **Rama actual:** `feature/bi-sprint2b-billing-guardian` (desde `main` post-merge PR #5)
+- **Último ticket:** BI-052 ✅ — Auditor Gate APPROVED (ver registro abajo)
+- **Próximo paso:** BI-053 — facturas vencidas + cobros parciales (Auditor Gate aplica)
+- **Tests:** 59 passed acumulados módulo Intelligence
 
 ### Sprint BI — Estado
 
 | Sprint | Estado | Aprobación |
 |--------|--------|------------|
 | Sprint 0 — Integración BI→main | ✅ Done — PR #4 mergeado | ✅ Auditor GO |
-| Sprint 1 — Mirrors + bi_config | ✅ COMPLETO — pendiente GO + merge | ✅ Auditor GO |
+| Sprint 1 — Mirrors + bi_config | ✅ Done — PR #5 mergeado a `main` (`558ec32`) | ✅ Auditor GO |
 | Sprint 2 — Motor financiero | ⬜ Todo | ✅ (no requiere auditor gate) |
-| Sprint 2B — Monthly Billing Guardian | ⬜ Desbloqueado tras merge Sprint 1 | ✅ GO con **Auditor Gate en BI-052/053/054** |
+| Sprint 2B — Monthly Billing Guardian | 🚧 BI-050/051/052 ✅ — BI-053 siguiente | ✅ GO con **Auditor Gate en BI-052/053/054** |
 | Sprint 3 — UI simulador | ⬜ Todo | ✅ (no requiere auditor gate) |
 | Sprint 4 — Métricas | ⬜ Todo | ✅ (no requiere auditor gate) |
+
+### Sprint 2B — Tickets
+
+| Ticket | Título | Commit | Estado |
+|--------|--------|--------|--------|
+| BI-050 | Migración `intelligence_billing_alerts` + modelo | `5ba0ec7` | ✅ Done |
+| BI-051 | `MonthlyBillingGuardianService` — estructura + §4.4.1 rerun policy | `4b262b7` | ✅ Done |
+| BI-052 | Regla `missing_customer_invoice` — **Gate APPROVED** | `a3004b8`+`4490bcc` | ✅ Done |
+| BI-053 | Regla: facturas vencidas + cobros parciales | — | ⬜ Todo (gate) |
+| BI-054 | Regla: costes followup no facturados | — | ⬜ Todo (gate) |
+| BI-055 | Reglas: proyectos cerrados con saldo + notas de crédito | — | ⬜ Todo |
+| BI-056 | Comando `intelligence:billing-guardian` | — | ⬜ Todo |
+| BI-057 | Scheduler mensual (día 2, 7:00) | — | ⬜ Todo |
+| BI-058 | `MonthlyBillingControlPage` Filament V5 | — | ⬜ Todo |
+| BI-059 | Workflow de estados de alerta | — | ⬜ Todo |
+| BI-060 | Reglas Guardian en `BiConfigPage` | ✅ ya en BI-019/052 | ✅ Done |
+| BI-061 | Tests con datos mirror | 🚧 parcial (21 tests guardian) | 🚧 |
+| BI-062 | Documentar reglas | — | ⬜ Todo |
+
+### BI-052 — Auditor Gate: APPROVED (2026-06-13)
+
+**Regla:** `missing_customer_invoice` dispara cuando:
+- hay actividad económica en el mes,
+- activity_cost > €500 (`min_activity_amount`, comparador estricto `>`),
+- no existe invoice no-CN en ese mes,
+- el proyecto tiene contrato o estimate vinculado.
+
+**Decisiones aprobadas por el auditor:**
+- Comparador estricto: `>` threshold. Exactamente €500 NO dispara (fijado por tests).
+- `CN%` no cuenta como factura válida.
+- `amount_activity_cost` contiene costes detectados en mirror_costs.
+- `amount_estimated` solo se rellena con `contract_price` confiable; sin contrato → NULL.
+- Horas/workdocs solos no disparan por ahora.
+- Config renombrada: `min_activity_amount` para esta regla; `min_cost_amount` reservado para `unbilled_followup_cost` (BI-054).
+
+**Evidencia del gate (datos reales mayo 2026, dry-run):**
+- Caso A: P20250063 Limburg Diepenbeek — €20.642,84, 120 días sin factura
+- Caso B: P20250054 Gemeente Heuvelland — €9.925,18 + 193,34h, 120 días
+- Caso C (edge): P20260026 De Raedt Ivan — €2.110,43, 31 días
+- Caso N: P20260024 Balteau — €9.016,05 PERO facturado en mayo → excluido ✓
+- Caso L: sin fila real en €500,00 exacto — comportamiento fijado por tests (500,00 no dispara / 500,01 dispara)
+- **Hallazgo demo:** P20260029 vs P20260030 (ambos Derriks, €5.600) — uno facturado, otro no → alerta correcta. Caso ideal para demo interna del módulo.
 
 ### Sprint 1 — Tickets (todos ✅)
 
