@@ -36,6 +36,11 @@ class IntelligenceServiceProvider extends ServiceProvider
     {
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
+
+        $this->app->singleton(
+            \Modules\Intelligence\Services\BiConfigService::class,
+            \Modules\Intelligence\Services\BiConfigService::class
+        );
     }
 
     /**
