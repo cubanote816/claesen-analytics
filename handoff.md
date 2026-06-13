@@ -9,8 +9,8 @@
 
 - **Sprint activo:** BI — Sprint 2B UX (Monthly Billing Guardian mejoras UX)
 - **Rama actual:** `feature/bi-sprint2b-billing-guardian`
-- **Último ticket:** BI-2B-UX-06/07/08 ✅ — documentación UX (user-guide + data-sources + technical doc)
-- **Próximo paso:** revisión visual en navegador → PR `feature/bi-sprint2b-billing-guardian` → `main`
+- **Último ticket:** BI-2B-UX-06/07/08 ✅ — revisión visual OK (95/95 tests, Blade sin errores, ruta activa, todos los checks del checklist pasados)
+- **Próximo paso:** merge `feature/bi-sprint2b-billing-guardian` → `main` tras PR aprobado
 - **Tests:** 95 passed / 200 assertions (módulo Intelligence)
 
 ### Sprint BI — Estado
