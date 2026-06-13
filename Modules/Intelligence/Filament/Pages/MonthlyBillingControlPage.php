@@ -133,6 +133,77 @@ class MonthlyBillingControlPage extends Page
         }
     }
 
+    // -------------------------------------------------------------------------
+    // BI-059 — Workflow transitions
+    // -------------------------------------------------------------------------
+
+    public function markInReview(int $alertId): void
+    {
+        $alert = BillingAlert::find($alertId);
+        if (!$alert || $alert->status !== BillingAlert::STATUS_OPEN) {
+            return;
+        }
+        $alert->update([
+            'status'      => BillingAlert::STATUS_IN_REVIEW,
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ]);
+        Notification::make()->title('Alert in review geplaatst.')->success()->send();
+    }
+
+    public function confirmAlert(int $alertId, string $notes = ''): void
+    {
+        $alert = BillingAlert::find($alertId);
+        if (!$alert || $alert->status !== BillingAlert::STATUS_IN_REVIEW) {
+            return;
+        }
+        $alert->update([
+            'status'           => BillingAlert::STATUS_CONFIRMED,
+            'resolution_notes' => $notes ?: null,
+        ]);
+        Notification::make()->title('Alert bevestigd.')->success()->send();
+    }
+
+    public function dismissAlert(int $alertId, string $notes = ''): void
+    {
+        $alert = BillingAlert::find($alertId);
+        if (!$alert || $alert->status !== BillingAlert::STATUS_IN_REVIEW) {
+            return;
+        }
+        $alert->update([
+            'status'           => BillingAlert::STATUS_DISMISSED,
+            'resolution_notes' => $notes ?: null,
+        ]);
+        Notification::make()->title('Alert gesloten (afgewezen).')->info()->send();
+    }
+
+    public function resolveAlert(int $alertId, string $notes = ''): void
+    {
+        $alert = BillingAlert::find($alertId);
+        if (!$alert || !in_array($alert->status, [BillingAlert::STATUS_CONFIRMED, BillingAlert::STATUS_DISMISSED], true)) {
+            return;
+        }
+        $alert->update([
+            'status'           => BillingAlert::STATUS_RESOLVED,
+            'resolved_at'      => now(),
+            'resolution_notes' => $notes ?: $alert->resolution_notes,
+        ]);
+        Notification::make()->title('Alert opgelost.')->success()->send();
+    }
+
+    public function reopenAlert(int $alertId): void
+    {
+        $alert = BillingAlert::find($alertId);
+        if (!$alert || $alert->status !== BillingAlert::STATUS_DISMISSED) {
+            return;
+        }
+        $alert->update([
+            'status'           => BillingAlert::STATUS_OPEN,
+            'resolution_notes' => null,
+        ]);
+        Notification::make()->title('Alert heropend.')->warning()->send();
+    }
+
     protected function getHeaderActions(): array
     {
         return [

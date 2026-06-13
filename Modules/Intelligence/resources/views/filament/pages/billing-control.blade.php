@@ -123,6 +123,7 @@
                         <th class="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'nl' ? 'Status'   : 'Status' }}</th>
                         <th class="px-4 py-3 text-right font-medium text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'nl' ? 'Bedrag'   : 'Amount' }}</th>
                         <th class="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'nl' ? 'Aanbeveling' : 'Recommendation' }}</th>
+                        <th class="px-4 py-3 text-right font-medium text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'nl' ? 'Acties' : 'Actions' }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -159,6 +160,37 @@
                             </td>
                             <td class="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-xs truncate" title="{{ $alert->recommendation }}">
                                 {{ $alert->recommendation }}
+                            </td>
+                            {{-- BI-059 Workflow actions --}}
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                                @if($alert->status === 'open')
+                                    <button
+                                        wire:click="markInReview({{ $alert->id }})"
+                                        class="text-xs px-2 py-1 rounded bg-yellow-100 hover:bg-yellow-200 text-yellow-800 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 dark:text-yellow-400 transition-colors"
+                                    >Review</button>
+                                @elseif($alert->status === 'in_review')
+                                    <button
+                                        wire:click="confirmAlert({{ $alert->id }})"
+                                        class="text-xs px-2 py-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 mr-1 transition-colors"
+                                    >{{ app()->getLocale() === 'nl' ? 'Bevestigen' : 'Confirm' }}</button>
+                                    <button
+                                        wire:click="dismissAlert({{ $alert->id }})"
+                                        class="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400 transition-colors"
+                                    >{{ app()->getLocale() === 'nl' ? 'Afwijzen' : 'Dismiss' }}</button>
+                                @elseif(in_array($alert->status, ['confirmed', 'dismissed']))
+                                    <button
+                                        wire:click="resolveAlert({{ $alert->id }})"
+                                        class="text-xs px-2 py-1 rounded bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400 mr-1 transition-colors"
+                                    >{{ app()->getLocale() === 'nl' ? 'Oplossen' : 'Resolve' }}</button>
+                                    @if($alert->status === 'dismissed')
+                                        <button
+                                            wire:click="reopenAlert({{ $alert->id }})"
+                                            class="text-xs px-2 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-400 transition-colors"
+                                        >{{ app()->getLocale() === 'nl' ? 'Heropenen' : 'Reopen' }}</button>
+                                    @endif
+                                @else
+                                    <span class="text-xs text-gray-400">—</span>
+                                @endif
                             </td>
                         </tr>
                     @endforeach
