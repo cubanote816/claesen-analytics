@@ -203,6 +203,76 @@ Botones por fila, visibles según el estado actual. Solo aparecen las transicion
 
 ---
 
+## UX y navegación contextual (BI-2B-UX Sprint)
+
+Añadido en el Sprint 2B UX (2026-06-13) sobre la base del Guardian core. No toca reglas de detección, severity, dedup policy ni cálculos de importe.
+
+### Modal "Meer details" (BI-2B-UX-02)
+
+Botón `ⓘ Details` en cada fila — siempre visible. Lazy-load: 5 consultas PK al abrirse, cero N+1.
+
+**Campos mostrados en el modal:**
+
+| Sección | Contenido |
+|---------|-----------|
+| Período | `period_year` / `period_month` — mes analizado |
+| Proyecto y cliente | `project_id`, `name` (mirror), `relation.name`; "Niet beschikbaar" si no existe |
+| Factura | `invoice_id`, `total_price`, `total_paid`, `date_expiration`, `fl_paid`; sección oculta si `invoice_id` es null |
+| Bedrag | Importe formateado con etiqueta contextual por `alert_type`; aviso ámbar para tipos "Gedetecteerde kost" (coste ≠ precio venta) |
+| Aanbeveling | Texto completo de la recomendación automática |
+| Bewijs (evidencia) | `evidence_json` parseado con etiquetas NL para claves conocidas; formato monetario para `costs_in_month`/`total_amount`, horas para `hours_in_month`, lista para arrays |
+| Enlace Inzichten | Solo si existe `ProjectInsight` para ese `project_id` — nunca enlace roto |
+| Rastro de auditoría | `reviewed_by`, `reviewed_at`, `resolved_at`, `resolution_notes` |
+
+**Implementación:** `MonthlyBillingControlPage::openModal(int $alertId)` / `closeModal()` / `getModalData(): array`. Dismiss: clic fondo, botón ✕, o `Escape` (Alpine.js `@keydown.escape.window`).
+
+---
+
+### Columna Project enriquecida (BI-2B-UX-03)
+
+La columna **Project** muestra hasta cuatro elementos en vertical:
+
+1. ID del proyecto (monoespaciado, p.ej. `P20260031`)
+2. Nombre del proyecto (texto gris pequeño)
+3. Nombre del cliente/relación (badge azul pequeño)
+4. Enlace `↗ Inzichten` (solo si existe `ProjectInsight` para ese `project_id`)
+
+**Sin N+1:** `getProjectContext()` ejecuta 4 consultas `whereIn` para todo el tab activo — no por fila. IDs de relación recogidos tanto de `alert.relation_id` como de `project.relation_id` antes del `whereIn` para no perder clientes cuya relación solo está en el espejo del proyecto.
+
+**Sin enlaces rotos:** `ProjectInsight::whereIn('project_id', $projectIds)->pluck('project_id')->flip()` construye un set. El enlace solo aparece si el ID está en ese set. URL: `ProjectInsightResource::getUrl('view', ['record' => trim($project_id)])` — usa `getRouteKeyName() = 'project_id'`.
+
+**Decisión de diseño:** no se ha creado un `InvoiceResource` en Filament. Los datos de factura se exponen en el modal "Meer details" — esto evita un recurso de solo lectura para SQL Server que añadiría complejidad sin valor diferencial.
+
+---
+
+### Etiquetas de estado NL (BI-2B-UX-01)
+
+| Status (DB) | Etiqueta NL | Etiqueta EN |
+|-------------|-------------|-------------|
+| `open` | Open | Open |
+| `in_review` | In behandeling | In review |
+| `confirmed` | Bevestigd | Confirmed |
+| `dismissed` | Afgewezen | Dismissed |
+| `resolved` | Opgelost | Resolved |
+
+Determinado por `app()->getLocale() === 'nl'` en la vista Blade.
+
+---
+
+### Auditor gate — cambios UX
+
+| Tipo de cambio | ¿Requiere auditor gate? |
+|----------------|------------------------|
+| Labels, textos, tooltips, colores | No |
+| Columnas de tabla, modal de detalle | No |
+| Ordenación, filtros, tabs | No |
+| Cálculo de importe (`amount_*`) | **Sí** |
+| Reglas de detección (BI-052/053/054/055) | **Sí** |
+| Severity tiers y umbrales | **Sí** |
+| `dedup_key` o política de rerun §4.4.1 | **Sí** |
+
+---
+
 ## Tests
 
 | Archivo | Tests | Assertions |

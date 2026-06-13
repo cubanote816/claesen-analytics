@@ -253,6 +253,29 @@ Esta situación es siempre anómala: un proyecto no debería cerrarse con deuda 
 
 ---
 
+## Wat betekent het Bedrag? — Qué significa el importe
+
+El importe visible en la columna **Bedrag** de cada alerta no es siempre el mismo tipo de cifra. La tabla siguiente muestra exactamente qué calcula el sistema para cada tipo de alerta:
+
+| Tipo de alerta | Etiqueta en pantalla | Fuente en CAFCA | Nota |
+|----------------|---------------------|-----------------|------|
+| `missing_customer_invoice` | Gedetecteerde kost | `SUM(followup_cost.cost_price × quantity)` del mes | Coste de seguimiento, no precio de venta |
+| `project_billing_gap` | Gedetecteerde kost | `SUM(followup_cost.cost_price × quantity)` del mes | Ídem |
+| `overdue_receivable` | Open saldo | `invoice.total_price − invoice.total_paid` | Saldo pendiente de cobro |
+| `partial_payment` | Open saldo | `invoice.total_price − invoice.total_paid` | Ídem — factura aún no vencida |
+| `unbilled_followup_cost` | Niet-gefact. kost | `SUM(followup_cost.cost_price × quantity)` donde `already_invoiced = false` | Solo costes no marcados como facturados |
+| `closed_with_balance` | Open saldo | Suma de saldos abiertos de todas las facturas del proyecto | Puede ser suma de múltiples facturas |
+| `credit_note` | Creditbedrag | `invoice.total_price` de la nota de crédito | Importe de la CN emitida |
+
+**Puntos clave:**
+
+- **"Gedetecteerde kost" no es el precio de venta.** Es la suma de `cost_price × quantity` de los costes de seguimiento registrados en CAFCA para ese proyecto en ese mes. El importe de la factura que eventualmente se emita puede ser diferente (margen, ajustes de precio, tarifas acordadas).
+- **"Open saldo" = lo que queda por cobrar.** Es la diferencia entre el importe total facturado y lo que el cliente ya ha pagado según CAFCA. Si `fl_paid = true`, el saldo es cero y no genera alerta.
+- **`fl_paid` manda.** Si CAFCA marca una factura como pagada (`fl_paid = true`), el Guardian no genera alerta aunque el cálculo `total_price − total_paid` no sea cero. El bit de pago es el campo definitivo.
+- **`already_invoiced` depende del equipo.** Si un coste se incluye en una factura pero no se marca en CAFCA, el Guardian lo sigue señalando. Mantener este campo actualizado en CAFCA es esencial para que las alertas sean precisas.
+
+---
+
 ## ¿Por qué confiar en estos números?
 
 Los mismos datos que el Guardian analiza son los que gestiona el equipo de Claesen en CAFCA a diario. El sistema no interpreta ni transforma los valores — los lee directamente y aplica umbrales definidos por el equipo:

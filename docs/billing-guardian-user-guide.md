@@ -148,12 +148,39 @@ Una nota de crédito (CN%) fue emitida durante el período. Es **solo informativ
 | Columna | Qué muestra |
 |---------|-------------|
 | **Type** | Tipo de alerta |
-| **Project** | ID del proyecto o número de factura afectado |
+| **Project** | ID, nombre y cliente del proyecto; enlace ↗ Inzichten si hay análisis disponible |
 | **Ernst** | Severidad: Kritiek / Hoog / Medium / Low |
-| **Status** | Estado actual de la alerta |
-| **Bedrag** | Importe relevante (saldo abierto o coste sin facturar) |
+| **Status** | Estado actual de la alerta (etiqueta en holandés) |
+| **Bedrag** | Importe relevante; el tipo varía según la alerta (ver tabla más abajo) |
 | **Aanbeveling** | Texto automático con la recomendación de acción |
 | **Acties** | Botones para mover la alerta por el flujo de revisión |
+
+### La columna Project
+
+La columna **Project** muestra, cuando están disponibles en el sistema:
+
+- El **ID del proyecto** (formato CAFCA, p.ej. P20260031)
+- El **nombre del proyecto** tal como aparece en CAFCA
+- El **nombre del cliente** vinculado al proyecto (relación de CAFCA)
+- Un enlace **↗ Inzichten** si el módulo Performance tiene un análisis de rendimiento para ese proyecto (solo aparece si existe — nunca se generan enlaces rotos)
+
+Para alertas sin proyecto asociado (como notas de crédito independientes), la columna muestra el número de factura.
+
+### Qué significa el Bedrag
+
+El importe en la columna **Bedrag** tiene un significado diferente según el tipo de alerta:
+
+| Tipo de alerta | Etiqueta que ves | Qué representa |
+|----------------|-----------------|----------------|
+| Ontbrekende factuur | Gedetecteerde kost | Suma de costes de seguimiento del mes en CAFCA |
+| Factuurkloof | Gedetecteerde kost | Ídem — coste registrado, no precio de venta |
+| Vervallen vordering | Open saldo | `total_price − total_paid` de la factura |
+| Gedeeltelijke betaling | Open saldo | `total_price − total_paid` de la factura |
+| Niet-gefactureerde kost | Niet-gefact. kost | Suma de costes con `already_invoiced = false` en CAFCA |
+| Gesloten met saldo | Open saldo | Saldo abierto de las facturas del proyecto cerrado |
+| Creditnota | Creditbedrag | Importe de la nota de crédito |
+
+> **Nota:** el importe "Gedetecteerde kost" es el **coste** registrado en CAFCA (`cost_price × quantity`), no el precio de venta. La factura que se emita puede tener un importe diferente.
 
 ---
 
@@ -186,6 +213,7 @@ OPEN → [Review] → IN REVIEW → [Bevestigen] → CONFIRMED → [Oplossen] �
 | **Afwijzen** | Estado: In review | Descarta la alerta (falso positivo) |
 | **Oplossen** | Estado: Confirmed o Dismissed | Cierra definitivamente la alerta |
 | **Heropenen** | Estado: Dismissed | Reabre la alerta si el descarte fue incorrecto |
+| **ⓘ Details** | Siempre visible | Abre el modal de detalle completo: período, proyecto, cliente, factura, importe, aanbeveling, evidencia estructurada y rastro de auditoría. Solo lectura — no modifica nada. |
 
 ---
 
@@ -206,20 +234,49 @@ El Guardian también se ejecuta automáticamente el día 2 de cada mes a las 7:0
 
 ---
 
-## Flujo de trabajo mensual recomendado
+## Werkstroom per maand — flujo en 9 pasos
 
-### Semana 1 del mes (revisión del mes anterior)
+> Ejecutar en la primera semana del mes, revisando el mes anterior.
 
-1. Seleccionar el mes anterior en el selector de período.
-2. Si el Guardian no se ha ejecutado aún, pulsar **Guardian uitvoeren**.
-3. Revisar el banner: ¿hay bloqueo de cierre mensual?
-4. Empezar por la pestaña **Vorderingen** → gestionar las facturas vencidas (críticas primero).
-5. Seguir con **Facturatie** → verificar proyectos sin factura.
-6. Revisar **Kosten** → confirmar o descartar costes sin facturar.
-7. Revisar brevemente **Creditnotas** (solo verificación).
-8. Marcar todas las alertas revisadas como Confirmed o Dismissed.
-9. Resolver las confirmadas una vez que la acción esté tomada en CAFCA.
-10. Cuando no queden alertas Críticas o Altas en Open/In Review, el banner desaparece → mes listo para cierre.
+1. **Seleccionar el período.** En el selector de la parte superior, elegir el mes anterior.
+2. **Ejecutar el Guardian** (si no se ha ejecutado aún o si se han registrado cambios en CAFCA después de la última ejecución). Pulsar **Guardian uitvoeren** en la esquina superior derecha.
+3. **Verificar el banner.** Si aparece el banner rojo de bloqueo, hay alertas críticas o altas pendientes. No cerrar el mes hasta gestionarlas.
+4. **Pestaña Vorderingen.** Revisar facturas vencidas e impagadas — empezar por las críticas (>60 días). Contactar clientes o verificar si el pago ya está registrado en CAFCA.
+5. **Pestaña Facturatie.** Revisar proyectos sin factura emitida en el mes. Verificar en CAFCA si procede emitir factura o descartar la alerta (proyecto interno, no facturable).
+6. **Pestaña Kosten.** Revisar costes de seguimiento no facturados. Verificar si se han incluido en una factura reciente o si faltan por marcar como facturados en CAFCA.
+7. **Pestaña Creditnotas.** Revisión visual — confirmar que cada nota de crédito está justificada. No requiere acción obligatoria.
+8. **Bevestigen o Afwijzen.** Para cada alerta revisada: confirmar si es un problema real (Bevestigen) o descartarla si no aplica (Afwijzen). Usar **ⓘ Details** para ver la evidencia completa antes de decidir.
+9. **Oplossen.** Una vez tomada la acción correspondiente en CAFCA, volver al panel y pulsar **Oplossen** en cada alerta confirmada. Cuando no queden alertas Críticas o Altas en Open/In Review, el banner desaparece → mes listo para cierre.
+
+---
+
+## Bevestigd ≠ Opgelost — la distinción clave
+
+Esta es la confusión más frecuente al usar el sistema:
+
+| Estado | Qué significa | Cuándo usarlo |
+|--------|--------------|---------------|
+| **Bevestigd** | Has confirmado que el problema es real y requiere acción en CAFCA | Cuando revisas la alerta y decides que hay que actuar |
+| **Opgelost** | La acción ya fue ejecutada en CAFCA y el problema está cerrado | Solo después de haber actuado en CAFCA |
+
+**Flujo correcto:**
+1. Revisas la alerta → pulsas **Bevestigen** (registra que el problema es real)
+2. Vas a CAFCA → tomas la acción (emites la factura, registras el pago, marcas costes como facturados, etc.)
+3. Vuelves al panel → pulsas **Oplossen** (cierra la alerta)
+
+> **Las alertas en estado Bevestigd siguen contando para el bloqueo mensual.** El banner solo desaparece cuando todas las alertas Críticas y Altas están en Opgelost o Afgewezen (y luego Opgelost). No uses Oplossen sin haber actuado antes en CAFCA.
+
+---
+
+## Projectinzichten — enlace condicional
+
+En la columna **Project**, puede aparecer un enlace **↗ Inzichten** junto al nombre del proyecto.
+
+Este enlace lleva al análisis de rendimiento de ese proyecto en el módulo Performance (Project Insights). **Solo aparece cuando el sistema tiene datos de rendimiento calculados para ese proyecto.** Si no aparece, significa que el proyecto no tiene análisis disponible — no es un error.
+
+Al hacer clic en "↗ Inzichten":
+- Se abre la página de detalle del proyecto con costes estimados vs. reales, arquetipos de técnicos y estado Watchdog.
+- El enlace abre en una pestaña nueva para no perder el contexto de la revisión mensual.
 
 ---
 
