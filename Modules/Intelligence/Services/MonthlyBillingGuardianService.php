@@ -207,16 +207,138 @@ class MonthlyBillingGuardianService
         return $alerts;
     }
 
-    /** BI-053 — invoices past date_expiration with open balance. */
+    /**
+     * BI-053 — invoices past date_expiration with open balance.
+     *
+     * Trigger: fl_paid = false AND id NOT LIKE 'CN%' AND date_expiration < today
+     * AND (total_price - total_paid) > min_amount (strict >).
+     * Severity: days_overdue > 60 → critical, otherwise high.
+     *
+     * Snapshot semantics: detects what is overdue at run time, recorded under
+     * the analyzed period (dedup_key includes year/month, so a balance that
+     * stays open re-alerts in the next period — by design).
+     */
     protected function detectOverdueReceivables(int $year, int $month): array
     {
-        return []; // implemented in BI-053
+        $rules     = $this->config->get('billing_guardian_rules', []);
+        $minAmount = (float) ($rules['min_amount'] ?? 500);
+        $today     = Carbon::now('Europe/Brussels')->startOfDay();
+
+        $invoices = MirrorInvoice::where('fl_paid', false)
+            ->where('id', 'NOT LIKE', 'CN%')
+            ->whereNotNull('date_expiration')
+            ->where('date_expiration', '<', $today)
+            ->whereRaw('(total_price - total_paid) > ?', [$minAmount])
+            ->get();
+
+        $alerts = [];
+
+        foreach ($invoices as $invoice) {
+            $amountOpen  = round((float) $invoice->total_price - (float) $invoice->total_paid, 2);
+            $daysOverdue = (int) $invoice->date_expiration->diffInDays($today);
+            $clientName  = $this->resolveClientName($invoice->relation_id);
+
+            $alerts[] = [
+                'alert_type'    => BillingAlert::TYPE_OVERDUE_RECEIVABLE,
+                'severity'      => $daysOverdue > 60 ? 'critical' : 'high',
+                'project_id'    => $invoice->project_id,
+                'relation_id'   => $invoice->relation_id,
+                'invoice_id'    => $invoice->id,
+                'amount_open'   => $amountOpen,
+                'evidence_json' => [
+                    'invoice_id'      => $invoice->id,
+                    'client_name'     => $clientName,
+                    'amount_open'     => $amountOpen,
+                    'total_price'     => round((float) $invoice->total_price, 2),
+                    'total_paid'      => round((float) $invoice->total_paid, 2),
+                    'days_overdue'    => $daysOverdue,
+                    'date_expiration' => $invoice->date_expiration->toDateString(),
+                ],
+                'recommendation' => sprintf(
+                    'Factuur %s van %s: €%s openstaand, vervallen sinds %s (%d dagen). '
+                    . 'Controleer betalingsstatus en stuur indien nodig een herinnering.',
+                    $invoice->id,
+                    $clientName,
+                    number_format($amountOpen, 2, ',', '.'),
+                    $invoice->date_expiration->toDateString(),
+                    $daysOverdue
+                ),
+            ];
+        }
+
+        return $alerts;
     }
 
-    /** BI-053 — invoices partially paid (total_paid > 0 but < total_price). */
+    /**
+     * BI-053 — invoices partially paid but NOT yet overdue.
+     *
+     * Trigger: fl_paid = false AND id NOT LIKE 'CN%' AND total_paid > 0
+     * AND (total_price - total_paid) > min_amount AND date_expiration >= today
+     * (or NULL). Once expired, the same invoice becomes an overdue_receivable
+     * instead — the two rules are mutually exclusive to avoid double alerts.
+     */
     protected function detectPartialPayments(int $year, int $month): array
     {
-        return []; // implemented in BI-053
+        $rules     = $this->config->get('billing_guardian_rules', []);
+        $minAmount = (float) ($rules['min_amount'] ?? 500);
+        $today     = Carbon::now('Europe/Brussels')->startOfDay();
+
+        $invoices = MirrorInvoice::where('fl_paid', false)
+            ->where('id', 'NOT LIKE', 'CN%')
+            ->where('total_paid', '>', 0)
+            ->whereRaw('(total_price - total_paid) > ?', [$minAmount])
+            ->where(function ($q) use ($today) {
+                $q->whereNull('date_expiration')
+                  ->orWhere('date_expiration', '>=', $today);
+            })
+            ->get();
+
+        $alerts = [];
+
+        foreach ($invoices as $invoice) {
+            $amountOpen = round((float) $invoice->total_price - (float) $invoice->total_paid, 2);
+            $clientName = $this->resolveClientName($invoice->relation_id);
+
+            $alerts[] = [
+                'alert_type'    => 'partial_payment',
+                'severity'      => 'medium',
+                'project_id'    => $invoice->project_id,
+                'relation_id'   => $invoice->relation_id,
+                'invoice_id'    => $invoice->id,
+                'amount_open'   => $amountOpen,
+                'evidence_json' => [
+                    'invoice_id'      => $invoice->id,
+                    'client_name'     => $clientName,
+                    'amount_open'     => $amountOpen,
+                    'total_price'     => round((float) $invoice->total_price, 2),
+                    'total_paid'      => round((float) $invoice->total_paid, 2),
+                    'date_expiration' => $invoice->date_expiration?->toDateString(),
+                ],
+                'recommendation' => sprintf(
+                    'Factuur %s van %s is gedeeltelijk betaald: €%s van €%s ontvangen, €%s openstaand. '
+                    . 'Vervaldatum: %s. Volg het resterende saldo op.',
+                    $invoice->id,
+                    $clientName,
+                    number_format((float) $invoice->total_paid, 2, ',', '.'),
+                    number_format((float) $invoice->total_price, 2, ',', '.'),
+                    number_format($amountOpen, 2, ',', '.'),
+                    $invoice->date_expiration?->toDateString() ?? 'onbekend'
+                ),
+            ];
+        }
+
+        return $alerts;
+    }
+
+    private function resolveClientName(?int $relationId): string
+    {
+        if ($relationId === null) {
+            return 'onbekende klant';
+        }
+
+        $name = \Modules\Performance\Models\Mirror\MirrorRelation::find($relationId)?->name;
+
+        return $name !== null && trim($name) !== '' ? trim($name) : "relatie #{$relationId}";
     }
 
     /** BI-054 — followup costs in period not flagged invoiced. */

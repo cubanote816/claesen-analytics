@@ -249,7 +249,13 @@ class SyncMirrorDataService
     {
         $query = DB::connection('sqlsrv')->table('invoice');
         if (!$fullHistory) {
-            $query->where('date', '>=', now()->subMonths(6));
+            // Recent window PLUS all unpaid invoices regardless of age —
+            // the Billing Guardian needs every open receivable (oldest
+            // unpaid invoice in CAFCA dates back to 2009).
+            $query->where(function ($q) {
+                $q->where('date', '>=', now()->subMonths(6))
+                  ->orWhere('fl_paid', 0);
+            });
         }
 
         $query->orderBy('id')->chunk(500, function ($invoices) {
@@ -263,6 +269,8 @@ class SyncMirrorDataService
                         'project_id'           => trim($invoice->project_id),
                         'relation_id'          => $invoice->relation_id ?? null,
                         'total_price_vat_excl' => $invoice->total_price_vat_excl ?? 0,
+                        'total_price'          => $invoice->total_price ?? 0,
+                        'total_paid'           => $invoice->total_paid ?? 0,
                         'date'                 => $invoice->date,
                         'date_expiration'      => $invoice->date_expiration ?? null,
                         'fl_paid'              => (bool) ($invoice->fl_paid ?? false),
