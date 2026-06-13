@@ -10,6 +10,17 @@ use Modules\Performance\Models\Mirror\MirrorProject;
 use Modules\Performance\Models\Mirror\MirrorRelation;
 use Modules\Performance\Models\ProjectInsight;
 
+/**
+ * BI-PROJ-01 rationale: ProjectInsightResource (Performance module) is NOT extended here.
+ * That resource reads from SQL Server (Cafca\Models\Project, ReadOnly) and generates AI
+ * narratives via Gemini — it is an analytical/insight layer, not an operational view.
+ * This page is read-only operational detail (mirror tables, billing alerts, invoice state)
+ * and belongs in the Intelligence module alongside the Guardian commands that populate it.
+ *
+ * Invoice note: MirrorInvoice stores total_price_vat_excl + fl_paid (binary).
+ * There is no total_paid column — "paid" means the full invoice is settled.
+ * Partial payment detail is available only through BillingAlert.amount_open (post PR #6).
+ */
 class ProjectIntelligenceDetail extends Page
 {
     protected static ?string $slug = 'project-detail/{projectId}';

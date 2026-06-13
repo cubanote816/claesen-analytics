@@ -44,6 +44,17 @@
         // amount: prefer amount_open (receivables), fall back to amount_activity_cost (costs)
         $alertAmount = fn($alert) => $alert->amount_open ?? $alert->amount_activity_cost;
 
+        // Contextual label so the user knows what the number represents (matching billing-control.blade.php)
+        $amountLabel = [
+            'missing_customer_invoice' => $isNl ? 'Gedetecteerde kost' : 'Detected cost',
+            'project_billing_gap'      => $isNl ? 'Gedetecteerde kost' : 'Detected cost',
+            'unbilled_followup_cost'   => $isNl ? 'Gedetecteerde kost' : 'Detected cost',
+            'overdue_receivable'       => $isNl ? 'Open saldo'         : 'Open balance',
+            'partial_payment'          => $isNl ? 'Open saldo'         : 'Open balance',
+            'closed_with_balance'      => $isNl ? 'Open saldo'         : 'Open balance',
+            'credit_note'              => $isNl ? 'Creditbedrag'       : 'Credit amount',
+        ];
+
         $severityColors = [
             'critical' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
             'high'     => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
@@ -312,8 +323,15 @@
                                         {{ ucfirst($alert->severity) }}
                                     </span>
                                 </td>
-                                <td class="py-2 pr-3 font-mono text-right text-gray-700 dark:text-gray-300">
-                                    {{ $alertAmount($alert) !== null ? $fmt($alertAmount($alert)) : '—' }}
+                                <td class="py-2 pr-3 text-right tabular-nums">
+                                    @if(isset($amountLabel[$alert->alert_type]))
+                                        <span class="block text-xs text-gray-400 dark:text-gray-500 mb-0.5">
+                                            {{ $amountLabel[$alert->alert_type] }}
+                                        </span>
+                                    @endif
+                                    <span class="font-mono text-gray-700 dark:text-gray-300">
+                                        {{ $alertAmount($alert) !== null ? $fmt($alertAmount($alert)) : '—' }}
+                                    </span>
                                 </td>
                                 <td class="py-2 pr-3">
                                     <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $statusColors[$alert->status] ?? 'bg-gray-100 text-gray-600' }}">
