@@ -33,11 +33,11 @@
 | BI-052 | Regla `missing_customer_invoice` — **Gate APPROVED** | `a3004b8`+`4490bcc` | ✅ Done |
 | BI-053 | Reglas `overdue_receivable`+`partial_payment` — **Gate APPROVED** | `610dff7` | ✅ Done |
 | BI-054 | Regla `unbilled_followup_cost` — costes followup no facturados — **Gate APPROVED** | `108f928` | ✅ Done |
-| BI-055 | Reglas: proyectos cerrados con saldo + notas de crédito | — | ⬜ Todo |
-| BI-056 | Comando `intelligence:billing-guardian` | — | ⬜ Todo |
-| BI-057 | Scheduler mensual (día 2, 7:00) | — | ⬜ Todo |
-| BI-058 | `MonthlyBillingControlPage` Filament V5 | — | ⬜ Todo |
-| BI-059 | Workflow de estados de alerta | — | ⬜ Todo |
+| BI-055 | Reglas `billing_gap`+`credit_note`+`closed_with_balance` (sin gate) | `fdfaf66` | ✅ Done |
+| BI-056 | Comando `intelligence:billing-guardian` — 4 opciones + output tabla | `f7803f3` | ✅ Done |
+| BI-057 | Scheduler mensual (día 2, 07:00 Brussels, `--previous-month`) | `f7803f3` | ✅ Done |
+| BI-058 | `MonthlyBillingControlPage` Filament V5 — KPIs + 5 tabs + Run Guardian | `d020ac2` | ✅ Done |
+| BI-059 | Workflow open→review→confirmed|dismissed→resolved | `4b7ac2e` | ✅ Done |
 | BI-060 | Reglas Guardian en `BiConfigPage` | ✅ ya en BI-019/052 | ✅ Done |
 | BI-061 | Tests con datos mirror | 🚧 parcial (21 tests guardian) | 🚧 |
 | BI-062 | Documentar reglas | — | ⬜ Todo |
