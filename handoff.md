@@ -1,17 +1,17 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-13 (Sprint 2B en curso — BI-050→054 ✅, gate BI-054 APPROVED)
+> Última actualización: 2026-06-13 (Sprint 2B **COMPLETADO** — todos los tickets BI-050→062 ✅ — pendiente PR + merge)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** BI — Sprint 2B (Monthly Billing Guardian) 🚧 In Progress
-- **Rama actual:** `feature/bi-sprint2b-billing-guardian` (desde `main` post-merge PR #5)
-- **Último ticket:** BI-054 ✅ — Auditor Gate APPROVED (ver registro abajo)
-- **Próximo paso:** BI-055 — reglas restantes sin gate (billing gaps, credit notes, closed with balance)
-- **Tests:** 77 passed acumulados módulo Intelligence
+- **Sprint activo:** BI — Sprint 2B (Monthly Billing Guardian) ✅ COMPLETADO (pendiente PR)
+- **Rama actual:** `feature/bi-sprint2b-billing-guardian`
+- **Último ticket:** BI-062 ✅ — documentación + suite de tests completa
+- **Próximo paso:** crear PR Sprint 2B → `main`, luego Sprint 3 (UI simulador) o decidir con gerencia
+- **Tests:** 95 passed / 200 assertions (módulo Intelligence)
 
 ### Sprint BI — Estado
 
@@ -20,7 +20,7 @@
 | Sprint 0 — Integración BI→main | ✅ Done — PR #4 mergeado | ✅ Auditor GO |
 | Sprint 1 — Mirrors + bi_config | ✅ Done — PR #5 mergeado a `main` (`558ec32`) | ✅ Auditor GO |
 | Sprint 2 — Motor financiero | ⬜ Todo | ✅ (no requiere auditor gate) |
-| Sprint 2B — Monthly Billing Guardian | 🚧 BI-050→054 ✅ — BI-055 siguiente | ✅ GO con **Auditor Gate en BI-052/053/054** |
+| Sprint 2B — Monthly Billing Guardian | ✅ **COMPLETADO** — BI-050→062 todos Done — pendiente PR | ✅ GO con **Auditor Gate en BI-052/053/054** |
 | Sprint 3 — UI simulador | ⬜ Todo | ✅ (no requiere auditor gate) |
 | Sprint 4 — Métricas | ⬜ Todo | ✅ (no requiere auditor gate) |
 
@@ -39,8 +39,8 @@
 | BI-058 | `MonthlyBillingControlPage` Filament V5 — KPIs + 5 tabs + Run Guardian | `d020ac2` | ✅ Done |
 | BI-059 | Workflow open→review→confirmed|dismissed→resolved | `4b7ac2e` | ✅ Done |
 | BI-060 | Reglas Guardian en `BiConfigPage` | ✅ ya en BI-019/052 | ✅ Done |
-| BI-061 | Tests con datos mirror | 🚧 parcial (21 tests guardian) | 🚧 |
-| BI-062 | Documentar reglas | — | ⬜ Todo |
+| BI-061 | Tests — suite completa 95 tests / 200 assertions | `37cdf8b` | ✅ Done |
+| BI-062 | Documentación `docs/bi-monthly-billing-guardian.md` | `37cdf8b` | ✅ Done |
 
 ### BI-052 — Auditor Gate: APPROVED (2026-06-13)
 
