@@ -110,11 +110,6 @@ Una factura ha **superado su fecha de vencimiento y sigue sin pagar**, con un sa
 
 *Qué hacer:* Contactar al cliente para seguimiento del pago. Si ya se ha cobrado pero no está actualizado en CAFCA, verificar el registro.
 
-#### Gedeeltelijke betaling (Alerta media)
-Una factura tiene **pago parcial recibido** pero el saldo restante es superior a €500 y la fecha de vencimiento aún no ha llegado.
-
-*Qué hacer:* Verificar si el cliente acordó un pago fraccionado o si hay un error de registro.
-
 ---
 
 ### Kosten
@@ -175,7 +170,6 @@ El importe en la columna **Bedrag** tiene un significado diferente según el tip
 | Ontbrekende factuur | Gedetecteerde kost | Suma de costes de seguimiento del mes en CAFCA |
 | Factuurkloof | Gedetecteerde kost | Ídem — coste registrado, no precio de venta |
 | Vervallen vordering | Open saldo | `total_price − total_paid` de la factura |
-| Gedeeltelijke betaling | Open saldo | `total_price − total_paid` de la factura |
 | Niet-gefactureerde kost | Niet-gefact. kost | Suma de costes con `already_invoiced = false` en CAFCA |
 | Gesloten met saldo | Open saldo | Saldo abierto de las facturas del proyecto cerrado |
 | Creditnota | Creditbedrag | Importe de la nota de crédito |

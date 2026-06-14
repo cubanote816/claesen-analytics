@@ -11,9 +11,11 @@ use Modules\Performance\Models\Mirror\MirrorRelation;
 use Tests\TestCase;
 
 /**
- * BI-053 rule tests — detectOverdueReceivables + detectPartialPayments.
+ * BI-053 rule tests — detectOverdueReceivables.
  * Threshold (Auditor Gate case L): strict > min_amount on the open balance.
- * The two rules are mutually exclusive on date_expiration vs today.
+ *
+ * detectPartialPayments is deactivated (BI-2B-UX-10): non-expired partial
+ * payments generate noise; when the invoice expires it becomes overdue_receivable.
  */
 class BillingGuardianOverdueTest extends TestCase
 {
@@ -162,59 +164,48 @@ class BillingGuardianOverdueTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Partial payments — mutual exclusion with overdue
+    // Partial payments — deactivated (BI-2B-UX-10)
     // -------------------------------------------------------------------------
 
-    public function test_partial_not_yet_expired_triggers_partial_only(): void
+    public function test_detect_partial_payments_returns_empty_array(): void
     {
+        // Rule deactivated: detectPartialPayments must return [] regardless of data.
         $this->makeInvoice('FP1', [
             'total_price'     => 10000,
             'total_paid'      => 4000,
-            'date_expiration' => '2026-07-15', // future
+            'date_expiration' => '2026-07-15', // would have triggered before deactivation
         ]);
 
-        $partial = $this->partial();
-        $this->assertCount(1, $partial);
-        $this->assertSame('partial_payment', $partial[0]['alert_type']);
-        $this->assertSame('medium', $partial[0]['severity']);
-        $this->assertSame(6000.0, $partial[0]['amount_open']);
-
-        $this->assertCount(0, $this->overdue());
+        $this->assertSame([], $this->partial());
     }
 
-    public function test_partial_already_expired_triggers_overdue_only(): void
+    public function test_analyze_month_does_not_generate_partial_payment_alerts(): void
     {
         $this->makeInvoice('FP2', [
             'total_price'     => 10000,
             'total_paid'      => 4000,
-            'date_expiration' => '2026-05-01', // past
-        ]);
-
-        $this->assertCount(0, $this->partial());
-        $this->assertCount(1, $this->overdue());
-    }
-
-    public function test_partial_with_zero_paid_does_not_trigger_partial(): void
-    {
-        $this->makeInvoice('FP3', [
-            'total_paid'      => 0,
             'date_expiration' => '2026-07-15',
         ]);
 
-        $this->assertCount(0, $this->partial());
+        $this->guardian->analyzeMonth(2026, 6);
+
+        $this->assertDatabaseMissing('intelligence_billing_alerts', [
+            'alert_type' => 'partial_payment',
+        ]);
     }
 
-    public function test_partial_with_null_expiration_still_triggers_partial(): void
+    public function test_expired_partial_payment_becomes_overdue_receivable(): void
     {
-        $this->makeInvoice('FP4', [
-            'total_price'     => 8000,
-            'total_paid'      => 3000,
-            'date_expiration' => null,
+        // When a partial invoice expires, overdue_receivable catches it — no gap.
+        $this->makeInvoice('FP3', [
+            'total_price'     => 10000,
+            'total_paid'      => 4000,
+            'date_expiration' => '2026-05-01', // past → overdue, not partial
         ]);
 
-        $partial = $this->partial();
-
-        $this->assertCount(1, $partial);
-        $this->assertSame(5000.0, $partial[0]['amount_open']);
+        $this->assertSame([], $this->partial());
+        $this->assertCount(1, $this->overdue());
+        $this->assertSame('overdue_receivable', $this->overdue()[0]['alert_type']);
+        $this->assertSame(6000.0, $this->overdue()[0]['amount_open']);
     }
 }

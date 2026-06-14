@@ -53,6 +53,7 @@ class IntelligenceServiceProvider extends ServiceProvider
             \Modules\Intelligence\Console\Commands\MapWarehouseCategoriesCommand::class,
             \Modules\Intelligence\Console\Commands\BuildMaterialBrain::class,
             \Modules\Intelligence\Console\Commands\BillingGuardianCommand::class,
+            \Modules\Intelligence\Console\Commands\DismissPartialPaymentAlerts::class,
         ]);
     }
 
