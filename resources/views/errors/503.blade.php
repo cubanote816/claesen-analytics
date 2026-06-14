@@ -134,9 +134,10 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-6">
 
-    {{-- Logo --}}
+    {{-- CAFCA wordmark --}}
     <div class="absolute top-8 left-8">
-        <img src="{{ asset('img/brand-logo-dark.png') }}" alt="Claesen" class="h-10 opacity-80">
+        <span class="text-xl font-bold tracking-widest uppercase" style="color: var(--brand-yellow); letter-spacing: .2em;">CAFCA</span>
+        <span class="text-xs text-gray-600 ml-2 uppercase tracking-widest">Intelligence Hub</span>
     </div>
 
     {{-- Refresh countdown hint --}}
@@ -204,7 +205,7 @@
 
     {{-- Footer --}}
     <div class="absolute bottom-6 text-xs text-gray-700">
-        &copy; {{ date('Y') }} Claesen Verlichting BV
+        CAFCA Intelligence Hub &mdash; {{ date('Y') }}
     </div>
 
     {{-- Background decoration --}}
