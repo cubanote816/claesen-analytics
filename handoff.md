@@ -11,7 +11,7 @@
 - **Rama actual:** `feature/bi-project-intelligence-detail`
 - **Último ticket:** BI-2B-UX-14/15/16/17 ✅ — Maandstatus arriba, quick nav, overdue summary stats, compact empty states, showLimit 10
 - **Próximo paso:** rama lista para PR — ejecutar `intelligence:dismiss-partial-payment-alerts` en producción tras deploy
-- **Tests:** 95/95 Intelligence (post merge PR #6) — `sail artisan test --testsuite=Modules --filter=Intelligence`
+- **Tests:** 94/196 Intelligence ✅ — `sail artisan test --testsuite=Modules --filter=Intelligence` (94 = 95 previos −1 por deactivación partial_payment BI-2B-UX-10)
 
 ### BI-PROJ — Vista de Águila
 
