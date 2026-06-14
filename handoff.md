@@ -9,8 +9,8 @@
 
 - **Sprint activo:** BI — Vista de Águila (Project Intelligence Detail page)
 - **Rama actual:** `feature/bi-project-intelligence-detail`
-- **Último ticket:** BI-PROJ-04 ✅ `3af5fc8` — class_exists guard eliminado, BillingAlert importado directo
-- **Próximo paso:** BI-PROJ-01→04 completados — rama lista para PR
+- **Último ticket:** BI-2B-UX-09/10/13 ✅ `8f20e3f` — Billing Control secciones de negocio, partial_payment desactivado, docs actualizados
+- **Próximo paso:** rama lista para PR — ejecutar `intelligence:dismiss-partial-payment-alerts` en producción tras deploy
 - **Tests:** 95/95 Intelligence (post merge PR #6) — `sail artisan test --testsuite=Modules --filter=Intelligence`
 
 ### BI-PROJ — Vista de Águila
@@ -21,6 +21,9 @@
 | BI-PROJ-02 | `ProjectIntelligenceDetail` page MVP — `/project-detail/{projectId}` | `7db83ae` | ✅ Done — GO |
 | BI-PROJ-03 | Wire "Projectdetails openen" button en billing-control modal | `a0e1007` | ✅ Done |
 | BI-PROJ-04 | Quitar class_exists guard, importar BillingAlert directo | `3af5fc8` | ✅ Done |
+| BI-2B-UX-09 | Billing Control — secciones por pregunta de negocio (tabs eliminadas) | `8f20e3f` | ✅ Done |
+| BI-2B-UX-10 | Desactivar partial_payment + DismissPartialPaymentAlerts command | `8f20e3f` | ✅ Done |
+| BI-2B-UX-13 | Docs actualizados — partial_payment eliminado, secciones documentadas | `8f20e3f` | ✅ Done |
 
 ### Sprint BI — Estado
 
