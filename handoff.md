@@ -1,17 +1,33 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-13 (Sprint 2B UX **COMPLETADO** — BI-050→062 + UX-01/02/03/04/05/06/07/08 ✅ — listo para PR)
+> Última actualización: 2026-06-14 (SAF-017→022 ✅ Done + fix InspectionPhotoStorageFailureTest ✅ — mergeado a main)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** BI — Vista de Águila (Project Intelligence Detail page)
-- **Rama actual:** `feature/bi-project-intelligence-detail`
-- **Último ticket:** BI-2B-UX-14/15/16/17 ✅ — Maandstatus arriba, quick nav, overdue summary stats, compact empty states, showLimit 10
-- **Próximo paso:** rama lista para PR — ejecutar `intelligence:dismiss-partial-payment-alerts` en producción tras deploy
-- **Tests:** 94/196 Intelligence ✅ — `sail artisan test --testsuite=Modules --filter=Intelligence` (94 = 95 previos −1 por deactivación partial_payment BI-2B-UX-10)
+- **Sprint activo:** BI — Sprint 2 Motor Financiero (BI-030 hecho, próximo BI-031 InflationEngineService)
+- **Rama actual:** `main` (feature/safety-soft-delete mergeada y eliminada)
+- **Último ticket cerrado:** SAF-017→022 — Soft Delete Seguro de Inspecciones + fix test pre-existente `InspectionPhotoStorageFailureTest`
+- **Próximo paso:** BI-031 `InflationEngineService` — calcular factor de inflación entre dos años usando `PriceIndex::factor()`
+- **Tests:** 61/148 Safety ✅ | 94/196 Intelligence ✅
+
+### SAF-017→022 — Soft Delete Seguro de Inspecciones ✅ Done
+
+| Ticket | Título | Commit | Estado |
+|--------|--------|--------|--------|
+| SAF-017 | SoftDeletes trait en Inspection model | `08f5f4a` | ✅ Done |
+| SAF-018 | InspectionPolicy — delete/restore/forceDelete | `08f5f4a` | ✅ Done |
+| SAF-019 | Filament — Archiveren action + RestoreAction + TrashedFilter | `08f5f4a` | ✅ Done |
+| SAF-020 | getEloquentQuery() withoutGlobalScope SoftDeletingScope | `08f5f4a` | ✅ Done |
+| SAF-021 | API: route model binding devuelve 404 para deleted | `08f5f4a` | ✅ Done |
+| SAF-022 | Tests InspectionSoftDeleteTest (11 tests) + fix InspectionPhotoStorageFailureTest | `08f5f4a`/`34e88fd` | ✅ Done |
+
+**Fix pre-existente documentado (34e88fd):**
+- `Queue::fake()` → `Bus::fake()` (inline, no en setUp) — `Queue::assertDispatched()` no existe en Laravel 12
+- `"photos[{id}]" => file` → `'photos' => [id => file]` — brackets literales no activan `hasFile("photos.N")`; array anidado sí
+- Mockery mock vía `Storage::set()` para simular fallo de disco (path-based tricks inútiles en Docker/root)
 
 ### BI-PROJ — Vista de Águila
 
@@ -257,7 +273,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 |--------|--------|------|---------------------|
 | **Mailing** | ✅ Fase 0+1+2 completadas / Fase 3 en Backlog | `feature/mailing` | `docs/Mailing/mailing-platform-master.md` |
 | **Website** | ✅ WEB-001→025 mergeados en `main` (incl. Work Details + Static Site) | `main` | `docs/website-sprint-handoff.md` |
-| **Safety** | ✅ Sprint completado (SAF-001 a SAF-016) | `Safety_Inspections` | `docs/safety-sprint-linear-tickets.md` |
+| **Safety** | ✅ Sprint completado (SAF-001 a SAF-022) — incl. soft delete seguro | `main` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
 | **Intelligence / BI** | ✅ Sprint 1 ✅ Sprint 2B — PR #6 pendiente merge; BI-PROJ-02 ✅ (Vista de Águila) | `feature/bi-project-intelligence-detail` | `docs/bi-sprint-plan.md` |
 | **Prospects** | 🚧 ~80% (PROS-BUG-001+002 cerrados, FAB mailing operativo, sync dashboard exception feed) | `main` | Ver `CLAUDE.md` |
