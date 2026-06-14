@@ -2,15 +2,14 @@
     @php
         $isNl = app()->getLocale() === 'nl';
 
-        // Section data
-        $billingAlerts      = $this->getBillingAlerts();
-        $overdueAlerts      = $this->getOverdueAlerts();
-        $closedAlerts       = $this->getClosedBalanceAlerts();
-        $creditAlerts       = $this->getCreditNoteAlerts();
-        $maand              = $this->getMaandafsluitingData();
-        $periodLabel        = $this->getPeriodLabel();
+        // Section data (loaded once — all sections use the same project context)
+        $billingAlerts = $this->getBillingAlerts();
+        $overdueAlerts = $this->getOverdueAlerts();
+        $closedAlerts  = $this->getClosedBalanceAlerts();
+        $creditAlerts  = $this->getCreditNoteAlerts();
+        $maand         = $this->getMaandafsluitingData();
+        $periodLabel   = $this->getPeriodLabel();
 
-        // Project / relation / insight context (loaded once for all sections)
         $ctx        = $this->getProjectContext();
         $projects   = $ctx['projects'];
         $relations  = $ctx['relations'];
@@ -65,10 +64,22 @@
             'credit_note'              => $isNl ? 'Creditnota'              : 'Credit note',
             'monthly_close_blocker'    => $isNl ? 'Maandafsluiting'         : 'Month-close blocker',
         ];
+
+        // Overdue summary stats (computed from collection — no extra query)
+        $overdueCount    = $overdueAlerts->count();
+        $overdueCritical = $overdueAlerts->where('severity', 'critical')->count();
+        $overdueHigh     = $overdueAlerts->where('severity', 'high')->count();
+        $overdueTotal    = $overdueAlerts->sum('amount_open');
+        $overdueMaxDays  = $overdueAlerts->max(fn($a) => ($a->evidence_json['days_overdue'] ?? 0));
+
+        $canClose = !$maand['blocker']
+                    && $maand['critical_open'] === 0
+                    && $maand['high_open'] === 0
+                    && $maand['confirmed_open'] === 0;
     @endphp
 
-    {{-- Period selector --}}
-    <div class="flex items-center gap-3 mb-6">
+    {{-- ─── Period selector ─────────────────────────────────────────────── --}}
+    <div class="flex items-center gap-3 mb-5">
         <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
             {{ $isNl ? 'Periode:' : 'Period:' }}
         </label>
@@ -81,24 +92,99 @@
         <span class="text-sm text-gray-500 dark:text-gray-400">— {{ $periodLabel }}</span>
     </div>
 
-    {{-- Blocker banner --}}
-    @if($maand['blocker'])
-        <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 flex items-center gap-3">
-            <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-red-600 flex-shrink-0" />
-            <span class="text-sm font-medium text-red-700 dark:text-red-400">
-                {{ $isNl
-                    ? "De maand {$periodLabel} kan nog niet worden afgesloten — er zijn kritieke of hoge meldingen onopgelost."
-                    : "Month {$periodLabel} cannot be closed yet — critical or high alerts remain unresolved." }}
-            </span>
-        </div>
-    @endif
+    {{-- ═══════════════════════════════════════════════════════════════════
+         1. MAANDSTATUS — executive answer: can I close the month?
+         Replaces the separate blocker banner. Sits at the very top.
+    ═══════════════════════════════════════════════════════════════════ --}}
+    <div id="section-maand"
+         class="mb-6 rounded-xl border p-5 {{ $canClose
+             ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/10'
+             : 'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10' }}">
 
-    {{-- ═══════════════════════════════════════════════════════════════
-         SECTIE 1 — Nog te factureren voor {period}
-         Types: missing_customer_invoice · unbilled_followup_cost · project_billing_gap
-         Filtered by selected period.
-    ═══════════════════════════════════════════════════════════════ --}}
-    <div class="mb-8">
+        <div class="flex items-start gap-3 mb-4">
+            @if($canClose)
+                <x-heroicon-o-check-badge class="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
+                <div>
+                    <p class="text-sm font-semibold text-green-700 dark:text-green-400">
+                        {{ $isNl ? "De maand {$periodLabel} kan worden afgesloten." : "Month {$periodLabel} can be closed." }}
+                    </p>
+                    <p class="text-xs text-green-600 dark:text-green-500 mt-0.5">
+                        {{ $isNl ? 'Alle kritieke en hoge meldingen zijn afgehandeld.' : 'All critical and high alerts have been handled.' }}
+                    </p>
+                </div>
+            @else
+                <x-heroicon-o-exclamation-triangle class="w-6 h-6 text-orange-500 flex-shrink-0 mt-0.5" />
+                <div>
+                    <p class="text-sm font-semibold text-orange-700 dark:text-orange-400">
+                        {{ $isNl ? "De maand {$periodLabel} kan nog niet worden afgesloten." : "Month {$periodLabel} cannot be closed yet." }}
+                    </p>
+                    <p class="text-xs text-orange-600 dark:text-orange-500 mt-0.5">
+                        {{ $isNl ? 'Los de openstaande meldingen op voor u de maand afsluit in CAFCA.' : 'Resolve outstanding alerts before closing the month in CAFCA.' }}
+                    </p>
+                </div>
+            @endif
+        </div>
+
+        <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="text-center bg-white/60 dark:bg-gray-900/40 rounded-lg py-3">
+                <p class="text-xl font-bold {{ $maand['critical_open'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-200' }}">
+                    {{ $maand['critical_open'] }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Kritiek open' : 'Critical open' }}</p>
+            </div>
+            <div class="text-center bg-white/60 dark:bg-gray-900/40 rounded-lg py-3">
+                <p class="text-xl font-bold {{ $maand['high_open'] > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-800 dark:text-gray-200' }}">
+                    {{ $maand['high_open'] }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Hoog open' : 'High open' }}</p>
+            </div>
+            <div class="text-center bg-white/60 dark:bg-gray-900/40 rounded-lg py-3">
+                <p class="text-xl font-bold {{ $maand['confirmed_open'] > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-gray-800 dark:text-gray-200' }}">
+                    {{ $maand['confirmed_open'] }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Bevestigd (actie)' : 'Confirmed (action)' }}</p>
+            </div>
+            <div class="text-center bg-white/60 dark:bg-gray-900/40 rounded-lg py-3">
+                <p class="text-xl font-bold text-green-600 dark:text-green-400">
+                    {{ $maand['resolved_period'] }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Opgelost' : 'Resolved' }}</p>
+            </div>
+        </dl>
+    </div>
+
+    {{-- ─── Quick navigation ──────────────────────────────────────────────── --}}
+    <nav class="flex flex-wrap gap-x-4 gap-y-1 mb-6 text-xs font-medium text-gray-500 dark:text-gray-400">
+        <a href="#section-billing" class="hover:text-primary-600 dark:hover:text-primary-400 hover:underline">
+            &#9654; {{ $isNl ? 'Te factureren' : 'To invoice' }}
+            @if($billingAlerts->isNotEmpty())
+                <span class="ml-1 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-xs text-gray-700 dark:text-gray-300">{{ $billingAlerts->count() }}</span>
+            @endif
+        </a>
+        <a href="#section-overdue" class="hover:text-primary-600 dark:hover:text-primary-400 hover:underline">
+            &#9654; {{ $isNl ? 'Vervallen' : 'Overdue' }}
+            @if($overdueCount > 0)
+                <span class="ml-1 inline-flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 text-xs text-red-700 dark:text-red-400">{{ $overdueCount }}</span>
+            @endif
+        </a>
+        <a href="#section-closed" class="hover:text-primary-600 dark:hover:text-primary-400 hover:underline">
+            &#9654; {{ $isNl ? 'Afgesloten' : 'Closed' }}
+            @if($closedAlerts->isNotEmpty())
+                <span class="ml-1 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-xs text-gray-700 dark:text-gray-300">{{ $closedAlerts->count() }}</span>
+            @endif
+        </a>
+        <a href="#section-credits" class="hover:text-primary-600 dark:hover:text-primary-400 hover:underline">
+            &#9654; {{ $isNl ? "Creditnota's" : 'Credit notes' }}
+            @if($creditAlerts->isNotEmpty())
+                <span class="ml-1 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-xs text-gray-700 dark:text-gray-300">{{ $creditAlerts->count() }}</span>
+            @endif
+        </a>
+    </nav>
+
+    {{-- ═══════════════════════════════════════════════════════════════════
+         2. NOG TE FACTUREREN — first operational section
+    ═══════════════════════════════════════════════════════════════════ --}}
+    <div id="section-billing" class="mb-8 scroll-mt-4">
         <div class="flex items-center justify-between mb-3">
             <div>
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">
@@ -111,21 +197,23 @@
                 </p>
             </div>
             @if($billingAlerts->isNotEmpty())
-                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ $billingAlerts->count() }} {{ $isNl ? 'melding(en)' : 'alert(s)' }}</span>
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ $billingAlerts->count() }} {{ $isNl ? 'melding(en)' : 'alert(s)' }}
+                </span>
             @endif
         </div>
 
         @if($billingAlerts->isEmpty())
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-8 text-center text-gray-400 dark:text-gray-500 shadow-sm">
-                <x-heroicon-o-check-circle class="mx-auto w-8 h-8 mb-2 text-green-400" />
-                <p class="text-sm">{{ $isNl ? 'Geen openstaande facturatiemeldingen voor deze periode.' : 'No outstanding billing alerts for this period.' }}</p>
+            <div class="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
+                <x-heroicon-o-check-circle class="w-4 h-4 flex-shrink-0" />
+                {{ $isNl ? "Geen openstaande facturatiemeldingen voor {$periodLabel}." : "No outstanding billing alerts for {$periodLabel}." }}
             </div>
         @else
             @include('intelligence::filament.pages.billing-control-table', [
-                'alerts'       => $billingAlerts,
-                'projects'     => $projects,
-                'relations'    => $relations,
-                'insightSet'   => $insightSet,
+                'alerts'         => $billingAlerts,
+                'projects'       => $projects,
+                'relations'      => $relations,
+                'insightSet'     => $insightSet,
                 'severityColors' => $severityColors,
                 'statusColors'   => $statusColors,
                 'statusLabels'   => $statusLabels,
@@ -138,11 +226,11 @@
         @endif
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════════════
-         SECTIE 2 — Vervallen facturen
-         Type: overdue_receivable — ALL active, NOT period-filtered.
-    ═══════════════════════════════════════════════════════════════ --}}
-    <div class="mb-8">
+    {{-- ═══════════════════════════════════════════════════════════════════
+         3. VERVALLEN FACTUREN — all active, not period-filtered.
+         Summary card + top 10 + "Toon alle" toggle.
+    ═══════════════════════════════════════════════════════════════════ --}}
+    <div id="section-overdue" class="mb-8 scroll-mt-4">
         <div class="flex items-center justify-between mb-3">
             <div>
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">
@@ -150,30 +238,54 @@
                 </h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {{ $isNl
-                        ? 'Alle openstaande vervallen bedragen die vandaag aandacht vragen, ongeacht de geselecteerde periode.'
-                        : 'All outstanding overdue amounts requiring attention today, regardless of the selected period.' }}
+                        ? 'Openstaande vervallen bedragen — niet beperkt tot de geselecteerde periode.'
+                        : 'Outstanding overdue amounts — not limited to the selected period.' }}
                 </p>
             </div>
-            @if($overdueAlerts->isNotEmpty())
-                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ $overdueAlerts->count() }} {{ $isNl ? 'melding(en)' : 'alert(s)' }}</span>
+            @if($overdueCount > 0)
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ $overdueCount }} {{ $isNl ? 'melding(en)' : 'alert(s)' }}
+                </span>
             @endif
         </div>
 
-        <div class="mb-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 px-4 py-2.5 flex items-start gap-2">
-            <x-heroicon-o-information-circle class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-            <p class="text-xs text-blue-700 dark:text-blue-400">
-                {{ $isNl
-                    ? 'Deze sectie is niet beperkt tot de gekozen maand. Ze toont alle openstaande vervallen bedragen die vandaag aandacht vragen.'
-                    : 'This section is not limited to the selected month. It shows all outstanding overdue amounts that require attention today.' }}
-            </p>
-        </div>
-
-        @if($overdueAlerts->isEmpty())
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-8 text-center text-gray-400 dark:text-gray-500 shadow-sm">
-                <x-heroicon-o-check-circle class="mx-auto w-8 h-8 mb-2 text-green-400" />
-                <p class="text-sm">{{ $isNl ? 'Geen vervallen vorderingen.' : 'No overdue receivables.' }}</p>
+        @if($overdueCount === 0)
+            <div class="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
+                <x-heroicon-o-check-circle class="w-4 h-4 flex-shrink-0" />
+                {{ $isNl ? 'Geen vervallen vorderingen.' : 'No overdue receivables.' }}
             </div>
         @else
+            {{-- Summary stats bar --}}
+            <div class="mb-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 px-4 py-3 text-center">
+                    <p class="text-lg font-bold text-red-700 dark:text-red-400">{{ $overdueCritical }}</p>
+                    <p class="text-xs text-red-600 dark:text-red-500 mt-0.5">{{ $isNl ? 'Kritiek' : 'Critical' }}</p>
+                </div>
+                <div class="rounded-lg bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 px-4 py-3 text-center">
+                    <p class="text-lg font-bold text-orange-700 dark:text-orange-400">{{ $overdueHigh }}</p>
+                    <p class="text-xs text-orange-600 dark:text-orange-500 mt-0.5">{{ $isNl ? 'Hoog' : 'High' }}</p>
+                </div>
+                <div class="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-3 text-center">
+                    <p class="text-lg font-bold text-gray-800 dark:text-gray-200 tabular-nums">{{ $overdueMaxDays }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Max. achterstand (dagen)' : 'Max. days overdue' }}</p>
+                </div>
+                <div class="rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-4 py-3 text-center">
+                    <p class="text-lg font-bold text-gray-800 dark:text-gray-200 tabular-nums">
+                        €{{ number_format((float) $overdueTotal, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Totaal open' : 'Total open' }}</p>
+                </div>
+            </div>
+
+            <div class="mb-3 flex items-start gap-2 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 px-4 py-2.5">
+                <x-heroicon-o-information-circle class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <p class="text-xs text-blue-700 dark:text-blue-400">
+                    {{ $isNl
+                        ? 'Deze sectie is niet beperkt tot de gekozen maand. Ze toont alle openstaande vervallen bedragen die vandaag aandacht vragen.'
+                        : 'This section is not limited to the selected month. It shows all outstanding overdue amounts requiring attention today.' }}
+                </p>
+            </div>
+
             @include('intelligence::filament.pages.billing-control-table', [
                 'alerts'         => $overdueAlerts,
                 'projects'       => $projects,
@@ -187,15 +299,15 @@
                 'typeLabels'     => $typeLabels,
                 'isNl'           => $isNl,
                 'showType'       => false,
+                'showLimit'      => 10,
             ])
         @endif
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════════════
-         SECTIE 3 — Afgesloten projecten met open saldo
-         Type: closed_with_balance — ALL active, NOT period-filtered.
-    ═══════════════════════════════════════════════════════════════ --}}
-    <div class="mb-8">
+    {{-- ═══════════════════════════════════════════════════════════════════
+         4. AFGESLOTEN PROJECTEN MET OPEN SALDO — compact empty state
+    ═══════════════════════════════════════════════════════════════════ --}}
+    <div id="section-closed" class="mb-8 scroll-mt-4">
         <div class="flex items-center justify-between mb-3">
             <div>
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">
@@ -203,19 +315,21 @@
                 </h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {{ $isNl
-                        ? 'Projecten die als afgesloten zijn gemarkeerd in CAFCA maar nog een openstaand saldo hebben.'
-                        : 'Projects marked as closed in CAFCA that still carry an open balance.' }}
+                        ? 'Projecten gesloten in CAFCA maar met een openstaand saldo.'
+                        : 'Projects closed in CAFCA that still carry an open balance.' }}
                 </p>
             </div>
             @if($closedAlerts->isNotEmpty())
-                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ $closedAlerts->count() }} {{ $isNl ? 'melding(en)' : 'alert(s)' }}</span>
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ $closedAlerts->count() }} {{ $isNl ? 'melding(en)' : 'alert(s)' }}
+                </span>
             @endif
         </div>
 
         @if($closedAlerts->isEmpty())
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-8 text-center text-gray-400 dark:text-gray-500 shadow-sm">
-                <x-heroicon-o-check-circle class="mx-auto w-8 h-8 mb-2 text-green-400" />
-                <p class="text-sm">{{ $isNl ? 'Geen afgesloten projecten met open saldo.' : 'No closed projects with open balance.' }}</p>
+            <div class="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
+                <x-heroicon-o-check-circle class="w-4 h-4 flex-shrink-0" />
+                {{ $isNl ? 'Geen afgesloten projecten met open saldo.' : 'No closed projects with open balance.' }}
             </div>
         @else
             @include('intelligence::filament.pages.billing-control-table', [
@@ -235,11 +349,10 @@
         @endif
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════════════
-         SECTIE 4 — Creditnota's in {period}
-         Type: credit_note — filtered by selected period. Informative.
-    ═══════════════════════════════════════════════════════════════ --}}
-    <div class="mb-8">
+    {{-- ═══════════════════════════════════════════════════════════════════
+         5. CREDITNOTA'S — compact empty state
+    ═══════════════════════════════════════════════════════════════════ --}}
+    <div id="section-credits" class="mb-8 scroll-mt-4">
         <div class="flex items-center justify-between mb-3">
             <div>
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">
@@ -247,18 +360,21 @@
                 </h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {{ $isNl
-                        ? 'Creditnota\'s aangemaakt in de geselecteerde periode. Ter informatie — vereisen doorgaans geen actie.'
-                        : 'Credit notes created in the selected period. Informational — typically no action required.' }}
+                        ? "Creditnota's aangemaakt in de geselecteerde periode. Ter informatie."
+                        : 'Credit notes created in the selected period. Informational.' }}
                 </p>
             </div>
             @if($creditAlerts->isNotEmpty())
-                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ $creditAlerts->count() }} {{ $isNl ? 'melding(en)' : 'alert(s)' }}</span>
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {{ $creditAlerts->count() }} {{ $isNl ? 'melding(en)' : 'alert(s)' }}
+                </span>
             @endif
         </div>
 
         @if($creditAlerts->isEmpty())
-            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-6 text-center text-gray-400 dark:text-gray-500 shadow-sm">
-                <p class="text-sm">{{ $isNl ? "Geen creditnota's in {$periodLabel}." : "No credit notes in {$periodLabel}." }}</p>
+            <div class="flex items-center gap-2 px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
+                <x-heroicon-o-minus-circle class="w-4 h-4 flex-shrink-0" />
+                {{ $isNl ? "Geen creditnota's in {$periodLabel}." : "No credit notes in {$periodLabel}." }}
             </div>
         @else
             @include('intelligence::filament.pages.billing-control-table', [
@@ -278,73 +394,7 @@
         @endif
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════════════
-         SECTIE 5 — Maandafsluiting
-         Status summary voor de geselecteerde periode.
-    ═══════════════════════════════════════════════════════════════ --}}
-    <div class="mb-8">
-        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-3">
-            {{ $isNl ? "Maandafsluiting — {$periodLabel}" : "Monthly close — {$periodLabel}" }}
-        </h2>
-
-        @php
-            $canClose = !$maand['blocker'] && $maand['critical_open'] === 0 && $maand['high_open'] === 0 && $maand['confirmed_open'] === 0;
-        @endphp
-
-        <div class="rounded-xl border {{ $canClose ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/10' : 'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10' }} p-5">
-            @if($canClose)
-                <div class="flex items-center gap-3 mb-4">
-                    <x-heroicon-o-check-badge class="w-6 h-6 text-green-500 flex-shrink-0" />
-                    <p class="text-sm font-semibold text-green-700 dark:text-green-400">
-                        {{ $isNl ? "De maand {$periodLabel} kan worden afgesloten." : "Month {$periodLabel} can be closed." }}
-                    </p>
-                </div>
-            @else
-                <div class="flex items-start gap-3 mb-4">
-                    <x-heroicon-o-exclamation-triangle class="w-6 h-6 text-orange-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                        <p class="text-sm font-semibold text-orange-700 dark:text-orange-400">
-                            {{ $isNl ? "De maand {$periodLabel} is nog niet klaar om af te sluiten." : "Month {$periodLabel} is not yet ready to close." }}
-                        </p>
-                        <p class="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                            {{ $isNl
-                                ? 'Los de openstaande meldingen hieronder op voor u de maand afsluit in CAFCA.'
-                                : 'Resolve the outstanding alerts below before closing the month in CAFCA.' }}
-                        </p>
-                    </div>
-                </div>
-            @endif
-
-            <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div class="text-center">
-                    <p class="text-2xl font-bold {{ $maand['critical_open'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">
-                        {{ $maand['critical_open'] }}
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Kritiek open' : 'Critical open' }}</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-2xl font-bold {{ $maand['high_open'] > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white' }}">
-                        {{ $maand['high_open'] }}
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Hoog open' : 'High open' }}</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-2xl font-bold {{ $maand['confirmed_open'] > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-gray-900 dark:text-white' }}">
-                        {{ $maand['confirmed_open'] }}
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Bevestigd (actie)' : 'Confirmed (action)' }}</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {{ $maand['resolved_period'] }}
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Opgelost' : 'Resolved' }}</p>
-                </div>
-            </dl>
-        </div>
-    </div>
-
-    {{-- Detail modal — unchanged from BI-2B-UX-02 --}}
+    {{-- Detail modal — unchanged --}}
     @if($this->selectedAlertId !== null)
         @php
             $md  = $this->getModalData();
@@ -360,9 +410,7 @@
              @keydown.escape.window="$wire.closeModal()">
             <div class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/70"
                  wire:click="closeModal"></div>
-
             <div class="relative z-10 w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
-
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between gap-4">
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-semibold text-gray-900 dark:text-white text-sm">
@@ -379,18 +427,13 @@
                     </div>
                     <button wire:click="closeModal"
                             class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-xl leading-none"
-                            aria-label="{{ $isNl ? 'Sluiten' : 'Close' }}">
-                        &#10005;
-                    </button>
+                            aria-label="{{ $isNl ? 'Sluiten' : 'Close' }}">&#10005;</button>
                 </div>
-
                 <div class="overflow-y-auto max-h-[72vh] px-6 py-5 space-y-5 text-sm">
-
                     <p class="text-xs text-gray-400 dark:text-gray-500">
                         {{ $isNl ? 'Periode' : 'Period' }}:
                         {{ \Carbon\Carbon::create($ma->period_year, $ma->period_month, 1)->translatedFormat('F Y') }}
                     </p>
-
                     <section>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
                             {{ $isNl ? 'Project & klant' : 'Project & client' }}
@@ -416,7 +459,6 @@
                             @endif
                         </dl>
                     </section>
-
                     @if($mi)
                     <section>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
@@ -467,7 +509,6 @@
                         </dl>
                     </section>
                     @endif
-
                     <section>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
                             {{ $isNl ? 'Bedrag' : 'Amount' }}
@@ -497,7 +538,6 @@
                             </p>
                         @endif
                     </section>
-
                     <section>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
                             {{ $isNl ? 'Aanbeveling' : 'Recommendation' }}
@@ -506,7 +546,6 @@
                             {{ $ma->recommendation ?? ($isNl ? 'Niet beschikbaar' : 'N/A') }}
                         </p>
                     </section>
-
                     @if(!empty($ma->evidence_json))
                     <section>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
@@ -551,8 +590,6 @@
                         </dl>
                     </section>
                     @endif
-
-                    {{-- Project links --}}
                     @if($ma->project_id)
                     <section>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">Links</h3>
@@ -572,7 +609,6 @@
                         </div>
                     </section>
                     @endif
-
                     <section class="border-t border-gray-100 dark:border-gray-800 pt-4">
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">Audit</h3>
                         <dl class="space-y-2">
@@ -600,10 +636,9 @@
                             @endif
                         </dl>
                     </section>
-
-                </div>{{-- /scrollable body --}}
-            </div>{{-- /panel --}}
-        </div>{{-- /modal wrapper --}}
+                </div>
+            </div>
+        </div>
         @endif
     @endif
 

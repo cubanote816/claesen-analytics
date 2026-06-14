@@ -9,7 +9,7 @@
 
 - **Sprint activo:** BI — Vista de Águila (Project Intelligence Detail page)
 - **Rama actual:** `feature/bi-project-intelligence-detail`
-- **Último ticket:** BI-2B-UX-09/10/13 ✅ `8f20e3f` — Billing Control secciones de negocio, partial_payment desactivado, docs actualizados
+- **Último ticket:** BI-2B-UX-14/15/16/17 ✅ — Maandstatus arriba, quick nav, overdue summary stats, compact empty states, showLimit 10
 - **Próximo paso:** rama lista para PR — ejecutar `intelligence:dismiss-partial-payment-alerts` en producción tras deploy
 - **Tests:** 95/95 Intelligence (post merge PR #6) — `sail artisan test --testsuite=Modules --filter=Intelligence`
 
@@ -24,6 +24,10 @@
 | BI-2B-UX-09 | Billing Control — secciones por pregunta de negocio (tabs eliminadas) | `8f20e3f` | ✅ Done |
 | BI-2B-UX-10 | Desactivar partial_payment + DismissPartialPaymentAlerts command | `8f20e3f` | ✅ Done |
 | BI-2B-UX-13 | Docs actualizados — partial_payment eliminado, secciones documentadas | `8f20e3f` | ✅ Done |
+| BI-2B-UX-14 | Maandstatus card arriba — absorbe banner rojo, KPI grid | (este commit) | ✅ Done |
+| BI-2B-UX-15 | Vervallen facturen — top 10 + "Toon alle" + summary stats | (este commit) | ✅ Done |
+| BI-2B-UX-16 | Compact empty states (40–60px, single line) — Afgesloten + Creditnota's | (este commit) | ✅ Done |
+| BI-2B-UX-17 | Quick nav anchors + section IDs | (este commit) | ✅ Done |
 
 ### Sprint BI — Estado
 
