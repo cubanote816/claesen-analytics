@@ -134,10 +134,9 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-6">
 
-    {{-- CAFCA wordmark --}}
+    {{-- Logo --}}
     <div class="absolute top-8 left-8">
-        <span class="text-xl font-bold tracking-widest uppercase" style="color: var(--brand-yellow); letter-spacing: .2em;">CAFCA</span>
-        <span class="text-xs text-gray-600 ml-2 uppercase tracking-widest">Intelligence Hub</span>
+        <img src="{{ asset('img/brand-logo-dark.png') }}" alt="Claesen Verlichting" class="h-10 opacity-80">
     </div>
 
     {{-- Refresh countdown hint --}}
@@ -176,9 +175,9 @@
 
         <p class="text-lg text-gray-300 mb-2">
             @if($locale === 'nl')
-                Het CAFCA Intelligence Hub wordt bijgewerkt.
+                Het platform wordt bijgewerkt.
             @else
-                CAFCA Intelligence Hub is being updated.
+                The platform is being updated.
             @endif
         </p>
 
@@ -205,7 +204,7 @@
 
     {{-- Footer --}}
     <div class="absolute bottom-6 text-xs text-gray-700">
-        CAFCA Intelligence Hub &mdash; {{ date('Y') }}
+        &copy; {{ date('Y') }} Claesen Verlichting BV
     </div>
 
     {{-- Background decoration --}}
