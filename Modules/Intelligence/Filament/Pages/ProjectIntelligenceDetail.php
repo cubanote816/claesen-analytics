@@ -3,6 +3,7 @@
 namespace Modules\Intelligence\Filament\Pages;
 
 use Filament\Pages\Page;
+use Modules\Intelligence\Models\BillingAlert;
 use Modules\Performance\Filament\Resources\ProjectInsightResource;
 use Modules\Performance\Models\Mirror\MirrorCost;
 use Modules\Performance\Models\Mirror\MirrorInvoice;
@@ -68,16 +69,11 @@ class ProjectIntelligenceDetail extends Page
             ->orderByDesc('date')
             ->get();
 
-        // BillingAlert ships with PR #6 (feature/bi-sprint2b-billing-guardian).
-        // Page is safe to deploy before that merge — alerts section auto-populates after.
-        $alertClass = 'Modules\\Intelligence\\Models\\BillingAlert';
-        $alerts = class_exists($alertClass)
-            ? $alertClass::where('project_id', $this->projectId)
-                ->orderByDesc('period_year')
-                ->orderByDesc('period_month')
-                ->orderByRaw("FIELD(severity,'critical','high','medium','low')")
-                ->get()
-            : collect();
+        $alerts = BillingAlert::where('project_id', $this->projectId)
+            ->orderByDesc('period_year')
+            ->orderByDesc('period_month')
+            ->orderByRaw("FIELD(severity,'critical','high','medium','low')")
+            ->get();
 
         $insightUrl = null;
         if (ProjectInsight::where('project_id', $this->projectId)->exists()) {
