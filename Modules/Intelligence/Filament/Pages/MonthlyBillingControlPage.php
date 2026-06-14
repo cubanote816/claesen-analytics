@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Database\Eloquent\Collection;
 use Modules\Intelligence\Models\BillingAlert;
 use Modules\Intelligence\Services\MonthlyBillingGuardianService;
 use Modules\Performance\Models\Mirror\MirrorInvoice;
@@ -13,6 +14,16 @@ use Modules\Performance\Models\Mirror\MirrorProject;
 use Modules\Performance\Models\Mirror\MirrorRelation;
 use Modules\Performance\Models\ProjectInsight;
 
+/**
+ * BI-2B-UX-09 — Billing Control page restructured by business question.
+ *
+ * Five sections instead of technical tabs:
+ *   1. Nog te factureren (missing invoice / unbilled cost / billing gap) — period-filtered
+ *   2. Vervallen facturen (overdue receivable) — all active, NOT period-filtered
+ *   3. Afgesloten projecten met open saldo (closed_with_balance) — all active, NOT period-filtered
+ *   4. Creditnota's (credit_note) — period-filtered
+ *   5. Maandafsluiting — summary + Run Guardian button
+ */
 class MonthlyBillingControlPage extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shield-check';
@@ -22,7 +33,6 @@ class MonthlyBillingControlPage extends Page
     protected string $view = 'intelligence::filament.pages.billing-control';
 
     public string $period = '';
-    public string $activeTab = 'all';
     public ?int $selectedAlertId = null;
 
     public static function canAccess(): bool
@@ -42,7 +52,7 @@ class MonthlyBillingControlPage extends Page
 
     public function getTitle(): string
     {
-        return app()->getLocale() === 'nl' ? 'Maandelijkse Facturatiecontrole' : 'Monthly Billing Control';
+        return app()->getLocale() === 'nl' ? 'Facturatiebeheer' : 'Billing Control';
     }
 
     public function mount(): void
@@ -58,84 +68,122 @@ class MonthlyBillingControlPage extends Page
         return Carbon::create($y, $m, 1)->translatedFormat('F Y');
     }
 
-    public function getKpis(): array
+    public function setPeriod(string $period): void
+    {
+        if (preg_match('/^\d{4}-\d{2}$/', $period)) {
+            $this->period = $period;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Section queries
+    // -------------------------------------------------------------------------
+
+    /** Section 1: Nog te factureren — filtered by selected period. */
+    public function getBillingAlerts(): Collection
+    {
+        [$year, $month] = $this->parsePeriod();
+
+        return BillingAlert::where('period_year', $year)
+            ->where('period_month', $month)
+            ->whereIn('alert_type', ['missing_customer_invoice', 'unbilled_followup_cost', 'project_billing_gap'])
+            ->orderByRaw("FIELD(severity,'critical','high','medium','low') ASC")
+            ->orderByRaw("FIELD(status,'open','in_review','confirmed','dismissed','resolved') ASC")
+            ->get();
+    }
+
+    /** Section 2: Vervallen facturen — ALL active, not period-filtered. */
+    public function getOverdueAlerts(): Collection
+    {
+        return BillingAlert::where('alert_type', 'overdue_receivable')
+            ->whereNotIn('status', [BillingAlert::STATUS_RESOLVED, BillingAlert::STATUS_DISMISSED])
+            ->orderByRaw("FIELD(severity,'critical','high','medium','low') ASC")
+            ->orderByRaw("FIELD(status,'open','in_review','confirmed') ASC")
+            ->get();
+    }
+
+    /** Section 3: Afgesloten projecten met open saldo — ALL active, not period-filtered. */
+    public function getClosedBalanceAlerts(): Collection
+    {
+        return BillingAlert::where('alert_type', 'closed_with_balance')
+            ->whereNotIn('status', [BillingAlert::STATUS_RESOLVED, BillingAlert::STATUS_DISMISSED])
+            ->orderByRaw("FIELD(severity,'critical','high','medium','low') ASC")
+            ->orderByRaw("FIELD(status,'open','in_review','confirmed') ASC")
+            ->get();
+    }
+
+    /** Section 4: Creditnota's — filtered by selected period. */
+    public function getCreditNoteAlerts(): Collection
+    {
+        [$year, $month] = $this->parsePeriod();
+
+        return BillingAlert::where('period_year', $year)
+            ->where('period_month', $month)
+            ->where('alert_type', 'credit_note')
+            ->orderByRaw("FIELD(status,'open','in_review','confirmed','dismissed','resolved') ASC")
+            ->get();
+    }
+
+    /** Section 5: Maandafsluiting — summary data for the selected period. */
+    public function getMaandafsluitingData(): array
     {
         [$year, $month] = $this->parsePeriod();
 
         $base = BillingAlert::where('period_year', $year)->where('period_month', $month);
 
+        $activeStatuses = [BillingAlert::STATUS_OPEN, BillingAlert::STATUS_IN_REVIEW];
+
         return [
-            'total'      => (clone $base)->count(),
-            'open'       => (clone $base)->where('status', BillingAlert::STATUS_OPEN)->count(),
-            'in_review'  => (clone $base)->where('status', BillingAlert::STATUS_IN_REVIEW)->count(),
-            'confirmed'  => (clone $base)->where('status', BillingAlert::STATUS_CONFIRMED)->count(),
-            'dismissed'  => (clone $base)->where('status', BillingAlert::STATUS_DISMISSED)->count(),
-            'resolved'   => (clone $base)->where('status', BillingAlert::STATUS_RESOLVED)->count(),
-            'critical'   => (clone $base)->where('severity', 'critical')->whereIn('status', [BillingAlert::STATUS_OPEN, BillingAlert::STATUS_IN_REVIEW])->count(),
-            'high'       => (clone $base)->where('severity', 'high')->whereIn('status', [BillingAlert::STATUS_OPEN, BillingAlert::STATUS_IN_REVIEW])->count(),
-            'medium'     => (clone $base)->where('severity', 'medium')->whereIn('status', [BillingAlert::STATUS_OPEN, BillingAlert::STATUS_IN_REVIEW])->count(),
-            'low'        => (clone $base)->where('severity', 'low')->whereIn('status', [BillingAlert::STATUS_OPEN, BillingAlert::STATUS_IN_REVIEW])->count(),
-            'blocker'    => (clone $base)->where('alert_type', 'monthly_close_blocker')->whereIn('status', [BillingAlert::STATUS_OPEN, BillingAlert::STATUS_IN_REVIEW])->exists(),
+            'critical_open'    => (clone $base)->where('severity', 'critical')->whereIn('status', $activeStatuses)->count(),
+            'high_open'        => (clone $base)->where('severity', 'high')->whereIn('status', $activeStatuses)->count(),
+            'confirmed_open'   => (clone $base)->where('status', BillingAlert::STATUS_CONFIRMED)->count(),
+            'blocker'          => (clone $base)->where('alert_type', 'monthly_close_blocker')->whereIn('status', $activeStatuses)->exists(),
+            'total_period'     => (clone $base)->count(),
+            'resolved_period'  => (clone $base)->where('status', BillingAlert::STATUS_RESOLVED)->count(),
         ];
     }
 
-    public function getAlerts(): \Illuminate\Database\Eloquent\Collection
+    /**
+     * Project / relation / insight context for all alerts currently visible.
+     * Loads context for ALL active non-dismissed alerts — 4 whereIn queries, zero N+1.
+     */
+    public function getProjectContext(): array
     {
+        $alertRows = BillingAlert::whereNotIn('status', [BillingAlert::STATUS_RESOLVED, BillingAlert::STATUS_DISMISSED])
+            ->whereNotNull('project_id')
+            ->get(['project_id', 'relation_id']);
+
+        // Also include period-filtered alerts that may already be dismissed/resolved
         [$year, $month] = $this->parsePeriod();
-
-        $query = BillingAlert::where('period_year', $year)
+        $periodRows = BillingAlert::where('period_year', $year)
             ->where('period_month', $month)
-            ->orderByRaw("FIELD(severity, 'critical','high','medium','low') ASC")
-            ->orderByRaw("FIELD(status, 'open','in_review','confirmed','dismissed','resolved') ASC");
+            ->whereNotNull('project_id')
+            ->get(['project_id', 'relation_id']);
 
-        if ($this->activeTab !== 'all') {
-            $typeMap = [
-                'invoicing'   => ['missing_customer_invoice', 'project_billing_gap'],
-                'receivables' => ['overdue_receivable', 'partial_payment'],
-                'costs'       => ['unbilled_followup_cost', 'closed_with_balance'],
-                'credits'     => ['credit_note'],
-                'system'      => ['monthly_close_blocker'],
-            ];
-            $types = $typeMap[$this->activeTab] ?? [];
-            if (!empty($types)) {
-                $query->whereIn('alert_type', $types);
-            }
-        }
+        $allRows = $alertRows->merge($periodRows);
 
-        return $query->get();
-    }
+        $projectIds  = $allRows->pluck('project_id')->filter()->unique()->values()->all();
+        $alertRelIds = $allRows->pluck('relation_id')->filter()->unique()->values()->all();
 
-    public function getTabCounts(): array
-    {
-        [$year, $month] = $this->parsePeriod();
+        $projects = $projectIds
+            ? MirrorProject::whereIn('id', $projectIds)->get(['id', 'name', 'relation_id'])->keyBy('id')
+            : collect();
 
-        $counts = BillingAlert::where('period_year', $year)
-            ->where('period_month', $month)
-            ->selectRaw('alert_type, COUNT(*) as cnt')
-            ->groupBy('alert_type')
-            ->pluck('cnt', 'alert_type');
+        $allRelationIds = collect($alertRelIds)
+            ->merge($projects->pluck('relation_id')->filter())
+            ->unique()
+            ->values()
+            ->all();
 
-        return [
-            'all'        => $counts->sum(),
-            'invoicing'  => ($counts['missing_customer_invoice'] ?? 0) + ($counts['project_billing_gap'] ?? 0),
-            'receivables'=> ($counts['overdue_receivable'] ?? 0) + ($counts['partial_payment'] ?? 0),
-            'costs'      => ($counts['unbilled_followup_cost'] ?? 0) + ($counts['closed_with_balance'] ?? 0),
-            'credits'    => $counts['credit_note'] ?? 0,
-            'system'     => $counts['monthly_close_blocker'] ?? 0,
-        ];
-    }
+        $relations = $allRelationIds
+            ? MirrorRelation::whereIn('id', $allRelationIds)->get(['id', 'name'])->keyBy('id')
+            : collect();
 
-    public function setTab(string $tab): void
-    {
-        $this->activeTab = $tab;
-    }
+        $insightSet = $projectIds
+            ? ProjectInsight::whereIn('project_id', $projectIds)->pluck('project_id')->flip()->toArray()
+            : [];
 
-    public function setPeriod(string $period): void
-    {
-        if (preg_match('/^\d{4}-\d{2}$/', $period)) {
-            $this->period = $period;
-            $this->activeTab = 'all';
-        }
+        return compact('projects', 'relations', 'insightSet');
     }
 
     // -------------------------------------------------------------------------
@@ -264,7 +312,7 @@ class MonthlyBillingControlPage extends Page
     }
 
     // -------------------------------------------------------------------------
-    // BI-2B-UX-02 — Detail modal (lazy load by PK — no N+1)
+    // Detail modal (lazy load by PK — no N+1)
     // -------------------------------------------------------------------------
 
     public function openModal(int $alertId): void
@@ -278,9 +326,6 @@ class MonthlyBillingControlPage extends Page
     }
 
     /**
-     * Lazy context for the detail modal. Called only when selectedAlertId is set.
-     * All lookups are by PK — maximum 5 queries, zero N+1.
-     *
      * @return array{alert: ?BillingAlert, project: mixed, relation: mixed, invoice: mixed, hasInsight: bool}
      */
     public function getModalData(): array
@@ -303,66 +348,6 @@ class MonthlyBillingControlPage extends Page
             : false;
 
         return compact('alert', 'project', 'relation', 'invoice', 'hasInsight');
-    }
-
-    // -------------------------------------------------------------------------
-    // BI-2B-UX-03 — Project / relation / insight context (no N+1)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Returns maps keyed by ID for the alerts currently visible in the active tab.
-     * Four indexed whereIn queries total — zero N+1.
-     *
-     * @return array{
-     *   projects: \Illuminate\Support\Collection,
-     *   relations: \Illuminate\Support\Collection,
-     *   insightSet: array<string, int>
-     * }
-     */
-    public function getProjectContext(): array
-    {
-        [$year, $month] = $this->parsePeriod();
-
-        $base = BillingAlert::where('period_year', $year)->where('period_month', $month);
-
-        if ($this->activeTab !== 'all') {
-            $typeMap = [
-                'invoicing'   => ['missing_customer_invoice', 'project_billing_gap'],
-                'receivables' => ['overdue_receivable', 'partial_payment'],
-                'costs'       => ['unbilled_followup_cost', 'closed_with_balance'],
-                'credits'     => ['credit_note'],
-                'system'      => ['monthly_close_blocker'],
-            ];
-            $types = $typeMap[$this->activeTab] ?? [];
-            if (!empty($types)) {
-                $base->whereIn('alert_type', $types);
-            }
-        }
-
-        $alertRows = $base->get(['project_id', 'relation_id']);
-
-        $projectIds  = $alertRows->pluck('project_id')->filter()->unique()->values()->all();
-        $alertRelIds = $alertRows->pluck('relation_id')->filter()->unique()->values()->all();
-
-        $projects = $projectIds
-            ? MirrorProject::whereIn('id', $projectIds)->get(['id', 'name', 'relation_id'])->keyBy('id')
-            : collect();
-
-        $allRelationIds = collect($alertRelIds)
-            ->merge($projects->pluck('relation_id')->filter())
-            ->unique()
-            ->values()
-            ->all();
-
-        $relations = $allRelationIds
-            ? MirrorRelation::whereIn('id', $allRelationIds)->get(['id', 'name'])->keyBy('id')
-            : collect();
-
-        $insightSet = $projectIds
-            ? ProjectInsight::whereIn('project_id', $projectIds)->pluck('project_id')->flip()->toArray()
-            : [];
-
-        return compact('projects', 'relations', 'insightSet');
     }
 
     private function parsePeriod(): array

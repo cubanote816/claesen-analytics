@@ -79,11 +79,8 @@ Ejemplo: `"2026:06:overdue_receivable::F25260007"` — NULLs se convierten en st
 - Semántica snapshot: una factura impagada re-alerta en el siguiente período (intencional).
 - Severity: días vencida > 60 → `critical`; si no → `high`.
 
-### BI-053 — `partial_payment`
-**Trigger:** factura parcialmente pagada (`total_paid > 0`), saldo > `min_amount`, **aún no vencida** (o sin fecha).
-
-- Exclusión mutua con `overdue_receivable`: al vencer, pasa a overdue.
-- Severity: `medium`.
+### ~~BI-053 — `partial_payment`~~ — DESACTIVADO (BI-2B-UX-10)
+Regla eliminada del ciclo de detección. Las facturas parcialmente pagadas no vencidas no requieren acción urgente; al vencer son capturadas por `overdue_receivable`. Los registros históricos fueron marcados como `dismissed` vía `intelligence:dismiss-partial-payment-alerts`.
 
 ### BI-054 — `unbilled_followup_cost` (Auditor Gate: APPROVED)
 **Trigger:** costes con `invoiced=false` en el período, agrupados por proyecto. Si `SUM(cost_price × quantity) > min_cost_amount` → alerta.
@@ -134,7 +131,7 @@ Al re-ejecutar el Guardian para el mismo período:
 | Clave | Default | Descripción |
 |-------|---------|-------------|
 | `days_without_invoice` | 30 | Días sin factura para `project_billing_gap` |
-| `min_amount` | 500 | Umbral € para `overdue_receivable` y `partial_payment` |
+| `min_amount` | 500 | Umbral € para `overdue_receivable` |
 | `min_activity_amount` | 500 | Umbral € para `missing_customer_invoice` (BI-052) |
 | `min_cost_amount` | 500 | Umbral € para `unbilled_followup_cost` (BI-054) |
 | `include_projects_without_contract` | false | Alertar proyectos sin contrato ni estimate |
@@ -183,13 +180,13 @@ Ruta: `/billing-control` | Nav: Intelligence Hub
 
 ### Tabs
 | Tab | Tipos incluidos |
-|-----|----------------|
-| Alle | Todas |
-| Facturatie | `missing_customer_invoice`, `project_billing_gap` |
-| Vorderingen | `overdue_receivable`, `partial_payment` |
-| Kosten | `unbilled_followup_cost`, `closed_with_balance` |
-| Creditnotas | `credit_note` |
-| System | `monthly_close_blocker` |
+| Sección (BI-2B-UX-09) | Tipos de alerta | Filtro de período |
+|----------------------|-----------------|-------------------|
+| Nog te factureren | `missing_customer_invoice`, `unbilled_followup_cost`, `project_billing_gap` | Sí — período seleccionado |
+| Vervallen facturen | `overdue_receivable` | No — todas las activas |
+| Afgesloten met saldo | `closed_with_balance` | No — todas las activas |
+| Creditnota's | `credit_note` | Sí — período seleccionado |
+| Maandafsluiting | resumen bloqueadores | Sí — período seleccionado |
 
 ### Workflow (BI-059)
 

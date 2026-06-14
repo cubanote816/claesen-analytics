@@ -7,11 +7,27 @@
 
 ## Estado actual
 
-- **Sprint activo:** BI — Sprint 2B UX (Monthly Billing Guardian mejoras UX)
-- **Rama actual:** `feature/bi-sprint2b-billing-guardian`
-- **Último ticket:** BI-2B-UX-06/07/08 ✅ — revisión visual OK (95/95 tests, Blade sin errores, ruta activa, todos los checks del checklist pasados)
-- **Próximo paso:** merge PR #6 `feature/bi-sprint2b-billing-guardian` → `main` (https://github.com/cubanote816/claesen-analytics/pull/6)
-- **Tests:** 95 passed / 200 assertions (módulo Intelligence)
+- **Sprint activo:** BI — Vista de Águila (Project Intelligence Detail page)
+- **Rama actual:** `feature/bi-project-intelligence-detail`
+- **Último ticket:** BI-2B-UX-14/15/16/17 ✅ — Maandstatus arriba, quick nav, overdue summary stats, compact empty states, showLimit 10
+- **Próximo paso:** rama lista para PR — ejecutar `intelligence:dismiss-partial-payment-alerts` en producción tras deploy
+- **Tests:** 94/196 Intelligence ✅ — `sail artisan test --testsuite=Modules --filter=Intelligence` (94 = 95 previos −1 por deactivación partial_payment BI-2B-UX-10)
+
+### BI-PROJ — Vista de Águila
+
+| Ticket | Título | Commit | Estado |
+|--------|--------|--------|--------|
+| BI-PROJ-01 | Auditoría ProjectInsightResource — confirma nueva page en Intelligence | (docblock en clase) | ✅ Done |
+| BI-PROJ-02 | `ProjectIntelligenceDetail` page MVP — `/project-detail/{projectId}` | `7db83ae` | ✅ Done — GO |
+| BI-PROJ-03 | Wire "Projectdetails openen" button en billing-control modal | `a0e1007` | ✅ Done |
+| BI-PROJ-04 | Quitar class_exists guard, importar BillingAlert directo | `3af5fc8` | ✅ Done |
+| BI-2B-UX-09 | Billing Control — secciones por pregunta de negocio (tabs eliminadas) | `8f20e3f` | ✅ Done |
+| BI-2B-UX-10 | Desactivar partial_payment + DismissPartialPaymentAlerts command | `8f20e3f` | ✅ Done |
+| BI-2B-UX-13 | Docs actualizados — partial_payment eliminado, secciones documentadas | `8f20e3f` | ✅ Done |
+| BI-2B-UX-14 | Maandstatus card arriba — absorbe banner rojo, KPI grid | (este commit) | ✅ Done |
+| BI-2B-UX-15 | Vervallen facturen — top 10 + "Toon alle" + summary stats | (este commit) | ✅ Done |
+| BI-2B-UX-16 | Compact empty states (40–60px, single line) — Afgesloten + Creditnota's | (este commit) | ✅ Done |
+| BI-2B-UX-17 | Quick nav anchors + section IDs | (este commit) | ✅ Done |
 
 ### Sprint BI — Estado
 
@@ -243,7 +259,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | **Website** | ✅ WEB-001→025 mergeados en `main` (incl. Work Details + Static Site) | `main` | `docs/website-sprint-handoff.md` |
 | **Safety** | ✅ Sprint completado (SAF-001 a SAF-016) | `Safety_Inspections` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
-| **Intelligence / BI** | ✅ Sprint 1 completo (BI-010→022) — pendiente GO + merge | `feature/bi-sprint1-data` | `docs/bi-sprint-plan.md` |
+| **Intelligence / BI** | ✅ Sprint 1 ✅ Sprint 2B — PR #6 pendiente merge; BI-PROJ-02 ✅ (Vista de Águila) | `feature/bi-project-intelligence-detail` | `docs/bi-sprint-plan.md` |
 | **Prospects** | 🚧 ~80% (PROS-BUG-001+002 cerrados, FAB mailing operativo, sync dashboard exception feed) | `main` | Ver `CLAUDE.md` |
 | **Cafca** | ✅ ~90% | `main` | Ver `CLAUDE.md` |
 | **Core** | ✅ ~95% | `main` | Ver `CLAUDE.md` |

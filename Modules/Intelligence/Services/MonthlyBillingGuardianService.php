@@ -48,7 +48,9 @@ class MonthlyBillingGuardianService
         $alerts = array_merge(
             $this->detectMissingCustomerInvoices($year, $month),   // BI-052
             $this->detectOverdueReceivables($year, $month),        // BI-053
-            $this->detectPartialPayments($year, $month),           // BI-053
+            // detectPartialPayments deactivated — BI-2B-UX-10: non-expired partial
+            // payments generate noise without requiring immediate action; once the
+            // invoice expires it is caught by detectOverdueReceivables instead.
             $this->detectUnbilledFollowupCosts($year, $month),     // BI-054
             $this->detectProjectBillingGaps($year, $month),        // BI-055
             $this->detectCreditNotes($year, $month),               // BI-055
@@ -270,64 +272,19 @@ class MonthlyBillingGuardianService
     }
 
     /**
-     * BI-053 — invoices partially paid but NOT yet overdue.
+     * BI-2B-UX-10 — Deactivated. Returns empty array.
      *
-     * Trigger: fl_paid = false AND id NOT LIKE 'CN%' AND total_paid > 0
-     * AND (total_price - total_paid) > min_amount AND date_expiration >= today
-     * (or NULL). Once expired, the same invoice becomes an overdue_receivable
-     * instead — the two rules are mutually exclusive to avoid double alerts.
+     * Non-expired partially-paid invoices were generating noise without
+     * requiring immediate manager action. When the invoice expires it is
+     * automatically caught by detectOverdueReceivables (mutual exclusion
+     * on date_expiration guarantees no gap in coverage).
+     *
+     * Existing partial_payment records can be dismissed via:
+     *   php artisan intelligence:dismiss-partial-payment-alerts
      */
     protected function detectPartialPayments(int $year, int $month): array
     {
-        $rules     = $this->config->get('billing_guardian_rules', []);
-        $minAmount = (float) ($rules['min_amount'] ?? 500);
-        $today     = Carbon::now('Europe/Brussels')->startOfDay();
-
-        $invoices = MirrorInvoice::where('fl_paid', false)
-            ->where('id', 'NOT LIKE', 'CN%')
-            ->where('total_paid', '>', 0)
-            ->whereRaw('(total_price - total_paid) > ?', [$minAmount])
-            ->where(function ($q) use ($today) {
-                $q->whereNull('date_expiration')
-                  ->orWhere('date_expiration', '>=', $today);
-            })
-            ->get();
-
-        $alerts = [];
-
-        foreach ($invoices as $invoice) {
-            $amountOpen = round((float) $invoice->total_price - (float) $invoice->total_paid, 2);
-            $clientName = $this->resolveClientName($invoice->relation_id);
-
-            $alerts[] = [
-                'alert_type'    => 'partial_payment',
-                'severity'      => 'medium',
-                'project_id'    => $invoice->project_id,
-                'relation_id'   => $invoice->relation_id,
-                'invoice_id'    => $invoice->id,
-                'amount_open'   => $amountOpen,
-                'evidence_json' => [
-                    'invoice_id'      => $invoice->id,
-                    'client_name'     => $clientName,
-                    'amount_open'     => $amountOpen,
-                    'total_price'     => round((float) $invoice->total_price, 2),
-                    'total_paid'      => round((float) $invoice->total_paid, 2),
-                    'date_expiration' => $invoice->date_expiration?->toDateString(),
-                ],
-                'recommendation' => sprintf(
-                    'Factuur %s van %s is gedeeltelijk betaald: €%s van €%s ontvangen, €%s openstaand. '
-                    . 'Vervaldatum: %s. Volg het resterende saldo op.',
-                    $invoice->id,
-                    $clientName,
-                    number_format((float) $invoice->total_paid, 2, ',', '.'),
-                    number_format((float) $invoice->total_price, 2, ',', '.'),
-                    number_format($amountOpen, 2, ',', '.'),
-                    $invoice->date_expiration?->toDateString() ?? 'onbekend'
-                ),
-            ];
-        }
-
-        return $alerts;
+        return [];
     }
 
     private function resolveClientName(?int $relationId): string

@@ -108,27 +108,7 @@ Severidad:
 
 ---
 
-### 3. "Gedeeltelijke betaling" — Pago parcial
-
-**Pregunta que responde:** *¿Hay facturas donde el cliente pagó algo pero no el total, y el plazo aún no venció?*
-
-**Datos que usa:** los mismos campos de `invoice` que la alerta anterior.
-
-**Lógica de detección:**
-
-```
-SI la factura tiene fl_paid = false
-Y se ha recibido algún pago (total_paid > 0)
-Y el saldo restante > €500
-Y la fecha de vencimiento NO ha llegado aún (o no tiene fecha)
-→ ALERTA MEDIA
-```
-
-**La distinción con "factura vencida" es intencional:** una factura parcialmente pagada dentro de plazo es un seguimiento; la misma factura después del vencimiento pasa a ser una deuda. El sistema nunca genera las dos alertas para la misma factura.
-
----
-
-### 4. "Niet-gefactureerde kost" — Costes no facturados
+### 3. "Niet-gefactureerde kost" — Costes no facturados
 
 **Pregunta que responde:** *¿Hay costes de seguimiento de proyectos que no se han incluido en ninguna factura?*
 
@@ -262,7 +242,6 @@ El importe visible en la columna **Bedrag** de cada alerta no es siempre el mism
 | `missing_customer_invoice` | Gedetecteerde kost | `SUM(followup_cost.cost_price × quantity)` del mes | Coste de seguimiento, no precio de venta |
 | `project_billing_gap` | Gedetecteerde kost | `SUM(followup_cost.cost_price × quantity)` del mes | Ídem |
 | `overdue_receivable` | Open saldo | `invoice.total_price − invoice.total_paid` | Saldo pendiente de cobro |
-| `partial_payment` | Open saldo | `invoice.total_price − invoice.total_paid` | Ídem — factura aún no vencida |
 | `unbilled_followup_cost` | Niet-gefact. kost | `SUM(followup_cost.cost_price × quantity)` donde `already_invoiced = false` | Solo costes no marcados como facturados |
 | `closed_with_balance` | Open saldo | Suma de saldos abiertos de todas las facturas del proyecto | Puede ser suma de múltiples facturas |
 | `credit_note` | Creditbedrag | `invoice.total_price` de la nota de crédito | Importe de la CN emitida |
