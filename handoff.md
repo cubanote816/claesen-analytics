@@ -9,8 +9,8 @@
 
 - **Sprint activo:** BI — Vista de Águila (Project Intelligence Detail page)
 - **Rama actual:** `feature/bi-project-intelligence-detail`
-- **Último ticket:** BI-PROJ-03 ✅ `a0e1007` — Wire "Projectdetails openen" en modal billing alert
-- **Próximo paso:** BI-PROJ-04: quitar class_exists guard, importar BillingAlert directo
+- **Último ticket:** BI-PROJ-04 ✅ `3af5fc8` — class_exists guard eliminado, BillingAlert importado directo
+- **Próximo paso:** BI-PROJ-01→04 completados — rama lista para PR
 - **Tests:** 95/95 Intelligence (post merge PR #6) — `sail artisan test --testsuite=Modules --filter=Intelligence`
 
 ### BI-PROJ — Vista de Águila
@@ -20,7 +20,7 @@
 | BI-PROJ-01 | Auditoría ProjectInsightResource — confirma nueva page en Intelligence | (docblock en clase) | ✅ Done |
 | BI-PROJ-02 | `ProjectIntelligenceDetail` page MVP — `/project-detail/{projectId}` | `7db83ae` | ✅ Done — GO |
 | BI-PROJ-03 | Wire "Projectdetails openen" button en billing-control modal | `a0e1007` | ✅ Done |
-| BI-PROJ-04 | Quitar class_exists guard, importar BillingAlert directo | — | ⬜ Todo |
+| BI-PROJ-04 | Quitar class_exists guard, importar BillingAlert directo | `3af5fc8` | ✅ Done |
 
 ### Sprint BI — Estado
 
