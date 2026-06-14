@@ -12,12 +12,15 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Forms\Components\DatePicker;
 use Filament\Actions\ViewAction;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Notifications\Notification;
 use Modules\Safety\Filament\Resources\InspectionResource\Pages;
@@ -92,6 +95,9 @@ class InspectionResource extends Resource
                     ->color(fn(string $state): string => $state === 'Gegenereerd' ? 'success' : 'gray'),
             ])
             ->filters([
+                TrashedFilter::make()
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin')),
+
                 Filter::make('has_nok')
                     ->label(__('safety::inspections.filters.has_nok'))
                     ->query(fn(Builder $query) => $query->whereHas('answers', fn($q) => $q->where('status', 'nok'))),
@@ -130,6 +136,7 @@ class InspectionResource extends Resource
                         ->label(__('safety::inspections.actions.regenerate_pdf'))
                         ->icon('heroicon-o-arrow-path')
                         ->color('warning')
+                        ->hidden(fn (Inspection $record): bool => (bool) $record->deleted_at)
                         ->action(function (Inspection $record) {
                             try {
                                 \Modules\Safety\Jobs\GenerateSafetyPdfJob::dispatchSync($record->id, auth()->id());
@@ -149,13 +156,27 @@ class InspectionResource extends Resource
                                 \Illuminate\Support\Facades\Log::error("PDF Generation failed for inspection {$record->id}: " . $e->getMessage());
                             }
                         }),
+
+                    Action::make('archive')
+                        ->label('Archiveren')
+                        ->icon('heroicon-o-archive-box-x-mark')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Inspectie archiveren?')
+                        ->modalDescription('De inspectie wordt verborgen, maar antwoorden, foto\'s en PDF blijven bewaard.')
+                        ->modalSubmitActionLabel('Archiveren')
+                        ->visible(fn (Inspection $record): bool =>
+                            auth()->user()?->hasRole('super_admin') && ! $record->deleted_at
+                        )
+                        ->action(fn (Inspection $record) => $record->delete()),
+
+                    RestoreAction::make()
+                        ->visible(fn (Inspection $record): bool =>
+                            auth()->user()?->hasRole('super_admin') && (bool) $record->deleted_at
+                        ),
                 ])->button()->label('Acties'),
             ])
-            ->bulkActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ])
+            ->bulkActions([])
             ->defaultSort('completed_at', 'desc');
     }
 
@@ -245,5 +266,11 @@ class InspectionResource extends Resource
             'index' => Pages\ListInspections::route('/'),
             'view' => Pages\ViewInspection::route('/{record}'),
         ];
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 }
