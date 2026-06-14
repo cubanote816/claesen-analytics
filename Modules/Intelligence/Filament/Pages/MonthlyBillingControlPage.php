@@ -32,6 +32,16 @@ class MonthlyBillingControlPage extends Page
 
     protected string $view = 'intelligence::filament.pages.billing-control';
 
+    public static function getNavigationBadge(): ?string
+    {
+        return 'Beta';
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
+    }
+
     public string $period = '';
     public ?int $selectedAlertId = null;
 

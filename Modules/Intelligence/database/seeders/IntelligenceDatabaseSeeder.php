@@ -4,6 +4,7 @@ namespace Modules\Intelligence\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\Intelligence\Database\Seeders\BiConfigSeeder;
+use Modules\Intelligence\Database\Seeders\NbbPriceIndexSeeder;
 
 class IntelligenceDatabaseSeeder extends Seeder
 {
@@ -14,6 +15,7 @@ class IntelligenceDatabaseSeeder extends Seeder
     {
         $this->call([
             BiConfigSeeder::class,
+            NbbPriceIndexSeeder::class,
         ]);
     }
 }
