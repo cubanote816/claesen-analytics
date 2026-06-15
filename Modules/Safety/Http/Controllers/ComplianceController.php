@@ -17,13 +17,11 @@ class ComplianceController extends Controller
     {
         $user = $request->user();
 
-        if ($user->hasAnyRole(['super_admin', 'admin'])) {
-            $projects = $this->compliance->getNonCompliantProjects();
-        } elseif ($user->hasRole('project_manager')) {
-            $projects = $this->compliance->getNonCompliantProjects(userId: $user->id);
-        } else {
+        if (! $user->hasAnyRole(['super_admin', 'admin', 'project_manager'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
+
+        $projects = $this->compliance->getNonCompliantProjects();
 
         return response()->json([
             'data'  => $projects->values(),

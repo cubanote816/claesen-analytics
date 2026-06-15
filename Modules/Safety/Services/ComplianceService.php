@@ -12,32 +12,24 @@ use Modules\Safety\Models\Inspection;
 class ComplianceService
 {
     /**
-     * Returns enriched non-compliant project records for the compliance API.
+     * Returns enriched inspection coverage records for all active projects.
      *
-     * Sorting: projects with the most days overdue come first.
-     * Projects never inspected (null date) go at the end — their urgency
-     * is unknown, so they are grouped separately rather than promoted.
+     * Returns every active project with its last inspection date and how many
+     * days have passed. Projects inspected within the threshold are excluded.
      *
-     * @param  int|null  $userId  When set, scopes to projects where this user has submitted at least one inspection.
-     * @param  int|null  $days    Override the compliance_days config threshold.
+     * Sorting: projects with the most days since last inspection come first.
+     * Projects never inspected (null date) go at the end — their urgency is
+     * unknown so they are grouped separately rather than promoted to top.
+     *
+     * @param  int|null  $days  Override the compliance_days config threshold.
      * @return Collection<int, array{project_id:string, project_name:string, project_code:null, last_inspection_date:string|null, days_since_inspection:int|null}>
      */
-    public function getNonCompliantProjects(?int $userId = null, ?int $days = null): Collection
+    public function getNonCompliantProjects(?int $days = null): Collection
     {
         $days ??= (int) config('safety.compliance_days');
 
         try {
-            $query = MirrorProject::where('fl_active', true);
-
-            if ($userId !== null) {
-                $userProjectIds = Inspection::where('user_id', $userId)
-                    ->distinct()
-                    ->pluck('project_id');
-
-                $query->whereIn('id', $userProjectIds);
-            }
-
-            $activeProjects = $query->get();
+            $activeProjects = MirrorProject::where('fl_active', true)->get();
         } catch (\Throwable) {
             return collect();
         }

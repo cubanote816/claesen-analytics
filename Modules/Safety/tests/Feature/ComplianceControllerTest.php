@@ -101,36 +101,32 @@ class ComplianceControllerTest extends TestCase
 
     // ── project_manager ────────────────────────────────────────────────────────
 
-    public function test_project_manager_sees_only_their_projects(): void
+    public function test_project_manager_sees_all_projects_same_as_admin(): void
     {
-        [$pm,    $token] = $this->userWithRole('project_manager');
-        [$other]         = $this->userWithRole('project_manager');
+        [$pm,    $pmToken]    = $this->userWithRole('project_manager');
+        [,        $adminToken] = $this->userWithRole('admin');
 
-        $this->project('P-PM');
-        $this->project('P-OTHER');
+        $this->project('P-001');
+        $this->project('P-002');
+        // P-001 only has an inspection by the PM, P-002 has none — both must
+        // appear for both roles, since every PM can inspect any project.
+        $this->inspection('P-001', $pm->id, now()->subDays(40));
 
-        $this->inspection('P-PM',    $pm->id,    now()->subDays(40));
-        $this->inspection('P-OTHER', $other->id, now()->subDays(40));
+        $pmResponse    = $this->withToken($pmToken)->getJson('/api/v1/safety/compliance');
+        $adminResponse = $this->withToken($adminToken)->getJson('/api/v1/safety/compliance');
 
-        $response = $this->withToken($token)->getJson('/api/v1/safety/compliance');
+        $pmResponse->assertOk();
+        $adminResponse->assertOk();
 
-        $response->assertOk();
-        $ids = collect($response->json('data'))->pluck('project_id');
-        $this->assertContains('P-PM',    $ids->toArray());
-        $this->assertNotContains('P-OTHER', $ids->toArray());
-    }
+        $this->assertSame(
+            $pmResponse->json('count'),
+            $adminResponse->json('count'),
+            'project_manager and admin must receive the same number of projects'
+        );
 
-    public function test_project_manager_does_not_see_other_managers_projects(): void
-    {
-        [$pm,    $token] = $this->userWithRole('project_manager');
-        [$other]         = $this->userWithRole('project_manager');
-
-        $this->project('P-ALIEN');
-        $this->inspection('P-ALIEN', $other->id, now()->subDays(40));
-
-        $this->withToken($token)->getJson('/api/v1/safety/compliance')
-            ->assertOk()
-            ->assertJsonPath('count', 0);
+        $pmIds    = collect($pmResponse->json('data'))->pluck('project_id')->sort()->values()->toArray();
+        $adminIds = collect($adminResponse->json('data'))->pluck('project_id')->sort()->values()->toArray();
+        $this->assertSame($pmIds, $adminIds, 'project_manager and admin must see the same project list');
     }
 
     // ── Compliance logic ───────────────────────────────────────────────────────
