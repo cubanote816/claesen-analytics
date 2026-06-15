@@ -23,9 +23,6 @@ jobs:
 
       - name: Verify deployment
         run: |
-          curl -sk --resolve backoffice.claesen.local:443:127.0.0.1 \
-            https://backoffice.claesen.local/ \
-            -o /dev/null \
-            -w "HTTP %{http_code}" | grep -q "HTTP 200" && \
-            echo "Deploy verificado OK" || \
-            echo "ADVERTENCIA: health check retornó codigo inesperado"
+          CODE=$(curl -skL https://backoffice.claesen.local/ -o /dev/null -w "%{http_code}")
+          echo "Health check: HTTP $CODE"
+          [[ "$CODE" == "200" || "$CODE" == "302" ]] && echo "Deploy verificado OK" || { echo "ERROR: HTTP $CODE inesperado"; exit 1; }
