@@ -22,7 +22,13 @@ jobs:
           sudo bash /opt/claesen/scripts/deploy.sh "${{ inputs.branch || github.ref_name }}"
 
       - name: Verify deployment
+        shell: bash
         run: |
           CODE=$(curl -skL https://backoffice.claesen.local/ -o /dev/null -w "%{http_code}")
           echo "Health check: HTTP $CODE"
-          [[ "$CODE" == "200" || "$CODE" == "302" ]] && echo "Deploy verificado OK" || { echo "ERROR: HTTP $CODE inesperado"; exit 1; }
+          if [[ "$CODE" == "200" || "$CODE" == "302" ]]; then
+            echo "Deploy verificado OK"
+          else
+            echo "ERROR: HTTP $CODE inesperado"
+            exit 1
+          fi
