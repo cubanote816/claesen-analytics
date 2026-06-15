@@ -34,7 +34,7 @@ class MonthlyBillingControlPage extends Page
 
     public static function getNavigationBadge(): ?string
     {
-        return 'BETA';
+        return 'BETa';
     }
 
     public static function getNavigationBadgeColor(): string|array|null
