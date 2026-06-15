@@ -21,6 +21,7 @@ class Question extends Model
     protected $fillable = [
         'checklist_id',
         'text_nl',
+        'category',
         'order',
         'allow_yes',
         'allow_no',

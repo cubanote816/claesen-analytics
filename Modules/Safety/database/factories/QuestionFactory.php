@@ -17,6 +17,12 @@ class QuestionFactory extends Factory
         return [
             'checklist_id' => Checklist::factory(),
             'text_nl'      => $this->faker->sentence(),
+            'category'     => $this->faker->randomElement([
+                'Algemene Veiligheid',
+                'Brandveiligheid',
+                'Persoonlijke Bescherming',
+                'Werkplek',
+            ]),
             'order'        => $this->faker->numberBetween(1, 20),
             'allow_yes'    => true,
             'allow_no'     => true,

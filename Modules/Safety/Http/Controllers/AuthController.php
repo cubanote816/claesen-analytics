@@ -31,7 +31,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if (! $user->hasAnyRole(['project_manager', 'super_admin'])) {
+        if (! $user->hasAnyRole(['project_manager', 'super_admin', 'admin'])) {
             return response()->json([
                 'message' => 'Je hebt geen toegang tot de veiligheidsinspecties.',
             ], 403);
@@ -49,9 +49,11 @@ class AuthController extends Controller
             'token'      => $token->plainTextToken,
             'token_type' => 'Bearer',
             'user'       => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email,
+                'id'          => $user->id,
+                'name'        => $user->name,
+                'email'       => $user->email,
+                'roles'       => $user->getRoleNames()->values()->toArray(),
+                'permissions' => [],
             ],
         ], 200);
     }
@@ -64,10 +66,11 @@ class AuthController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'id'    => $user->id,
-            'name'  => $user->name,
-            'email' => $user->email,
-            'roles' => $user->getRoleNames(), // Assuming Spatie Roles
+            'id'          => $user->id,
+            'name'        => $user->name,
+            'email'       => $user->email,
+            'roles'       => $user->getRoleNames()->values()->toArray(),
+            'permissions' => [],
         ]);
     }
 }

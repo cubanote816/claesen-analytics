@@ -233,8 +233,9 @@ class InspectionController extends Controller
                 'remark'    => $answer->remark,
                 'photo_url' => $photoUrl,
                 'question'  => [
-                    'id'   => $answer->question->id,
-                    'text' => $answer->question->text_nl,
+                    'id'       => $answer->question->id,
+                    'text'     => $answer->question->text_nl,
+                    'category' => $answer->question->category,
                 ],
             ];
         });
