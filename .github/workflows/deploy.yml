@@ -1,124 +1,31 @@
-name: Build Laravel release
+name: Deploy to Production
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
-
-concurrency:
-  group: production
-  cancel-in-progress: false
-
-permissions:
-  contents: write
-
-env:
-  PHP_VERSION: "8.4"
-  NODE_VERSION: "22"
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: false
+        default: 'main'
 
 jobs:
-  build:
-    name: Build production release
-    runs-on: ubuntu-latest
+  deploy:
+    name: Deploy to prod-priv-01
+    runs-on: [self-hosted, linux, prod]
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: bcmath, ctype, curl, dom, exif, fileinfo, gd, intl, mbstring, openssl, pdo_mysql, tokenizer, xml, zip
-          tools: composer:v2
-          coverage: none
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install PHP dependencies
-        run: composer install --no-dev --prefer-dist --no-progress --no-interaction --optimize-autoloader --no-scripts
-
-      - name: Prepare Laravel for build
+      - name: Deploy
         run: |
-          cp .env.example .env
-          touch database/database.sqlite
-          printf '\nCACHE_STORE=array\nSESSION_DRIVER=array\n' >> .env
-          php artisan key:generate --force
-          php artisan package:discover --ansi
-          php artisan filament:upgrade --no-interaction
-          php artisan optimize:clear
-          rm -f .env
+          sudo bash /opt/claesen/scripts/deploy.sh "${{ inputs.branch || github.ref_name }}"
 
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Build frontend assets
-        run: npm run build
-
-      - name: Package release
+      - name: Verify deployment
         run: |
-          mkdir -p release
-          rsync -a \
-            --exclude='.git/' \
-            --exclude='.github/' \
-            --exclude='release/' \
-            --exclude='.env' \
-            --exclude='.env.*' \
-            --exclude='node_modules/' \
-            --exclude='tests/' \
-            --exclude='tmp/' \
-            --exclude='scratch/' \
-            --exclude='storage/app/*' \
-            --exclude='storage/framework/cache/*' \
-            --exclude='storage/framework/sessions/*' \
-            --exclude='storage/framework/testing/*' \
-            --exclude='storage/framework/views/*' \
-            --exclude='storage/logs/*' \
-            --exclude='*.sql' \
-            ./ release/
-          tar -czf release.tar.gz -C release .
-
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-release-${{ github.sha }}
-          path: release.tar.gz
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Publish pull-deploy release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: production-latest
-        run: |
-          set -euo pipefail
-
-          sha256sum release.tar.gz > release.tar.gz.sha256
-          {
-            echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY}"
-            echo "GITHUB_SHA=${GITHUB_SHA}"
-            echo "GITHUB_REF=${GITHUB_REF}"
-            echo "GITHUB_RUN_ID=${GITHUB_RUN_ID}"
-            echo "GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER}"
-            echo "BUILT_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-          } > release.env
-
-          git tag -f "$RELEASE_TAG" "$GITHUB_SHA"
-          git push --force origin "refs/tags/$RELEASE_TAG"
-
-          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" \
-              --title "Production latest" \
-              --notes "Mutable release used by the server-side pull deploy script."
-          fi
-
-          gh release upload "$RELEASE_TAG" \
-            release.tar.gz \
-            release.tar.gz.sha256 \
-            release.env \
-            --clobber
+          curl -sk --resolve backoffice.claesen.local:443:127.0.0.1 \
+            https://backoffice.claesen.local/ \
+            -o /dev/null \
+            -w "HTTP %{http_code}" | grep -q "HTTP 200" && \
+            echo "Deploy verificado OK" || \
+            echo "ADVERTENCIA: health check retornó codigo inesperado"
