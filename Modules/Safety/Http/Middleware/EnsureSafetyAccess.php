@@ -27,7 +27,7 @@ class EnsureSafetyAccess
         }
 
         // 2. Double-check the user's real-time attribute/role in the DB 
-        if (! $user->hasAnyRole(['project_manager', 'super_admin'])) {
+        if (! $user->hasAnyRole(['project_manager', 'super_admin', 'admin'])) {
             return response()->json([
                 'message' => 'Je hebt geen toegang tot de veiligheidsinspecties.'
             ], 403);

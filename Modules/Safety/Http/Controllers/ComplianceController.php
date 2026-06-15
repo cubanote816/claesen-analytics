@@ -15,20 +15,19 @@ class ComplianceController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        if (! $request->user()->hasRole('super_admin')) {
+        $user = $request->user();
+
+        if ($user->hasAnyRole(['super_admin', 'admin'])) {
+            $projects = $this->compliance->getNonCompliantProjects();
+        } elseif ($user->hasRole('project_manager')) {
+            $projects = $this->compliance->getNonCompliantProjects(userId: $user->id);
+        } else {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $missing = $this->compliance->getMissingInspections();
-
-        $data = $missing->values()->map(fn ($project) => [
-            'project_id' => $project->id,
-            'name'       => $project->name,
-        ]);
-
         return response()->json([
-            'data'  => $data,
-            'count' => $data->count(),
+            'data'  => $projects->values(),
+            'count' => $projects->count(),
         ]);
     }
 }
