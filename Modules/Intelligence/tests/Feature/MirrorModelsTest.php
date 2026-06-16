@@ -158,6 +158,79 @@ class MirrorModelsTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // CLA-157 — MirrorProject type/state label + color accessors
+    // -------------------------------------------------------------------------
+
+    public function test_type_4_returns_sportverlichting(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX001', 'name' => 'T', 'type' => 4]);
+        $this->assertSame('Sportverlichting', $p->type_label);
+        $this->assertSame('green', $p->type_color);
+    }
+
+    public function test_type_5_returns_sportverlichting(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX002', 'name' => 'T', 'type' => 5]);
+        $this->assertSame('Sportverlichting', $p->type_label);
+    }
+
+    public function test_type_7_returns_industrie(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX003', 'name' => 'T', 'type' => 7]);
+        $this->assertSame('Industrie', $p->type_label);
+        $this->assertSame('gray', $p->type_color);
+    }
+
+    public function test_type_2_returns_openbare_verlichting_blue(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX004', 'name' => 'T', 'type' => 2]);
+        $this->assertSame('Openbare Verlichting', $p->type_label);
+        $this->assertSame('blue', $p->type_color);
+    }
+
+    public function test_unknown_type_returns_onbekend_with_code(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX005', 'name' => 'T', 'type' => 99]);
+        $this->assertStringContainsString('Onbekend', $p->type_label);
+        $this->assertStringContainsString('99', $p->type_label);
+    }
+
+    public function test_state_11_returns_werken_in_uitvoering_green(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX006', 'name' => 'T', 'state' => 11]);
+        $this->assertSame('Werken in uitvoering', $p->state_label);
+        $this->assertSame('green', $p->state_color);
+    }
+
+    public function test_state_16_returns_on_hold_orange(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX007', 'name' => 'T', 'state' => 16]);
+        $this->assertSame('On Hold', $p->state_label);
+        $this->assertSame('orange', $p->state_color);
+    }
+
+    public function test_state_19_returns_geannuleerd_red(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX008', 'name' => 'T', 'state' => 19]);
+        $this->assertSame('Geannuleerd', $p->state_label);
+        $this->assertSame('red', $p->state_color);
+    }
+
+    public function test_state_18_returns_archief_gray(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX009', 'name' => 'T', 'state' => 18]);
+        $this->assertSame('Archief', $p->state_label);
+        $this->assertSame('gray', $p->state_color);
+    }
+
+    public function test_unknown_state_returns_onbekend_with_code(): void
+    {
+        $p = MirrorProject::create(['id' => 'PX010', 'name' => 'T', 'state' => 42]);
+        $this->assertStringContainsString('Onbekend', $p->state_label);
+        $this->assertStringContainsString('42', $p->state_label);
+    }
+
+    // -------------------------------------------------------------------------
     // BI-016 — workdocs: flags + amounts
     // -------------------------------------------------------------------------
 

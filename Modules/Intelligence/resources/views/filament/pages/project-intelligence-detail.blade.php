@@ -106,13 +106,40 @@
                     <dt class="text-gray-500">{{ $isNl ? 'Contractprijs' : 'Contract price' }}</dt>
                     <dd class="font-mono text-right">{{ $fmt($project->contract_price) }}</dd>
                 @endif
-                @if($project->type)
+                @if($project->type !== null)
+                    @php
+                        $typeBg = match($project->type_color) {
+                            'blue'   => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                            'green'  => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                            'purple' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+                            default  => 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+                        };
+                    @endphp
                     <dt class="text-gray-500">{{ $isNl ? 'Type' : 'Type' }}</dt>
-                    <dd class="text-right">{{ $project->type }}</dd>
+                    <dd class="text-right">
+                        <span class="inline-block px-2 py-0.5 rounded text-xs font-medium {{ $typeBg }}"
+                              title="CAFCA type: {{ $project->type }}">
+                            {{ $project->type_label }}
+                        </span>
+                    </dd>
                 @endif
-                @if($project->state)
+                @if($project->state !== null)
+                    @php
+                        $stateBg = match($project->state_color) {
+                            'green'  => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                            'orange' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+                            'red'    => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+                            'gray'   => 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+                            default  => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                        };
+                    @endphp
                     <dt class="text-gray-500">{{ $isNl ? 'Status' : 'Status' }}</dt>
-                    <dd class="text-right">{{ $project->state }}</dd>
+                    <dd class="text-right">
+                        <span class="inline-block px-2 py-0.5 rounded text-xs font-medium {{ $stateBg }}"
+                              title="CAFCA state: {{ $project->state }}">
+                            {{ $project->state_label }}
+                        </span>
+                    </dd>
                 @endif
             </dl>
         </div>
