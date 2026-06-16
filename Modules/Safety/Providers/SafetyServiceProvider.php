@@ -36,6 +36,7 @@ class SafetyServiceProvider extends ServiceProvider
         Gate::policy(Inspection::class, InspectionPolicy::class);
 
         \Modules\Safety\Models\Checklist::observe(\Modules\Safety\Observers\ChecklistObserver::class);
+        \Modules\Safety\Models\Question::observe(\Modules\Safety\Observers\QuestionObserver::class);
     }
 
     /**
