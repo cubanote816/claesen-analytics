@@ -99,7 +99,8 @@ PROMPT;
             ->first();
 
         $totalCosts = $materialCosts + (float)($laborData->total_labor_cost ?? 0);
-        $totalInvoiced = MirrorInvoice::where('project_id', $projectId)->sum('total_price_vat_excl');
+        $totalInvoiced = MirrorInvoice::where('project_id', $projectId)->regularInvoices()->sum('total_price_vat_excl')
+                       - MirrorInvoice::where('project_id', $projectId)->creditNotes()->sum('total_price_vat_excl');
         
         $margin = $totalInvoiced > 0 ? (($totalInvoiced - $totalCosts) / $totalInvoiced) * 100 : 0;
 

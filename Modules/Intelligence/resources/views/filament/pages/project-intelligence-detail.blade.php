@@ -172,18 +172,20 @@
                                 $isOverdue = !$inv->fl_paid && $inv->date_expiration?->isPast();
                                 $isCN = str_starts_with((string)$inv->id, 'CN');
                             @endphp
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <tr class="{{ $isCN ? 'bg-orange-50/40 dark:bg-orange-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50' }}">
                                 <td class="py-2 pr-4 font-mono text-xs text-gray-500">
                                     {{ $inv->id }}
                                     @if($isCN)
-                                        <span class="ml-1 px-1 py-0.5 rounded text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">CN</span>
+                                        <span class="ml-1 px-1 py-0.5 rounded text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                                            {{ $isNl ? 'Creditnota' : 'Credit note' }}
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="py-2 pr-4 text-gray-600 dark:text-gray-300">
                                     {{ $inv->date ? $inv->date->format('d/m/Y') : '—' }}
                                 </td>
-                                <td class="py-2 pr-4 font-mono text-right {{ $isCN ? 'text-purple-700 dark:text-purple-400' : '' }}">
-                                    {{ $fmt($inv->total_price_vat_excl) }}
+                                <td class="py-2 pr-4 font-mono text-right {{ $isCN ? 'text-orange-700 dark:text-orange-400' : '' }}">
+                                    @if($isCN)<span class="mr-0.5">−</span>@endif{{ $fmt($inv->total_price_vat_excl) }}
                                 </td>
                                 <td class="py-2 pr-4 text-gray-500 dark:text-gray-400 text-sm">
                                     @if($inv->date_expiration)

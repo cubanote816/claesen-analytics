@@ -39,9 +39,9 @@ class PopulateProjectInsightsCommand extends Command
                     $totalCost = FollowupCost::where('project_id', $projectId)
                         ->sum(DB::raw('costprice * (CASE WHEN quantity = 0 THEN 1 ELSE quantity END)')) ?? 0;
 
-                    // Real invoicing calculation from Invoice table
-                    $invoicedAmount = Invoice::where('project_id', $projectId)
-                        ->sum('total_price') ?? 0;
+                    // Net invoiced: regular invoices minus credit notes
+                    $invoicedAmount = (Invoice::where('project_id', $projectId)->regularInvoices()->sum('total_price') ?? 0)
+                                   - (Invoice::where('project_id', $projectId)->creditNotes()->sum('total_price') ?? 0);
 
                     $margin = $invoicedAmount - $totalCost;
                     $deviation = $totalHours > 0 ? ($margin / $totalHours) : 0;

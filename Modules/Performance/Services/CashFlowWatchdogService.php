@@ -94,9 +94,10 @@ class CashFlowWatchdogService
         $laborCosts = (float) ($laborData->total_labor_cost ?? 0);
         
         $totalCosts = $materialCosts + $laborCosts;
-        $totalInvoiced = MirrorInvoice::where('project_id', $projectId)->sum('total_price_vat_excl');
-        
-        $lastInvoice = MirrorInvoice::where('project_id', $projectId)->orderByDesc('date')->first();
+        $totalInvoiced = MirrorInvoice::where('project_id', $projectId)->regularInvoices()->sum('total_price_vat_excl')
+                       - MirrorInvoice::where('project_id', $projectId)->creditNotes()->sum('total_price_vat_excl');
+
+        $lastInvoice = MirrorInvoice::where('project_id', $projectId)->regularInvoices()->orderByDesc('date')->first();
         $daysSinceInvoice = $lastInvoice ? now()->diffInDays($lastInvoice->date) : 999;
         
         return [

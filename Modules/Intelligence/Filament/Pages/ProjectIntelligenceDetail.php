@@ -80,14 +80,14 @@ class ProjectIntelligenceDetail extends Page
             $insightUrl = ProjectInsightResource::getUrl('view', ['record' => $this->projectId]);
         }
 
-        // Invoice aggregates — MirrorInvoice has no total_paid; fl_paid is binary
-        $totalInvoiced = $invoices->sum(fn($i) => (float) $i->total_price_vat_excl);
-        $totalPaid     = $invoices->where('fl_paid', true)->sum(fn($i) => (float) $i->total_price_vat_excl);
-        $openBalance   = $invoices->where('fl_paid', false)->sum(fn($i) => (float) $i->total_price_vat_excl);
+        // Invoice aggregates — signed_* accessors subtract CN amounts automatically
+        $totalInvoiced = $invoices->sum(fn($i) => $i->signed_total_price_vat_excl);
+        $totalPaid     = $invoices->where('fl_paid', true)->sum(fn($i) => $i->signed_total_price_vat_excl);
+        $openBalance   = $totalInvoiced - $totalPaid;
         $overdueCount  = $invoices->filter(
-            fn($i) => !$i->fl_paid && $i->date_expiration?->isPast()
+            fn($i) => !$i->is_credit_note && !$i->fl_paid && $i->date_expiration?->isPast()
         )->count();
-        $creditNotes   = $invoices->filter(fn($i) => str_starts_with((string) $i->id, 'CN'));
+        $creditNotes   = $invoices->filter(fn($i) => $i->is_credit_note);
 
         // Cost aggregates
         $totalCost    = $costs->sum(fn($c) => (float) $c->cost_price * (float) $c->quantity);

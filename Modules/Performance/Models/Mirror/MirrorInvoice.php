@@ -30,4 +30,37 @@ class MirrorInvoice extends Model
         'date_expiration'      => 'date',
         'fl_paid'              => 'boolean',
     ];
+
+    public function scopeRegularInvoices($query)
+    {
+        return $query->where('id', 'NOT LIKE', 'CN%');
+    }
+
+    public function scopeCreditNotes($query)
+    {
+        return $query->where('id', 'LIKE', 'CN%');
+    }
+
+    public function getIsCreditNoteAttribute(): bool
+    {
+        return str_starts_with((string) $this->id, 'CN');
+    }
+
+    public function getSignedTotalPriceVatExclAttribute(): float
+    {
+        $v = (float) $this->total_price_vat_excl;
+        return $this->is_credit_note ? -$v : $v;
+    }
+
+    public function getSignedTotalPriceAttribute(): float
+    {
+        $v = (float) $this->total_price;
+        return $this->is_credit_note ? -$v : $v;
+    }
+
+    public function getSignedTotalPaidAttribute(): float
+    {
+        $v = (float) $this->total_paid;
+        return $this->is_credit_note ? -$v : $v;
+    }
 }

@@ -159,19 +159,21 @@ class Project extends CafcaModel
     }
 
     /**
-     * Total amount invoiced for this project.
+     * Net invoiced amount: regular invoices minus credit notes.
      */
     public function getTotalInvoicedAmountAttribute(): float
     {
-        return (float) $this->invoices()->sum('total_price');
+        return (float) $this->invoices()->regularInvoices()->sum('total_price')
+             - (float) $this->invoices()->creditNotes()->sum('total_price');
     }
 
     /**
-     * Total amount actually paid by the client.
+     * Net paid amount: regular payments minus credit note settlements.
      */
     public function getTotalPaidAmountAttribute(): float
     {
-        return (float) $this->invoices()->sum('total_paid');
+        return (float) $this->invoices()->regularInvoices()->sum('total_paid')
+             - (float) $this->invoices()->creditNotes()->sum('total_paid');
     }
 
     /**
