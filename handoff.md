@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-14 (SAF-017→022 ✅ Done + fix InspectionPhotoStorageFailureTest ✅ — mergeado a main)
+> Última actualización: 2026-06-16 (CLA-159 ✅ Done — author audit metadata en checklist questions)
 
 ---
 
@@ -415,6 +415,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-16 | CLA-159 | Done — Author audit metadata en `safety_questions`: migración FK `created_by_user_id`/`updated_by_user_id`, QuestionObserver, relaciones en modelo, API `show`/`active` devuelven `created_by`/`updated_by {id,name}`. 7 tests nuevos. Commit `a096243`. CLA-160 backfill histórico Bert/Orelvys en Backlog. |
 | 2026-06-13 | BI-011→022 | Sprint 1 completado en una sesión: 12 tickets + 1 fix colateral. Mirrors nuevos (estimate_calc, project_links, project_results, workdocs), bi_config + service + página Filament, ventana labor sync, 27 tests, fix N+1. Todos los commits en `feature/bi-sprint1-data`. |
 | 2026-06-13 | BI-010 | `contract_price`, `type`, `state` añadidos a `intelligence_mirror_projects`. Migración `2026_06_13_100000` aplicada. Sync completo pendiente (SQL Server no alcanzable desde Docker al momento del commit). Commit `5002265` en `feature/bi-sprint1-data`. |
 | 2026-06-13 | BI-000 | PR #4 mergeado — `feature/bi-foundation` → `main`. Cherry-pick `8d563e8`+`a8eedcf` aplicados. 6 migraciones `2026_05_27_*` en main. Sail validado (migrate, sync --relations 3.259, sync --estimates 144.051). |
