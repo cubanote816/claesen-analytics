@@ -13,6 +13,8 @@
             'T' => $isNl ? 'Transport'        : 'Transport',
             'E' => $isNl ? 'Extra'            : 'Extra',
         ];
+        // Numeric price_type values from followup_cost — semantic mapping pending CLA-158 audit.
+        $costTypeLabel = fn($t) => $typeLabels[$t] ?? ($t !== null && $t !== '' ? "CAFCA type {$t}" : '—');
 
         $alertTypeLabels = [
             'missing_customer_invoice' => $isNl ? 'Ontbrekende klantfactuur'  : 'Missing customer invoice',
@@ -289,10 +291,10 @@
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                 <td class="py-2 pr-4">
                                     <span class="font-medium text-gray-700 dark:text-gray-200">
-                                        {{ $typeLabels[$row['type']] ?? $row['type'] ?? '—' }}
+                                        {{ $costTypeLabel($row['type']) }}
                                     </span>
-                                    @if($row['type'])
-                                        <span class="ml-1 text-xs text-gray-400 font-mono">[{{ $row['type'] }}]</span>
+                                    @if($row['type'] !== null && $row['type'] !== '' && !isset($typeLabels[$row['type']]))
+                                        <span class="ml-1 text-xs text-amber-500 dark:text-amber-400 font-mono" title="{{ $isNl ? 'Mapping in onderzoek (CLA-158)' : 'Mapping under review (CLA-158)' }}">?</span>
                                     @endif
                                 </td>
                                 <td class="py-2 pr-4 text-right text-gray-500">{{ $row['count'] }}</td>
