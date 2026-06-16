@@ -36,12 +36,12 @@ class BackfillQuestionAuthorAuditCommand extends Command
             ->first(['id', 'name', 'email']);
 
         if (! $orelvys) {
-            $this->error("User not found: " . self::ORELVYS_EMAIL);
+            $this->error('User not found: ' . self::ORELVYS_EMAIL);
             return Command::FAILURE;
         }
 
         if (! $bert) {
-            $this->error("User not found: " . self::BERT_EMAIL);
+            $this->error('User not found: ' . self::BERT_EMAIL);
             return Command::FAILURE;
         }
 
@@ -52,13 +52,32 @@ class BackfillQuestionAuthorAuditCommand extends Command
         // --- Step 2: count candidates ---
         $total = DB::table('safety_questions')->count();
 
-        $createdCandidates = DB::table('safety_questions')
+        // created_by = Orelvys: questions created BEFORE 2026-06-14 (not in Sunday window)
+        $createdByOrelvys = DB::table('safety_questions')
             ->whereNull('created_by_user_id')
+            ->where(fn($q) => $q
+                ->where('created_at', '<', self::SUNDAY_UTC_START)
+                ->orWhere('created_at', '>', self::SUNDAY_UTC_END)
+            )
             ->count();
 
-        $updatedCandidates = DB::table('safety_questions')
-            ->whereBetween('updated_at', [self::SUNDAY_UTC_START, self::SUNDAY_UTC_END])
+        // created_by = Bert: questions created ON 2026-06-14 (in Sunday window)
+        $createdByBert = DB::table('safety_questions')
+            ->whereNull('created_by_user_id')
+            ->whereBetween('created_at', [self::SUNDAY_UTC_START, self::SUNDAY_UTC_END])
+            ->count();
+
+        // updated_by = Bert: updated on 2026-06-14 AND created_at != updated_at (actually edited)
+        $updatedByBert = DB::table('safety_questions')
             ->whereNull('updated_by_user_id')
+            ->whereBetween('updated_at', [self::SUNDAY_UTC_START, self::SUNDAY_UTC_END])
+            ->whereColumn('created_at', '!=', 'updated_at')
+            ->count();
+
+        // updated_by stays null: created_at = updated_at on 2026-06-14 (never edited after creation)
+        $neverEdited = DB::table('safety_questions')
+            ->whereBetween('updated_at', [self::SUNDAY_UTC_START, self::SUNDAY_UTC_END])
+            ->whereColumn('created_at', 'updated_at')
             ->count();
 
         $alreadyCreated = DB::table('safety_questions')
@@ -72,11 +91,13 @@ class BackfillQuestionAuthorAuditCommand extends Command
         $this->table(
             ['Metric', 'Count'],
             [
-                ['Total questions',                                                  $total],
-                ['→ set created_by_user_id = Orelvys (currently null)',             $createdCandidates],
-                ['→ set updated_by_user_id = Bert (modified 2026-06-14, null)',     $updatedCandidates],
-                ['Skip: created_by_user_id already set',                            $alreadyCreated],
-                ['Skip: updated_by_user_id already set',                            $alreadyUpdated],
+                ['Total questions',                                                              $total],
+                ['→ set created_by = Orelvys  (created before 2026-06-14, null)',               $createdByOrelvys],
+                ['→ set created_by = Bert     (created on 2026-06-14, null)',                   $createdByBert],
+                ['→ set updated_by = Bert     (modified 2026-06-14, created≠updated, null)',    $updatedByBert],
+                ['  skip updated_by = null    (created=updated on 2026-06-14, never edited)',   $neverEdited],
+                ['Skip: created_by_user_id already set',                                        $alreadyCreated],
+                ['Skip: updated_by_user_id already set',                                        $alreadyUpdated],
             ]
         );
 
@@ -88,17 +109,28 @@ class BackfillQuestionAuthorAuditCommand extends Command
         // --- Step 3: apply (DB query builder; does NOT touch updated_at) ---
         $this->info('Applying backfill...');
 
-        $appliedCreated = DB::table('safety_questions')
+        $appliedCreatedOrelvys = DB::table('safety_questions')
             ->whereNull('created_by_user_id')
+            ->where(fn($q) => $q
+                ->where('created_at', '<', self::SUNDAY_UTC_START)
+                ->orWhere('created_at', '>', self::SUNDAY_UTC_END)
+            )
             ->update(['created_by_user_id' => $orelvys->id]);
 
-        $appliedUpdated = DB::table('safety_questions')
-            ->whereBetween('updated_at', [self::SUNDAY_UTC_START, self::SUNDAY_UTC_END])
+        $appliedCreatedBert = DB::table('safety_questions')
+            ->whereNull('created_by_user_id')
+            ->whereBetween('created_at', [self::SUNDAY_UTC_START, self::SUNDAY_UTC_END])
+            ->update(['created_by_user_id' => $bert->id]);
+
+        $appliedUpdatedBert = DB::table('safety_questions')
             ->whereNull('updated_by_user_id')
+            ->whereBetween('updated_at', [self::SUNDAY_UTC_START, self::SUNDAY_UTC_END])
+            ->whereColumn('created_at', '!=', 'updated_at')
             ->update(['updated_by_user_id' => $bert->id]);
 
-        $this->info("created_by_user_id set on {$appliedCreated} question(s).");
-        $this->info("updated_by_user_id set on {$appliedUpdated} question(s).");
+        $this->info("created_by_user_id = Orelvys set on {$appliedCreatedOrelvys} question(s).");
+        $this->info("created_by_user_id = Bert    set on {$appliedCreatedBert} question(s).");
+        $this->info("updated_by_user_id = Bert    set on {$appliedUpdatedBert} question(s).");
         $this->info('Done.');
 
         return Command::SUCCESS;
