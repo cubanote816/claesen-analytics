@@ -158,6 +158,57 @@ class MirrorModelsTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // CLA-158 — MirrorCost::priceTypeLabel confirmed from CAFCASYSTEM code=3
+    // -------------------------------------------------------------------------
+
+    public function test_price_type_1_returns_materiaal(): void
+    {
+        $this->assertSame('Materiaal', MirrorCost::priceTypeLabel(1));
+        $this->assertSame('Materiaal', MirrorCost::priceTypeLabel('1'));
+    }
+
+    public function test_price_type_2_returns_arbeid(): void
+    {
+        $this->assertSame('Arbeid', MirrorCost::priceTypeLabel(2));
+    }
+
+    public function test_price_type_3_returns_materieel(): void
+    {
+        $this->assertSame('Materieel', MirrorCost::priceTypeLabel(3));
+    }
+
+    public function test_price_type_4_returns_onderaanneming(): void
+    {
+        $this->assertSame('Onderaanneming', MirrorCost::priceTypeLabel(4));
+    }
+
+    public function test_price_type_5_returns_element(): void
+    {
+        $this->assertSame('Element', MirrorCost::priceTypeLabel(5));
+    }
+
+    public function test_price_type_0_returns_overige_vrij_provisional(): void
+    {
+        $this->assertSame('Overige (vrij)', MirrorCost::priceTypeLabel(0));
+        $this->assertTrue(MirrorCost::priceTypeIsProvisional(0));
+        $this->assertTrue(MirrorCost::priceTypeIsProvisional('0'));
+    }
+
+    public function test_price_type_null_returns_onbekend(): void
+    {
+        $this->assertSame('Onbekend', MirrorCost::priceTypeLabel(null));
+        $this->assertFalse(MirrorCost::priceTypeIsProvisional(null));
+    }
+
+    public function test_unknown_price_type_99_returns_cafca_type_prefix(): void
+    {
+        $label = MirrorCost::priceTypeLabel(99);
+        $this->assertStringContainsString('CAFCA type', $label);
+        $this->assertStringContainsString('99', $label);
+        $this->assertFalse(MirrorCost::priceTypeIsProvisional(99));
+    }
+
+    // -------------------------------------------------------------------------
     // CLA-157 — MirrorProject type/state label + color accessors
     // -------------------------------------------------------------------------
 

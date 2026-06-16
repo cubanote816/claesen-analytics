@@ -13,8 +13,9 @@
             'T' => $isNl ? 'Transport'        : 'Transport',
             'E' => $isNl ? 'Extra'            : 'Extra',
         ];
-        // Numeric price_type values from followup_cost — semantic mapping pending CLA-158 audit.
-        $costTypeLabel = fn($t) => $typeLabels[$t] ?? ($t !== null && $t !== '' ? "CAFCA type {$t}" : '—');
+        // price_type mapping confirmed from CAFCASYSTEM.CAFCA.code=3 (CLA-158).
+        // Type 0 is provisional (Overige vrij) — pending Bert Bertels confirmation.
+        $costTypeLabel = fn($t) => \Modules\Performance\Models\Mirror\MirrorCost::priceTypeLabel($t);
 
         $alertTypeLabels = [
             'missing_customer_invoice' => $isNl ? 'Ontbrekende klantfactuur'  : 'Missing customer invoice',
@@ -293,8 +294,11 @@
                                     <span class="font-medium text-gray-700 dark:text-gray-200">
                                         {{ $costTypeLabel($row['type']) }}
                                     </span>
-                                    @if($row['type'] !== null && $row['type'] !== '' && !isset($typeLabels[$row['type']]))
-                                        <span class="ml-1 text-xs text-amber-500 dark:text-amber-400 font-mono" title="{{ $isNl ? 'Mapping in onderzoek (CLA-158)' : 'Mapping under review (CLA-158)' }}">?</span>
+                                    @if(\Modules\Performance\Models\Mirror\MirrorCost::priceTypeIsProvisional($row['type']))
+                                        <span class="ml-1 text-xs text-amber-500 dark:text-amber-400 italic"
+                                              title="CAFCA price_type 0 — niet aanwezig in ERP lookup; vermoedelijk vrije invoer / legacy. Te bevestigen met Bert Bertels.">
+                                            (vrij?)
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="py-2 pr-4 text-right text-gray-500">{{ $row['count'] }}</td>
