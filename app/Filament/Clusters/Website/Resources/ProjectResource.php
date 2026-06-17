@@ -187,7 +187,7 @@ class ProjectResource extends Resource
                                     ->imagePreviewHeight('200')
                                     ->multiple()
                                     ->maxFiles(1)
-                                    ->maxSize(20480)
+                                    ->maxSize(102400)
                                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
@@ -199,14 +199,12 @@ class ProjectResource extends Resource
                                 SpatieMediaLibraryFileUpload::make('gallery')
                                     ->label(__('website.projects.fields.gallery'))
                                     ->collection('gallery')
-                                    ->image()
-                                    ->imageEditor()
                                     ->imagePreviewHeight('150')
                                     ->panelLayout('grid')
                                     ->multiple()
                                     ->reorderable()
-                                    ->maxSize(20480)
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                                    ->maxSize(512000)
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
@@ -236,14 +234,12 @@ class ProjectResource extends Resource
                                 SpatieMediaLibraryFileUpload::make('detail_gallery')
                                     ->label(__('website.projects.fields.detail_gallery'))
                                     ->collection('detail_gallery')
-                                    ->image()
-                                    ->imageEditor()
                                     ->imagePreviewHeight('150')
                                     ->panelLayout('grid')
                                     ->multiple()
                                     ->reorderable()
-                                    ->maxSize(20480)
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                                    ->maxSize(512000)
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
