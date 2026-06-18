@@ -15,8 +15,22 @@ use Exception;
 class MicrosoftAuthController extends Controller
 {
     /**
+     * Returns the OAuth redirect URI to use.
+     * API requests (Safety Hub / PWA) use the public-facing URL registered in Azure.
+     * Internal Filament requests use the intranet URL.
+     */
+    private function oauthRedirectUri(Request $request): string
+    {
+        if ($request->is('api/*')) {
+            return config('services.azure.public_redirect', config('services.azure.redirect'));
+        }
+
+        return config('services.azure.redirect');
+    }
+
+    /**
      * Redirect the user to the Microsoft authentication page.
-     * 
+     *
      * @return RedirectResponse
      */
     public function redirect(Request $request): RedirectResponse
@@ -37,20 +51,23 @@ class MicrosoftAuthController extends Controller
         }
 
         return Socialite::driver('azure')
+            ->redirectUrl($this->oauthRedirectUri($request))
             ->scopes(['openid', 'profile', 'email', 'offline_access', 'User.Read', 'GroupMember.Read.All'])
             ->redirect();
     }
 
     /**
      * Obtain the user information from Microsoft.
-     * 
+     *
      * @param AzureRoleService $roleService
      * @return RedirectResponse
      */
     public function callback(Request $request, AzureRoleService $roleService): RedirectResponse
     {
         try {
-            $azureUser = Socialite::driver('azure')->user();
+            $azureUser = Socialite::driver('azure')
+                ->redirectUrl($this->oauthRedirectUri($request))
+                ->user();
 
             // Find the local user by email (only in 'mysql' connection)
             $user = User::where('email', $azureUser->getEmail())->first();

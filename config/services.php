@@ -51,8 +51,9 @@ return [
         'client_id' => env('MICROSOFT_GRAPH_CLIENT_ID'),
         'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET'),
         'redirect' => env('APP_URL') . '/auth/microsoft/callback',
+        'public_redirect' => env('MICROSOFT_AUTH_PUBLIC_REDIRECT'),
         'tenant' => env('MICROSOFT_GRAPH_TENANT_ID'),
-        'proxy' => env('PROXY'), // Optional
+        'proxy' => env('PROXY'),
     ],
 
 ];
