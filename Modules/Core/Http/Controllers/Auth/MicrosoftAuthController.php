@@ -110,22 +110,28 @@ class MicrosoftAuthController extends Controller
                 if (env('FRONTEND_URL')) {
                     $frontendUrl = env('FRONTEND_URL');
                 } elseif (str_contains($request->headers->get('referer', ''), 'hostingersite.com')) {
-                    // Force Hostinger subdirectory if detected in referer but session lost
                     $frontendUrl = 'https://lightcoral-whale-907350.hostingersite.com/safety/';
                 } else {
-                    $frontendUrl = app()->environment('production') 
-                        ? 'https://services.claesen-verlichting.be/safety/' 
+                    $frontendUrl = app()->environment('production')
+                        ? 'https://service.claesen-verlichting.be/'
                         : 'http://localhost:5173/';
                 }
             }
 
-            // Safety check: if the URL is from Hostinger but missing /safety/, add it
-            if (str_contains($frontendUrl, 'hostingersite.com') && !str_contains($frontendUrl, '/safety')) {
-                $frontendUrl = rtrim($frontendUrl, '/') . '/safety/';
+            // Normalize to origin-root: the PWA service worker intercepts sub-path navigations
+            // before nginx can redirect them, causing React Router to see an unmatched route.
+            // Always redirect to the origin root so the SW serves index.html at the correct path.
+            $parts = parse_url($frontendUrl);
+            if (isset($parts['scheme'], $parts['host']) && !str_contains($frontendUrl, 'hostingersite.com')) {
+                $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+                $frontendUrl = $parts['scheme'] . '://' . $parts['host'] . $port . '/';
+            } else {
+                // Hostinger uses a subdirectory — keep its /safety/ path
+                if (str_contains($frontendUrl, 'hostingersite.com') && !str_contains($frontendUrl, '/safety')) {
+                    $frontendUrl = rtrim($frontendUrl, '/') . '/safety/';
+                }
+                $frontendUrl = rtrim($frontendUrl, '/') . '/';
             }
-
-            // Ensure the URL ends with a slash before appending the token
-            $frontendUrl = rtrim($frontendUrl, '/') . '/';
 
             return redirect()->to("{$frontendUrl}?token={$token}");
         } catch (Exception $e) {
