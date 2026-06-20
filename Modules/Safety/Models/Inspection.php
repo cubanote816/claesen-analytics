@@ -42,12 +42,12 @@ class Inspection extends Model
 
     public function incidentWorker(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Core\Models\User::class, 'incident_worker_id');
+        return $this->belongsTo(\Modules\Cafca\Models\Employee::class, 'incident_worker_id');
     }
 
     public function presentWorkers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(\Modules\Core\Models\User::class, 'safety_inspection_workers', 'inspection_id', 'worker_id')->withTimestamps();
+        return $this->belongsToMany(\Modules\Cafca\Models\Employee::class, 'safety_inspection_workers', 'inspection_id', 'worker_id')->withTimestamps();
     }
 
     public function checklist(): BelongsTo
