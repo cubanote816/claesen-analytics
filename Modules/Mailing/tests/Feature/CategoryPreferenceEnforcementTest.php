@@ -348,16 +348,17 @@ class CategoryPreferenceEnforcementTest extends TestCase
 
     public function test_transition_to_approved_sets_snapshots_server_side(): void
     {
+        $user     = \Modules\Core\Models\User::factory()->create();
         $template = EmailTemplate::factory()->asOffers()->create();
         $campaign = Campaign::factory()->inReview()->create(['template_id' => $template->id]);
 
-        $campaign->transitionTo(CampaignStatus::APPROVED, 1);
+        $campaign->transitionTo(CampaignStatus::APPROVED, $user->id);
 
         $campaign->refresh();
         $this->assertSame(TemplateCategory::COMMERCIAL->value, $campaign->template_category_snapshot);
         $this->assertSame('offers', $campaign->preference_category_snapshot);
         $this->assertNotNull($campaign->approved_at);
-        $this->assertSame(1, $campaign->approved_by);
+        $this->assertSame($user->id, $campaign->approved_by);
     }
 
     public function test_transition_to_approved_throws_for_commercial_template_without_preference_category(): void

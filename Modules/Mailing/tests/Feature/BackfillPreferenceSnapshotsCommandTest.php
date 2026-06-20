@@ -103,6 +103,7 @@ class BackfillPreferenceSnapshotsCommandTest extends TestCase
     public function test_approved_commercial_campaign_without_pref_category_is_reverted_to_review(): void
     {
         // Template has no preference_category — approval should be reverted
+        $approver = \Modules\Core\Models\User::factory()->create();
         $template = EmailTemplate::factory()->create([
             'category'            => TemplateCategory::COMMERCIAL,
             'preference_category' => null,
@@ -112,7 +113,7 @@ class BackfillPreferenceSnapshotsCommandTest extends TestCase
             'template_id'                  => $template->id,
             'template_category_snapshot'   => null,
             'preference_category_snapshot' => null,
-            'approved_by'                  => 1,
+            'approved_by'                  => $approver->id,
         ]);
 
         // This command exits FAILURE because of the unresolvable case (revert = 1, exit 0)
