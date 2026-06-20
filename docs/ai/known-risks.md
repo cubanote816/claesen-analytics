@@ -34,10 +34,15 @@
 
 ### Enforcement de preferencias de categoría en envío
 
-**Riesgo:** Las preferencias de categoría guardadas en `mailing_contact_preferences` no están verificadas en `ExecuteCampaignJob` al momento de envío.
-**Impacto:** Un prospecto que optó por no recibir "offers" podría recibirlas si la campaña está clasificada como "offers".
-**Mitigación actual:** La supresión general (unsubscribe) sí se aplica. Solo las preferencias de categoría no.
-**Pendiente:** Añadir verificación de `ContactPreference` en `ExecuteCampaignJob` antes del envío.
+**Estado:** ✅ Resuelto — MAI-PREF-001 / CLA-161 (2026-06-20)
+**Solución implementada:**
+- `EmailTemplate.preference_category` (string, nullable): categoría marketing (newsletter/offers/events). TRANSACCIONAL siempre null (hook `saving`).
+- `Campaign.template_category_snapshot` + `Campaign.preference_category_snapshot`: capturados en `buildSnapshotFrom()` al seleccionar template, sobreescritos server-side en `transitionTo(APPROVED)`.
+- `ExecuteCampaignJob.assertValidSnapshots()`: guard fail-closed — 4 combinaciones exhaustivas antes de cualquier envío.
+- Skip order en `sendToProspects()`: unsubscribed → suppression → category_opt_out → no_email → send.
+- `List-Unsubscribe` headers condicionales: `ProspectCampaignMail(isCommercial: bool)` — transaccionales no llevan headers de opt-out.
+- `mailing:backfill-preference-snapshots` command para campaigns pre-existentes (dry-run por defecto, --apply para commit).
+**Pendiente en producción:** Ejecutar `php artisan migrate && php artisan mailing:backfill-preference-snapshots --apply` antes de reiniciar workers (ver secuencia de deploy en el command).
 
 ### Fase 3 bloqueada hasta datos reales
 

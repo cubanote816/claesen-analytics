@@ -61,6 +61,7 @@ class MailingServiceProvider extends ServiceProvider
             \Modules\Mailing\Console\SelectAbWinnerCommand::class,
             \Modules\Mailing\Console\DispatchFollowUpsCommand::class,
             \Modules\Mailing\Console\CheckDeliverabilityAlertsCommand::class,
+            \Modules\Mailing\Console\BackfillPreferenceSnapshotsCommand::class,
         ]);
     }
 

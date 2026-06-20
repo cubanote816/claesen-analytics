@@ -24,6 +24,7 @@ class EmailTemplate extends Model
         'subject',
         'body',
         'category',
+        'preference_category',
         'variables',
         'version',
         'parent_id',
@@ -41,6 +42,24 @@ class EmailTemplate extends Model
         static::creating(function (self $template) {
             if (empty($template->created_by) && auth()->id()) {
                 $template->created_by = auth()->id();
+            }
+        });
+
+        static::saving(function (self $template) {
+            // Transactional templates must never carry a preference category
+            if ($template->category === TemplateCategory::TRANSACTIONAL) {
+                $template->preference_category = null;
+            }
+
+            // Validate preference_category against the real config allowlist
+            if ($template->preference_category !== null) {
+                $validKeys = array_keys(config('mailing.preference_categories', []));
+                if (! in_array($template->preference_category, $validKeys, true)) {
+                    throw new \InvalidArgumentException(
+                        "Invalid preference_category '{$template->preference_category}' for template '{$template->name}'. "
+                        . 'Valid values: ' . implode(', ', $validKeys) . '.'
+                    );
+                }
             }
         });
     }

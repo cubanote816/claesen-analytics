@@ -11,6 +11,7 @@ use Modules\Core\Models\User;
 use Modules\Mailing\Enums\AudienceType;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Enums\FollowUpTrigger;
+use Modules\Mailing\Enums\TemplateCategory;
 use Modules\Mailing\Models\EmailTemplate;
 use Modules\Mailing\Services\SegmentResolverService;
 use Modules\Prospects\Models\Prospect;
@@ -33,6 +34,8 @@ class Campaign extends Model
         'description',
         'subject_snapshot',
         'body_snapshot',
+        'template_category_snapshot',
+        'preference_category_snapshot',
         'total_count',
         'sent_count',
         'failed_count',
@@ -114,6 +117,42 @@ class Campaign extends Model
     }
 
     // -------------------------------------------------------------------------
+    // Snapshot builder
+    // -------------------------------------------------------------------------
+
+    /**
+     * Captures all immutable fields from a template into an array suitable for Campaign::create/update.
+     * Always use this method — never trust Hidden form fields for these values.
+     *
+     * @throws \InvalidArgumentException if the template contains an invalid preference_category.
+     */
+    public static function buildSnapshotFrom(EmailTemplate $template): array
+    {
+        $validKeys    = array_keys(config('mailing.preference_categories', []));
+        $prefCategory = $template->preference_category;
+
+        // Transactional: enforce null regardless of what the template stores
+        if ($template->category === TemplateCategory::TRANSACTIONAL) {
+            $prefCategory = null;
+        }
+
+        if ($prefCategory !== null && ! in_array($prefCategory, $validKeys, true)) {
+            throw new \InvalidArgumentException(
+                "Invalid preference_category '{$prefCategory}' on template '{$template->name}'. "
+                . 'Valid: ' . implode(', ', $validKeys) . '.'
+            );
+        }
+
+        return [
+            'template_name'                => $template->name,
+            'subject_snapshot'             => $template->subject,
+            'body_snapshot'                => $template->body,
+            'template_category_snapshot'   => $template->category->value,
+            'preference_category_snapshot' => $prefCategory,
+        ];
+    }
+
+    // -------------------------------------------------------------------------
     // Workflow
     // -------------------------------------------------------------------------
 
@@ -133,6 +172,28 @@ class Campaign extends Model
         $attributes = ['status' => $new];
 
         if ($new === CampaignStatus::APPROVED) {
+            $template = $this->template;
+
+            if (! $template) {
+                throw new \DomainException(
+                    "Campaign #{$this->id}: cannot approve — no template linked."
+                );
+            }
+
+            // Recompute snapshots server-side at approval — Hidden fields are not trusted
+            $snapshot  = static::buildSnapshotFrom($template);
+            $validKeys = array_keys(config('mailing.preference_categories', []));
+
+            if ($snapshot['template_category_snapshot'] === TemplateCategory::COMMERCIAL->value
+                && ! in_array($snapshot['preference_category_snapshot'], $validKeys, true)) {
+                throw new \DomainException(
+                    "Campaign #{$this->id}: commercial campaigns require a valid preference category "
+                    . "before approval. Edit template '{$template->name}' to assign one."
+                );
+            }
+
+            $attributes['template_category_snapshot']   = $snapshot['template_category_snapshot'];
+            $attributes['preference_category_snapshot'] = $snapshot['preference_category_snapshot'];
             $attributes['approved_by'] = $actorId ?? auth()->id();
             $attributes['approved_at'] = now();
         }

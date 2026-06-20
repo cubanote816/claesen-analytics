@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Models\Campaign;
+use Modules\Mailing\Models\EmailTemplate;
 use Modules\Mailing\Policies\CampaignPolicy;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -47,7 +48,8 @@ class CampaignWorkflowTest extends TestCase
 
     public function test_review_can_be_approved(): void
     {
-        $campaign = Campaign::factory()->inReview()->create();
+        $template = EmailTemplate::factory()->asOffers()->create();
+        $campaign = Campaign::factory()->inReview()->create(['template_id' => $template->id]);
 
         $campaign->transitionTo(CampaignStatus::APPROVED);
 
@@ -84,7 +86,8 @@ class CampaignWorkflowTest extends TestCase
     public function test_approve_sets_approved_by_and_approved_at(): void
     {
         $user     = User::factory()->create();
-        $campaign = Campaign::factory()->inReview()->create();
+        $template = EmailTemplate::factory()->asOffers()->create();
+        $campaign = Campaign::factory()->inReview()->create(['template_id' => $template->id]);
 
         $campaign->transitionTo(CampaignStatus::APPROVED, $user->id);
 

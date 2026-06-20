@@ -1,17 +1,68 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-16 (CLA-159 ✅ Done — author audit metadata en checklist questions)
+> Última actualización: 2026-06-20 (MAI-PREF-001 / CLA-161 — enforcement de category preferences)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** BI — Sprint 2 Motor Financiero (BI-030 hecho, próximo BI-031 InflationEngineService)
-- **Rama actual:** `main` (feature/safety-soft-delete mergeada y eliminada)
-- **Último ticket cerrado:** SAF-017→022 — Soft Delete Seguro de Inspecciones + fix test pre-existente `InspectionPhotoStorageFailureTest`
-- **Próximo paso:** BI-031 `InflationEngineService` — calcular factor de inflación entre dos años usando `PriceIndex::factor()`
-- **Tests:** 61/148 Safety ✅ | 94/196 Intelligence ✅
+- **Sprint activo:** Mailing Fase 2 — enforcement de categorías (CLA-161 implementado, pendiente GO técnico)
+- **Rama actual:** `main`
+- **Último ticket:** MAI-PREF-001 / CLA-161 — enforce campaign category preferences (implementado, esperando GO)
+- **Próximo paso al dar GO:** marcar CLA-161 Done en Linear y ejecutar en producción:
+  ```bash
+  php artisan migrate
+  php artisan mailing:backfill-preference-snapshots --apply
+  # (reiniciar workers después)
+  ```
+- **Tests:** Requieren Docker — verificar con `./vendor/bin/sail artisan test --filter=Mailing` una vez Docker disponible
+
+### MAI-PREF-001 / CLA-161 — Enforcement de Category Preferences 🚧 In Review
+
+| Archivo | Cambio | Estado |
+|---------|--------|--------|
+| `Mailing/database/migrations/2026_06_20_000014_*` | `preference_category` en `email_templates` | ✅ |
+| `Mailing/database/migrations/2026_06_20_000015_*` | `template_category_snapshot` + `preference_category_snapshot` en `mailing_campaigns` | ✅ |
+| `Mailing/Models/EmailTemplate.php` | `preference_category` en `$fillable` + `booted()` saving hook | ✅ |
+| `Mailing/Models/Campaign.php` | `buildSnapshotFrom()` + guard en `transitionTo(APPROVED)` | ✅ |
+| `Mailing/Jobs/ExecuteCampaignJob.php` | `assertValidSnapshots()` + skip order correcto + sin fallback a mutable template | ✅ |
+| `app/Contracts/MarketingCampaignInterface.php` | `bool $isCommercial = true` propagado | ✅ |
+| `Mailing/Emails/ProspectCampaignMail.php` | `List-Unsubscribe` headers condicionales | ✅ |
+| `Mailing/Services/MicrosoftGraphMailer.php` | Firma actualizada con `isCommercial` | ✅ |
+| `Mailing/Services/SaaSMailer.php` | Firma actualizada | ✅ |
+| `Mailing/Filament/.../EmailTemplateForm.php` | Select `preference_category` visible solo para COMMERCIAL | ✅ |
+| `Mailing/Filament/.../CampaignForm.php` | `afterStateUpdated` usa `buildSnapshotFrom()` + Hidden fields para nuevos snapshots | ✅ |
+| `Mailing/Console/BackfillPreferenceSnapshotsCommand.php` | Nuevo — dry-run por defecto, `--apply` para commit | ✅ |
+| `Mailing/Providers/MailingServiceProvider.php` | Registra BackfillPreferenceSnapshotsCommand | ✅ |
+| `Mailing/database/seeders/Led2027HighConversionTemplatesSeeder.php` | `preference_category => 'offers'` en los 3 templates | ✅ |
+| `Mailing/database/factories/CampaignFactory.php` | Defaults con snapshots + estados `commercial()`, `transactional()`, `withoutSnapshots()` | ✅ |
+| `Mailing/database/factories/EmailTemplateFactory.php` | `preference_category` default + estados `asOffers()`, `asNewsletter()`, `asEvents()`, `transactional()` | ✅ |
+| `Mailing/lang/en/resource.php` + `nl/resource.php` | Claves `preference_category`, `preference_category_helper`, `template_invalid_pref_category` | ✅ |
+| `Mailing/tests/Feature/CategoryPreferenceEnforcementTest.php` | Nuevo — 20 tests | ✅ |
+| `Mailing/tests/Feature/BackfillPreferenceSnapshotsCommandTest.php` | Nuevo — 9 tests | ✅ |
+| `Mailing/tests/Feature/ListUnsubscribeTest.php` | +3 tests `isCommercial` | ✅ |
+| `Mailing/tests/Feature/CampaignWorkflowTest.php` | 2 tests con template vinculado para `transitionTo(APPROVED)` | ✅ |
+| `docs/ai/known-risks.md` | Risk "enforcement" cerrado | ✅ |
+
+**Secuencia de deploy (producción):**
+```bash
+# 1. Parar workers antes de migrate
+# 2. php artisan migrate
+# 3. php artisan mailing:backfill-preference-snapshots  (dry-run, revisar output)
+# 4. php artisan mailing:backfill-preference-snapshots --apply
+# 5. Reiniciar workers
+```
+
+**Tests pendientes de verificación** (necesitan Docker corriendo):
+```bash
+./vendor/bin/sail artisan test --filter=CategoryPreferenceEnforcement
+./vendor/bin/sail artisan test --filter=BackfillPreferenceSnapshots
+./vendor/bin/sail artisan test --filter=ListUnsubscribe
+./vendor/bin/sail artisan test --filter=CampaignWorkflow
+./vendor/bin/sail artisan test --filter=ExecuteCampaignJobCounter
+./vendor/bin/sail artisan test --filter=Mailing  # suite completa
+```
 
 ### SAF-017→022 — Soft Delete Seguro de Inspecciones ✅ Done
 

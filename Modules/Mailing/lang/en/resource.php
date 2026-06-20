@@ -17,7 +17,9 @@ return [
         'body'             => 'Body Content',
         'body_preview'     => 'Body Preview',
         'body_empty'       => 'No body snapshot recorded for this campaign.',
-        'category'         => 'Category',
+        'category'                   => 'Category',
+        'preference_category'        => 'Marketing Preference Category',
+        'preference_category_helper' => 'Prospects who have opted out of this category will be skipped. Required for commercial templates.',
         'variables'        => 'Additional variables (documentation only)',
         'variables_helper' => 'These entries do not create new tokens — they are notes for whoever edits this template.',
         'variable_key'     => 'Key',
@@ -136,12 +138,13 @@ return [
     ],
 
     'notifications' => [
-        'template_saved'    => 'Template successfully saved.',
-        'submitted_review'  => 'Campaign submitted for review.',
-        'approved'          => 'Campaign approved and ready to send.',
-        'cancelled'         => 'Campaign has been cancelled.',
-        'audience_preview'  => 'Estimated audience: :count prospects',
-        'segment_error'     => 'Segment configuration error',
+        'template_saved'                    => 'Template successfully saved.',
+        'submitted_review'                  => 'Campaign submitted for review.',
+        'approved'                          => 'Campaign approved and ready to send.',
+        'cancelled'                         => 'Campaign has been cancelled.',
+        'audience_preview'                  => 'Estimated audience: :count prospects',
+        'segment_error'                     => 'Segment configuration error',
+        'template_invalid_pref_category'    => 'Template has an invalid preference category',
     ],
 
     'metrics' => [

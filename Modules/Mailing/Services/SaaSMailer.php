@@ -8,14 +8,22 @@ use Illuminate\Support\Facades\Log;
 
 class SaaSMailer implements MarketingCampaignInterface
 {
-    public function sendCampaign(Prospect $prospect, array $emails, string $subject, string $htmlBody, string $unsubscribeUrl, ?string $trackingToken = null): bool
-    {
+    public function sendCampaign(
+        Prospect $prospect,
+        array $emails,
+        string $subject,
+        string $htmlBody,
+        string $unsubscribeUrl,
+        ?string $trackingToken = null,
+        bool $isCommercial = true,
+    ): bool {
         Log::info("Sending to SaaS API for: " . implode(',', $emails));
 
-        // Mocking HTTP SaaS Request
+        // Stub — ESP integration pending MAI-026
         try {
             // Http::post('https://api.mailchimp.com/...', [
             //    'unsubscribe_url' => $unsubscribeUrl,
+            //    'is_commercial'   => $isCommercial,
             //    ...
             // ])
             return true;

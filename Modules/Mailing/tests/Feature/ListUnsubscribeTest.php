@@ -104,6 +104,67 @@ class ListUnsubscribeTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // MAI-PREF-001: isCommercial parameter controls List-Unsubscribe headers
+    // -------------------------------------------------------------------------
+
+    public function test_commercial_mailable_includes_list_unsubscribe_headers(): void
+    {
+        $prospect = Mockery::mock(Prospect::class);
+        $prospect->shouldReceive('getUnsubscribeToken')->andReturn('tok-123');
+        $prospect->shouldReceive('getAttribute')->with('id')->andReturn(1);
+
+        $mail = new \Modules\Mailing\Emails\ProspectCampaignMail(
+            prospect: $prospect,
+            dynamicSubject: 'Test',
+            htmlBody: '<p>body</p>',
+            unsubscribeUrl: 'https://example.com/afmelden',
+            isCommercial: true,
+        );
+
+        $headers = $mail->headers()->text ?? [];
+        $this->assertArrayHasKey('List-Unsubscribe', $headers);
+        $this->assertArrayHasKey('List-Unsubscribe-Post', $headers);
+    }
+
+    public function test_transactional_mailable_omits_list_unsubscribe_headers(): void
+    {
+        $prospect = Mockery::mock(Prospect::class);
+        $prospect->shouldNotReceive('getUnsubscribeToken');
+        $prospect->shouldReceive('getAttribute')->with('id')->andReturn(1);
+
+        $mail = new \Modules\Mailing\Emails\ProspectCampaignMail(
+            prospect: $prospect,
+            dynamicSubject: 'Test',
+            htmlBody: '<p>body</p>',
+            unsubscribeUrl: 'https://example.com/afmelden',
+            isCommercial: false,
+        );
+
+        $headers = $mail->headers()->text ?? [];
+        $this->assertArrayNotHasKey('List-Unsubscribe', $headers);
+        $this->assertArrayNotHasKey('List-Unsubscribe-Post', $headers);
+    }
+
+    public function test_iscommercial_default_is_true(): void
+    {
+        // ProspectCampaignMail must default to commercial to preserve existing behavior
+        $prospect = Mockery::mock(Prospect::class);
+        $prospect->shouldReceive('getUnsubscribeToken')->andReturn('tok');
+        $prospect->shouldReceive('getAttribute')->with('id')->andReturn(2);
+
+        $mail = new \Modules\Mailing\Emails\ProspectCampaignMail(
+            prospect: $prospect,
+            dynamicSubject: 'Test',
+            htmlBody: '<p>body</p>',
+            unsubscribeUrl: 'https://example.com/afmelden',
+        );
+
+        $this->assertTrue($mail->isCommercial);
+        $headers = $mail->headers()->text ?? [];
+        $this->assertArrayHasKey('List-Unsubscribe', $headers);
+    }
+
+    // -------------------------------------------------------------------------
     // One-click POST endpoint (RFC 8058)
     // -------------------------------------------------------------------------
 

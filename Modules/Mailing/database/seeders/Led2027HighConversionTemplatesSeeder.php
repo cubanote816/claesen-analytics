@@ -60,9 +60,10 @@ Team Claesen Outdoor Lighting<br>
 <a href="https://www.claesen-verlichting.be">www.claesen-verlichting.be</a>
 </p>
 HTML,
-                'category'  => TemplateCategory::COMMERCIAL,
-                'variables' => self::VARIABLES,
-                'version'   => 1,
+                'category'            => TemplateCategory::COMMERCIAL,
+                'preference_category' => 'offers',
+                'variables'           => self::VARIABLES,
+                'version'             => 1,
             ],
 
             [
@@ -108,9 +109,10 @@ Team Claesen Outdoor Lighting<br>
 <a href="https://www.claesen-verlichting.be">www.claesen-verlichting.be</a>
 </p>
 HTML,
-                'category'  => TemplateCategory::COMMERCIAL,
-                'variables' => self::VARIABLES,
-                'version'   => 1,
+                'category'            => TemplateCategory::COMMERCIAL,
+                'preference_category' => 'offers',
+                'variables'           => self::VARIABLES,
+                'version'             => 1,
             ],
 
             [
@@ -158,9 +160,10 @@ Team Claesen Outdoor Lighting<br>
 <a href="https://www.claesen-verlichting.be">www.claesen-verlichting.be</a>
 </p>
 HTML,
-                'category'  => TemplateCategory::COMMERCIAL,
-                'variables' => self::VARIABLES,
-                'version'   => 1,
+                'category'            => TemplateCategory::COMMERCIAL,
+                'preference_category' => 'offers',
+                'variables'           => self::VARIABLES,
+                'version'             => 1,
             ],
         ];
     }

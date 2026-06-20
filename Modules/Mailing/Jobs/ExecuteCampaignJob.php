@@ -13,8 +13,10 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\Mailing\Enums\CampaignStatus;
+use Modules\Mailing\Enums\TemplateCategory;
 use Modules\Mailing\Models\Campaign;
 use Modules\Mailing\Models\CampaignMessage;
+use Modules\Mailing\Models\ContactPreference;
 use Modules\Mailing\Models\EmailTemplate;
 use Modules\Mailing\Models\TrackedLink;
 use Modules\Mailing\Services\SuppressionService;
@@ -81,12 +83,70 @@ class ExecuteCampaignJob implements ShouldQueue
     }
 
     // -------------------------------------------------------------------------
+    // Snapshot guard — shared by all existing-campaign paths
+    // -------------------------------------------------------------------------
+
+    /**
+     * Validates that the campaign's category snapshots form an unambiguous, valid combination.
+     * Fails the campaign and throws DomainException on any violation.
+     *
+     * Combinations:
+     *  - commercial + valid preference key  → allowed, enforcement active
+     *  - commercial + null/invalid pref     → reject
+     *  - transactional + null               → allowed, no enforcement
+     *  - transactional + non-null pref      → reject (stale/inconsistent data)
+     *  - null/unknown category              → reject (pre-deploy campaign without backfill)
+     */
+    private function assertValidSnapshots(Campaign $campaign): void
+    {
+        $knownCategories = [TemplateCategory::COMMERCIAL->value, TemplateCategory::TRANSACTIONAL->value];
+        $validPrefKeys   = array_keys(config('mailing.preference_categories', []));
+        $templateCat     = $campaign->template_category_snapshot;
+        $prefCat         = $campaign->preference_category_snapshot;
+
+        if (! in_array($templateCat, $knownCategories, true)) {
+            $this->failCampaign($campaign);
+            throw new \DomainException(
+                "Campaign #{$campaign->id}: null or unknown template_category_snapshot '{$templateCat}'. "
+                . 'Run mailing:backfill-preference-snapshots before enabling workers.'
+            );
+        }
+
+        if ($templateCat === TemplateCategory::COMMERCIAL->value
+            && ! in_array($prefCat, $validPrefKeys, true)) {
+            $this->failCampaign($campaign);
+            throw new \DomainException(
+                "Campaign #{$campaign->id}: commercial campaign has invalid preference_category_snapshot "
+                . "'{$prefCat}'. Valid: " . implode(', ', $validPrefKeys) . '.'
+            );
+        }
+
+        if ($templateCat === TemplateCategory::TRANSACTIONAL->value && $prefCat !== null) {
+            $this->failCampaign($campaign);
+            throw new \DomainException(
+                "Campaign #{$campaign->id}: transactional campaign has unexpected preference_category_snapshot "
+                . "'{$prefCat}'. This indicates inconsistent snapshot data."
+            );
+        }
+    }
+
+    private function failCampaign(Campaign $campaign): void
+    {
+        Campaign::where('id', $campaign->id)
+            ->whereIn('status', [CampaignStatus::APPROVED->value, CampaignStatus::SENDING->value])
+            ->update(['status' => CampaignStatus::FAILED->value]);
+    }
+
+    // -------------------------------------------------------------------------
     // Scheduled campaign path (campaignId provided)
     // -------------------------------------------------------------------------
 
     private function executeExistingCampaign(MarketingCampaignInterface $mailer, SuppressionService $suppression): void
     {
         $campaign = Campaign::findOrFail($this->campaignId);
+
+        // Fail-closed: validate snapshots before any work, regardless of when the campaign was created
+        $this->assertValidSnapshots($campaign);
 
         if (! in_array($campaign->status, [CampaignStatus::APPROVED, CampaignStatus::SENDING], true)) {
             throw new \DomainException(
@@ -115,10 +175,6 @@ class ExecuteCampaignJob implements ShouldQueue
             }
         }
 
-        $template = EmailTemplate::findOrFail($campaign->template_id);
-
-        // Use override IDs when provided (follow-up path) — never re-resolve to avoid
-        // sending to a broader audience than the command calculated.
         $prospectIds = $this->overrideProspectIds ?? $campaign->resolveAudience();
 
         if (empty($prospectIds)) {
@@ -132,7 +188,7 @@ class ExecuteCampaignJob implements ShouldQueue
         $prospects = Prospect::with(['locations', 'region'])->whereIn('id', $prospectIds)->get();
         $campaign->update(['total_count' => $prospects->count()]);
 
-        $this->sendToProspects($campaign, $template, $prospects, $mailer, $suppression,
+        $this->sendToProspects($campaign, $prospects, $mailer, $suppression,
             subjectOverride: $campaign->subject_snapshot);
     }
 
@@ -142,7 +198,6 @@ class ExecuteCampaignJob implements ShouldQueue
 
     private function executeAbTestFirstPass(Campaign $campaign, MarketingCampaignInterface $mailer, SuppressionService $suppression): void
     {
-        // Claim status APPROVED → SENDING
         if ($campaign->status === CampaignStatus::APPROVED) {
             $claimed = Campaign::where('id', $campaign->id)
                 ->where('status', CampaignStatus::APPROVED->value)
@@ -154,7 +209,6 @@ class ExecuteCampaignJob implements ShouldQueue
             }
         }
 
-        // Atomic claim of the A/B test start (idempotency guard against retries)
         $claimedAb = Campaign::where('id', $campaign->id)
             ->whereNull('ab_test_started_at')
             ->update(['ab_test_started_at' => now()]);
@@ -171,20 +225,18 @@ class ExecuteCampaignJob implements ShouldQueue
             );
         }
 
-        $template   = EmailTemplate::findOrFail($campaign->template_id);
         $fullIds    = $campaign->resolveAudience();
         $totalCount = count($fullIds);
 
         $campaign->update(['total_count' => $totalCount]);
 
-        // Audience too small — fall back to normal send with variant A subject
         if ($totalCount < 2) {
             Log::warning('ExecuteCampaignJob: audience too small for A/B test — falling back to normal send.', [
                 'campaign_id' => $campaign->id,
                 'count'       => $totalCount,
             ]);
             $prospects = Prospect::with(['locations', 'region'])->whereIn('id', $fullIds)->get();
-            $this->sendToProspects($campaign, $template, $prospects, $mailer, $suppression,
+            $this->sendToProspects($campaign, $prospects, $mailer, $suppression,
                 subjectOverride: $campaign->subject_snapshot);
             return;
         }
@@ -206,12 +258,10 @@ class ExecuteCampaignJob implements ShouldQueue
         $prospectsA = Prospect::with(['locations', 'region'])->whereIn('id', $groupAIds)->get();
         $prospectsB = Prospect::with(['locations', 'region'])->whereIn('id', $groupBIds)->get();
 
-        // Variant A: subject_snapshot (does NOT complete campaign)
-        $this->sendToProspects($campaign, $template, $prospectsA, $mailer, $suppression,
+        $this->sendToProspects($campaign, $prospectsA, $mailer, $suppression,
             abVariant: 'A', subjectOverride: $campaign->subject_snapshot, completeAfter: false);
 
-        // Variant B: ab_subject_b (does NOT complete campaign)
-        $this->sendToProspects($campaign, $template, $prospectsB, $mailer, $suppression,
+        $this->sendToProspects($campaign, $prospectsB, $mailer, $suppression,
             abVariant: 'B', subjectOverride: $campaign->ab_subject_b, completeAfter: false);
 
         Log::info('ExecuteCampaignJob: A/B test first pass complete — campaign awaiting winner selection.', [
@@ -234,13 +284,10 @@ class ExecuteCampaignJob implements ShouldQueue
             );
         }
 
-        $template = EmailTemplate::findOrFail($campaign->template_id);
-
         $winnerSubject = $campaign->ab_winner_variant === 'A'
             ? $campaign->subject_snapshot
             : $campaign->ab_subject_b;
 
-        // Remaining = full audience − already sent (naturally idempotent)
         $alreadySentIds = CampaignMessage::where('campaign_id', $campaign->id)
             ->whereNotNull('prospect_id')
             ->pluck('prospect_id')
@@ -262,17 +309,28 @@ class ExecuteCampaignJob implements ShouldQueue
 
         $remaining = Prospect::with(['locations', 'region'])->whereIn('id', $remainingIds)->get();
 
-        $this->sendToProspects($campaign, $template, $remaining, $mailer, $suppression,
+        $this->sendToProspects($campaign, $remaining, $mailer, $suppression,
             abVariant: null, subjectOverride: $winnerSubject);
     }
 
     // -------------------------------------------------------------------------
-    // Inline/legacy path (campaignId not provided — Filament bulk action)
+    // Inline/legacy path (campaignId not provided — Filament bulk action / FAB)
     // -------------------------------------------------------------------------
 
     private function executeInlineCampaign(MarketingCampaignInterface $mailer, SuppressionService $suppression): void
     {
         $template = EmailTemplate::findOrFail($this->templateId);
+        $snapshot = Campaign::buildSnapshotFrom($template);
+
+        // Fail-closed before creating any campaign record
+        $validPrefKeys = array_keys(config('mailing.preference_categories', []));
+        if ($snapshot['template_category_snapshot'] === TemplateCategory::COMMERCIAL->value
+            && ! in_array($snapshot['preference_category_snapshot'], $validPrefKeys, true)) {
+            throw new \DomainException(
+                "Inline campaign: commercial template '{$template->name}' has no valid preference_category. "
+                . 'Classify the template in Filament before running campaigns.'
+            );
+        }
 
         $allProspects = Prospect::with(['locations', 'region'])
             ->whereIn('id', $this->prospectIds)
@@ -284,25 +342,22 @@ class ExecuteCampaignJob implements ShouldQueue
         }
 
         $campaign = Campaign::create([
-            'created_by'       => $this->userId,
-            'template_name'    => $template->name,
-            'description'      => $this->description,
-            'subject_snapshot' => $template->subject,
-            'body_snapshot'    => $template->body,
-            'total_count'      => $allProspects->count(),
-            'status'           => CampaignStatus::SENDING,
+            'created_by'  => $this->userId,
+            'description' => $this->description,
+            'total_count' => $allProspects->count(),
+            'status'      => CampaignStatus::SENDING,
+            ...$snapshot,
         ]);
 
-        $this->sendToProspects($campaign, $template, $allProspects, $mailer, $suppression);
+        $this->sendToProspects($campaign, $allProspects, $mailer, $suppression);
     }
 
     // -------------------------------------------------------------------------
-    // Shared send loop
+    // Shared send loop — uses campaign snapshots exclusively, never live template
     // -------------------------------------------------------------------------
 
     private function sendToProspects(
         Campaign $campaign,
-        EmailTemplate $template,
         Collection $allProspects,
         MarketingCampaignInterface $mailer,
         SuppressionService $suppression,
@@ -310,10 +365,32 @@ class ExecuteCampaignJob implements ShouldQueue
         ?string $subjectOverride = null,
         bool $completeAfter = true,
     ): void {
-        $sentCount    = 0;
-        $failedCount  = 0;
+        // All content must come from immutable campaign snapshots
+        $subjectTemplate = $subjectOverride ?? $campaign->subject_snapshot;
 
-        $subjectTemplate = $subjectOverride ?? $template->subject;
+        if (empty($subjectTemplate)) {
+            throw new \DomainException("Campaign #{$campaign->id}: subject_snapshot is required but missing.");
+        }
+        if (empty($campaign->body_snapshot)) {
+            throw new \DomainException("Campaign #{$campaign->id}: body_snapshot is required but missing.");
+        }
+
+        $isCommercial = $campaign->template_category_snapshot === TemplateCategory::COMMERCIAL->value;
+
+        // Pre-load category opt-outs in one query (1 query, not N+1 — uses index on category+subscribed)
+        $prefCategory = $campaign->preference_category_snapshot;
+        $optedOutIds  = [];
+        if ($isCommercial && $prefCategory !== null) {
+            $optedOutIds = ContactPreference::where('category', $prefCategory)
+                ->where('subscribed', false)
+                ->whereIn('prospect_id', $allProspects->pluck('id'))
+                ->pluck('prospect_id')
+                ->flip()
+                ->toArray();
+        }
+
+        $sentCount   = 0;
+        $failedCount = 0;
 
         foreach ($allProspects as $prospect) {
             App::setLocale($prospect->language ?? 'nl');
@@ -329,6 +406,7 @@ class ExecuteCampaignJob implements ShouldQueue
 
             $primaryEmail = $emails[0] ?? 'no-email@claesen.be';
 
+            // 1. Global unsubscribe
             if ($prospect->unsubscribed_at !== null) {
                 CampaignMessage::create([
                     'campaign_id'   => $campaign->id,
@@ -336,7 +414,7 @@ class ExecuteCampaignJob implements ShouldQueue
                     'user_id'       => $this->userId,
                     'email'         => $primaryEmail,
                     'status'        => 'unsubscribed',
-                    'template_name' => $template->name,
+                    'template_name' => $campaign->template_name,
                     'error_message' => __('prospects::resource.options.status.unsubscribed'),
                     'ab_variant'    => $abVariant,
                     'sent_at'       => now(),
@@ -345,6 +423,7 @@ class ExecuteCampaignJob implements ShouldQueue
                 continue;
             }
 
+            // 2. Suppression list (hard bounce / spam — global prohibition)
             if ($suppression->isSuppressed($primaryEmail)) {
                 $reason = $suppression->getReason($primaryEmail)?->value ?? 'suppressed';
                 CampaignMessage::create([
@@ -353,7 +432,7 @@ class ExecuteCampaignJob implements ShouldQueue
                     'user_id'       => $this->userId,
                     'email'         => $primaryEmail,
                     'status'        => $reason === 'unsubscribed' ? 'unsubscribed' : 'skipped',
-                    'template_name' => $template->name,
+                    'template_name' => $campaign->template_name,
                     'error_message' => 'suppressed: ' . $reason,
                     'ab_variant'    => $abVariant,
                     'sent_at'       => now(),
@@ -362,14 +441,16 @@ class ExecuteCampaignJob implements ShouldQueue
                 continue;
             }
 
-            if (empty($emails)) {
+            // 3. Category preference opt-out (commercial only)
+            if (isset($optedOutIds[$prospect->id])) {
                 CampaignMessage::create([
                     'campaign_id'   => $campaign->id,
                     'prospect_id'   => $prospect->id,
                     'user_id'       => $this->userId,
-                    'email'         => 'no-email@claesen.be',
+                    'email'         => $primaryEmail,
                     'status'        => 'skipped',
-                    'template_name' => $template->name,
+                    'template_name' => $campaign->template_name,
+                    'error_message' => 'category_opted_out:' . $prefCategory,
                     'ab_variant'    => $abVariant,
                     'sent_at'       => now(),
                 ]);
@@ -377,6 +458,23 @@ class ExecuteCampaignJob implements ShouldQueue
                 continue;
             }
 
+            // 4. No email address
+            if (empty($emails)) {
+                CampaignMessage::create([
+                    'campaign_id'   => $campaign->id,
+                    'prospect_id'   => $prospect->id,
+                    'user_id'       => $this->userId,
+                    'email'         => 'no-email@claesen.be',
+                    'status'        => 'skipped',
+                    'template_name' => $campaign->template_name,
+                    'ab_variant'    => $abVariant,
+                    'sent_at'       => now(),
+                ]);
+                $campaign->increment('skipped_count');
+                continue;
+            }
+
+            // 5. Send
             $unsubscribeUrl = sprintf(
                 'https://claesen-verlichting.be/afmelden/?p=%s&t=%s&l=%s',
                 $prospect->id,
@@ -393,7 +491,7 @@ class ExecuteCampaignJob implements ShouldQueue
             $parsedBody = str_replace(
                 ['{{ name }}', '{{ regio }}', '{{ unsubscribe_url }}'],
                 ['<strong>' . $prospect->name . '</strong>', $prospect->region?->name ?? __('prospects::resource.defaults.region'), $unsubscribeUrl],
-                $template->body
+                $campaign->body_snapshot
             );
 
             $trackingToken = Str::random(64);
@@ -405,11 +503,15 @@ class ExecuteCampaignJob implements ShouldQueue
             $errorMessage = null;
             try {
                 Log::info('ExecuteCampaignJob: sending', [
-                    'prospect_id' => $prospect->id,
-                    'campaign_id' => $campaign->id,
-                    'ab_variant'  => $abVariant,
+                    'prospect_id'  => $prospect->id,
+                    'campaign_id'  => $campaign->id,
+                    'ab_variant'   => $abVariant,
+                    'is_commercial' => $isCommercial,
                 ]);
-                $isSuccess = $mailer->sendCampaign($prospect, $emails, $parsedSubject, $trackedBody, $unsubscribeUrl, $trackingToken);
+                $isSuccess = $mailer->sendCampaign(
+                    $prospect, $emails, $parsedSubject, $trackedBody,
+                    $unsubscribeUrl, $trackingToken, $isCommercial
+                );
             } catch (\Exception $e) {
                 $isSuccess    = false;
                 $errorMessage = $e->getMessage();
@@ -428,7 +530,7 @@ class ExecuteCampaignJob implements ShouldQueue
                     'prospect_id'      => $prospect->id,
                     'user_id'          => $this->userId,
                     'email'            => $recipientEmail,
-                    'template_name'    => $template->name,
+                    'template_name'    => $campaign->template_name,
                     'subject_snapshot' => $parsedSubject,
                     'body_snapshot'    => $parsedBody,
                     'status'           => $isSuccess ? 'sent' : 'failed',
@@ -442,9 +544,6 @@ class ExecuteCampaignJob implements ShouldQueue
             usleep(config('mailing.send_delay_ms', 500) * 1000);
         }
 
-        // Write counters once after the loop using the local deltas.
-        // increment() is atomic — safe when sendToProspects() is called multiple
-        // times for the same campaign (A/B first pass + winner send).
         if ($sentCount > 0) {
             $campaign->increment('sent_count', $sentCount);
         }
@@ -453,9 +552,6 @@ class ExecuteCampaignJob implements ShouldQueue
         }
 
         if ($completeAfter) {
-            // A campaign where every delivery attempt failed must not appear as "completed" —
-            // that masks the operational failure. Only mark failed when there were actual
-            // failures and zero successes; all-skipped (suppressed/unsubscribed) is still completed.
             $finalStatus = ($sentCount === 0 && $failedCount > 0)
                 ? CampaignStatus::FAILED
                 : CampaignStatus::COMPLETED;

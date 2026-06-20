@@ -8,6 +8,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Modules\Mailing\Enums\TemplateCategory;
@@ -41,7 +42,19 @@ class EmailTemplateForm
                                             fn (TemplateCategory $c) => [$c->value => $c->label()]
                                         ))
                                         ->default(TemplateCategory::COMMERCIAL->value)
-                                        ->required(),
+                                        ->required()
+                                        ->live(),
+
+                                    Select::make('preference_category')
+                                        ->label(__('mailing::resource.fields.preference_category'))
+                                        ->helperText(__('mailing::resource.fields.preference_category_helper'))
+                                        ->options(fn () => collect(config('mailing.preference_categories', []))
+                                            ->mapWithKeys(fn ($label, $key) => [$key => $label])
+                                            ->toArray()
+                                        )
+                                        ->nullable()
+                                        ->visible(fn (Get $get): bool => $get('category') === TemplateCategory::COMMERCIAL->value)
+                                        ->required(fn (Get $get): bool => $get('category') === TemplateCategory::COMMERCIAL->value),
 
                                     TextInput::make('subject')
                                         ->label(__('mailing::resource.fields.subject'))

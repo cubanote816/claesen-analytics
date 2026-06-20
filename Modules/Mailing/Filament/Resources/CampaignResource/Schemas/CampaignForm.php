@@ -39,11 +39,26 @@ class CampaignForm
                             ->required()
                             ->live()
                             ->afterStateUpdated(function (?int $state, Set $set): void {
-                                if ($template = EmailTemplate::find($state)) {
-                                    $set('template_name', $template->name);
-                                    $set('subject_snapshot', $template->subject);
-                                    $set('body_snapshot', $template->body);
+                                if (! $template = EmailTemplate::find($state)) {
+                                    return;
                                 }
+
+                                try {
+                                    $snapshot = Campaign::buildSnapshotFrom($template);
+                                } catch (\InvalidArgumentException $e) {
+                                    Notification::make()
+                                        ->title(__('mailing::resource.notifications.template_invalid_pref_category'))
+                                        ->body($e->getMessage())
+                                        ->warning()
+                                        ->send();
+                                    return;
+                                }
+
+                                $set('template_name', $snapshot['template_name']);
+                                $set('subject_snapshot', $snapshot['subject_snapshot']);
+                                $set('body_snapshot', $snapshot['body_snapshot']);
+                                $set('template_category_snapshot', $snapshot['template_category_snapshot']);
+                                $set('preference_category_snapshot', $snapshot['preference_category_snapshot']);
                             })
                             ->columnSpanFull(),
 
@@ -204,6 +219,8 @@ class CampaignForm
 
                 Hidden::make('template_name'),
                 Hidden::make('body_snapshot'),
+                Hidden::make('template_category_snapshot'),
+                Hidden::make('preference_category_snapshot'),
             ]);
     }
 

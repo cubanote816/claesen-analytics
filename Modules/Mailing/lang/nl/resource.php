@@ -34,7 +34,9 @@ return [
         'body'             => 'E-mail Bericht',
         'body_preview'     => 'Berichtvoorvertoning',
         'body_empty'       => 'Geen berichtinhoud opgeslagen voor deze campagne.',
-        'category'         => 'Categorie',
+        'category'                   => 'Categorie',
+        'preference_category'        => 'Marketing Voorkeurscategorie',
+        'preference_category_helper' => 'Contacten die zich voor deze categorie hebben uitgeschreven, worden overgeslagen. Verplicht voor commerciële sjablonen.',
         'variables'        => 'Extra variabelen (alleen ter documentatie)',
         'variables_helper' => 'Deze items maken geen nieuwe tokens aan — ze zijn notities voor wie dit sjabloon bewerkt.',
         'variable_key'     => 'Sleutel',
@@ -88,8 +90,9 @@ return [
     ],
 
     'notifications' => [
-        'audience_preview' => 'Geschatte doelgroep: :count contacten',
-        'segment_error'    => 'Fout in segmentconfiguratie',
+        'audience_preview'               => 'Geschatte doelgroep: :count contacten',
+        'segment_error'                  => 'Fout in segmentconfiguratie',
+        'template_invalid_pref_category' => 'Sjabloon heeft een ongeldige voorkeurscategorie',
     ],
 
     'placeholders' => [
