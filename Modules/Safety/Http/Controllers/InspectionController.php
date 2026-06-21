@@ -222,6 +222,10 @@ class InspectionController extends Controller
         $message = $existing->type === 'incident' ? 'Incident succesvol gemeld.' : 'Inspectie succesvol opgeslagen.';
 
         if ($existing->payload_hash === null) {
+            // Records without a stored fingerprint (typically created before SAF-019)
+            // cannot be compared with the current payload. For backward compatibility,
+            // any request reusing their idempotency key returns the existing 200 response,
+            // even when the submitted payload differs. This behavior is intentional.
             return response()->json(['message' => $message, 'data' => ['inspection_id' => $existing->id]], 200);
         }
 
