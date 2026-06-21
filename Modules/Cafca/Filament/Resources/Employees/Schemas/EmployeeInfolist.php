@@ -67,34 +67,6 @@ class EmployeeInfolist
                     ->extraAttributes(['class' => 'bg-white/50 backdrop-blur-sm shadow-sm ring-1 ring-gray-950/5 rounded-3xl p-6'])
                     ->columnSpanFull(),
 
-                // Watchdog Alert (Premium Refined)
-                Section::make(__('employees/resource.sections.watchdog_alerts'))
-                    ->description(__('employees/resource.sections.watchdog_description'))
-                    ->schema([
-                        Grid::make(2)
-                            ->schema([
-                                TextEntry::make('warning_demo')
-                                    ->label(false)
-                                    ->default(__('employees/resource.messages.watchdog_warning'))
-                                    ->weight('black')
-                                    ->color('danger')
-                                    ->icon('heroicon-m-exclamation-triangle')
-                                    ->size('lg'),
-                                
-                                TextEntry::make('action_required')
-                                    ->label(false)
-                                    ->default(app()->getLocale() === 'nl' ? 'INTERVENTIE VEREIST' : 'INTERVENTION REQUIRED')
-                                    ->badge()
-                                    ->color('danger')
-                                    ->alignEnd(),
-                            ])
-                    ])
-                    ->extraAttributes([
-                        'class' => 'overflow-hidden !border-0',
-                        'style' => 'background: linear-gradient(90deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.02) 100%); border-left: 6px solid #ef4444 !important; border-radius: 1.25rem; backdrop-filter: blur(8px); box-shadow: 0 4px 6px -1px rgb(239 68 68 / 0.1);',
-                    ])
-                    ->columnSpanFull(),
-
                 // Talent Snapshot (Ultra-Compact)
                 Section::make()
                     ->components([
