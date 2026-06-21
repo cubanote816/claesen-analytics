@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Safety\Http\Controllers;
 
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,85 +21,103 @@ use Illuminate\Support\Facades\Log;
 
 class InspectionController extends Controller
 {
+    private const IDEMPOTENCY_INDEX = 'safety_inspections_user_idempotency_unique';
+
     public function store(StoreInspectionRequest $request): JsonResponse
     {
         $validated = $request->validated();
-
         $projectId = trim($validated['project_id']);
-        $userId = $request->user()->id;
+        $userId    = $request->user()->id;
 
+        // Compute hash ONCE — post-validation, pre-transaction
+        $payloadHash = !empty($validated['idempotency_key'])
+            ? $this->computeHash($request, $validated, $projectId)
+            : null;
+
+        // Idempotency pre-check
         if (!empty($validated['idempotency_key'])) {
             $existing = Inspection::where('user_id', $userId)
                 ->where('idempotency_key', $validated['idempotency_key'])
                 ->first();
 
             if ($existing) {
-                return response()->json([
-                    'message' => $existing->type === 'incident' ? 'Incident succesvol gemeld.' : 'Inspectie succesvol opgeslagen.',
-                    'data'    => ['inspection_id' => $existing->id],
-                ], 200);
+                return $this->idempotentResponse($existing, $payloadHash);
             }
         }
 
         $photoStorageFailures = [];
 
-        $inspection = DB::transaction(function () use ($validated, $request, $userId, $projectId, &$photoStorageFailures) {
-            $inspection = Inspection::create([
-                'user_id'            => $userId,
-                'checklist_id'       => $validated['checklist_id'],
-                'type'               => $validated['type'],
-                'incident_worker_id' => $validated['incident_worker_id'] ?? null,
-                'project_id'         => $projectId,
-                'idempotency_key'    => $validated['idempotency_key'] ?? null,
-                'completed_at'       => now(),
-            ]);
+        try {
+            $inspection = DB::transaction(function () use ($validated, $request, $userId, $projectId, $payloadHash, &$photoStorageFailures) {
+                $inspection = Inspection::create([
+                    'user_id'            => $userId,
+                    'checklist_id'       => $validated['checklist_id'],
+                    'type'               => $validated['type'],
+                    'incident_worker_id' => $validated['type'] === 'incident'
+                                             ? ($validated['incident_worker_id'] ?? null)
+                                             : null,
+                    'project_id'         => $projectId,
+                    'idempotency_key'    => $validated['idempotency_key'] ?? null,
+                    'completed_at'       => now(),
+                    'payload_hash'       => $payloadHash,
+                ]);
 
-            // Conditionally sync present workers ONLY if type is inspection
-            if ($validated['type'] === 'inspection' && !empty($validated['present_workers'])) {
-                $inspection->presentWorkers()->sync($validated['present_workers']);
-            }
-
-            foreach ($validated['answers'] as $answer) {
-                $questionId = $answer['question_id'];
-                $photoPath = null;
-
-                $statusMap = [
-                    'YES' => 'ok',
-                    'NO'  => 'nok',
-                    'NA'  => 'na'
-                ];
-
-                if ($request->hasFile("photos.{$questionId}")) {
-                    $file = $request->file("photos.{$questionId}");
-                    try {
-                        $photoPath = $file->store("safety-inspections/{$inspection->id}", config('safety.disk'));
-                    } catch (\Exception $e) {
-                        Log::error("Photo storage failed for inspection {$inspection->id}, question {$questionId}: " . $e->getMessage());
-                        $photoStorageFailures[] = $questionId;
-                        $photoPath = null;
-                    }
+                // Sync present workers ONLY for inspection type
+                if ($validated['type'] === 'inspection' && !empty($validated['present_workers'])) {
+                    $inspection->presentWorkers()->sync($validated['present_workers']);
                 }
 
-                $inspection->answers()->create([
-                    'question_id' => $questionId,
-                    'status'      => $statusMap[$answer['value']] ?? 'na',
-                    'remark'      => $answer['remark'] ?? null,
-                    'photo_path'  => $photoPath,
-                ]);
+                $statusMap = ['YES' => 'ok', 'NO' => 'nok', 'NA' => 'na'];
+
+                foreach ($validated['answers'] as $answer) {
+                    $questionId = $answer['question_id'];
+                    $photoPath  = null;
+
+                    if ($request->hasFile("photos.{$questionId}")) {
+                        $file = $request->file("photos.{$questionId}");
+                        try {
+                            $photoPath = $file->store("safety-inspections/{$inspection->id}", config('safety.disk'));
+                        } catch (\Exception $e) {
+                            Log::error("Photo storage failed for inspection {$inspection->id}, question {$questionId}: " . $e->getMessage());
+                            $photoStorageFailures[] = $questionId;
+                            $photoPath = null;
+                        }
+                    }
+
+                    $inspection->answers()->create([
+                        'question_id' => $questionId,
+                        'status'      => $statusMap[$answer['value']] ?? 'na',
+                        'remark'      => $answer['remark'] ?? null,
+                        'photo_path'  => $photoPath,
+                    ]);
+                }
+
+                return $inspection;
+            });
+
+        } catch (UniqueConstraintViolationException $e) {
+            // Only recover for the idempotency index — re-throw any other unique constraint
+            if (!str_contains($e->getMessage(), self::IDEMPOTENCY_INDEX)
+                || empty($validated['idempotency_key'])) {
+                throw $e;
             }
 
-            return $inspection;
-        });
+            $existing = Inspection::where('user_id', $userId)
+                ->where('idempotency_key', $validated['idempotency_key'])
+                ->first();
+
+            if (!$existing) throw $e; // inconsistency — re-throw
+
+            return $this->idempotentResponse($existing, $payloadHash);
+        }
 
         try {
-            // Despachar la generación del PDF asíncronamente
             GenerateSafetyPdfJob::dispatch($inspection->id);
 
-            // Notificar a los Super Admins
             $admins = User::role('super_admin')->get();
             if ($admins->count() > 0) {
                 $title = $inspection->type === 'incident' ? 'Nieuw Incidentenrapport' : 'Nieuwe werkplekinspectie';
-                $body = $inspection->type === 'incident'
+                $body  = $inspection->type === 'incident'
                     ? "Medewerker **{$request->user()->name}** heeft een incident gemeld op project **{$projectId}**."
                     : "Inspecteur **{$request->user()->name}** heeft een inspectie ingediend for project **{$projectId}**.";
 
@@ -118,7 +137,6 @@ class InspectionController extends Controller
             }
         } catch (\Exception $e) {
             Log::error("Post-inspection tasks failed: " . $e->getMessage());
-            // We don't fail the request if notifications or PDF fails
         }
 
         $responseData = ['inspection_id' => $inspection->id];
@@ -131,6 +149,95 @@ class InspectionController extends Controller
             'data'    => $responseData,
         ], 201);
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Private helpers
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private function canonicalPayload(array $validated, string $projectId, Request $request): array
+    {
+        $type = $validated['type'];
+
+        $answers = collect($validated['answers'])
+            ->sortBy(fn($a) => (int) $a['question_id'])
+            ->values()
+            ->map(fn($a) => [
+                'question_id' => (int) $a['question_id'],
+                'value'       => $a['value'],
+                'remark'      => ($r = trim($a['remark'] ?? '')) !== '' ? $r : null,
+            ])
+            ->toArray();
+
+        $validQIds = collect($answers)->pluck('question_id')->all();
+
+        $photos = [];
+        foreach ($request->file('photos', []) as $qId => $file) {
+            if (!in_array((int) $qId, $validQIds, true)) continue;
+            if (!$file || !$file->isValid()) {
+                throw new \RuntimeException("Invalid photo file for question {$qId}");
+            }
+            $realPath = $file->getRealPath();
+            if ($realPath === false || $realPath === '') {
+                throw new \RuntimeException("Cannot read photo path for question {$qId}");
+            }
+            $hash = hash_file('sha256', $realPath);
+            if ($hash === false) {
+                throw new \RuntimeException("Hash computation failed for question {$qId}");
+            }
+            $photos[] = ['question_id' => (int) $qId, 'sha256' => $hash];
+        }
+        usort($photos, fn($a, $b) => $a['question_id'] <=> $b['question_id']);
+
+        $payload = [
+            'checklist_id' => (int) $validated['checklist_id'],
+            'type'         => $type,
+            'project_id'   => $projectId,
+            'answers'      => $answers,
+            'photos'       => $photos,
+        ];
+
+        if ($type === 'inspection') {
+            $payload['present_workers'] = collect($validated['present_workers'] ?? [])
+                ->map(fn($id) => (string) $id)
+                ->sort()
+                ->values()
+                ->toArray();
+        } else {
+            $payload['incident_worker_id'] = (string) ($validated['incident_worker_id'] ?? '');
+        }
+
+        return $payload;
+    }
+
+    private function computeHash(Request $request, array $validated, string $projectId): string
+    {
+        return hash('sha256', json_encode(
+            $this->canonicalPayload($validated, $projectId, $request),
+            JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+        ));
+    }
+
+    private function idempotentResponse(Inspection $existing, ?string $currentHash): JsonResponse
+    {
+        $message = $existing->type === 'incident' ? 'Incident succesvol gemeld.' : 'Inspectie succesvol opgeslagen.';
+
+        if ($existing->payload_hash === null) {
+            return response()->json(['message' => $message, 'data' => ['inspection_id' => $existing->id]], 200);
+        }
+
+        if ($existing->payload_hash === $currentHash) {
+            return response()->json(['message' => $message, 'data' => ['inspection_id' => $existing->id]], 200);
+        }
+
+        return response()->json([
+            'error'         => 'inspection_payload_conflict',
+            'inspection_id' => $existing->id,
+        ], 409);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Remaining endpoints (unchanged)
+    // ──────────────────────────────────────────────────────────────────────────
 
     public function servePhoto(Inspection $inspection, Answer $answer): \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
     {
@@ -217,7 +324,6 @@ class InspectionController extends Controller
             default                                                     => 'failed',
         };
 
-        // URLs point to SAF-006 / SAF-007 endpoints; those routes must register exactly these paths
         $pdfUrl = $inspection->pdf_path
             ? url("api/v1/safety/inspections/{$inspection->id}/pdf")
             : null;
@@ -328,7 +434,7 @@ class InspectionController extends Controller
         $userId = $request->user()->id;
 
         $totalInspections = Inspection::where('user_id', $userId)->count();
-        $defectsCount = Inspection::where('user_id', $userId)
+        $defectsCount     = Inspection::where('user_id', $userId)
             ->whereHas('answers', function ($query) {
                 $query->where('status', 'nok');
             })->count();
@@ -337,7 +443,7 @@ class InspectionController extends Controller
             'data' => [
                 'total'   => $totalInspections,
                 'defects' => $defectsCount,
-            ]
+            ],
         ]);
     }
 }

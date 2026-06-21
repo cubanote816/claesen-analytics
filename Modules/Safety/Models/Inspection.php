@@ -29,6 +29,7 @@ class Inspection extends Model
         'idempotency_key',
         'completed_at',
         'pdf_path',
+        'payload_hash',
     ];
 
     protected $casts = [
