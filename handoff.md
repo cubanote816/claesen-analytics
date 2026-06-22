@@ -1,16 +1,15 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-22 (EMP-002 / CLA-164 ✅ Done — commit `ef513c7`)
+> Última actualización: 2026-06-22 (EMP-007 / CLA-168 ✅ Done)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** EMP — Estabilización módulo Employees
+- **Sprint activo:** EMP — Estabilización módulo Employees (✅ Sprint Completado)
 - **Rama actual:** `main`
-- **Último commit:** `ef513c7` EMP-002 / CLA-164 ✅ Done (2026-06-22)
-- **Próximo paso (EMP):** EMP-007 / CLA-168 — auditoría permisos Analytics (EMP-002 ahora completado)
+- **Último hito:** EMP-007 / CLA-168 ✅ Done (2026-06-22) — Discovery auditoría permisos cerrado.
 - **Próximo paso (SAF-019):** crear ticket de deuda en Linear (5 fallos preexistentes) + confirmar CI — pending rotación key Linear
 
 ### SAF-019 — Payload fingerprint (idempotency hash) 🚧 Commit aprobado, cierre pendiente
@@ -45,7 +44,7 @@
 | EMP-005 | CLA-165 | Eliminar llamada duplicada Livewire | `EmployeeProjectTimeline.php` | — | ✅ Done `bc9ff40` |
 | EMP-003 | CLA-166 | Diferenciar 3 estados ERP/datos | `EmployeeProjectTimeline.php` + blade | EMP-005 | ✅ Done `176da75` |
 | EMP-006 | CLA-167 | Locale configurable prompt Gemini | `TechnicianAnalysisService.php:56` | — | ✅ Done `8d5c27a` |
-| EMP-007 | CLA-168 | Auditoría permisos Analytics | `EmployeeAnalytics.php` (solo lectura) | EMP-002, EMP-003 | ⬜ Discovery |
+| EMP-007 | CLA-168 | Auditoría permisos Analytics | `EmployeeAnalytics.php` (solo lectura) | EMP-002, EMP-003 | ✅ Done (Status Quo) |
 
 **Decisiones del auditor para este sprint:**
 - EMP-001: no eliminar claves de traducción, verificar uso global primero
@@ -508,6 +507,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-22 | CLA-168 | Done — EMP-007: Discovery auditoría permisos cerrado. Decisión de negocio: Status Quo. El acceso a `EmployeeAnalytics` se restringe a `super_admin` y `admin` porque los insights IA y burnout son datos muy sensibles. No se modifica código ni se abre a managers/empleados sin separar antes datos operativos de sensibles. Sin commit de código. |
 | 2026-06-22 | CLA-164 | Done — EMP-002: `calculateAchievementRate()` devuelve `null` (no `0%`) cuando `uren_per_week` es `null` o `<= 0`. `getDailyStats()` sin fallback `?? 0`. `aggregateStats()` docblock explicita baseline 7,6h vs contrato. Widget Stats: stat gris `Niet berekenbaar` cuando rate null; stat semanal usa clave `compliance_operational` (`Basis 7,6u`). Chart widget: línea target omitida cuando `uren_per_week` es null/0. Traducciones NL+EN (`achievement_unknown`, `compliance_operational`). Test sin `RefreshDatabase` (seam en memoria, determinista). 7 archivos, 8 tests / 15 aserciones ✅. Commit `ef513c7`. |
 | 2026-06-22 | CLA-167 | Done — EMP-006: locale configurable para prompt Gemini en `TechnicianAnalysisService`. Config `performance.ai_insight_locale` (nl/en, fallback nl). Cache key v2 (`md5`). Prompt completo NL/EN sin texto en español. `PERFORMANCE_AI_LOCALE` en `.env.example`. 4 archivos, 15 tests / 59 aserciones ✅. Commit `8d5c27a`. |
 | 2026-06-22 | CLA-166 | Done — EMP-003: diferenciar estados `erp_unavailable`, `no_period_activity`, `no_history` y `ready` en `EmployeeProjectTimeline`. Clasificador SQLSTATE (clase 08, HYT00/HYT01/IM002/IM014 + fallback mensajes). `hasAnyLaborHistory()` en `EmployeePerformanceService` para mockability. Blade 3 paneles PHP `@if`. 6 archivos, 11 tests / 50 assertions ✅. Smoke visual ✅. Commit `176da75`. |
