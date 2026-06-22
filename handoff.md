@@ -18,7 +18,9 @@
 
 **Commits:**
 - Core: `7861628` — Slice A+B (AuthController, introspect endpoint, contact proxy)
+- Core: `dcde8a1` — fix P3-6: remove dead $user->active check (model has no attribute)
 - Sport: `eae0ef3` — CoreIntrospectionMiddleware + CoreIdentityUser + route swap
+- Sport: `4a45635` — Audit corrections P1+P2: me()/logout()/password guard, 401/403/503 semantics, cache purge on logout
 
 **Arquitectura implementada:**
 
@@ -58,8 +60,12 @@ CORE_INTROSPECT_TTL=30         # segundos de caché
 - ✅ Introspección token válido → 200 con roles
 - ✅ Introspección token inválido → 401
 - ✅ Introspección sin token → 401
-- ✅ Logout revoca token (post-logout da 401)
+- ✅ Logout revoca token en Core + purge cache Sport → post-logout 401 inmediato
 - ✅ Role mapper: `super_admin` → `SuperAdmin` (compatible con `checkRole:SuperAdmin`)
+- ✅ `checkRole` devuelve 401 (no auth) vs 403 (rol insuficiente) correctamente
+- ✅ Caída de Core → 503 en strict mode (no enmascarado como 401)
+- ✅ `me()` devuelve payload plano para CoreIdentityUser (sin UserResource local)
+- ✅ `check-password` y `change-password` devuelven 403 para identidades Core
 - ✅ Sin shared DB de auth
 - ✅ Flujo transitorio local Sanctum intacto (modo hybrid)
 
