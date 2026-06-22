@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use Modules\Cafca\Models\Employee;
 use Modules\Cafca\Models\Labor;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Illuminate\Support\Carbon;
 use Filament\Actions\Action;
@@ -31,6 +32,9 @@ class EmployeeProjectTimeline extends Component implements HasForms, HasActions
 
     public $temporalDistribution = [];
     public $temporalType = 'daily';
+
+    #[Locked]
+    public array $cachedProjects = [];
 
     public function mount(Employee $record)
     {
@@ -112,8 +116,10 @@ class EmployeeProjectTimeline extends Component implements HasForms, HasActions
         return null;
     }
 
-    protected function calculateStats()
+    protected function calculateStats(): void
     {
+        $this->cachedProjects = [];
+
         $start = Carbon::parse($this->fromDate);
         $end = Carbon::parse($this->toDate);
 
@@ -124,6 +130,20 @@ class EmployeeProjectTimeline extends Component implements HasForms, HasActions
         $this->distribution = $stats['categories'];
         $this->temporalDistribution = $stats['temporal_distribution'] ?? [];
         $this->temporalType = $stats['temporal_type'] ?? 'daily';
+
+        $this->cachedProjects = collect($stats['projects'] ?? [])
+            ->filter(fn($p) => !empty($p['project_id']))
+            ->map(fn($p) => [
+                'project_id'        => (string) $p['project_id'],
+                'project_name'      => (string) ($p['project_name'] ?? $p['project_id'] ?? '—'),
+                'project_type_name' => (string) ($p['project_type_name'] ?? '—'),
+                'total_hours'       => (float)  ($p['total_hours'] ?? 0.0),
+                'last_active_month' => $p['last_active'] instanceof \Carbon\CarbonInterface
+                                       ? mb_strtoupper($p['last_active']->format('M'))
+                                       : '---',
+            ])
+            ->values()
+            ->all();
         
         $categories = ['Werf', 'Laden', 'Mobiliteit'];
         $temporalSeries = [];
@@ -190,22 +210,18 @@ class EmployeeProjectTimeline extends Component implements HasForms, HasActions
 
     public function render()
     {
-        $start = Carbon::parse($this->fromDate);
-        $end = Carbon::parse($this->toDate);
-
-        $stats = app(\Modules\Performance\Services\EmployeePerformanceService::class)
-            ->getStatsForPeriod($this->record, $start, $end);
-
-        $timelineData = collect($stats['projects'])->map(function ($project) {
+        $timelineData = collect($this->cachedProjects)->map(function ($project) {
             return [
-                'project_id' => $project['project_id'],
+                'project_id'   => $project['project_id'],
                 'project_name' => $project['project_name'],
                 'project_type' => $project['project_type_name'],
                 'project_code' => $project['project_id'],
-                'total_hours' => $project['total_hours'],
-                'percentage' => $this->totalHours > 0 ? round(($project['total_hours'] / $this->totalHours) * 100) : 0,
-                'categories' => $project['categories'],
-                'month_label' => $project['last_active'] ? str($project['last_active']->format('M'))->upper() : '---',
+                'total_hours'  => $project['total_hours'],
+                'percentage'   => $this->totalHours > 0
+                                  ? round(($project['total_hours'] / $this->totalHours) * 100)
+                                  : 0,
+                'categories'   => [],
+                'month_label'  => $project['last_active_month'],
             ];
         });
 
