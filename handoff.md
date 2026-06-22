@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-23 (Slice B ✅ GO técnico — auditor cerrado)
+> Última actualización: 2026-06-23 (Slice C / C.1 ✅ Done — módulo FieldOps creado)
 
 ---
 
@@ -9,8 +9,27 @@
 
 - **Sprint activo:** Integración Core-Sport (FieldOps) — Fase 1
 - **Rama actual:** `FieldOps`
-- **Último hito:** Slice B (Token Introspection) ✅ Done (2026-06-22)
-- **Próximo paso (Slice C):** Migrar endpoints operativos de Sport a Core (FieldOps entities: Complex, Terrain, Structure, Luminaire).
+- **Último hito:** Slice C / C.1 ✅ Done — módulo FieldOps existe y compila (commit `814d85a`)
+- **Próximo paso (C.2→C.6):** Implementar write endpoints (Complex/Terrain/Structure/LuminaireFrame/Luminaire CRUD) y cutover en Sport.
+
+### Integración Core-Sport — Slice C (FieldOps Module) 🚧 En curso
+
+| Fase | Descripción | Commit | Estado |
+|------|-------------|--------|--------|
+| C.1 | Módulo FieldOps creado: 13 migraciones + 10 modelos + resources + controllers read-only | `814d85a` | ✅ Done |
+| C.2 | CRUD Complex | — | ⬜ |
+| C.3 | CRUD Terrain | — | ⬜ |
+| C.4 | CRUD Structure | — | ⬜ |
+| C.5 | CRUD LuminaireFrame + Luminaire | — | ⬜ |
+| C.6 | Cutover + deprecación en Sport | — | ⬜ |
+
+**Decisiones C.1:**
+- Tablas prefijo `fo_`: `fo_complexes`, `fo_terrains`, `fo_structures`, `fo_luminaires`, etc.
+- Sin POINT/spatial — `lat`/`lng` como `decimal(10,7)` (Core no tiene `MatanYadaev/EloquentSpatial`)
+- `HasTranslations` en: `TerrainType.type`, `Terrain.name`, `StructureType.name`, `Structure.info`, `Luminaire.info`
+- `external_safety_id` / `external_access_id` nullable (Safety fuera de scope Slice C)
+- 7 rutas GET bajo `/v1/fieldops` protegidas con `auth:sanctum`
+- Colateral: `SafetyAdoptionOverviewWidget.$pollingInterval` `static` → `instance` (bloqueaba artisan)
 
 ### Integración Core-Sport — Slice B (Token Introspection) ✅ Done
 
