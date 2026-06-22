@@ -1,0 +1,47 @@
+<?php
+
+namespace Modules\FieldOps\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Core\Models\User;
+
+class Complex extends Model
+{
+    use SoftDeletes;
+
+    protected $table = 'fo_complexes';
+
+    protected $fillable = [
+        'created_by_user_id',
+        'client_id',
+        'name',
+        'street',
+        'city',
+        'zipcode',
+        'lat',
+        'lng',
+        'zoom',
+    ];
+
+    protected $casts = [
+        'lat'  => 'float',
+        'lng'  => 'float',
+        'zoom' => 'float',
+    ];
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(FoClient::class, 'client_id');
+    }
+
+    public function terrains()
+    {
+        return $this->hasMany(Terrain::class, 'complex_id');
+    }
+}
