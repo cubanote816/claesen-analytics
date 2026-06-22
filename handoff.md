@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-22 (EMP-005 / CLA-165 ✅ Done — commit `bc9ff40`)
+> Última actualización: 2026-06-22 (EMP-003 / CLA-166 ✅ Done — commit `176da75`)
 
 ---
 
@@ -9,8 +9,8 @@
 
 - **Sprint activo:** EMP — Estabilización módulo Employees
 - **Rama actual:** `main`
-- **Último commit:** `bc9ff40` EMP-005 / CLA-165 ✅ Done (2026-06-22)
-- **Próximo paso (EMP):** EMP-003 / CLA-166 — diferenciar 3 estados ERP/datos (EMP-002 bloqueado por confirmación RR.HH.)
+- **Último commit:** `176da75` EMP-003 / CLA-166 ✅ Done (2026-06-22)
+- **Próximo paso (EMP):** EMP-006 / CLA-167 — locale configurable para prompt Gemini (EMP-002 bloqueado RR.HH., EMP-003 ✅ Done)
 - **Próximo paso (SAF-019):** crear ticket de deuda en Linear (5 fallos preexistentes) + confirmar CI — pending rotación key Linear
 
 ### SAF-019 — Payload fingerprint (idempotency hash) 🚧 Commit aprobado, cierre pendiente
@@ -43,7 +43,7 @@
 | EMP-004 | CLA-163 | Eliminar botón "View archives" | `employee-project-timeline.blade.php:124` | — | ✅ Done `5f0ec35` |
 | EMP-002 | CLA-164 | `uren_per_week` → estado unknown | `EmployeePerformanceService.php` + infolists | — | ⬜ Bloqueado (RR.HH.) |
 | EMP-005 | CLA-165 | Eliminar llamada duplicada Livewire | `EmployeeProjectTimeline.php` | — | ✅ Done `bc9ff40` |
-| EMP-003 | CLA-166 | Diferenciar 3 estados ERP/datos | `EmployeeProjectTimeline.php` + blade | EMP-005 | ⬜ Todo |
+| EMP-003 | CLA-166 | Diferenciar 3 estados ERP/datos | `EmployeeProjectTimeline.php` + blade | EMP-005 | ✅ Done `176da75` |
 | EMP-006 | CLA-167 | Locale configurable prompt Gemini | `TechnicianAnalysisService.php:56` | — | ⬜ Todo |
 | EMP-007 | CLA-168 | Auditoría permisos Analytics | `EmployeeAnalytics.php` (solo lectura) | EMP-002, EMP-003 | ⬜ Discovery |
 
@@ -508,6 +508,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-22 | CLA-166 | Done — EMP-003: diferenciar estados `erp_unavailable`, `no_period_activity`, `no_history` y `ready` en `EmployeeProjectTimeline`. Clasificador SQLSTATE (clase 08, HYT00/HYT01/IM002/IM014 + fallback mensajes). `hasAnyLaborHistory()` en `EmployeePerformanceService` para mockability. Blade 3 paneles PHP `@if`. 6 archivos, 11 tests / 50 assertions ✅. Smoke visual ✅. Commit `176da75`. |
 | 2026-06-22 | CLA-165 | Done — EMP-005: caché `#[Locked] $cachedProjects` elimina segunda query SQL Server en `render()`. 2 archivos (componente + test). 4 tests/15 assertions ✅. Smoke visual ✅. Commit `bc9ff40`. |
 | 2026-06-22 | CLA-163 | Done — EMP-004: eliminar botón "View archives" de `employee-project-timeline.blade.php:124`. 1 archivo, 1 línea. view:cache ✅. Smoke visual ✅ (sesión legítima Filament). Commit `5f0ec35`. |
 | 2026-06-22 | CLA-162 | Done — EMP-001: eliminar alerta Watchdog falsa de `EmployeeInfolist.php:70-96`. 1 archivo, bloque eliminado. Commit `39c1e07`. |
