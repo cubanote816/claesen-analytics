@@ -121,7 +121,6 @@
                             <h4 class="text-lg font-black text-slate-950 dark:text-white uppercase tracking-[0.25em]">{{ __('employees/resource.dashboard.project_showcase') }}</h4>
                             <span class="px-3 py-1 bg-claesen-orange/10 border border-claesen-orange/20 rounded-xl text-[10px] font-black text-claesen-orange">{{ $timeline->total() }}</span>
                         </div>
-                        <button class="text-[10px] font-bold text-slate-400 hover:text-claesen-orange transition-colors uppercase tracking-widest">{{ __('employees/resource.dashboard.view_archives') }}</button>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
