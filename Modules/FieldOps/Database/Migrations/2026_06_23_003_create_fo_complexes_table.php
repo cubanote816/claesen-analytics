@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('fo_complexes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('created_by_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('client_id')->nullable()->constrained('fo_clients')->nullOnDelete();
             $table->string('name');
             $table->string('street')->nullable();

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('fo_luminaire_types', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('created_by_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('luminaire_subgroup_id')->constrained('fo_luminaire_subgroups')->restrictOnDelete();
             $table->string('name');
             $table->string('image')->nullable();

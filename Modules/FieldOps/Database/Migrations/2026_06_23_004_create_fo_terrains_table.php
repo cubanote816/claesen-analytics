@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('fo_terrains', function (Blueprint $table) {
             $table->id();
             $table->foreignId('complex_id')->constrained('fo_complexes')->cascadeOnDelete();
-            $table->foreignId('created_by_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('terrain_type_id')->constrained('fo_terrain_types')->restrictOnDelete();
             $table->json('name')->nullable(); // translatable: {nl, fr, en, es}
             $table->decimal('lat', 10, 7)->nullable();

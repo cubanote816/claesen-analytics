@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('fo_luminaire_frames', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('created_by_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('luminaire_frame_type_id')->constrained('fo_luminaire_frame_types')->restrictOnDelete();
             $table->timestamps();
             $table->softDeletes();

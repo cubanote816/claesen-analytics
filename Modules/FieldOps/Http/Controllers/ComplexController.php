@@ -11,7 +11,7 @@ class ComplexController extends Controller
 {
     public function index(): \Illuminate\Http\JsonResponse
     {
-        $complexes = Complex::with('client')->orderBy('name')->paginate(50);
+        $complexes = Complex::with('client', 'createdBy')->orderBy('name')->paginate(50);
 
         return response()->json([
             'success' => true,

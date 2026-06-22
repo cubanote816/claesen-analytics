@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('fo_luminaire_subgroups', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('created_by_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('group_name');  // denormalized from luminaire_groups
             $table->string('brand');
             $table->timestamps();

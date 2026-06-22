@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('fo_structures', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('created_by_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('structure_type_id')->constrained('fo_structure_types')->restrictOnDelete();
             $table->integer('height')->nullable();
             $table->decimal('lat', 10, 7)->nullable();

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('fo_structure_types', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('created_by_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->json('name'); // translatable: {nl, fr, en, es}
             $table->timestamps();
             $table->softDeletes();
