@@ -15,4 +15,5 @@ Route::prefix('v1/website')->middleware(\App\Http\Middleware\SetPanelLocale::cla
     Route::get('/projects/{slug}', [ProjectController::class, 'show']);
 
     Route::post('/consultations', [ConsultationController::class, 'store']);
+    Route::post('/contact-email', [\Modules\Website\Http\Controllers\ContactController::class, 'store']);
 });
