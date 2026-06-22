@@ -130,6 +130,12 @@ return [
         'description' => 'There are no registered working hours found for :name within the selected timeframe.',
         'action_this_month' => 'View Previous Month',
         'action_previous_year' => 'View Previous Year',
+        'erp_unavailable_title' => 'ERP Temporarily Unavailable',
+        'erp_unavailable_description' => 'The connection to the management system has been lost. Data cannot be loaded temporarily.',
+        'erp_unavailable_retry' => 'Try Again',
+        'no_activity_title' => 'No Activity in This Period',
+        'no_activity_description' => 'No working hours were found for :name in the selected period. Try a different timeframe.',
+        'no_activity_suggestion' => 'View Last Semester',
     ],
 
     'dashboard' => [

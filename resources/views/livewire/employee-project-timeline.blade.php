@@ -176,24 +176,66 @@
                 </div>
             </div>
 
-            <!-- C. EMPTY STATE -->
-            <div x-cloak x-show="totalHours == 0" x-transition.opacity.duration.500ms class="w-full glass-signature inner-glow-orange rounded-[3rem] p-16 flex flex-col items-center justify-center text-center opacity-80 min-h-[400px] shadow-2xl overflow-hidden relative" @style(['display: none' => $this->totalHours > 0])>
-                <div class="absolute inset-0 bg-mesh-signature opacity-10"></div>
-                <div class="w-32 h-32 mb-8 rounded-[2.5rem] glass-signature flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-[inset_0_4px_10px_rgba(255,255,255,0.2)] group transition-transform duration-700 hover:rotate-12 hover:scale-110 relative z-10">
-                    <x-heroicon-o-folder-open class="w-16 h-16 text-claesen-orange/40" />
+            <!-- C. STATE PANELS (erp_unavailable / no_period_activity / no_history) -->
+            @if ($componentState !== 'ready')
+
+                @if ($componentState === 'erp_unavailable')
+                <div class="w-full glass-signature rounded-[3rem] p-16 flex flex-col items-center justify-center text-center min-h-[400px] shadow-2xl overflow-hidden relative">
+                    <div class="absolute inset-0 bg-mesh-signature opacity-10"></div>
+                    <div class="w-32 h-32 mb-8 rounded-[2.5rem] glass-signature flex items-center justify-center shadow-[inset_0_4px_10px_rgba(255,255,255,0.2)] relative z-10">
+                        <x-heroicon-o-exclamation-triangle class="w-16 h-16 text-amber-400/60" />
+                    </div>
+                    <h3 class="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-4 relative z-10 uppercase italic tracking-[0.1em]">
+                        {{ __('employees/resource.empty_state.erp_unavailable_title') }}
+                    </h3>
+                    <p class="text-slate-500 dark:text-slate-300 font-medium max-w-sm mb-10 leading-relaxed text-sm relative z-10">
+                        {{ __('employees/resource.empty_state.erp_unavailable_description') }}
+                    </p>
+                    <button wire:click="retryLoad" class="relative z-10 px-6 py-3 bg-claesen-orange text-white font-bold uppercase tracking-widest rounded-2xl text-[11px] hover:bg-claesen-orange/90 transition-colors shadow-md">
+                        {{ __('employees/resource.empty_state.erp_unavailable_retry') }}
+                    </button>
                 </div>
-                <h3 class="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-4 relative z-10 uppercase italic tracking-[0.1em]">
-                    {{ __('employees/resource.empty_state.title') }}
-                </h3>
-                <p class="text-slate-500 dark:text-slate-300 font-medium max-w-sm mb-10 leading-relaxed text-sm relative z-10">
-                    {!! str_replace(':name', '<strong class="text-claesen-orange font-black">' . e($record->name) . '</strong>', __('employees/resource.empty_state.description')) !!}
-                </p>
-                <div class="flex gap-4 relative z-10">
-                    <div class="w-2 h-2 rounded-full bg-claesen-orange/20 animate-ping"></div>
-                    <div class="w-2 h-2 rounded-full bg-claesen-orange/40 animate-ping [animation-delay:200ms]"></div>
-                    <div class="w-2 h-2 rounded-full bg-claesen-orange/60 animate-ping [animation-delay:400ms]"></div>
+
+                @elseif ($componentState === 'no_period_activity')
+                <div class="w-full glass-signature rounded-[3rem] p-16 flex flex-col items-center justify-center text-center min-h-[400px] shadow-2xl overflow-hidden relative">
+                    <div class="absolute inset-0 bg-mesh-signature opacity-10"></div>
+                    <div class="w-32 h-32 mb-8 rounded-[2.5rem] glass-signature flex items-center justify-center relative z-10">
+                        <x-heroicon-o-calendar class="w-16 h-16 text-slate-300 dark:text-slate-600" />
+                    </div>
+                    <h3 class="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-4 relative z-10 uppercase italic tracking-[0.1em]">
+                        {{ __('employees/resource.empty_state.no_activity_title') }}
+                    </h3>
+                    <p class="text-slate-500 dark:text-slate-300 font-medium max-w-sm mb-10 leading-relaxed text-sm relative z-10">
+                        {!! str_replace(':name', '<strong class="text-claesen-orange font-black">' . e($record->name) . '</strong>', __('employees/resource.empty_state.no_activity_description')) !!}
+                    </p>
+                    @if ($this->getActivePeriod() !== 'last_semester')
+                    <button wire:click="setPeriod('last_semester')" class="relative z-10 px-6 py-3 border border-black/10 dark:border-white/10 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-widest rounded-2xl text-[11px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        {{ __('employees/resource.empty_state.no_activity_suggestion') }}
+                    </button>
+                    @endif
                 </div>
-            </div>
+
+                @else {{-- no_history --}}
+                <div class="w-full glass-signature inner-glow-orange rounded-[3rem] p-16 flex flex-col items-center justify-center text-center opacity-80 min-h-[400px] shadow-2xl overflow-hidden relative">
+                    <div class="absolute inset-0 bg-mesh-signature opacity-10"></div>
+                    <div class="w-32 h-32 mb-8 rounded-[2.5rem] glass-signature flex items-center justify-center text-slate-300 dark:text-slate-600 shadow-[inset_0_4px_10px_rgba(255,255,255,0.2)] group transition-transform duration-700 hover:rotate-12 hover:scale-110 relative z-10">
+                        <x-heroicon-o-folder-open class="w-16 h-16 text-claesen-orange/40" />
+                    </div>
+                    <h3 class="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-4 relative z-10 uppercase italic tracking-[0.1em]">
+                        {{ __('employees/resource.empty_state.title') }}
+                    </h3>
+                    <p class="text-slate-500 dark:text-slate-300 font-medium max-w-sm mb-10 leading-relaxed text-sm relative z-10">
+                        {!! str_replace(':name', '<strong class="text-claesen-orange font-black">' . e($record->name) . '</strong>', __('employees/resource.empty_state.description')) !!}
+                    </p>
+                    <div class="flex gap-4 relative z-10">
+                        <div class="w-2 h-2 rounded-full bg-claesen-orange/20 animate-ping"></div>
+                        <div class="w-2 h-2 rounded-full bg-claesen-orange/40 animate-ping [animation-delay:200ms]"></div>
+                        <div class="w-2 h-2 rounded-full bg-claesen-orange/60 animate-ping [animation-delay:400ms]"></div>
+                    </div>
+                </div>
+                @endif
+
+            @endif
         </div>
     </div>
 

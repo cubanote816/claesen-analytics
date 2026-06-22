@@ -130,6 +130,12 @@ return [
         'description' => 'Er zijn geen geregistreerde werkuren gevonden voor :name binnen de geselecteerde reeks.',
         'action_this_month' => 'Bekijk Vorige Maand',
         'action_previous_year' => 'Bekijk Vorig Jaar',
+        'erp_unavailable_title' => 'ERP Tijdelijk Niet Beschikbaar',
+        'erp_unavailable_description' => 'De verbinding met het beheersysteem is verbroken. Gegevens kunnen tijdelijk niet worden geladen.',
+        'erp_unavailable_retry' => 'Probeer Opnieuw',
+        'no_activity_title' => 'Geen Activiteit in Deze Periode',
+        'no_activity_description' => 'Er zijn geen werkuren geregistreerd voor :name in de geselecteerde periode. Kies een andere tijdsperiode.',
+        'no_activity_suggestion' => 'Bekijk Vorig Semester',
     ],
 
     'dashboard' => [

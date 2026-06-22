@@ -3,13 +3,13 @@
 namespace Tests\Feature\Livewire;
 
 use App\Livewire\EmployeeProjectTimeline;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Mockery;
 use Modules\Cafca\Models\Employee;
 use Modules\Performance\Services\EmployeePerformanceService;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class EmployeeProjectTimelineTest extends TestCase
@@ -49,9 +49,10 @@ class EmployeeProjectTimelineTest extends TestCase
         ];
     }
 
-    private function mockService(array ...$statsSeries): EmployeePerformanceService
+    private function mockService(bool $hasHistory = true, array ...$statsSeries): EmployeePerformanceService
     {
         $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')->andReturn($hasHistory);
         $expectation = $mock->shouldReceive('getStatsForPeriod');
         foreach ($statsSeries as $stats) {
             $expectation->andReturn($stats)->once();
@@ -60,14 +61,24 @@ class EmployeeProjectTimelineTest extends TestCase
         return $mock;
     }
 
+    private function makeQueryException(string $sqlstate, string $message = 'Connection error'): QueryException
+    {
+        $pdo = new \PDOException($message);
+        $pdo->errorInfo = [$sqlstate, 0, $message];
+        return new QueryException('sqlsrv', 'SELECT 1', [], $pdo);
+    }
+
     // -------------------------------------------------------------------------
-    // Tests
+    // EMP-005 regression tests (4 tests)
     // -------------------------------------------------------------------------
 
     public function test_calls_service_once_on_mount(): void
     {
         $employee = $this->employee();
         $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')
+            ->once()
+            ->andReturn(true);
         $mock->shouldReceive('getStatsForPeriod')
             ->once()
             ->andReturn($this->fakeStats([['name' => 'Project Alpha']]));
@@ -75,6 +86,7 @@ class EmployeeProjectTimelineTest extends TestCase
 
         Livewire::test(EmployeeProjectTimeline::class, ['record' => $employee]);
 
+        $mock->shouldHaveReceived('hasAnyLaborHistory')->once();
         $mock->shouldHaveReceived('getStatsForPeriod')->once();
     }
 
@@ -85,6 +97,9 @@ class EmployeeProjectTimelineTest extends TestCase
         $statsB = $this->fakeStats([['name' => 'Project Beta']]);
 
         $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')
+            ->once()
+            ->andReturn(true);
         $mock->shouldReceive('getStatsForPeriod')
             ->andReturn($statsA, $statsB);
         app()->instance(EmployeePerformanceService::class, $mock);
@@ -111,6 +126,9 @@ class EmployeeProjectTimelineTest extends TestCase
         ]);
 
         $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')
+            ->once()
+            ->andReturn(true);
         $mock->shouldReceive('getStatsForPeriod')
             ->andReturn($statsA, $statsB);
         app()->instance(EmployeePerformanceService::class, $mock);
@@ -144,6 +162,9 @@ class EmployeeProjectTimelineTest extends TestCase
     {
         $employee = $this->employee();
         $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')
+            ->once()
+            ->andReturn(true);
         $mock->shouldReceive('getStatsForPeriod')
             ->once()
             ->andReturn($this->fakeStats([
@@ -153,5 +174,163 @@ class EmployeeProjectTimelineTest extends TestCase
 
         Livewire::test(EmployeeProjectTimeline::class, ['record' => $employee])
             ->assertSee('Visible Project Name');
+    }
+
+    // -------------------------------------------------------------------------
+    // EMP-003 new tests (7 tests)
+    // -------------------------------------------------------------------------
+
+    public function test_shows_erp_unavailable_on_connection_error_in_stats(): void
+    {
+        $employee = $this->employee();
+        $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')->once()->andReturn(true);
+        $mock->shouldReceive('getStatsForPeriod')
+            ->once()
+            ->andThrow($this->makeQueryException('HYT00', 'Login timeout expired'));
+        app()->instance(EmployeePerformanceService::class, $mock);
+
+        Livewire::test(EmployeeProjectTimeline::class, ['record' => $employee])
+            ->assertSet('componentState', 'erp_unavailable');
+    }
+
+    public function test_shows_no_period_activity_when_employee_has_history(): void
+    {
+        $employee = $this->employee();
+        $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')->once()->andReturn(true);
+        $mock->shouldReceive('getStatsForPeriod')
+            ->once()
+            ->andReturn($this->fakeStats()); // 0 hours
+        app()->instance(EmployeePerformanceService::class, $mock);
+
+        Livewire::test(EmployeeProjectTimeline::class, ['record' => $employee])
+            ->assertSet('componentState', 'no_period_activity');
+    }
+
+    public function test_shows_no_history_when_employee_has_no_labor_data(): void
+    {
+        $employee = $this->employee();
+        $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')->once()->andReturn(false);
+        $mock->shouldReceive('getStatsForPeriod')
+            ->once()
+            ->andReturn($this->fakeStats()); // 0 hours
+        app()->instance(EmployeePerformanceService::class, $mock);
+
+        Livewire::test(EmployeeProjectTimeline::class, ['record' => $employee])
+            ->assertSet('componentState', 'no_history');
+    }
+
+    public function test_sqlstate_22012_is_rethrown_not_swallowed(): void
+    {
+        $employee = $this->employee();
+        $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')->once()->andReturn(true);
+        $mock->shouldReceive('getStatsForPeriod')
+            ->once()
+            ->andThrow($this->makeQueryException('22012', 'Division by zero'));
+        app()->instance(EmployeePerformanceService::class, $mock);
+
+        // Livewire wraps re-thrown exceptions in ViewException — unwrap the chain
+        try {
+            Livewire::test(EmployeeProjectTimeline::class, ['record' => $employee]);
+            $this->fail('Expected QueryException was not thrown');
+        } catch (\Throwable $e) {
+            $cause = $e;
+            while ($cause->getPrevious() !== null && ! $cause instanceof QueryException) {
+                $cause = $cause->getPrevious();
+            }
+            $this->assertInstanceOf(QueryException::class, $cause,
+                'Expected QueryException in chain, got: ' . get_class($e));
+            $this->assertSame('22012', $cause->errorInfo[0] ?? null);
+        }
+    }
+
+    public function test_retryload_recovers_history_and_stats_after_erp_failure(): void
+    {
+        $employee = $this->employee();
+        $stats = $this->fakeStats([['name' => 'Recovered Project']]);
+        $connEx = $this->makeQueryException('HYT00', 'Login timeout expired');
+
+        $callCount = 0;
+        $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')
+            ->twice()
+            ->andReturnUsing(function () use (&$callCount, $connEx) {
+                if ($callCount++ === 0) {
+                    throw $connEx;
+                }
+                return true;
+            });
+        $mock->shouldReceive('getStatsForPeriod')
+            ->once()
+            ->andReturn($stats);
+        app()->instance(EmployeePerformanceService::class, $mock);
+
+        $component = Livewire::test(EmployeeProjectTimeline::class, ['record' => $employee]);
+        $component->assertSet('componentState', 'erp_unavailable')
+                  ->assertSet('hasHistory', null);
+
+        $component->call('retryLoad');
+
+        $component->assertSet('componentState', 'ready')
+                  ->assertSee('Recovered Project');
+    }
+
+    public function test_hashistory_null_with_zero_hours_shows_erp_unavailable_not_no_history(): void
+    {
+        $employee = $this->employee();
+        $connEx = $this->makeQueryException('HYT00', 'Login timeout expired');
+
+        // Mount: hasAnyLaborHistory fails → hasHistory = null, componentState = erp_unavailable
+        $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')
+            ->once()
+            ->andThrow($connEx);
+        $mock->shouldNotReceive('getStatsForPeriod');
+        app()->instance(EmployeePerformanceService::class, $mock);
+
+        $component = Livewire::test(EmployeeProjectTimeline::class, ['record' => $employee]);
+        $component->assertSet('componentState', 'erp_unavailable')
+                  ->assertSet('hasHistory', null);
+
+        // Rebind service: ERP recovers for stats but hasHistory stays null
+        $mock2 = Mockery::mock(EmployeePerformanceService::class);
+        $mock2->shouldReceive('getStatsForPeriod')
+              ->once()
+              ->andReturn($this->fakeStats()); // 0 hours
+        $mock2->shouldNotReceive('hasAnyLaborHistory');
+        app()->instance(EmployeePerformanceService::class, $mock2);
+
+        // setPeriod calls calculateStats — hasHistory still null, hours = 0 → default arm → erp_unavailable
+        $component->call('setPeriod', 'last_month');
+
+        $component->assertSet('componentState', 'erp_unavailable');
+    }
+
+    public function test_logic_exception_with_connection_message_is_rethrown(): void
+    {
+        $employee = $this->employee();
+        $mock = Mockery::mock(EmployeePerformanceService::class);
+        $mock->shouldReceive('hasAnyLaborHistory')->once()->andReturn(true);
+        $mock->shouldReceive('getStatsForPeriod')
+            ->once()
+            ->andThrow(new \LogicException('unable to connect to ERP'));
+        app()->instance(EmployeePerformanceService::class, $mock);
+
+        // Livewire wraps re-thrown exceptions in ViewException — unwrap the chain
+        try {
+            Livewire::test(EmployeeProjectTimeline::class, ['record' => $employee]);
+            $this->fail('Expected LogicException was not thrown');
+        } catch (\Throwable $e) {
+            $cause = $e;
+            while ($cause->getPrevious() !== null && ! $cause instanceof \LogicException) {
+                $cause = $cause->getPrevious();
+            }
+            $this->assertInstanceOf(\LogicException::class, $cause,
+                'Expected LogicException in chain, got: ' . get_class($e));
+            $this->assertStringContainsString('unable to connect', $cause->getMessage());
+        }
     }
 }

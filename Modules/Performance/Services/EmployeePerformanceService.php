@@ -81,6 +81,11 @@ class EmployeePerformanceService
     /**
      * Get performance stats for a weekly period including project breakdown.
      */
+    public function hasAnyLaborHistory(Employee $employee): bool
+    {
+        return Labor::where('employee_id', $employee->id)->exists();
+    }
+
     /**
      * Get stats for a representative period (Last 30 days) to avoid empty dashboards.
      */

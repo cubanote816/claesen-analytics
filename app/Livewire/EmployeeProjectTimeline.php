@@ -3,10 +3,11 @@
 namespace App\Livewire;
 
 use Modules\Cafca\Models\Employee;
-use Modules\Cafca\Models\Labor;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Illuminate\Support\Carbon;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -19,6 +20,7 @@ class EmployeeProjectTimeline extends Component implements HasForms, HasActions
     use InteractsWithForms, InteractsWithActions;
 
     public Employee $record;
+    public string $componentState = 'ready';
     public $fromDate;
     public $toDate;
 
@@ -36,12 +38,27 @@ class EmployeeProjectTimeline extends Component implements HasForms, HasActions
     #[Locked]
     public array $cachedProjects = [];
 
-    public function mount(Employee $record)
+    #[Locked]
+    public ?bool $hasHistory = null;
+
+    public function mount(Employee $record): void
     {
-        $this->record = $record;
-        // Default to this month
+        $this->record   = $record;
         $this->fromDate = now()->startOfMonth()->format('Y-m-d');
-        $this->toDate = now()->endOfMonth()->format('Y-m-d');
+        $this->toDate   = now()->endOfMonth()->format('Y-m-d');
+
+        try {
+            $this->hasHistory = app(\Modules\Performance\Services\EmployeePerformanceService::class)
+                ->hasAnyLaborHistory($record);
+        } catch (\Throwable $e) {
+            if ($this->isConnectionError($e)) {
+                $this->hasHistory     = null;
+                $this->componentState = 'erp_unavailable';
+                $this->logErpConnectionError('mount', $e);
+                return;
+            }
+            throw $e;
+        }
 
         $this->calculateStats();
     }
@@ -116,20 +133,102 @@ class EmployeeProjectTimeline extends Component implements HasForms, HasActions
         return null;
     }
 
+    public function retryLoad(): void
+    {
+        if ($this->hasHistory === null) {
+            try {
+                $this->hasHistory = app(\Modules\Performance\Services\EmployeePerformanceService::class)
+                    ->hasAnyLaborHistory($this->record);
+            } catch (\Throwable $e) {
+                if ($this->isConnectionError($e)) {
+                    $this->componentState = 'erp_unavailable';
+                    $this->logErpConnectionError('retryLoad', $e);
+                    return;
+                }
+                throw $e;
+            }
+        }
+
+        $this->calculateStats();
+    }
+
+    private function logErpConnectionError(string $source, \Throwable $e, array $extra = []): void
+    {
+        Log::warning("ERP connection error in EmployeeProjectTimeline {$source}", array_merge([
+            'employee_id' => $this->record->id,
+            'sqlstate'    => ($e->errorInfo[0] ?? 'n/a'),
+            'error_class' => class_basename($e),
+        ], $extra));
+    }
+
+    private function isConnectionError(\Throwable $e): bool
+    {
+        $sqlstate = '';
+
+        if ($e instanceof QueryException || $e instanceof \PDOException) {
+            $sqlstate = strtoupper((string) ($e->errorInfo[0] ?? ''));
+        }
+
+        if (str_starts_with($sqlstate, '08')) {
+            return true;
+        }
+
+        if (in_array($sqlstate, ['HYT00', 'HYT01', 'IM002', 'IM014'], true)) {
+            return true;
+        }
+
+        // Message fallback only for DB exceptions — prevents LogicException('unable to connect') from matching
+        if (! $e instanceof QueryException && ! $e instanceof \PDOException) {
+            return false;
+        }
+
+        $msg = strtolower($e->getMessage());
+
+        return str_contains($msg, 'login timeout')
+            || str_contains($msg, 'connection timeout')
+            || str_contains($msg, 'unable to connect')
+            || str_contains($msg, 'communication link failure')
+            || str_contains($msg, 'server not found')
+            || str_contains($msg, 'network-related');
+    }
+
     protected function calculateStats(): void
     {
-        $this->cachedProjects = [];
+        $this->cachedProjects       = [];
+        $this->totalHours           = 0;
+        $this->distribution         = ['Werf' => 0, 'Laden' => 0, 'Mobiliteit' => 0];
+        $this->temporalDistribution = [];
+        $this->temporalType         = 'daily';
 
         $start = Carbon::parse($this->fromDate);
-        $end = Carbon::parse($this->toDate);
+        $end   = Carbon::parse($this->toDate);
 
-        $stats = app(\Modules\Performance\Services\EmployeePerformanceService::class)
-            ->getStatsForPeriod($this->record, $start, $end);
+        try {
+            $stats = app(\Modules\Performance\Services\EmployeePerformanceService::class)
+                ->getStatsForPeriod($this->record, $start, $end);
+        } catch (\Throwable $e) {
+            if ($this->isConnectionError($e)) {
+                $this->componentState = 'erp_unavailable';
+                $this->logErpConnectionError('calculateStats', $e, [
+                    'period' => $this->fromDate . '/' . $this->toDate,
+                ]);
+                $this->dispatch('statsUpdated', [
+                    'totalHours'         => 0,
+                    'distributionLabels' => [],
+                    'distributionSeries' => [],
+                    'temporalLabels'     => [],
+                    'temporalSeries'     => [],
+                    'temporalTitle'      => 'Daily Trend',
+                ]);
+                return;
+            }
+            throw $e;
+        }
 
-        $this->totalHours = $stats['hours'];
-        $this->distribution = $stats['categories'];
+        $this->totalHours           = $stats['hours'];
+        $this->distribution         = $stats['categories'];
         $this->temporalDistribution = $stats['temporal_distribution'] ?? [];
-        $this->temporalType = $stats['temporal_type'] ?? 'daily';
+        $this->temporalType         = $stats['temporal_type'] ?? 'daily';
 
         $this->cachedProjects = collect($stats['projects'] ?? [])
             ->filter(fn($p) => !empty($p['project_id']))
@@ -144,6 +243,13 @@ class EmployeeProjectTimeline extends Component implements HasForms, HasActions
             ])
             ->values()
             ->all();
+
+        $this->componentState = match (true) {
+            $this->totalHours > 0       => 'ready',
+            $this->hasHistory === true   => 'no_period_activity',
+            $this->hasHistory === false  => 'no_history',
+            default                      => 'erp_unavailable',
+        };
         
         $categories = ['Werf', 'Laden', 'Mobiliteit'];
         $temporalSeries = [];
