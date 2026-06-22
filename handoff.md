@@ -1,24 +1,74 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-20 (MAI-PREF-001 / CLA-161 — enforcement de category preferences)
+> Última actualización: 2026-06-22 (EMP-005 / CLA-165 ✅ Done — commit `bc9ff40`)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** Mailing Fase 2 — enforcement de categorías (CLA-161 implementado, pendiente GO técnico)
+- **Sprint activo:** EMP — Estabilización módulo Employees
 - **Rama actual:** `main`
-- **Último ticket:** MAI-PREF-001 / CLA-161 — enforce campaign category preferences (implementado, esperando GO)
-- **Próximo paso al dar GO:** marcar CLA-161 Done en Linear y ejecutar en producción:
-  ```bash
-  php artisan migrate
-  php artisan mailing:backfill-preference-snapshots --apply
-  # (reiniciar workers después)
-  ```
-- **Tests:** Requieren Docker — verificar con `./vendor/bin/sail artisan test --filter=Mailing` una vez Docker disponible
+- **Último commit:** `bc9ff40` EMP-005 / CLA-165 ✅ Done (2026-06-22)
+- **Próximo paso (EMP):** EMP-003 / CLA-166 — diferenciar 3 estados ERP/datos (EMP-002 bloqueado por confirmación RR.HH.)
+- **Próximo paso (SAF-019):** crear ticket de deuda en Linear (5 fallos preexistentes) + confirmar CI — pending rotación key Linear
 
-### MAI-PREF-001 / CLA-161 — Enforcement de Category Preferences 🚧 In Review
+### SAF-019 — Payload fingerprint (idempotency hash) 🚧 Commit aprobado, cierre pendiente
+
+**Commit:** `19b7cf1` | **Fecha:** 2026-06-21
+
+**Archivos modificados:**
+- `Modules/Safety/Models/Inspection.php` — `payload_hash` en `$fillable`
+- `Modules/Safety/Http/Requests/StoreInspectionRequest.php` — `answers.*.question_id`: `integer` + `distinct` + `Rule::exists` scoped a `checklist_id`; `withValidator()` rechaza fotos huérfanas y keys no-numéricas (422)
+- `Modules/Safety/Http/Controllers/InspectionController.php` — `canonicalPayload()` + `computeHash()` + `idempotentResponse()`; SHA-256 computado post-validación pre-transacción; `UniqueConstraintViolationException` capturada solo para `safety_inspections_user_idempotency_unique`
+- `Modules/Safety/database/migrations/2026_06_21_120000_add_payload_hash_to_safety_inspections.php` — `payload_hash VARCHAR(64) NULL` ✅ aplicada
+
+**Comportamiento de `payload_hash = NULL` (registros legacy):**
+> Devuelve 200 para preservar compatibilidad con registros anteriores a SAF-019. **No verifica igualdad del payload** — un payload diferente con la misma `idempotency_key` también recibirá 200 si el registro es legacy. Este comportamiento es deliberado y está documentado en `idempotentResponse()`.
+
+**Pendiente antes de cierre:**
+1. Crear ticket en Linear: `SAF: fix 5 pre-existing test failures after employees worker migration` — `78327ae` cambió `present_workers.*` de `exists:users,id` a `exists:employees,id` sin actualizar tests. Afecta: `InspectionAuthStoreIndexTest` (3), `InspectionPhotoStorageFailureTest` (2).
+2. Confirmar que CI acepta o excluye justificadamente los 5 fallos (no son regresiones de SAF-019 — verificado con `git stash`).
+3. Rotación de API key de Linear verificada externamente (401/403 key antigua, nueva key almacenada como secreto, no expuesta en código/logs/Git).
+
+---
+
+### Sprint EMP — Estabilización /employees 🚧 En curso
+
+**Issues creados:** 2026-06-21. Orden aprobado: EMP-001 → EMP-004 → EMP-002 → EMP-005 → EMP-003 → EMP-006 → EMP-007
+
+| Ticket | Linear | Título | Archivo principal | Depende de | Estado |
+|--------|--------|--------|-----------------|-----------|--------|
+| EMP-001 | CLA-162 | Retirar alerta Watchdog falsa | `EmployeeInfolist.php:71-96` | — | ✅ Done `39c1e07` |
+| EMP-004 | CLA-163 | Eliminar botón "View archives" | `employee-project-timeline.blade.php:124` | — | ✅ Done `5f0ec35` |
+| EMP-002 | CLA-164 | `uren_per_week` → estado unknown | `EmployeePerformanceService.php` + infolists | — | ⬜ Bloqueado (RR.HH.) |
+| EMP-005 | CLA-165 | Eliminar llamada duplicada Livewire | `EmployeeProjectTimeline.php` | — | ✅ Done `bc9ff40` |
+| EMP-003 | CLA-166 | Diferenciar 3 estados ERP/datos | `EmployeeProjectTimeline.php` + blade | EMP-005 | ⬜ Todo |
+| EMP-006 | CLA-167 | Locale configurable prompt Gemini | `TechnicianAnalysisService.php:56` | — | ⬜ Todo |
+| EMP-007 | CLA-168 | Auditoría permisos Analytics | `EmployeeAnalytics.php` (solo lectura) | EMP-002, EMP-003 | ⬜ Discovery |
+
+**Decisiones del auditor para este sprint:**
+- EMP-001: no eliminar claves de traducción, verificar uso global primero
+- EMP-002: `null` (no `0`) cuando `uren_per_week <= 0`; sin dependencia de EMP-003
+- EMP-003: captura `\Throwable` para conexión caída; re-throw si no es error de conexión/PDO; `hasHistory` en `mount()` una sola vez
+- EMP-005: verificar con `DB::connection('sqlsrv')->enableQueryLog()` sobre la conexión correcta
+- EMP-006: sin migración `insight_locale`; locale canónico nl/en con fallback nl
+- EMP-007: discovery puro; si exige código → ticket EMP-007b separado
+
+**NO GO explícito del auditor para este sprint:**
+- Leaderboard, anomaly detection individual, coste por empleado, scheduler IA, QR con token de sesión
+- Compliance Safety en perfil (pendiente confirmar relaciones worker/employee)
+- Certificaciones, disponibilidad: requieren discovery previo
+
+**Pendiente producción (CLA-161):**
+```bash
+php artisan migrate
+php artisan mailing:backfill-preference-snapshots  # dry-run primero
+php artisan mailing:backfill-preference-snapshots --apply
+# reiniciar workers
+```
+
+### MAI-PREF-001 / CLA-161 — Enforcement de Category Preferences ✅ Done
 
 | Archivo | Cambio | Estado |
 |---------|--------|--------|
@@ -54,15 +104,7 @@
 # 5. Reiniciar workers
 ```
 
-**Tests pendientes de verificación** (necesitan Docker corriendo):
-```bash
-./vendor/bin/sail artisan test --filter=CategoryPreferenceEnforcement
-./vendor/bin/sail artisan test --filter=BackfillPreferenceSnapshots
-./vendor/bin/sail artisan test --filter=ListUnsubscribe
-./vendor/bin/sail artisan test --filter=CampaignWorkflow
-./vendor/bin/sail artisan test --filter=ExecuteCampaignJobCounter
-./vendor/bin/sail artisan test --filter=Mailing  # suite completa
-```
+**Tests verificados (2026-06-20):** 77 passed / 134 assertions — CategoryPreferenceEnforcement (22), BackfillPreferenceSnapshots (9), ListUnsubscribe (12+2 skip), CampaignWorkflow (20), ExecuteCampaignJobCounter (14). ✅ GO técnico aprobado.
 
 ### SAF-017→022 — Soft Delete Seguro de Inspecciones ✅ Done
 
@@ -466,6 +508,10 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-22 | CLA-165 | Done — EMP-005: caché `#[Locked] $cachedProjects` elimina segunda query SQL Server en `render()`. 2 archivos (componente + test). 4 tests/15 assertions ✅. Smoke visual ✅. Commit `bc9ff40`. |
+| 2026-06-22 | CLA-163 | Done — EMP-004: eliminar botón "View archives" de `employee-project-timeline.blade.php:124`. 1 archivo, 1 línea. view:cache ✅. Smoke visual ✅ (sesión legítima Filament). Commit `5f0ec35`. |
+| 2026-06-22 | CLA-162 | Done — EMP-001: eliminar alerta Watchdog falsa de `EmployeeInfolist.php:70-96`. 1 archivo, bloque eliminado. Commit `39c1e07`. |
+| 2026-06-20 | CLA-161 | Done — MAI-PREF-001 enforce category preferences. Commits `80660d6`+`02a143d`. 77 tests / 134 assertions. Deploy pendiente: `migrate` + `mailing:backfill-preference-snapshots --apply`. |
 | 2026-06-16 | CLA-159 | Done — Author audit metadata en `safety_questions`: migración FK `created_by_user_id`/`updated_by_user_id`, QuestionObserver, relaciones en modelo, API `show`/`active` devuelven `created_by`/`updated_by {id,name}`. 7 tests nuevos. Commit `a096243`. |
 | 2026-06-16 | CLA-160 | Done — `safety:backfill-question-authors --apply` ejecutado en producción. 15 preguntas → Orelvys, 3 → Bert (creadas el 14-jun), 17 → updated_by Bert, ID 18 updated_by=null. Commits `7fc4a03`+`2d6938f`. |
 | 2026-06-13 | BI-011→022 | Sprint 1 completado en una sesión: 12 tickets + 1 fix colateral. Mirrors nuevos (estimate_calc, project_links, project_results, workdocs), bi_config + service + página Filament, ventana labor sync, 27 tests, fix N+1. Todos los commits en `feature/bi-sprint1-data`. |
