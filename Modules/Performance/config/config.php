@@ -1,5 +1,6 @@
 <?php
 
 return [
-    'name' => 'Performance',
+    'name'             => 'Performance',
+    'ai_insight_locale' => env('PERFORMANCE_AI_LOCALE', 'nl'),
 ];
