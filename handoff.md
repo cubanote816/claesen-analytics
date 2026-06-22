@@ -18,9 +18,10 @@
 
 **Commits:**
 - Core: `7861628` — Slice A+B (AuthController, introspect endpoint, contact proxy)
-- Core: `dcde8a1` — fix P3-6: remove dead $user->active check (model has no attribute)
+- Core: `dcde8a1` — fix: remove dead $user->active check (model has no attribute)
 - Sport: `eae0ef3` — CoreIntrospectionMiddleware + CoreIdentityUser + route swap
-- Sport: `4a45635` — Audit corrections P1+P2: me()/logout()/password guard, 401/403/503 semantics, cache purge on logout
+- Sport: `4a45635` — Audit round 1: me()/logout()/password guard, 401/403/503, cache purge
+- Sport: `ab0f0bc` — Audit round 2: logout core_revoked flag, me() payload completeness
 
 **Arquitectura implementada:**
 
@@ -42,6 +43,15 @@ Cliente → Bearer token → Sport endpoint
 4. **Caché de introspección:** 30s (configurable `CORE_INTROSPECT_TTL`). Solo cachea respuestas válidas, no errores.
 5. **Transición controlada:** auth local de Sport permanece funcional como fallback en modo `hybrid`. La ruta local `POST /api/login` sigue disponible pero está marcada para deprecación.
 
+**Regla de autenticación canónica (Slice B):**
+```
+Login email/password → Core POST /api/v1/auth/login
+Login Microsoft/Azure → Core GET /api/v1/auth/microsoft/redirect
+Ambos flujos emiten un token Sanctum de Core.
+Sport acepta ese token vía introspección (CoreIntrospectionMiddleware).
+Sport ya no es autoridad de identidad para ningún flujo.
+```
+
 **Variables de entorno requeridas en Sport:**
 ```env
 CORE_API_URL=https://backend.claesen-verlichting.be  # URL del Core canónico
@@ -60,12 +70,14 @@ CORE_INTROSPECT_TTL=30         # segundos de caché
 - ✅ Introspección token válido → 200 con roles
 - ✅ Introspección token inválido → 401
 - ✅ Introspección sin token → 401
-- ✅ Logout revoca token en Core + purge cache Sport → post-logout 401 inmediato
+- ✅ Logout: revoca en Core + purge cache Sport → post-logout 401 inmediato
+- ✅ Logout: `core_revoked: true` cuando Core confirma (200/401); `false` con `error` log en 5xx/timeout
 - ✅ Role mapper: `super_admin` → `SuperAdmin` (compatible con `checkRole:SuperAdmin`)
 - ✅ `checkRole` devuelve 401 (no auth) vs 403 (rol insuficiente) correctamente
 - ✅ Caída de Core → 503 en strict mode (no enmascarado como 401)
-- ✅ `me()` devuelve payload plano para CoreIdentityUser (sin UserResource local)
+- ✅ `me()` devuelve payload idéntico al local: `{id, name, email, role (legacy), avatar: null, last_active_at: null}`
 - ✅ `check-password` y `change-password` devuelven 403 para identidades Core
+- ✅ Azure/Microsoft tokens (emitidos por Core) aceptados por introspección sin cambio adicional
 - ✅ Sin shared DB de auth
 - ✅ Flujo transitorio local Sanctum intacto (modo hybrid)
 
