@@ -17,21 +17,22 @@ class EmployeePerformanceService
     }
  
     /**
-     * Calculate achievement rate percentage.
+     * Calculate contractual achievement rate percentage.
      * Formula: (real_hours / daily_target) * 100
+     * Returns null when uren_per_week is absent or zero — metric is not calculable.
      */
-    public function calculateAchievementRate(float $realHours, float $urenPerWeek, int $days = 1): float
+    public function calculateAchievementRate(float $realHours, ?float $urenPerWeek, int $days = 1): ?float
     {
-        if ($urenPerWeek <= 0) {
-            return 0;
+        if ($urenPerWeek === null || $urenPerWeek <= 0) {
+            return null;
         }
- 
+
         $target = ($urenPerWeek / 5) * $days;
-        
+
         if ($target <= 0) {
-            return 0;
+            return null;
         }
- 
+
         return ($realHours / $target) * 100;
     }
  
@@ -67,14 +68,15 @@ class EmployeePerformanceService
             ->whereDate('date', $date->toDateString())
             ->get();
 
-        $stats = $this->aggregateCategories($entries);
+        $categories  = $this->aggregateCategories($entries);
+        $totalHours  = array_sum($categories);
 
         return [
-            'period' => 'daily',
-            'date' => $date->toDateString(),
-            'hours' => $stats['total'],
-            'categories' => $stats['categories'],
-            'achievement_rate' => $this->calculateAchievementRate($stats['total'], $employee->uren_per_week ?? 0, 1),
+            'period'           => 'daily',
+            'date'             => $date->toDateString(),
+            'hours'            => $totalHours,
+            'categories'       => $categories,
+            'achievement_rate' => $this->calculateAchievementRate($totalHours, $employee->uren_per_week, 1),
         ];
     }
 
@@ -109,6 +111,11 @@ class EmployeePerformanceService
 
     /**
      * Centralized aggregation logic.
+     *
+     * NOTE: achievement_rate uses a fixed 7.6h/day operational baseline
+     * (potentialDays × 7.6h). It is NOT derived from Employee::uren_per_week
+     * and must not be interpreted as contractual compliance.
+     * Use getDailyStats() for the contractual achievement rate.
      */
     protected function aggregateStats(\Illuminate\Support\Collection $logs, \Carbon\CarbonInterface $start, \Carbon\CarbonInterface $end): array
     {

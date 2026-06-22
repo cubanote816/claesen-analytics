@@ -14,5 +14,7 @@ return [
     'error_loading' => 'Could not load report.',
     'wip_risk' => 'WIP Risk',
     'recommended_action' => 'Recommended Action',
-    'loading' => 'Vanguard is double-checking the figures...',
+    'loading'                => 'Vanguard is double-checking the figures...',
+    'achievement_unknown'    => 'Not calculable',
+    'compliance_operational' => 'Baseline (7.6h)',
 ];

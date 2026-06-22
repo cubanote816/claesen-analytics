@@ -14,5 +14,7 @@ return [
     'error_loading' => 'Kon rapport niet laden.',
     'wip_risk' => 'WIP Risico',
     'recommended_action' => 'Aanbevolen Actie',
-    'loading' => 'Vanguard is vást de cijfers aan het controleren...',
+    'loading'                => 'Vanguard is vást de cijfers aan het controleren...',
+    'achievement_unknown'    => 'Niet berekenbaar',
+    'compliance_operational' => 'Basis (7,6u)',
 ];

@@ -80,7 +80,7 @@
     </table>
 
     <div class="section-title">WEEKLY PROJECT BREAKDOWN</div>
-    <p style="font-size: 10px; color: #4b5563;">Current Week Hours: <strong>{{ $weekly['hours'] }}h</strong> / Achievement: <strong>{{ round($weekly['achievement_rate'], 1) }}%</strong></p>
+    <p style="font-size: 10px; color: #4b5563;">Current Week Hours: <strong>{{ $weekly['hours'] }}h</strong> / Efficientie (7,6u basis): <strong>{{ round($weekly['achievement_rate'], 1) }}%</strong></p>
     <table class="data-table">
         <thead>
             <tr>
