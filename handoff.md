@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-23 (Slice C / C.1 ✅ Done — módulo FieldOps creado)
+> Última actualización: 2026-06-23 (Slice C / C.1 ✅ + audit P1/P2 fixes — GO para C.2)
 
 ---
 
@@ -9,14 +9,15 @@
 
 - **Sprint activo:** Integración Core-Sport (FieldOps) — Fase 1
 - **Rama actual:** `FieldOps`
-- **Último hito:** Slice C / C.1 ✅ Done — módulo FieldOps existe y compila (commit `814d85a`)
-- **Próximo paso (C.2→C.6):** Implementar write endpoints (Complex/Terrain/Structure/LuminaireFrame/Luminaire CRUD) y cutover en Sport.
+- **Último hito:** Slice C / C.1 audit fixes ✅ Done (commit `d328459`) — GO condicionado cumplido
+- **Próximo paso (C.2):** Complex store/update/destroy — ver auditor gate abajo.
 
 ### Integración Core-Sport — Slice C (FieldOps Module) 🚧 En curso
 
 | Fase | Descripción | Commit | Estado |
 |------|-------------|--------|--------|
 | C.1 | Módulo FieldOps creado: 13 migraciones + 10 modelos + resources + controllers read-only | `814d85a` | ✅ Done |
+| C.1 fixes | P1: nullOnDelete en 9 FKs created_by_user_id; P2b: ComplexController eager load | `d328459` | ✅ Done |
 | C.2 | CRUD Complex | — | ⬜ |
 | C.3 | CRUD Terrain | — | ⬜ |
 | C.4 | CRUD Structure | — | ⬜ |
@@ -29,7 +30,18 @@
 - `HasTranslations` en: `TerrainType.type`, `Terrain.name`, `StructureType.name`, `Structure.info`, `Luminaire.info`
 - `external_safety_id` / `external_access_id` nullable (Safety fuera de scope Slice C)
 - 7 rutas GET bajo `/v1/fieldops` protegidas con `auth:sanctum`
+- `created_by_user_id` nullable + `nullOnDelete` en todas las tablas `fo_*` (borrar usuario → NULL, dato se preserva)
+- **Contrato de resources:** snake_case canónico (Laravel convention). Sport necesitará un adapter al consumir endpoints FieldOps de Core. No se cambia para coincidir con camelCase de Sport.
 - Colateral: `SafetyAdoptionOverviewWidget.$pollingInterval` `static` → `instance` (bloqueaba artisan)
+
+**Auditor gate para C.2 (Complex store/update/destroy):**
+- `ComplexController@store`: validar `name` required, `lat`/`lng` como decimals opcionales, `client_id` nullable FK existente
+- `ComplexController@update`: permitir actualización parcial (solo campos enviados)
+- `ComplexController@destroy`: soft delete, no cascade a terrains (Sport es el dueño transitorio)
+- Inyectar `created_by_user_id = auth()->id()` en store; no editable en update
+- Criterio de aceptación: listado → index coherente con show (shape idéntico tras fix P2b)
+- Riesgo a vigilar: si `client_id` referencia un `fo_clients` que no existe → 422 con mensaje claro (no 500)
+- Contrato de salida: mismo `ComplexResource` existente, sin nuevas keys
 
 ### Integración Core-Sport — Slice B (Token Introspection) ✅ Done
 
@@ -466,7 +478,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 |--------|--------|------|---------------------|
 | **Mailing** | ✅ Fase 0+1+2 completadas / Fase 3 en Backlog | `feature/mailing` | `docs/Mailing/mailing-platform-master.md` |
 | **Website** | ✅ WEB-001→025 mergeados en `main` (incl. Work Details + Static Site) | `main` | `docs/website-sprint-handoff.md` |
-| **Safety** | ✅ Sprint completado (SAF-001 a SAF-022) — incl. soft delete seguro | `main` | `docs/safety-sprint-linear-tickets.md` |
+| **Safety** | ✅ Sprint completado (SAF-001 a SAF-022) + Fase 1A Adopción PWA completada | `main` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | Ver `CLAUDE.md` |
 | **Intelligence / BI** | ✅ Sprint 1 ✅ Sprint 2B — PR #6 pendiente merge; BI-PROJ-02 ✅ (Vista de Águila) | `feature/bi-project-intelligence-detail` | `docs/bi-sprint-plan.md` |
 | **Prospects** | 🚧 ~80% (PROS-BUG-001+002 cerrados, FAB mailing operativo, sync dashboard exception feed) | `main` | Ver `CLAUDE.md` |
@@ -608,6 +620,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-23 | SAF-ADOPT | Done — Fase 1A Adopción PWA completada. Rollups diarios con `project_id='GLOBAL'`, denominador `enabled_users` anclado estrictamente a los roles del middleware `EnsureSafetyAccess` (project_manager, super_admin, admin). Feature tests funcionales implementados validando el endpoint completo y previniendo duplicidad en `idempotency_key`. |
 | 2026-06-22 | CLA-168 | Done — EMP-007: Discovery auditoría permisos cerrado. Decisión de negocio: Status Quo. El acceso a `EmployeeAnalytics` se restringe a `super_admin` y `admin` porque los insights IA y burnout son datos muy sensibles. No se modifica código ni se abre a managers/empleados sin separar antes datos operativos de sensibles. Sin commit de código. |
 | 2026-06-22 | CLA-164 | Done — EMP-002: `calculateAchievementRate()` devuelve `null` (no `0%`) cuando `uren_per_week` es `null` o `<= 0`. `getDailyStats()` sin fallback `?? 0`. `aggregateStats()` docblock explicita baseline 7,6h vs contrato. Widget Stats: stat gris `Niet berekenbaar` cuando rate null; stat semanal usa clave `compliance_operational` (`Basis 7,6u`). Chart widget: línea target omitida cuando `uren_per_week` es null/0. Traducciones NL+EN (`achievement_unknown`, `compliance_operational`). Test sin `RefreshDatabase` (seam en memoria, determinista). 7 archivos, 8 tests / 15 aserciones ✅. Commit `ef513c7`. |
 | 2026-06-22 | CLA-167 | Done — EMP-006: locale configurable para prompt Gemini en `TechnicianAnalysisService`. Config `performance.ai_insight_locale` (nl/en, fallback nl). Cache key v2 (`md5`). Prompt completo NL/EN sin texto en español. `PERFORMANCE_AI_LOCALE` en `.env.example`. 4 archivos, 15 tests / 59 aserciones ✅. Commit `8d5c27a`. |
