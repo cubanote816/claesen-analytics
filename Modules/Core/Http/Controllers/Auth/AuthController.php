@@ -54,10 +54,6 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if ($user->active ?? true === false) {
-            return response()->json(['active' => false, 'reason' => 'disabled'], 403);
-        }
-
         return response()->json([
             'active' => true,
             'id' => $user->id,
