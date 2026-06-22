@@ -7,10 +7,74 @@
 
 ## Estado actual
 
-- **Sprint activo:** EMP — Estabilización módulo Employees (✅ Sprint Completado)
-- **Rama actual:** `main`
-- **Último hito:** EMP-007 / CLA-168 ✅ Done (2026-06-22) — Discovery auditoría permisos cerrado.
-- **Próximo paso (SAF-019):** crear ticket de deuda en Linear (5 fallos preexistentes) + confirmar CI — pending rotación key Linear
+- **Sprint activo:** Integración Core-Sport (FieldOps) — Fase 1
+- **Rama actual:** `FieldOps`
+- **Último hito:** Slice B (Token Introspection) ✅ Done (2026-06-22)
+- **Próximo paso (Slice C):** Migrar endpoints operativos de Sport a Core (FieldOps entities: Complex, Terrain, Structure, Luminaire).
+
+### Integración Core-Sport — Slice B (Token Introspection) ✅ Done
+
+**Decisión ejecutiva:** Opción B — Token Introspection temporal (no shared DB).
+
+**Commits:**
+- Core: `7861628` — Slice A+B (AuthController, introspect endpoint, contact proxy)
+- Sport: `eae0ef3` — CoreIntrospectionMiddleware + CoreIdentityUser + route swap
+
+**Arquitectura implementada:**
+
+```
+Cliente → POST /v1/auth/login (Core) → accessToken
+Cliente → Bearer token → Sport endpoint
+   Sport: CoreIntrospectionMiddleware
+      → GET /api/v1/auth/introspect (Core, cached 30s)
+      → Core: 200 {active, id, name, email, roles[]}
+      → Sport: CoreIdentityUser inyectado en $request->user()
+      → checkRole:SuperAdmin → hasAnyRole() via role mapper
+      → endpoint operativo ejecutado
+```
+
+**Hitos alcanzados en Slice B:**
+1. **Endpoint canónico de introspección:** `GET /v1/auth/introspect` en Core — protegido por `auth:sanctum`, devuelve `active`, `id`, `name`, `email`, `roles[]`, `permissions[]`. 401 automático para tokens inválidos.
+2. **CoreIdentityUser:** value object `Authenticatable` que satisface `$request->user()`. Compatible con `CheckRole` vía `hasAnyRole()`. Role mapper bidireccional (`super_admin`↔`SuperAdmin`, `admin`↔`Admin`, etc.).
+3. **CoreIntrospectionMiddleware:** reemplaza el stack `auth:sanctum,checksanctum` en Sport. Modo `hybrid` (default): Core primero, fallback local Sanctum para clientes legacy. Modo `strict`: activa con `CORE_AUTH_MODE=strict` cuando todos los clientes usen tokens Core.
+4. **Caché de introspección:** 30s (configurable `CORE_INTROSPECT_TTL`). Solo cachea respuestas válidas, no errores.
+5. **Transición controlada:** auth local de Sport permanece funcional como fallback en modo `hybrid`. La ruta local `POST /api/login` sigue disponible pero está marcada para deprecación.
+
+**Variables de entorno requeridas en Sport:**
+```env
+CORE_API_URL=https://backend.claesen-verlichting.be  # URL del Core canónico
+CORE_AUTH_MODE=hybrid          # 'hybrid' (default) | 'strict'
+CORE_INTROSPECT_TTL=30         # segundos de caché
+```
+
+**Criterio de apagado del auth local de Sport:**
+- Confirmar que todos los clientes (FieldOps mobile app) usan tokens Core
+- Cambiar `CORE_AUTH_MODE=strict`
+- Deprecar/eliminar `POST /api/login` local de Sport en Slice C o Slice D
+
+**Validaciones realizadas:**
+- ✅ Core login correcto (`/v1/auth/login`)
+- ✅ Core `/v1/me` correcto
+- ✅ Introspección token válido → 200 con roles
+- ✅ Introspección token inválido → 401
+- ✅ Introspección sin token → 401
+- ✅ Logout revoca token (post-logout da 401)
+- ✅ Role mapper: `super_admin` → `SuperAdmin` (compatible con `checkRole:SuperAdmin`)
+- ✅ Sin shared DB de auth
+- ✅ Flujo transitorio local Sanctum intacto (modo hybrid)
+
+### Integración Core-Sport — Slice A (Public Contact Proxy) ✅ Done
+
+**Decisión Ejecutiva:** `claesen_api_web_oficial` es el único Core canónico. La app Sport es un satélite transitorio. La asimilación de responsabilidad se hace por cortes (Slices).
+
+**Commit Core:** `7861628` (incluido en el commit de Slice A+B)
+
+**Hitos alcanzados en Slice A:**
+1. **Delegación de persistencia:** El Core ahora expone `/v1/website/contact-email` (`ContactController`) que unifica la creación del `ConsultationRequest` y centraliza el guardado robusto de leads en el módulo `Prospects` (`LeadService`).
+2. **Deduplicación segura:** Migración `2026_06_22_120000_add_unique_email_to_prospects_locations_table` para normalizar correos (`LOWER(TRIM)`) y aplicar un `UNIQUE INDEX`.
+3. **Proxy en Sport App:** El endpoint público de Sport ahora solo actúa como proxy transparente vía `Http::post` al Core usando `config('services.core.url')`. Retorna un 503 si hay timeout/caída del upstream o falta configuración.
+4. **Cierre de superficie no-canónica:** Endpoints obsoletos de testeo en Sport (`test-mail`, `test-email`, `contact-diagnostico`) purgados de rutas y controladores.
+5. **Base Identidad Core:** `AuthController` canónico creado en Core. Retorna payload strict `camelCase` (`accessToken`, `tokenType`, `expiresAt`) para garantizar backward compatibility.
 
 ### SAF-019 — Payload fingerprint (idempotency hash) 🚧 Commit aprobado, cierre pendiente
 
