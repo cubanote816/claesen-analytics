@@ -35,7 +35,19 @@ Route::middleware(['auth:sanctum'])->prefix('v1/fieldops')->group(function () {
     Route::patch('/structures/{structure}', [StructureController::class, 'update']);
     Route::delete('/structures/{structure}', [StructureController::class, 'destroy']);
 
-    // LuminaireFrames + Luminaires
+    // LuminaireFrames
+    Route::get('/luminaire-frames', [LuminaireFrameController::class, 'index']);
+    Route::post('/luminaire-frames', [LuminaireFrameController::class, 'store']);
+    Route::get('/luminaire-frames/{frame}', [LuminaireFrameController::class, 'show']);
+    Route::put('/luminaire-frames/{frame}', [LuminaireFrameController::class, 'update']);
+    Route::patch('/luminaire-frames/{frame}', [LuminaireFrameController::class, 'update']);
+    Route::delete('/luminaire-frames/{frame}', [LuminaireFrameController::class, 'destroy']);
     Route::get('/luminaire-frames/{frame}/luminaires', [LuminaireFrameController::class, 'luminaires']);
+
+    // Luminaires
+    Route::post('/luminaires', [LuminaireController::class, 'store']);
     Route::get('/luminaires/{luminaire}', [LuminaireController::class, 'show']);
+    Route::put('/luminaires/{luminaire}', [LuminaireController::class, 'update']);
+    Route::patch('/luminaires/{luminaire}', [LuminaireController::class, 'update']);
+    Route::delete('/luminaires/{luminaire}', [LuminaireController::class, 'destroy']);
 });

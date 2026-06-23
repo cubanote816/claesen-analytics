@@ -2,11 +2,19 @@
 
 namespace Modules\FieldOps\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Core\Models\User;
 
 class LuminaireSubgroup extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory()
+    {
+        return \Modules\FieldOps\Database\Factories\LuminaireSubgroupFactory::new();
+    }
+
     protected $table = 'fo_luminaire_subgroups';
 
     protected $fillable = ['created_by_user_id', 'group_name', 'brand'];

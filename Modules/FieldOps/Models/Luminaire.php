@@ -2,6 +2,7 @@
 
 namespace Modules\FieldOps\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
@@ -9,7 +10,12 @@ use Spatie\Translatable\HasTranslations;
 
 class Luminaire extends Model
 {
-    use SoftDeletes, HasTranslations;
+    use HasFactory, SoftDeletes, HasTranslations;
+
+    protected static function newFactory()
+    {
+        return \Modules\FieldOps\Database\Factories\LuminaireFactory::new();
+    }
 
     protected $table = 'fo_luminaires';
 
