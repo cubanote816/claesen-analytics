@@ -25,7 +25,8 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        // Accounts without a password (Azure-first provisioning) cannot use local login.
+        if (! $user || ! $user->hasCompletedPasswordSetup() || ! Hash::check($validated['password'], $user->password)) {
             return response()->json([
                 'message' => 'Ongeldige inloggegevens.',
             ], 401);
