@@ -8,6 +8,9 @@ class MirrorRelation extends Model
 {
     protected $table = 'intelligence_mirror_relations';
 
+    // PK comes from the ERP (SQL Server), never auto-generated.
+    public $incrementing = false;
+
     protected $fillable = [
         'id',
         'name',
