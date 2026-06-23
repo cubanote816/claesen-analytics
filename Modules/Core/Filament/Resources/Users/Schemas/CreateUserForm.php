@@ -52,8 +52,10 @@ class CreateUserForm
                         // handleRecordCreation() can syncRoles() inside the DB transaction.
                         CheckboxList::make('role_ids')
                             ->label(__('users/resource.fields.roles'))
-                            ->options(fn () => Role::orderBy('sort')->pluck('name', 'id')->toArray())
-                            ->getOptionLabelUsing(fn ($value) => \Illuminate\Support\Str::headline($value))
+                            ->options(fn () => Role::orderBy('sort')
+                                ->pluck('name', 'id')
+                                ->map(fn ($name) => \Illuminate\Support\Str::headline($name))
+                                ->toArray())
                             ->columns(2)
                             ->gridDirection('row')
                             ->required(),
