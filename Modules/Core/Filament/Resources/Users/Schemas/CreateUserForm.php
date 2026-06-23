@@ -7,7 +7,7 @@ namespace Modules\Core\Filament\Resources\Users\Schemas;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Set;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Modules\Cafca\Models\Employee;
