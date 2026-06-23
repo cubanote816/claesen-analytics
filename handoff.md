@@ -1,136 +1,52 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-23 (Slice C / C.5 ✅ CRUD LuminaireFrame+Luminaire — próximo C.6 cutover)
+> Última actualización: 2026-06-23 (SAF-DEBT-001 ✅ Done — MirrorRelation::$incrementing)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** Integración Core-Sport (FieldOps) — Fase 1
-- **Rama actual:** `FieldOps`
-- **Último hito:** Slice C / C.6a ✅ Done — filtros client_id + terrain_id en Complex/Structure index (commit `b8b0205`)
-- **Próximo paso:** C.6b — Frontend cutover: `endpoints.ts` + `fieldOps.adapter.ts`
+- **Sprint activo:** Safety Dashboard (rama: `dashboard_safety` — mergeada a main)
+- **Último hito:** SAF-DEBT-001 ✅ Done (2026-06-23) — MirrorRelation::$incrementing = false
+- **Sprint anterior:** FieldOps ✅ Cerrado — Slices A–C.6 mergeados (commit merge `5214b69`)
 
-### Integración Core-Sport — Slice C (FieldOps Module) 🚧 En curso
+### SAF-PWA-001 / CLA-170 ✅ Done
 
-| Fase | Descripción | Commit | Estado |
-|------|-------------|--------|--------|
-| C.1 | Módulo FieldOps creado: 13 migraciones + 10 modelos + resources + controllers read-only | `814d85a` | ✅ Done |
-| C.1 fixes | P1: nullOnDelete en 9 FKs created_by_user_id; P2b: ComplexController eager load | `d328459` | ✅ Done |
-| C.2 | CRUD Complex + RouteServiceProvider + factories + 20 tests | `9850119` | ✅ Done |
-| C.3 | CRUD Terrain + TerrainResource + locale validation + merge parcial + 24 tests | `fbfaf6d` | ✅ Done |
-| C.4 | CRUD Structure + terrain_ids triple-case + pivot sync + 28 tests | `b2ff1c4` | ✅ Done |
-| C.5 | CRUD LuminaireFrame + Luminaire + factories + 35 tests | `e4452cf` | ✅ Done |
-| C.6a | Filtros `client_id` + `terrain_id` en index — desbloquea C.6b | `b8b0205` | ✅ Done |
-| C.6b | Frontend cutover: `endpoints.ts` + `fieldOps.adapter.ts` | — | ⬜ |
+**Commits:** `d958759` (impl) + `6cf8179` (fix tests) | **Fecha:** 2026-06-23
 
-**Notas C.2:**
-- `RouteServiceProvider` creado para FieldOps (análogo al de Safety): rutas bajo middleware `api` + prefijo `api`. Fix estructural — sin él todas las rutas FieldOps devolvían 404 en tests.
-- `destroy` es soft delete únicamente. `fo_terrains.complex_id` tiene `cascadeOnDelete()` a nivel DB, pero SoftDeletes no lo dispara. Un `forceDelete()` futuro sí borraría los terrains en cascada — documentado en el controller.
-- PUT y PATCH ambos disponibles; actualización siempre parcial (solo campos enviados). `created_by_user_id` no editable vía update.
-- **Flakiness conocida:** `ComplexCrudTest` falla esporádicamente cuando abre la suite completa como primera clase (error `Table 'testing.migrations' doesn't exist` durante RefreshDatabase). 20/20 consistente en ejecución aislada del slice. No es regresión de C.2 — es un problema de inicialización del DB de testing cuando no hay ningún test previo que haya levantado el esquema.
+**Cambio:** `ProjectController::index()` eliminó try/catch SQL Server y fallback DEV-001/DEV-002.
+Ahora consulta `intelligence_mirror_projects` con `leftJoin` a `intelligence_mirror_relations` → añade `relation_name: string|null` al contrato (aditivo, no breaking).
 
-**Decisiones C.1:**
-- Tablas prefijo `fo_`: `fo_complexes`, `fo_terrains`, `fo_structures`, `fo_luminaires`, etc.
-- Sin POINT/spatial — `lat`/`lng` como `decimal(10,7)` (Core no tiene `MatanYadaev/EloquentSpatial`)
-- `HasTranslations` en: `TerrainType.type`, `Terrain.name`, `StructureType.name`, `Structure.info`, `Luminaire.info`
-- `external_safety_id` / `external_access_id` nullable (Safety fuera de scope Slice C)
-- 7 rutas GET bajo `/v1/fieldops` protegidas con `auth:sanctum`
-- `created_by_user_id` nullable + `nullOnDelete` en todas las tablas `fo_*` (borrar usuario → NULL, dato se preserva)
-- **Contrato de resources:** snake_case canónico (Laravel convention). Sport necesitará un adapter al consumir endpoints FieldOps de Core. No se cambia para coincidir con camelCase de Sport.
-- Colateral: `SafetyAdoptionOverviewWidget.$pollingInterval` `static` → `instance` (bloqueaba artisan)
+**Tests:** 5 casos — con/sin relación, inactivo excluido, mirror vacío, no-import-Cafca.
 
-**Auditor gate para C.2 (Complex store/update/destroy):**
-- `ComplexController@store`: validar `name` required, `lat`/`lng` como decimals opcionales, `client_id` nullable FK existente
-- `ComplexController@update`: permitir actualización parcial (solo campos enviados)
-- `ComplexController@destroy`: soft delete, no cascade a terrains (Sport es el dueño transitorio)
-- Inyectar `created_by_user_id = auth()->id()` en store; no editable en update
-- Criterio de aceptación: listado → index coherente con show (shape idéntico tras fix P2b)
-- Riesgo a vigilar: si `client_id` referencia un `fo_clients` que no existe → 422 con mensaje claro (no 500)
-- Contrato de salida: mismo `ComplexResource` existente, sin nuevas keys
+**Riesgo operativo documentado:** frescura de proyectos depende del job de sync del mirror. Si el sync falla, el listado de la PWA queda desactualizado.
 
-### Integración Core-Sport — Slice B (Token Introspection) ✅ Done
+---
 
-**Decisión ejecutiva:** Opción B — Token Introspection temporal (no shared DB).
+### SAF-NNN — Email reminder semanal a project_managers inactivos ✅ Done
 
-**Commits:**
-- Core: `7861628` — Slice A+B (AuthController, introspect endpoint, contact proxy)
-- Core: `dcde8a1` — fix: remove dead $user->active check (model has no attribute)
-- Sport: `eae0ef3` — CoreIntrospectionMiddleware + CoreIdentityUser + route swap
-- Sport: `4a45635` — Audit round 1: me()/logout()/password guard, 401/403/503, cache purge
-- Sport: `ab0f0bc` — Audit round 2: logout core_revoked flag, me() payload completeness
+**Commits:** `ff79b73` (impl) + `9600825` (URL PWA) + `6cf8179` (fix tests) | **Fecha:** 2026-06-23
 
-**Arquitectura implementada:**
+**Archivos creados:**
+- `Modules/Safety/Services/InspectionReminderService.php` — user-centric, `withTrashed()`, gracia 7 días, boundary `>= 30`
+- `Modules/Safety/Emails/InspectionReminderMail.php`
+- `Modules/Safety/resources/views/emails/inspection-reminder.blade.php` — NL, dos ramas de copy
+- `Modules/Safety/Console/NotifyInactiveManagersCommand.php` — `safety:notify-inactive-managers [--days] [--dry-run]`
+- `Modules/Safety/tests/Feature/NotifyInactiveManagersCommandTest.php` — 9 tests / 21 assertions ✅
 
-```
-Cliente → POST /v1/auth/login (Core) → accessToken
-Cliente → Bearer token → Sport endpoint
-   Sport: CoreIntrospectionMiddleware
-      → GET /api/v1/auth/introspect (Core, cached 30s)
-      → Core: 200 {active, id, name, email, roles[]}
-      → Sport: CoreIdentityUser inyectado en $request->user()
-      → checkRole:SuperAdmin → hasAnyRole() via role mapper
-      → endpoint operativo ejecutado
-```
+**Schedule:** lunes 09:00 + `withoutOverlapping()` (sin colisión con `CheckSafetyComplianceCommand` en 08:00).
 
-**Hitos alcanzados en Slice B:**
-1. **Endpoint canónico de introspección:** `GET /v1/auth/introspect` en Core — protegido por `auth:sanctum`, devuelve `active`, `id`, `name`, `email`, `roles[]`, `permissions[]`. 401 automático para tokens inválidos.
-2. **CoreIdentityUser:** value object `Authenticatable` que satisface `$request->user()`. Compatible con `CheckRole` vía `hasAnyRole()`. Role mapper bidireccional (`super_admin`↔`SuperAdmin`, `admin`↔`Admin`, etc.).
-3. **CoreIntrospectionMiddleware:** reemplaza el stack `auth:sanctum,checksanctum` en Sport. Modo `hybrid` (default): Core primero, fallback local Sanctum para clientes legacy. Modo `strict`: activa con `CORE_AUTH_MODE=strict` cuando todos los clientes usen tokens Core.
-4. **Caché de introspección:** 30s (configurable `CORE_INTROSPECT_TTL`). Solo cachea respuestas válidas, no errores.
-5. **Transición controlada:** auth local de Sport permanece funcional como fallback en modo `hybrid`. La ruta local `POST /api/login` sigue disponible pero está marcada para deprecación.
+**Deploy:** requiere `SAFETY_PWA_URL=https://service.claesen-verlichting.be/` en `.env` de producción.
 
-**Regla de autenticación canónica (Slice B):**
-```
-Login email/password → Core POST /api/v1/auth/login
-Login Microsoft/Azure → Core GET /api/v1/auth/microsoft/redirect
-Ambos flujos emiten un token Sanctum de Core.
-Sport acepta ese token vía introspección (CoreIntrospectionMiddleware).
-Sport ya no es autoridad de identidad para ningún flujo.
-```
+---
 
-**Variables de entorno requeridas en Sport:**
-```env
-CORE_API_URL=https://backend.claesen-verlichting.be  # URL del Core canónico
-CORE_AUTH_MODE=hybrid          # 'hybrid' (default) | 'strict'
-CORE_INTROSPECT_TTL=30         # segundos de caché
-```
+### Deudas técnicas Safety — pendientes de ticket
 
-**Criterio de apagado del auth local de Sport:**
-- Confirmar que todos los clientes (FieldOps mobile app) usan tokens Core
-- Cambiar `CORE_AUTH_MODE=strict`
-- Deprecar/eliminar `POST /api/login` local de Sport en Slice C o Slice D
-
-**Validaciones realizadas:**
-- ✅ Core login correcto (`/v1/auth/login`)
-- ✅ Core `/v1/me` correcto
-- ✅ Introspección token válido → 200 con roles
-- ✅ Introspección token inválido → 401
-- ✅ Introspección sin token → 401
-- ✅ Logout: revoca en Core + purge cache Sport → post-logout 401 inmediato
-- ✅ Logout: `core_revoked: true` cuando Core confirma (200/401); `false` con `error` log en 5xx/timeout
-- ✅ Role mapper: `super_admin` → `SuperAdmin` (compatible con `checkRole:SuperAdmin`)
-- ✅ `checkRole` devuelve 401 (no auth) vs 403 (rol insuficiente) correctamente
-- ✅ Caída de Core → 503 en strict mode (no enmascarado como 401)
-- ✅ `me()` devuelve payload idéntico al local: `{id, name, email, role (legacy), avatar: null, last_active_at: null}`
-- ✅ `check-password` y `change-password` devuelven 403 para identidades Core
-- ✅ Azure/Microsoft tokens (emitidos por Core) aceptados por introspección sin cambio adicional
-- ✅ Sin shared DB de auth
-- ✅ Flujo transitorio local Sanctum intacto (modo hybrid)
-
-### Integración Core-Sport — Slice A (Public Contact Proxy) ✅ Done
-
-**Decisión Ejecutiva:** `claesen_api_web_oficial` es el único Core canónico. La app Sport es un satélite transitorio. La asimilación de responsabilidad se hace por cortes (Slices).
-
-**Commit Core:** `7861628` (incluido en el commit de Slice A+B)
-
-**Hitos alcanzados en Slice A:**
-1. **Delegación de persistencia:** El Core ahora expone `/v1/website/contact-email` (`ContactController`) que unifica la creación del `ConsultationRequest` y centraliza el guardado robusto de leads en el módulo `Prospects` (`LeadService`).
-2. **Deduplicación segura:** Migración `2026_06_22_120000_add_unique_email_to_prospects_locations_table` para normalizar correos (`LOWER(TRIM)`) y aplicar un `UNIQUE INDEX`.
-3. **Proxy en Sport App:** El endpoint público de Sport ahora solo actúa como proxy transparente vía `Http::post` al Core usando `config('services.core.url')`. Retorna un 503 si hay timeout/caída del upstream o falta configuración.
-4. **Cierre de superficie no-canónica:** Endpoints obsoletos de testeo en Sport (`test-mail`, `test-email`, `contact-diagnostico`) purgados de rutas y controladores.
-5. **Base Identidad Core:** `AuthController` canónico creado en Core. Retorna payload strict `camelCase` (`accessToken`, `tokenType`, `expiresAt`) para garantizar backward compatibility.
+| Deuda | Descripción | Prioridad |
+|-------|-------------|-----------|
+| **SAF-DEBT-001** | ✅ Done `80f0385` — `MirrorRelation::$incrementing = false`. Workaround `DB::table()` en `ProjectControllerTest` revertido; `BillingGuardianOverdueTest` también se beneficia. | — |
+| **SAF-DEBT-002** | Congelar tiempo en tests de frontera de `NotifyInactiveManagersCommandTest` — casos 3, 4, 5 usan `Carbon::now()->subDays(N)` sin `Carbon::setTestNow()`. En condiciones normales pasan, pero pueden ser flaky si el test cruza medianoche o en CI con reloj rápido. | Baja |
 
 ### SAF-019 — Payload fingerprint (idempotency hash) 🚧 Commit aprobado, cierre pendiente
 

@@ -160,7 +160,7 @@ class AdminPanelProvider extends PanelProvider
                     ->group('Content & Website')
                     ->sort(10),
                 NavigationItem::make(__('website.safety_pwa_link'))
-                    ->url('https://lightcoral-whale-907350.hostingersite.com/safety/', shouldOpenInNewTab: true)
+                    ->url('https://service.claesen-verlichting.be/', shouldOpenInNewTab: true)
                     ->icon('heroicon-o-shield-check')
                     ->group('Content & Website')
                     ->sort(11),
