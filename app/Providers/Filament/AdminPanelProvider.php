@@ -147,6 +147,7 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
                 \Modules\Core\Http\Middleware\BrowserLocaleMiddleware::class,
+                \Modules\Core\Http\Middleware\EnsurePasswordIsSet::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -155,7 +156,7 @@ class AdminPanelProvider extends PanelProvider
             ->defaultThemeMode(\Filament\Enums\ThemeMode::Dark)
             ->navigationItems([
                 NavigationItem::make(__('website.v1_demo_link'))
-                    ->url('https://claesen-verlichting.be/v1/', shouldOpenInNewTab: true)
+                    ->url('https://backend.claesen-verlichting.be/', shouldOpenInNewTab: true)
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->group('Content & Website')
                     ->sort(10),

@@ -4,6 +4,7 @@ namespace Modules\Core\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Modules\Core\Models\User;
 use Modules\Core\Services\Auth\AzureRoleService;
@@ -95,18 +96,19 @@ class MicrosoftAuthController extends Controller
 
             $source = session()->pull('auth_source', 'frontend');
 
-            // 1. If coming from Filament, redirect back to Admin Panel
+            // 1. Filament (web session) — intercept accounts pending setup.
             if ($source === 'filament') {
+                if (! $user->hasCompletedPasswordSetup()) {
+                    return redirect()->route('auth.setup-password');
+                }
+
                 return redirect()->intended(Filament::getUrl());
             }
 
-            // 2. If coming from Frontend (PWA), generate token and redirect
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            // Get the redirect URL with a robust fallback system
+            // 2. PWA / Frontend — resolve redirect URL first.
             $frontendUrl = session()->pull('custom_redirect_url');
 
-            if (!$frontendUrl) {
+            if (! $frontendUrl) {
                 if (env('FRONTEND_URL')) {
                     $frontendUrl = env('FRONTEND_URL');
                 } elseif (str_contains($request->headers->get('referer', ''), 'hostingersite.com')) {
@@ -122,16 +124,31 @@ class MicrosoftAuthController extends Controller
             // before nginx can redirect them, causing React Router to see an unmatched route.
             // Always redirect to the origin root so the SW serves index.html at the correct path.
             $parts = parse_url($frontendUrl);
-            if (isset($parts['scheme'], $parts['host']) && !str_contains($frontendUrl, 'hostingersite.com')) {
+            if (isset($parts['scheme'], $parts['host']) && ! str_contains($frontendUrl, 'hostingersite.com')) {
                 $port = isset($parts['port']) ? ':' . $parts['port'] : '';
                 $frontendUrl = $parts['scheme'] . '://' . $parts['host'] . $port . '/';
             } else {
-                // Hostinger uses a subdirectory — keep its /safety/ path
-                if (str_contains($frontendUrl, 'hostingersite.com') && !str_contains($frontendUrl, '/safety')) {
+                if (str_contains($frontendUrl, 'hostingersite.com') && ! str_contains($frontendUrl, '/safety')) {
                     $frontendUrl = rtrim($frontendUrl, '/') . '/safety/';
                 }
                 $frontendUrl = rtrim($frontendUrl, '/') . '/';
             }
+
+            // Accounts pending setup: issue a one-time activation code (never a bearer token in URL).
+            if (! $user->hasCompletedPasswordSetup()) {
+                $user->tokens()->where('name', 'password-setup')->delete();
+
+                $code = Str::random(64);
+                $user->forceFill([
+                    'activation_code_hash'       => hash('sha256', $code),
+                    'activation_code_expires_at' => now()->addMinutes(10),
+                ])->saveQuietly();
+
+                return redirect()->to("{$frontendUrl}?activation_code={$code}&setup_required=true");
+            }
+
+            // Fully activated accounts: issue the normal bearer token.
+            $token = $user->createToken('auth_token')->plainTextToken;
 
             return redirect()->to("{$frontendUrl}?token={$token}");
         } catch (Exception $e) {

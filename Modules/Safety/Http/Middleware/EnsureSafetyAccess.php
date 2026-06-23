@@ -26,10 +26,17 @@ class EnsureSafetyAccess
             ], 403);
         }
 
-        // 2. Double-check the user's real-time attribute/role in the DB 
+        // 2. Double-check the user's real-time attribute/role in the DB
         if (! $user->hasAnyRole(['project_manager', 'super_admin', 'admin'])) {
             return response()->json([
                 'message' => 'Je hebt geen toegang tot de veiligheidsinspecties.'
+            ], 403);
+        }
+
+        // 3. Block accounts that have not completed password setup.
+        if (! $user->hasCompletedPasswordSetup()) {
+            return response()->json([
+                'message' => 'Account setup required. Complete password activation first.',
             ], 403);
         }
 
