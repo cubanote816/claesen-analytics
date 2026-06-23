@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-23 (Slice C / C.4 ✅ CRUD Structure — próximo C.5 LuminaireFrame+Luminaire)
+> Última actualización: 2026-06-23 (Slice C / C.5 ✅ CRUD LuminaireFrame+Luminaire — próximo C.6 cutover)
 
 ---
 
@@ -9,8 +9,8 @@
 
 - **Sprint activo:** Integración Core-Sport (FieldOps) — Fase 1
 - **Rama actual:** `FieldOps`
-- **Último hito:** Slice C / C.4 ✅ Done — Structure CRUD + terrain_ids triple-case + pivot sync
-- **Próximo paso:** C.5 CRUD LuminaireFrame + Luminaire — auditor gate pendiente
+- **Último hito:** Slice C / C.5 ✅ Done — LuminaireFrame + Luminaire CRUD (commit `e4452cf`)
+- **Próximo paso:** C.6 — Cutover + deprecación endpoints en Sport (plan pendiente)
 
 ### Integración Core-Sport — Slice C (FieldOps Module) 🚧 En curso
 
@@ -21,7 +21,7 @@
 | C.2 | CRUD Complex + RouteServiceProvider + factories + 20 tests | `9850119` | ✅ Done |
 | C.3 | CRUD Terrain + TerrainResource + locale validation + merge parcial + 24 tests | `fbfaf6d` | ✅ Done |
 | C.4 | CRUD Structure + terrain_ids triple-case + pivot sync + 28 tests | `b2ff1c4` | ✅ Done |
-| C.5 | CRUD LuminaireFrame + Luminaire | — | ⬜ |
+| C.5 | CRUD LuminaireFrame + Luminaire + factories + 35 tests | `e4452cf` | ✅ Done |
 | C.6 | Cutover + deprecación en Sport | — | ⬜ |
 
 **Notas C.2:**
@@ -626,6 +626,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-23 | C.5 | Done — LuminaireFrame CRUD (structure_ids triple-case) + Luminaire CRUD (serial_number unique, frame_position auto-recalculado al cambiar frame, cross-validate type↔subgroup, info locale-merge). 35 tests / 95 assertions. 107/255 total FieldOps. Commit `e4452cf`. |
 | 2026-06-23 | C.4 | Done — Structure CRUD. terrain_ids triple-case explícito (`absent→no-op / null→detach / array→sync`) usando `$request->has()`. info locale-merge. external_*_id como bridge opaco. 28 tests / 59 assertions. 72/160 con C.2+C.3+C.4. Commit `b2ff1c4`. |
 | 2026-06-23 | C.3 | Done — Terrain CRUD (GET/POST/PUT/PATCH/DELETE). Locale validation `array:nl,en,fr,es`. Update merge parcial de traducciones. `complex_id` inmutable en update. 24 tests / 54 assertions. Commit `fbfaf6d`. |
 | 2026-06-23 | C.2 | Done — Complex CRUD (POST/PUT/PATCH/DELETE) + RouteServiceProvider fix + factories + 20 tests. Flakiness de arranque documentada. Próximo: C.3 auditor gate. |
