@@ -11,9 +11,8 @@ use Illuminate\Support\Facades\Gate;
 
 class SafetyAdoptionOverviewWidget extends BaseWidget
 {
-    protected static ?string $pollingInterval = '300s';
-    
-    // Position it at the top or below existing stats
+    protected ?string $pollingInterval = '300s';
+
     protected static ?int $sort = 1;
 
     public static function canView(): bool

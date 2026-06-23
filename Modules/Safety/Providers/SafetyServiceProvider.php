@@ -12,6 +12,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Illuminate\Console\Scheduling\Schedule;
 use Modules\Safety\Console\CheckSafetyComplianceCommand;
+use Modules\Safety\Console\NotifyInactiveManagersCommand;
 
 class SafetyServiceProvider extends ServiceProvider
 {
@@ -56,6 +57,7 @@ class SafetyServiceProvider extends ServiceProvider
         $this->commands([
             CheckSafetyComplianceCommand::class,
             \Modules\Safety\Console\BackfillQuestionAuthorAuditCommand::class,
+            NotifyInactiveManagersCommand::class,
         ]);
     }
 
@@ -67,6 +69,9 @@ class SafetyServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             $schedule = $this->app->make(Schedule::class);
             $schedule->command(CheckSafetyComplianceCommand::class)->dailyAt('08:00');
+            $schedule->command(NotifyInactiveManagersCommand::class)
+                ->weeklyOn(1, '09:00')
+                ->withoutOverlapping();
         });
     }
 
