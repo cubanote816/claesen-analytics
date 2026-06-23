@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-23 (SAF-PWA-001 / CLA-170 ✅ Done)
+> Última actualización: 2026-06-23 (SAF-DEBT-001 ✅ Done — MirrorRelation::$incrementing)
 
 ---
 
@@ -46,7 +46,7 @@ Ahora consulta `intelligence_mirror_projects` con `leftJoin` a `intelligence_mir
 
 | Deuda | Descripción | Prioridad |
 |-------|-------------|-----------|
-| **SAF-DEBT-001** | `MirrorRelation::$incrementing = false` — la tabla usa PK integer no-autoincrement (datos ERP); el modelo actual hereda `$incrementing = true` lo que hace que `create(['id' => N])` devuelva `id = 0`. Actualmente workaround con `DB::table()` en tests. | Media |
+| **SAF-DEBT-001** | ✅ Done `80f0385` — `MirrorRelation::$incrementing = false`. Workaround `DB::table()` en `ProjectControllerTest` revertido; `BillingGuardianOverdueTest` también se beneficia. | — |
 | **SAF-DEBT-002** | Congelar tiempo en tests de frontera de `NotifyInactiveManagersCommandTest` — casos 3, 4, 5 usan `Carbon::now()->subDays(N)` sin `Carbon::setTestNow()`. En condiciones normales pasan, pero pueden ser flaky si el test cruza medianoche o en CI con reloj rápido. | Baja |
 
 ### SAF-019 — Payload fingerprint (idempotency hash) 🚧 Commit aprobado, cierre pendiente
