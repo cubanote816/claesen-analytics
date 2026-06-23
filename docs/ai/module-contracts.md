@@ -136,11 +136,13 @@ Modules/Mailing/Jobs/ExecuteCampaignJob.php
 - `super_admin` → ve todos los recursos.
 - La política es `InspectionPolicy`. Tests y factories deben estar dentro de `Modules/Safety`.
 
-### Reglas de modelos
+### Reglas de modelos y adopción
 
 - `Inspection` tiene `idempotency_key` para prevenir duplicados.
 - `Answer` puede tener foto adjunta almacenada en disco local privado.
 - Las migraciones usan nombres de tabla con prefijo `safety_`.
+- **Métricas de Adopción:** El cálculo del denominador ("usuarios habilitados") debe derivarse estrictamente de los roles autorizados en `EnsureSafetyAccess.php`.
+- Los rollups diarios de adopción usan `project_id = 'GLOBAL'` como valor predeterminado para evitar fallos de unicidad (unique constraints) con NULL en MySQL.
 
 ### Archivos clave
 ```
@@ -148,6 +150,8 @@ Modules/Safety/Policies/InspectionPolicy.php
 Modules/Safety/Services/ComplianceService.php
 Modules/Safety/Http/Controllers/InspectionController.php
 Modules/Safety/Http/Controllers/SafetyFileController.php
+Modules/Safety/Services/SafetyAdoptionMetricsService.php
+Modules/Safety/Console/Commands/AggregateSafetyAdoptionMetricsCommand.php
 Modules/Safety/config/config.php
 ```
 

@@ -56,6 +56,7 @@ class SafetyServiceProvider extends ServiceProvider
     {
         $this->commands([
             CheckSafetyComplianceCommand::class,
+            \Modules\Safety\Console\Commands\AggregateSafetyAdoptionMetricsCommand::class,
             \Modules\Safety\Console\BackfillQuestionAuthorAuditCommand::class,
             NotifyInactiveManagersCommand::class,
         ]);

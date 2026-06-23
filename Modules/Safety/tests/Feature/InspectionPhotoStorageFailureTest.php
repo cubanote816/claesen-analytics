@@ -34,6 +34,13 @@ class InspectionPhotoStorageFailureTest extends TestCase
         $user->assignRole(Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']));
         $token = $user->createToken('test', ['role:safety-access'])->plainTextToken;
 
+        // Satisfy exists:employees,id validation
+        \Modules\Cafca\Models\Employee::create([
+            'id' => (string) $user->id,
+            'name' => $user->name,
+            'fl_active' => true,
+        ]);
+
         return [$user, $token];
     }
 

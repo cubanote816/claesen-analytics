@@ -10,3 +10,7 @@ Artisan::command('inspire', function () {
 
 // Schedule the Watchdog Report to run every Monday at 8:00 AM
 Schedule::command('analytics:send-watchdog-report')->weeklyOn(1, '08:00');
+
+// Schedule the Safety Adoption metrics aggregation to run daily at 1:00 AM
+Schedule::command('safety:aggregate-adoption')->dailyAt('01:00');
+

@@ -172,6 +172,22 @@ php artisan safety:check-compliance
 
 ---
 
+### `safety:aggregate-adoption`
+
+**Función:** Agrega métricas diarias de adopción (MAU, DAU, fricción técnica) y purga eventos crudos mayores a 90 días.
+
+```bash
+php artisan safety:aggregate-adoption
+php artisan safety:aggregate-adoption --date="2026-06-22"  # Fuerza una fecha específica
+```
+
+**Notas:**
+- Programado diariamente a la 01:00 AM.
+- Por defecto lee los eventos de `Carbon::yesterday()`.
+- Previene el crecimiento infinito de la tabla de eventos con la purga de 90 días.
+
+---
+
 ## Módulo Website
 
 ### `website:regenerate-media`
