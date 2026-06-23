@@ -30,6 +30,7 @@ class LuminaireResource extends JsonResource
                 'id'   => $this->createdBy->id,
                 'name' => $this->createdBy->name,
             ]),
+            'translation_status' => $this->ai_translation_status ?? 'pending',
         ];
     }
 }

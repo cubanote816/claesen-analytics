@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Database\Factories\StructureFactory;
+use Modules\Intelligence\Traits\HasAiTranslations;
 use Spatie\Translatable\HasTranslations;
 
 class Structure extends Model
 {
-    use HasFactory, SoftDeletes, HasTranslations;
+    use HasFactory, SoftDeletes, HasTranslations, HasAiTranslations;
 
     protected $table = 'fo_structures';
 
@@ -27,6 +28,7 @@ class Structure extends Model
         'external_safety_id',
         'external_access_id',
         'cafca_material_id',
+        'ai_translation_status',
     ];
 
     protected $casts = [

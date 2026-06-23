@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
+use Modules\Intelligence\Traits\HasAiTranslations;
 use Spatie\Translatable\HasTranslations;
 
 class Luminaire extends Model
 {
-    use HasFactory, SoftDeletes, HasTranslations;
+    use HasFactory, SoftDeletes, HasTranslations, HasAiTranslations;
 
     protected static function newFactory()
     {
@@ -32,6 +33,7 @@ class Luminaire extends Model
         'frame_y',
         'info',
         'cafca_material_id',
+        'ai_translation_status',
     ];
 
     protected $casts = [

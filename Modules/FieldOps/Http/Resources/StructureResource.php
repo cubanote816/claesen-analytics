@@ -42,6 +42,7 @@ class StructureResource extends JsonResource
                     ]),
                 ])
             ),
+            'translation_status' => $this->ai_translation_status ?? 'pending',
         ];
     }
 }

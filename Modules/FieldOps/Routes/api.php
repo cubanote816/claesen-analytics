@@ -7,7 +7,8 @@ use Modules\FieldOps\Http\Controllers\LuminaireFrameController;
 use Modules\FieldOps\Http\Controllers\StructureController;
 use Modules\FieldOps\Http\Controllers\TerrainController;
 
-Route::middleware(['auth:sanctum'])->prefix('v1/fieldops')->group(function () {
+Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHeader::class])
+    ->prefix('v1/fieldops')->group(function () {
     // Complexes
     Route::get('/complexes', [ComplexController::class, 'index']);
     Route::post('/complexes', [ComplexController::class, 'store']);

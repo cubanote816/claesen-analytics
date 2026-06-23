@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Database\Factories\TerrainFactory;
+use Modules\Intelligence\Traits\HasAiTranslations;
 use Spatie\Translatable\HasTranslations;
 
 class Terrain extends Model
 {
-    use HasFactory, SoftDeletes, HasTranslations;
+    use HasFactory, SoftDeletes, HasTranslations, HasAiTranslations;
 
     protected $table = 'fo_terrains';
 
@@ -24,6 +25,7 @@ class Terrain extends Model
         'name',
         'lat',
         'lng',
+        'ai_translation_status',
     ];
 
     protected $casts = [

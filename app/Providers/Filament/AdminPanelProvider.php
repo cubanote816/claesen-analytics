@@ -73,6 +73,9 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Content & Website')
                     ->label(__('navigation.groups.content_website'))
                     ->icon('heroicon-o-globe-alt'),
+                NavigationGroup::make('FieldOps & Installations')
+                    ->label(__('navigation.groups.field_ops'))
+                    ->icon('heroicon-o-map-pin'),
                 NavigationGroup::make('User Management')
                     ->label(__('navigation.groups.user_management'))
                     ->icon('heroicon-o-cog-6-tooth'),
@@ -165,6 +168,11 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-shield-check')
                     ->group('Content & Website')
                     ->sort(11),
+                NavigationItem::make('FieldOps PWA')
+                    ->url('https://fieldops.claesen-verlichting.be/', shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-device-phone-mobile')
+                    ->group('FieldOps & Installations')
+                    ->sort(99),
             ]);
     }
 }
