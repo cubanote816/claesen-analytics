@@ -6,6 +6,8 @@ namespace Modules\Core\Filament\Resources\Users\Schemas;
 
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Set;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Modules\Cafca\Models\Employee;
@@ -46,7 +48,19 @@ class CreateUserForm
                                     ->toArray();
                             })
                             ->searchable()
+                            ->live()
+                            ->afterStateUpdated(function (?string $state, Set $set): void {
+                                $email = $state ? (Employee::find($state)?->email ?? '') : '';
+                                $set('email', $email);
+                            })
                             ->required(),
+
+                        TextInput::make('email')
+                            ->label(__('users/resource.fields.email'))
+                            ->email()
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->placeholder('Se completará al seleccionar empleado'),
 
                         // role_ids: plain array, NOT using relationship() so that
                         // handleRecordCreation() can syncRoles() inside the DB transaction.

@@ -6,7 +6,6 @@ use Filament\Schemas\Schema;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\CheckboxList;
-use Illuminate\Support\Facades\Hash;
 use Filament\Schemas\Components\Section;
 
 class UserForm
@@ -25,12 +24,6 @@ class UserForm
                             ->email()
                             ->required()
                             ->unique(ignoreRecord: true),
-                        TextInput::make('password')
-                            ->label(__('users/resource.fields.password'))
-                            ->password()
-                            ->dehydrateStateUsing(fn($state) => Hash::make($state))
-                            ->dehydrated(fn($state) => filled($state))
-                            ->required(fn(string $context): bool => $context === 'create'),
                         CheckboxList::make('roles')
                             ->label(__('users/resource.fields.roles'))
                             ->relationship(
