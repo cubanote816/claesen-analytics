@@ -2,6 +2,7 @@
 
 namespace Modules\FieldOps\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\FieldOps\Http\Requests\StoreStructureRequest;
 use Modules\FieldOps\Http\Requests\UpdateStructureRequest;
@@ -10,9 +11,13 @@ use Modules\FieldOps\Models\Structure;
 
 class StructureController extends Controller
 {
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $structures = Structure::with('structureType', 'terrains', 'createdBy')->paginate(50);
+        $structures = Structure::with('structureType', 'terrains', 'createdBy')
+            ->when($request->filled('terrain_id'), fn ($q) =>
+                $q->whereHas('terrains', fn ($t) => $t->where('fo_terrains.id', $request->integer('terrain_id')))
+            )
+            ->paginate(50);
 
         return response()->json([
             'success' => true,

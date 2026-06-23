@@ -267,4 +267,42 @@ class ComplexCrudTest extends TestCase
 
         $this->assertNotContains('Te verwijderen', $names);
     }
+
+    // ── index filter: client_id ───────────────────────────────────────────────
+
+    public function test_index_filters_by_client_id(): void
+    {
+        [, $token] = $this->user();
+        $clientA = FoClient::factory()->create();
+        $clientB = FoClient::factory()->create();
+
+        Complex::factory()->create(['client_id' => $clientA->id, 'name' => 'Complex A']);
+        Complex::factory()->create(['client_id' => $clientB->id, 'name' => 'Complex B']);
+
+        $response = $this->withToken($token)
+            ->getJson("/api/v1/fieldops/complexes?client_id={$clientA->id}")
+            ->assertOk();
+
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertContains('Complex A', $names);
+        $this->assertNotContains('Complex B', $names);
+    }
+
+    public function test_index_without_client_id_returns_all(): void
+    {
+        [, $token] = $this->user();
+        $clientA = FoClient::factory()->create();
+        $clientB = FoClient::factory()->create();
+
+        Complex::factory()->create(['client_id' => $clientA->id, 'name' => 'Complex A']);
+        Complex::factory()->create(['client_id' => $clientB->id, 'name' => 'Complex B']);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/fieldops/complexes')
+            ->assertOk();
+
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertContains('Complex A', $names);
+        $this->assertContains('Complex B', $names);
+    }
 }

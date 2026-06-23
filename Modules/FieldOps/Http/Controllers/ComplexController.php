@@ -2,6 +2,7 @@
 
 namespace Modules\FieldOps\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\FieldOps\Http\Requests\StoreComplexRequest;
 use Modules\FieldOps\Http\Requests\UpdateComplexRequest;
@@ -10,9 +11,12 @@ use Modules\FieldOps\Models\Complex;
 
 class ComplexController extends Controller
 {
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $complexes = Complex::with('client', 'createdBy')->orderBy('name')->paginate(50);
+        $complexes = Complex::with('client', 'createdBy')
+            ->when($request->filled('client_id'), fn ($q) => $q->where('client_id', $request->integer('client_id')))
+            ->orderBy('name')
+            ->paginate(50);
 
         return response()->json([
             'success' => true,

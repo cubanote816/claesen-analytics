@@ -398,4 +398,64 @@ class StructureCrudTest extends TestCase
         $firstIndex = $indexResponse->json('data.0');
         $this->assertArrayNotHasKey('luminaire_frames', $firstIndex ?? []);
     }
+
+    // ── index filter: terrain_id ──────────────────────────────────────────────
+
+    public function test_index_filters_by_terrain_id(): void
+    {
+        [, $token] = $this->user();
+        $terrainA  = Terrain::factory()->create();
+        $terrainB  = Terrain::factory()->create();
+
+        $structureA = Structure::factory()->create();
+        $structureB = Structure::factory()->create();
+        $structureA->terrains()->attach($terrainA->id);
+        $structureB->terrains()->attach($terrainB->id);
+
+        $response = $this->withToken($token)
+            ->getJson("/api/v1/fieldops/structures?terrain_id={$terrainA->id}")
+            ->assertOk();
+
+        $ids = collect($response->json('data'))->pluck('id')->all();
+        $this->assertContains($structureA->id, $ids);
+        $this->assertNotContains($structureB->id, $ids);
+    }
+
+    public function test_index_without_terrain_id_returns_all(): void
+    {
+        [, $token] = $this->user();
+        $terrainA  = Terrain::factory()->create();
+        $terrainB  = Terrain::factory()->create();
+
+        $structureA = Structure::factory()->create();
+        $structureB = Structure::factory()->create();
+        $structureA->terrains()->attach($terrainA->id);
+        $structureB->terrains()->attach($terrainB->id);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/fieldops/structures')
+            ->assertOk();
+
+        $ids = collect($response->json('data'))->pluck('id')->all();
+        $this->assertContains($structureA->id, $ids);
+        $this->assertContains($structureB->id, $ids);
+    }
+
+    public function test_terrain_id_filter_excludes_unlinked_structures(): void
+    {
+        [, $token] = $this->user();
+        $terrain    = Terrain::factory()->create();
+
+        $linked   = Structure::factory()->create();
+        $unlinked = Structure::factory()->create();
+        $linked->terrains()->attach($terrain->id);
+
+        $response = $this->withToken($token)
+            ->getJson("/api/v1/fieldops/structures?terrain_id={$terrain->id}")
+            ->assertOk();
+
+        $ids = collect($response->json('data'))->pluck('id')->all();
+        $this->assertContains($linked->id, $ids);
+        $this->assertNotContains($unlinked->id, $ids);
+    }
 }
