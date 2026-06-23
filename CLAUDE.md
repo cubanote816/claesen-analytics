@@ -83,7 +83,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | Módulo | Descripción | Estado |
 |--------|-------------|--------|
 | **Cafca** | Modelos ReadOnly del SQL Server ERP (Project, Labor, Invoice, Employee…) | ✅ ~90% |
-| **Core** | Auth (Azure OAuth + Laravel), RBAC Spatie, Filament V5 admin panel | ✅ ~95% |
+| **Core** | Auth (Azure OAuth + Laravel), RBAC Spatie, Filament V5 admin panel, user provisioning (USR-001) | ✅ ~98% |
 | **Intelligence** | Gemini 1.5 Flash, Mirror SQL→MySQL, Similarity (Nearest Neighbors), Budget Assistant | ✅ ~90% |
 | **Performance** | Project insights, arquetipos de técnicos, Watchdog (€20k), SWOT | ✅ ~85% |
 | **Prospects** | Sync federaciones deportivas (RBFA, LBFA, AFT), CRM, campañas email | 🚧 ~75% |
@@ -100,6 +100,30 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 - **ReadOnlyTrait** — bloqueo de mutaciones en modelos legacy
 - **Mirror/Sync Pattern** — copia local de SQL Server en MySQL para queries analíticas
 - **Semantic Cache** — hash MD5 de payload para evitar llamadas redundantes a Gemini
+- **Azure-first provisioning** — `User.hasCompletedPasswordSetup()` = canónico; activación vía código opaco one-time (no bearer en URL); `EnsurePasswordIsSet` bloquea panel y API hasta completar setup
+
+---
+
+## Sprint User Provisioning — USR-001 / CLA-171 (rama: FieldOps)
+
+> Ticket A (backend) completado: 2026-06-23. Commit: `a2846ea`.
+> **Ticket B pendiente:** Safety PWA (`safety_claesen`) debe manejar `?activation_code=xxx&setup_required=true` antes de activar en producción.
+
+### Reglas User Provisioning (no negociables)
+
+- `hasCompletedPasswordSetup()` en `User.php` es el único punto de verdad — no duplicar la lógica
+- `employee_id` en `users` es una referencia blanda a MySQL mirror (no FK de DB) — validar existencia en app layer
+- Bearer token **nunca** en URL — el código de activación es opaco y solo sirve para el canje por POST
+- `EnsurePasswordIsSet` excluye `/auth/setup-password` web, `POST /api/v1/auth/activate`, `POST /api/v1/auth/setup-password` y `POST /api/v1/auth/logout`
+- Canje de código: `lockForUpdate()` obligatorio — dos requests concurrentes no pueden emitir dos tokens
+- `syncRoles()` debe estar dentro del mismo `DB::transaction()` que `User::create()`
+
+### Backfill en producción
+
+```bash
+php artisan core:link-users-to-employees --dry-run   # preview sin escrituras
+php artisan core:link-users-to-employees --apply     # solo después de revisar el dry-run
+```
 
 ---
 
