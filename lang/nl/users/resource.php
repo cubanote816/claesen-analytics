@@ -9,6 +9,7 @@ return [
         'email' => 'E-mail',
         'email_placeholder' => 'Wordt ingevuld bij selectie medewerker',
         'employee' => 'Medewerker',
+        'employee_hint' => 'Alleen medewerkers met een @:domain-adres kunnen via Azure inloggen op de backoffice.',
         'password' => 'Wachtwoord',
         'roles' => 'Rollen',
         'is_active' => 'Account actief',
