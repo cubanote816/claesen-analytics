@@ -18,7 +18,7 @@
 |------|-------------|--------|--------|
 | C.1 | Módulo FieldOps creado: 13 migraciones + 10 modelos + resources + controllers read-only | `814d85a` | ✅ Done |
 | C.1 fixes | P1: nullOnDelete en 9 FKs created_by_user_id; P2b: ComplexController eager load | `d328459` | ✅ Done |
-| C.2 | CRUD Complex + RouteServiceProvider + factories + 20 tests | `(pendiente hash)` | ✅ Done |
+| C.2 | CRUD Complex + RouteServiceProvider + factories + 20 tests | `9850119` | ✅ Done |
 | C.3 | CRUD Terrain | — | ⬜ |
 | C.4 | CRUD Structure | — | ⬜ |
 | C.5 | CRUD LuminaireFrame + Luminaire | — | ⬜ |
