@@ -9,8 +9,8 @@
 
 - **Sprint activo:** Integración Core-Sport (FieldOps) — Fase 1
 - **Rama actual:** `FieldOps`
-- **Último hito:** Slice C / C.5 ✅ Done — LuminaireFrame + Luminaire CRUD (commit `e4452cf`)
-- **Próximo paso:** C.6 — Cutover + deprecación endpoints en Sport (plan pendiente)
+- **Último hito:** Slice C / C.6a ✅ Done — filtros client_id + terrain_id en Complex/Structure index (commit `b8b0205`)
+- **Próximo paso:** C.6b — Frontend cutover: `endpoints.ts` + `fieldOps.adapter.ts`
 
 ### Integración Core-Sport — Slice C (FieldOps Module) 🚧 En curso
 
@@ -22,7 +22,8 @@
 | C.3 | CRUD Terrain + TerrainResource + locale validation + merge parcial + 24 tests | `fbfaf6d` | ✅ Done |
 | C.4 | CRUD Structure + terrain_ids triple-case + pivot sync + 28 tests | `b2ff1c4` | ✅ Done |
 | C.5 | CRUD LuminaireFrame + Luminaire + factories + 35 tests | `e4452cf` | ✅ Done |
-| C.6 | Cutover + deprecación en Sport | — | ⬜ |
+| C.6a | Filtros `client_id` + `terrain_id` en index — desbloquea C.6b | `b8b0205` | ✅ Done |
+| C.6b | Frontend cutover: `endpoints.ts` + `fieldOps.adapter.ts` | — | ⬜ |
 
 **Notas C.2:**
 - `RouteServiceProvider` creado para FieldOps (análogo al de Safety): rutas bajo middleware `api` + prefijo `api`. Fix estructural — sin él todas las rutas FieldOps devolvían 404 en tests.
@@ -626,6 +627,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-23 | C.6a | Done — `GET /complexes?client_id=X` y `GET /structures?terrain_id=X`. Ambos filtros con `when()` + `whereHas()`. 5 tests nuevos / 15 assertions. 112/270 total FieldOps. Commit `b8b0205`. Desbloquea C.6b (frontend cutover). |
 | 2026-06-23 | C.5 | Done — LuminaireFrame CRUD (structure_ids triple-case) + Luminaire CRUD (serial_number unique, frame_position auto-recalculado al cambiar frame, cross-validate type↔subgroup, info locale-merge). 35 tests / 95 assertions. 107/255 total FieldOps. Commit `e4452cf`. |
 | 2026-06-23 | C.4 | Done — Structure CRUD. terrain_ids triple-case explícito (`absent→no-op / null→detach / array→sync`) usando `$request->has()`. info locale-merge. external_*_id como bridge opaco. 28 tests / 59 assertions. 72/160 con C.2+C.3+C.4. Commit `b2ff1c4`. |
 | 2026-06-23 | C.3 | Done — Terrain CRUD (GET/POST/PUT/PATCH/DELETE). Locale validation `array:nl,en,fr,es`. Update merge parcial de traducciones. `complex_id` inmutable en update. 24 tests / 54 assertions. Commit `fbfaf6d`. |
