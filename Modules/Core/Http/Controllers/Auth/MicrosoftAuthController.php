@@ -92,6 +92,12 @@ class MicrosoftAuthController extends Controller
             $groups = $azureUser->user['groups'] ?? [];
             $roleService->syncRolesFromAzure($user, $groups);
 
+            // Suspended accounts are blocked regardless of flow.
+            if (! $user->is_active) {
+                Auth::logout();
+                return redirect('/login')->withErrors(['email' => 'This account has been deactivated.']);
+            }
+
             Auth::login($user);
 
             $source = session()->pull('auth_source', 'frontend');

@@ -2,11 +2,11 @@
 
 namespace Modules\Core\Filament\Resources\Users\Schemas;
 
-use Filament\Schemas\Schema;
-
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 
 class UserForm
 {
@@ -24,17 +24,23 @@ class UserForm
                             ->email()
                             ->required()
                             ->unique(ignoreRecord: true),
+                        Toggle::make('is_active')
+                            ->label(__('users/resource.fields.is_active'))
+                            ->helperText(__('users/resource.fields.is_active_hint'))
+                            ->default(true)
+                            ->onColor('success')
+                            ->offColor('danger'),
                         CheckboxList::make('roles')
                             ->label(__('users/resource.fields.roles'))
                             ->relationship(
-                                'roles', 
+                                'roles',
                                 'name',
                                 fn ($query) => $query->orderBy('sort')
                             )
-                            ->getOptionLabelFromRecordUsing(fn($record) => \Illuminate\Support\Str::headline($record->name))
+                            ->getOptionLabelFromRecordUsing(fn ($record) => \Illuminate\Support\Str::headline($record->name))
                             ->columns(2)
                             ->gridDirection('row'),
-                    ])
+                    ]),
             ]);
     }
 }
