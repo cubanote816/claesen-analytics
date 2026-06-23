@@ -111,6 +111,27 @@ class InspectionController extends Controller
             return $this->idempotentResponse($existing, $payloadHash);
         }
 
+        // Record adoption events
+        try {
+            \Modules\Safety\Models\SafetyAdoptionEvent::create([
+                'user_id' => $userId,
+                'event_type' => 'inspection_completed',
+                'project_id' => $projectId,
+                'metadata' => ['inspection_id' => $inspection->id, 'type' => $validated['type']],
+            ]);
+
+            if (!empty($photoStorageFailures)) {
+                \Modules\Safety\Models\SafetyAdoptionEvent::create([
+                    'user_id' => $userId,
+                    'event_type' => 'photo_upload_failed',
+                    'project_id' => $projectId,
+                    'metadata' => ['failures_count' => count($photoStorageFailures), 'questions' => $photoStorageFailures],
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error("Failed to record adoption events: " . $e->getMessage());
+        }
+
         try {
             GenerateSafetyPdfJob::dispatch($inspection->id);
 
@@ -231,6 +252,17 @@ class InspectionController extends Controller
 
         if ($existing->payload_hash === $currentHash) {
             return response()->json(['message' => $message, 'data' => ['inspection_id' => $existing->id]], 200);
+        }
+
+        try {
+            \Modules\Safety\Models\SafetyAdoptionEvent::create([
+                'user_id' => $existing->user_id,
+                'event_type' => 'inspection_payload_conflict',
+                'project_id' => $existing->project_id,
+                'metadata' => ['inspection_id' => $existing->id]
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to record conflict adoption event: " . $e->getMessage());
         }
 
         return response()->json([
