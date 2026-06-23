@@ -1,16 +1,53 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-22 (EMP-007 / CLA-168 ✅ Done)
+> Última actualización: 2026-06-23 (SAF-PWA-001 / CLA-170 ✅ Done)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** EMP — Estabilización módulo Employees (✅ Sprint Completado)
-- **Rama actual:** `main`
-- **Último hito:** EMP-007 / CLA-168 ✅ Done (2026-06-22) — Discovery auditoría permisos cerrado.
-- **Próximo paso (SAF-019):** crear ticket de deuda en Linear (5 fallos preexistentes) + confirmar CI — pending rotación key Linear
+- **Sprint activo:** Safety Dashboard (rama: `dashboard_safety`)
+- **Rama actual:** `dashboard_safety`
+- **Último hito:** SAF-PWA-001 / CLA-170 ✅ Done (2026-06-23) — ProjectController migrado a mirror exclusivo + email reminder a PMs inactivos.
+- **Próximo paso:** confirmar ticket Linear para SAF-DEBT-001 (MirrorRelation) y SAF-DEBT-002 (Carbon freeze tests).
+
+### SAF-PWA-001 / CLA-170 ✅ Done
+
+**Commits:** `d958759` (impl) + `6cf8179` (fix tests) | **Fecha:** 2026-06-23
+
+**Cambio:** `ProjectController::index()` eliminó try/catch SQL Server y fallback DEV-001/DEV-002.
+Ahora consulta `intelligence_mirror_projects` con `leftJoin` a `intelligence_mirror_relations` → añade `relation_name: string|null` al contrato (aditivo, no breaking).
+
+**Tests:** 5 casos — con/sin relación, inactivo excluido, mirror vacío, no-import-Cafca.
+
+**Riesgo operativo documentado:** frescura de proyectos depende del job de sync del mirror. Si el sync falla, el listado de la PWA queda desactualizado.
+
+---
+
+### SAF-NNN — Email reminder semanal a project_managers inactivos ✅ Done
+
+**Commits:** `ff79b73` (impl) + `9600825` (URL PWA) + `6cf8179` (fix tests) | **Fecha:** 2026-06-23
+
+**Archivos creados:**
+- `Modules/Safety/Services/InspectionReminderService.php` — user-centric, `withTrashed()`, gracia 7 días, boundary `>= 30`
+- `Modules/Safety/Emails/InspectionReminderMail.php`
+- `Modules/Safety/resources/views/emails/inspection-reminder.blade.php` — NL, dos ramas de copy
+- `Modules/Safety/Console/NotifyInactiveManagersCommand.php` — `safety:notify-inactive-managers [--days] [--dry-run]`
+- `Modules/Safety/tests/Feature/NotifyInactiveManagersCommandTest.php` — 9 tests / 21 assertions ✅
+
+**Schedule:** lunes 09:00 + `withoutOverlapping()` (sin colisión con `CheckSafetyComplianceCommand` en 08:00).
+
+**Deploy:** requiere `SAFETY_PWA_URL=https://service.claesen-verlichting.be/` en `.env` de producción.
+
+---
+
+### Deudas técnicas Safety — pendientes de ticket
+
+| Deuda | Descripción | Prioridad |
+|-------|-------------|-----------|
+| **SAF-DEBT-001** | `MirrorRelation::$incrementing = false` — la tabla usa PK integer no-autoincrement (datos ERP); el modelo actual hereda `$incrementing = true` lo que hace que `create(['id' => N])` devuelva `id = 0`. Actualmente workaround con `DB::table()` en tests. | Media |
+| **SAF-DEBT-002** | Congelar tiempo en tests de frontera de `NotifyInactiveManagersCommandTest` — casos 3, 4, 5 usan `Carbon::now()->subDays(N)` sin `Carbon::setTestNow()`. En condiciones normales pasan, pero pueden ser flaky si el test cruza medianoche o en CI con reloj rápido. | Baja |
 
 ### SAF-019 — Payload fingerprint (idempotency hash) 🚧 Commit aprobado, cierre pendiente
 
