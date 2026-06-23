@@ -1,0 +1,133 @@
+<?php
+
+return [
+    'nav_group' => 'Field Operations',
+
+    'clients' => [
+        'navigation'     => 'Clients',
+        'model_label'    => 'Client',
+        'plural_label'   => 'Clients',
+        'fields' => [
+            'name'     => 'Name',
+            'street'   => 'Street',
+            'city'     => 'City',
+            'phone'    => 'Phone',
+            'email'    => 'Email',
+            'language' => 'Language',
+            'complexes_count' => 'Complexes',
+        ],
+    ],
+
+    'complexes' => [
+        'navigation'   => 'Complexes',
+        'model_label'  => 'Complex',
+        'plural_label' => 'Complexes',
+        'fields' => [
+            'name'            => 'Name',
+            'street'          => 'Street',
+            'city'            => 'City',
+            'zipcode'         => 'Zip code',
+            'client'          => 'Client',
+            'lat'             => 'Latitude',
+            'lng'             => 'Longitude',
+            'zoom'            => 'Zoom level',
+            'terrains_count'  => 'Terrains',
+        ],
+    ],
+
+    'terrains' => [
+        'navigation'   => 'Terrains',
+        'model_label'  => 'Terrain',
+        'plural_label' => 'Terrains',
+        'fields' => [
+            'name'              => 'Name',
+            'name_nl'           => 'Name (NL)',
+            'name_en'           => 'Name (EN)',
+            'name_fr'           => 'Name (FR)',
+            'name_de'           => 'Name (DE)',
+            'complex'           => 'Complex',
+            'terrain_type'      => 'Terrain type',
+            'lat'               => 'Latitude',
+            'lng'               => 'Longitude',
+            'structures_count'  => 'Structures',
+        ],
+    ],
+
+    'structures' => [
+        'navigation'   => 'Structures',
+        'model_label'  => 'Structure',
+        'plural_label' => 'Structures',
+        'fields' => [
+            'structure_type'     => 'Structure type',
+            'height'             => 'Height (cm)',
+            'lat'                => 'Latitude',
+            'lng'                => 'Longitude',
+            'info'               => 'Info',
+            'info_nl'            => 'Info (NL)',
+            'info_en'            => 'Info (EN)',
+            'info_fr'            => 'Info (FR)',
+            'info_de'            => 'Info (DE)',
+            'external_safety_id' => 'Safety ID (external)',
+            'external_access_id' => 'Access ID (external)',
+            'cafca_material_id'  => 'CAFCA Material ID',
+            'terrains_count'     => 'Terrains',
+        ],
+    ],
+
+    'luminaire_frames' => [
+        'navigation'   => 'Luminaire frames',
+        'model_label'  => 'Luminaire frame',
+        'plural_label' => 'Luminaire frames',
+        'fields' => [
+            'frame_type'       => 'Frame type',
+            'luminaires_count' => 'Luminaires',
+            'structures_count' => 'Structures',
+        ],
+    ],
+
+    'luminaires' => [
+        'navigation'   => 'Luminaires',
+        'model_label'  => 'Luminaire',
+        'plural_label' => 'Luminaires',
+        'fields' => [
+            'luminaire_type'    => 'Luminaire type',
+            'subgroup'          => 'Subgroup',
+            'frame'             => 'Frame',
+            'frame_position'    => 'Position in frame',
+            'serial_number'     => 'Serial number',
+            'frame_x'           => 'X position',
+            'frame_y'           => 'Y position',
+            'info'              => 'Info',
+            'info_nl'           => 'Info (NL)',
+            'info_en'           => 'Info (EN)',
+            'info_fr'           => 'Info (FR)',
+            'info_de'           => 'Info (DE)',
+            'cafca_material_id' => 'CAFCA Material ID',
+        ],
+    ],
+
+    'catalogs' => [
+        'navigation'          => 'Catalogs',
+        'terrain_types'       => 'Terrain types',
+        'structure_types'     => 'Structure types',
+        'frame_types'         => 'Frame types',
+        'luminaire_subgroups' => 'Luminaire subgroups',
+        'luminaire_types'     => 'Luminaire types',
+        'fields' => [
+            'type'       => 'Type',
+            'name'       => 'Name',
+            'brand'      => 'Brand',
+            'group_name' => 'Group name',
+            'subgroup'   => 'Subgroup',
+            'image'      => 'Image',
+            'type_nl'    => 'Type (NL)',
+            'type_en'    => 'Type (EN)',
+            'type_fr'    => 'Type (FR)',
+            'type_de'    => 'Type (DE)',
+            'name_nl'    => 'Name (NL)',
+            'name_en'    => 'Name (EN)',
+            'name_fr'    => 'Name (FR)',
+            'name_de'    => 'Name (DE)',
+        ],
+    ],
+];

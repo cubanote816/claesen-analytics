@@ -76,6 +76,9 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('User Management')
                     ->label(__('navigation.groups.user_management'))
                     ->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Field Operations')
+                    ->label(__('navigation.groups.field_operations'))
+                    ->icon('heroicon-o-wrench-screwdriver'),
             ])
             ->colors([
                 'primary' => Color::hex('#00aeef'), // Claesen Cyan
