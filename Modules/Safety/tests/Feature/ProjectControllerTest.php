@@ -6,8 +6,8 @@ namespace Modules\Safety\Tests\Feature;
 
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Modules\Performance\Models\Mirror\MirrorProject;
-use Modules\Performance\Models\Mirror\MirrorRelation;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -41,9 +41,19 @@ class ProjectControllerTest extends TestCase
         ]);
     }
 
-    private function relation(int $id, string $name): MirrorRelation
+    private function relation(int $id, string $name): int
     {
-        return MirrorRelation::create(['id' => $id, 'name' => $name]);
+        // MirrorRelation.id is a non-auto-increment integer PK (ERP-sourced).
+        // Using DB::table avoids Eloquent's $incrementing=true behaviour which
+        // would return last_insert_id()=0 instead of the provided id, breaking
+        // the FK match with intelligence_mirror_projects.relation_id.
+        DB::table('intelligence_mirror_relations')->insert([
+            'id'         => $id,
+            'name'       => $name,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return $id;
     }
 
     // ── Test 1: Proyecto activo con relación devuelve relation_name ───────────
@@ -51,8 +61,8 @@ class ProjectControllerTest extends TestCase
     public function test_active_project_with_relation_returns_relation_name(): void
     {
         $token = $this->tokenFor('project_manager');
-        $rel   = $this->relation(1, 'TC Tenkie');
-        $this->project('P-001', 'Limburg Diepenbeek', true, $rel->id);
+        $relId = $this->relation(1, 'TC Tenkie');
+        $this->project('P-001', 'Limburg Diepenbeek', true, $relId);
 
         $this->withToken($token)
             ->getJson('/api/v1/safety/projects')

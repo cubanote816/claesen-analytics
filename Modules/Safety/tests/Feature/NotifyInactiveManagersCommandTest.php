@@ -7,9 +7,11 @@ namespace Modules\Safety\Tests\Feature;
 use Carbon\Carbon;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Modules\Safety\Database\Factories\InspectionFactory;
 use Modules\Safety\Emails\InspectionReminderMail;
+use Illuminate\Support\Facades\DB;
 use Modules\Safety\Models\Inspection;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -33,7 +35,7 @@ class NotifyInactiveManagersCommandTest extends TestCase
     private function manager(string $email = null, Carbon $createdAt = null)
     {
         $user = UserFactory::new()->create([
-            'email'      => $email ?? $this->faker->unique()->safeEmail(),
+            'email'      => $email ?? fake()->unique()->safeEmail(),
             'created_at' => $createdAt ?? now()->subDays(30),
         ]);
         $user->assignRole('project_manager');
@@ -171,20 +173,24 @@ class NotifyInactiveManagersCommandTest extends TestCase
         Mail::assertNotSent(InspectionReminderMail::class);
     }
 
-    // ── Case 8: dry-run — no email sent, candidate name appears in output ─────
+    // ── Case 8: dry-run — no email sent, candidate email appears in output ──────
 
     public function test_dry_run_does_not_send_email_but_logs_candidate(): void
     {
         Mail::fake();
 
-        $manager = $this->manager();
+        // Use a fixed email so the assertion is deterministic and readable.
+        $manager = $this->manager(email: 'pm.dryrun@test.example');
         $this->inspection($manager, now()->subDays(45));
 
-        $this->artisan('safety:notify-inactive-managers', ['--dry-run' => true])
-            ->expectsOutputToContain('[DRY-RUN]')
-            ->expectsOutputToContain($manager->name)
-            ->assertExitCode(0);
+        // Use Artisan::call() + Artisan::output() to capture the full command
+        // output reliably, bypassing PendingCommand's buffering quirks.
+        $exitCode = Artisan::call('safety:notify-inactive-managers', ['--dry-run' => true]);
+        $output   = Artisan::output();
 
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('[DRY-RUN]', $output);
+        $this->assertStringContainsString('pm.dryrun@test.example', $output);
         Mail::assertNothingSent();
     }
 
@@ -194,11 +200,14 @@ class NotifyInactiveManagersCommandTest extends TestCase
     {
         Mail::fake();
 
-        // Force a null/empty email — unusual but must not crash the command.
-        $manager = UserFactory::new()->create(['email' => null]);
+        // Create a valid user then blank out the email via direct DB update to
+        // bypass the NOT NULL constraint while still exercising the skip logic.
+        $manager = UserFactory::new()->create(['created_at' => now()->subDays(30)]);
         $manager->assignRole('project_manager');
-        // Make sure account is past grace period.
-        $manager->update(['created_at' => now()->subDays(30)]);
+        DB::table('users')
+            ->where('id', $manager->id)
+            ->update(['email' => '']);
+        $manager->email = '';
         $this->inspection($manager, now()->subDays(45));
 
         $this->artisan('safety:notify-inactive-managers')

@@ -65,7 +65,7 @@ class NotifyInactiveManagersCommand extends Command
                 : 'nooit geïnspecteerd';
 
             if ($dryRun) {
-                $this->line(sprintf('[DRY-RUN] %s <%s> — %s', $user->name, $user->email, $label));
+                $this->info(sprintf('[DRY-RUN] %s <%s> — %s', $user->name, $user->email, $label));
                 continue;
             }
 
