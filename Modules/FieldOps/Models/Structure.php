@@ -2,14 +2,16 @@
 
 namespace Modules\FieldOps\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Database\Factories\StructureFactory;
 use Spatie\Translatable\HasTranslations;
 
 class Structure extends Model
 {
-    use SoftDeletes, HasTranslations;
+    use HasFactory, SoftDeletes, HasTranslations;
 
     protected $table = 'fo_structures';
 
@@ -32,6 +34,11 @@ class Structure extends Model
         'lng'    => 'float',
         'height' => 'integer',
     ];
+
+    protected static function newFactory(): StructureFactory
+    {
+        return StructureFactory::new();
+    }
 
     public function createdBy()
     {

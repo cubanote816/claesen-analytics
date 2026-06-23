@@ -29,7 +29,11 @@ Route::middleware(['auth:sanctum'])->prefix('v1/fieldops')->group(function () {
 
     // Structures
     Route::get('/structures', [StructureController::class, 'index']);
+    Route::post('/structures', [StructureController::class, 'store']);
     Route::get('/structures/{structure}', [StructureController::class, 'show']);
+    Route::put('/structures/{structure}', [StructureController::class, 'update']);
+    Route::patch('/structures/{structure}', [StructureController::class, 'update']);
+    Route::delete('/structures/{structure}', [StructureController::class, 'destroy']);
 
     // LuminaireFrames + Luminaires
     Route::get('/luminaire-frames/{frame}/luminaires', [LuminaireFrameController::class, 'luminaires']);
