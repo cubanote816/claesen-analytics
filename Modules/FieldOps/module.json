@@ -1,0 +1,11 @@
+{
+    "name": "FieldOps",
+    "alias": "fieldops",
+    "description": "FieldOps — Canonical domain for complexes, terrains, structures and luminaires",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\FieldOps\\Providers\\FieldOpsServiceProvider"
+    ],
+    "files": []
+}
