@@ -7,8 +7,8 @@ namespace Modules\Core\Filament\Resources\Users\Schemas;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Modules\Cafca\Models\Employee;
 use Modules\Core\Models\User;
@@ -18,13 +18,16 @@ class CreateUserForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $domain = config('core.company_email_domain');
+
         return $schema
             ->components([
                 Section::make()
                     ->schema([
                         Select::make('employee_id')
                             ->label(__('users/resource.fields.employee'))
-                            ->options(function (): array {
+                            ->helperText(__('users/resource.fields.employee_hint', ['domain' => $domain]))
+                            ->options(function () use ($domain): array {
                                 $takenEmails = User::pluck('email')
                                     ->map(fn ($e) => strtolower(trim($e)))
                                     ->filter()
@@ -41,6 +44,7 @@ class CreateUserForm
                                     ->get()
                                     ->filter(fn (Employee $e) =>
                                         filter_var($e->email ?? '', FILTER_VALIDATE_EMAIL) &&
+                                        str_ends_with(strtolower(trim($e->email)), '@' . $domain) &&
                                         ! in_array(strtolower(trim($e->email)), $takenEmails, true) &&
                                         ! in_array($e->id, $takenEmployeeIds, true)
                                     )

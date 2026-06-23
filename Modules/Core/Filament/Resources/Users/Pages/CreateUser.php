@@ -34,6 +34,12 @@ class CreateUser extends CreateRecord
             422, 'Email del empleado inválido o malformado.'
         );
 
+        $domain = config('core.company_email_domain');
+        abort_if(
+            ! str_ends_with(strtolower(trim($employee->email)), '@' . $domain),
+            422, "Only @{$domain} email addresses are allowed for backoffice accounts."
+        );
+
         $normalizedEmail = strtolower(trim($employee->email));
 
         abort_if(
