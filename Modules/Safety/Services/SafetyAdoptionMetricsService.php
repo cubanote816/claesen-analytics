@@ -19,9 +19,15 @@ class SafetyAdoptionMetricsService
      */
     public function getEnabledUsersCount(): int
     {
-        // Placeholder definition: all users that are not explicitly marked inactive
-        // We will just count all users for now.
-        return User::count();
+        // Regla: Alinear exactamente con EnsureSafetyAccess.php
+        // Solo los usuarios con estos roles tienen permiso de subir inspecciones.
+        return User::whereHas('roles', function ($query) {
+            $query->whereIn('name', [
+                'project_manager',
+                'super_admin',
+                'admin'
+            ]);
+        })->count();
     }
 
     public function aggregateForDate(Carbon $date): void
@@ -37,11 +43,20 @@ class SafetyAdoptionMetricsService
 
         // 2. Aggregate counts for the specific date
         // Total completed inspections
-        $completedCount = SafetyAdoptionEvent::where('event_type', 'inspection_completed')
+        $inspectionsCount = SafetyAdoptionEvent::where('event_type', 'inspection_completed')
+            ->where('metadata->type', 'inspection')
             ->whereDate('created_at', $date)
             ->count();
             
-        $this->storeRollup($dateString, 'inspections_completed', $completedCount);
+        $this->storeRollup($dateString, 'inspections_completed', $inspectionsCount);
+
+        // Total reported incidents
+        $incidentsCount = SafetyAdoptionEvent::where('event_type', 'inspection_completed')
+            ->where('metadata->type', 'incident')
+            ->whereDate('created_at', $date)
+            ->count();
+            
+        $this->storeRollup($dateString, 'incidents_reported', $incidentsCount);
 
         // Total friction events
         $frictionCount = SafetyAdoptionEvent::whereIn('event_type', ['photo_upload_failed', 'inspection_payload_conflict'])
@@ -50,9 +65,10 @@ class SafetyAdoptionMetricsService
             
         $this->storeRollup($dateString, 'friction_events_count', $frictionCount);
 
-        // 3. WAU (7 days) and MAU (30 days) Active Users
+        // 3. WAU (7 days) and MAU (30 days) Active Users (solo inspecciones)
         // Active 7 days
         $active7d = SafetyAdoptionEvent::where('event_type', 'inspection_completed')
+            ->where('metadata->type', 'inspection')
             ->whereDate('created_at', '>', $date->copy()->subDays(7))
             ->whereDate('created_at', '<=', $date)
             ->distinct('user_id')
@@ -62,6 +78,7 @@ class SafetyAdoptionMetricsService
 
         // Active 30 days
         $active30d = SafetyAdoptionEvent::where('event_type', 'inspection_completed')
+            ->where('metadata->type', 'inspection')
             ->whereDate('created_at', '>', $date->copy()->subDays(30))
             ->whereDate('created_at', '<=', $date)
             ->distinct('user_id')
@@ -72,6 +89,7 @@ class SafetyAdoptionMetricsService
         // 4. Trend by project (Inspections completed per project today)
         $projectCounts = SafetyAdoptionEvent::select('project_id', DB::raw('count(*) as count'))
             ->where('event_type', 'inspection_completed')
+            ->where('metadata->type', 'inspection')
             ->whereDate('created_at', $date)
             ->whereNotNull('project_id')
             ->groupBy('project_id')
@@ -94,7 +112,7 @@ class SafetyAdoptionMetricsService
             [
                 'date' => $date,
                 'metric_name' => $metric,
-                'project_id' => $projectId,
+                'project_id' => $projectId ?? 'GLOBAL',
             ],
             ['value' => $value]
         );

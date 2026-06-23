@@ -147,15 +147,20 @@
 - `Question` — pregunta de checklist
 - `Inspection` — inspección realizada
 - `Answer` — respuesta con foto opcional
+- `SafetyAdoptionEvent` — registros en bruto de eventos de adopción
+- `SafetyAdoptionDailyRollup` — métricas agregadas diarias (MAU, fricción, etc)
+- `SafetyEnabledUserSnapshot` — foto diaria del denominador de adopción
 
 **Services:**
 - `ComplianceService` — calcula estado de compliance (30 días)
+- `SafetyAdoptionMetricsService` — agregador de adopción, MAU/DAU y purgador a 90 días
 
 **Jobs:**
 - `GenerateSafetyPdfJob` — genera PDF de inspección
 
 **Commands:**
 - `safety:check-compliance` — verifica compliance periódicamente
+- `safety:aggregate-adoption` — agrega eventos de adopción diarios y purga historial
 
 **Rutas API** (`/v1/safety/*`):
 - `POST /v1/login`
