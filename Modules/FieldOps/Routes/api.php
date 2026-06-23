@@ -19,6 +19,14 @@ Route::middleware(['auth:sanctum'])->prefix('v1/fieldops')->group(function () {
     // Terrain catalogs
     Route::get('/terrain-types', [TerrainController::class, 'types']);
 
+    // Terrains
+    Route::get('/terrains', [TerrainController::class, 'index']);
+    Route::post('/terrains', [TerrainController::class, 'store']);
+    Route::get('/terrains/{terrain}', [TerrainController::class, 'show']);
+    Route::put('/terrains/{terrain}', [TerrainController::class, 'update']);
+    Route::patch('/terrains/{terrain}', [TerrainController::class, 'update']);
+    Route::delete('/terrains/{terrain}', [TerrainController::class, 'destroy']);
+
     // Structures
     Route::get('/structures', [StructureController::class, 'index']);
     Route::get('/structures/{structure}', [StructureController::class, 'show']);

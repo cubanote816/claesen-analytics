@@ -2,14 +2,16 @@
 
 namespace Modules\FieldOps\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Database\Factories\TerrainFactory;
 use Spatie\Translatable\HasTranslations;
 
 class Terrain extends Model
 {
-    use SoftDeletes, HasTranslations;
+    use HasFactory, SoftDeletes, HasTranslations;
 
     protected $table = 'fo_terrains';
 
@@ -28,6 +30,11 @@ class Terrain extends Model
         'lat' => 'float',
         'lng' => 'float',
     ];
+
+    protected static function newFactory(): TerrainFactory
+    {
+        return TerrainFactory::new();
+    }
 
     public function createdBy()
     {
