@@ -14,8 +14,10 @@ class FieldOpsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(module_path($this->name, 'Database/Migrations'));
-        $this->loadRoutesFrom(module_path($this->name, 'Routes/api.php'));
     }
 
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->app->register(RouteServiceProvider::class);
+    }
 }

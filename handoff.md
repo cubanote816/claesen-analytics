@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-23 (Slice C / C.1 ✅ + audit P1/P2 fixes — GO para C.2)
+> Última actualización: 2026-06-23 (Slice C / C.2 ✅ CRUD Complex — próximo C.3 Terrain)
 
 ---
 
@@ -9,8 +9,8 @@
 
 - **Sprint activo:** Integración Core-Sport (FieldOps) — Fase 1
 - **Rama actual:** `FieldOps`
-- **Último hito:** Slice C / C.1 audit fixes ✅ Done (commit `d328459`) — GO condicionado cumplido
-- **Próximo paso (C.2):** Complex store/update/destroy — ver auditor gate abajo.
+- **Último hito:** Slice C / C.2 ✅ Done — Complex CRUD + RouteServiceProvider fix
+- **Próximo paso:** C.3 CRUD Terrain — auditor gate pendiente
 
 ### Integración Core-Sport — Slice C (FieldOps Module) 🚧 En curso
 
@@ -18,11 +18,17 @@
 |------|-------------|--------|--------|
 | C.1 | Módulo FieldOps creado: 13 migraciones + 10 modelos + resources + controllers read-only | `814d85a` | ✅ Done |
 | C.1 fixes | P1: nullOnDelete en 9 FKs created_by_user_id; P2b: ComplexController eager load | `d328459` | ✅ Done |
-| C.2 | CRUD Complex | — | ⬜ |
+| C.2 | CRUD Complex + RouteServiceProvider + factories + 20 tests | `(pendiente hash)` | ✅ Done |
 | C.3 | CRUD Terrain | — | ⬜ |
 | C.4 | CRUD Structure | — | ⬜ |
 | C.5 | CRUD LuminaireFrame + Luminaire | — | ⬜ |
 | C.6 | Cutover + deprecación en Sport | — | ⬜ |
+
+**Notas C.2:**
+- `RouteServiceProvider` creado para FieldOps (análogo al de Safety): rutas bajo middleware `api` + prefijo `api`. Fix estructural — sin él todas las rutas FieldOps devolvían 404 en tests.
+- `destroy` es soft delete únicamente. `fo_terrains.complex_id` tiene `cascadeOnDelete()` a nivel DB, pero SoftDeletes no lo dispara. Un `forceDelete()` futuro sí borraría los terrains en cascada — documentado en el controller.
+- PUT y PATCH ambos disponibles; actualización siempre parcial (solo campos enviados). `created_by_user_id` no editable vía update.
+- **Flakiness conocida:** `ComplexCrudTest` falla esporádicamente cuando abre la suite completa como primera clase (error `Table 'testing.migrations' doesn't exist` durante RefreshDatabase). 20/20 consistente en ejecución aislada del slice. No es regresión de C.2 — es un problema de inicialización del DB de testing cuando no hay ningún test previo que haya levantado el esquema.
 
 **Decisiones C.1:**
 - Tablas prefijo `fo_`: `fo_complexes`, `fo_terrains`, `fo_structures`, `fo_luminaires`, etc.
@@ -620,6 +626,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-23 | C.2 | Done — Complex CRUD (POST/PUT/PATCH/DELETE) + RouteServiceProvider fix + factories + 20 tests. Flakiness de arranque documentada. Próximo: C.3 auditor gate. |
 | 2026-06-23 | SAF-ADOPT | Done — Fase 1A Adopción PWA completada. Rollups diarios con `project_id='GLOBAL'`, denominador `enabled_users` anclado estrictamente a los roles del middleware `EnsureSafetyAccess` (project_manager, super_admin, admin). Feature tests funcionales implementados validando el endpoint completo y previniendo duplicidad en `idempotency_key`. |
 | 2026-06-22 | CLA-168 | Done — EMP-007: Discovery auditoría permisos cerrado. Decisión de negocio: Status Quo. El acceso a `EmployeeAnalytics` se restringe a `super_admin` y `admin` porque los insights IA y burnout son datos muy sensibles. No se modifica código ni se abre a managers/empleados sin separar antes datos operativos de sensibles. Sin commit de código. |
 | 2026-06-22 | CLA-164 | Done — EMP-002: `calculateAchievementRate()` devuelve `null` (no `0%`) cuando `uren_per_week` es `null` o `<= 0`. `getDailyStats()` sin fallback `?? 0`. `aggregateStats()` docblock explicita baseline 7,6h vs contrato. Widget Stats: stat gris `Niet berekenbaar` cuando rate null; stat semanal usa clave `compliance_operational` (`Basis 7,6u`). Chart widget: línea target omitida cuando `uren_per_week` es null/0. Traducciones NL+EN (`achievement_unknown`, `compliance_operational`). Test sin `RefreshDatabase` (seam en memoria, determinista). 7 archivos, 8 tests / 15 aserciones ✅. Commit `ef513c7`. |

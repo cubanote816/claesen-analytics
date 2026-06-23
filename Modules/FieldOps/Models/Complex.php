@@ -2,13 +2,15 @@
 
 namespace Modules\FieldOps\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Database\Factories\ComplexFactory;
 
 class Complex extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'fo_complexes';
 
@@ -29,6 +31,11 @@ class Complex extends Model
         'lng'  => 'float',
         'zoom' => 'float',
     ];
+
+    protected static function newFactory(): ComplexFactory
+    {
+        return ComplexFactory::new();
+    }
 
     public function createdBy()
     {

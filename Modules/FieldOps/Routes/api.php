@@ -10,7 +10,11 @@ use Modules\FieldOps\Http\Controllers\TerrainController;
 Route::middleware(['auth:sanctum'])->prefix('v1/fieldops')->group(function () {
     // Complexes
     Route::get('/complexes', [ComplexController::class, 'index']);
+    Route::post('/complexes', [ComplexController::class, 'store']);
     Route::get('/complexes/{complex}', [ComplexController::class, 'show']);
+    Route::put('/complexes/{complex}', [ComplexController::class, 'update']);
+    Route::patch('/complexes/{complex}', [ComplexController::class, 'update']);
+    Route::delete('/complexes/{complex}', [ComplexController::class, 'destroy']);
 
     // Terrain catalogs
     Route::get('/terrain-types', [TerrainController::class, 'types']);
