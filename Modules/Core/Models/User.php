@@ -25,6 +25,7 @@ class User extends Authenticatable implements FilamentUser
     protected $fillable = [
         'name',
         'email',
+        'is_active',
         'password',
         'password_set_at',
         'employee_id',
@@ -49,6 +50,7 @@ class User extends Authenticatable implements FilamentUser
             'password_set_at'            => 'datetime',
             'activation_code_expires_at' => 'datetime',
             'last_active_at'             => 'datetime',
+            'is_active'                  => 'boolean',
         ];
     }
 
@@ -66,7 +68,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return true;
+        return (bool) $this->is_active;
     }
 
     public function isOnline(): bool

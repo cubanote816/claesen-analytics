@@ -7,8 +7,12 @@ return [
     'fields' => [
         'name' => 'Name',
         'email' => 'Email',
+        'email_placeholder' => 'Will be filled when employee is selected',
+        'employee' => 'Employee',
         'password' => 'Password',
         'roles' => 'Roles',
+        'is_active' => 'Active account',
+        'is_active_hint' => 'Deactivating blocks all logins immediately.',
         'status' => 'Status',
         'last_active_at' => 'Last Active',
         'online' => 'Online',

@@ -60,7 +60,7 @@ class CreateUserForm
                             ->email()
                             ->disabled()
                             ->dehydrated(false)
-                            ->placeholder('Se completará al seleccionar empleado'),
+                            ->placeholder(__('users/resource.fields.email_placeholder')),
 
                         // role_ids: plain array, NOT using relationship() so that
                         // handleRecordCreation() can syncRoles() inside the DB transaction.

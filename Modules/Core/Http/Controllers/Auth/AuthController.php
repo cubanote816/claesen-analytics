@@ -24,9 +24,8 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        // Accounts without a password (Azure-first provisioning) cannot use local login.
-        // Generic message to avoid revealing account existence.
-        if (! $user || ! $user->hasCompletedPasswordSetup() || ! Hash::check($request->password, $user->password)) {
+        // Suspended, not-yet-activated, or wrong credentials → same generic error.
+        if (! $user || ! $user->is_active || ! $user->hasCompletedPasswordSetup() || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
             ]);
