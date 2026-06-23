@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-23 (Slice C / C.3 ✅ CRUD Terrain — próximo C.4 Structure)
+> Última actualización: 2026-06-23 (Slice C / C.4 ✅ CRUD Structure — próximo C.5 LuminaireFrame+Luminaire)
 
 ---
 
@@ -9,8 +9,8 @@
 
 - **Sprint activo:** Integración Core-Sport (FieldOps) — Fase 1
 - **Rama actual:** `FieldOps`
-- **Último hito:** Slice C / C.3 ✅ Done — Terrain CRUD con locale validation + merge parcial
-- **Próximo paso:** C.4 CRUD Structure — auditor gate pendiente
+- **Último hito:** Slice C / C.4 ✅ Done — Structure CRUD + terrain_ids triple-case + pivot sync
+- **Próximo paso:** C.5 CRUD LuminaireFrame + Luminaire — auditor gate pendiente
 
 ### Integración Core-Sport — Slice C (FieldOps Module) 🚧 En curso
 
@@ -20,7 +20,7 @@
 | C.1 fixes | P1: nullOnDelete en 9 FKs created_by_user_id; P2b: ComplexController eager load | `d328459` | ✅ Done |
 | C.2 | CRUD Complex + RouteServiceProvider + factories + 20 tests | `9850119` | ✅ Done |
 | C.3 | CRUD Terrain + TerrainResource + locale validation + merge parcial + 24 tests | `fbfaf6d` | ✅ Done |
-| C.4 | CRUD Structure | — | ⬜ |
+| C.4 | CRUD Structure + terrain_ids triple-case + pivot sync + 28 tests | `b2ff1c4` | ✅ Done |
 | C.5 | CRUD LuminaireFrame + Luminaire | — | ⬜ |
 | C.6 | Cutover + deprecación en Sport | — | ⬜ |
 
@@ -626,6 +626,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-23 | C.4 | Done — Structure CRUD. terrain_ids triple-case explícito (`absent→no-op / null→detach / array→sync`) usando `$request->has()`. info locale-merge. external_*_id como bridge opaco. 28 tests / 59 assertions. 72/160 con C.2+C.3+C.4. Commit `b2ff1c4`. |
 | 2026-06-23 | C.3 | Done — Terrain CRUD (GET/POST/PUT/PATCH/DELETE). Locale validation `array:nl,en,fr,es`. Update merge parcial de traducciones. `complex_id` inmutable en update. 24 tests / 54 assertions. Commit `fbfaf6d`. |
 | 2026-06-23 | C.2 | Done — Complex CRUD (POST/PUT/PATCH/DELETE) + RouteServiceProvider fix + factories + 20 tests. Flakiness de arranque documentada. Próximo: C.3 auditor gate. |
 | 2026-06-23 | SAF-ADOPT | Done — Fase 1A Adopción PWA completada. Rollups diarios con `project_id='GLOBAL'`, denominador `enabled_users` anclado estrictamente a los roles del middleware `EnsureSafetyAccess` (project_manager, super_admin, admin). Feature tests funcionales implementados validando el endpoint completo y previniendo duplicidad en `idempotency_key`. |
