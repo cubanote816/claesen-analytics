@@ -80,32 +80,135 @@
         Dit document is automatisch gegenereerd door het Claesen Outdoor Lighting Platform.
     </div>
 
-    @if($inspection->answers->whereNotNull('photo_path')->count() > 0)
-        <div style="page-break-before: always;"></div>
-        <div class="header">
-            <h2>Bijlagen: Foto's</h2>
-        </div>
-        
-        <div style="width: 100%;">
-            @foreach($inspection->answers->whereNotNull('photo_path') as $answer)
-                @php
-                    $disk = \Illuminate\Support\Facades\Storage::disk(config('safety.disk', 'local'));
-                    $ext  = strtolower(pathinfo($answer->photo_path, PATHINFO_EXTENSION));
-                    $mime = match($ext) { 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp', default => 'image/jpeg' };
-                    $b64  = $disk->exists($answer->photo_path) ? base64_encode($disk->get($answer->photo_path)) : null;
-                    $questionNumber = $inspection->answers->search(fn($a) => $a->id === $answer->id) + 1;
-                @endphp
-                <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; display: inline-block; width: 45%; vertical-align: top; margin-right: 2%;">
-                    <p><strong>Vraag {{ $questionNumber }}:</strong> {{ $answer->question->text_nl }}</p>
-                    @if($b64)
-                        <img src="data:{{ $mime }};base64,{{ $b64 }}" style="width: 100%; height: auto; max-height: 250px; object-fit: contain;">
-                    @endif
+    @php $photoAnswers = $inspection->answers->whereNotNull('photo_path')->values(); @endphp
+
+    @if($photoAnswers->count() > 0)
+    <div style="page-break-before: always;"></div>
+
+    {{-- Section header --}}
+    <div style="border-bottom: 2px solid #2c3e50; padding-bottom: 8px; margin-bottom: 18px;">
+        <h2 style="margin: 0; font-size: 15px; color: #2c3e50; letter-spacing: 0.4px; font-family: sans-serif;">
+            BIJLAGEN — FOTO-DOCUMENTATIE
+        </h2>
+        <p style="margin: 3px 0 0 0; font-size: 9px; color: #7f8c8d; font-family: sans-serif;">
+            {{ $photoAnswers->count() }} foto{{ $photoAnswers->count() > 1 ? "'s" : '' }} bijgevoegd aan dit rapport
+        </p>
+    </div>
+
+    {{-- 2-column grid via table — page-break-inside:avoid is reliable on <tr> in DomPDF --}}
+    <table width="100%" cellspacing="0" cellpadding="0"
+           style="border-collapse: separate; border-spacing: 10px 10px;">
+
+        @foreach($photoAnswers->chunk(2) as $pair)
+        <tr style="page-break-inside: avoid;">
+
+            @foreach($pair as $answer)
+            @php
+                $disk  = \Illuminate\Support\Facades\Storage::disk(config('safety.disk', 'local'));
+                $ext   = strtolower(pathinfo($answer->photo_path, PATHINFO_EXTENSION));
+                $mime  = match($ext) {
+                    'png'  => 'image/png',
+                    'gif'  => 'image/gif',
+                    'webp' => 'image/webp',
+                    default => 'image/jpeg',
+                };
+                $b64  = $disk->exists($answer->photo_path)
+                      ? base64_encode($disk->get($answer->photo_path))
+                      : null;
+                $qNum = $inspection->answers->search(fn($a) => $a->id === $answer->id) + 1;
+
+                [$accent, $badgeBg, $badgeLabel] = match($answer->status) {
+                    'nok'   => ['#c62828', '#c62828', 'NOK'],
+                    'na'    => ['#78909c', '#78909c', 'N/A'],
+                    default => ['#2e7d32', '#2e7d32', 'OK'],
+                };
+            @endphp
+
+            <td width="50%" style="vertical-align: top; padding: 0;">
+                <div style="border: 1px solid #d0d7de;
+                            border-left: 4px solid {{ $accent }};
+                            background: #ffffff;
+                            font-family: sans-serif;">
+
+                    {{-- Card header: question number pill + truncated text + status badge --}}
+                    <div style="background: #f6f8fa;
+                                border-bottom: 1px solid #d0d7de;
+                                padding: 7px 9px;">
+                        <table width="100%" cellspacing="0" cellpadding="0">
+                            <tr>
+                                <td style="vertical-align: top;">
+                                    <span style="display: inline-block;
+                                                 background: {{ $accent }};
+                                                 color: #fff;
+                                                 font-size: 8px;
+                                                 font-weight: bold;
+                                                 padding: 2px 5px;
+                                                 margin-right: 4px;
+                                                 vertical-align: middle;">{{ $qNum }}</span><!--
+                                 --><span style="font-size: 10px;
+                                                font-weight: bold;
+                                                color: #24292f;
+                                                line-height: 1.3;
+                                                vertical-align: middle;">{{ \Illuminate\Support\Str::limit($answer->question->text_nl, 75) }}</span>
+                                </td>
+                                <td width="32" style="text-align: right; vertical-align: top; padding-left: 4px;">
+                                    <span style="display: inline-block;
+                                                 background: {{ $badgeBg }};
+                                                 color: #fff;
+                                                 font-size: 7.5px;
+                                                 font-weight: bold;
+                                                 padding: 2px 5px;
+                                                 letter-spacing: 0.3px;">{{ $badgeLabel }}</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    {{-- Fixed-height image container — consistent across portrait/landscape/square --}}
+                    <div style="background: #f0f2f5;
+                                text-align: center;
+                                height: 195px;
+                                padding: 8px;">
+                        @if($b64)
+                            <img src="data:{{ $mime }};base64,{{ $b64 }}"
+                                 style="max-width: 100%;
+                                        max-height: 179px;
+                                        width: auto;
+                                        height: auto;">
+                        @else
+                            <p style="color: #9e9e9e; font-size: 9px;
+                                      margin-top: 85px; font-family: sans-serif;">
+                                Foto niet beschikbaar
+                            </p>
+                        @endif
+                    </div>
+
+                    {{-- Remark — only rendered if present --}}
                     @if($answer->remark)
-                        <p style="font-style: italic;">Opmerking: {{ $answer->remark }}</p>
+                    <div style="padding: 5px 9px;
+                                border-top: 1px solid #d0d7de;
+                                background: #fffdf4;">
+                        <span style="font-size: 8.5px; font-weight: bold;
+                                     color: #6e7781; text-transform: uppercase;
+                                     letter-spacing: 0.3px;">Opmerking: </span>
+                        <span style="font-size: 9.5px; color: #444d56;
+                                     font-style: italic;">{{ $answer->remark }}</span>
+                    </div>
                     @endif
+
                 </div>
+            </td>
             @endforeach
-        </div>
+
+            {{-- Empty cell when total photo count is odd --}}
+            @if($pair->count() === 1)
+            <td width="50%"></td>
+            @endif
+
+        </tr>
+        @endforeach
+
+    </table>
     @endif
 
 </body>
