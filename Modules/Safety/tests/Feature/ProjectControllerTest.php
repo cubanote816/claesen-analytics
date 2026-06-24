@@ -31,14 +31,15 @@ class ProjectControllerTest extends TestCase
         return $user->createToken('test', ['role:safety-access'])->plainTextToken;
     }
 
-    private function project(string $id, string $name, bool $active = true, ?int $relationId = null, ?string $descr = null): MirrorProject
+    private function project(string $id, string $name, bool $active = true, ?int $relationId = null, ?string $descr = null, ?string $projectAddressText = null): MirrorProject
     {
         return MirrorProject::create([
-            'id'          => $id,
-            'name'        => $name,
-            'descr'       => $descr,
-            'fl_active'   => $active,
-            'relation_id' => $relationId,
+            'id'                   => $id,
+            'name'                 => $name,
+            'descr'                => $descr,
+            'fl_active'            => $active,
+            'relation_id'          => $relationId,
+            'project_address_text' => $projectAddressText,
         ]);
     }
 
@@ -108,7 +109,34 @@ class ProjectControllerTest extends TestCase
             ->assertExactJson(['data' => []]);
     }
 
-    // ── Test 5: El controller no importa el modelo Cafca (SQL Server) ─────────
+    // ── Test 5: project_address_text con dirección multilinea real ───────────
+
+    public function test_project_address_text_is_returned_as_stored_without_modification(): void
+    {
+        $token = $this->tokenFor('project_manager');
+        $address = "Ladrie Tennis Club sc\nVoie des Maçons 2\n4630 Soumagne";
+        $this->project('P-ADDR', 'Derriks', true, null, 'Soumagne Tennis Ladrie', $address);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/safety/projects')
+            ->assertOk()
+            ->assertJsonPath('data.0.project_address_text', $address);
+    }
+
+    // ── Test 6: project_address_text null cuando no hay dirección ────────────
+
+    public function test_project_address_text_is_null_when_not_set(): void
+    {
+        $token = $this->tokenFor('project_manager');
+        $this->project('P-NOADDR', 'Musco Lighting Germany', true, null, 'DE-Ansbach Middle School', null);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/safety/projects')
+            ->assertOk()
+            ->assertJsonPath('data.0.project_address_text', null);
+    }
+
+    // ── Test 7: El controller no importa el modelo Cafca (SQL Server) ─────────
 
     public function test_controller_does_not_import_cafca_project_model(): void
     {

@@ -82,24 +82,41 @@ class SyncMirrorDataService
                     ->get()
                     ->keyBy('id');
 
+            // Batch-load project addresses from txt table.
+            // project.project_address (int) = txt.txt_id — free-form site address, audited 2026-06-24.
+            $txtIds = $projects->pluck('project_address')->filter()->unique()->values();
+            $txtRows = $txtIds->isEmpty()
+                ? collect()
+                : DB::connection('sqlsrv')->table('txt')
+                    ->whereIn('txt_id', $txtIds)
+                    ->select('txt_id', DB::raw('CAST(txt AS NVARCHAR(MAX)) AS txt_content'))
+                    ->get()
+                    ->keyBy('txt_id');
+
             foreach ($projects as $project) {
                 $category = $categoryMap[$project->type] ?? 'Algemeen';
                 $relation = $relations->get($project->relation_id);
 
+                $rawAddress = $txtRows->get($project->project_address)?->txt_content ?? null;
+                $projectAddressText = ($rawAddress !== null && trim($rawAddress) !== '')
+                    ? $rawAddress
+                    : null;
+
                 MirrorProject::updateOrCreate(
                     ['id' => trim($project->id)],
                     [
-                        'name'             => trim($project->name),
-                        'descr'            => isset($project->descr) ? trim($project->descr) : null,
-                        'relation_id'      => $project->relation_id,
-                        'category'         => $category,
-                        'zipcode'          => trim($relation?->zipcode ?? ''),
-                        'city'             => trim($relation?->city ?? ''),
-                        'fl_active'        => $project->fl_active,
-                        'contract_price'   => $project->contract_price,
-                        'type'             => $project->type,
-                        'state'            => $project->state,
-                        'last_modified_at' => $project->ts_modif ?? $project->ts_crea,
+                        'name'                 => trim($project->name),
+                        'descr'                => isset($project->descr) ? trim($project->descr) : null,
+                        'relation_id'          => $project->relation_id,
+                        'category'             => $category,
+                        'zipcode'              => trim($relation?->zipcode ?? ''),
+                        'city'                 => trim($relation?->city ?? ''),
+                        'project_address_text' => $projectAddressText,
+                        'fl_active'            => $project->fl_active,
+                        'contract_price'       => $project->contract_price,
+                        'type'                 => $project->type,
+                        'state'                => $project->state,
+                        'last_modified_at'     => $project->ts_modif ?? $project->ts_crea,
                     ]
                 );
             }

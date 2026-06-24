@@ -18,6 +18,7 @@ class MirrorProject extends Model
         'category',
         'zipcode',
         'city',
+        'project_address_text',
         'fl_active',
         'contract_price',
         'type',
