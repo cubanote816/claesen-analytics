@@ -9,6 +9,5 @@ return [
         'user_management' => 'User Management',
         'analyse_intelligentie' => 'Analyse & Intelligence',
         'safety_vca' => 'Safety & VCA',
-        'field_ops'  => 'Field Operations',
     ],
 ];
