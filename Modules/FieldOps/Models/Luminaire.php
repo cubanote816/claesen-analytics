@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
+use Modules\Intelligence\Traits\HasAiTranslations;
 use Spatie\Translatable\HasTranslations;
 
 class Luminaire extends Model
 {
-    use HasFactory, SoftDeletes, HasTranslations;
+    use HasFactory, SoftDeletes, HasTranslations, HasAiTranslations;
 
     protected static function newFactory()
     {
@@ -20,6 +21,11 @@ class Luminaire extends Model
     protected $table = 'fo_luminaires';
 
     public array $translatable = ['info'];
+
+    public function getAiTranslatableAttributes(): array
+    {
+        return ['info'];
+    }
 
     protected $fillable = [
         'created_by_user_id',

@@ -7,15 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Database\Factories\StructureFactory;
+use Modules\Intelligence\Traits\HasAiTranslations;
 use Spatie\Translatable\HasTranslations;
 
 class Structure extends Model
 {
-    use HasFactory, SoftDeletes, HasTranslations;
+    use HasFactory, SoftDeletes, HasTranslations, HasAiTranslations;
 
     protected $table = 'fo_structures';
 
     public array $translatable = ['info'];
+
+    public function getAiTranslatableAttributes(): array
+    {
+        return ['info'];
+    }
 
     protected $fillable = [
         'created_by_user_id',

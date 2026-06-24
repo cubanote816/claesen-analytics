@@ -8,6 +8,7 @@ use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireSubgroup;
 use Modules\FieldOps\Models\LuminaireType;
+use Modules\Intelligence\Services\GeminiService;
 use Tests\TestCase;
 
 class LuminaireCrudTest extends TestCase
@@ -22,6 +23,7 @@ class LuminaireCrudTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
         $this->user     = User::factory()->create();
         $this->subgroup = LuminaireSubgroup::factory()->create();
         $this->type     = LuminaireType::factory()->create(['luminaire_subgroup_id' => $this->subgroup->id]);
