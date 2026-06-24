@@ -6,7 +6,6 @@ namespace Modules\Safety\Emails;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -34,7 +33,6 @@ class InspectionReportMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('hostmaster@claesen-verlichting.be', 'Claesen Intelligence Hub'),
             subject: $this->reportSubject,
         );
     }

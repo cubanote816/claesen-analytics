@@ -98,17 +98,16 @@ class InspectionReportMailTest extends TestCase
         });
     }
 
-    // ── 5. From address is hostmaster@ ───────────────────────────────────────
+    // ── 5. No custom from — uses system MAIL_FROM_ADDRESS ────────────────────
 
-    public function test_from_address_is_hostmaster(): void
+    public function test_no_custom_from_address(): void
     {
         $inspection = $this->inspectionWithPdf();
 
         SendInspectionReportMailJob::dispatchSync($inspection->id);
 
         Mail::assertSent(InspectionReportMail::class, function (InspectionReportMail $mail) {
-            $envelope = $mail->envelope();
-            return $envelope->from?->address === 'hostmaster@claesen-verlichting.be';
+            return $mail->envelope()->from === null;
         });
     }
 
