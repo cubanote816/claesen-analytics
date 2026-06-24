@@ -88,9 +88,18 @@
         
         <div style="width: 100%;">
             @foreach($inspection->answers->whereNotNull('photo_path') as $answer)
+                @php
+                    $disk = \Illuminate\Support\Facades\Storage::disk(config('safety.disk', 'local'));
+                    $ext  = strtolower(pathinfo($answer->photo_path, PATHINFO_EXTENSION));
+                    $mime = match($ext) { 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp', default => 'image/jpeg' };
+                    $b64  = $disk->exists($answer->photo_path) ? base64_encode($disk->get($answer->photo_path)) : null;
+                    $questionNumber = $inspection->answers->search(fn($a) => $a->id === $answer->id) + 1;
+                @endphp
                 <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; display: inline-block; width: 45%; vertical-align: top; margin-right: 2%;">
-                    <p><strong>Vraag {{ $loop->iteration }}:</strong> {{ $answer->question->text_nl }}</p>
-                    <img src="{{ \Illuminate\Support\Facades\Storage::disk(config('safety.disk', 'local'))->path($answer->photo_path) }}" style="width: 100%; height: auto; max-height: 250px; object-fit: contain;">
+                    <p><strong>Vraag {{ $questionNumber }}:</strong> {{ $answer->question->text_nl }}</p>
+                    @if($b64)
+                        <img src="data:{{ $mime }};base64,{{ $b64 }}" style="width: 100%; height: auto; max-height: 250px; object-fit: contain;">
+                    @endif
                     @if($answer->remark)
                         <p style="font-style: italic;">Opmerking: {{ $answer->remark }}</p>
                     @endif
