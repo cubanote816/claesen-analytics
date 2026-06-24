@@ -30,10 +30,12 @@ class Inspection extends Model
         'completed_at',
         'pdf_path',
         'payload_hash',
+        'report_emailed_at',
     ];
 
     protected $casts = [
-        'completed_at' => 'datetime',
+        'completed_at'      => 'datetime',
+        'report_emailed_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

@@ -11,6 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 use Modules\Safety\Models\Inspection;
+use Modules\Safety\Jobs\SendInspectionReportMailJob;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class GenerateSafetyPdfJob implements ShouldQueue
@@ -48,6 +49,8 @@ class GenerateSafetyPdfJob implements ShouldQueue
         Storage::disk(config('safety.disk'))->put($filePath, $pdf->output());
 
         $inspection->update(['pdf_path' => $filePath]);
+
+        SendInspectionReportMailJob::dispatch($this->inspectionId);
 
         // Notificar al usuario que lo solicitó
         if ($this->userId) {
