@@ -28,4 +28,9 @@ class TerrainType extends Model
     {
         return TerrainTypeFactory::new();
     }
+
+    public function terrains()
+    {
+        return $this->hasMany(Terrain::class, 'terrain_type_id');
+    }
 }

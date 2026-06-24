@@ -24,4 +24,9 @@ class LuminaireFrameType extends Model
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
+
+    public function luminaireFrames()
+    {
+        return $this->hasMany(LuminaireFrame::class, 'luminaire_frame_type_id');
+    }
 }

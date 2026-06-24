@@ -34,4 +34,9 @@ class StructureType extends Model
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
+
+    public function structures()
+    {
+        return $this->hasMany(Structure::class, 'structure_type_id');
+    }
 }
