@@ -13,6 +13,7 @@ class MirrorProject extends Model
     protected $fillable = [
         'id',
         'name',
+        'descr',
         'relation_id',
         'category',
         'zipcode',

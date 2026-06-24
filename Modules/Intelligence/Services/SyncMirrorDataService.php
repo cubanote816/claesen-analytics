@@ -89,15 +89,16 @@ class SyncMirrorDataService
                 MirrorProject::updateOrCreate(
                     ['id' => trim($project->id)],
                     [
-                        'name'           => trim($project->name),
-                        'relation_id'    => $project->relation_id,
-                        'category'       => $category,
-                        'zipcode'        => trim($relation?->zipcode ?? ''),
-                        'city'           => trim($relation?->city ?? ''),
-                        'fl_active'      => $project->fl_active,
-                        'contract_price' => $project->contract_price,
-                        'type'           => $project->type,
-                        'state'          => $project->state,
+                        'name'             => trim($project->name),
+                        'descr'            => isset($project->descr) ? trim($project->descr) : null,
+                        'relation_id'      => $project->relation_id,
+                        'category'         => $category,
+                        'zipcode'          => trim($relation?->zipcode ?? ''),
+                        'city'             => trim($relation?->city ?? ''),
+                        'fl_active'        => $project->fl_active,
+                        'contract_price'   => $project->contract_price,
+                        'type'             => $project->type,
+                        'state'            => $project->state,
                         'last_modified_at' => $project->ts_modif ?? $project->ts_crea,
                     ]
                 );

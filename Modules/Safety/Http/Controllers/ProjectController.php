@@ -22,6 +22,7 @@ class ProjectController extends Controller
             ->select([
                 'intelligence_mirror_projects.id',
                 'intelligence_mirror_projects.name',
+                'intelligence_mirror_projects.descr',
                 'intelligence_mirror_relations.name as relation_name',
             ])
             ->orderBy('intelligence_mirror_projects.name')

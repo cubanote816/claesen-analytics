@@ -31,11 +31,12 @@ class ProjectControllerTest extends TestCase
         return $user->createToken('test', ['role:safety-access'])->plainTextToken;
     }
 
-    private function project(string $id, string $name, bool $active = true, ?int $relationId = null): MirrorProject
+    private function project(string $id, string $name, bool $active = true, ?int $relationId = null, ?string $descr = null): MirrorProject
     {
         return MirrorProject::create([
             'id'          => $id,
             'name'        => $name,
+            'descr'       => $descr,
             'fl_active'   => $active,
             'relation_id' => $relationId,
         ]);
@@ -46,33 +47,35 @@ class ProjectControllerTest extends TestCase
         return MirrorRelation::create(['id' => $id, 'name' => $name]);
     }
 
-    // ── Test 1: Proyecto activo con relación devuelve relation_name ───────────
+    // ── Test 1: Proyecto activo con relación devuelve descr + relation_name ─────
 
-    public function test_active_project_with_relation_returns_relation_name(): void
+    public function test_active_project_with_relation_returns_descr_and_relation_name(): void
     {
         $token = $this->tokenFor('project_manager');
         $rel = $this->relation(1, 'TC Tenkie');
-        $this->project('P-001', 'Limburg Diepenbeek', true, $rel->id);
+        $this->project('P-001', 'TC Tenkie', true, $rel->id, 'Limburg - Veldverlichting Diepenbeek');
 
         $this->withToken($token)
             ->getJson('/api/v1/safety/projects')
             ->assertOk()
             ->assertJsonPath('data.0.id', 'P-001')
-            ->assertJsonPath('data.0.name', 'Limburg Diepenbeek')
+            ->assertJsonPath('data.0.name', 'TC Tenkie')
+            ->assertJsonPath('data.0.descr', 'Limburg - Veldverlichting Diepenbeek')
             ->assertJsonPath('data.0.relation_name', 'TC Tenkie');
     }
 
-    // ── Test 2: Proyecto activo sin relación devuelve relation_name: null ─────
+    // ── Test 2: Proyecto sin descr devuelve descr: null ───────────────────────
 
-    public function test_active_project_without_relation_returns_null_relation_name(): void
+    public function test_active_project_without_descr_returns_null_descr(): void
     {
         $token = $this->tokenFor('project_manager');
-        $this->project('P-002', 'Onbekend Project', true, null);
+        $this->project('P-002', 'Onbekend Project', true, null, null);
 
         $this->withToken($token)
             ->getJson('/api/v1/safety/projects')
             ->assertOk()
             ->assertJsonPath('data.0.id', 'P-002')
+            ->assertJsonPath('data.0.descr', null)
             ->assertJsonPath('data.0.relation_name', null);
     }
 
