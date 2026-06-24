@@ -96,6 +96,20 @@ class MicrosoftGraphTransport extends AbstractTransport
             }
         }
 
+        // Add attachments
+        $attachments = $email->getAttachments();
+        if (!empty($attachments)) {
+            $payload['message']['attachments'] = [];
+            foreach ($attachments as $attachment) {
+                $payload['message']['attachments'][] = [
+                    '@odata.type'  => '#microsoft.graph.fileAttachment',
+                    'name'         => $attachment->getFilename() ?? 'attachment',
+                    'contentType'  => $attachment->getMediaType() . '/' . $attachment->getMediaSubType(),
+                    'contentBytes' => base64_encode($attachment->getBody()),
+                ];
+            }
+        }
+
         return $payload;
     }
 
