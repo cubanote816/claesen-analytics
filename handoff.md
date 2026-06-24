@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-24 (FO-002 / CLA-173 ✅ Done — project.descr añadido al mirror y endpoint Safety projects)
+> Última actualización: 2026-06-24 (CLA-174 ✅ Done — project_address_text sincronizado desde txt.txt y expuesto en endpoint Safety projects)
 
 ---
 
@@ -9,8 +9,8 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito:** FO-002 / CLA-173 ✅ Done (2026-06-24) — `project.descr` añadido al mirror y al endpoint `GET /api/v1/safety/projects`. Commit `50fc4eb`. Mirror resincronizado (127/127 activos con descr).
-- **Próximo paso:** PWA Safety actualizar render de tarjeta: `descr` (arriba, grande) + `id - name` (abajo, pequeño).
+- **Último hito:** CLA-174 ✅ Done (2026-06-24) — `project_address_text` (Projectadres) sincronizado desde `txt.txt` vía `project.project_address = txt.txt_id` y expuesto en `GET /api/v1/safety/projects`. Commit `526b0b8`. 7 tests / 19 assertions.
+- **Próximo paso:** Backfill post-deploy (`php artisan intelligence:sync-mirror`) para poblar `project_address_text` en registros existentes. Luego: PWA Safety actualizar render de tarjeta con el nuevo campo.
 
 ### SAF-PWA-001 / CLA-170 ✅ Done
 
@@ -544,6 +544,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-24 | CLA-174 | Done — `project_address_text` (Projectadres) añadido al mirror y al endpoint Safety projects. Batch-load desde `txt.txt` vía `project.project_address = txt.txt_id`. Normalización null si vacío/whitespace. Contrato: `{id, name, descr, project_address_text, relation_name}`. 7 tests / 19 assertions. Commit `526b0b8`. Backfill: `php artisan intelligence:sync-mirror` post-deploy. |
 | 2026-06-24 | FO-002 / CLA-173 | Done — `project.descr` añadido al mirror (migración + sync) y al endpoint Safety projects. Contrato: `{id, name, descr, relation_name}`. 5 tests / 15 assertions. Commit `50fc4eb`. |
 | 2026-06-24 | FO-001 / CLA-172 | Done — Filament admin FieldOps (FoClientResource, TerrainTypeResource, StructureTypeResource), TranslateModelAttributesJob (Gemini nl/en/fr/de, ai_translation_status), SetLocaleFromHeader middleware en rutas v1/fieldops/*. 6 tests / 14 assertions. Commit `78e66df`. |
 | 2026-06-23 | C.6a | Done — `GET /complexes?client_id=X` y `GET /structures?terrain_id=X`. Ambos filtros con `when()` + `whereHas()`. 5 tests nuevos / 15 assertions. 112/270 total FieldOps. Commit `b8b0205`. Desbloquea C.6b (frontend cutover). |
