@@ -204,6 +204,10 @@ class InspectionResource extends Resource
                         TextEntry::make('incidentWorker.name')
                             ->label('Betrokken Medewerker')
                             ->visible(fn ($record) => $record->type === 'incident' && $record->incident_worker_id),
+                        TextEntry::make('present_workers_names')
+                            ->label('Aanwezige medewerkers')
+                            ->getStateUsing(fn ($record) => $record->presentWorkers->pluck('name')->join(', ') ?: '-')
+                            ->visible(fn ($record) => $record->type === 'inspection'),
                         TextEntry::make('checklist.name')->label('Checklist'),
                         TextEntry::make('completed_at')
                             ->label('Voltooid op')

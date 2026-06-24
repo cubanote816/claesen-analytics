@@ -38,6 +38,12 @@
                 <td colspan="3">{{ $inspection->incidentWorker->name }}</td>
             </tr>
             @endif
+            @if($inspection->type === 'inspection' && $inspection->presentWorkers->isNotEmpty())
+            <tr>
+                <th>Aanwezige medewerkers:</th>
+                <td colspan="3">{{ $inspection->presentWorkers->pluck('name')->join(', ') }}</td>
+            </tr>
+            @endif
             <tr>
                 <th>Checklist:</th>
                 <td>{{ $inspection->checklist->name ?? 'N/A' }}</td>

@@ -25,7 +25,7 @@ class GenerateSafetyPdfJob implements ShouldQueue
 
     public function handle(): void
     {
-        $inspection = Inspection::with(['answers.question', 'checklist'])->find($this->inspectionId);
+        $inspection = Inspection::with(['answers.question', 'checklist', 'presentWorkers'])->find($this->inspectionId);
 
         if (!$inspection) {
             return;
