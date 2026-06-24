@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-24 (FO-001 / CLA-172 ✅ Done — FieldOps Filament admin + AI translation pipeline)
+> Última actualización: 2026-06-24 (FO-002 / CLA-173 ✅ Done — project.descr añadido al mirror y endpoint Safety projects)
 
 ---
 
@@ -9,8 +9,8 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito:** FO-001 / CLA-172 ✅ Done (2026-06-24) — Filament admin FieldOps + TranslateModelAttributesJob + SetLocaleFromHeader. Commit `78e66df`.
-- **Próximo paso:** SAF-DEBT-002 (Carbon freeze tests) o siguiente slice FieldOps según prioridad.
+- **Último hito:** FO-002 / CLA-173 ✅ Done (2026-06-24) — `project.descr` añadido al mirror y al endpoint `GET /api/v1/safety/projects`. Commit `50fc4eb`. Mirror resincronizado (127/127 activos con descr).
+- **Próximo paso:** PWA Safety actualizar render de tarjeta: `descr` (arriba, grande) + `id - name` (abajo, pequeño).
 
 ### SAF-PWA-001 / CLA-170 ✅ Done
 
@@ -544,6 +544,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-24 | FO-002 / CLA-173 | Done — `project.descr` añadido al mirror (migración + sync) y al endpoint Safety projects. Contrato: `{id, name, descr, relation_name}`. 5 tests / 15 assertions. Commit `50fc4eb`. |
 | 2026-06-24 | FO-001 / CLA-172 | Done — Filament admin FieldOps (FoClientResource, TerrainTypeResource, StructureTypeResource), TranslateModelAttributesJob (Gemini nl/en/fr/de, ai_translation_status), SetLocaleFromHeader middleware en rutas v1/fieldops/*. 6 tests / 14 assertions. Commit `78e66df`. |
 | 2026-06-23 | C.6a | Done — `GET /complexes?client_id=X` y `GET /structures?terrain_id=X`. Ambos filtros con `when()` + `whereHas()`. 5 tests nuevos / 15 assertions. 112/270 total FieldOps. Commit `b8b0205`. Desbloquea C.6b (frontend cutover). |
 | 2026-06-23 | C.5 | Done — LuminaireFrame CRUD (structure_ids triple-case) + Luminaire CRUD (serial_number unique, frame_position auto-recalculado al cambiar frame, cross-validate type↔subgroup, info locale-merge). 35 tests / 95 assertions. 107/255 total FieldOps. Commit `e4452cf`. |
