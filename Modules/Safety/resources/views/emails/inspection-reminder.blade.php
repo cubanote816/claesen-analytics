@@ -21,7 +21,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>Claesen Intelligence Hub</h1>
+        <h1>Claesen Outdoor Lighting Platform</h1>
     </div>
     <div class="body">
         <p>Dag {{ $recipient->name }},</p>
@@ -44,10 +44,10 @@
             </div>
         @endif
 
-        <p>Met vriendelijke groeten,<br>Claesen Intelligence Hub</p>
+        <p>Met vriendelijke groeten,<br>Claesen Outdoor Lighting Platform</p>
     </div>
     <div class="footer">
-        Dit is een automatisch bericht van het Claesen Intelligence Hub systeem. Gelieve niet op dit e-mailadres te antwoorden.
+        Dit is een automatisch bericht van het Claesen Outdoor Lighting Platform systeem. Gelieve niet op dit e-mailadres te antwoorden.
     </div>
 </div>
 </body>
