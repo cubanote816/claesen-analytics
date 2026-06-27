@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-24 (CLA-174 ✅ Done — project_address_text sincronizado desde txt.txt y expuesto en endpoint Safety projects)
+> Última actualización: 2026-06-27 (CLA-181 ✅ Done — migración global auth browser-first a Sanctum SPA cookie session)
 
 ---
 
@@ -9,8 +9,8 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito:** CLA-174 ✅ Done (2026-06-24) — `project_address_text` (Projectadres) sincronizado desde `txt.txt` vía `project.project_address = txt.txt_id` y expuesto en `GET /api/v1/safety/projects`. Commit `526b0b8`. 7 tests / 19 assertions.
-- **Próximo paso:** Backfill post-deploy (`php artisan intelligence:sync-mirror`) para poblar `project_address_text` en registros existentes. Luego: PWA Safety actualizar render de tarjeta con el nuevo campo.
+- **Último hito:** CLA-181 ✅ Done (2026-06-27) — migración global auth browser-first a Sanctum SPA cookie session. Commit `80e3f1e`. 251/251 tests (Safety 119 + Core 20 + FieldOps 112).
+- **Próximo paso:** CLA-178 (In Progress) — rediseño email inspección con identidad digital Claesen + fix reminder. Archivos locales con cambios listos: `inspection-report.blade.php` + `inspection-reminder.blade.php`.
 
 ### SAF-PWA-001 / CLA-170 ✅ Done
 
@@ -407,7 +407,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | **Intelligence / BI** | ✅ Sprint 1 ✅ Sprint 2B — PR #6 pendiente merge; BI-PROJ-02 ✅ (Vista de Águila) | `feature/bi-project-intelligence-detail` | `docs/bi-sprint-plan.md` |
 | **Prospects** | 🚧 ~80% (PROS-BUG-001+002 cerrados, FAB mailing operativo, sync dashboard exception feed) | `main` | Ver `CLAUDE.md` |
 | **Cafca** | ✅ ~90% | `main` | Ver `CLAUDE.md` |
-| **Core** | ✅ ~95% | `main` | Ver `CLAUDE.md` |
+| **Core** | ✅ ~98% | `main` | Ver `CLAUDE.md` |
 
 ---
 
@@ -544,6 +544,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-27 | CLA-181 | Done — Migración global auth browser-first: Sanctum SPA cookie session. `statefulApi()` + CORS `supports_credentials=true` + Safety login/logout/me por cookie HttpOnly sin token + OAuth callback sin Bearer en URL + `loginSpa()` en Core para SPAs + `EnsureSafetyAccess` desacoplado de token ability para sesión + `logout()` tolerante a `TransientToken` + `localhost:5173` en stateful domains + `.env.example` documentado. Bearer legacy intacto para FieldOps/Sport. 251/251 tests ✅. Commit `80e3f1e`. Pendiente frontend: `GET /sanctum/csrf-cookie` antes de POST login, `withCredentials: true`, retirar `localStorage.auth_token`. `SESSION_DOMAIN` y `SESSION_SAME_SITE=none` en `.env` producción si frontend es cross-site. |
 | 2026-06-24 | CLA-174 | Done — `project_address_text` (Projectadres) añadido al mirror y al endpoint Safety projects. Batch-load desde `txt.txt` vía `project.project_address = txt.txt_id`. Normalización null si vacío/whitespace. Contrato: `{id, name, descr, project_address_text, relation_name}`. 7 tests / 19 assertions. Commit `526b0b8`. Backfill: `php artisan intelligence:sync-mirror` post-deploy. |
 | 2026-06-24 | FO-002 / CLA-173 | Done — `project.descr` añadido al mirror (migración + sync) y al endpoint Safety projects. Contrato: `{id, name, descr, relation_name}`. 5 tests / 15 assertions. Commit `50fc4eb`. |
 | 2026-06-24 | FO-001 / CLA-172 | Done — Filament admin FieldOps (FoClientResource, TerrainTypeResource, StructureTypeResource), TranslateModelAttributesJob (Gemini nl/en/fr/de, ai_translation_status), SetLocaleFromHeader middleware en rutas v1/fieldops/*. 6 tests / 14 assertions. Commit `78e66df`. |
