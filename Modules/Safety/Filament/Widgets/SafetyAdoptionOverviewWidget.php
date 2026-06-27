@@ -49,22 +49,22 @@ class SafetyAdoptionOverviewWidget extends BaseWidget
         $frictionTarget = SafetyAdoptionDailyRollup::where('date', $targetDate)->where('metric_name', 'friction_events_count')->value('value') ?? 0;
 
         return [
-            Stat::make('Adopción MAU (Cierre de Ayer)', "{$adoptionRate30}%")
-                ->description("{$active30Target} activos / {$enabledTarget} habilitados")
+            Stat::make(__('safety::inspections.widgets.adoption.mau_title'), "{$adoptionRate30}%")
+                ->description(__('safety::inspections.widgets.adoption.mau_desc', ['active' => $active30Target, 'total' => $enabledTarget]))
                 ->descriptionIcon($trend30 >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->color($trend30 >= 0 ? 'success' : 'danger')
                 ->chart([$adoptionRate30Prev, $adoptionRate30]),
 
-            Stat::make('Inspecciones Completadas (Ayer)', $inspectionsTarget)
-                ->description('Envíos exitosos confirmados en backend')
+            Stat::make(__('safety::inspections.widgets.adoption.inspections_title'), $inspectionsTarget)
+                ->description(__('safety::inspections.widgets.adoption.inspections_desc'))
                 ->color('primary'),
 
-            Stat::make('Incidentes Reportados (Ayer)', $incidentsTarget)
-                ->description('Reportes de incidentes confirmados')
+            Stat::make(__('safety::inspections.widgets.adoption.incidents_title'), $incidentsTarget)
+                ->description(__('safety::inspections.widgets.adoption.incidents_desc'))
                 ->color('danger'),
 
-            Stat::make('Fricción Técnica (Ayer)', $frictionTarget)
-                ->description('Fallos de subida o conflictos de red')
+            Stat::make(__('safety::inspections.widgets.adoption.friction_title'), $frictionTarget)
+                ->description(__('safety::inspections.widgets.adoption.friction_desc'))
                 ->color($frictionTarget > 0 ? 'warning' : 'success'),
         ];
     }

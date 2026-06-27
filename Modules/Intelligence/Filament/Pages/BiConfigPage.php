@@ -33,17 +33,17 @@ class BiConfigPage extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Intelligence Hub';
+        return __('navigation.groups.intelligence_hub');
     }
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'nl' ? 'BI Configuratie' : 'BI Configuration';
+        return __('intelligence::bi_config.navigation_label');
     }
 
     public function getTitle(): string
     {
-        return app()->getLocale() === 'nl' ? 'BI Configuratie' : 'BI Configuration';
+        return __('intelligence::bi_config.title');
     }
 
     public function mount(): void
@@ -93,16 +93,12 @@ class BiConfigPage extends Page implements HasForms
 
     public function form(Schema $form): Schema
     {
-        $nl = app()->getLocale() === 'nl';
-
         return $form
             ->schema([
 
                 // ── Section 1: Project type labels ───────────────────────────
-                Section::make($nl ? 'Projecttype labels' : 'Project type labels')
-                    ->description($nl
-                        ? 'Namen voor project.type (0-8) uit CAFCA. Leeg = fallback "Tipo N" met waarschuwingsbadge.'
-                        : 'Names for project.type (0-8) from CAFCA ERP. Empty = fallback "Type N" with warning badge.')
+                Section::make(__('intelligence::bi_config.sections.project_types'))
+                    ->description(__('intelligence::bi_config.sections.project_types_desc'))
                     ->schema([
                         TextInput::make('type_0')->label('Type 0')->placeholder('Industrie'),
                         TextInput::make('type_1')->label('Type 1')->placeholder('Industrie'),
@@ -117,89 +113,81 @@ class BiConfigPage extends Page implements HasForms
                     ->columns(3),
 
                 // ── Section 2: Estimate status labels ────────────────────────
-                Section::make($nl ? 'Offertestatus labels' : 'Estimate status labels')
-                    ->description($nl
-                        ? 'Namen voor estimate.status codes. Status 4 = 91% van alle offertes. Status 3 = beste proxy voor "verzonden naar klant". Status 2 heeft 0 records.'
-                        : 'Names for estimate.status codes. Status 4 = 91% of all estimates. Status 3 = best proxy for "sent to client". Status 2 has 0 records.')
+                Section::make(__('intelligence::bi_config.sections.estimate_status'))
+                    ->description(__('intelligence::bi_config.sections.estimate_status_desc'))
                     ->schema([
-                        TextInput::make('status_0')->label('Status 0')->placeholder($nl ? 'Niet geclassificeerd' : 'Unclassified'),
-                        TextInput::make('status_1')->label('Status 1')->placeholder($nl ? 'Concept' : 'Draft'),
-                        TextInput::make('status_3')->label('Status 3')->placeholder($nl ? 'Verzonden naar klant' : 'Sent to client'),
-                        TextInput::make('status_4')->label($nl ? 'Status 4 (91%)' : 'Status 4 (91%)')->placeholder($nl ? 'Actieve offerte' : 'Active estimate'),
-                        TextInput::make('status_5')->label('Status 5')->placeholder($nl ? 'Interne review' : 'Internal review'),
-                        TextInput::make('status_6')->label('Status 6')->placeholder($nl ? 'Verloren / Afgewezen' : 'Lost / Rejected'),
-                        TextInput::make('status_7')->label('Status 7')->placeholder($nl ? 'Gearchiveerd' : 'Archived'),
+                        TextInput::make('status_0')->label('Status 0')->placeholder(__('intelligence::bi_config.fields.status_placeholders.0')),
+                        TextInput::make('status_1')->label('Status 1')->placeholder(__('intelligence::bi_config.fields.status_placeholders.1')),
+                        TextInput::make('status_3')->label('Status 3')->placeholder(__('intelligence::bi_config.fields.status_placeholders.3')),
+                        TextInput::make('status_4')->label(__('intelligence::bi_config.fields.status_4_label'))->placeholder(__('intelligence::bi_config.fields.status_placeholders.4')),
+                        TextInput::make('status_5')->label('Status 5')->placeholder(__('intelligence::bi_config.fields.status_placeholders.5')),
+                        TextInput::make('status_6')->label('Status 6')->placeholder(__('intelligence::bi_config.fields.status_placeholders.6')),
+                        TextInput::make('status_7')->label('Status 7')->placeholder(__('intelligence::bi_config.fields.status_placeholders.7')),
                     ])
                     ->columns(3),
 
                 // ── Section 3: Variant margin targets ────────────────────────
-                Section::make($nl ? 'Doelmarges per variant (%)' : 'Variant margin targets (%)')
-                    ->description($nl
-                        ? 'Winstmarge per offertevariante. Historisch CAFCA-bereik: 15-35%.'
-                        : 'Target profit margin per offer variant. Historical CAFCA range: 15-35%.')
+                Section::make(__('intelligence::bi_config.sections.margins'))
+                    ->description(__('intelligence::bi_config.sections.margins_desc'))
                     ->schema([
                         TextInput::make('margin_economy')
-                            ->label($nl ? 'Economisch (%)' : 'Economy (%)')
+                            ->label(__('intelligence::bi_config.fields.margin_economy'))
                             ->numeric()->minValue(0)->maxValue(100)->suffix('%')
-                            ->helperText($nl ? 'Laagste marge — kostprijs + minimale opslag' : 'Lowest margin — cost price + minimal markup'),
+                            ->helperText(__('intelligence::bi_config.fields.margin_economy_hint')),
                         TextInput::make('margin_standard')
-                            ->label($nl ? 'Standaard (%)' : 'Standard (%)')
+                            ->label(__('intelligence::bi_config.fields.margin_standard'))
                             ->numeric()->minValue(0)->maxValue(100)->suffix('%')
-                            ->helperText($nl ? 'Aanbevolen standaard marge' : 'Recommended standard margin'),
+                            ->helperText(__('intelligence::bi_config.fields.margin_standard_hint')),
                         TextInput::make('margin_premium')
-                            ->label($nl ? 'Premium (%)' : 'Premium (%)')
+                            ->label(__('intelligence::bi_config.fields.margin_premium'))
                             ->numeric()->minValue(0)->maxValue(100)->suffix('%')
-                            ->helperText($nl ? 'Hoogste marge — complexe of urgente projecten' : 'Highest margin — complex or urgent projects'),
+                            ->helperText(__('intelligence::bi_config.fields.margin_premium_hint')),
                     ])
                     ->columns(3),
 
                 // ── Section 4: Labor sync schedule ───────────────────────────
-                Section::make($nl ? 'Synchronisatie arbeidsuren' : 'Labor sync schedule')
-                    ->description($nl
-                        ? 'followup_labor_analytical wordt geblokkeerd tijdens actief CAFCA-gebruik. Stel een veilig tijdvenster in (bijv. 22:00-06:00). Leeg = geen beperking.'
-                        : 'followup_labor_analytical is locked during active CAFCA use. Set a safe time window (e.g. 22:00-06:00). Empty = no restriction.')
+                Section::make(__('intelligence::bi_config.sections.labor_sync'))
+                    ->description(__('intelligence::bi_config.sections.labor_sync_desc'))
                     ->schema([
                         TimePicker::make('labor_start')
-                            ->label($nl ? 'Start veilig venster' : 'Window start')
+                            ->label(__('intelligence::bi_config.fields.labor_start'))
                             ->seconds(false),
                         TimePicker::make('labor_end')
-                            ->label($nl ? 'Einde veilig venster' : 'Window end')
+                            ->label(__('intelligence::bi_config.fields.labor_end'))
                             ->seconds(false),
                     ])
                     ->columns(2)
                     ->footerActions([
                         Action::make('sync_now')
-                            ->label($nl ? 'Sync nu uitvoeren' : 'Run sync now')
+                            ->label(__('intelligence::bi_config.actions.sync_now'))
                             ->icon('heroicon-o-arrow-path')
                             ->color('gray')
                             ->action('runMirrorSync'),
                     ]),
 
                 // ── Section 5: Billing Guardian rules ────────────────────────
-                Section::make($nl ? 'Monthly Billing Guardian regels' : 'Monthly Billing Guardian rules')
-                    ->description($nl
-                        ? 'Drempelwaarden voor automatische factureringsdetectie. Wijzigingen worden direct actief bij de volgende Guardian-run.'
-                        : 'Thresholds for automatic billing detection. Changes take effect on the next Guardian run.')
+                Section::make(__('intelligence::bi_config.sections.guardian'))
+                    ->description(__('intelligence::bi_config.sections.guardian_desc'))
                     ->schema([
                         TextInput::make('guardian_days')
-                            ->label($nl ? 'Dagen zonder factuur' : 'Days without invoice')
-                            ->numeric()->minValue(1)->suffix($nl ? 'dagen' : 'days')
-                            ->helperText($nl ? 'Actieve projecten zonder factuur na N dagen → alert' : 'Active projects with no invoice after N days → alert'),
+                            ->label(__('intelligence::bi_config.fields.guardian_days'))
+                            ->numeric()->minValue(1)->suffix(__('intelligence::bi_config.fields.guardian_days_suffix'))
+                            ->helperText(__('intelligence::bi_config.fields.guardian_days_hint')),
                         TextInput::make('guardian_min_amount')
-                            ->label($nl ? 'Min. openstaand bedrag (€)' : 'Min. open amount (€)')
+                            ->label(__('intelligence::bi_config.fields.guardian_min_amount'))
                             ->numeric()->minValue(0)->prefix('€')
-                            ->helperText($nl ? 'Vervallen facturen onder dit bedrag worden overgeslagen' : 'Overdue invoices below this amount are skipped'),
+                            ->helperText(__('intelligence::bi_config.fields.guardian_min_amount_hint')),
                         TextInput::make('guardian_min_activity_amount')
-                            ->label($nl ? 'Min. maandactiviteit (€)' : 'Min. monthly activity (€)')
+                            ->label(__('intelligence::bi_config.fields.guardian_min_activity'))
                             ->numeric()->minValue(0)->prefix('€')
-                            ->helperText($nl ? 'Ontbrekende-factuur alerts vereisen maandkosten boven dit bedrag' : 'Missing-invoice alerts require monthly costs above this amount'),
+                            ->helperText(__('intelligence::bi_config.fields.guardian_min_activity_hint')),
                         TextInput::make('guardian_min_cost_amount')
-                            ->label($nl ? 'Min. niet-gefactureerde kost (€)' : 'Min. unbilled cost (€)')
+                            ->label(__('intelligence::bi_config.fields.guardian_min_cost'))
                             ->numeric()->minValue(0)->prefix('€')
-                            ->helperText($nl ? 'Niet-gefactureerde kosten per project/maand onder dit bedrag worden overgeslagen' : 'Unbilled costs per project/month below this amount are skipped'),
+                            ->helperText(__('intelligence::bi_config.fields.guardian_min_cost_hint')),
                         Toggle::make('guardian_include_no_contract')
-                            ->label($nl ? 'Inclusief projecten zonder contract' : 'Include projects without contract')
-                            ->helperText($nl ? 'Als uitgeschakeld: projecten zonder contract_price worden overgeslagen' : 'If off: projects without contract_price are skipped')
+                            ->label(__('intelligence::bi_config.fields.guardian_no_contract'))
+                            ->helperText(__('intelligence::bi_config.fields.guardian_no_contract_hint'))
                             ->columnSpanFull(),
                     ])
                     ->columns(3),
@@ -212,7 +200,7 @@ class BiConfigPage extends Page implements HasForms
     {
         return [
             Action::make('save')
-                ->label(app()->getLocale() === 'nl' ? 'Opslaan' : 'Save')
+                ->label(__('intelligence::bi_config.actions.save'))
                 ->submit('save')
                 ->color('primary')
                 ->icon('heroicon-m-check'),
@@ -260,26 +248,24 @@ class BiConfigPage extends Page implements HasForms
             'include_projects_without_contract' => (bool) $d['guardian_include_no_contract'],
         ], $uid);
 
-        $nl = app()->getLocale() === 'nl';
         Notification::make()
-            ->title($nl ? 'Configuratie opgeslagen' : 'Configuration saved')
+            ->title(__('intelligence::bi_config.notifications.saved_title'))
             ->success()
             ->send();
     }
 
     public function runMirrorSync(): void
     {
-        $nl = app()->getLocale() === 'nl';
         try {
             \Illuminate\Support\Facades\Artisan::queue('intelligence:sync-mirror');
             Notification::make()
-                ->title($nl ? 'Sync in wachtrij geplaatst' : 'Sync queued')
-                ->body($nl ? 'De synchronisatie wordt op de achtergrond uitgevoerd.' : 'Sync is running in the background.')
+                ->title(__('intelligence::bi_config.notifications.sync_queued_title'))
+                ->body(__('intelligence::bi_config.notifications.sync_queued_body'))
                 ->success()
                 ->send();
         } catch (\Throwable $e) {
             Notification::make()
-                ->title($nl ? 'Sync mislukt' : 'Sync failed')
+                ->title(__('intelligence::bi_config.notifications.sync_failed_title'))
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

@@ -19,7 +19,7 @@ class WebsiteCluster extends Cluster
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Content & Website';
+        return __('navigation.groups.content_website');
     }
 
     protected static ?\Filament\Pages\Enums\SubNavigationPosition $subNavigationPosition = \Filament\Pages\Enums\SubNavigationPosition::Top;

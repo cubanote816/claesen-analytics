@@ -60,12 +60,12 @@ class InspectionResource extends Resource
             ->poll('10s')
             ->columns([
                 Tables\Columns\TextColumn::make('type')
-                    ->label('Type')
+                    ->label(__('safety::inspections.columns.type'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'inspection' => 'Site Inspection',
-                        'incident' => 'Incident Report',
-                        default => $state,
+                        'inspection' => __('safety::inspections.types.inspection'),
+                        'incident'   => __('safety::inspections.types.incident'),
+                        default      => $state,
                     })
                     ->color(fn (string $state): string => match ($state) {
                         'inspection' => 'success',
@@ -91,8 +91,10 @@ class InspectionResource extends Resource
                 Tables\Columns\TextColumn::make('has_pdf')
                     ->label('PDF')
                     ->badge()
-                    ->state(fn(Inspection $record): string => $record->pdf_path ? 'Gegenereerd' : 'Niet gegenereerd')
-                    ->color(fn(string $state): string => $state === 'Gegenereerd' ? 'success' : 'gray'),
+                    ->state(fn(Inspection $record): string => $record->pdf_path
+                        ? __('safety::inspections.pdf_status.generated')
+                        : __('safety::inspections.pdf_status.not_generated'))
+                    ->color(fn(string $state): string => $state === __('safety::inspections.pdf_status.generated') ? 'success' : 'gray'),
             ])
             ->filters([
                 TrashedFilter::make()
@@ -147,7 +149,7 @@ class InspectionResource extends Resource
                                     ->send();
                             } catch (\Exception $e) {
                                 Notification::make()
-                                    ->title('Error bij genereren PDF')
+                                    ->title(__('safety::inspections.actions.regenerate_error'))
                                     ->body($e->getMessage())
                                     ->danger()
                                     ->persistent()
@@ -158,13 +160,13 @@ class InspectionResource extends Resource
                         }),
 
                     Action::make('archive')
-                        ->label('Archiveren')
+                        ->label(__('safety::inspections.actions.archive'))
                         ->icon('heroicon-o-archive-box-x-mark')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->modalHeading('Inspectie archiveren?')
-                        ->modalDescription('De inspectie wordt verborgen, maar antwoorden, foto\'s en PDF blijven bewaard.')
-                        ->modalSubmitActionLabel('Archiveren')
+                        ->modalHeading(__('safety::inspections.actions.archive_heading'))
+                        ->modalDescription(__('safety::inspections.actions.archive_description'))
+                        ->modalSubmitActionLabel(__('safety::inspections.actions.archive_confirm'))
                         ->visible(fn (Inspection $record): bool =>
                             auth()->user()?->hasRole('super_admin') && ! $record->deleted_at
                         )
@@ -174,7 +176,7 @@ class InspectionResource extends Resource
                         ->visible(fn (Inspection $record): bool =>
                             auth()->user()?->hasRole('super_admin') && (bool) $record->deleted_at
                         ),
-                ])->button()->label('Acties'),
+                ])->button()->label(__('safety::inspections.actions.group_label')),
             ])
             ->bulkActions([])
             ->defaultSort('completed_at', 'desc');
@@ -184,49 +186,49 @@ class InspectionResource extends Resource
     {
         return $schema
             ->components([
-                Section::make('Inspectie Details')
+                Section::make(__('safety::inspections.sections.details'))
                     ->schema([
                         TextEntry::make('type')
-                            ->label('Type')
+                            ->label(__('safety::inspections.columns.type'))
                             ->badge()
                             ->formatStateUsing(fn (string $state): string => match ($state) {
-                                'inspection' => 'Site Inspection',
-                                'incident' => 'Incident Report',
-                                default => $state,
+                                'inspection' => __('safety::inspections.types.inspection'),
+                                'incident'   => __('safety::inspections.types.incident'),
+                                default      => $state,
                             })
                             ->color(fn (string $state): string => match ($state) {
                                 'inspection' => 'success',
                                 'incident' => 'warning',
                                 default => 'gray',
                             }),
-                        TextEntry::make('project_id')->label('Project ID'),
-                        TextEntry::make('user.name')->label('Inspecteur / Melder'),
+                        TextEntry::make('project_id')->label(__('safety::inspections.columns.project_id')),
+                        TextEntry::make('user.name')->label(__('safety::inspections.columns.reporter')),
                         TextEntry::make('incidentWorker.name')
-                            ->label('Betrokken Medewerker')
+                            ->label(__('safety::inspections.columns.involved_worker'))
                             ->visible(fn ($record) => $record->type === 'incident' && $record->incident_worker_id),
                         TextEntry::make('present_workers_names')
-                            ->label('Aanwezige medewerkers')
+                            ->label(__('safety::inspections.columns.present_workers'))
                             ->getStateUsing(fn ($record) => $record->presentWorkers->pluck('name')->join(', ') ?: '-')
                             ->visible(fn ($record) => $record->type === 'inspection'),
-                        TextEntry::make('checklist.name')->label('Checklist'),
+                        TextEntry::make('checklist.name')->label(__('safety::inspections.columns.checklist')),
                         TextEntry::make('completed_at')
-                            ->label('Voltooid op')
+                            ->label(__('safety::inspections.columns.completed_at'))
                             ->dateTime('d-m-Y H:i:s'),
                     ])
                     ->columns(4)
                     ->columnSpanFull(),
 
-                Section::make('Antwoorden')
+                Section::make(__('safety::inspections.sections.answers'))
                     ->schema([
                         RepeatableEntry::make('answers')
                             ->label('')
                             ->grid(2)
                             ->schema([
                                 TextEntry::make('question.text_nl')
-                                    ->label('Vraag')
+                                    ->label(__('safety::inspections.columns.question'))
                                     ->columnSpan(3),
                                 TextEntry::make('status')
-                                    ->label('Status')
+                                    ->label(__('safety::inspections.columns.type'))
                                     ->badge()
                                     ->color(fn(string $state): string => match ($state) {
                                         'ok' => 'success',
@@ -235,14 +237,14 @@ class InspectionResource extends Resource
                                         default => 'gray',
                                     })
                                     ->formatStateUsing(fn(string $state): string => match ($state) {
-                                        'ok' => 'Akkoord (OK)',
-                                        'nok' => 'Niet Akkoord (NOK)',
-                                        'na' => 'N/A',
+                                        'ok'  => __('safety::inspections.statuses.ok'),
+                                        'nok' => __('safety::inspections.statuses.nok'),
+                                        'na'  => __('safety::inspections.statuses.na'),
                                         default => $state,
                                     })
                                     ->columnSpan(1),
                                 TextEntry::make('remark')
-                                    ->label('Opmerking')
+                                    ->label(__('safety::inspections.columns.remark'))
                                     ->default('-')
                                     ->columnSpan(3),
                                 ViewEntry::make('photo_path')

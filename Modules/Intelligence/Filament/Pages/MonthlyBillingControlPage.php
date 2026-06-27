@@ -52,17 +52,17 @@ class MonthlyBillingControlPage extends Page
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Intelligence Hub';
+        return __('navigation.groups.intelligence_hub');
     }
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'nl' ? 'Facturatiebeheer' : 'Billing Control';
+        return __('intelligence::billing.navigation_label');
     }
 
     public function getTitle(): string
     {
-        return app()->getLocale() === 'nl' ? 'Facturatiebeheer' : 'Billing Control';
+        return __('intelligence::billing.title');
     }
 
     public function mount(): void
@@ -211,7 +211,7 @@ class MonthlyBillingControlPage extends Page
             'reviewed_by' => auth()->id(),
             'reviewed_at' => now(),
         ]);
-        Notification::make()->title('Alert in review geplaatst.')->success()->send();
+        Notification::make()->title(__('intelligence::billing.alert_in_review'))->success()->send();
     }
 
     public function confirmAlert(int $alertId, string $notes = ''): void
@@ -225,10 +225,8 @@ class MonthlyBillingControlPage extends Page
             'resolution_notes' => $notes ?: null,
         ]);
         Notification::make()
-            ->title(app()->getLocale() === 'nl' ? 'Melding bevestigd.' : 'Alert confirmed.')
-            ->body(app()->getLocale() === 'nl'
-                ? 'Voer de actie uit in CAFCA en klik daarna op Oplossen.'
-                : 'Take the required action in CAFCA, then click Resolve.')
+            ->title(__('intelligence::billing.notifications.confirmed_title'))
+            ->body(__('intelligence::billing.notifications.confirmed_body'))
             ->success()
             ->send();
     }
@@ -244,10 +242,8 @@ class MonthlyBillingControlPage extends Page
             'resolution_notes' => $notes ?: null,
         ]);
         Notification::make()
-            ->title(app()->getLocale() === 'nl' ? 'Melding afgewezen.' : 'Alert dismissed.')
-            ->body(app()->getLocale() === 'nl'
-                ? 'Gebruik Heropenen als dit onjuist blijkt.'
-                : 'Use Reopen if this turns out to be incorrect.')
+            ->title(__('intelligence::billing.notifications.dismissed_title'))
+            ->body(__('intelligence::billing.notifications.dismissed_body'))
             ->info()
             ->send();
     }
@@ -264,10 +260,8 @@ class MonthlyBillingControlPage extends Page
             'resolution_notes' => $notes ?: $alert->resolution_notes,
         ]);
         Notification::make()
-            ->title(app()->getLocale() === 'nl' ? 'Melding opgelost.' : 'Alert resolved.')
-            ->body(app()->getLocale() === 'nl'
-                ? 'De melding telt niet meer mee voor de maandafsluiting.'
-                : 'This alert no longer counts towards the monthly close.')
+            ->title(__('intelligence::billing.notifications.resolved_title'))
+            ->body(__('intelligence::billing.notifications.resolved_body'))
             ->success()
             ->send();
     }
@@ -282,39 +276,31 @@ class MonthlyBillingControlPage extends Page
             'status'           => BillingAlert::STATUS_OPEN,
             'resolution_notes' => null,
         ]);
-        Notification::make()->title('Alert heropend.')->warning()->send();
+        Notification::make()->title(__('intelligence::billing.alert_reopened'))->warning()->send();
     }
 
     protected function getHeaderActions(): array
     {
         return [
             Action::make('run_guardian')
-                ->label(app()->getLocale() === 'nl' ? 'Guardian uitvoeren' : 'Run Guardian')
+                ->label(__('intelligence::billing.actions.run_guardian'))
                 ->icon('heroicon-o-play')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading(app()->getLocale() === 'nl' ? 'Guardian uitvoeren?' : 'Run Guardian?')
-                ->modalDescription(
-                    app()->getLocale() === 'nl'
-                        ? 'Voer de Guardian uit nadat u wijzigingen in CAFCA heeft opgeslagen, of aan het begin van de maand voor de analyse van de vorige periode. Open meldingen worden bijgewerkt met de laatste gegevens. Bevestigde en afgesloten meldingen worden NIET gewijzigd.'
-                        : 'Run after saving changes in CAFCA, or at the start of the month to analyse the previous period. Open alerts are updated with the latest data. Confirmed and resolved alerts are NOT modified.'
-                )
+                ->modalHeading(__('intelligence::billing.actions.run_guardian_heading'))
+                ->modalDescription(__('intelligence::billing.actions.run_guardian_desc'))
                 ->action(function () {
                     [$year, $month] = $this->parsePeriod();
                     $guardian = app(MonthlyBillingGuardianService::class);
                     $report   = $guardian->analyzeMonth($year, $month);
 
                     Notification::make()
-                        ->title(
-                            app()->getLocale() === 'nl'
-                                ? "Guardian klaar — {$report->totalDetected} alert(s) gevonden"
-                                : "Guardian complete — {$report->totalDetected} alert(s) found"
-                        )
-                        ->body(
-                            app()->getLocale() === 'nl'
-                                ? "{$report->created} nieuw, {$report->updated} bijgewerkt, {$report->skipped} overgeslagen."
-                                : "{$report->created} created, {$report->updated} updated, {$report->skipped} skipped."
-                        )
+                        ->title(__('intelligence::billing.notifications.guardian_title', ['count' => $report->totalDetected]))
+                        ->body(__('intelligence::billing.notifications.guardian_body', [
+                            'created' => $report->created,
+                            'updated' => $report->updated,
+                            'skipped' => $report->skipped,
+                        ]))
                         ->success()
                         ->send();
                 }),

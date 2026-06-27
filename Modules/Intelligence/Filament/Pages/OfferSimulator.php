@@ -47,28 +47,28 @@ class OfferSimulator extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Intelligence Hub';
+        return __('navigation.groups.intelligence_hub');
     }
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'nl' ? 'Offerte Simulator' : 'Offer Simulator';
+        return __('intelligence::offer_simulator.navigation_label');
     }
 
     public function getTitle(): string
     {
-        return app()->getLocale() === 'nl' ? 'AI Offerte Simulator' : 'AI Offer Simulator';
+        return __('intelligence::offer_simulator.title');
     }
 
     public function form(Schema $form): Schema
     {
         return $form
             ->schema([
-                Section::make(app()->getLocale() === 'nl' ? 'Project Details' : 'Project Details')
+                Section::make(__('intelligence::offer_simulator.sections.project_details'))
                     ->schema([
                         Textarea::make('description')
-                            ->label(app()->getLocale() === 'nl' ? 'Projectbeschrijving' : 'Project Description')
-                            ->placeholder(app()->getLocale() === 'nl' ? 'Beschrijf het project (bijv. 4 masten van 15m in Brugge...)' : 'Describe the project...')
+                            ->label(__('intelligence::offer_simulator.fields.description'))
+                            ->placeholder(__('intelligence::offer_simulator.fields.description_placeholder'))
                             ->required()
                             ->rows(5)
                             ->columnSpanFull()
@@ -84,7 +84,7 @@ class OfferSimulator extends Page implements HasForms
                             }),
                         
                         Select::make('category')
-                            ->label(app()->getLocale() === 'nl' ? 'Categorie' : 'Category')
+                            ->label(__('intelligence::offer_simulator.fields.category'))
                             ->options([
                                 'Sportverlichting' => 'Sportverlichting',
                                 'Industrie' => 'Industrie',
@@ -94,14 +94,14 @@ class OfferSimulator extends Page implements HasForms
                             ->required(),
 
                         TextInput::make('zipcode')
-                            ->label(app()->getLocale() === 'nl' ? 'Postcode' : 'Zipcode')
+                            ->label(__('intelligence::offer_simulator.fields.zipcode'))
                             ->numeric()
                             ->required()
                             ->maxLength(5),
 
                         Slider::make('complexity')
-                            ->label(app()->getLocale() === 'nl' ? 'Moeilijkheidsgraad (Factor)' : 'Complexity Factor')
-                            ->helperText(app()->getLocale() === 'nl' ? 'AI suggereert dit op basis van de tekst, maar u kunt dit aanpassen.' : 'AI suggests this, but you can override.')
+                            ->label(__('intelligence::offer_simulator.fields.complexity'))
+                            ->helperText(__('intelligence::offer_simulator.fields.complexity_hint'))
                             ->minValue(0.5)
                             ->maxValue(2.5)
                             ->step(0.1)
@@ -115,7 +115,7 @@ class OfferSimulator extends Page implements HasForms
     {
         return [
             Action::make('simulate')
-                ->label(app()->getLocale() === 'nl' ? 'Simuleer Offerte' : 'Simulate Offer')
+                ->label(__('intelligence::offer_simulator.actions.simulate'))
                 ->submit('simulate')
                 ->color('primary')
                 ->icon('heroicon-m-sparkles'),
@@ -142,22 +142,18 @@ class OfferSimulator extends Page implements HasForms
         // Handle Guardrails
         if ($this->results['is_off_topic'] ?? false) {
             \Filament\Notifications\Notification::make()
-                ->title(app()->getLocale() === 'nl' ? 'Niet relevant' : 'Off-topic detected')
-                ->body(app()->getLocale() === 'nl' 
-                    ? 'Gelieve alleen verzoeken met betrekking tot verlichting of elektriciteit in te voeren.' 
-                    : 'Please only enter requests related to lighting or electricity.')
+                ->title(__('intelligence::offer_simulator.notifications.off_topic_title'))
+                ->body(__('intelligence::offer_simulator.notifications.off_topic_body'))
                 ->danger()
                 ->send();
-            
+
             $this->results = null;
         }
 
         if ($this->results['is_gibberish'] ?? false) {
-             \Filament\Notifications\Notification::make()
-                ->title(app()->getLocale() === 'nl' ? 'Onzin gedetecteerd' : 'Nonsense detected')
-                ->body(app()->getLocale() === 'nl' 
-                    ? 'De Lead Architect is niet onder de indruk. Probeer het opnieuw met een echt project.' 
-                    : 'The Lead Architect is not impressed. Please try again with a real project.')
+            \Filament\Notifications\Notification::make()
+                ->title(__('intelligence::offer_simulator.notifications.gibberish_title'))
+                ->body(__('intelligence::offer_simulator.notifications.gibberish_body'))
                 ->warning()
                 ->send();
         }

@@ -42,7 +42,7 @@ class ProjectInsightResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Analyse & Intelligentie';
+        return __('navigation.groups.analyse_intelligentie');
     }
 
     protected static ?int $navigationSort = 2;

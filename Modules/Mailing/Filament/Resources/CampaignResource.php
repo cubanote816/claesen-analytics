@@ -30,7 +30,7 @@ class CampaignResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Mailing';
+        return __('navigation.groups.mailing');
     }
 
     protected static ?int $navigationSort = 1;

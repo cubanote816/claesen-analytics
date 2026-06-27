@@ -28,12 +28,12 @@ class ProjectResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Workforce & Performance';
+        return __('navigation.groups.workforce_performance');
     }
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'nl' ? 'Projecten' : 'Projects';
+        return __('performance::projects.navigation_label');
     }
 
     public static function getNavigationBadge(): ?string
@@ -48,12 +48,12 @@ class ProjectResource extends Resource
 
     public static function getModelLabel(): string
     {
-        return app()->getLocale() === 'nl' ? 'Project' : 'Project';
+        return __('performance::projects.model_label');
     }
 
     public static function getPluralModelLabel(): string
     {
-        return app()->getLocale() === 'nl' ? 'Projecten' : 'Projects';
+        return __('performance::projects.plural_model_label');
     }
 
     public static function form(Schema $schema): Schema
@@ -74,17 +74,17 @@ class ProjectResource extends Resource
                     ->fontFamily('mono'),
 
                 TextColumn::make('name')
-                    ->label(app()->getLocale() === 'nl' ? 'Project Naam' : 'Project Name')
+                    ->label(__('performance::projects.columns.name'))
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
 
                 TextColumn::make('manager.name')
-                    ->label(app()->getLocale() === 'nl' ? 'Projectleider' : 'Project Manager')
+                    ->label(__('performance::projects.columns.manager'))
                     ->toggleable(),
 
                 TextColumn::make('total_worked_hours')
-                    ->label(app()->getLocale() === 'nl' ? 'Gewerkt (Totaal)' : 'Worked (Total)')
+                    ->label(__('performance::projects.columns.worked_total'))
                     ->numeric(1)
                     ->suffix('h')
                     ->sortable(query: function (Builder $query, string $direction): Builder {
@@ -97,7 +97,7 @@ class ProjectResource extends Resource
                     ->alignEnd(),
 
                 TextColumn::make('pending_debt_amount')
-                    ->label(app()->getLocale() === 'nl' ? 'Openstaand' : 'Pending Balance')
+                    ->label(__('performance::projects.columns.pending_balance'))
                     ->money('EUR')
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->addSelect([
@@ -110,7 +110,7 @@ class ProjectResource extends Resource
                     ->alignEnd(),
 
                 IconColumn::make('fl_active')
-                    ->label('Status')
+                    ->label(__('performance::projects.columns.status'))
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-archive-box')
@@ -119,18 +119,18 @@ class ProjectResource extends Resource
             ])
             ->filters([
                 Filter::make('active')
-                    ->label(app()->getLocale() === 'nl' ? 'Alleen Actief' : 'Only Active')
+                    ->label(__('performance::projects.filters.only_active'))
                     ->query(fn (Builder $query) => $query->where('fl_active', true))
                     ->default(),
 
                 Filter::make('worked_this_month')
-                    ->label(app()->getLocale() === 'nl' ? 'Gewerkt deze maand' : 'Worked this month')
-                    ->query(fn (Builder $query) => $query->whereHas('labor', fn ($q) => 
+                    ->label(__('performance::projects.filters.worked_this_month'))
+                    ->query(fn (Builder $query) => $query->whereHas('labor', fn ($q) =>
                         $q->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()])
                     )),
 
                 Filter::make('pending_collection')
-                   ->label(app()->getLocale() === 'nl' ? 'Facturatie Wachtend' : 'Pending Collections')
+                   ->label(__('performance::projects.filters.pending_collections'))
                    ->query(fn (Builder $query) => $query->whereHas('invoices', function ($q) {
                         return $q->select(DB::raw('project_id'))
                             ->groupBy('project_id')
