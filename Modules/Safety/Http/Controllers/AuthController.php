@@ -7,13 +7,14 @@ namespace Modules\Safety\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Modules\Core\Models\User;
 
 class AuthController extends Controller
 {
     /**
-     * Authenticate the user and issue an API token for the mobile SPA.
+     * Authenticate the user and establish a session for the mobile SPA.
      */
     public function login(Request $request): JsonResponse
     {
@@ -38,25 +39,18 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Revoke all existing mobile tokens for this user to ensure only 1 active session
-        $user->tokens()->where('name', 'mobile-app')->delete();
-
-        $deviceName = $validated['device'] ?? 'mobile-app';
-
-        // Issue a plain-text token with the explicit ability marker
-        $token = $user->createToken($deviceName, ['role:safety-access']);
+        Auth::login($user);
+        $request->session()->regenerate();
 
         return response()->json([
-            'token'      => $token->plainTextToken,
-            'token_type' => 'Bearer',
-            'user'       => [
+            'user' => [
                 'id'          => $user->id,
                 'name'        => $user->name,
                 'email'       => $user->email,
                 'roles'       => $user->getRoleNames()->values()->toArray(),
                 'permissions' => [],
             ],
-        ], 200);
+        ]);
     }
 
     /**
@@ -72,6 +66,21 @@ class AuthController extends Controller
             'email'       => $user->email,
             'roles'       => $user->getRoleNames()->values()->toArray(),
             'permissions' => [],
+        ]);
+    }
+
+    /**
+     * Destroy the current session for the mobile SPA.
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        Auth::guard('web')->logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json([
+            'success' => true,
         ]);
     }
 }

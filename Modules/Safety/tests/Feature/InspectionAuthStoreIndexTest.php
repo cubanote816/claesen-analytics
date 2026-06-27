@@ -26,6 +26,9 @@ class InspectionAuthStoreIndexTest extends TestCase
         Storage::fake(config('safety.disk'));
         Role::firstOrCreate(['name' => 'project_manager', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        // Sanctum needs an Origin header to bootstrap the session middleware for
+        // stateful (cookie-based) API requests. Without it, $request->session() throws.
+        $this->withHeader('Origin', 'http://localhost');
     }
 
     private function userWithRole(string $role): array
@@ -61,11 +64,13 @@ class InspectionAuthStoreIndexTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonStructure(['token', 'token_type', 'user']);
+            ->assertJsonStructure(['user'])
+            ->assertJsonMissing(['token', 'token_type']);
 
-        // Verify the token carries role:safety-access by hitting a protected endpoint
-        $this->withToken($response->json('token'))
-            ->getJson('/api/v1/safety/inspections')
+        $this->assertAuthenticatedAs($user);
+
+        // Verify the session can reach a protected endpoint.
+        $this->getJson('/api/v1/me')
             ->assertOk();
     }
 
@@ -88,6 +93,48 @@ class InspectionAuthStoreIndexTest extends TestCase
             'email'    => $user->email,
             'password' => 'secret123',
         ])->assertForbidden();
+    }
+
+    public function test_logout_invalidates_session(): void
+    {
+        $user = UserFactory::new()->create(['password' => bcrypt('secret123')]);
+        $role = Role::firstOrCreate(['name' => 'project_manager', 'guard_name' => 'web']);
+        $user->assignRole($role);
+
+        $this->postJson('/api/v1/login', [
+            'email'    => $user->email,
+            'password' => 'secret123',
+        ])->assertOk();
+
+        // Session allows access
+        $this->getJson('/api/v1/me')->assertOk();
+
+        $this->postJson('/api/v1/auth/logout')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        // After session invalidation a fresh (unauthenticated) request to a
+        // protected endpoint must be rejected — the session cookie is gone.
+        $this->refreshApplication();
+        $this->getJson('/api/v1/me')->assertUnauthorized();
+    }
+
+    public function test_session_auth_grants_access_to_safety_inspections(): void
+    {
+        $user = UserFactory::new()->create(['password' => bcrypt('secret123')]);
+        $role = Role::firstOrCreate(['name' => 'project_manager', 'guard_name' => 'web']);
+        $user->assignRole($role);
+
+        Checklist::factory()->create();
+
+        // Login via session endpoint — response must not contain any token
+        $this->postJson('/api/v1/login', [
+            'email'    => $user->email,
+            'password' => 'secret123',
+        ])->assertOk()->assertJsonMissing(['token', 'accessToken', 'token_type']);
+
+        // Session cookie alone must reach the protected safety endpoint
+        $this->getJson('/api/v1/safety/inspections')->assertOk();
     }
 
     // =========================================================================

@@ -19,7 +19,13 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*', 'https://www.claesen-verlichting.be', 'https://claesen-verlichting.be', 'https://lightcoral-whale-907350.hostingersite.com'],
+    'allowed_origins' => array_values(array_filter([
+        env('FRONTEND_URL'),
+        'https://www.claesen-verlichting.be',
+        'https://claesen-verlichting.be',
+        'https://lightcoral-whale-907350.hostingersite.com',
+        'http://localhost:5173',
+    ])),
 
     'allowed_origins_patterns' => [],
 
@@ -29,6 +35,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];

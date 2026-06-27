@@ -4,7 +4,11 @@ use Illuminate\Support\Facades\Route;
 use Modules\Core\Http\Controllers\CoreController;
 
 Route::prefix('v1/auth')->group(function () {
+    // Bearer-token login — non-browser clients and legacy integrations.
     Route::post('/login', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'login']);
+    // Session-cookie login — browser-first SPAs (Safety PWA, Sport, etc.).
+    Route::post('/login/spa', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'loginSpa'])
+        ->name('auth.login.spa');
 });
 
 // Public — exchange one-time activation code for a limited setup:password token.

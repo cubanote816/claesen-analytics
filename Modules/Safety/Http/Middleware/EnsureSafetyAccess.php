@@ -19,8 +19,14 @@ class EnsureSafetyAccess
     {
         $user = $request->user();
 
-        // 1. Check if the token itself was issued with the correct ability
-        if (! $user || ! $user->tokenCan('role:safety-access')) {
+        if (! $user) {
+            return response()->json(['message' => 'Niet geautoriseerd voor deze actie.'], 403);
+        }
+
+        // 1. Token ability check only applies to Bearer-authenticated requests.
+        //    Session-authenticated SPAs use a TransientToken — rely on role check below.
+        if ($user->currentAccessToken() instanceof \Laravel\Sanctum\PersonalAccessToken
+            && ! $user->tokenCan('role:safety-access')) {
             return response()->json([
                 'message' => 'Niet geautoriseerd voor deze actie.'
             ], 403);

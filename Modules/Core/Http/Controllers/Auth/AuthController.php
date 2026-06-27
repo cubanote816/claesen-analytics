@@ -5,11 +5,44 @@ namespace Modules\Core\Http\Controllers\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Modules\Core\Models\User;
 
 class AuthController extends Controller
 {
+    /**
+     * Session-based login for browser-first SPAs (Safety PWA, Sport, etc.).
+     * Establishes an HttpOnly cookie session — never returns a token.
+     */
+    public function loginSpa(Request $request)
+    {
+        $request->validate([
+            'email'    => 'required|email',
+            'password' => 'required',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (! $user || ! $user->is_active || ! $user->hasCompletedPasswordSetup() || ! Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return response()->json([
+            'user' => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'roles' => $user->getRoleNames(),
+            ],
+        ]);
+    }
+
     /**
      * Canonical Login endpoint for the Core App.
      * Prepares Identity logic to absorb satellite apps.
@@ -70,7 +103,16 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        if ($request->user() && method_exists($request->user(), 'currentAccessToken')) {
+            $token = $request->user()->currentAccessToken();
+            if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) {
+                $token->delete();
+            }
+        }
+
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json([
             'success' => true,

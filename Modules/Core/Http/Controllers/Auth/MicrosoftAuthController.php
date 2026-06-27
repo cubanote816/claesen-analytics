@@ -99,6 +99,7 @@ class MicrosoftAuthController extends Controller
             }
 
             Auth::login($user);
+            $request->session()->regenerate();
 
             $source = session()->pull('auth_source', 'frontend');
 
@@ -153,10 +154,8 @@ class MicrosoftAuthController extends Controller
                 return redirect()->to("{$frontendUrl}?activation_code={$code}&setup_required=true");
             }
 
-            // Fully activated accounts: issue the normal bearer token.
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return redirect()->to("{$frontendUrl}?token={$token}");
+            // Fully activated accounts: keep the session cookie flow only.
+            return redirect()->to($frontendUrl);
         } catch (Exception $e) {
             return redirect('/login')
                 ->withErrors(['microsoft' => 'Inloggen via Microsoft is mislukt: ' . $e->getMessage()]);
