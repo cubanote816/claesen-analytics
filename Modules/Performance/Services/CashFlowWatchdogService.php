@@ -124,7 +124,7 @@ class CashFlowWatchdogService
         }
     }
 
-    private function buildAndSendStructuredPrompt(Collection $riskyProjects): array
+    private function buildAndSendStructuredPrompt(Collection $riskyProjects): array|string
     {
         $projectList = $riskyProjects->take(10)->map(function($p) {
             return "ID: {$p['id']}, Project: {$p['name']}, WIP: €".number_format($p['wip'], 2).", Stale Days: {$p['stale_days']}, Risk: {$p['risk_level']}";
@@ -158,6 +158,14 @@ INSTRUCTIONS:
 }
 PROMPT;
 
-        return $this->gemini->generateStructuredResponse($prompt);
+        $result = $this->gemini->generateStructuredResponse($prompt);
+
+        if (empty($result) || !isset($result['risky_projects'])) {
+            return app()->getLocale() === 'nl'
+                ? "Analyse tijdelijk niet beschikbaar. Probeer het later opnieuw."
+                : "Analysis temporarily unavailable. Please try again later.";
+        }
+
+        return $result;
     }
 }

@@ -12,6 +12,11 @@ class CampaignMetricsWidget extends BaseWidget
 {
     public ?int $campaignId = null;
 
+    public static function canView(): bool
+    {
+        return ! request()->routeIs('filament.admin.pages.dashboard');
+    }
+
     protected ?string $pollingInterval = '5s';
 
     protected static bool $isLazy = true;

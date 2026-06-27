@@ -21,7 +21,7 @@
         </x-slot>
 
         <div class="space-y-6">
-            @if(is_array($report))
+            @if(is_array($report) && isset($report['risky_projects']))
             <div class="bg-primary-500/5 border border-primary-500/10 p-4 rounded-xl">
                 <p class="text-lg font-bold text-primary-700 dark:text-primary-300">{{ $report['greeting'] }}</p>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ $report['intro'] }}</p>

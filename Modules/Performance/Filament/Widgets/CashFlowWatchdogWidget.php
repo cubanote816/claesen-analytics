@@ -12,6 +12,11 @@ class CashFlowWatchdogWidget extends Widget
     
     protected static bool $isLazy = true;
 
+    public static function canView(): bool
+    {
+        return false;
+    }
+
     public string|array|null $report = null;
 
     public function mount()

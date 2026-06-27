@@ -12,6 +12,11 @@ class EmployeePerformanceStatsWidget extends BaseWidget
 {
     protected static bool $isLazy = true;
 
+    public static function canView(): bool
+    {
+        return ! request()->routeIs('filament.admin.pages.dashboard');
+    }
+
     public ?string $employeeId = null;
 
     protected function buildDailyAchievementStat(?float $achievementRate, float $hours): Stat
