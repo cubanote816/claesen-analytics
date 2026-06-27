@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-27 (CLA-181 ✅ Done — migración global auth browser-first a Sanctum SPA cookie session)
+> Última actualización: 2026-06-27 (Infra: CORS producción + deploy pipeline estabilizado)
 
 ---
 
@@ -9,7 +9,8 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito:** CLA-181 ✅ Done (2026-06-27) — migración global auth browser-first a Sanctum SPA cookie session. Commit `80e3f1e`. 251/251 tests (Safety 119 + Core 20 + FieldOps 112).
+- **Último hito código:** CLA-181 ✅ Done (2026-06-27) — migración global auth browser-first a Sanctum SPA cookie session. Commit `80e3f1e`. 251/251 tests.
+- **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
 - **Próximo paso:** CLA-178 (In Progress) — rediseño email inspección con identidad digital Claesen + fix reminder. Archivos locales con cambios listos: `inspection-report.blade.php` + `inspection-reminder.blade.php`.
 
 ### SAF-PWA-001 / CLA-170 ✅ Done
@@ -455,56 +456,75 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 
 ## Flujo de deploy a producción
 
-### Resumen
+### Topología de red
+
+```
+Internet → sbapu03 (192.168.60.10) nginx edge
+               └─ proxy_pass 127.0.0.1:9443
+                    └─ autossh túnel inverso → prod-priv-01 (192.168.254.52):443
+                         └─ nginx local → PHP-FPM 8.4 → Laravel
+```
+
+CORS gestionado en sbapu03 nginx (cors-map.conf + proxy_hide_header). No en Laravel HandleCors.
+
+### Resumen deploy
 
 ```
 git push origin main
        ↓
-GitHub Actions — "Build Laravel release" (composer, npm build, tar.gz)
-       ↓  artefacto listo en GitHub Releases como 'production-latest'
-ssh bert@192.168.60.10
-bash /var/www/backend.claesen-verlichting.be/deploy.sh
+GitHub Actions — "Build Laravel release" (composer --no-dev, npm build, tar.gz → GitHub Releases 'production-latest')
+       ↓
+ssh bert@192.168.254.52
+bash /opt/claesen/scripts/deploy.sh [branch]
 ```
 
-El deploy al servidor es **manual** — el CI construye el artefacto pero no despliega automáticamente. Esto da control sobre cuándo entra cada cambio a producción.
+Deploy al servidor es **manual** — CI construye el artefacto, bert decide cuándo activarlo.
 
-### Lo que hace cada parte
+### Lo que hace deploy.sh (`/opt/claesen/scripts/deploy.sh`)
 
-**GitHub Actions (`.github/workflows/deploy.yml`)**
-- Instala dependencias PHP (composer --no-dev) y Node (npm ci)
-- Compila assets frontend (npm run build)
-- Empaqueta el release en `release.tar.gz` (excluye `.git`, `node_modules`, `tests`, `storage/app/*`, etc.)
-- Sube a GitHub Releases tag `production-latest` tres assets: `release.tar.gz`, `release.tar.gz.sha256`, `release.env`
+Capistrano-style: releases dir + `current` symlink + shared `.env` y `storage`.
 
-**deploy.sh (`/var/www/backend.claesen-verlichting.be/deploy.sh`)**
-1. `cd $APP_DIR` — garantiza que todos los comandos operen en el directorio correcto
-2. `php artisan down` — modo mantenimiento (`|| true` si ya estaba activo)
-3. `mysqldump` — backup BD antes del deploy
-4. `gh release download` — descarga `release.tar.gz` + `release.tar.gz.sha256`
-5. `sha256sum -c` — verifica integridad del tarball
-6. `rsync --delete` — aplica el release preservando `.env` y `storage/`
+1. Descarga `release.tar.gz` de GitHub Releases (`gh release download production-latest`)
+2. Extrae en `/srv/www/claesen/releases/<timestamp>`
+3. Symlinks: `shared/.env` → `releases/<ts>/.env`, `shared/storage` → `releases/<ts>/storage`
+4. `chown bert:www-data shared/.env && chmod 640` — www-data puede leer .env como grupo
+5. `composer install --no-dev`
+6. `npm ci && npm run build` (assets)
 7. `php artisan migrate --force`
-8. `php artisan optimize:clear` + `filament:upgrade --no-interaction` + `php artisan optimize`
-9. `php artisan queue:restart`
-10. `php artisan up` — sale de mantenimiento
+8. `php artisan optimize:clear && filament:upgrade && optimize`
+9. `sudo chown -R www-data:www-data releases/<ts>` + `chmod -R 775`
+10. `sudo -u www-data php artisan config:cache` — genera config.php legible por www-data
+11. `sudo rm -rf current && sudo ln -s releases/<ts> current`
+12. `sudo systemctl reload php8.4-fpm`
+13. `supervisorctl restart claesen-worker:* claesen-scheduler`
 
-### Configuración CI relevante
+### Scripts de servidor (versionados en `infrastructure/`)
 
-| Variable | Valor |
-|----------|-------|
-| PHP_VERSION | 8.4 (alineado con producción y composer.lock) |
-| NODE_VERSION | 22 |
-| RELEASE_TAG | `production-latest` (mutable, siempre apunta al último build) |
-| CACHE_STORE (build) | `array` (override en CI; producción usa `database`) |
-| SESSION_DRIVER (build) | `array` (override en CI; producción usa `database`) |
+| Script | Ruta producción | Propósito |
+|--------|-----------------|-----------|
+| `deploy.sh` | `/opt/claesen/scripts/deploy.sh` | Deploy principal (ver arriba) |
+| `backup-mysql.sh` | `/opt/claesen/scripts/backup-mysql.sh` | mysqldump con `--no-tablespaces` (sin PROCESS privilege) |
+| `backup-files.sh` | `/opt/claesen/scripts/backup-files.sh` | Restic backup `/srv/www/claesen`, nginx, ssl |
+| `backup-all.sh` | `/opt/claesen/scripts/backup-all.sh` | Orquesta backup-mysql + backup-files + ntfy notify |
+| `monitor.sh` | `/opt/claesen/scripts/monitor.sh` | Checks servicios, disco (>85%), RAM (<10% libre) |
+| `notify.sh` | `/opt/claesen/scripts/notify.sh` | Push ntfy.sh — wrapper de notificaciones |
+
+Config env en `/etc/claesen-backup.env` y `/etc/claesen-notify.env` (permisos `root:bert 640`).
+Backups en `/var/backups/claesen/` (permisos `root:bert 770`).
+
+### Nginx sbapu03 (versionado en `infrastructure/nginx/sbapu03/`)
+
+| Archivo | Propósito |
+|---------|-----------|
+| `cors-map.conf` | `map $http_origin $cors_allowed_origin` — allowlist de 4 orígenes + localhost:5173 |
+| `backend.claesen-verlichting.be.conf` | Proxy + CORS edge: OPTIONS→204, proxy_hide_header, add_header always, proxy_redirect |
 
 ### Notas operativas
 
-- El workflow requiere `permissions: contents: write` para crear/actualizar la GitHub Release.
-- El servidor usa `gh` CLI autenticado como `cubanote816` (`/home/bert/.config/gh/hosts.yml`).
-- El backup de BD se guarda en `storage/app/backups/db_pre_deploy_YYYY-MM-DD_HH-MM.sql`.
-- Si el deploy falla después de `artisan down`, ejecutar manualmente `php artisan up` desde `APP_DIR`.
-- Para automatizar el deploy (sin SSH manual) habría que añadir un paso SSH al workflow con la clave privada como GitHub Secret — decisión pendiente.
+- `.env` en producción: `bert:www-data 640` — www-data lee por grupo; bert puede editar directamente.
+- Si deploy falla después de step 11 (symlink): `php artisan up` desde `/srv/www/claesen/current`.
+- `gh` CLI autenticado como `cubanote816` en `/home/bert/.config/gh/hosts.yml`.
+- Para editar nginx en sbapu03: `sudo tee /etc/nginx/sites-available/<archivo>` + `sudo nginx -t && sudo nginx -s reload` (ambos NOPASSWD para bert).
 
 ---
 
@@ -544,6 +564,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-27 | INFRA | Done — CORS corregido en sbapu03 nginx: `cors-map.conf` + `proxy_hide_header` eliminan duplicados ACAO; preflight OPTIONS→204 sin hit PHP. `MissingAppKeyException` resuelto: `shared/.env` → `bert:www-data 640`; `deploy.sh` corre `sudo -u www-data config:cache` post-chown. `mysqldump` saneado (`--no-tablespaces`, sin `--events`). 3 deploys limpios consecutivos. Scripts versionados en `infrastructure/`. Commit `667416a`. |
 | 2026-06-27 | CLA-181 | Done — Migración global auth browser-first: Sanctum SPA cookie session. `statefulApi()` + CORS `supports_credentials=true` + Safety login/logout/me por cookie HttpOnly sin token + OAuth callback sin Bearer en URL + `loginSpa()` en Core para SPAs + `EnsureSafetyAccess` desacoplado de token ability para sesión + `logout()` tolerante a `TransientToken` + `localhost:5173` en stateful domains + `.env.example` documentado. Bearer legacy intacto para FieldOps/Sport. 251/251 tests ✅. Commit `80e3f1e`. Pendiente frontend: `GET /sanctum/csrf-cookie` antes de POST login, `withCredentials: true`, retirar `localStorage.auth_token`. `SESSION_DOMAIN` y `SESSION_SAME_SITE=none` en `.env` producción si frontend es cross-site. |
 | 2026-06-24 | CLA-174 | Done — `project_address_text` (Projectadres) añadido al mirror y al endpoint Safety projects. Batch-load desde `txt.txt` vía `project.project_address = txt.txt_id`. Normalización null si vacío/whitespace. Contrato: `{id, name, descr, project_address_text, relation_name}`. 7 tests / 19 assertions. Commit `526b0b8`. Backfill: `php artisan intelligence:sync-mirror` post-deploy. |
 | 2026-06-24 | FO-002 / CLA-173 | Done — `project.descr` añadido al mirror (migración + sync) y al endpoint Safety projects. Contrato: `{id, name, descr, relation_name}`. 5 tests / 15 assertions. Commit `50fc4eb`. |
