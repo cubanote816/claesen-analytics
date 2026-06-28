@@ -153,6 +153,7 @@ return [
         'opens'             => 'Unique Opens',
         'opens_note'        => '* Indicative — Apple MPP may inflate this value',
         'clicks'            => 'Unique Clicks',
+        'ctor_note'         => '* ratio vs. opens — indicative only',
         'hard_bounces'      => 'Hard Bounces',
         'soft_bounces'      => 'Soft Bounces',
         'complained'        => 'Spam Complaints',

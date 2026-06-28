@@ -98,4 +98,8 @@ return [
     'placeholders' => [
         'content_description' => 'Je kunt variabelen gebruiken zoals {{ naam }} en {{ regio }}',
     ],
+
+    'metrics' => [
+        'ctor_note' => '* verhouding t.o.v. opens — indicatief',
+    ],
 ];

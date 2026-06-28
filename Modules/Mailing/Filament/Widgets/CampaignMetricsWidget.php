@@ -71,7 +71,7 @@ class CampaignMetricsWidget extends BaseWidget
         return [
             // KPI principal — clics
             Stat::make(__('mailing::resource.metrics.clicks'), $clicked)
-                ->description("CTR {$ctr}% · CTOR {$ctor}%")
+                ->description("CTR {$ctr}% · CTOR {$ctor}% " . __('mailing::resource.metrics.ctor_note'))
                 ->color('info')
                 ->icon('heroicon-o-cursor-arrow-rays'),
 
