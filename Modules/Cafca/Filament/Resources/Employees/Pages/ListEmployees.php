@@ -3,7 +3,6 @@
 namespace Modules\Cafca\Filament\Resources\Employees\Pages;
 
 use Modules\Cafca\Filament\Resources\EmployeeResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListEmployees extends ListRecords
@@ -36,7 +35,6 @@ class ListEmployees extends ListRecords
                             ->send();
                     }
                 }),
-            CreateAction::make(),
         ];
     }
 }
