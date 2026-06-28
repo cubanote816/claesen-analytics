@@ -38,6 +38,8 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\EnsurePasswordI
     ->prefix('v1')
     ->group(function () {
         Route::get('/auth/introspect', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'introspect']);
+        Route::post('/auth/change-password', \Modules\Core\Http\Controllers\Auth\ChangePasswordController::class)
+            ->name('auth.change-password');
         Route::get('/me', [\Modules\Core\Http\Controllers\Auth\ProfileController::class, 'me']);
         Route::apiResource('cores', CoreController::class)->names('core');
     });

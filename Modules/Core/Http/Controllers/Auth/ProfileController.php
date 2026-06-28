@@ -12,12 +12,15 @@ class ProfileController extends Controller
      */
     public function me(Request $request)
     {
+        $user = $request->user();
+
         return response()->json([
-            'id' => $request->user()->id,
-            'name' => $request->user()->name,
-            'email' => $request->user()->email,
-            'roles' => $request->user()->getRoleNames(),
-            'permissions' => $request->user()->getAllPermissions()->pluck('name'),
+            'id'            => $user->id,
+            'name'          => $user->name,
+            'email'         => $user->email,
+            'auth_provider' => $user->microsoft_id !== null ? 'microsoft' : 'local',
+            'roles'         => $user->getRoleNames(),
+            'permissions'   => $user->getAllPermissions()->pluck('name'),
         ]);
     }
 }
