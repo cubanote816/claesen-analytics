@@ -49,7 +49,11 @@ class EmailTemplateForm
                                         ->label(__('mailing::resource.fields.preference_category'))
                                         ->helperText(__('mailing::resource.fields.preference_category_helper'))
                                         ->options(fn () => collect(config('mailing.preference_categories', []))
-                                            ->mapWithKeys(fn ($label, $key) => [$key => $label])
+                                            ->mapWithKeys(fn ($category, $key) => [
+                                                $key => $category['label'][app()->getLocale()]
+                                                    ?? $category['label']['en']
+                                                    ?? $key,
+                                            ])
                                             ->toArray()
                                         )
                                         ->nullable()
