@@ -1,0 +1,11 @@
+{
+    "name": "Employee",
+    "alias": "employee",
+    "description": "REST API for employee time analytics, rankings and project hours",
+    "keywords": ["employee", "time", "analytics", "api"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Employee\\App\\Providers\\EmployeeServiceProvider"
+    ],
+    "files": []
+}

@@ -225,11 +225,25 @@ class SyncMirrorDataService
                     MirrorLabor::updateOrCreate(
                         ['id' => $mirrorId],
                         [
-                            'project_id' => trim($log->project_id),
-                            'employee_id' => $log->employee_id,
-                            'labor_id' => $log->labor_id ?? null,
-                            'hours' => $log->hours ?? 0,
-                            'date' => $date,
+                            'project_id'       => trim($log->project_id),
+                            'employee_id'      => $log->employee_id,
+                            'labor_id'         => $log->labor_id ?? null,
+                            'hours'            => $log->hours ?? 0,
+                            'date'             => $date,
+                            'labor_descr'      => $log->labor_descr ?? null,
+                            'h_from_1'         => $this->extractTime($log->h_from_1 ?? null),
+                            'h_to_1'           => $this->extractTime($log->h_to_1 ?? null),
+                            'h_from_2'         => $this->extractTime($log->h_from_2 ?? null),
+                            'h_to_2'           => $this->extractTime($log->h_to_2 ?? null),
+                            'distance'         => $log->distance ?? null,
+                            'fl_approved'      => $log->fl_approved ?? null,
+                            'total_costprice'  => $log->total_costprice ?? null,
+                            'total_salesprice' => $log->total_salesprice ?? null,
+                            'pauze'            => $log->pauze ?? null,
+                            'fl_pauze'         => $log->fl_pauze ?? null,
+                            'productivity'          => $log->productivity ?? null,
+                            'transport_costprice'   => $log->transport_costprice ?? null,
+                            'transport_salesprice'  => $log->transport_salesprice ?? null,
                         ]
                     );
                 }
@@ -592,5 +606,21 @@ class SyncMirrorDataService
             });
 
         Log::info('SyncMirrorDataService: workdocs sync completed.');
+    }
+
+    /**
+     * Extract HH:MM:SS from a SQL Server datetime/time value.
+     * SQL Server returns h_from_* as full datetime strings; we only need the time portion.
+     */
+    private function extractTime(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        try {
+            return Carbon::parse($value)->format('H:i:s');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

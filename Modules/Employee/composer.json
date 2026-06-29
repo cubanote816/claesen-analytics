@@ -1,0 +1,14 @@
+{
+    "name": "claesen/employee",
+    "description": "Employee time analytics REST API module",
+    "autoload": {
+        "psr-4": {
+            "Modules\\Employee\\": ""
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Employee\\Tests\\": "tests/"
+        }
+    }
+}

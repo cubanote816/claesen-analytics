@@ -8,5 +8,6 @@
     "Intelligence": true,
     "Performance": true,
     "Safety": true,
-    "FieldOps": true
+    "FieldOps": true,
+    "Employee": true
 }
