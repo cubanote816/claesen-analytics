@@ -15,7 +15,7 @@
     @elseif($data)
         {{-- Month navigation --}}
         @php
-            $currentMonth = Carbon::createFromFormat('Y-m', $month);
+            $currentMonth = \Carbon\Carbon::createFromFormat('Y-m', $month);
             $prevMonth    = $currentMonth->copy()->subMonth()->format('Y-m');
             $nextMonth    = $currentMonth->copy()->addMonth()->format('Y-m');
             $isNl         = app()->getLocale() === 'nl';
@@ -115,9 +115,9 @@
                                     <td class="py-2.5 pr-4">
                                         <a href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $week['start_date'], 'end_date' => $week['end_date']]) }}"
                                            class="font-medium text-primary-600 dark:text-primary-400 hover:underline">
-                                            {{ Carbon::parse($week['start_date'])->format('d/m') }}
+                                            {{ \Carbon\Carbon::parse($week['start_date'])->format('d/m') }}
                                             &ndash;
-                                            {{ Carbon::parse($week['end_date'])->format('d/m') }}
+                                            {{ \Carbon\Carbon::parse($week['end_date'])->format('d/m') }}
                                         </a>
                                     </td>
                                     <td class="py-2.5 pr-4 text-right text-gray-700 dark:text-gray-300">
