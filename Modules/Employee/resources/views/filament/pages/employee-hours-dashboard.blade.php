@@ -72,8 +72,8 @@
             wire:ignore
             x-data="{
                 chart: null,
-                labels: @json($chartLabels),
-                hoursData: @json($chartHoursData),
+                labels: [],
+                hoursData: [],
                 render() {
                     if (this.chart) { this.chart.destroy(); this.chart = null; }
                     const canvas = this.$el.querySelector('#hours-trend-chart');
@@ -111,9 +111,9 @@
                 }
             }"
             x-init="$nextTick(() => render())"
-            x-on:livewire:update.document="
-                labels = @json($chartLabels);
-                hoursData = @json($chartHoursData);
+            x-on:hours-chart-updated.window="
+                labels = $event.detail.labels;
+                hoursData = $event.detail.hoursData;
                 $nextTick(() => render());
             "
             class="h-72"

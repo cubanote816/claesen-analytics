@@ -56,6 +56,11 @@ class EmployeeHoursDashboard extends Page
         $trend = $data['monthly_hours_trend'] ?? [];
         $this->chartLabels    = array_column($trend, 'month');
         $this->chartHoursData = array_column($trend, 'total_hours');
+
+        $this->dispatch('hours-chart-updated',
+            labels: $this->chartLabels,
+            hoursData: $this->chartHoursData,
+        );
     }
 
     private function loadRankings(): void
