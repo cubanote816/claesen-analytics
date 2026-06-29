@@ -89,12 +89,18 @@ class EmployeeInfolist
                                 TextEntry::make('active_projects_summary')
                                     ->label(app()->getLocale() === 'nl' ? 'Huidige Opdracht' : 'Current Assignment')
                                     ->state(function (Employee $record) {
-                                        return \Modules\Cafca\Models\Labor::where('employee_id', $record->id)
+                                        $projectIds = \Modules\Performance\Models\Mirror\MirrorLabor::where('employee_id', $record->id)
                                             ->where('date', '>=', now()->subDays(15))
-                                            ->with('project')
-                                            ->get()
-                                            ->pluck('project.name')
+                                            ->pluck('project_id')
                                             ->unique()
+                                            ->filter();
+
+                                        if ($projectIds->isEmpty()) {
+                                            return 'Standby';
+                                        }
+
+                                        return \Modules\Performance\Models\Mirror\MirrorProject::whereIn('id', $projectIds)
+                                            ->pluck('name')
                                             ->implode(', ') ?: 'Standby';
                                     })
                                     ->icon('heroicon-m-briefcase')

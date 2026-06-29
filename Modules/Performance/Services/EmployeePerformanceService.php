@@ -3,7 +3,8 @@
 namespace Modules\Performance\Services;
  
 use Modules\Cafca\Models\Employee;
-use Modules\Cafca\Models\Labor;
+use Modules\Performance\Models\Mirror\MirrorLabor;
+use Modules\Performance\Models\Mirror\MirrorProject;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
  
@@ -39,11 +40,13 @@ class EmployeePerformanceService
 
     /**
      * Categorize a labor entry into Werf, Laden or Mobiliteit.
+     * Accepts both Labor (sqlsrv) and MirrorLabor (mysql) records;
+     * falls back to ID-only classification when labor_descr is absent.
      */
-    public function categorizeLaborEntry(Labor $labor): string
+    public function categorizeLaborEntry($labor): string
     {
         $id = (int) $labor->labor_id;
-        $descr = trim($labor->labor_descr);
+        $descr = isset($labor->labor_descr) ? trim($labor->labor_descr) : '';
 
         // 1. Mobiliteit (Transport)
         if ($id === 111 || $descr === 'Verplaatsing' || str_starts_with($descr, 'IN @') || str_contains($descr, ' >> ')) {
@@ -64,7 +67,7 @@ class EmployeePerformanceService
      */
     public function getDailyStats(Employee $employee, Carbon $date): array
     {
-        $entries = Labor::where('employee_id', $employee->id)
+        $entries = MirrorLabor::where('employee_id', $employee->id)
             ->whereDate('date', $date->toDateString())
             ->get();
 
@@ -85,7 +88,7 @@ class EmployeePerformanceService
      */
     public function hasAnyLaborHistory(Employee $employee): bool
     {
-        return Labor::where('employee_id', $employee->id)->exists();
+        return MirrorLabor::where('employee_id', $employee->id)->exists();
     }
 
     /**
@@ -101,9 +104,8 @@ class EmployeePerformanceService
      */
     public function getStatsForPeriod(Employee $employee, \Carbon\CarbonInterface $start, \Carbon\CarbonInterface $end): array
     {
-        $logs = Labor::with('project')
-            ->where('employee_id', $employee->id)
-            ->whereBetween('date', [$start->startOfDay(), $end->endOfDay()])
+        $logs = MirrorLabor::where('employee_id', $employee->id)
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->get();
 
         return $this->aggregateStats($logs, $start, $end);
@@ -234,21 +236,25 @@ class EmployeePerformanceService
      */
     public function getTemporalProjectDetails(Collection $labors): Collection
     {
+        $projectIds = $labors->pluck('project_id')->unique()->filter();
+        $projects = MirrorProject::whereIn('id', $projectIds)->get()->keyBy('id');
+
         return $labors->groupBy('project_id')
-            ->map(function ($labors) {
-                $project = $labors->first()->project;
+            ->map(function ($labors) use ($projects) {
+                $projectId = trim($labors->first()->project_id);
+                $project = $projects->get($projectId);
                 $categories = $this->aggregateCategories($labors);
-                
+
                 return [
-                    'project_id' => trim($labors->first()->project_id),
+                    'project_id' => $projectId,
                     'project_name' => $project?->name ?? 'Unknown Project',
-                    'project_type_name' => $project?->project_type_name ?? 'Industrie',
+                    'project_type_name' => $project?->type_label ?? 'Industrie',
                     'total_hours' => array_sum($categories),
                     'last_active' => $labors->max('date'),
                     'categories' => $categories,
                     'labor_breakdown' => $labors->groupBy('labor_id')->map(fn($l) => [
                         'type' => $this->categorizeLaborEntry($l->first()),
-                        'descr' => trim($l->first()->labor_descr),
+                        'descr' => isset($l->first()->labor_descr) ? trim($l->first()->labor_descr) : (string) $l->first()->labor_id,
                         'hours' => $l->sum('hours'),
                     ])->values(),
                 ];
@@ -262,7 +268,7 @@ class EmployeePerformanceService
     {
         $start = now()->subDays(30);
         
-        $teamHours = Labor::where('date', '>=', $start)
+        $teamHours = MirrorLabor::where('date', '>=', $start)
             ->selectRaw('employee_id, SUM(hours) as total_hours')
             ->groupBy('employee_id')
             ->pluck('total_hours', 'employee_id');
@@ -295,7 +301,7 @@ class EmployeePerformanceService
     public function getTeamPosition(Employee $employee): array
     {
         $ranking = $this->getComparativeRanking($employee);
-        $total = Labor::distinct('employee_id')->where('date', '>=', now()->subDays(30))->count();
+        $total = MirrorLabor::distinct('employee_id')->where('date', '>=', now()->subDays(30))->count();
         
         return [
             'position' => explode('/', $ranking['rank'])[0] ?? 'N/A',
@@ -347,28 +353,44 @@ class EmployeePerformanceService
 
     /**
      * Get a streamlined trend of hours worked for a short period.
-     * Ideal for Sparklines.
+     * Ideal for Sparklines. Reads from MySQL mirror to avoid sqlsrv latency.
      */
     public function getShortTrend(Employee $employee, int $periods = 6, string $type = 'monthly'): array
     {
-        // End at the last completed month for stability (as requested by user)
         $end = now()->subMonth()->endOfMonth();
-        $start = $type === 'monthly' 
-            ? $end->copy()->subMonths($periods - 1)->startOfMonth() 
+        $start = $type === 'monthly'
+            ? $end->copy()->subMonths($periods - 1)->startOfMonth()
             : $end->copy()->subWeeks($periods - 1)->startOfWeek();
-        
-        $stats = $this->getStatsForPeriod($employee, $start, $end);
-        $distribution = $stats['temporal_distribution'] ?? [];
-        
-        $values = [];
-        foreach ($distribution as $periodData) {
-            $values[] = array_sum($periodData);
+
+        $groupExpr = $type === 'monthly' ? "DATE_FORMAT(date, '%Y-%m')" : 'date';
+
+        $rows = MirrorLabor::where('employee_id', $employee->id)
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->selectRaw("{$groupExpr} as period, SUM(hours) as total")
+            ->groupBy('period')
+            ->orderBy('period')
+            ->pluck('total', 'period');
+
+        $distribution = [];
+        $cursor = $start->copy();
+        if ($type === 'monthly') {
+            $endLimit = $end->copy()->startOfMonth();
+            while ($cursor->lte($endLimit)) {
+                $key = $cursor->format('Y-m');
+                $distribution[$key] = (float) ($rows[$key] ?? 0.0);
+                $cursor->addMonth();
+            }
+        } else {
+            while ($cursor->lte($end)) {
+                $key = $cursor->toDateString();
+                $distribution[$key] = (float) ($rows[$key] ?? 0.0);
+                $cursor->addDay();
+            }
         }
 
-        // Generate period label in Dutch (e.g., "Maart vs Feb")
+        $values = array_values($distribution);
         $lastMonthName = now()->subMonth()->translatedFormat('M');
         $prevMonthName = now()->subMonths(2)->translatedFormat('M');
-        $periodLabel = "{$lastMonthName} vs {$prevMonthName}";
 
         return [
             'values' => $values,
@@ -376,7 +398,7 @@ class EmployeePerformanceService
             'total' => array_sum($values),
             'average' => count($values) > 0 ? array_sum($values) / count($values) : 0,
             'momentum' => $this->calculateMomentum($values),
-            'period_label' => $periodLabel,
+            'period_label' => "{$lastMonthName} vs {$prevMonthName}",
         ];
     }
 
