@@ -86,6 +86,53 @@
     }
 }
 
+/* ── Page header: reduce top dead space ─────────────────────────────────── */
+.dark .fi-page-header {
+    padding-block-start: 1.25rem;
+    padding-block-end: 0.5rem;
+}
+
+/* ── Edit form: force schema components to fill available width ──────────── */
+.fi-resource-edit-record-page .fi-sc-form,
+.fi-resource-edit-record-page .fi-sc-form > div,
+.fi-resource-edit-record-page .fi-sc-component,
+.fi-resource-edit-record-page .fi-grid-ctn {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* ── View page: same fix for infolist width ──────────────────────────────── */
+.fi-resource-view-record-page .fi-in-component,
+.fi-resource-view-record-page .fi-in-entries-wrp {
+    width: 100%;
+}
+
+/* ── Employee infolist: collapse Filament wrapper padding around custom cards */
+.fi-in-entry-wrp:has(.emp-profile-hero),
+.fi-in-entry-wrp:has(.emp-talent-snapshot),
+.fi-in-entry-wrp:has(.emp-ai-insights) {
+    padding: 0 !important;
+    margin-block: 0 !important;
+}
+
+/* Collapse the infolist gap between entries when they are custom blades */
+.fi-in-entries-wrp:has(.emp-profile-hero),
+.fi-in-entries-wrp:has(.emp-talent-snapshot) {
+    gap: 0.75rem !important;
+}
+
+/* Remove Filament Section wrapper shadow when section is marked transparent */
+.dark .fi-section[style*="bg-transparent"],
+.dark .fi-section[class*="border-none"] {
+    box-shadow: none;
+}
+
+/* Compact the edit form avatar uploader */
+.fi-fo-field-wrp:has(.fi-fo-media-library) .fi-fo-media-library {
+    max-width: 180px;
+}
+
 @source "../../../../app/Filament/**/*.php";
 @source "../../../../resources/views/filament/**/*.blade.php";
 @source "../../../../Modules/**/*.php";

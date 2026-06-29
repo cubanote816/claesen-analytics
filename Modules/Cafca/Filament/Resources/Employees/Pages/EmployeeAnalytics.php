@@ -14,7 +14,29 @@ class EmployeeAnalytics extends ViewRecord
 {
     protected static string $resource = EmployeeResource::class;
 
-    protected static ?string $title = 'AI Performance Insights';
+    public function getTitle(): \Illuminate\Contracts\Support\Htmlable|string
+    {
+        return app()->getLocale() === 'nl' ? 'IA Prestaties' : 'AI Performance';
+    }
+
+    public function getHeading(): \Illuminate\Contracts\Support\Htmlable|string
+    {
+        return app()->getLocale() === 'nl' ? 'IA Prestaties' : 'AI Performance';
+    }
+
+    public function getSubheading(): \Illuminate\Contracts\Support\Htmlable|string|null
+    {
+        $record   = $this->getRecord();
+        $insight  = $record->insight;
+        $isNl     = app()->getLocale() === 'nl';
+
+        if ($insight?->last_audited_at) {
+            $label = $isNl ? 'Laatste analyse' : 'Last analysis';
+            return $label . ': ' . $insight->last_audited_at->format('d M Y, H:i');
+        }
+
+        return $isNl ? 'Nog geen AI-analyse beschikbaar' : 'No AI analysis available yet';
+    }
 
     public static function getNavigationLabel(): string
     {
@@ -33,18 +55,19 @@ class EmployeeAnalytics extends ViewRecord
                 ->label(app()->getLocale() === 'nl' ? 'IA Analyse Herberekenen' : 'Recalculate AI Analysis')
                 ->icon('heroicon-m-sparkles')
                 ->color('success')
+                ->outlined()
                 ->requiresConfirmation()
                 ->action(function () {
                     $employee = $this->getRecord();
-                    $insight = $employee->insight;
+                    $insight  = $employee->insight;
+                    $isNl     = app()->getLocale() === 'nl';
 
-                    // Throttle: 24 hours
                     if ($insight && $insight->last_audited_at && $insight->last_audited_at->gt(now()->subDay())) {
                         \Filament\Notifications\Notification::make()
-                            ->title(app()->getLocale() === 'nl' ? 'Limiet Bereikt' : 'Limit Reached')
+                            ->title($isNl ? 'Limiet Bereikt' : 'Limit Reached')
                             ->warning()
-                            ->body(app()->getLocale() === 'nl' 
-                                ? 'De AI-analyse kan slechts eenmaal per 24 uur worden vernieuwd.' 
+                            ->body($isNl
+                                ? 'De AI-analyse kan slechts eenmaal per 24 uur worden vernieuwd.'
                                 : 'AI analysis can only be refreshed once every 24 hours.')
                             ->send();
                         return;
@@ -55,14 +78,13 @@ class EmployeeAnalytics extends ViewRecord
                         $service->analyzeTechnician($employee->id, $employee->name);
 
                         \Filament\Notifications\Notification::make()
-                            ->title(app()->getLocale() === 'nl' ? 'IA Analyse Voltooid' : 'AI Analysis Completed')
+                            ->title($isNl ? 'IA Analyse Voltooid' : 'AI Analysis Completed')
                             ->success()
-                            ->body(app()->getLocale() === 'nl' 
-                                ? 'De prestatie-insights zijn succesvol bijgewerkt.' 
+                            ->body($isNl
+                                ? 'De prestatie-insights zijn succesvol bijgewerkt.'
                                 : 'Performance insights have been successfully updated.')
                             ->send();
-                        
-                        // Refresh the page to show new data
+
                         return redirect(request()->header('Referer'));
 
                     } catch (\Exception $e) {
@@ -75,32 +97,32 @@ class EmployeeAnalytics extends ViewRecord
                 }),
 
             Action::make('downloadPdf')
-                ->label(app()->getLocale() === 'nl' ? 'Rapport Downloaden (PDF)' : 'Download Report (PDF)')
+                ->label(app()->getLocale() === 'nl' ? 'Rapport Downloaden' : 'Download Report')
                 ->icon('heroicon-m-document-arrow-down')
                 ->color('primary')
-                ->action(fn () => $this->exportToPdf()),
+                ->outlined()
+                ->action(fn() => $this->exportToPdf()),
         ];
     }
 
     public function exportToPdf()
     {
-        // Increase memory limit for PDF generation if needed
         ini_set('memory_limit', '256M');
 
         $employee = $this->getRecord();
-        $service = app(EmployeePerformanceService::class);
-        
+        $service  = app(EmployeePerformanceService::class);
+
         $data = [
-            'employee' => $employee,
-            'weekly' => $service->getWeeklyStats($employee, now()),
-            'monthly' => $service->getMonthlyStats($employee, now()),
-            'profile' => $service->getPerformanceProfile($employee),
-            'ranking' => $service->getComparativeRanking($employee),
+            'employee'     => $employee,
+            'weekly'       => $service->getWeeklyStats($employee, now()),
+            'monthly'      => $service->getMonthlyStats($employee, now()),
+            'profile'      => $service->getPerformanceProfile($employee),
+            'ranking'      => $service->getComparativeRanking($employee),
             'generated_at' => now()->format('d-m-Y H:i'),
         ];
 
         $pdf = Pdf::loadView('performance::pdf.performance-report', $data);
-        
+
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
         }, "Performance_Report_{$employee->name}.pdf");
@@ -110,8 +132,7 @@ class EmployeeAnalytics extends ViewRecord
     {
         /** @var \Modules\Core\Models\User $user */
         $user = auth()->user();
-        
-        // Ensure user is admin or super admin
+
         return $user && ($user->hasRole('super_admin') || $user->hasRole('admin'));
     }
 }

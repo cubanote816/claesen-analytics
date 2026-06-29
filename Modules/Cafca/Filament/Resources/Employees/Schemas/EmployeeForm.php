@@ -2,8 +2,6 @@
 
 namespace Modules\Cafca\Filament\Resources\Employees\Schemas;
 
-use Modules\Cafca\Models\Employee;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
@@ -14,62 +12,62 @@ class EmployeeForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $isNl = app()->getLocale() === 'nl';
+
         return $schema
             ->components([
-                // Header Information (Non-editable quick glance)
-                Section::make()
+                Grid::make(['default' => 1, 'sm' => 2])
+                    ->columnSpanFull()
                     ->schema([
-                        Grid::make(['default' => 1, 'md' => 3])
+
+                        // ── Left: Identity (readonly context) ────────────────
+                        Section::make($isNl ? 'Medewerker' : 'Employee')
+                            ->description($isNl ? 'Gegevens gesynchroniseerd vanuit ERP.' : 'Data synchronised from ERP — read-only.')
                             ->schema([
                                 \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('avatar')
-                                    ->label(false)
+                                    ->label($isNl ? 'Profielfoto' : 'Profile photo')
                                     ->collection('avatar')
-                                    ->avatar()
+                                    ->image()
                                     ->multiple()
                                     ->maxFiles(1)
-                                    ->reorderable()
                                     ->imageEditor()
-                                    ->extraAttributes(['class' => 'ring-4 ring-primary-500/10 shadow-lg']),
+                                    ->helperText($isNl ? 'JPG of PNG, max 2 MB' : 'JPG or PNG, max 2 MB'),
 
-                                Grid::make(1)
-                                    ->schema([
-                                        TextInput::make('name')
-                                            ->label(__('employees/resource.fields.name'))
-                                            ->disabled()
-                                            ->dehydrated(false)
-                                            ->extraAttributes(['class' => 'font-bold']),
+                                TextInput::make('name')
+                                    ->label($isNl ? 'Naam' : 'Full name')
+                                    ->disabled()
+                                    ->dehydrated(false),
 
-                                        TextInput::make('function')
-                                            ->label(__('employees/resource.fields.job_function'))
-                                            ->disabled()
-                                            ->dehydrated(false),
-                                    ])
-                                    ->columnSpan(2),
+                                TextInput::make('function')
+                                    ->label($isNl ? 'Functie' : 'Job function')
+                                    ->disabled()
+                                    ->dehydrated(false),
                             ])
-                            ->extraAttributes(['class' => 'items-center']),
-                    ])
-                    ->extraAttributes(['class' => 'bg-white/50 backdrop-blur-sm shadow-sm ring-1 ring-gray-950/5 rounded-3xl p-6']),
+                            ->columnSpan(1),
 
-                // Main Form Content (Editable)
-                Section::make(__('employees/resource.fields.personal_information'))
-                    ->schema([
-                        Grid::make(2)
+                        // ── Right: Editable contact details ──────────────────
+                        Section::make(__('employees/resource.fields.contact_details'))
+                            ->description($isNl ? 'Contactgegevens kunnen worden bijgewerkt.' : 'Contact details can be updated directly.')
                             ->schema([
                                 TextInput::make('email')
                                     ->label(__('employees/resource.fields.email'))
                                     ->email()
-                                    ->maxLength(255),
+                                    ->maxLength(255)
+                                    ->prefixIcon('heroicon-m-envelope'),
+
                                 TextInput::make('mobile')
                                     ->label(__('employees/resource.fields.mobile'))
-                                    ->maxLength(255),
+                                    ->maxLength(255)
+                                    ->prefixIcon('heroicon-m-phone'),
 
                                 Textarea::make('notes')
                                     ->label(__('employees/resource.fields.notes'))
                                     ->rows(5)
-                                    ->columnSpanFull(),
-                            ]),
-                    ])
-                    ->compact(),
+                                    ->helperText($isNl ? 'Interne notities, zichtbaar alleen voor beheerders.' : 'Internal notes, visible to admins only.'),
+                            ])
+                            ->columnSpan(1),
+
+                    ]),
             ]);
     }
 }

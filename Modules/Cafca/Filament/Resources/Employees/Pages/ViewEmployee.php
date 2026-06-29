@@ -20,6 +20,18 @@ class ViewEmployee extends ViewRecord
         return $this->record->name;
     }
 
+    public function getSubheading(): \Illuminate\Contracts\Support\Htmlable|string|null
+    {
+        $isNl   = app()->getLocale() === 'nl';
+        $status = $this->record->fl_active
+            ? ($isNl ? 'Actief' : 'Active')
+            : ($isNl ? 'Inactief' : 'Inactive');
+
+        $function = $this->record->function ?: ($isNl ? 'Geen functie opgegeven' : 'No function specified');
+
+        return $function . ' · ' . $status;
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('employees/resource.navigation.details');
@@ -37,6 +49,7 @@ class ViewEmployee extends ViewRecord
                 ->label(__('employees/resource.actions.analyze.label'))
                 ->icon('heroicon-o-cpu-chip')
                 ->color('warning')
+                ->outlined()
                 ->requiresConfirmation()
                 ->modalHeading(__('employees/resource.actions.analyze.confirm.title'))
                 ->modalDescription(__('employees/resource.actions.analyze.confirm.body'))
@@ -52,8 +65,7 @@ class ViewEmployee extends ViewRecord
 
             EditAction::make()
                 ->label(__('employees/resource.actions.edit.label') ?? __('employees/resource.navigation.edit'))
-                ->color('primary')
-                ->outlined(),
+                ->color('primary'),
         ];
     }
 }
