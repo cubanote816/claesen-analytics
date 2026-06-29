@@ -10,7 +10,7 @@
     @endphp
 
     <div class="mb-4">
-        <a href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $weekStart, 'end_date' => $weekEnd]) }}"
+        <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $weekStart, 'end_date' => $weekEnd]) }}"
            class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
             <x-heroicon-o-arrow-left class="w-4 h-4" />
             {{ $isNl ? 'Terug naar weekoverzicht' : 'Back to week overview' }}
@@ -37,7 +37,7 @@
 
         {{-- Day navigation --}}
         <div class="flex items-center justify-between mb-6">
-            <a href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $prevDay]) }}"
+            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $prevDay]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 <x-heroicon-o-chevron-left class="w-4 h-4" />
                 {{ \Carbon\Carbon::parse($prevDay)->locale($isNl ? 'nl' : 'en')->isoFormat('ddd D/MM') }}
@@ -59,7 +59,7 @@
                 @endif
             </div>
 
-            <a href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $nextDay]) }}"
+            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $nextDay]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 {{ \Carbon\Carbon::parse($nextDay)->locale($isNl ? 'nl' : 'en')->isoFormat('ddd D/MM') }}
                 <x-heroicon-o-chevron-right class="w-4 h-4" />

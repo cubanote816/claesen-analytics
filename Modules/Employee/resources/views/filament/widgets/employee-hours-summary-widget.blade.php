@@ -13,7 +13,7 @@
                         @endif
                     </span>
                 </div>
-                <a href="{{ \Modules\Employee\Filament\Pages\EmployeeHoursDashboard::getUrl() }}"
+                <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeHoursDashboard::getUrl() }}"
                    class="text-xs text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 font-medium flex items-center gap-1 transition-colors">
                     {{ app()->getLocale() === 'nl' ? 'Volledig dashboard' : 'Full dashboard' }}
                     <x-heroicon-m-arrow-right class="h-3 w-3" />

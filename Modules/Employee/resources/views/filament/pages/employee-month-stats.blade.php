@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     {{-- Back navigation --}}
     <div class="mb-4">
-        <a href="{{ \Modules\Employee\Filament\Pages\EmployeeHoursDashboard::getUrl() }}"
+        <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeHoursDashboard::getUrl() }}"
            class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
             <x-heroicon-o-arrow-left class="w-4 h-4" />
             {{ app()->getLocale() === 'nl' ? 'Terug naar dashboard' : 'Back to dashboard' }}
@@ -22,7 +22,8 @@
         @endphp
 
         <div class="flex items-center justify-between mb-6">
-            <a href="{{ \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl(['employee_id' => $employeeId, 'month' => $prevMonth]) }}"
+            <a wire:navigate
+               href="{{ \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl(['employee_id' => $employeeId, 'month' => $prevMonth]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 <x-heroicon-o-chevron-left class="w-4 h-4" />
                 {{ $currentMonth->copy()->subMonth()->locale($isNl ? 'nl' : 'en')->isoFormat('MMMM Y') }}
@@ -30,7 +31,8 @@
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {{ $currentMonth->locale($isNl ? 'nl' : 'en')->isoFormat('MMMM Y') }}
             </h2>
-            <a href="{{ \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl(['employee_id' => $employeeId, 'month' => $nextMonth]) }}"
+            <a wire:navigate
+               href="{{ \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl(['employee_id' => $employeeId, 'month' => $nextMonth]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 {{ $currentMonth->copy()->addMonth()->locale($isNl ? 'nl' : 'en')->isoFormat('MMMM Y') }}
                 <x-heroicon-o-chevron-right class="w-4 h-4" />
@@ -113,7 +115,7 @@
                                 @endphp
                                 <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                     <td class="py-2.5 pr-4">
-                                        <a href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $week['start_date'], 'end_date' => $week['end_date']]) }}"
+                                        <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $week['start_date'], 'end_date' => $week['end_date']]) }}"
                                            class="font-medium text-primary-600 dark:text-primary-400 hover:underline">
                                             {{ \Carbon\Carbon::parse($week['start_date'])->format('d/m') }}
                                             &ndash;

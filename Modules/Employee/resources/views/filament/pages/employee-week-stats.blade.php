@@ -5,7 +5,7 @@
         $isNl     = app()->getLocale() === 'nl';
     @endphp
     <div class="mb-4">
-        <a href="{{ \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl(['employee_id' => $employeeId, 'month' => $monthKey]) }}"
+        <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl(['employee_id' => $employeeId, 'month' => $monthKey]) }}"
            class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
             <x-heroicon-o-arrow-left class="w-4 h-4" />
             {{ $isNl ? 'Terug naar maandoverzicht' : 'Back to month overview' }}
@@ -41,7 +41,7 @@
                 $nextStart = $start->copy()->addWeek()->format('Y-m-d');
                 $nextEnd   = $end->copy()->addWeek()->format('Y-m-d');
             @endphp
-            <a href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $prevStart, 'end_date' => $prevEnd]) }}"
+            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $prevStart, 'end_date' => $prevEnd]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 <x-heroicon-o-chevron-left class="w-4 h-4" />
                 {{ $isNl ? 'Vorige week' : 'Previous week' }}
@@ -49,7 +49,7 @@
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {{ $start->format('d/m') }} &ndash; {{ $end->format('d/m/Y') }}
             </h2>
-            <a href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $nextStart, 'end_date' => $nextEnd]) }}"
+            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $nextStart, 'end_date' => $nextEnd]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 {{ $isNl ? 'Volgende week' : 'Next week' }}
                 <x-heroicon-o-chevron-right class="w-4 h-4" />
@@ -99,7 +99,7 @@
                         @foreach($dailyBreakdown as $day)
                             @php $dayDate = \Carbon\Carbon::parse($day['date']); @endphp
                             <div class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                                <a href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $day['date']]) }}"
+                                <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $day['date']]) }}"
                                    class="font-medium text-primary-600 dark:text-primary-400 hover:underline min-w-28">
                                     {{ $dayDate->locale($isNl ? 'nl' : 'en')->isoFormat('ddd D/MM') }}
                                 </a>

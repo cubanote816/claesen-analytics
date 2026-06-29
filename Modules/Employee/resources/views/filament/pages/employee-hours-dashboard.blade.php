@@ -191,7 +191,7 @@
                                     @endif
                                 </td>
                                 <td class="py-2 pr-4 font-medium text-gray-900 dark:text-gray-100">
-                                    <a href="{{ \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl(['employee_id' => $employee['id'], 'month' => now()->format('Y-m')]) }}"
+                                    <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl(['employee_id' => $employee['id'], 'month' => now()->format('Y-m')]) }}"
                                        class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                                         {{ $employee['name'] }}
                                     </a>
