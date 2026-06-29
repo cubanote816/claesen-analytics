@@ -4,6 +4,8 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../../Modules/**/*.blade.php';
+@source '../../Modules/**/*.php';
 
 @theme {
     --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;

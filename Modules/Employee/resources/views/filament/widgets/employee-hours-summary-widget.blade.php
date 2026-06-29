@@ -64,22 +64,27 @@
                     <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
                         {{ app()->getLocale() === 'nl' ? 'Top 3 medewerkers' : 'Top 3 employees' }}
                     </p>
-                    <div class="space-y-2">
+                    <div class="flex gap-3">
                         @foreach($topThree as $i => $emp)
-                            @php
-                                $medals = ['text-yellow-500', 'text-gray-400', 'text-amber-600'];
-                                $color  = $medals[$i] ?? 'text-gray-500';
-                            @endphp
-                            <div class="flex items-center justify-between py-1.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm font-bold {{ $color }} w-5 text-center">{{ $i + 1 }}</span>
-                                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">
-                                        {{ $emp['name'] }}
-                                    </span>
-                                </div>
-                                <span class="text-sm font-semibold text-primary-600 dark:text-primary-400">
-                                    {{ number_format($emp['total_hours'], 1, ',', '.') }}h
+                            <div class="relative flex-1 flex flex-col items-center text-center p-3 rounded-xl
+                                {{ $i === 0 ? 'bg-yellow-500/5 ring-1 ring-yellow-400/40' : '' }}
+                                {{ $i === 1 ? 'bg-gray-500/5 ring-1 ring-gray-400/30' : '' }}
+                                {{ $i === 2 ? 'bg-amber-600/5 ring-1 ring-amber-500/30' : '' }}">
+                                <span class="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] font-black px-2 py-0.5 rounded-full
+                                    {{ $i === 0 ? 'bg-yellow-500 text-white' : '' }}
+                                    {{ $i === 1 ? 'bg-gray-400 text-white' : '' }}
+                                    {{ $i === 2 ? 'bg-amber-600 text-white' : '' }}">
+                                    #{{ $i + 1 }}
                                 </span>
+                                <p class="mt-2 text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight line-clamp-2">
+                                    {{ $emp['name'] }}
+                                </p>
+                                <p class="mt-1 text-lg font-bold
+                                    {{ $i === 0 ? 'text-yellow-600 dark:text-yellow-400' : '' }}
+                                    {{ $i === 1 ? 'text-gray-500 dark:text-gray-300' : '' }}
+                                    {{ $i === 2 ? 'text-amber-600 dark:text-amber-400' : '' }}">
+                                    {{ number_format($emp['total_hours'], 1, ',', '.') }}h
+                                </p>
                             </div>
                         @endforeach
                     </div>
