@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-28 (CLA-178: rediseño emails Safety + fix CTOR widget Mailing)
+> Última actualización: 2026-06-29 (fix: EmployeePerformanceService + EmployeeInfolist — todas las queries Labor sqlsrv migradas al mirror MySQL)
 
 ---
 
@@ -9,7 +9,7 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** CLA-178 ✅ Done (2026-06-28) — rediseño emails Safety (report + reminder) con identidad visual Claesen. Commits `74fef44` (report) + `bdf77c4` (reminder). Fix CTOR note en widget Mailing: commit `11cca98`.
+- **Último hito código:** `8ef70ce` (2026-06-29) — Fix: todas las queries `Labor` (sqlsrv) en `EmployeePerformanceService` y `EmployeeInfolist` reemplazadas por `MirrorLabor` / `MirrorProject` (MySQL). Eliminados timeouts en `/employees/{id}`.
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
 - **Próximo paso:** sin ticket activo — definir con el auditor antes de continuar.
 
@@ -408,7 +408,7 @@ Todo agente debe leer estos archivos antes de cualquier acción.
 | **Intelligence / BI** | ✅ Sprint 1 ✅ Sprint 2B — PR #6 pendiente merge; BI-PROJ-02 ✅ (Vista de Águila) | `feature/bi-project-intelligence-detail` | `docs/bi-sprint-plan.md` |
 | **Prospects** | 🚧 ~80% (PROS-BUG-001+002 cerrados, FAB mailing operativo, sync dashboard exception feed) | `main` | Ver `CLAUDE.md` |
 | **Cafca** | ✅ ~90% | `main` | Ver `CLAUDE.md` |
-| **Core** | ✅ ~98% | `main` | Ver `CLAUDE.md` |
+| **Core** | ✅ ~99% | `main` | Ver `CLAUDE.md` |
 
 ---
 
@@ -564,6 +564,9 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-06-29 | fix(perf) | Done — `EmployeePerformanceService` + `EmployeeInfolist`: todas las queries `Labor` (sqlsrv → `followup_labor_analytical`) reemplazadas por `MirrorLabor` (`intelligence_mirror_labor`) y `MirrorProject` (`intelligence_mirror_projects`). Afecta: `getShortTrend`, `getStatsForPeriod`, `getDailyStats`, `hasAnyLaborHistory`, `getComparativeRanking`, `getTeamPosition`, `getTemporalProjectDetails`, `active_projects_summary`. `categorizeLaborEntry` desacoplado del tipo `Labor` (duck typing). Commit `8ef70ce`. |
+| 2026-06-29 | SAF reminder | Verificado — `safety:notify-inactive-managers` listo para producción. 9/9 tests ✅. `SAFETY_PWA_URL` confirmado en `.env` producción. Scheduler: lunes 09:00 `withoutOverlapping()`. Recomendado `--dry-run` antes del primer lunes. |
+| 2026-06-28 | CLA-182 | Done — `POST /api/v1/auth/change-password` para cuentas locales (microsoft_id null). 403 para cuentas Microsoft. Valida `current_password` vía Hash::check. Revoca todos los tokens Sanctum excepto el actual. `GET /api/v1/me` añade `auth_provider: "local"\|"microsoft"` para que el frontend sepa si mostrar Beveiliging. 6 tests / 12 assertions ✅. Commit `32ae7fe`. Nota test: `auth()->forgetGuards()` entre requests secuenciales para evitar cache de RequestGuard entre requests del mismo test. |
 | 2026-06-28 | CLA-178 | Done — Rediseño emails Safety: `inspection-report.blade.php` (tabla, inline styles, logo, banda azul/roja por tipo, hero, badge, firma) + `inspection-reminder.blade.php` (mismo patrón, banda ámbar, alert box, CTA). Commits `74fef44` + `bdf77c4`. Fix colateral: nota indicativa CTOR en `CampaignMetricsWidget` + clave `ctor_note` en lang EN/NL. Commit `11cca98`. 116/116 tests Safety ✅ (3 fallos preexistentes Safety-auth no relacionados). |
 | 2026-06-28 | i18n | Done — Auditoría y corrección completa de strings de UI en backoffice (Bloques A→D). Eliminados todos los strings en español, todos los ternarios `$nl ? ... : ...`, y todos los labels NL/EN hardcodeados. Ahora toda la UI usa `__()` con `app()->getLocale()`. Nuevos ficheros: `Modules/Intelligence/lang/{nl,en}/{billing,offer_simulator,bi_config}.php`, `Modules/Performance/lang/{nl,en}/projects.php`. Actualizados: `lang/{nl,en}/navigation.php` (12 grupos sidebar), `Modules/Safety/lang/{nl,en}/inspections.php` (columnas, tipos, badges, acciones, secciones). PHP afectado: `SafetyAdoptionOverviewWidget`, `InspectionResource`, `MonthlyBillingControlPage`, `OfferSimulator`, `BiConfigPage`, `ProjectResource` + 7 resources para grupos de navegación. Commit `d70f318`. 216/216 tests ✅ (31 fallos preexistentes en Mailing/Safety-auth/Website no relacionados). |
 | 2026-06-27 | INFRA | Done — CORS corregido en sbapu03 nginx: `cors-map.conf` + `proxy_hide_header` eliminan duplicados ACAO; preflight OPTIONS→204 sin hit PHP. `MissingAppKeyException` resuelto: `shared/.env` → `bert:www-data 640`; `deploy.sh` corre `sudo -u www-data config:cache` post-chown. `mysqldump` saneado (`--no-tablespaces`, sin `--events`). 3 deploys limpios consecutivos. Scripts versionados en `infrastructure/`. Commit `667416a`. |
