@@ -45,6 +45,16 @@ class ViewEmployee extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            \Filament\Actions\Action::make('view_hours')
+                ->label(app()->getLocale() === 'nl' ? 'Uren bekijken' : 'View Hours')
+                ->icon('heroicon-o-clock')
+                ->color('info')
+                ->outlined()
+                ->url(fn() => \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl([
+                    'employee_id' => (string) $this->record->id,
+                    'month'       => now()->format('Y-m'),
+                ])),
+
             \Filament\Actions\Action::make('analyze')
                 ->label(__('employees/resource.actions.analyze.label'))
                 ->icon('heroicon-o-cpu-chip')

@@ -65,8 +65,9 @@ class EmployeeServiceProvider extends ServiceProvider
         ));
 
         $this->app->singleton(EmployeeDashboardRankingService::class, fn($app) => new EmployeeDashboardRankingService(
+            $app->make(TimeEntryRepository::class),
             $app->make(EmployeeRepository::class),
-            $app->make(TimeEntryRepository::class)
+            $app->make(EmployeeTimeService::class),
         ));
 
         $this->app->bind(EmployeeRankingContract::class, EmployeeDashboardRankingService::class);
