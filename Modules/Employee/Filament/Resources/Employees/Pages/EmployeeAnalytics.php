@@ -1,13 +1,13 @@
 <?php
 
-namespace Modules\Cafca\Filament\Resources\Employees\Pages;
+namespace Modules\Employee\Filament\Resources\Employees\Pages;
 
-use Modules\Employee\Filament\Resources\EmployeeResource;
-use Filament\Resources\Pages\ViewRecord;
-use Filament\Actions\Action;
-use Modules\Cafca\Filament\Resources\Employees\Schemas\EmployeeAnalyticsInfolist;
-use Filament\Schemas\Schema;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Actions\Action;
+use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Schema;
+use Modules\Cafca\Filament\Resources\Employees\Schemas\EmployeeAnalyticsInfolist;
+use Modules\Employee\Filament\Resources\EmployeeResource;
 use Modules\Performance\Services\EmployeePerformanceService;
 
 class EmployeeAnalytics extends ViewRecord
@@ -26,9 +26,9 @@ class EmployeeAnalytics extends ViewRecord
 
     public function getSubheading(): \Illuminate\Contracts\Support\Htmlable|string|null
     {
-        $record   = $this->getRecord();
-        $insight  = $record->insight;
-        $isNl     = app()->getLocale() === 'nl';
+        $record  = $this->getRecord();
+        $insight = $record->insight;
+        $isNl    = app()->getLocale() === 'nl';
 
         if ($insight?->last_audited_at) {
             $label = $isNl ? 'Laatste analyse' : 'Last analysis';
@@ -41,6 +41,11 @@ class EmployeeAnalytics extends ViewRecord
     public static function getNavigationLabel(): string
     {
         return app()->getLocale() === 'nl' ? 'IA Prestaties' : 'AI Performance';
+    }
+
+    public static function getNavigationIcon(): ?string
+    {
+        return 'heroicon-o-cpu-chip';
     }
 
     public function infolist(Schema $schema): Schema
@@ -86,7 +91,6 @@ class EmployeeAnalytics extends ViewRecord
                             ->send();
 
                         return redirect(request()->header('Referer'));
-
                     } catch (\Exception $e) {
                         \Filament\Notifications\Notification::make()
                             ->title('Error')

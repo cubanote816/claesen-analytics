@@ -189,7 +189,7 @@ class ProjectInsightResource extends Resource
                                                 if (! $record || ! isset($record->employee_id)) {
                                                     return null;
                                                 }
-                                                return \Modules\Cafca\Filament\Resources\EmployeeResource::getUrl('view', ['record' => $record->employee_id]);
+                                                return \Modules\Employee\Filament\Resources\EmployeeResource::getUrl('view', ['record' => $record->employee_id]);
                                             }),
                                         TextEntry::make('hours')
                                             ->label(false)

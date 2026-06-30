@@ -2,7 +2,7 @@
 
 namespace Modules\Cafca\Filament\Resources\Employees\Pages;
 
-use Modules\Cafca\Filament\Resources\EmployeeResource;
+use Modules\Employee\Filament\Resources\EmployeeResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;

@@ -2,7 +2,7 @@
 
 namespace Modules\Cafca\Filament\Resources\Employees\Pages;
 
-use Modules\Cafca\Filament\Resources\EmployeeResource;
+use Modules\Employee\Filament\Resources\EmployeeResource;
 use Filament\Resources\Pages\ListRecords;
 
 class ListEmployees extends ListRecords

@@ -2,7 +2,7 @@
 
 namespace Modules\Cafca\Filament\Resources\Employees\Tables;
 
-use Modules\Cafca\Filament\Resources\EmployeeResource;
+use Modules\Employee\Filament\Resources\EmployeeResource;
 use Modules\Cafca\Models\Employee;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;

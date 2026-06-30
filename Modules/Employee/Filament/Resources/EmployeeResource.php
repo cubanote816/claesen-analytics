@@ -1,21 +1,24 @@
 <?php
 
-namespace Modules\Cafca\Filament\Resources;
+namespace Modules\Employee\Filament\Resources;
 
-use Modules\Cafca\Filament\Resources\Employees\Pages\CreateEmployee;
-use Modules\Cafca\Filament\Resources\Employees\Pages\EditEmployee;
-use Modules\Cafca\Filament\Resources\Employees\Pages\ListEmployees;
-use Modules\Cafca\Filament\Resources\Employees\Pages\ViewEmployee;
-use Modules\Cafca\Filament\Resources\Employees\Schemas\EmployeeForm;
-use Modules\Cafca\Filament\Resources\Employees\Schemas\EmployeeInfolist;
-use Modules\Cafca\Filament\Resources\Employees\Tables\EmployeesTable;
-use Modules\Cafca\Models\Employee;
 use BackedEnum;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Cafca\Filament\Resources\Employees\Pages\CreateEmployee;
+use Modules\Cafca\Filament\Resources\Employees\Pages\EditEmployee;
+use Modules\Cafca\Filament\Resources\Employees\Pages\ListEmployees;
+use Modules\Cafca\Filament\Resources\Employees\Pages\ViewEmployee;
+use Modules\Cafca\Filament\Resources\Employees\Schemas\EmployeeAnalyticsInfolist;
+use Modules\Cafca\Filament\Resources\Employees\Schemas\EmployeeForm;
+use Modules\Cafca\Filament\Resources\Employees\Schemas\EmployeeInfolist;
+use Modules\Cafca\Filament\Resources\Employees\Tables\EmployeesTable;
+use Modules\Cafca\Models\Employee;
+use Modules\Employee\Filament\Resources\Employees\Pages\EmployeeAnalytics;
+use Modules\Employee\Filament\Resources\Employees\Pages\EmployeeHoursPage;
 
 class EmployeeResource extends Resource
 {
@@ -32,16 +35,6 @@ class EmployeeResource extends Resource
     public static function getNavigationLabel(): string
     {
         return __('employees/resource.navigation_label');
-    }
-
-    public static function getNavigationBadge(): ?string
-    {
-        return 'DEMO';
-    }
-
-    public static function getNavigationBadgeColor(): ?string
-    {
-        return 'warning';
     }
 
     public static function getModelLabel(): string
@@ -97,25 +90,20 @@ class EmployeeResource extends Resource
         return $page->generateNavigationItems([
             ViewEmployee::class,
             EditEmployee::class,
-            \Modules\Cafca\Filament\Resources\Employees\Pages\EmployeeAnalytics::class,
+            EmployeeAnalytics::class,
+            EmployeeHoursPage::class,
         ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ListEmployees::route('/'),
-            'create' => CreateEmployee::route('/create'),
-            'view' => ViewEmployee::route('/{record}'),
-            'edit' => EditEmployee::route('/{record}/edit'),
-            'analytics' => \Modules\Cafca\Filament\Resources\Employees\Pages\EmployeeAnalytics::route('/{record}/analytics'),
+            'index'     => ListEmployees::route('/'),
+            'create'    => CreateEmployee::route('/create'),
+            'view'      => ViewEmployee::route('/{record}'),
+            'edit'      => EditEmployee::route('/{record}/edit'),
+            'analytics' => EmployeeAnalytics::route('/{record}/analytics'),
+            'hours'     => EmployeeHoursPage::route('/{record}/hours'),
         ];
     }
 }

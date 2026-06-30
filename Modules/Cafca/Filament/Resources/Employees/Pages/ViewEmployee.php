@@ -2,7 +2,7 @@
 
 namespace Modules\Cafca\Filament\Resources\Employees\Pages;
 
-use Modules\Cafca\Filament\Resources\EmployeeResource;
+use Modules\Employee\Filament\Resources\EmployeeResource;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -50,9 +50,8 @@ class ViewEmployee extends ViewRecord
                 ->icon('heroicon-o-clock')
                 ->color('info')
                 ->outlined()
-                ->url(fn() => \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl([
-                    'employee_id' => (string) $this->record->id,
-                    'month'       => now()->format('Y-m'),
+                ->url(fn() => \Modules\Employee\Filament\Resources\Employees\Pages\EmployeeHoursPage::getUrl([
+                    'record' => $this->record,
                 ])),
 
             \Filament\Actions\Action::make('analyze')
