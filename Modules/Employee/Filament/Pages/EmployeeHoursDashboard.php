@@ -78,7 +78,7 @@ class EmployeeHoursDashboard extends Page
     private function loadEmployees(): void
     {
         $this->allEmployees = app(EmployeeRepository::class)
-            ->getActiveEmployees()
+            ->getActiveEmployees(tracksHours: true)
             ->map(fn($e) => ['id' => $e->id, 'name' => $e->name])
             ->toArray();
     }

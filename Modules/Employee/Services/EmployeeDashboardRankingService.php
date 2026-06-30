@@ -42,7 +42,7 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
     {
         $employees = $employeeIds
             ? $this->employeeRepo->findMany($employeeIds)
-            : $this->employeeRepo->getActiveEmployees();
+            : $this->employeeRepo->getActiveEmployees(tracksHours: true);
 
         if ($employees->isEmpty()) {
             return new Collection();
@@ -100,7 +100,7 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
         $endDate    = Carbon::now()->endOfMonth();
         $startDate  = Carbon::now()->subMonths(11)->startOfMonth();
 
-        $employees = $this->employeeRepo->getActiveEmployees();
+        $employees = $this->employeeRepo->getActiveEmployees(tracksHours: true);
 
         if ($employees->isEmpty()) {
             return $this->emptyDashboard($targetYear->format('Y'));

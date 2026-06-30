@@ -16,7 +16,7 @@ class EmployeeRankingService
     public function getEmployeeHoursRanking(): array
     {
         $startDate = Carbon::now()->subMonths(11)->startOfMonth();
-        $employees = $this->employeeRepo->getActiveEmployees();
+        $employees = $this->employeeRepo->getActiveEmployees(tracksHours: true);
 
         return $employees->map(function ($employee) use ($startDate) {
             $entries    = $this->timeEntryRepo->getTimeEntries($employee->id, $startDate);

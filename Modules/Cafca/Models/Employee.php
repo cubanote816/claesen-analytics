@@ -62,6 +62,7 @@ class Employee extends Model implements HasMedia
         'legacy_ts_modif',
         'notes',
         'uren_per_week',
+        'tracks_hours',
     ];
 
     /**
@@ -74,7 +75,8 @@ class Employee extends Model implements HasMedia
         'employment_date' => 'datetime',
         'termination_date' => 'datetime',
         'legacy_ts_modif' => 'datetime',
-        'uren_per_week' => 'float',
+        'uren_per_week'  => 'float',
+        'tracks_hours'   => 'boolean',
     ];
 
     /**
