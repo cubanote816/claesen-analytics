@@ -4,6 +4,7 @@ namespace Modules\Employee\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Modules\Employee\Contracts\EmployeeRankingContract;
 use Modules\Employee\Repositories\EmployeeRepository;
@@ -22,53 +23,75 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
         try {
             [$startDate, $endDate] = $this->resolveDateRange($startDate, $endDate);
 
-            $employees = $employeeIds
-                ? $this->employeeRepo->findMany($employeeIds)
-                : $this->employeeRepo->getActiveEmployees();
-
-            if ($employees->isEmpty()) {
-                return new Collection();
+            // Skip cache for filtered subsets — too many key permutations
+            if ($employeeIds !== null) {
+                return $this->computeTopEmployees($employeeIds, $startDate, $endDate);
             }
 
-            $allEmpIds  = $employees->pluck('id')->toArray();
-            $allEntries = $this->timeEntryRepo->getTimeEntriesForMultipleEmployees(
-                $allEmpIds,
-                Carbon::parse($startDate),
-                Carbon::parse($endDate)
-            );
+            $ttl     = $this->cacheTtl($endDate);
+            $cacheKey = 'employee.rankings.' . md5($startDate . $endDate);
 
-            $rankings = new Collection();
-            foreach ($employees as $employee) {
-                $entries = $allEntries->where('employee_id', $employee->id);
-
-                $ladenHours     = round($entries->where('labor_descr', 'Laden')->sum('hours'), 2);
-                $werfHours      = round($entries->where('labor_descr', 'Werf')->sum('hours'), 2);
-                $transportHours = round($entries->where('labor_descr', 'Mobiliteit')->sum('hours'), 2);
-                $totalHours     = round($ladenHours + $werfHours + $transportHours, 2);
-
-                $rankings->push([
-                    'id'    => $employee->id,
-                    'name'  => $employee->name,
-                    'email' => $employee->email,
-                    'labor_hours' => [
-                        'laden_hours'     => $ladenHours,
-                        'werf_hours'      => $werfHours,
-                        'transport_hours' => $transportHours,
-                    ],
-                    'total_hours' => $totalHours,
-                ]);
-            }
-
-            $sorted = $rankings->sortByDesc('total_hours')->take(10)->values();
-
-            return new Collection([
-                'period'   => ['start_date' => $startDate, 'end_date' => $endDate],
-                'rankings' => $sorted,
-            ]);
+            return Cache::remember($cacheKey, $ttl, fn () => $this->computeTopEmployees(null, $startDate, $endDate));
         } catch (\Exception $e) {
             Log::error('EmployeeDashboardRankingService: getTopEmployees failed', ['error' => $e->getMessage()]);
             throw $e;
         }
+    }
+
+    private function computeTopEmployees(?array $employeeIds, string $startDate, string $endDate): Collection
+    {
+        $employees = $employeeIds
+            ? $this->employeeRepo->findMany($employeeIds)
+            : $this->employeeRepo->getActiveEmployees();
+
+        if ($employees->isEmpty()) {
+            return new Collection();
+        }
+
+        $allEmpIds  = $employees->pluck('id')->toArray();
+        $allEntries = $this->timeEntryRepo->getTimeEntriesForMultipleEmployees(
+            $allEmpIds,
+            Carbon::parse($startDate),
+            Carbon::parse($endDate)
+        );
+
+        $rankings = new Collection();
+        foreach ($employees as $employee) {
+            $entries = $allEntries->where('employee_id', $employee->id);
+
+            $ladenHours     = round($entries->where('labor_descr', 'Laden')->sum('hours'), 2);
+            $werfHours      = round($entries->where('labor_descr', 'Werf')->sum('hours'), 2);
+            $transportHours = round($entries->where('labor_descr', 'Mobiliteit')->sum('hours'), 2);
+            $totalHours     = round($ladenHours + $werfHours + $transportHours, 2);
+
+            $rankings->push([
+                'id'    => $employee->id,
+                'name'  => $employee->name,
+                'email' => $employee->email,
+                'labor_hours' => [
+                    'laden_hours'     => $ladenHours,
+                    'werf_hours'      => $werfHours,
+                    'transport_hours' => $transportHours,
+                ],
+                'total_hours' => $totalHours,
+            ]);
+        }
+
+        $sorted = $rankings->sortByDesc('total_hours')->take(10)->values();
+
+        return new Collection([
+            'period'   => ['start_date' => $startDate, 'end_date' => $endDate],
+            'rankings' => $sorted,
+        ]);
+    }
+
+    // Historical ranges (end before current month) are stable data → 6h.
+    // Current or future ranges may change as employees log hours → 30 min.
+    private function cacheTtl(string $endDate): \DateTimeInterface
+    {
+        $isHistorical = Carbon::parse($endDate)->isBefore(Carbon::now()->startOfMonth());
+
+        return $isHistorical ? now()->addHours(6) : now()->addMinutes(30);
     }
 
     public function getDashboardData(?string $year = null): array
