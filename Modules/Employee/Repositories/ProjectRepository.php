@@ -5,24 +5,25 @@ namespace Modules\Employee\Repositories;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
-use Modules\Cafca\Models\Project;
+use Modules\Cafca\Models\Project as CafcaProject;
+use Modules\Performance\Models\Mirror\MirrorProject;
 
 class ProjectRepository
 {
-    public function find(string $projectId): ?Project
+    public function find(string $projectId): ?MirrorProject
     {
-        return Project::where('id', trim($projectId))->first();
+        return MirrorProject::where('id', trim($projectId))->first();
     }
 
     public function getProjectsByIds(array $projectIds): Collection
     {
-        return Project::whereIn('id', $projectIds)->get();
+        return MirrorProject::whereIn('id', $projectIds)->get();
     }
 
     public function getProjectsWithInvoiceInfo(array $projectIds, string $startDate, string $endDate): Collection
     {
         try {
-            $projects = Project::whereIn('id', $projectIds)
+            $projects = CafcaProject::whereIn('id', $projectIds)
                 ->where('fl_active', true)
                 ->with([
                     'invoices' => function ($query) use ($startDate, $endDate) {

@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Modules\Employee\Tests\Feature;
 
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Cafca\Models\Employee;
-use Modules\Employee\Repositories\ProjectRepository;
 use Modules\Performance\Models\Mirror\MirrorLabor;
 use Tests\TestCase;
 
@@ -23,13 +21,6 @@ class EmployeeTimeStatsTest extends TestCase
     {
         parent::setUp();
         $this->withHeader('Origin', 'http://localhost');
-
-        // Prevent SQL Server calls: ProjectRepository uses Cafca\Project (sqlsrv connection)
-        $this->mock(ProjectRepository::class, function ($mock) {
-            $mock->shouldReceive('getProjectsByIds')->andReturn(new EloquentCollection());
-            $mock->shouldReceive('find')->andReturn(null);
-        });
-
         $this->user     = UserFactory::new()->create();
         $this->employee = Employee::create([
             'id'            => '200',
