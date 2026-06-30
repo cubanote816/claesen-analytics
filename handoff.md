@@ -11,7 +11,7 @@
 - **Rama actual:** `main`
 - **Último hito código:** `f59f19a` (2026-06-30) — feat(EMP-B): `Cafca\EmployeeResource` eliminado; `Employee\EmployeeResource` es propietario canónico. Nueva sub-nav "Hours" (`/{record}/hours`) en cada empleado.
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
-- **Próximo paso:** sin ticket activo — definir con el auditor antes de continuar.
+- **Próximo paso:** smoke test browser ✅ aceptado (2026-06-30) — sin ticket activo, definir con auditor.
 
 ### SAF-PWA-001 / CLA-170 ✅ Done
 
@@ -85,6 +85,13 @@ Ahora consulta `intelligence_mirror_projects` con `leftJoin` a `intelligence_mir
 | `08b7453` | fix(Employee): ProjectRepository.find/getProjectsByIds → MirrorProject (MySQL) |
 | `eb74d5a` | feat(EMP-A): cache rankings — `Cache::remember()` con TTL adaptativo (30min actual / 6h histórico) |
 | `f59f19a` | feat(EMP-B): EmployeeResource migrado a módulo Employee + Hours sub-nav tab |
+| `626d15b` | docs(handoff): 2026-06-30 — cache rankings + EmployeeResource → Employee module |
+
+**Smoke test browser (2026-06-30): ✅ aceptado**
+- Sub-nav 4 tabs visible (Details / Edit / AI Performance / Hours)
+- Tab Hours carga `/{record}/hours`, muestra cards totals + tabla semanal con % consecución
+- Navegación prev/next mes operativa
+- Sin errores 500
 
 **Cambios relevantes:**
 
