@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-30 (Employee module: UI fixes, EmployeeHoursSummaryWidget, 44 tests, ProjectRepository → mirror)
+> Última actualización: 2026-06-30 (Employee module: cache rankings, EmployeeResource → módulo Employee, Hours sub-nav tab)
 
 ---
 
@@ -9,7 +9,7 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** `08b7453` (2026-06-30) — fix: `ProjectRepository.find/getProjectsByIds` → `MirrorProject` (MySQL). Eliminada dependencia sqlsrv en endpoints day/week stats del módulo Employee.
+- **Último hito código:** `f59f19a` (2026-06-30) — feat(EMP-B): `Cafca\EmployeeResource` eliminado; `Employee\EmployeeResource` es propietario canónico. Nueva sub-nav "Hours" (`/{record}/hours`) en cada empleado.
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
 - **Próximo paso:** sin ticket activo — definir con el auditor antes de continuar.
 
@@ -70,26 +70,44 @@ Ahora consulta `intelligence_mirror_projects` con `leftJoin` a `intelligence_mir
 
 ---
 
-### Sesión 2026-06-30 — Employee module UI + tests + mirror fix ✅ Done
+### Sesión 2026-06-30 — Employee module: tests, mirror fix, cache, EmployeeResource ✅ Done
 
 **Commits (esta sesión):**
 
 | Hash | Descripción |
 |------|-------------|
-| `1a88873` | fix(Employee): use Livewire dispatch + Alpine window event for chart data |
-| `b230f2f` | feat(Employee): EmployeeHoursSummaryWidget — top-3 + stats en dashboard principal |
+| `1a88873` | fix(Employee): Livewire dispatch + Alpine window event for chart data |
+| `b230f2f` | feat(Employee): EmployeeHoursSummaryWidget — top-3 + stats en dashboard |
 | `407d396` | fix(Employee): top-3 cards layout (flex) + Tailwind @source Modules scan |
 | `37ab1ff` | fix(Employee): FQCN `\Carbon\Carbon` en employee-month-stats blade |
 | `4b8feec` | fix(Employee): wire:navigate en todos los links internos (SPA navigation) |
 | `1e157a0` | test(Employee): 44 tests — auth, rankings, time stats, MirrorLabor enrichment |
 | `08b7453` | fix(Employee): ProjectRepository.find/getProjectsByIds → MirrorProject (MySQL) |
+| `eb74d5a` | feat(EMP-A): cache rankings — `Cache::remember()` con TTL adaptativo (30min actual / 6h histórico) |
+| `f59f19a` | feat(EMP-B): EmployeeResource migrado a módulo Employee + Hours sub-nav tab |
 
 **Cambios relevantes:**
-- `EmployeeHoursSummaryWidget` en dashboard principal — muestra mes anterior, top-3 en tarjetas horizontales con medallas oro/plata/bronce
-- Chart de tendencia mensual: `@json()` en HTML attribute eliminado → `$this->dispatch('hours-chart-updated', ...)` + `x-on:hours-chart-updated.window`
-- Tailwind v4: añadidos `@source '../../Modules/**/*.blade.php'` y `@source '../../Modules/**/*.php'` en `app.css`
-- `ProjectRepository`: `find()` y `getProjectsByIds()` usan ahora `MirrorProject` (`intelligence_mirror_projects`, MySQL) en lugar de `Cafca\Project` (sqlsrv)
-- **44 tests** en `Modules/Employee/tests/Feature/` — todos verdes, sin mocks, contra mirror real
+
+**Tests (1e157a0 + 08b7453):**
+- 44 tests en `Modules/Employee/tests/Feature/` — todos verdes, sin mocks, contra mirror real
+- `ProjectRepository::find()` y `getProjectsByIds()` usan `MirrorProject` (MySQL `intelligence_mirror_projects`) — eliminada dependencia sqlsrv en endpoints day/week stats
+
+**Cache rankings (eb74d5a):**
+- `EmployeeDashboardRankingService::getTopEmployees()` envuelve cómputo en `Cache::remember()`
+- TTL adaptativo: rangos históricos (fin < inicio de mes actual) → 6h; mes en curso → 30 min
+- Subconjuntos con `$employeeIds` explícito bypass cache (espacio de claves ilimitado)
+- Cache key: `'employee.rankings.' . md5($startDate . $endDate)`
+
+**EmployeeResource → módulo Employee (f59f19a):**
+- `Modules/Cafca/Filament/Resources/EmployeeResource.php` **eliminado** — evita conflicto de rutas
+- `Modules/Employee/Filament/Resources/EmployeeResource.php` — propietario canónico de todas las rutas `/employees/*`
+- Las 5 páginas Cafca (List, Create, View, Edit, EmployeeAnalytics) y `EmployeesTable` ahora referencian el nuevo resource
+- `Modules/Employee/Filament/Resources/Employees/Pages/EmployeeAnalytics.php` — copia en namespace Employee
+- `Modules/Employee/Filament/Resources/Employees/Pages/EmployeeHoursPage.php` — nueva sub-nav "Hours" (`/{record}/hours`)
+- Vista blade `employee-hours-page.blade.php` — resumen mes (laden/werf/transport/km) + tabla semanal con % consecución
+- Sub-nav de 4 tabs por empleado: **Details | Edit | AI Performance | Hours**
+- `ViewEmployee::getHeaderActions()` — botón "View Hours" actualizado para apuntar a `EmployeeHoursPage::getUrl()`
+- `Performance\ProjectInsightResource` — referencia a `EmployeeResource::getUrl()` actualizada al nuevo namespace
 
 ---
 
