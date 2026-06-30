@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-29 (fix: EmployeePerformanceService + EmployeeInfolist — todas las queries Labor sqlsrv migradas al mirror MySQL)
+> Última actualización: 2026-06-30 (Employee module: UI fixes, EmployeeHoursSummaryWidget, 44 tests, ProjectRepository → mirror)
 
 ---
 
@@ -9,7 +9,7 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** `8ef70ce` (2026-06-29) — Fix: todas las queries `Labor` (sqlsrv) en `EmployeePerformanceService` y `EmployeeInfolist` reemplazadas por `MirrorLabor` / `MirrorProject` (MySQL). Eliminados timeouts en `/employees/{id}`.
+- **Último hito código:** `08b7453` (2026-06-30) — fix: `ProjectRepository.find/getProjectsByIds` → `MirrorProject` (MySQL). Eliminada dependencia sqlsrv en endpoints day/week stats del módulo Employee.
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
 - **Próximo paso:** sin ticket activo — definir con el auditor antes de continuar.
 
@@ -67,6 +67,29 @@ Ahora consulta `intelligence_mirror_projects` con `leftJoin` a `intelligence_mir
 1. Crear ticket en Linear: `SAF: fix 5 pre-existing test failures after employees worker migration` — `78327ae` cambió `present_workers.*` de `exists:users,id` a `exists:employees,id` sin actualizar tests. Afecta: `InspectionAuthStoreIndexTest` (3), `InspectionPhotoStorageFailureTest` (2).
 2. Confirmar que CI acepta o excluye justificadamente los 5 fallos (no son regresiones de SAF-019 — verificado con `git stash`).
 3. Rotación de API key de Linear verificada externamente (401/403 key antigua, nueva key almacenada como secreto, no expuesta en código/logs/Git).
+
+---
+
+### Sesión 2026-06-30 — Employee module UI + tests + mirror fix ✅ Done
+
+**Commits (esta sesión):**
+
+| Hash | Descripción |
+|------|-------------|
+| `1a88873` | fix(Employee): use Livewire dispatch + Alpine window event for chart data |
+| `b230f2f` | feat(Employee): EmployeeHoursSummaryWidget — top-3 + stats en dashboard principal |
+| `407d396` | fix(Employee): top-3 cards layout (flex) + Tailwind @source Modules scan |
+| `37ab1ff` | fix(Employee): FQCN `\Carbon\Carbon` en employee-month-stats blade |
+| `4b8feec` | fix(Employee): wire:navigate en todos los links internos (SPA navigation) |
+| `1e157a0` | test(Employee): 44 tests — auth, rankings, time stats, MirrorLabor enrichment |
+| `08b7453` | fix(Employee): ProjectRepository.find/getProjectsByIds → MirrorProject (MySQL) |
+
+**Cambios relevantes:**
+- `EmployeeHoursSummaryWidget` en dashboard principal — muestra mes anterior, top-3 en tarjetas horizontales con medallas oro/plata/bronce
+- Chart de tendencia mensual: `@json()` en HTML attribute eliminado → `$this->dispatch('hours-chart-updated', ...)` + `x-on:hours-chart-updated.window`
+- Tailwind v4: añadidos `@source '../../Modules/**/*.blade.php'` y `@source '../../Modules/**/*.php'` en `app.css`
+- `ProjectRepository`: `find()` y `getProjectsByIds()` usan ahora `MirrorProject` (`intelligence_mirror_projects`, MySQL) en lugar de `Cafca\Project` (sqlsrv)
+- **44 tests** en `Modules/Employee/tests/Feature/` — todos verdes, sin mocks, contra mirror real
 
 ---
 
