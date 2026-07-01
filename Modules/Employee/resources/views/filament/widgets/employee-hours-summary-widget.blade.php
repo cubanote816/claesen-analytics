@@ -1,7 +1,7 @@
 <x-filament-widgets::widget>
     <x-filament::section>
         <x-slot name="heading">
-            <div class="flex items-center justify-between w-full">
+            <div class="flex items-center justify-between w-full flex-wrap gap-3">
                 <div class="flex items-center gap-2 text-primary-600 dark:text-primary-400">
                     <div class="p-1.5 bg-primary-500/10 rounded-lg">
                         <x-heroicon-o-clock class="h-5 w-5" />
@@ -13,11 +13,15 @@
                         @endif
                     </span>
                 </div>
-                <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeHoursDashboard::getUrl() }}"
-                   class="text-xs text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 font-medium flex items-center gap-1 transition-colors">
-                    {{ app()->getLocale() === 'nl' ? 'Volledig dashboard' : 'Full dashboard' }}
-                    <x-heroicon-m-arrow-right class="h-3 w-3" />
-                </a>
+                <div class="flex items-center gap-3">
+                    <input type="month" wire:model.live="selectedMonth"
+                           class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm px-2 py-1">
+                    <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeHoursDashboard::getUrl() }}"
+                       class="text-xs text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 font-medium flex items-center gap-1 transition-colors">
+                        {{ app()->getLocale() === 'nl' ? 'Volledig dashboard' : 'Full dashboard' }}
+                        <x-heroicon-m-arrow-right class="h-3 w-3" />
+                    </a>
+                </div>
             </div>
         </x-slot>
 
@@ -59,7 +63,7 @@
             </div>
 
             {{-- Top 3 --}}
-            @if(!empty($topThree))
+            @if($hasHoursLogged && !empty($topThree))
                 <div>
                     <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">
                         {{ app()->getLocale() === 'nl' ? 'Top 3 medewerkers' : 'Top 3 employees' }}
@@ -89,6 +93,10 @@
                         @endforeach
                     </div>
                 </div>
+            @else
+                <p class="text-sm text-gray-500 dark:text-gray-400 italic py-2">
+                    {{ app()->getLocale() === 'nl' ? 'Geen medewerkers met geregistreerde uren in deze maand.' : 'No employees logged hours this month.' }}
+                </p>
             @endif
         @endif
     </x-filament::section>

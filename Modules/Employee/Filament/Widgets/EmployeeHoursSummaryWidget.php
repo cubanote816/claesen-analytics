@@ -18,18 +18,36 @@ class EmployeeHoursSummaryWidget extends Widget
         return request()->routeIs('filament.admin.pages.dashboard');
     }
 
-    public array $summary   = [];
-    public array $topThree  = [];
-    public string $period   = '';
+    public string $selectedMonth = '';
+
+    public array $summary        = [];
+    public array $topThree       = [];
+    public string $period        = '';
+    public bool $hasHoursLogged  = false;
 
     public function mount(): void
     {
-        try {
-            $service   = app(EmployeeDashboardRankingService::class);
-            $start     = Carbon::now()->subMonth()->startOfMonth();
-            $end       = Carbon::now()->subMonth()->endOfMonth();
+        $this->selectedMonth = Carbon::now()->subMonth()->format('Y-m');
+        $this->loadData();
+    }
 
-            $result = $service->getTopEmployees(
+    public function updatedSelectedMonth(): void
+    {
+        $this->loadData();
+    }
+
+    private function loadData(): void
+    {
+        try {
+            $month = $this->selectedMonth
+                ? Carbon::createFromFormat('Y-m', $this->selectedMonth)
+                : Carbon::now()->subMonth();
+
+            $start = $month->copy()->startOfMonth();
+            $end   = $month->copy()->endOfMonth();
+
+            $service = app(EmployeeDashboardRankingService::class);
+            $result  = $service->getTopEmployees(
                 null,
                 $start->toDateString(),
                 $end->toDateString(),
@@ -37,21 +55,24 @@ class EmployeeHoursSummaryWidget extends Widget
 
             $rankings = $result['rankings'] ?? collect();
 
-            $totalHours  = round($rankings->sum('total_hours'), 1);
-            $empCount    = $rankings->count();
-            $avgHours    = $empCount > 0 ? round($totalHours / $empCount, 1) : 0;
+            $totalHours = round($rankings->sum('total_hours'), 1);
+            $empCount   = $rankings->count();
+            $avgHours   = $empCount > 0 ? round($totalHours / $empCount, 1) : 0;
 
-            $this->summary  = [
-                'total_hours'   => $totalHours,
-                'emp_count'     => $empCount,
-                'avg_hours'     => $avgHours,
+            $this->summary = [
+                'total_hours' => $totalHours,
+                'emp_count'   => $empCount,
+                'avg_hours'   => $avgHours,
             ];
-            $this->topThree = $rankings->take(3)->toArray();
-            $this->period   = $start->translatedFormat('F Y');
+
+            $this->hasHoursLogged = $totalHours > 0;
+            $this->topThree       = $this->hasHoursLogged ? $rankings->take(3)->toArray() : [];
+            $this->period         = $start->translatedFormat('F Y');
         } catch (\Exception $e) {
             Log::warning('EmployeeHoursSummaryWidget: failed to load', ['error' => $e->getMessage()]);
-            $this->summary  = [];
-            $this->topThree = [];
+            $this->summary       = [];
+            $this->topThree      = [];
+            $this->hasHoursLogged = false;
         }
     }
 }
