@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-06-30 (Employee module: cache rankings, EmployeeResource → módulo Employee, Hours sub-nav tab)
+> Última actualización: 2026-07-01 (Employee module: Hours Dashboard — listado completo, fix gráfica, filtro unificado de temporalidad; EmployeeHoursSummaryWidget)
 
 ---
 
@@ -9,9 +9,44 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** `f59f19a` (2026-06-30) — feat(EMP-B): `Cafca\EmployeeResource` eliminado; `Employee\EmployeeResource` es propietario canónico. Nueva sub-nav "Hours" (`/{record}/hours`) en cada empleado.
+- **Último hito código:** `fc06a8b` (2026-07-01) — EMP-011 / CLA-186: EmployeeHoursSummaryWidget con selector de mes + estado vacío sin horas.
+- **Hito previo:** `069792d` (2026-07-01) — EMP-008/009/010 / CLA-183/184/185: Hours Dashboard sin límite top-10, fix gráfica Monthly Hours Trend, filtro unificado de temporalidad.
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
-- **Próximo paso:** smoke test browser ✅ aceptado (2026-06-30) — sin ticket activo, definir con auditor.
+- **Próximo paso:** sin ticket activo, definir con auditor.
+
+### Sesión 2026-07-01 — Employee module: Hours Dashboard (listado, gráfica, filtro), widget dashboard ✅ Done
+
+**Commits:**
+
+| Hash | Tickets | Descripción |
+|------|---------|-------------|
+| `069792d` | EMP-008/009/010 · CLA-183/184/185 | Hours Dashboard: listado completo de empleados, fix gráfica, filtro unificado de temporalidad |
+| `fc06a8b` | EMP-011 · CLA-186 | EmployeeHoursSummaryWidget: selector de mes + estado vacío |
+
+**EMP-008 (CLA-183) — Listado completo, sin límite top-10:**
+- `EmployeeDashboardRankingService::getTopEmployees()` — quitado `->take(10)`; ahora devuelve todos los empleados activos (`tracks_hours=true`), ordenados por horas desc.
+- Afecta también al endpoint público `GET /api/v1/employees/rankings` (mismo servicio compartido) — decisión aprobada explícitamente.
+- Sección renombrada "Top Employee Rankings" → "Employees".
+
+**EMP-009 (CLA-184) — Fix gráfica Monthly Hours Trend (aparecía en blanco):**
+- `window.Chart` nunca se cargaba en esta página → Chart.js se inyecta dinámicamente vía CDN.
+- Bug real de Carbon: `Carbon::now()->endOfMonth()` (día 31) + `subMonth()` repetido produce overflow (31-jul − 1 mes → 1-jul, no 30-jun), duplicando un mes y perdiendo otro. Fix: iterar con base `startOfMonth()`.
+- Primer pintado dependía de `requestAnimationFrame` no determinista → `animation: false`.
+
+**EMP-010 (CLA-185) — Filtro unificado de temporalidad:**
+- `EmployeeHoursDashboard.php` — un solo estado de periodo (`periodPreset`, `periodYear`, `customStartDate`, `customEndDate`, todos `#[Url]`) + `applyFilter()` recalcula gráfica y tabla juntas.
+- Presets: Q1, Q2, Q3, Q4, H1 (Jan-Jun), H2 (Jul-Dec), año completo, rango personalizado.
+- `EmployeeDashboardRankingService::getDashboardData()` — firma `?string $year` → `?string $startDate, ?string $endDate`; `getMonthlyHoursTrend()` genera buckets dentro del rango real (no fijo a 12 meses).
+- **Bug preexistente corregido:** `getDashboardData($year)` ignoraba `$year`, siempre usaba los últimos 12 meses desde hoy. `total_working_days` también estaba fijo al año calendario completo.
+- `EmployeeDashboardController` mantiene compatibilidad con `?year=` además de aceptar `?start_date=&end_date=`.
+
+**EMP-011 (CLA-186) — EmployeeHoursSummaryWidget (dashboard admin):**
+- Selector de mes (`type=month`, solo granularidad mensual) en vez de mes fijo.
+- Nuevo flag `hasHoursLogged`; cuando no hay horas registradas ese mes, ya no muestra "Top 3" con empleados a 0h — mensaje explícito en su lugar.
+
+**Verificación:** Selenium (login real vía cookie de sesión inyectada + capturas de pantalla) para las 4 tickets. Tests del módulo Employee: 44/44 verdes (sin regresiones; no había tests previos para el widget).
+
+**Deuda / pendiente:** ninguna abierta por estos tickets.
 
 ### SAF-PWA-001 / CLA-170 ✅ Done
 
