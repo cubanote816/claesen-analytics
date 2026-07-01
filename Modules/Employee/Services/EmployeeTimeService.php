@@ -289,6 +289,12 @@ class EmployeeTimeService
                 $total  = round($laden + $werf + $trans, 2);
                 $wDays  = $we->pluck('entry_date')->map(fn($d) => (string)$d)->unique()->count();
 
+                // Boundary weeks (first/last week of the month) only have some of
+                // their weekdays inside this month — prorate the target to those
+                // days instead of the full weekly target, matching getMonthlyHours()
+                // and getSpecificWeekStats() elsewhere in this service.
+                $target = ($targetWeeklyHours / 5) * $workDays;
+
                 $weeks[] = [
                     'start_date'            => $cursor->format('Y-m-d'),
                     'end_date'              => $wEnd->format('Y-m-d'),
@@ -298,8 +304,8 @@ class EmployeeTimeService
                     'hours_average_per_day' => $wDays > 0 ? round($total / $wDays, 2) : 0,
                     'labor_hours'           => ['laden_hours' => $laden, 'werf_hours' => $werf, 'transport_hours' => $trans],
                     'total_distance'        => round($we->sum('distance'), 2),
-                    'target_hours'          => round($targetWeeklyHours, 2),
-                    'achievement_percentage'=> $targetWeeklyHours > 0 ? round(($total / $targetWeeklyHours) * 100, 2) : 0,
+                    'target_hours'          => round($target, 2),
+                    'achievement_percentage'=> $target > 0 ? round(($total / $target) * 100, 2) : 0,
                 ];
             }
             $cursor->addWeek();

@@ -112,10 +112,15 @@
                                 @php
                                     $pct = $week['achievement_percentage'] ?? 0;
                                     $color = $pct >= 100 ? 'text-success-600 dark:text-success-400' : ($pct >= 75 ? 'text-warning-600 dark:text-warning-400' : 'text-danger-600 dark:text-danger-400');
+                                    $weekUrl = \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $week['start_date'], 'end_date' => $week['end_date']]);
                                 @endphp
-                                <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <tr
+                                    x-data
+                                    x-on:click="if (!$event.target.closest('a')) { Livewire.navigate('{{ $weekUrl }}') }"
+                                    class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
+                                >
                                     <td class="py-2.5 pr-4">
-                                        <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $week['start_date'], 'end_date' => $week['end_date']]) }}"
+                                        <a wire:navigate href="{{ $weekUrl }}"
                                            class="font-medium text-primary-600 dark:text-primary-400 hover:underline">
                                             {{ \Carbon\Carbon::parse($week['start_date'])->format('d/m') }}
                                             &ndash;
