@@ -175,10 +175,10 @@ class EmployeeRankingsTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Max 10 results
+    // No result cap — full listing
     // -------------------------------------------------------------------------
 
-    public function test_rankings_capped_at_ten_employees(): void
+    public function test_rankings_returns_all_employees_uncapped(): void
     {
         $date  = now()->subMonth()->startOfMonth()->toDateString();
         $start = now()->subMonth()->startOfMonth()->toDateString();
@@ -193,6 +193,6 @@ class EmployeeRankingsTest extends TestCase
             ->getJson("/api/v1/employees/rankings?start_date={$start}&end_date={$end}")
             ->assertOk();
 
-        $this->assertCount(10, $response->json('data.rankings'));
+        $this->assertCount(13, $response->json('data.rankings'));
     }
 }

@@ -1,19 +1,61 @@
 <x-filament-panels::page>
-    {{-- Year selector --}}
-    <div class="flex items-center gap-3 mb-6">
-        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ app()->getLocale() === 'nl' ? 'Jaar:' : 'Year:' }}
-        </label>
-        <select wire:model.change="selectedYear"
-                class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm px-3 py-1.5 focus:ring-2 focus:ring-primary-500">
-            @foreach(range(now()->year, now()->year - 4, -1) as $y)
-                <option value="{{ $y }}">{{ $y }}</option>
-            @endforeach
-        </select>
-        <span class="text-xs text-gray-500 dark:text-gray-400">
-            ({{ app()->getLocale() === 'nl' ? 'Trend toont laatste 12 maanden' : 'Trend shows last 12 months' }})
-        </span>
-    </div>
+    {{-- Period filter --}}
+    <x-filament::section class="mb-6">
+        <div class="flex flex-wrap gap-3 items-end">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {{ app()->getLocale() === 'nl' ? 'Periode' : 'Period' }}
+                </label>
+                <select wire:model.live="periodPreset"
+                        class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm px-3 py-1.5 focus:ring-2 focus:ring-primary-500">
+                    <option value="q1">Q1</option>
+                    <option value="q2">Q2</option>
+                    <option value="q3">Q3</option>
+                    <option value="q4">Q4</option>
+                    <option value="h1">{{ app()->getLocale() === 'nl' ? 'S1 (Jan-Jun)' : 'H1 (Jan-Jun)' }}</option>
+                    <option value="h2">{{ app()->getLocale() === 'nl' ? 'S2 (Jul-Dec)' : 'H2 (Jul-Dec)' }}</option>
+                    <option value="year">{{ app()->getLocale() === 'nl' ? 'Volledig jaar' : 'Full year' }}</option>
+                    <option value="custom">{{ app()->getLocale() === 'nl' ? 'Aangepast' : 'Custom' }}</option>
+                </select>
+            </div>
+
+            @if($periodPreset !== 'custom')
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        {{ app()->getLocale() === 'nl' ? 'Jaar' : 'Year' }}
+                    </label>
+                    <select wire:model="periodYear"
+                            class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm px-3 py-1.5 focus:ring-2 focus:ring-primary-500">
+                        @foreach(range(now()->year, now()->year - 4, -1) as $y)
+                            <option value="{{ $y }}">{{ $y }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @else
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        {{ app()->getLocale() === 'nl' ? 'Van' : 'From' }}
+                    </label>
+                    <input type="date" wire:model="customStartDate"
+                           class="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm px-2 py-1.5">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        {{ app()->getLocale() === 'nl' ? 'Tot' : 'To' }}
+                    </label>
+                    <input type="date" wire:model="customEndDate"
+                           class="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm px-2 py-1.5">
+                </div>
+            @endif
+
+            <x-filament::button wire:click="applyFilter" wire:loading.attr="disabled" size="sm">
+                <span wire:loading.remove wire:target="applyFilter">
+                    {{ app()->getLocale() === 'nl' ? 'Filteren' : 'Filter' }}
+                </span>
+                <span wire:loading wire:target="applyFilter">...</span>
+            </x-filament::button>
+        </div>
+    </x-filament::section>
 
     {{-- Stats cards --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -65,7 +107,8 @@
     {{-- Monthly trend chart --}}
     <x-filament::section>
         <x-slot name="heading">
-            {{ app()->getLocale() === 'nl' ? 'Maandelijkse Uren Trend (12 maanden)' : 'Monthly Hours Trend (12 months)' }}
+            @php $monthCount = count($chartLabels); @endphp
+            {{ app()->getLocale() === 'nl' ? "Maandelijkse Uren Trend ({$monthCount} maanden)" : "Monthly Hours Trend ({$monthCount} months)" }}
         </x-slot>
 
         <div
@@ -74,7 +117,23 @@
                 chart: null,
                 labels: [],
                 hoursData: [],
+                ensureChartJs() {
+                    return new Promise((resolve) => {
+                        if (window.Chart) { resolve(); return; }
+                        let script = document.getElementById('cafca-chartjs-cdn');
+                        if (!script) {
+                            script = document.createElement('script');
+                            script.id = 'cafca-chartjs-cdn';
+                            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4';
+                            document.head.appendChild(script);
+                        }
+                        script.addEventListener('load', () => resolve());
+                    });
+                },
                 render() {
+                    this.ensureChartJs().then(() => this.renderChart());
+                },
+                renderChart() {
                     if (this.chart) { this.chart.destroy(); this.chart = null; }
                     const canvas = this.$el.querySelector('#hours-trend-chart');
                     if (!canvas || !window.Chart) return;
@@ -94,6 +153,7 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            animation: false,
                             plugins: { legend: { display: false } },
                             scales: {
                                 y: {
@@ -125,32 +185,8 @@
     {{-- Rankings filter + table --}}
     <x-filament::section class="mt-6">
         <x-slot name="heading">
-            {{ app()->getLocale() === 'nl' ? 'Top Medewerkers Ranking' : 'Top Employee Rankings' }}
+            {{ app()->getLocale() === 'nl' ? 'Medewerkers' : 'Employees' }}
         </x-slot>
-
-        {{-- Filter bar --}}
-        <div class="flex flex-wrap gap-3 mb-4 items-end">
-            <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                    {{ app()->getLocale() === 'nl' ? 'Van' : 'From' }}
-                </label>
-                <input type="date" wire:model="rankStartDate"
-                       class="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm px-2 py-1.5">
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                    {{ app()->getLocale() === 'nl' ? 'Tot' : 'To' }}
-                </label>
-                <input type="date" wire:model="rankEndDate"
-                       class="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm px-2 py-1.5">
-            </div>
-            <x-filament::button wire:click="filterRankings" wire:loading.attr="disabled" size="sm">
-                <span wire:loading.remove wire:target="filterRankings">
-                    {{ app()->getLocale() === 'nl' ? 'Filteren' : 'Filter' }}
-                </span>
-                <span wire:loading wire:target="filterRankings">...</span>
-            </x-filament::button>
-        </div>
 
         {{-- Rankings table --}}
         @if(empty($rankings))

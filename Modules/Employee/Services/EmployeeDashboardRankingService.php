@@ -77,7 +77,7 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
             ]);
         }
 
-        $sorted = $rankings->sortByDesc('total_hours')->take(10)->values();
+        $sorted = $rankings->sortByDesc('total_hours')->values();
 
         return new Collection([
             'period'   => ['start_date' => $startDate, 'end_date' => $endDate],
@@ -94,16 +94,20 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
         return $isHistorical ? now()->addHours(6) : now()->addMinutes(30);
     }
 
-    public function getDashboardData(?string $year = null): array
+    public function getDashboardData(?string $startDate = null, ?string $endDate = null): array
     {
-        $targetYear = $year ? Carbon::createFromFormat('Y', $year) : Carbon::now();
-        $endDate    = Carbon::now()->endOfMonth();
-        $startDate  = Carbon::now()->subMonths(11)->startOfMonth();
+        if ($startDate && $endDate) {
+            $startDate = Carbon::parse($startDate)->startOfDay();
+            $endDate   = Carbon::parse($endDate)->endOfDay();
+        } else {
+            $endDate   = Carbon::now()->endOfMonth();
+            $startDate = Carbon::now()->subMonths(11)->startOfMonth();
+        }
 
         $employees = $this->employeeRepo->getActiveEmployees(tracksHours: true);
 
         if ($employees->isEmpty()) {
-            return $this->emptyDashboard($targetYear->format('Y'));
+            return $this->emptyDashboard($startDate, $endDate);
         }
 
         $allEntries = $this->timeEntryRepo->getTimeEntriesForMultipleEmployees(
@@ -136,11 +140,11 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
 
         $totalHours     = collect($dashboardData)->sum('total_hours');
         $totalApproved  = collect($dashboardData)->sum('approved_hours');
-        $totalWorkDays  = $this->getWorkingDaysInYear($targetYear);
+        $totalWorkDays  = $this->getWorkingDays($startDate, $endDate);
         $avgPerEmployee = $employees->count() > 0 ? round($totalHours / $employees->count(), 2) : 0;
 
         return [
-            'year'    => $targetYear->format('Y'),
+            'period'  => ['start_date' => $startDate->toDateString(), 'end_date' => $endDate->toDateString()],
             'summary' => [
                 'total_hours'                => round($totalHours, 2),
                 'total_approved_hours'       => round($totalApproved, 2),
@@ -148,18 +152,20 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
                 'average_hours_per_employee' => $avgPerEmployee,
                 'total_employees'            => $employees->count(),
             ],
-            'monthly_hours_trend' => $this->getMonthlyHoursTrend($allEntries),
+            'monthly_hours_trend' => $this->getMonthlyHoursTrend($allEntries, $startDate, $endDate),
             'employees'           => $dashboardData,
         ];
     }
 
-    private function getMonthlyHoursTrend(Collection $entries): array
+    private function getMonthlyHoursTrend(Collection $entries, Carbon $startDate, Carbon $endDate): array
     {
-        $months = collect();
-        $cursor = Carbon::now()->endOfMonth();
-        for ($i = 0; $i < 12; $i++) {
+        $months     = collect();
+        $cursor     = $startDate->copy()->startOfMonth();
+        $lastMonth  = $endDate->copy()->startOfMonth();
+
+        while ($cursor->lte($lastMonth)) {
             $months->push($cursor->copy());
-            $cursor->subMonth();
+            $cursor->addMonth();
         }
 
         return $months->map(function (Carbon $monthDate) use ($entries) {
@@ -180,7 +186,7 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
                 'employees_with_hours'   => $emps,
                 'average_hours_per_day'  => ($days > 0 && $emps > 0) ? round($total / ($days * $emps), 2) : 0,
             ];
-        })->reverse()->values()->all();
+        })->values()->all();
     }
 
     private function resolveDateRange(?string $startDate, ?string $endDate): array
@@ -199,26 +205,26 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
         return [$start->toDateString(), $end->toDateString()];
     }
 
-    private function getWorkingDaysInYear(Carbon $date): int
+    private function getWorkingDays(Carbon $startDate, Carbon $endDate): int
     {
-        $start = $date->copy()->startOfYear();
-        $end   = $date->copy()->endOfYear();
-        $days  = 0;
-        while ($start <= $end) {
-            if (!$start->isWeekend()) {
+        $cursor = $startDate->copy()->startOfDay();
+        $end    = $endDate->copy()->startOfDay();
+        $days   = 0;
+        while ($cursor <= $end) {
+            if (!$cursor->isWeekend()) {
                 $days++;
             }
-            $start->addDay();
+            $cursor->addDay();
         }
         return $days;
     }
 
-    private function emptyDashboard(string $year): array
+    private function emptyDashboard(Carbon $startDate, Carbon $endDate): array
     {
         return [
-            'year'    => $year,
+            'period'  => ['start_date' => $startDate->toDateString(), 'end_date' => $endDate->toDateString()],
             'summary' => ['total_hours' => 0, 'total_approved_hours' => 0, 'total_working_days' => 0, 'average_hours_per_employee' => 0, 'total_employees' => 0],
-            'monthly_hours_trend' => array_fill(0, 12, ['month' => '', 'total_hours' => 0, 'days_worked' => 0, 'employees_with_hours' => 0, 'average_hours_per_day' => 0]),
+            'monthly_hours_trend' => [],
             'employees' => [],
         ];
     }
