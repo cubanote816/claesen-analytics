@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-01 (Employee module: Hours Dashboard — listado completo, fix gráfica, filtro unificado de temporalidad; EmployeeHoursSummaryWidget)
+> Última actualización: 2026-07-01 (Employee module: filas navegables en Hours Dashboard y Month Stats; fix Target prorrateado en semanas de borde de mes)
 
 ---
 
@@ -9,7 +9,9 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** `fc06a8b` (2026-07-01) — EMP-011 / CLA-186: EmployeeHoursSummaryWidget con selector de mes + estado vacío sin horas.
+- **Último hito código:** `1872576` (2026-07-01) — EMP-013 / CLA-188: Month Stats — fix Target no prorrateado en semanas de borde de mes + fila navegable.
+- **Hito previo:** `45cf1c7` (2026-07-01) — EMP-012 / CLA-187: Hours Dashboard — fila completa del listado de empleados navegable.
+- **Hito previo:** `fc06a8b` (2026-07-01) — EMP-011 / CLA-186: EmployeeHoursSummaryWidget con selector de mes + estado vacío sin horas.
 - **Hito previo:** `069792d` (2026-07-01) — EMP-008/009/010 / CLA-183/184/185: Hours Dashboard sin límite top-10, fix gráfica Monthly Hours Trend, filtro unificado de temporalidad.
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
 - **Próximo paso:** sin ticket activo, definir con auditor.
@@ -22,6 +24,8 @@
 |------|---------|-------------|
 | `069792d` | EMP-008/009/010 · CLA-183/184/185 | Hours Dashboard: listado completo de empleados, fix gráfica, filtro unificado de temporalidad |
 | `fc06a8b` | EMP-011 · CLA-186 | EmployeeHoursSummaryWidget: selector de mes + estado vacío |
+| `45cf1c7` | EMP-012 · CLA-187 | Hours Dashboard: fila completa del listado de empleados navegable |
+| `1872576` | EMP-013 · CLA-188 | Month Stats: fix Target no prorrateado en semanas de borde de mes + fila navegable |
 
 **EMP-008 (CLA-183) — Listado completo, sin límite top-10:**
 - `EmployeeDashboardRankingService::getTopEmployees()` — quitado `->take(10)`; ahora devuelve todos los empleados activos (`tracks_hours=true`), ordenados por horas desc.
@@ -43,6 +47,15 @@
 **EMP-011 (CLA-186) — EmployeeHoursSummaryWidget (dashboard admin):**
 - Selector de mes (`type=month`, solo granularidad mensual) en vez de mes fijo.
 - Nuevo flag `hasHoursLogged`; cuando no hay horas registradas ese mes, ya no muestra "Top 3" con empleados a 0h — mensaje explícito en su lugar.
+
+**EMP-012 (CLA-187) — Hours Dashboard: fila completa navegable:**
+- La tabla de empleados solo tenía el link en el nombre; ahora toda la fila navega a `EmployeeMonthStats` (click en cualquier celda), vía `Livewire.navigate()` + Alpine, con guard para no duplicar navegación si el click cae sobre el `<a>` del nombre.
+
+**EMP-013 (CLA-188) — Month Stats: fix Target prorrateado + fila navegable:**
+- **Bug encontrado durante investigación** (no reportado inicialmente): `EmployeeTimeService::getMonthWeeksStats()` mostraba el Target semanal completo (ej. 40h) incluso en la primera/última semana del mes, cuando esa semana solo tiene 1-2 días hábiles reales dentro del mes visible (el resto cae en el mes adyacente) — producía % de cumplimiento engañoso. Corregido a `(targetWeeklyHours/5)*workDays`, igual que el resto de métodos del servicio (`getMonthlyHours`, `getSpecificWeekStats`, etc.) ya hacían.
+- Ejemplo verificado: semana 27/04–03/05 vista desde mayo 2026 — antes Target=40h, ahora Target=8h (1 día hábil real en mayo).
+- **Decisión del auditor:** el rango de fechas mostrado en semanas de borde (ej. "27/04 – 03/05" en vista de mayo) se deja sin recortar — el cálculo de horas ya es correcto, y mostrar el rango real de la semana ayuda a la navegación.
+- Misma mejora de UX que EMP-012: fila completa de la tabla "Weeks" navega a `EmployeeWeekStats` al hacer click en cualquier celda.
 
 **Verificación:** Selenium (login real vía cookie de sesión inyectada + capturas de pantalla) para las 4 tickets. Tests del módulo Employee: 44/44 verdes (sin regresiones; no había tests previos para el widget).
 
