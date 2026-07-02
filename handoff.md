@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-02 (Employee module: EMP-014→018 — filas navegables + breadcrumb jerárquico en Month/Week/Day y en el sub-nav Hours de EmployeeResource)
+> Última actualización: 2026-07-02 (Employee module: EMP-014→019 — filas navegables + breadcrumb jerárquico completo, incluyendo divergencia Hours Dashboard vs. tab Hours de EmployeeResource)
 
 ---
 
@@ -9,7 +9,8 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** `1fe2ecd` (2026-07-02) — EMP-018 / CLA-193: Hours sub-nav de EmployeeResource — breadcrumb refleja el mes en vez del genérico "View".
+- **Último hito código:** `7f419d0` (2026-07-02) — EMP-019 / CLA-194: Week/Day Stats — breadcrumb correcto según origen (Hours Dashboard vs. tab Hours de Employee), vía parámetro `from=employee|dashboard`.
+- **Hito previo:** `1fe2ecd` (2026-07-02) — EMP-018 / CLA-193: Hours sub-nav de EmployeeResource — breadcrumb refleja el mes en vez del genérico "View".
 - **Hito previo:** `7243f16` (2026-07-02) — EMP-017 / CLA-192: breadcrumb jerárquico real (Hours Dashboard > Mes > Semana > Día) en Month/Week/Day Stats, vía `getBreadcrumbs()` nativo de Filament.
 - **Hito previo:** `3eb0a7c` (2026-07-02) — EMP-016 / CLA-191: Day Stats — fila completa de "Projects today" navegable a detalle de proyecto.
 - **Hito previo:** `357abbb` (2026-07-02) — EMP-015 / CLA-190: Week Stats — fila completa de "Projects this week" navegable a detalle de proyecto.
@@ -21,7 +22,7 @@
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
 - **Próximo paso:** sin ticket activo, definir con auditor.
 
-### Sesión 2026-07-02 — Employee module: EMP-014→018 — filas navegables + breadcrumb jerárquico ✅ Done
+### Sesión 2026-07-02 — Employee module: EMP-014→019 — filas navegables + breadcrumb jerárquico completo ✅ Done
 
 **Commits:**
 
@@ -32,6 +33,7 @@
 | `3eb0a7c` | EMP-016 · CLA-191 | Day Stats: fila completa de "Projects today" navegable a `ProjectIntelligenceDetail` |
 | `7243f16` | EMP-017 · CLA-192 | Breadcrumb jerárquico real (Hours Dashboard > Mes > Semana > Día) en las 3 páginas |
 | `1fe2ecd` | EMP-018 · CLA-193 | Hours sub-nav de EmployeeResource — breadcrumb refleja el mes en vez del genérico "View" |
+| `7f419d0` | EMP-019 · CLA-194 | Week/Day Stats — breadcrumb correcto según origen (`from=employee\|dashboard`) |
 
 **EMP-017 (CLA-192) — detalle:**
 - Override de `getBreadcrumbs(): array` (mecanismo nativo de `Filament\Pages\Page`, panel ya tiene `hasBreadcrumbs()` en `true` por defecto, sin uso previo en el proyecto) en `EmployeeMonthStats.php`, `EmployeeWeekStats.php`, `EmployeeDayStats.php`.
@@ -42,7 +44,15 @@
 **EMP-018 (CLA-193) — detalle:**
 - Mismo problema, otra causa: `EmployeeHoursPage.php` (tab "Hours" de `EmployeeResource`, `/employees/{id}/hours`) sobreescribía `getTitle()` pero no `getBreadcrumb()` — hook **separado** y propio de `Filament\Resources\Pages\ViewRecord` (`vendor/filament/filament/src/Resources/Pages/ViewRecord.php:48`), cuyo default es el string genérico `"View"`. Breadcrumb mostraba `Employees › {Nombre} › View` en vez del mes visible.
 - Fix: `getBreadcrumb()` ahora devuelve el mismo mes/año que ya se mostraba en `getSubheading()` (lógica extraída a helper privado `getMonthLabel()`, sin duplicar código).
-- **Fuera de alcance, documentado como limitación conocida (decisión del auditor):** desde este tab, al clickear una semana se navega a `EmployeeWeekStats` (página standalone), cuyo breadcrumb (EMP-017) empieza en "Hours Dashboard" — no vuelve a este tab del empleado. Son dos puntos de entrada distintos que convergen en las mismas páginas Week/Day; resolverlo requeriría rediseño (ej. parámetro de "origen" en la URL), evaluado como fuera de alcance de este ticket.
+- **Limitación documentada en EMP-018 y resuelta en EMP-019** (ver abajo).
+
+**EMP-019 (CLA-194) — detalle:**
+- Resuelve la divergencia dejada pendiente en EMP-018: Week/Day Stats son páginas compartidas por dos flujos — (1) Hours Dashboard > Month > Week > Day (standalone, EMP-017) y (2) EmployeeResource > tab Hours (`EmployeeHoursPage`) > Week > Day. El breadcrumb de Week/Day asumía siempre el flujo (1).
+- **Solución elegida (buena práctica estándar para este caso):** parámetro de contexto `from=employee|dashboard` por querystring — stateless, sobrevive refresh/back-button/links directos, consistente con el resto del módulo (todo ya viaja por query params: `employee_id`, `start_date`, `month`). Se descartaron: Referrer HTTP (frágil, no sobrevive `wire:navigate`) y stack de navegación en sesión (inconsistente con la arquitectura URL-driven existente).
+- `EmployeeWeekStats`/`EmployeeDayStats`: nuevas constantes `FROM_EMPLOYEE`/`FROM_DASHBOARD`, prop `$from` leída en `mount()` (default `dashboard`, 100% retrocompatible), `getBreadcrumbs()` bifurca según `$from`.
+- Con `from=employee`: trail `Employees → {Nombre} → {Mes vía EmployeeHoursPage::getUrl()} → {semana} → {día}` — el nivel "Mes" enlaza al tab del recurso, no a `EmployeeMonthStats` (que en este flujo nunca se visita).
+- `from` propagado por querystring en: link de semana en `employee-hours-page.blade.php`, flechas prev/next de Week y Day, y el link Day→Week. `EmployeeMonthStats.php` y `employee-hours-dashboard.blade.php` no se tocan — fuera del árbol "employee".
+- Cero páginas/recursos nuevos; mismas `getUrl()` ya existentes.
 
 **EMP-015/EMP-016 — detalle (mismo patrón, dos páginas):**
 - Archivos: `employee-week-stats.blade.php` (sección "Projects this week") y `employee-day-stats.blade.php` (sección "Projects today").
@@ -51,7 +61,7 @@
 - Sin cambios de backend: `$project['id']` ya venía en los arrays de `EmployeeTimeService::getSpecificWeekStats()` y `getSpecificDayStats()`, solo no se usaba en los blades.
 - Descartado como destino: `Modules\Performance\Filament\Resources\ProjectResource` (no tiene página `view` registrada) y `ProjectInsightResource` (capa de IA/insight, no vista operativa — documentado en el propio código de `ProjectIntelligenceDetail`).
 
-**Verificación (EMP-014 a EMP-018, sesión completa):** Selenium real contra Chrome vía Selenium Grid del stack Sail, login con usuario `super_admin` sembrado localmente (`admin@claesen-analytics.com`). Confirmado en Day: breadcrumb `["Hours Dashboard","Junuzovic Kemal — May 2026","04/05 – 10/05/2026","Mon 4/05"]`; click en crumb "Hours Dashboard" salta 3 niveles directo a `/employee-hours-dashboard`; click en crumb de mes navega directo a `/employee-month-stats?...`; old back-links confirmados ausentes en las 3 páginas. Confirmado en `/employees/170/hours`: breadcrumb `["Employees","Junuzovic Kemal","July 2026"]` por defecto y `["Employees","Junuzovic Kemal","May 2026"]` con `?month=2026-05`; click en fila de semana sigue navegando correctamente a `EmployeeWeekStats` (sin regresión).
+**Verificación (EMP-014 a EMP-019, sesión completa):** Selenium real contra Chrome vía Selenium Grid del stack Sail, login con usuario `super_admin` sembrado localmente (`admin@claesen-analytics.com`). Confirmado en Day: breadcrumb `["Hours Dashboard","Junuzovic Kemal — May 2026","04/05 – 10/05/2026","Mon 4/05"]`; click en crumb "Hours Dashboard" salta 3 niveles directo a `/employee-hours-dashboard`; click en crumb de mes navega directo a `/employee-month-stats?...`; old back-links confirmados ausentes en las 3 páginas. Confirmado en `/employees/170/hours`: breadcrumb `["Employees","Junuzovic Kemal","July 2026"]` por defecto y `["Employees","Junuzovic Kemal","May 2026"]` con `?month=2026-05`; click en fila de semana sigue navegando correctamente a `EmployeeWeekStats` (sin regresión). Confirmado flujo `from=employee` completo: Hours tab → click semana (link con `from=employee`) → Week breadcrumb `["Employees","Junuzovic Kemal","May 2026","04/05 – 10/05/2026"]` → click día → Day breadcrumb `["Employees","Junuzovic Kemal","May 2026","04/05 – 10/05/2026","Mon 4/05"]` → click crumb de mes vuelve correctamente a `/employees/170/hours?month=2026-05` (el tab, no `EmployeeMonthStats`). Confirmado que el flujo dashboard sin `from=` no cambió: `["Hours Dashboard","Junuzovic Kemal — May 2026","04/05 – 10/05/2026"]`, idéntico a EMP-017.
 
 **Nota de entorno (recurrente, no bloqueante, no parte de ningún cambio):** el harness de verificación local requiere `SESSION_SECURE_COOKIE=false` temporal en `.env` porque el default de Laravel (`true`) exige HTTPS para la cookie de sesión, y la verificación corre por HTTP dentro de la red Docker de Sail. Se revierte inmediatamente después de cada verificación; no afecta producción (allí corre bajo HTTPS).
 
