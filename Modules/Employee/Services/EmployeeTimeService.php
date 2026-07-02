@@ -383,7 +383,7 @@ class EmployeeTimeService
                     'transport'      => ['total_distance' => round($entries->sum('distance'), 2), 'transport_cost' => round($entries->sum('transport_costprice'), 2), 'transport_revenue' => round($entries->sum('transport_salesprice'), 2)],
                     'projects'       => $byProj,
                 ];
-            })->values();
+            })->values()->all();
 
         return [
             'period'         => ['start_date' => $start->format('Y-m-d'), 'end_date' => $end->format('Y-m-d'), 'working_days' => $workDays],
