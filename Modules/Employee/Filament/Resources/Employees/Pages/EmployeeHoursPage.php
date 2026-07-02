@@ -16,6 +16,7 @@ class EmployeeHoursPage extends ViewRecord
 
     public string $month = '';
     public ?array $data  = null;
+    public ?array $trend = null;
     public ?string $errorMessage = null;
 
     public static function getNavigationLabel(): string
@@ -65,6 +66,12 @@ class EmployeeHoursPage extends ViewRecord
 
         $this->month = request()->query('month', Carbon::now()->format('Y-m'));
         $this->loadData();
+
+        try {
+            $this->trend = app(EmployeeTimeService::class)->getYearlyHoursTrend((string) $this->record->id);
+        } catch (\Exception $e) {
+            $this->trend = null;
+        }
     }
 
     public function updatedMonth(): void

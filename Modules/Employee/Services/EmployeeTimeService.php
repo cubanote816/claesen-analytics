@@ -131,6 +131,23 @@ class EmployeeTimeService
         ];
     }
 
+    /**
+     * Trend de horas totales por mes (últimos 12 meses), para gráficos de tendencia.
+     */
+    public function getYearlyHoursTrend(string $employeeId): array
+    {
+        $employee = $this->employeeRepo->find($employeeId);
+        if (!$employee) {
+            throw new \Exception('Empleado no encontrado');
+        }
+
+        $targetWeeklyHours = $employee->uren_per_week ?? 40;
+        $startDate   = Carbon::now()->subMonths(11)->startOfMonth();
+        $timeEntries = $this->timeEntryRepo->getTimeEntries($employeeId, $startDate);
+
+        return $this->getYearlyTrend($timeEntries, $targetWeeklyHours);
+    }
+
     private function getYearlyTrend(Collection $entries, float $targetWeeklyHours): array
     {
         $base = Carbon::now()->startOfMonth();

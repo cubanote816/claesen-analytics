@@ -104,4 +104,73 @@
             @endif
         </x-filament::section>
     @endif
+
+    {{-- 12-month trend --}}
+    @if($trend)
+        @php
+            $isNl = app()->getLocale() === 'nl';
+            $sortedTrend = collect($trend)->sortBy('month')->values();
+            $trendLabels = $sortedTrend->map(fn($m) => \Carbon\Carbon::createFromFormat('Y-m', $m['month'])->locale($isNl ? 'nl' : 'en')->isoFormat('MMM YY'))->all();
+            $trendHours  = $sortedTrend->pluck('hours')->all();
+        @endphp
+        <x-filament::section class="mt-6">
+            <x-slot name="heading">{{ $isNl ? 'Trend (12 maanden)' : 'Trend (12 months)' }}</x-slot>
+
+            <div
+                wire:ignore
+                x-data="{
+                    chart: null,
+                    ensureChartJs() {
+                        return new Promise((resolve) => {
+                            if (window.Chart) { resolve(); return; }
+                            let script = document.getElementById('cafca-chartjs-cdn');
+                            if (!script) {
+                                script = document.createElement('script');
+                                script.id = 'cafca-chartjs-cdn';
+                                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4';
+                                document.head.appendChild(script);
+                            }
+                            script.addEventListener('load', () => resolve());
+                        });
+                    },
+                    render() {
+                        this.ensureChartJs().then(() => this.renderChart());
+                    },
+                    renderChart() {
+                        if (this.chart) { this.chart.destroy(); this.chart = null; }
+                        const canvas = this.$el.querySelector('#employee-yearly-trend');
+                        if (!canvas || !window.Chart) return;
+                        this.chart = new window.Chart(canvas.getContext('2d'), {
+                            type: 'line',
+                            data: {
+                                labels: {{ \Illuminate\Support\Js::from($trendLabels) }},
+                                datasets: [{
+                                    label: '{{ $isNl ? 'Uren' : 'Hours' }}',
+                                    data: {{ \Illuminate\Support\Js::from($trendHours) }},
+                                    borderColor: '#00aeef',
+                                    backgroundColor: 'rgba(0,174,239,0.15)',
+                                    tension: 0.3,
+                                    fill: true,
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                animation: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#94a3b8' } },
+                                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                                }
+                            }
+                        });
+                    }
+                }"
+                x-init="$nextTick(() => render())"
+                class="h-64"
+            >
+                <canvas id="employee-yearly-trend" style="width:100%;height:100%;"></canvas>
+            </div>
+        </x-filament::section>
+    @endif
 </x-filament-panels::page>
