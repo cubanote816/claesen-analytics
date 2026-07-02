@@ -97,9 +97,16 @@
                 @else
                     <div class="space-y-1">
                         @foreach($dailyBreakdown as $day)
-                            @php $dayDate = \Carbon\Carbon::parse($day['date']); @endphp
-                            <div class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                                <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $day['date']]) }}"
+                            @php
+                                $dayDate = \Carbon\Carbon::parse($day['date']);
+                                $dayUrl  = \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $day['date']]);
+                            @endphp
+                            <div
+                                x-data
+                                x-on:click="if (!$event.target.closest('a')) { Livewire.navigate('{{ $dayUrl }}') }"
+                                class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                            >
+                                <a wire:navigate href="{{ $dayUrl }}"
                                    class="font-medium text-primary-600 dark:text-primary-400 hover:underline min-w-28">
                                     {{ $dayDate->locale($isNl ? 'nl' : 'en')->isoFormat('ddd D/MM') }}
                                 </a>
