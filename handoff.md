@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-01 (Employee module: filas navegables en Hours Dashboard y Month Stats; fix Target prorrateado en semanas de borde de mes)
+> Última actualización: 2026-07-02 (Employee module: EMP-014/EMP-015 — filas navegables en Week Stats: Daily breakdown y Projects this week)
 
 ---
 
@@ -9,12 +9,34 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** `1872576` (2026-07-01) — EMP-013 / CLA-188: Month Stats — fix Target no prorrateado en semanas de borde de mes + fila navegable.
+- **Último hito código:** `357abbb` (2026-07-02) — EMP-015 / CLA-190: Week Stats — fila completa de "Projects this week" navegable a detalle de proyecto.
+- **Hito previo:** `4abc866` (2026-07-01) — EMP-014 / CLA-189: Week Stats — fila completa del Daily breakdown navegable.
+- **Hito previo:** `1872576` (2026-07-01) — EMP-013 / CLA-188: Month Stats — fix Target no prorrateado en semanas de borde de mes + fila navegable.
 - **Hito previo:** `45cf1c7` (2026-07-01) — EMP-012 / CLA-187: Hours Dashboard — fila completa del listado de empleados navegable.
 - **Hito previo:** `fc06a8b` (2026-07-01) — EMP-011 / CLA-186: EmployeeHoursSummaryWidget con selector de mes + estado vacío sin horas.
 - **Hito previo:** `069792d` (2026-07-01) — EMP-008/009/010 / CLA-183/184/185: Hours Dashboard sin límite top-10, fix gráfica Monthly Hours Trend, filtro unificado de temporalidad.
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
 - **Próximo paso:** sin ticket activo, definir con auditor.
+
+### Sesión 2026-07-02 — Employee module: EMP-014/EMP-015 — Week Stats filas navegables ✅ Done
+
+**Commits:**
+
+| Hash | Ticket | Descripción |
+|------|--------|-------------|
+| `4abc866` | EMP-014 · CLA-189 | Week Stats: fila completa del Daily breakdown navegable a `EmployeeDayStats` |
+| `357abbb` | EMP-015 · CLA-190 | Week Stats: fila completa de "Projects this week" navegable a `ProjectIntelligenceDetail` |
+
+**EMP-015 (CLA-190) — detalle:**
+- Archivo: `Modules/Employee/resources/views/filament/pages/employee-week-stats.blade.php` (sección "Projects this week").
+- Reutiliza el patrón de fila-navegable ya existente (`x-data` + `x-on:click="Livewire.navigate(...)"` con guard `$event.target.closest('a')`) — mismo patrón de EMP-012/013/014, sin código nuevo de patrón.
+- Link destino: `\Modules\Intelligence\Filament\Pages\ProjectIntelligenceDetail::getProjectUrl($project['id'])` — vista de detalle de proyecto operativa canónica (ya usada en `ProjectResource.php:142` y `billing-control.blade.php`). El helper hace `trim()` del id internamente.
+- Sin cambios de backend: `$project['id']` ya venía en el array de `EmployeeTimeService::getSpecificWeekStats()`, solo no se usaba en el blade.
+- Descartado como destino: `Modules\Performance\Filament\Resources\ProjectResource` (no tiene página `view` registrada) y `ProjectInsightResource` (capa de IA/insight, no vista operativa — documentado en el propio código de `ProjectIntelligenceDetail`).
+
+**Verificación (ambos tickets):** Selenium real contra Chrome vía Selenium Grid del stack Sail, login con usuario `super_admin` sembrado localmente (`admin@claesen-analytics.com`), navegación real a `/employee-week-stats?employee_id=170&start_date=2026-05-04&end_date=2026-05-10`. Confirmado: click en cualquier punto de la fila (no solo el nombre) navega correctamente; sin regresión en Daily breakdown; proyecto de detalle carga sin error (invoices, costs, alertas).
+
+**Nota de entorno (no bloqueante, no parte del cambio):** el harness de verificación local requirió `SESSION_SECURE_COOKIE=false` temporal en `.env` porque el default de Laravel (`true`) exige HTTPS para la cookie de sesión, y la verificación corre por HTTP dentro de la red Docker de Sail. Revertido inmediatamente después de verificar; no afecta producción (allí sí corre bajo HTTPS).
 
 ### Sesión 2026-07-01 — Employee module: Hours Dashboard (listado, gráfica, filtro), widget dashboard ✅ Done
 
