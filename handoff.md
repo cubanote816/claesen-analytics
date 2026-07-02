@@ -25,6 +25,8 @@
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
 - **Próximo paso:** sin ticket activo, definir con auditor.
 
+**Nota de entorno local — recompilar assets tras clases Tailwind nuevas:** `public/build/` (gitignored) es un artefacto de Vite/Tailwind que no se regenera solo. Si agregás una clase de Tailwind que nadie usaba antes (ej. `grid-cols-3` en EMP-021, 2026-07-02) y el bundle local quedó compilado antes de ese cambio, la clase simplemente no existe en el CSS servido — se ve como cards apiladas en vez de en fila, sin ningún error en consola. Correr `npm run build` (o `npm run dev` en watch) después de cambios de layout resuelve esto. **No es un riesgo de producción**: `infrastructure/scripts/deploy.sh` ya corre `npm ci && npm run build` en cada deploy (paso 5/10) — el problema es exclusivamente de sesiones de desarrollo local donde el bundle no se refrescó.
+
 ### Sesión 2026-07-02 — Employee module: EMP-014→022 — filas navegables, breadcrumb jerárquico, fix Daily breakdown, quitar € individual (UI + API) ✅ Done
 
 **Commits:**
