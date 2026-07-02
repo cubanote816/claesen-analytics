@@ -82,10 +82,66 @@
             <x-filament::section>
                 <x-slot name="heading">{{ $isNl ? 'Urenopbouw' : 'Labor breakdown' }}</x-slot>
 
+                @php
+                    $totalLabor = ($labor['laden_hours'] ?? 0) + ($labor['werf_hours'] ?? 0) + ($labor['transport_hours'] ?? 0);
+                @endphp
+
+                @if($totalLabor > 0)
+                    <div
+                        wire:ignore
+                        x-data="{
+                            chart: null,
+                            ensureChartJs() {
+                                return new Promise((resolve) => {
+                                    if (window.Chart) { resolve(); return; }
+                                    let script = document.getElementById('cafca-chartjs-cdn');
+                                    if (!script) {
+                                        script = document.createElement('script');
+                                        script.id = 'cafca-chartjs-cdn';
+                                        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4';
+                                        document.head.appendChild(script);
+                                    }
+                                    script.addEventListener('load', () => resolve());
+                                });
+                            },
+                            render() {
+                                this.ensureChartJs().then(() => this.renderChart());
+                            },
+                            renderChart() {
+                                if (this.chart) { this.chart.destroy(); this.chart = null; }
+                                const canvas = this.$el.querySelector('#labor-breakdown-donut');
+                                if (!canvas || !window.Chart) return;
+                                this.chart = new window.Chart(canvas.getContext('2d'), {
+                                    type: 'doughnut',
+                                    data: {
+                                        labels: {{ \Illuminate\Support\Js::from(['Laden', 'Werf', 'Transport']) }},
+                                        datasets: [{
+                                            data: {{ \Illuminate\Support\Js::from([$labor['laden_hours'] ?? 0, $labor['werf_hours'] ?? 0, $labor['transport_hours'] ?? 0]) }},
+                                            backgroundColor: ['#00aeef', '#a5d610', '#e6007e'],
+                                            borderWidth: 0,
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        animation: false,
+                                        cutout: '65%',
+                                        plugins: {
+                                            legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, padding: 12 } },
+                                            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toFixed(2)}h` } },
+                                        }
+                                    }
+                                });
+                            }
+                        }"
+                        x-init="$nextTick(() => render())"
+                        class="h-56 mb-4"
+                    >
+                        <canvas id="labor-breakdown-donut" style="width:100%;height:100%;"></canvas>
+                    </div>
+                @endif
+
                 <div class="space-y-3">
-                    @php
-                        $totalLabor = ($labor['laden_hours'] ?? 0) + ($labor['werf_hours'] ?? 0) + ($labor['transport_hours'] ?? 0);
-                    @endphp
                     @foreach([
                         ['label' => 'Laden', 'hours' => $labor['laden_hours'] ?? 0, 'color' => '#00aeef'],
                         ['label' => 'Werf', 'hours' => $labor['werf_hours'] ?? 0, 'color' => '#a5d610'],

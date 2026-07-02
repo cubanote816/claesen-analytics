@@ -84,6 +84,68 @@
                     {{ $isNl ? 'Geen uren geregistreerd voor deze maand.' : 'No hours recorded for this month.' }}
                 </p>
             @else
+                @php
+                    $chartLabels    = collect($weeks)->map(fn($w) => \Carbon\Carbon::parse($w['start_date'])->format('d/m') . '–' . \Carbon\Carbon::parse($w['end_date'])->format('d/m'))->all();
+                    $chartLaden     = collect($weeks)->map(fn($w) => $w['labor_hours']['laden_hours'] ?? 0)->all();
+                    $chartWerf      = collect($weeks)->map(fn($w) => $w['labor_hours']['werf_hours'] ?? 0)->all();
+                    $chartTransport = collect($weeks)->map(fn($w) => $w['labor_hours']['transport_hours'] ?? 0)->all();
+                @endphp
+                <div
+                    wire:ignore
+                    x-data="{
+                        chart: null,
+                        ensureChartJs() {
+                            return new Promise((resolve) => {
+                                if (window.Chart) { resolve(); return; }
+                                let script = document.getElementById('cafca-chartjs-cdn');
+                                if (!script) {
+                                    script = document.createElement('script');
+                                    script.id = 'cafca-chartjs-cdn';
+                                    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4';
+                                    document.head.appendChild(script);
+                                }
+                                script.addEventListener('load', () => resolve());
+                            });
+                        },
+                        render() {
+                            this.ensureChartJs().then(() => this.renderChart());
+                        },
+                        renderChart() {
+                            if (this.chart) { this.chart.destroy(); this.chart = null; }
+                            const canvas = this.$el.querySelector('#month-labor-stacked-bar');
+                            if (!canvas || !window.Chart) return;
+                            this.chart = new window.Chart(canvas.getContext('2d'), {
+                                type: 'bar',
+                                data: {
+                                    labels: {{ \Illuminate\Support\Js::from($chartLabels) }},
+                                    datasets: [
+                                        { label: 'Laden', data: {{ \Illuminate\Support\Js::from($chartLaden) }}, backgroundColor: '#00aeef' },
+                                        { label: 'Werf', data: {{ \Illuminate\Support\Js::from($chartWerf) }}, backgroundColor: '#a5d610' },
+                                        { label: 'Transport', data: {{ \Illuminate\Support\Js::from($chartTransport) }}, backgroundColor: '#e6007e' },
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    animation: false,
+                                    plugins: {
+                                        legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, padding: 12 } },
+                                        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}h` } },
+                                    },
+                                    scales: {
+                                        x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8' } },
+                                        y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#94a3b8' } },
+                                    }
+                                }
+                            });
+                        }
+                    }"
+                    x-init="$nextTick(() => render())"
+                    class="h-64 mb-6"
+                >
+                    <canvas id="month-labor-stacked-bar" style="width:100%;height:100%;"></canvas>
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
