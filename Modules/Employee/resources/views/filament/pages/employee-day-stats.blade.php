@@ -16,7 +16,6 @@
             $summary   = $data['summary'] ?? [];
             $schedule  = $data['schedule'] ?? [];
             $labor     = $data['labor_hours'] ?? [];
-            $financial = $data['financial'] ?? [];
             $transport = $data['transport'] ?? [];
             $projects  = $data['projects'] ?? [];
 
@@ -56,7 +55,7 @@
         </div>
 
         {{-- Stats grid --}}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="grid grid-cols-3 gap-3 mb-6">
             <x-filament::section>
                 <div class="text-center">
                     <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ number_format($summary['total_hours'] ?? 0, 2) }}h</div>
@@ -68,14 +67,6 @@
                 <div class="text-center">
                     <div class="text-2xl font-bold text-success-600 dark:text-success-400">{{ number_format($summary['approved_hours'] ?? 0, 2) }}h</div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Goedgekeurd' : 'Approved' }}</div>
-                </div>
-            </x-filament::section>
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-2xl font-bold {{ ($financial['profit'] ?? 0) >= 0 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">
-                        €{{ number_format($financial['profit'] ?? 0, 0, ',', '.') }}
-                    </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Marge' : 'Margin' }}</div>
                 </div>
             </x-filament::section>
             <x-filament::section>
@@ -113,17 +104,6 @@
                             </div>
                         @endif
                     @endforeach
-
-                    <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-500 dark:text-gray-400">{{ $isNl ? 'Kostprijs' : 'Cost' }}</span>
-                            <span class="text-gray-700 dark:text-gray-300">€{{ number_format($financial['costs'] ?? 0, 2, ',', '.') }}</span>
-                        </div>
-                        <div class="flex justify-between text-sm mt-1">
-                            <span class="text-gray-500 dark:text-gray-400">{{ $isNl ? 'Verkoopprijs' : 'Revenue' }}</span>
-                            <span class="text-gray-700 dark:text-gray-300">€{{ number_format($financial['revenue'] ?? 0, 2, ',', '.') }}</span>
-                        </div>
-                    </div>
                 </div>
             </x-filament::section>
 

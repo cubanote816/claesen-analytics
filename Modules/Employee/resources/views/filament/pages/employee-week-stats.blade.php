@@ -11,7 +11,6 @@
         @php
             $summary      = $data['summary'] ?? [];
             $laborHours   = $data['labor_hours'] ?? [];
-            $financial    = $data['financial'] ?? [];
             $transport    = $data['transport'] ?? [];
             $dailyBreakdown = $data['daily_breakdown'] ?? [];
             $projects     = $data['projects'] ?? [];
@@ -48,7 +47,7 @@
         </div>
 
         {{-- Stats summary --}}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="grid grid-cols-3 gap-3 mb-6">
             <x-filament::section>
                 <div class="text-center">
                     <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ number_format($summary['total_hours'] ?? 0, 1) }}h</div>
@@ -60,14 +59,6 @@
                 <div class="text-center">
                     <div class="text-2xl font-bold text-gray-600 dark:text-gray-300">{{ $summary['days_worked'] ?? 0 }}/{{ $period['working_days'] ?? 5 }}</div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Dagen gewerkt' : 'Days worked' }}</div>
-                </div>
-            </x-filament::section>
-            <x-filament::section>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-success-600 dark:text-success-400">
-                        €{{ number_format($financial['revenue'] ?? 0, 0, ',', '.') }}
-                    </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $isNl ? 'Omzet' : 'Revenue' }}</div>
                 </div>
             </x-filament::section>
             <x-filament::section>
