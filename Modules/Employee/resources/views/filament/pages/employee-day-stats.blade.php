@@ -149,10 +149,18 @@
                 @else
                     <div class="space-y-1">
                         @foreach($projects as $project)
-                            <div class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                                <span class="text-sm text-gray-800 dark:text-gray-200 truncate max-w-xs">
+                            @php
+                                $projectUrl = \Modules\Intelligence\Filament\Pages\ProjectIntelligenceDetail::getProjectUrl($project['id']);
+                            @endphp
+                            <div
+                                x-data
+                                x-on:click="if (!$event.target.closest('a')) { Livewire.navigate('{{ $projectUrl }}') }"
+                                class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                            >
+                                <a wire:navigate href="{{ $projectUrl }}"
+                                   class="text-sm text-primary-600 dark:text-primary-400 hover:underline truncate max-w-xs">
                                     {{ $project['name'] ?? '—' }}
-                                </span>
+                                </a>
                                 <span class="text-sm font-semibold text-primary-600 dark:text-primary-400 ml-2">
                                     {{ number_format($project['hours'], 2) }}h
                                 </span>
