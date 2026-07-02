@@ -41,6 +41,16 @@ class EmployeeHoursPage extends ViewRecord
 
     public function getSubheading(): \Illuminate\Contracts\Support\Htmlable|string|null
     {
+        return $this->getMonthLabel();
+    }
+
+    public function getBreadcrumb(): string
+    {
+        return $this->getMonthLabel() ?? parent::getBreadcrumb();
+    }
+
+    private function getMonthLabel(): ?string
+    {
         if (!$this->month) {
             return null;
         }
