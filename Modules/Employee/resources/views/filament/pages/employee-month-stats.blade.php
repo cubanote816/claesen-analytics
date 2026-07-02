@@ -1,13 +1,4 @@
 <x-filament-panels::page>
-    {{-- Back navigation --}}
-    <div class="mb-4">
-        <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeHoursDashboard::getUrl() }}"
-           class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-            <x-heroicon-o-arrow-left class="w-4 h-4" />
-            {{ app()->getLocale() === 'nl' ? 'Terug naar dashboard' : 'Back to dashboard' }}
-        </a>
-    </div>
-
     @if($errorMessage)
         <x-filament::section>
             <p class="text-danger-600 dark:text-danger-400">{{ $errorMessage }}</p>

@@ -49,4 +49,20 @@ class EmployeeWeekStats extends Page
         $label = app()->getLocale() === 'nl' ? 'Weekoverzicht' : 'Week Overview';
         return $this->employeeName ? "{$label} — {$this->employeeName}" : $label;
     }
+
+    public function getBreadcrumbs(): array
+    {
+        $isNl = app()->getLocale() === 'nl';
+
+        $start = Carbon::parse($this->startDate);
+        $monthLabel = $start->copy()->locale($isNl ? 'nl' : 'en')->isoFormat('MMMM Y');
+        $weekLabel  = $start->format('d/m') . ' – ' . Carbon::parse($this->endDate)->format('d/m/Y');
+
+        return [
+            EmployeeHoursDashboard::getUrl() => $isNl ? 'Uren Dashboard' : 'Hours Dashboard',
+            EmployeeMonthStats::getUrl(['employee_id' => $this->employeeId, 'month' => $start->format('Y-m')])
+                => ($this->employeeName ?: $this->employeeId) . ' — ' . $monthLabel,
+            $weekLabel,
+        ];
+    }
 }

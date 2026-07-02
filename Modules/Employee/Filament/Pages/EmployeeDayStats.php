@@ -47,4 +47,25 @@ class EmployeeDayStats extends Page
         $label = app()->getLocale() === 'nl' ? 'Dagoverzicht' : 'Day Overview';
         return $this->employeeName ? "{$label} — {$this->employeeName}" : $label;
     }
+
+    public function getBreadcrumbs(): array
+    {
+        $isNl = app()->getLocale() === 'nl';
+
+        $day = Carbon::parse($this->date);
+        $monthLabel = $day->copy()->locale($isNl ? 'nl' : 'en')->isoFormat('MMMM Y');
+        $weekStart  = $day->copy()->startOfWeek();
+        $weekEnd    = $day->copy()->endOfWeek();
+        $weekLabel  = $weekStart->format('d/m') . ' – ' . $weekEnd->format('d/m/Y');
+        $dayLabel   = $day->locale($isNl ? 'nl' : 'en')->isoFormat('ddd D/MM');
+
+        return [
+            EmployeeHoursDashboard::getUrl() => $isNl ? 'Uren Dashboard' : 'Hours Dashboard',
+            EmployeeMonthStats::getUrl(['employee_id' => $this->employeeId, 'month' => $day->format('Y-m')])
+                => ($this->employeeName ?: $this->employeeId) . ' — ' . $monthLabel,
+            EmployeeWeekStats::getUrl(['employee_id' => $this->employeeId, 'start_date' => $weekStart->format('Y-m-d'), 'end_date' => $weekEnd->format('Y-m-d')])
+                => $weekLabel,
+            $dayLabel,
+        ];
+    }
 }

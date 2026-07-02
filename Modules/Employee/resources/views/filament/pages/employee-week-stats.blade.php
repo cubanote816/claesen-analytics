@@ -1,16 +1,7 @@
 <x-filament-panels::page>
-    {{-- Back navigation --}}
     @php
-        $monthKey = $startDate ? \Carbon\Carbon::parse($startDate)->format('Y-m') : \Carbon\Carbon::now()->format('Y-m');
-        $isNl     = app()->getLocale() === 'nl';
+        $isNl = app()->getLocale() === 'nl';
     @endphp
-    <div class="mb-4">
-        <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeMonthStats::getUrl(['employee_id' => $employeeId, 'month' => $monthKey]) }}"
-           class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-            <x-heroicon-o-arrow-left class="w-4 h-4" />
-            {{ $isNl ? 'Terug naar maandoverzicht' : 'Back to month overview' }}
-        </a>
-    </div>
 
     @if($errorMessage)
         <x-filament::section>

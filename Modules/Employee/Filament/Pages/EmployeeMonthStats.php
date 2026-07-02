@@ -47,4 +47,18 @@ class EmployeeMonthStats extends Page
         $label = app()->getLocale() === 'nl' ? 'Maandoverzicht' : 'Month Overview';
         return $this->employeeName ? "{$label} — {$this->employeeName}" : $label;
     }
+
+    public function getBreadcrumbs(): array
+    {
+        $isNl = app()->getLocale() === 'nl';
+
+        $monthLabel = Carbon::createFromFormat('Y-m', $this->month)
+            ->locale($isNl ? 'nl' : 'en')
+            ->isoFormat('MMMM Y');
+
+        return [
+            EmployeeHoursDashboard::getUrl() => $isNl ? 'Uren Dashboard' : 'Hours Dashboard',
+            ($this->employeeName ?: $this->employeeId) . ' — ' . $monthLabel,
+        ];
+    }
 }

@@ -1,21 +1,10 @@
 <x-filament-panels::page>
-    {{-- Back navigation --}}
     @php
-        $isNl      = app()->getLocale() === 'nl';
+        $isNl       = app()->getLocale() === 'nl';
         $parsedDate = $date ? \Carbon\Carbon::parse($date) : \Carbon\Carbon::now();
-        $weekStart  = $parsedDate->copy()->startOfWeek()->format('Y-m-d');
-        $weekEnd    = $parsedDate->copy()->endOfWeek()->format('Y-m-d');
         $prevDay    = $parsedDate->copy()->subDay()->format('Y-m-d');
         $nextDay    = $parsedDate->copy()->addDay()->format('Y-m-d');
     @endphp
-
-    <div class="mb-4">
-        <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $weekStart, 'end_date' => $weekEnd]) }}"
-           class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-            <x-heroicon-o-arrow-left class="w-4 h-4" />
-            {{ $isNl ? 'Terug naar weekoverzicht' : 'Back to week overview' }}
-        </a>
-    </div>
 
     @if($errorMessage)
         <x-filament::section>
