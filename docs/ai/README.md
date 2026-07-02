@@ -41,6 +41,7 @@ Leer siempre en este orden:
 | Prompts reutilizables | `docs/ai/prompt-templates.md` |
 | Protocolo de trabajo | `docs/ai/project-protocol.md` |
 | Estrategia de handoff | `docs/ai/handoff-strategy.md` |
+| Cuándo delegar a subagentes y con qué modelo | `docs/ai/model-routing.md` |
 
 ---
 
@@ -59,6 +60,7 @@ Leer siempre en este orden:
 | `prompt-templates.md` | Prompts reutilizables con sección "Tests requeridos" obligatoria |
 | `commands-runbook.md` | Todos los comandos Artisan con descripción, opciones y notas operativas |
 | `handoff-strategy.md` | Cómo mantener y usar `handoff.md` y los documentos de módulo |
+| `model-routing.md` | Cuándo delegar una subtarea vía `Agent` y con qué modelo (Sonnet/Opus/Haiku) — no requiere ticket |
 
 ---
 
