@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-02 (Employee module: EMP-014→021 — filas navegables, breadcrumb jerárquico completo, fix Daily breakdown vacío, quitar € por empleado individual en Day/Week Overview)
+> Última actualización: 2026-07-02 (Employee module: EMP-014→022 — filas navegables, breadcrumb jerárquico completo, fix Daily breakdown vacío, quitar € por empleado individual en UI y API)
 
 ---
 
@@ -9,7 +9,8 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** `c1ec7b5` (2026-07-02) — EMP-021 / CLA-196: Day/Week Overview — quitar Cost/Revenue/Margin a nivel de empleado individual (decisión de producto, estándar de industria).
+- **Último hito código:** `2384783` (2026-07-02) — EMP-022 / CLA-197: API — quitar Cost/Revenue/Margin a nivel de empleado individual (2 endpoints live + 4 Resources huérfanos limpiados).
+- **Hito previo:** `c1ec7b5` (2026-07-02) — EMP-021 / CLA-196: Day/Week Overview — quitar Cost/Revenue/Margin a nivel de empleado individual (decisión de producto, estándar de industria).
 - **Hito previo:** `4c74126` (2026-07-02) — EMP-020 / CLA-195: Week Stats — fix Daily breakdown vacío sin mensaje (`empty()` de PHP no detecta Collection vacía, faltaba `->all()`).
 - **Hito previo:** `7f419d0` (2026-07-02) — EMP-019 / CLA-194: Week/Day Stats — breadcrumb correcto según origen (Hours Dashboard vs. tab Hours de Employee), vía parámetro `from=employee|dashboard`.
 - **Hito previo:** `1fe2ecd` (2026-07-02) — EMP-018 / CLA-193: Hours sub-nav de EmployeeResource — breadcrumb refleja el mes en vez del genérico "View".
@@ -24,7 +25,7 @@
 - **Último hito infra:** `667416a` (2026-06-27) — CORS corregido en nginx producción, deploy script endurecido, todos los scripts de servidor versionados en `infrastructure/`. Release activa: `20260627170653`.
 - **Próximo paso:** sin ticket activo, definir con auditor.
 
-### Sesión 2026-07-02 — Employee module: EMP-014→021 — filas navegables, breadcrumb jerárquico, fix Daily breakdown, quitar € individual ✅ Done
+### Sesión 2026-07-02 — Employee module: EMP-014→022 — filas navegables, breadcrumb jerárquico, fix Daily breakdown, quitar € individual (UI + API) ✅ Done
 
 **Commits:**
 
@@ -37,14 +38,24 @@
 | `1fe2ecd` | EMP-018 · CLA-193 | Hours sub-nav de EmployeeResource — breadcrumb refleja el mes en vez del genérico "View" |
 | `7f419d0` | EMP-019 · CLA-194 | Week/Day Stats — breadcrumb correcto según origen (`from=employee\|dashboard`) |
 | `4c74126` | EMP-020 · CLA-195 | Week Stats — fix Daily breakdown vacío sin mensaje (`empty()` no detecta Collection vacía) |
-| `c1ec7b5` | EMP-021 · CLA-196 | Day/Week Overview — quitar Cost/Revenue/Margin a nivel de empleado individual |
+| `c1ec7b5` | EMP-021 · CLA-196 | Day/Week Overview — quitar Cost/Revenue/Margin a nivel de empleado individual (UI) |
+| `2384783` | EMP-022 · CLA-197 | API — quitar Cost/Revenue/Margin a nivel de empleado individual (capa API) |
+
+**EMP-022 (CLA-197) — detalle:**
+- Continúa EMP-021 aplicando la misma decisión a la capa API. Confirmado con el auditor: sin consumidor real conectado hoy (port de hace 3 días, cero referencias internas, sin docs/Postman/OpenAPI) — mi mención previa de "PWA FieldOps" como consumidor sospechoso en EMP-021 era una suposición **incorrecta**: `Modules/FieldOps/` es infraestructura física (luminarias/complejos/terrenos), no tiene relación con horas de empleados.
+- **Endpoint 1** — `GET /api/v1/employees/{id}/stats/{periodType}`: `EmployeeStatsController` + `DailyStatsResource`/`WeeklyStatsResource`/`MonthlyPeriodStatsResource`/`PeriodStatsResource` (este último no estaba en el hallazgo original de EMP-021, mismo patrón, encontrado durante la implementación) + sus 4 DTOs correspondientes.
+- **Endpoint 2** — `GET /api/v1/employees/{id}` y `/time/stats`: `EmployeeTimeService::getEmployeeTimeStats()` (endpoint completo no identificado en EMP-021) + `StatsCalculator::getDailyHours/getWeeklyHours` + 4 métodos privados (`getMonthlyHours`, `getYearlyHours`, `getYearlyTrend`, `getPreviousMonthStats`) + el bloque `projects[].financial`/`labor_details[].cost,revenue` dentro de `getEmployeeTimeStats()`.
+- Confirmado sin overlap con los blades Filament ya corregidos (EMP-014→021) — usan métodos distintos (`getSpecificDayStats`/`getSpecificWeekStats`/`getMonthWeeksStats`), que **quedan intactos a propósito** (mismo alcance ya decidido en EMP-021).
+- Limpieza adicional de 4 Resources huérfanos sin controller (`EmployeeRankingResource`, `EmployeeRankingItemResource`, `EmployeeProjectProductivityResource`, `YearlyHoursResource`).
+- **Descartado correctamente:** `ProjectEfficiencyResource` — también huérfano, pero sus campos (`cost_performance_index`, `revenue_per_hour`) son a nivel *proyecto*, no empleado individual — permitido por el estándar de industria, no se toca.
+- **Verificación:** curl + token Sanctum real (no Selenium, es API pura) contra ambos endpoints — `success:true`, cero campos de dinero en las respuestas, estructura completa y coherente.
 
 **EMP-021 (CLA-196) — detalle:**
 - **Decisión de producto** (no bug): siguiendo el estándar de industria para field-service labor tracking, cifras en € (Cost/Revenue/Margin) deben existir solo a nivel proyecto/cuadrilla agregado (semanal/mensual), nunca por empleado individual y por día — no es accionable a esa granularidad y genera sensibilidad laboral (percepción de vigilancia/rating individual, relevante en Bélgica con works councils). Se sustituye por % de utilización, que ya existía como `achievement_percentage` ("% of target").
 - `employee-day-stats.blade.php`: quitada card "Margin" (grid 4→3 cards: Total hours+%, Approved, Distance) y filas Cost/Revenue de "Labor breakdown".
 - `employee-week-stats.blade.php`: quitada card "Revenue" (grid 4→3 cards: Total hours+%, Days worked, Distance).
 - Auditado y confirmado limpio sin cambios: Month Stats, tab Hours de `EmployeeResource`, Hours Dashboard, `EmployeeHoursSummaryWidget` — nunca mostraron € por empleado individual.
-- **No se toca** `EmployeeTimeService.php` (sigue calculando `financial.*` internamente, solo deja de renderizarse en estas 2 blades) ni la capa API (`DailyStatsResource`, `WeeklyStatsResource`, `EmployeeRankingResource`, etc. bajo `Modules/Employee/App/Http/Resources/`) que expone el mismo patrón — **hallazgo documentado para ticket futuro**, dado que puede tener consumidores externos (PWA FieldOps).
+- **No se toca** `EmployeeTimeService.php` (sigue calculando `financial.*` internamente para `getSpecificDayStats`/`getSpecificWeekStats`, solo deja de renderizarse en estas 2 blades — decisión final, no cambia en EMP-022) — la capa API sí se resuelve, ver **EMP-022** abajo.
 
 **EMP-020 (CLA-195) — detalle:**
 - Bug encontrado por el auditor navegando `/employee-week-stats?...&start_date=2026-05-18&end_date=2026-05-24`: sección "Daily breakdown" completamente en blanco (sin mensaje) cuando no hay horas esa semana, mientras "Projects this week" sí mostraba "No projects found." correctamente.
@@ -77,7 +88,7 @@
 - Sin cambios de backend: `$project['id']` ya venía en los arrays de `EmployeeTimeService::getSpecificWeekStats()` y `getSpecificDayStats()`, solo no se usaba en los blades.
 - Descartado como destino: `Modules\Performance\Filament\Resources\ProjectResource` (no tiene página `view` registrada) y `ProjectInsightResource` (capa de IA/insight, no vista operativa — documentado en el propio código de `ProjectIntelligenceDetail`).
 
-**Verificación (EMP-014 a EMP-021, sesión completa):** Selenium real contra Chrome vía Selenium Grid del stack Sail, login con usuario `super_admin` sembrado localmente (`admin@claesen-analytics.com`). Confirmado en Day: breadcrumb `["Hours Dashboard","Junuzovic Kemal — May 2026","04/05 – 10/05/2026","Mon 4/05"]`; click en crumb "Hours Dashboard" salta 3 niveles directo a `/employee-hours-dashboard`; click en crumb de mes navega directo a `/employee-month-stats?...`; old back-links confirmados ausentes en las 3 páginas. Confirmado en `/employees/170/hours`: breadcrumb `["Employees","Junuzovic Kemal","July 2026"]` por defecto y `["Employees","Junuzovic Kemal","May 2026"]` con `?month=2026-05`; click en fila de semana sigue navegando correctamente a `EmployeeWeekStats` (sin regresión). Confirmado flujo `from=employee` completo: Hours tab → click semana (link con `from=employee`) → Week breadcrumb `["Employees","Junuzovic Kemal","May 2026","04/05 – 10/05/2026"]` → click día → Day breadcrumb `["Employees","Junuzovic Kemal","May 2026","04/05 – 10/05/2026","Mon 4/05"]` → click crumb de mes vuelve correctamente a `/employees/170/hours?month=2026-05` (el tab, no `EmployeeMonthStats`). Confirmado que el flujo dashboard sin `from=` no cambió: `["Hours Dashboard","Junuzovic Kemal — May 2026","04/05 – 10/05/2026"]`, idéntico a EMP-017. Confirmado fix EMP-020: `/employee-week-stats?...&start_date=2026-05-18&end_date=2026-05-24` renderiza `"No hours found."` en Daily breakdown (antes: HTML confirmaba `@foreach` vacío sin mensaje); regresión OK en semana con datos (04/05–10/05, 5 filas siguen renderizando igual). Confirmado fix EMP-021 sobre las mismas fechas de la captura original (Day 11/05, Week 11/05–17/05): cero € en el HTML, sin "Margin"/"Cost"/"Revenue", grids de 3 cards, sin errores.
+**Verificación (EMP-014 a EMP-022, sesión completa):** Selenium real contra Chrome vía Selenium Grid del stack Sail, login con usuario `super_admin` sembrado localmente (`admin@claesen-analytics.com`). Confirmado en Day: breadcrumb `["Hours Dashboard","Junuzovic Kemal — May 2026","04/05 – 10/05/2026","Mon 4/05"]`; click en crumb "Hours Dashboard" salta 3 niveles directo a `/employee-hours-dashboard`; click en crumb de mes navega directo a `/employee-month-stats?...`; old back-links confirmados ausentes en las 3 páginas. Confirmado en `/employees/170/hours`: breadcrumb `["Employees","Junuzovic Kemal","July 2026"]` por defecto y `["Employees","Junuzovic Kemal","May 2026"]` con `?month=2026-05`; click en fila de semana sigue navegando correctamente a `EmployeeWeekStats` (sin regresión). Confirmado flujo `from=employee` completo: Hours tab → click semana (link con `from=employee`) → Week breadcrumb `["Employees","Junuzovic Kemal","May 2026","04/05 – 10/05/2026"]` → click día → Day breadcrumb `["Employees","Junuzovic Kemal","May 2026","04/05 – 10/05/2026","Mon 4/05"]` → click crumb de mes vuelve correctamente a `/employees/170/hours?month=2026-05` (el tab, no `EmployeeMonthStats`). Confirmado que el flujo dashboard sin `from=` no cambió: `["Hours Dashboard","Junuzovic Kemal — May 2026","04/05 – 10/05/2026"]`, idéntico a EMP-017. Confirmado fix EMP-020: `/employee-week-stats?...&start_date=2026-05-18&end_date=2026-05-24` renderiza `"No hours found."` en Daily breakdown (antes: HTML confirmaba `@foreach` vacío sin mensaje); regresión OK en semana con datos (04/05–10/05, 5 filas siguen renderizando igual). Confirmado fix EMP-021 sobre las mismas fechas de la captura original (Day 11/05, Week 11/05–17/05): cero € en el HTML, sin "Margin"/"Cost"/"Revenue", grids de 3 cards, sin errores. Confirmado fix EMP-022 con curl + token Sanctum: `GET /api/v1/employees/170/stats/current-week` y `current-month` — `success:true`, cero `total_cost`/`total_sales`/`totalCost`/`totalSales`; `GET /api/v1/employees/170` — `success:true`, cero `costs`/`revenue`/`profit`/`financial`/`total_cost`/`total_revenue`/`transport_cost`/`transport_revenue`, estructura completa (`employee`, `time_stats.*`, `last_two_weeks`, `previous_month`, `projects`) intacta.
 
 **Nota de entorno (recurrente, no bloqueante, no parte de ningún cambio):** el harness de verificación local requiere `SESSION_SECURE_COOKIE=false` temporal en `.env` porque el default de Laravel (`true`) exige HTTPS para la cookie de sesión, y la verificación corre por HTTP dentro de la red Docker de Sail. Se revierte inmediatamente después de cada verificación; no afecta producción (allí corre bajo HTTPS).
 
