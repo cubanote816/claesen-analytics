@@ -27,8 +27,6 @@ class WeeklyStatsDTO
             weekNumber: (int) $data['week_number'],
             details: [
                 'approved_hours' => (float) $data['details']['approved_hours'],
-                'total_cost'     => (float) $data['details']['total_cost'],
-                'total_sales'    => (float) $data['details']['total_sales'],
                 'days_worked'    => (int) $data['details']['days_worked'],
             ]
         );

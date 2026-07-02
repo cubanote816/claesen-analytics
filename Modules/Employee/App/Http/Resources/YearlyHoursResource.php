@@ -19,11 +19,6 @@ class YearlyHoursResource extends JsonResource
                 'daily_average'  => $this['daily_average'],
                 'monthly_average'=> $this['monthly_average'],
             ],
-            'financial' => [
-                'costs'   => $this['costs'],
-                'revenue' => $this['revenue'],
-                'profit'  => $this['profit'],
-            ],
             'monthly_breakdown' => $this['monthly_data'],
         ];
     }

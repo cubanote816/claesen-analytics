@@ -20,8 +20,6 @@ class StatsCalculator
             'target_hours'           => round($targetDaily, 2),
             'achievement_percentage' => $targetDaily > 0 ? round(($totalHours / $targetDaily) * 100, 2) : 0,
             'approved_hours'         => round($todayEntries->where('fl_approved', true)->sum('hours'), 2),
-            'costs'                  => round($todayEntries->sum('total_costprice'), 2),
-            'revenue'                => round($todayEntries->sum('total_salesprice'), 2),
         ];
     }
 
@@ -40,8 +38,6 @@ class StatsCalculator
             'target_hours'           => round($targetWeeklyHours, 2),
             'achievement_percentage' => $targetWeeklyHours > 0 ? round(($totalHours / $targetWeeklyHours) * 100, 2) : 0,
             'approved_hours'         => round($weekEntries->where('fl_approved', true)->sum('hours'), 2),
-            'costs'                  => round($weekEntries->sum('total_costprice'), 2),
-            'revenue'                => round($weekEntries->sum('total_salesprice'), 2),
             'days_worked'            => $daysWorked,
             'daily_average'          => $daysWorked > 0 ? round($totalHours / $daysWorked, 2) : 0,
         ];

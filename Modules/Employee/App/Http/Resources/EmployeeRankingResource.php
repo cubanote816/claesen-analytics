@@ -13,8 +13,6 @@ class EmployeeRankingResource extends JsonResource
             'total_hours'    => $this['total_hours'],
             'productivity'   => $this['productivity'],
             'days_worked'    => $this['days_worked'],
-            'revenue'        => $this['revenue'],
-            'revenue_per_hour' => $this['revenue_per_hour'],
         ];
     }
 }

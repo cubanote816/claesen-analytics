@@ -19,8 +19,6 @@ class EmployeeRankingItemResource extends JsonResource
             'days_worked'         => (int) $this['days_worked'],
             'attendance_rate'     => (float) $this['attendance_rate'],
             'projects_count'      => (int) $this['projects_count'],
-            'total_revenue'       => (float) $this['total_revenue'],
-            'revenue_per_hour'    => (float) $this['revenue_per_hour'],
         ];
     }
 }

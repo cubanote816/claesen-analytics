@@ -24,8 +24,6 @@ class MonthlyPeriodStatsDTO
                 'average_productivity' => (float) $data['summary']['average_productivity'],
                 'total_tasks'          => (int) $data['summary']['total_tasks'],
                 'total_distance'       => (float) $data['summary']['total_distance'],
-                'total_cost'           => (float) $data['summary']['total_cost'],
-                'total_sales'          => (float) $data['summary']['total_sales'],
                 'total_weeks'          => (int) $data['summary']['total_weeks'],
             ],
             weeklyStats: array_map(

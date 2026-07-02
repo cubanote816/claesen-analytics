@@ -25,8 +25,6 @@ class DailyStatsDTO
                 'startTime' => $data['details']['startTime'],
                 'endTime'   => $data['details']['endTime'],
                 'breaks'    => (float) $data['details']['breaks'],
-                'totalCost' => (float) $data['details']['totalCost'],
-                'totalSales'=> (float) $data['details']['totalSales'],
             ]
         );
     }

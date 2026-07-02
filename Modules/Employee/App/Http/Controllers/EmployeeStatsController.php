@@ -61,15 +61,13 @@ class EmployeeStatsController extends Controller
                         'startTime' => $this->earliestStart($dayEntries),
                         'endTime'   => $this->latestEnd($dayEntries),
                         'breaks'    => round($dayEntries->where('fl_pauze', true)->sum('pauze'), 2),
-                        'totalCost' => round($dayEntries->sum('total_costprice'), 2),
-                        'totalSales'=> round($dayEntries->sum('total_salesprice'), 2),
                     ]
                 ));
             } else {
                 $dailyStats->push(new DailyStatsDTO(
                     date: $cursor->format('Y-m-d'),
                     hours: 0, productivity: 0, completedTasks: 0, distance: 0,
-                    details: ['startTime' => null, 'endTime' => null, 'breaks' => 0, 'totalCost' => 0, 'totalSales' => 0]
+                    details: ['startTime' => null, 'endTime' => null, 'breaks' => 0]
                 ));
             }
 
@@ -85,8 +83,6 @@ class EmployeeStatsController extends Controller
                 'average_productivity' => $this->weightedProductivity($entries),
                 'total_tasks'          => $entries->count(),
                 'total_distance'       => round($entries->sum('distance'), 2),
-                'total_cost'           => round($entries->sum('total_costprice'), 2),
-                'total_sales'          => round($entries->sum('total_salesprice'), 2),
                 'total_days'           => $dailyStats->count(),
             ],
             dailyStats: $dailyStats->toArray()
@@ -115,8 +111,6 @@ class EmployeeStatsController extends Controller
                     weekNumber: (int) $cursor->format('W'),
                     details: [
                         'approved_hours' => round($wEntries->where('fl_approved', true)->sum('hours'), 2),
-                        'total_cost'     => round($wEntries->sum('total_costprice'), 2),
-                        'total_sales'    => round($wEntries->sum('total_salesprice'), 2),
                         'days_worked'    => $wEntries->pluck('entry_date')->map(fn($d) => (string)$d)->unique()->count(),
                     ]
                 ));
@@ -134,8 +128,6 @@ class EmployeeStatsController extends Controller
                 'average_productivity' => $this->weightedProductivity($entries),
                 'total_tasks'          => $entries->count(),
                 'total_distance'       => round($entries->sum('distance'), 2),
-                'total_cost'           => round($entries->sum('total_costprice'), 2),
-                'total_sales'          => round($entries->sum('total_salesprice'), 2),
                 'total_weeks'          => $weeklyStats->count(),
             ],
             weeklyStats: $weeklyStats->toArray()

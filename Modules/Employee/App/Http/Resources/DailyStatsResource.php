@@ -18,8 +18,6 @@ class DailyStatsResource extends JsonResource
                 'startTime' => $this->details['startTime'],
                 'endTime'   => $this->details['endTime'],
                 'breaks'    => round($this->details['breaks'], 2),
-                'totalCost' => round($this->details['totalCost'], 2),
-                'totalSales'=> round($this->details['totalSales'], 2),
             ],
         ];
     }

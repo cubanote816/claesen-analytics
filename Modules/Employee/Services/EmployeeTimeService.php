@@ -77,21 +77,12 @@ class EmployeeTimeService
                         'actual_hours'         => round($total, 2),
                         'completion_percentage'=> $est > 0 ? round(($total / $est) * 100, 2) : 0,
                     ],
-                    'financial' => [
-                        'contract_price' => (float) ($project->contract_price ?? 0),
-                        'total_cost'     => round($pe->sum('total_costprice'), 2),
-                        'total_revenue'  => round($pe->sum('total_salesprice'), 2),
-                    ],
                     'transport' => [
-                        'total_distance'    => round($pe->sum('distance'), 2),
-                        'transport_cost'    => round($pe->sum('transport_costprice'), 2),
-                        'transport_revenue' => round($pe->sum('transport_salesprice'), 2),
+                        'total_distance' => round($pe->sum('distance'), 2),
                     ],
                     'labor_details' => $pe->groupBy('labor_descr')->map(fn($e, $d) => [
                         'description' => $d,
                         'hours'       => round($e->sum('hours'), 2),
-                        'cost'        => round($e->sum('total_costprice'), 2),
-                        'revenue'     => round($e->sum('total_salesprice'), 2),
                     ])->values(),
                 ];
             })->values()->all(),
@@ -114,8 +105,6 @@ class EmployeeTimeService
             'target_hours'           => round($target, 2),
             'achievement_percentage' => $target > 0 ? round(($total / $target) * 100, 2) : 0,
             'approved_hours'         => round($monthly->where('fl_approved', true)->sum('hours'), 2),
-            'costs'                  => round($monthly->sum('total_costprice'), 2),
-            'revenue'                => round($monthly->sum('total_salesprice'), 2),
             'working_days'           => $workDays,
             'days_worked'            => $days,
             'daily_average'          => $workDays > 0 ? round($total / $workDays, 2) : 0,
@@ -136,8 +125,6 @@ class EmployeeTimeService
             'target_hours'           => round($target, 2),
             'achievement_percentage' => $target > 0 ? round(($total / $target) * 100, 2) : 0,
             'approved_hours'         => round($yearly->where('fl_approved', true)->sum('hours'), 2),
-            'costs'                  => round($yearly->sum('total_costprice'), 2),
-            'revenue'                => round($yearly->sum('total_salesprice'), 2),
             'working_days'           => $workDays,
             'days_worked'            => $yearly->pluck('entry_date')->map(fn($d) => (string)$d)->unique()->count(),
             'monthly_average'        => round($total / 12, 2),
@@ -154,8 +141,6 @@ class EmployeeTimeService
                 'month'          => $date->format('Y-m'),
                 'hours'          => round($monthly->sum('hours'), 2),
                 'approved_hours' => round($monthly->where('fl_approved', true)->sum('hours'), 2),
-                'costs'          => round($monthly->sum('total_costprice'), 2),
-                'revenue'        => round($monthly->sum('total_salesprice'), 2),
                 'days_worked'    => $monthly->pluck('entry_date')->map(fn($d) => (string)$d)->unique()->count(),
             ];
         })->sortByDesc('month')->values()->all();
@@ -211,8 +196,6 @@ class EmployeeTimeService
             'target_hours'           => round($target, 2),
             'achievement_percentage' => $target > 0 ? round(($total / $target) * 100, 2) : 0,
             'approved_hours'         => round($monthly->where('fl_approved', true)->sum('hours'), 2),
-            'costs'                  => round($monthly->sum('total_costprice'), 2),
-            'revenue'                => round($monthly->sum('total_salesprice'), 2),
             'working_days'           => $workDays,
             'days_worked'            => $days,
             'daily_average'          => $workDays > 0 ? round($total / $workDays, 2) : 0,
