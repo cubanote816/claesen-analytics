@@ -82,7 +82,7 @@
                                 <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                     <td class="py-2.5 pr-4">
                                         <a wire:navigate
-                                           href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $this->record->id, 'start_date' => $week['start_date'], 'end_date' => $week['end_date']]) }}"
+                                           href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $this->record->id, 'start_date' => $week['start_date'], 'end_date' => $week['end_date'], 'from' => 'employee']) }}"
                                            class="font-medium text-primary-600 dark:text-primary-400 hover:underline">
                                             {{ \Carbon\Carbon::parse($week['start_date'])->format('d/m') }}
                                             &ndash;

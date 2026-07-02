@@ -26,7 +26,7 @@
 
         {{-- Day navigation --}}
         <div class="flex items-center justify-between mb-6">
-            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $prevDay]) }}"
+            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $prevDay, 'from' => $from]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 <x-heroicon-o-chevron-left class="w-4 h-4" />
                 {{ \Carbon\Carbon::parse($prevDay)->locale($isNl ? 'nl' : 'en')->isoFormat('ddd D/MM') }}
@@ -48,7 +48,7 @@
                 @endif
             </div>
 
-            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $nextDay]) }}"
+            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $nextDay, 'from' => $from]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 {{ \Carbon\Carbon::parse($nextDay)->locale($isNl ? 'nl' : 'en')->isoFormat('ddd D/MM') }}
                 <x-heroicon-o-chevron-right class="w-4 h-4" />

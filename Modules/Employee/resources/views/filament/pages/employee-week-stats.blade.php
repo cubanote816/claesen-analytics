@@ -32,7 +32,7 @@
                 $nextStart = $start->copy()->addWeek()->format('Y-m-d');
                 $nextEnd   = $end->copy()->addWeek()->format('Y-m-d');
             @endphp
-            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $prevStart, 'end_date' => $prevEnd]) }}"
+            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $prevStart, 'end_date' => $prevEnd, 'from' => $from]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 <x-heroicon-o-chevron-left class="w-4 h-4" />
                 {{ $isNl ? 'Vorige week' : 'Previous week' }}
@@ -40,7 +40,7 @@
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {{ $start->format('d/m') }} &ndash; {{ $end->format('d/m/Y') }}
             </h2>
-            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $nextStart, 'end_date' => $nextEnd]) }}"
+            <a wire:navigate href="{{ \Modules\Employee\Filament\Pages\EmployeeWeekStats::getUrl(['employee_id' => $employeeId, 'start_date' => $nextStart, 'end_date' => $nextEnd, 'from' => $from]) }}"
                class="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 {{ $isNl ? 'Volgende week' : 'Next week' }}
                 <x-heroicon-o-chevron-right class="w-4 h-4" />
@@ -90,7 +90,7 @@
                         @foreach($dailyBreakdown as $day)
                             @php
                                 $dayDate = \Carbon\Carbon::parse($day['date']);
-                                $dayUrl  = \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $day['date']]);
+                                $dayUrl  = \Modules\Employee\Filament\Pages\EmployeeDayStats::getUrl(['employee_id' => $employeeId, 'date' => $day['date'], 'from' => $from]);
                             @endphp
                             <div
                                 x-data
