@@ -269,20 +269,20 @@ Modules/Safety/
 - Traducciones: `spatie/laravel-translatable` (columnas json) + `HasAiTranslations` propio (`Modules/Intelligence`) para autotraducir con Gemini. Locales canónicos: **`nl, en, fr, de`** — no usar `es` (bug corregido en FO-008).
 - `LuminaireGroup` está intencionalmente denormalizado como `group_name` string en `fo_luminaire_subgroups` — no crear una tabla catálogo separada sin discutirlo primero (decisión de Slice C).
 - `ComplexZoomLevel` (zoom por usuario) está intencionalmente colapsado a un único campo `zoom` en `Complex` — no revertir a zoom por usuario sin justificación de negocio.
-- `external_safety_id`/`external_access_id` en `fo_structures` son placeholders sin FK real, reservados para FO-004 — no las llenes con lógica ad-hoc.
+- `Access`/`Safety` de estructura están denormalizados como columnas planas en `fo_structures` (`access_type_id`, `access_active`, `safety_type_id`, `safety_certified`) en vez de tablas de instancia separadas — mismo precedente que `LuminaireGroup` (relación 1:1 por estructura, nunca reutilizada). Catálogos `AccessType`/`SafetyType` sí son tablas propias (`super_admin` only).
 
 ### Gaps abiertos (tickets Linear, equipo Claesen)
 
 | Ticket | Título | Estado |
 |--------|--------|--------|
 | FO-008 / CLA-206 | Fix locale es→de en validación FieldOps | ✅ Done (`6a831e9`) |
-| FO-004 | Slice E — Access/Safety de fijación de estructura | ⬜ Todo |
+| FO-004 / CLA-207 | Slice E — Access/Safety de fijación de estructura | ✅ Done (`4f6d1c5`) |
 | FO-003 | Slice D — Electrical Board (dominio completo) | ⬜ Todo |
 | FO-005 | Slice F — Adjuntos de archivos/planos (Media Library) | ⬜ Todo |
 | FO-007 | Spike — evaluar alcance del dominio de Mantenimiento | ⬜ Todo |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (bloqueado por FO-003/004/005) |
 
-**Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-006.
+**Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-006. Siguiente: **FO-003**.
 
 ### Cómo reanudar
 
