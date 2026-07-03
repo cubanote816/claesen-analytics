@@ -92,6 +92,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint completado** | ✅ ~100% |
 | **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance, automatización — **Fase 0+1+2 completadas** | ✅ ~98% |
 | **Website** | Sitio público, formulario de consulta, galería proyectos — **sprint en curso** | 🚧 ~85% |
+| **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias (reemplazo del satélite `api-claesen-sport-app`) — **menú marcado "(Demo)", gaps abiertos, sin consumidor conectado** | 🚧 ~60% |
 
 ---
 
@@ -250,6 +251,43 @@ Modules/Safety/
 ├── Jobs/
 ├── Filament/Resources/
 └── Tests/Feature/     ← se crean en SAF-012/013/014
+```
+
+---
+
+## Sprint FieldOps — EN CURSO (rama: `main`, menú "(Demo)")
+
+> Auditoria comparativa 2026-07-03 contra el satélite anterior `api-claesen-sport-app`. Ver `handoff.md` para el detalle completo.
+
+### Estado
+
+`fo_admin` (Slices C.1→C.6a) ya está mezclado en `main` y `origin/main`. El menú "Field Operations" en Filament está marcado **"(Demo)"** (`lang/en,nl/navigation.php`, clave `navigation.groups.field_operations`) porque el módulo no tiene ningún consumidor real conectado todavía y le faltan dominios completos frente al sistema anterior.
+
+### Reglas FieldOps (no negociables)
+
+- Tablas con prefijo `fo_`. `created_by_user_id` siempre `nullOnDelete` (no `cascadeOnDelete`) — borrar un usuario de Core no debe borrar datos operacionales.
+- Traducciones: `spatie/laravel-translatable` (columnas json) + `HasAiTranslations` propio (`Modules/Intelligence`) para autotraducir con Gemini. Locales canónicos: **`nl, en, fr, de`** — no usar `es` (bug corregido en FO-008).
+- `LuminaireGroup` está intencionalmente denormalizado como `group_name` string en `fo_luminaire_subgroups` — no crear una tabla catálogo separada sin discutirlo primero (decisión de Slice C).
+- `ComplexZoomLevel` (zoom por usuario) está intencionalmente colapsado a un único campo `zoom` en `Complex` — no revertir a zoom por usuario sin justificación de negocio.
+- `external_safety_id`/`external_access_id` en `fo_structures` son placeholders sin FK real, reservados para FO-004 — no las llenes con lógica ad-hoc.
+
+### Gaps abiertos (tickets Linear, equipo Claesen)
+
+| Ticket | Título | Estado |
+|--------|--------|--------|
+| FO-008 / CLA-206 | Fix locale es→de en validación FieldOps | ✅ Done (`6a831e9`) |
+| FO-004 | Slice E — Access/Safety de fijación de estructura | ⬜ Todo |
+| FO-003 | Slice D — Electrical Board (dominio completo) | ⬜ Todo |
+| FO-005 | Slice F — Adjuntos de archivos/planos (Media Library) | ⬜ Todo |
+| FO-007 | Spike — evaluar alcance del dominio de Mantenimiento | ⬜ Todo |
+| FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (bloqueado por FO-003/004/005) |
+
+**Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-006.
+
+### Cómo reanudar
+
+```
+"Continuamos con FO-XXX. Lee CLAUDE.md y handoff.md."
 ```
 
 ---
