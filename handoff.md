@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-03 (Intelligence/Employee: EMP-026 — sincronizar date_start/date_end de proyectos al mirror MySQL)
+> Última actualización: 2026-07-03 (Employee: EMP-027 — Hours per Project ordenable por columna + fix nombre de proyecto (descr) + fix hover de headers)
 
 ---
 
@@ -9,7 +9,9 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** `698686e` (2026-07-03) — EMP-026 / CLA-201: `intelligence_mirror_projects` ahora sincroniza `date_start`/`date_end` (migración + `MirrorProject` fillable/casts + `SyncMirrorDataService::syncProjects()`). Cierra el pendiente dejado por EMP-025. Backfill corrido en dev (SQL Server sí estaba alcanzable, el timeout previo fue transitorio) — los 128 proyectos activos del mirror ya tienen `date_start` poblado, verificado que `/projects-worked-hours-page` muestra fechas reales. **Nota:** el `syncAll()` completo vía `php artisan intelligence:sync-mirror` tardó más de 2 min y no se pudo esperar en esta sesión (sync de labor/materiales es pesado); el backfill de esta feature se hizo invocando `syncProjects()` puntualmente. Igual conviene correr `intelligence:sync-mirror` completo en producción en el próximo ciclo normal de sync — no es bloqueante para este ticket.
+- **Último hito código:** `b4d1fa1` (2026-07-03) — EMP-027 / CLA-202: `/projects-worked-hours-page` ahora ordena por columna (Project, Start date, Period invoiced, Paid, Outstanding) clickeando el header, toggle asc/desc en memoria sobre `ProjectsWorkedHoursPage::$projects`. De paso, dos fixes de UI encontrados en la revisión visual del auditor: (1) la columna "Project" mostraba `project.name`, que es copia del cliente y NO el nombre real del proyecto (ver [[project_address_mapping]] en memoria — `Projectnaam` real = `project.descr`); ahora se muestran ambos (descr como título, cliente+ID como subtítulo). (2) el hover de los headers usaba una combinación de clases Tailwind (`hover:text-gray-900 dark:hover:text-gray-100`) no compilada en el bundle local — texto ilegible en dark mode; se reemplazó por `hover:bg-gray-50 dark:hover:bg-gray-800/50`, ya compilada y usada en el resto de la tabla. Sin necesidad de `npm run build` (evitó además un problema de permisos: `public/build/` quedó con dueño `root:root` de un build anterior, ni `npm run build` local ni `sail npm run build` pudieron sobreescribirlo).
+- **Hito previo:** `698686e` (2026-07-03) — EMP-026 / CLA-201: `intelligence_mirror_projects` ahora sincroniza `date_start`/`date_end` (migración + `MirrorProject` fillable/casts + `SyncMirrorDataService::syncProjects()`). Backfill corrido en dev invocando `syncProjects()` puntualmente (el `syncAll()` completo es pesado, no se esperó esta sesión) — conviene correr `intelligence:sync-mirror` completo en producción en el próximo ciclo normal de sync.
+- **Hito previo:** `dccff22` (2026-07-03) — EMP-025 / CLA-200: `ProjectRepository::getProjectsWithInvoiceInfo()` migrado de `Cafca\Project` (SQL Server en vivo) a `MirrorProject`+`MirrorInvoice` (MySQL); `/projects-worked-hours-page` mostraba siempre "No active projects".
 - **Hito previo:** `dccff22` (2026-07-03) — EMP-025 / CLA-200: `ProjectRepository::getProjectsWithInvoiceInfo()` migrado de `Cafca\Project` (SQL Server en vivo) a `MirrorProject`+`MirrorInvoice` (MySQL). `/projects-worked-hours-page` mostraba siempre "No active projects" porque la excepción de conexión SQL Server se tragaba en un try/catch. Mismo patrón de bug que `08b7453`, que había corregido `find()`/`getProjectsByIds()` pero dejó este método afuera.
 - **Hito previo:** `93de5d5` (2026-07-02) — EMP-024 / CLA-199: tendencia de 12 meses en el tab Hours de EmployeeResource.
 - **Hito previo:** `4ded7c2` (2026-07-02) — EMP-023 / CLA-198: gráficos Laden/Werf/Transport (donut Day, stacked bar Week/Month) migrados desde claesen_hours.
