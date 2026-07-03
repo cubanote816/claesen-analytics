@@ -123,7 +123,7 @@ class TerrainCrudTest extends TestCase
         [, $token] = $this->user();
 
         $this->withToken($token)->postJson('/api/v1/fieldops/terrains', $this->payload([
-            'name' => ['nl' => 'Test', 'de' => 'Ungültig'],
+            'name' => ['nl' => 'Test', 'es' => 'Inválido'],
         ]))->assertStatus(422);
     }
 

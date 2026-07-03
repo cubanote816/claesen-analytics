@@ -30,11 +30,11 @@ class UpdateLuminaireRequest extends FormRequest
             'frame_position'        => ['sometimes', 'nullable', 'integer', 'min:1'],
             'frame_x'               => ['sometimes', 'nullable', 'numeric'],
             'frame_y'               => ['sometimes', 'nullable', 'numeric'],
-            'info'                  => ['sometimes', 'nullable', 'array:nl,en,fr,es'],
+            'info'                  => ['sometimes', 'nullable', 'array:nl,en,fr,de'],
             'info.nl'               => ['sometimes', 'nullable', 'string', 'max:1000'],
             'info.en'               => ['sometimes', 'nullable', 'string', 'max:1000'],
             'info.fr'               => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'info.es'               => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'info.de'               => ['sometimes', 'nullable', 'string', 'max:1000'],
             'cafca_material_id'     => ['sometimes', 'nullable', 'integer'],
         ];
     }

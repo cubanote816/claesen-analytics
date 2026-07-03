@@ -99,7 +99,7 @@ class StructureCrudTest extends TestCase
 
         $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
             'structure_type_id' => $this->structureType()->id,
-            'info'              => ['nl' => 'OK', 'de' => 'Verboten'],
+            'info'              => ['nl' => 'OK', 'es' => 'Prohibido'],
         ])->assertStatus(422);
     }
 

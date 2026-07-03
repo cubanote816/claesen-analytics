@@ -24,11 +24,11 @@ class StoreLuminaireRequest extends FormRequest
             'frame_position'        => ['nullable', 'integer', 'min:1'],
             'frame_x'               => ['nullable', 'numeric'],
             'frame_y'               => ['nullable', 'numeric'],
-            'info'                  => ['nullable', 'array:nl,en,fr,es'],
+            'info'                  => ['nullable', 'array:nl,en,fr,de'],
             'info.nl'               => ['sometimes', 'nullable', 'string', 'max:1000'],
             'info.en'               => ['sometimes', 'nullable', 'string', 'max:1000'],
             'info.fr'               => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'info.es'               => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'info.de'               => ['sometimes', 'nullable', 'string', 'max:1000'],
             'cafca_material_id'     => ['nullable', 'integer'],
         ];
     }

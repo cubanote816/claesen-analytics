@@ -17,11 +17,11 @@ class UpdateTerrainRequest extends FormRequest
     {
         return [
             'terrain_type_id' => ['sometimes', 'integer', 'exists:fo_terrain_types,id'],
-            'name'            => ['sometimes', 'nullable', 'array:nl,en,fr,es'],
+            'name'            => ['sometimes', 'nullable', 'array:nl,en,fr,de'],
             'name.nl'         => ['sometimes', 'nullable', 'string', 'max:255'],
             'name.en'         => ['sometimes', 'nullable', 'string', 'max:255'],
             'name.fr'         => ['sometimes', 'nullable', 'string', 'max:255'],
-            'name.es'         => ['sometimes', 'nullable', 'string', 'max:255'],
+            'name.de'         => ['sometimes', 'nullable', 'string', 'max:255'],
             'lat'             => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
             'lng'             => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
         ];
