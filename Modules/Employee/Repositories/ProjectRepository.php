@@ -5,7 +5,7 @@ namespace Modules\Employee\Repositories;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
-use Modules\Cafca\Models\Project as CafcaProject;
+use Modules\Performance\Models\Mirror\MirrorInvoice;
 use Modules\Performance\Models\Mirror\MirrorProject;
 
 class ProjectRepository
@@ -23,20 +23,22 @@ class ProjectRepository
     public function getProjectsWithInvoiceInfo(array $projectIds, string $startDate, string $endDate): Collection
     {
         try {
-            $projects = CafcaProject::whereIn('id', $projectIds)
+            $projects = MirrorProject::whereIn('id', $projectIds)
                 ->where('fl_active', true)
-                ->with([
-                    'invoices' => function ($query) use ($startDate, $endDate) {
-                        $query->whereBetween('date', [$startDate, $endDate]);
-                    },
-                ])
                 ->get();
 
-            return $projects->map(function ($project) {
-                $hasInvoices = $project->invoices->isNotEmpty();
-                $totalInvoiced = $project->invoices->sum('total_price');
-                $totalPaid     = $project->invoices->sum('total_paid');
-                $totalPending  = $project->invoices->sum(fn($i) => $i->total_price - $i->total_paid);
+            $invoicesByProject = MirrorInvoice::whereIn('project_id', $projectIds)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->get()
+                ->groupBy('project_id');
+
+            return $projects->map(function ($project) use ($invoicesByProject) {
+                $invoices = $invoicesByProject->get($project->id, collect());
+
+                $hasInvoices   = $invoices->isNotEmpty();
+                $totalInvoiced = $invoices->sum('total_price');
+                $totalPaid     = $invoices->sum('total_paid');
+                $totalPending  = $invoices->sum(fn($i) => $i->total_price - $i->total_paid);
 
                 $project->has_invoices_in_period = $hasInvoices;
                 $project->total_invoiced         = $totalInvoiced;
