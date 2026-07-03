@@ -1,14 +1,18 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-03 (merge fo_admin → main: FieldOps admin resources + AI translations)
+> Última actualización: 2026-07-04 (CLA-208: modal de sesión expirada personalizado)
 
 ---
 
 ## Estado actual
 
 - **Sprint activo:** ninguno declarado.
-- **Rama actual:** `main`, empujada a `origin/main` (`39e2d78`). Se retomó push regular en esta sesión tras un período trabajando solo local.
+- **Rama actual:** `issues-0001`.
+- **Último hito código:** `94b9ff9` (2026-07-04) — CLA-208: Livewire dispara un `confirm()` nativo del navegador (sin marca) ante cualquier respuesta HTTP 419 (sesión/CSRF expirado) en el panel Filament — comportamiento propio del vendor (`vendor/livewire/livewire/dist/livewire.js`), no código nuestro. Se intercepta vía `Livewire.hook('request', ({fail}) => fail(({status, preventDefault}) => {...}))`: `preventDefault()` es el mismo flag que gobierna el `confirm()` nativo (confirmado leyendo el vendor JS línea por línea), así que no hay carrera entre ambos. Se muestra en su lugar un modal branded (logo, colores Claesen, copy NL/EN) — nueva vista `Modules/Core/resources/views/filament/session-expired-modal.blade.php`, enganchada al `PanelsRenderHook::BODY_END` ya existente en `AdminPanelProvider.php` (junto a `session-keeper` y `floating-mailing-button`). Sin cambios de backend/PHP lógico, sin migraciones.
+  - **Verificación:** no había herramienta de automatización de navegador en el entorno — se instaló Playwright (Chromium) en el scratchpad de la sesión (no en el repo) y se armó un test end-to-end real: usuario temporal → login → tabla con búsqueda Livewire → se truncó `sessions` para simular expiración real → la request a `/livewire/update` devolvió 419 → sin diálogo nativo → modal visible → botón "Reload" navega a `/login`. Usuario temporal borrado al cerrar.
+  - **Gotcha encontrado:** la primera pasada del modal se veía sin el fondo cyan del botón — clases Tailwind arbitrarias nuevas (`bg-[#00aeef]`, etc.) no existen en `public/build/` hasta correr `npm run build` (mismo gotcha ya documentado más abajo, sesión EMP-021). Se corrigió recompilando; no requiere paso extra en producción (`deploy.sh` ya corre `npm ci && npm run build` en cada deploy).
+- **Hito previo:** `39e2d78` (2026-07-03) — merge `fo_admin` → `main`: FieldOps admin resources + AI translations.
 - **Merge `fo_admin` → `main` (2026-07-03, commit `39e2d78`):** se completó un merge que había quedado atascado en una sesión anterior (rama de scratch `fo_admin_merge_tmp` en el worktree `/home/totti/claesen_api_dashboard_safety`, con 5 conflictos sin resolver y basada en un `main` de 56 commits de antigüedad). Se abortó ese intento viejo y se rehizo el merge directo en `main` sobre la punta actual. Trae FO-ADM-001→007 y FO-AI-001: Filament Resources V5 completos para `FoClient`, `Complex`+`Terrain` (relation manager), `Structure`, `Luminaire`+`LuminaireFrame`, y catálogos (`StructureType`, `TerrainType`, `LuminaireType`, `LuminaireSubgroup`, `LuminaireFrameType` — estos últimos solo `super_admin`); nuevo grupo de navegación "Field Operations"; `HasAiTranslations` en 5 modelos FieldOps traducibles.
   - **Conflictos resueltos:** `StructureType.php`/`TerrainType.php` (combinar `getAiTranslatableAttributes()` de fo_admin + `ai_translation_status` en fillable de main, ambos cambios compatibles); `lang/en,nl/navigation.php` (combinar clave `mailing` de main + `field_operations` de fo_admin); `Modules/Safety/resources/views/emails/inspection-report.blade.php` (conflicto add/add real — se mantuvo la versión de `main`, que ya tiene el rediseño CLA-177/178; la de `fo_admin` era una versión pre-rediseño y obsoleta).
   - **Tests:** `--testsuite=Modules --filter="FieldOps|Safety"` → 233 passed, 3 failed. Las 3 fallas son preexistentes y ya documentadas más abajo (`78327ae` — migración `present_workers.*` de `users` a `employees`, afecta `InspectionAuthStoreIndexTest`), no las causó este merge — confirmado comparando el archivo de test y `AuthController.php` byte a byte contra `main` pre-merge (sin diferencias).
