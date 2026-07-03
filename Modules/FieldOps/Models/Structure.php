@@ -80,4 +80,9 @@ class Structure extends Model
     {
         return $this->belongsToMany(LuminaireFrame::class, 'fo_luminaire_frame_structure');
     }
+
+    public function electricalBoards()
+    {
+        return $this->belongsToMany(ElectricalBoard::class, 'fo_electrical_board_structure');
+    }
 }

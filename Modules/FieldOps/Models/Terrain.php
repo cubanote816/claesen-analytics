@@ -62,4 +62,9 @@ class Terrain extends Model
     {
         return $this->belongsToMany(Structure::class, 'fo_structure_terrain');
     }
+
+    public function electricalBoards()
+    {
+        return $this->belongsToMany(ElectricalBoard::class, 'fo_electrical_board_terrain');
+    }
 }

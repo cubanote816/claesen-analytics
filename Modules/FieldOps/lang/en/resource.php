@@ -108,12 +108,32 @@ return [
         ],
     ],
 
+    'electrical_boards' => [
+        'navigation'   => 'Electrical boards',
+        'model_label'  => 'Electrical board',
+        'plural_label' => 'Electrical boards',
+        'fields' => [
+            'electrical_board_type'      => 'Board type',
+            'lat'                        => 'Latitude',
+            'lng'                        => 'Longitude',
+            'location_description'       => 'Location description',
+            'location_description_nl'    => 'Location description (NL)',
+            'location_description_en'    => 'Location description (EN)',
+            'location_description_fr'    => 'Location description (FR)',
+            'location_description_de'    => 'Location description (DE)',
+            'complexes_count'            => 'Complexes',
+            'terrains_count'             => 'Terrains',
+            'structures_count'           => 'Structures',
+        ],
+    ],
+
     'catalogs' => [
         'navigation'          => 'Catalogs',
         'terrain_types'       => 'Terrain types',
         'structure_types'     => 'Structure types',
         'access_types'        => 'Access types',
         'safety_types'        => 'Safety types',
+        'electrical_board_types' => 'Electrical board types',
         'frame_types'         => 'Frame types',
         'luminaire_subgroups' => 'Luminaire subgroups',
         'luminaire_types'     => 'Luminaire types',

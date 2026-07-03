@@ -108,12 +108,32 @@ return [
         ],
     ],
 
+    'electrical_boards' => [
+        'navigation'   => 'Elektrische borden',
+        'model_label'  => 'Elektrisch bord',
+        'plural_label' => 'Elektrische borden',
+        'fields' => [
+            'electrical_board_type'      => 'Bordtype',
+            'lat'                        => 'Breedtegraad',
+            'lng'                        => 'Lengtegraad',
+            'location_description'       => 'Locatiebeschrijving',
+            'location_description_nl'    => 'Locatiebeschrijving (NL)',
+            'location_description_en'    => 'Locatiebeschrijving (EN)',
+            'location_description_fr'    => 'Locatiebeschrijving (FR)',
+            'location_description_de'    => 'Locatiebeschrijving (DE)',
+            'complexes_count'            => 'Complexen',
+            'terrains_count'             => 'Terreinen',
+            'structures_count'           => 'Structuren',
+        ],
+    ],
+
     'catalogs' => [
         'navigation'           => 'Catalogi',
         'terrain_types'        => 'Terreintypen',
         'structure_types'      => 'Structuurtypen',
         'access_types'         => 'Toegangstypen',
         'safety_types'         => 'Veiligheidstypen',
+        'electrical_board_types' => 'Elektrische bordtypen',
         'frame_types'          => 'Frametypen',
         'luminaire_subgroups'  => 'Armatuur subgroepen',
         'luminaire_types'      => 'Armatuurtypen',

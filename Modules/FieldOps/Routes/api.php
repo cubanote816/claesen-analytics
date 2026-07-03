@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\FieldOps\Http\Controllers\ComplexController;
+use Modules\FieldOps\Http\Controllers\ElectricalBoardController;
 use Modules\FieldOps\Http\Controllers\LuminaireController;
 use Modules\FieldOps\Http\Controllers\LuminaireFrameController;
 use Modules\FieldOps\Http\Controllers\StructureController;
@@ -51,4 +52,12 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
     Route::put('/luminaires/{luminaire}', [LuminaireController::class, 'update']);
     Route::patch('/luminaires/{luminaire}', [LuminaireController::class, 'update']);
     Route::delete('/luminaires/{luminaire}', [LuminaireController::class, 'destroy']);
+
+    // Electrical Boards
+    Route::get('/electrical-boards', [ElectricalBoardController::class, 'index']);
+    Route::post('/electrical-boards', [ElectricalBoardController::class, 'store']);
+    Route::get('/electrical-boards/{electricalBoard}', [ElectricalBoardController::class, 'show']);
+    Route::put('/electrical-boards/{electricalBoard}', [ElectricalBoardController::class, 'update']);
+    Route::patch('/electrical-boards/{electricalBoard}', [ElectricalBoardController::class, 'update']);
+    Route::delete('/electrical-boards/{electricalBoard}', [ElectricalBoardController::class, 'destroy']);
 });

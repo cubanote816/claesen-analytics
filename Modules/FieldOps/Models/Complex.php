@@ -51,4 +51,9 @@ class Complex extends Model
     {
         return $this->hasMany(Terrain::class, 'complex_id');
     }
+
+    public function electricalBoards()
+    {
+        return $this->belongsToMany(ElectricalBoard::class, 'fo_complex_electrical_board');
+    }
 }
