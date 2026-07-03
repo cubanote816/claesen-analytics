@@ -27,6 +27,12 @@
         </div>
     </x-filament::section>
 
+    @php
+        $sortIcon = fn (string $column) => $sortColumn === $column
+            ? ($sortDirection === 'asc' ? ' ▲' : ' ▼')
+            : '';
+    @endphp
+
     @if($errorMessage)
         <x-filament::section>
             <p class="text-danger-600 dark:text-danger-400">{{ $errorMessage }}</p>
@@ -48,20 +54,25 @@
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-200 dark:border-gray-700 text-left">
-                            <th class="pb-2 pr-4 font-medium text-gray-600 dark:text-gray-400">
-                                {{ $isNl ? 'Project' : 'Project' }}
+                            <th class="pb-2 pr-4 font-medium text-gray-600 dark:text-gray-400 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                                wire:click="sortBy('name')">
+                                {{ $isNl ? 'Project' : 'Project' }}{{ $sortIcon('name') }}
                             </th>
-                            <th class="pb-2 pr-4 font-medium text-gray-600 dark:text-gray-400">
-                                {{ $isNl ? 'Startdatum' : 'Start date' }}
+                            <th class="pb-2 pr-4 font-medium text-gray-600 dark:text-gray-400 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                                wire:click="sortBy('date_start')">
+                                {{ $isNl ? 'Startdatum' : 'Start date' }}{{ $sortIcon('date_start') }}
                             </th>
-                            <th class="pb-2 pr-4 font-medium text-gray-600 dark:text-gray-400 text-right">
-                                {{ $isNl ? 'Facturatie periode' : 'Period invoiced' }}
+                            <th class="pb-2 pr-4 font-medium text-gray-600 dark:text-gray-400 text-right cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                                wire:click="sortBy('total_invoiced')">
+                                {{ $isNl ? 'Facturatie periode' : 'Period invoiced' }}{{ $sortIcon('total_invoiced') }}
                             </th>
-                            <th class="pb-2 pr-4 font-medium text-gray-600 dark:text-gray-400 text-right">
-                                {{ $isNl ? 'Betaald' : 'Paid' }}
+                            <th class="pb-2 pr-4 font-medium text-gray-600 dark:text-gray-400 text-right cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                                wire:click="sortBy('total_paid')">
+                                {{ $isNl ? 'Betaald' : 'Paid' }}{{ $sortIcon('total_paid') }}
                             </th>
-                            <th class="pb-2 font-medium text-gray-600 dark:text-gray-400 text-right">
-                                {{ $isNl ? 'Openstaand' : 'Outstanding' }}
+                            <th class="pb-2 font-medium text-gray-600 dark:text-gray-400 text-right cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                                wire:click="sortBy('total_pending')">
+                                {{ $isNl ? 'Openstaand' : 'Outstanding' }}{{ $sortIcon('total_pending') }}
                             </th>
                         </tr>
                     </thead>
@@ -73,8 +84,8 @@
                             @endphp
                             <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                 <td class="py-2.5 pr-4">
-                                    <div class="font-medium text-gray-900 dark:text-gray-100">{{ $project['name'] ?? '—' }}</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $project['id'] ?? '' }}</div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">{{ $project['descr'] ?? $project['name'] ?? '—' }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $project['name'] ?? '' }} · {{ $project['id'] ?? '' }}</div>
                                 </td>
                                 <td class="py-2.5 pr-4 text-gray-600 dark:text-gray-400">
                                     {{ $project['date_start_formatted'] ?? '—' }}
