@@ -15,6 +15,7 @@ use Modules\Employee\Services\EmployeeTimeService;
 use Modules\Employee\Services\ProjectInvoiceService;
 use Modules\Employee\Services\ProjectService;
 use Modules\Employee\Services\StatsCalculator;
+use Modules\Intelligence\Services\BiConfigService;
 
 class EmployeeServiceProvider extends ServiceProvider
 {
@@ -35,7 +36,9 @@ class EmployeeServiceProvider extends ServiceProvider
 
         $this->app->singleton(EmployeeRepository::class, fn() => new EmployeeRepository());
         $this->app->singleton(TimeEntryRepository::class, fn() => new TimeEntryRepository());
-        $this->app->singleton(ProjectRepository::class,   fn() => new ProjectRepository());
+        $this->app->singleton(ProjectRepository::class,   fn($app) => new ProjectRepository(
+            $app->make(BiConfigService::class)
+        ));
 
         $this->app->singleton(StatsCalculator::class, fn() => new StatsCalculator());
 

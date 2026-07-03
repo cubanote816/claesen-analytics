@@ -81,11 +81,20 @@
                             @php
                                 $totalPending = $project['total_pending'] ?? 0;
                                 $hasInvoices  = $project['has_invoices_in_period'] ?? false;
+                                $billingGap   = $project['billing_gap'] ?? false;
+                                $gapDays      = $project['days_since_last_invoice'] ?? null;
                             @endphp
                             <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                 <td class="py-2.5 pr-4">
                                     <div class="font-medium text-gray-900 dark:text-gray-100">{{ $project['descr'] ?? $project['name'] ?? '—' }}</div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">{{ $project['name'] ?? '' }} · {{ $project['id'] ?? '' }}</div>
+                                    @if($billingGap)
+                                        <span class="inline-flex items-center rounded-full bg-danger-100 px-2 py-0.5 text-xs font-medium text-danger-700 dark:bg-danger-900/30 dark:text-danger-400 mt-1">
+                                            {{ $gapDays === null
+                                                ? ($isNl ? 'Nooit gefactureerd' : 'Never invoiced')
+                                                : ($isNl ? "Geen factuur sinds {$gapDays} dagen" : "No invoice for {$gapDays} days") }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="py-2.5 pr-4 text-gray-600 dark:text-gray-400">
                                     {{ $project['date_start_formatted'] ?? '—' }}
