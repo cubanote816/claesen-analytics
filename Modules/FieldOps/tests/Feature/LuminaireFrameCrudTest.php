@@ -7,6 +7,7 @@ use Modules\Core\Models\User;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\Structure;
+use Modules\Intelligence\Services\GeminiService;
 use Tests\TestCase;
 
 class LuminaireFrameCrudTest extends TestCase
@@ -18,6 +19,7 @@ class LuminaireFrameCrudTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
         $this->user = User::factory()->create();
     }
 

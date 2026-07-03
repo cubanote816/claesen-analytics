@@ -10,5 +10,6 @@ return [
         'analyse_intelligentie' => 'Analyse & Intelligence',
         'safety_vca' => 'Safety & VCA',
         'mailing' => 'Mailing',
+        'field_operations' => 'Field Operations',
     ],
 ];

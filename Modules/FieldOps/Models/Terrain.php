@@ -18,6 +18,11 @@ class Terrain extends Model
 
     public array $translatable = ['name'];
 
+    public function getAiTranslatableAttributes(): array
+    {
+        return ['name'];
+    }
+
     protected $fillable = [
         'complex_id',
         'created_by_user_id',

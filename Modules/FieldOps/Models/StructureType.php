@@ -18,6 +18,11 @@ class StructureType extends Model
 
     public array $translatable = ['name'];
 
+    public function getAiTranslatableAttributes(): array
+    {
+        return ['name'];
+    }
+
     protected $fillable = ['created_by_user_id', 'name', 'ai_translation_status'];
 
     protected static function newFactory(): StructureTypeFactory
@@ -28,5 +33,10 @@ class StructureType extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function structures()
+    {
+        return $this->hasMany(Structure::class, 'structure_type_id');
     }
 }

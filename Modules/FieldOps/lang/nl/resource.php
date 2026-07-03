@@ -1,0 +1,133 @@
+<?php
+
+return [
+    'nav_group' => 'Field Operations',
+
+    'clients' => [
+        'navigation'     => 'Klanten',
+        'model_label'    => 'Klant',
+        'plural_label'   => 'Klanten',
+        'fields' => [
+            'name'     => 'Naam',
+            'street'   => 'Straat',
+            'city'     => 'Stad',
+            'phone'    => 'Telefoon',
+            'email'    => 'E-mail',
+            'language' => 'Taal',
+            'complexes_count' => 'Complexen',
+        ],
+    ],
+
+    'complexes' => [
+        'navigation'   => 'Complexen',
+        'model_label'  => 'Complex',
+        'plural_label' => 'Complexen',
+        'fields' => [
+            'name'            => 'Naam',
+            'street'          => 'Straat',
+            'city'            => 'Stad',
+            'zipcode'         => 'Postcode',
+            'client'          => 'Klant',
+            'lat'             => 'Breedtegraad',
+            'lng'             => 'Lengtegraad',
+            'zoom'            => 'Zoomniveau',
+            'terrains_count'  => 'Terreinen',
+        ],
+    ],
+
+    'terrains' => [
+        'navigation'   => 'Terreinen',
+        'model_label'  => 'Terrein',
+        'plural_label' => 'Terreinen',
+        'fields' => [
+            'name'              => 'Naam',
+            'name_nl'           => 'Naam (NL)',
+            'name_en'           => 'Naam (EN)',
+            'name_fr'           => 'Naam (FR)',
+            'name_de'           => 'Naam (DE)',
+            'complex'           => 'Complex',
+            'terrain_type'      => 'Terreintype',
+            'lat'               => 'Breedtegraad',
+            'lng'               => 'Lengtegraad',
+            'structures_count'  => 'Structuren',
+        ],
+    ],
+
+    'structures' => [
+        'navigation'   => 'Structuren',
+        'model_label'  => 'Structuur',
+        'plural_label' => 'Structuren',
+        'fields' => [
+            'structure_type'    => 'Structuurtype',
+            'height'            => 'Hoogte (cm)',
+            'lat'               => 'Breedtegraad',
+            'lng'               => 'Lengtegraad',
+            'info'              => 'Info',
+            'info_nl'           => 'Info (NL)',
+            'info_en'           => 'Info (EN)',
+            'info_fr'           => 'Info (FR)',
+            'info_de'           => 'Info (DE)',
+            'external_safety_id' => 'Safety ID (extern)',
+            'external_access_id' => 'Toegang ID (extern)',
+            'cafca_material_id'  => 'CAFCA Materiaal ID',
+            'terrains_count'     => 'Terreinen',
+        ],
+    ],
+
+    'luminaire_frames' => [
+        'navigation'   => 'Verlichtingsframes',
+        'model_label'  => 'Verlichtingsframe',
+        'plural_label' => 'Verlichtingsframes',
+        'fields' => [
+            'frame_type'       => 'Frametype',
+            'luminaires_count' => 'Verlichtingsarmaturen',
+            'structures_count' => 'Structuren',
+        ],
+    ],
+
+    'luminaires' => [
+        'navigation'   => 'Armaturen',
+        'model_label'  => 'Armatuur',
+        'plural_label' => 'Armaturen',
+        'fields' => [
+            'luminaire_type'    => 'Armatuurtype',
+            'subgroup'          => 'Subgroep',
+            'frame'             => 'Frame',
+            'frame_position'    => 'Positie in frame',
+            'serial_number'     => 'Serienummer',
+            'frame_x'           => 'X-positie',
+            'frame_y'           => 'Y-positie',
+            'info'              => 'Info',
+            'info_nl'           => 'Info (NL)',
+            'info_en'           => 'Info (EN)',
+            'info_fr'           => 'Info (FR)',
+            'info_de'           => 'Info (DE)',
+            'cafca_material_id' => 'CAFCA Materiaal ID',
+        ],
+    ],
+
+    'catalogs' => [
+        'navigation'           => 'Catalogi',
+        'terrain_types'        => 'Terreintypen',
+        'structure_types'      => 'Structuurtypen',
+        'frame_types'          => 'Frametypen',
+        'luminaire_subgroups'  => 'Armatuur subgroepen',
+        'luminaire_types'      => 'Armatuurtypen',
+        'fields' => [
+            'type'       => 'Type',
+            'name'       => 'Naam',
+            'brand'      => 'Merk',
+            'group_name' => 'Groepsnaam',
+            'subgroup'   => 'Subgroep',
+            'image'      => 'Afbeelding',
+            'type_nl'    => 'Type (NL)',
+            'type_en'    => 'Type (EN)',
+            'type_fr'    => 'Type (FR)',
+            'type_de'    => 'Type (DE)',
+            'name_nl'    => 'Naam (NL)',
+            'name_en'    => 'Naam (EN)',
+            'name_fr'    => 'Naam (FR)',
+            'name_de'    => 'Naam (DE)',
+        ],
+    ],
+];

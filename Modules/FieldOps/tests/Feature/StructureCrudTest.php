@@ -11,11 +11,18 @@ use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\StructureType;
 use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Models\TerrainType;
+use Modules\Intelligence\Services\GeminiService;
 use Tests\TestCase;
 
 class StructureCrudTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
+    }
 
     private function user(): array
     {

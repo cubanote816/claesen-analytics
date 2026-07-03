@@ -28,4 +28,9 @@ class LuminaireSubgroup extends Model
     {
         return $this->hasMany(LuminaireType::class, 'luminaire_subgroup_id');
     }
+
+    public function luminaires()
+    {
+        return $this->hasMany(Luminaire::class, 'luminaire_subgroup_id');
+    }
 }

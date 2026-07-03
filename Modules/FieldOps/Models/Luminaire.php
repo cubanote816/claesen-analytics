@@ -22,6 +22,11 @@ class Luminaire extends Model
 
     public array $translatable = ['info'];
 
+    public function getAiTranslatableAttributes(): array
+    {
+        return ['info'];
+    }
+
     protected $fillable = [
         'created_by_user_id',
         'luminaire_type_id',

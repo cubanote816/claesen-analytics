@@ -17,10 +17,20 @@ class TerrainType extends Model
 
     public array $translatable = ['type'];
 
+    public function getAiTranslatableAttributes(): array
+    {
+        return ['type'];
+    }
+
     protected $fillable = ['type', 'ai_translation_status'];
 
     protected static function newFactory(): TerrainTypeFactory
     {
         return TerrainTypeFactory::new();
+    }
+
+    public function terrains()
+    {
+        return $this->hasMany(Terrain::class, 'terrain_type_id');
     }
 }

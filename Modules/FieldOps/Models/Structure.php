@@ -18,6 +18,11 @@ class Structure extends Model
 
     public array $translatable = ['info'];
 
+    public function getAiTranslatableAttributes(): array
+    {
+        return ['info'];
+    }
+
     protected $fillable = [
         'created_by_user_id',
         'structure_type_id',
