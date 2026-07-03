@@ -116,6 +116,8 @@ class SyncMirrorDataService
                         'contract_price'       => $project->contract_price,
                         'type'                 => $project->type,
                         'state'                => $project->state,
+                        'date_start'           => $project->date_start,
+                        'date_end'             => $project->date_end,
                         'last_modified_at'     => $project->ts_modif ?? $project->ts_crea,
                     ]
                 );

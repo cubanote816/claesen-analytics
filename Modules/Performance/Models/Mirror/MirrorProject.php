@@ -23,12 +23,16 @@ class MirrorProject extends Model
         'contract_price',
         'type',
         'state',
+        'date_start',
+        'date_end',
         'last_modified_at',
     ];
 
     protected $casts = [
         'fl_active'      => 'boolean',
         'contract_price' => 'decimal:2',
+        'date_start'     => 'date',
+        'date_end'       => 'date',
         'last_modified_at' => 'datetime',
     ];
 
