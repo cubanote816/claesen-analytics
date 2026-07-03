@@ -1,16 +1,21 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-03 (Employee/Intelligence: EMP-028 — Hours per Project marca vacío de facturación con la misma lógica que Billing Control)
+> Última actualización: 2026-07-03 (Employee/Intelligence: EMP-025→029 — sprint de Hours per Project cerrado)
 
 ---
 
 ## Estado actual
 
 - **Sprint activo:** FieldOps (rama: `main`)
-- **Último hito código:** `cc1e0be` (2026-07-03) — EMP-028 / CLA-203: `/projects-worked-hours-page` marca con badge rojo los proyectos con vacío de facturación (`billing_gap`), reusando exactamente la misma lógica que `MonthlyBillingGuardianService` (Modules/Intelligence): umbral `billing_guardian_rules.days_without_invoice` (default 30, editable en BI Configuration) y la exclusión de proyectos no facturables (sin `contract_price` > 0 y sin `estimate` vinculado vía `MirrorProjectLink`) — sin esa exclusión, buckets internos (`Algemene werken intern`, `Offerte - plaatsbezoek - prospectie`, `Kleine werken`, etc.) aparecían marcados "Never invoiced" siendo ruido. Verificado cruzando los 60 proyectos: 45 quedan con gap real, 12 buckets internos correctamente excluidos, 3 casos límite (contrato en 0/null pero con estimate vinculado, ej. proyectos en fase de oferta con horas ya trabajadas) correctamente incluidos — se discutió con el auditor si eso es correcto: **sí**, es el patrón estándar de WIP scheduling en contracting (costo/horas incurridas sin contrato firmado es el riesgo más urgente a vigilar, no menos). **Pendiente (ticket de seguimiento a crear):** diferenciar visualmente ese caso ("sin contrato, trabajo en curso") del caso normal ("con contrato, falta facturar") — por ahora comparten el mismo badge.
-- **Rama actual:** `main`
-- **Hito previo:** `b4d1fa1` (2026-07-03) — EMP-027 / CLA-202: ordenamiento por columna en Hours per Project (toggle asc/desc en memoria) + fix nombre real del proyecto (`descr` vs `name`=cliente, ver [[project_address_mapping]] en memoria) + fix hover de headers (clase Tailwind no compilada en el bundle local, reemplazada por una ya compilada).
+- **Rama actual:** `main` — **52+ commits locales sin push a `origin/main`** (nunca se hizo push en este sprint). Antes de crear una rama nueva para trabajar en paralelo, decidir con el auditor si se hace `git push origin main` primero (recomendado, para no perder respaldo remoto) o se sigue trabajando solo local.
+- **Último hito código:** `c770e0c` (2026-07-03) — EMP-029 / CLA-204: badge distinto ("No contract yet — work in progress", bold/uppercase/borde) para proyectos con horas trabajadas pero sin contrato formal (solo facturables vía estimate), separado del badge normal de vacío de facturación (EMP-028). Verificado con tinker (4 proyectos `no_contract`, 41 `overdue`) — **sin confirmación visual explícita en navegador**, el auditor pasó a cerrar la rama antes de revisarlo en pantalla.
+- **Sprint Hours per Project (EMP-025→029) — resumen:** arrancó de un bug reportado por el auditor (`/projects-worked-hours-page` vacío) y escaló a una serie de mejoras relacionadas:
+  - EMP-025 (`dccff22`): fix raíz — `getProjectsWithInvoiceInfo()` usaba SQL Server en vivo en vez del mirror MySQL.
+  - EMP-026 (`698686e`): sincronizar `date_start`/`date_end` al mirror (columna "Start date" quedaba vacía).
+  - EMP-027 (`b4d1fa1`): ordenamiento por columna + fix nombre real del proyecto (`descr` vs `name`=cliente) + fix hover de headers.
+  - EMP-028 (`cc1e0be`): badge de vacío de facturación reusando la lógica de `MonthlyBillingGuardianService` (Billing Control) — mismo umbral configurable y misma exclusión de proyectos no facturables.
+  - EMP-029 (`c770e0c`): diferenciar el caso "sin contrato, trabajo en curso" (mayor riesgo) del vacío normal.
 - **Hito previo:** `698686e` (2026-07-03) — EMP-026 / CLA-201: `intelligence_mirror_projects` ahora sincroniza `date_start`/`date_end` (migración + `MirrorProject` fillable/casts + `SyncMirrorDataService::syncProjects()`). Backfill corrido en dev invocando `syncProjects()` puntualmente (el `syncAll()` completo es pesado, no se esperó esta sesión) — conviene correr `intelligence:sync-mirror` completo en producción en el próximo ciclo normal de sync.
 - **Hito previo:** `dccff22` (2026-07-03) — EMP-025 / CLA-200: `ProjectRepository::getProjectsWithInvoiceInfo()` migrado de `Cafca\Project` (SQL Server en vivo) a `MirrorProject`+`MirrorInvoice` (MySQL). `/projects-worked-hours-page` mostraba siempre "No active projects" porque la excepción de conexión SQL Server se tragaba en un try/catch. Mismo patrón de bug que `08b7453`, que había corregido `find()`/`getProjectsByIds()` pero dejó este método afuera.
 - **Hito previo:** `93de5d5` (2026-07-02) — EMP-024 / CLA-199: tendencia de 12 meses en el tab Hours de EmployeeResource.
