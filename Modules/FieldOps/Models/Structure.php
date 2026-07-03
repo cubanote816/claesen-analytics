@@ -30,16 +30,20 @@ class Structure extends Model
         'lat',
         'lng',
         'info',
-        'external_safety_id',
-        'external_access_id',
+        'access_type_id',
+        'access_active',
+        'safety_type_id',
+        'safety_certified',
         'cafca_material_id',
         'ai_translation_status',
     ];
 
     protected $casts = [
-        'lat'    => 'float',
-        'lng'    => 'float',
-        'height' => 'integer',
+        'lat'              => 'float',
+        'lng'              => 'float',
+        'height'           => 'integer',
+        'access_active'    => 'boolean',
+        'safety_certified' => 'boolean',
     ];
 
     protected static function newFactory(): StructureFactory
@@ -55,6 +59,16 @@ class Structure extends Model
     public function structureType()
     {
         return $this->belongsTo(StructureType::class);
+    }
+
+    public function accessType()
+    {
+        return $this->belongsTo(AccessType::class);
+    }
+
+    public function safetyType()
+    {
+        return $this->belongsTo(SafetyType::class);
     }
 
     public function terrains()

@@ -18,8 +18,16 @@ class StructureResource extends JsonResource
             'lat'                => $this->lat,
             'lng'                => $this->lng,
             'info'               => $this->getTranslations('info'),
-            'external_safety_id' => $this->external_safety_id,
-            'external_access_id' => $this->external_access_id,
+            'access_type'        => $this->whenLoaded('accessType', fn () => $this->accessType ? [
+                'id'   => $this->accessType->id,
+                'name' => $this->accessType->getTranslations('name'),
+            ] : null),
+            'access_active'      => (bool) $this->access_active,
+            'safety_type'        => $this->whenLoaded('safetyType', fn () => $this->safetyType ? [
+                'id'   => $this->safetyType->id,
+                'name' => $this->safetyType->getTranslations('name'),
+            ] : null),
+            'safety_certified'   => (bool) $this->safety_certified,
             'cafca_material_id'  => $this->cafca_material_id,
             'terrains'           => $this->whenLoaded('terrains', fn () =>
                 $this->terrains->map(fn ($t) => [

@@ -20,8 +20,10 @@ class StructureFactory extends Factory
             'lat'                => $this->faker->latitude(49, 52),
             'lng'                => $this->faker->longitude(2, 6),
             'info'               => null,
-            'external_safety_id' => null,
-            'external_access_id' => null,
+            'access_type_id'     => null,
+            'access_active'      => false,
+            'safety_type_id'     => null,
+            'safety_certified'   => false,
             'cafca_material_id'  => null,
         ];
     }

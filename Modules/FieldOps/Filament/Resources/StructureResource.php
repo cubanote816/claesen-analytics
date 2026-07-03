@@ -12,6 +12,7 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -25,6 +26,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\EditStructure;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\ListStructures;
+use Modules\FieldOps\Models\AccessType;
+use Modules\FieldOps\Models\SafetyType;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\StructureType;
 
@@ -85,12 +88,28 @@ class StructureResource extends Resource
                     ->label(__('fieldops::resource.structures.fields.lng'))
                     ->numeric()
                     ->nullable(),
-                TextInput::make('external_safety_id')
-                    ->label(__('fieldops::resource.structures.fields.external_safety_id'))
+                Select::make('access_type_id')
+                    ->label(__('fieldops::resource.structures.fields.access_type'))
+                    ->options(AccessType::all()->mapWithKeys(fn ($t) => [
+                        $t->id => $t->getTranslation('name', app()->getLocale(), false)
+                            ?: $t->getTranslation('name', 'nl', false),
+                    ]))
+                    ->searchable()
                     ->nullable(),
-                TextInput::make('external_access_id')
-                    ->label(__('fieldops::resource.structures.fields.external_access_id'))
+                Toggle::make('access_active')
+                    ->label(__('fieldops::resource.structures.fields.access_active'))
+                    ->default(false),
+                Select::make('safety_type_id')
+                    ->label(__('fieldops::resource.structures.fields.safety_type'))
+                    ->options(SafetyType::all()->mapWithKeys(fn ($t) => [
+                        $t->id => $t->getTranslation('name', app()->getLocale(), false)
+                            ?: $t->getTranslation('name', 'nl', false),
+                    ]))
+                    ->searchable()
                     ->nullable(),
+                Toggle::make('safety_certified')
+                    ->label(__('fieldops::resource.structures.fields.safety_certified'))
+                    ->default(false),
                 TextInput::make('cafca_material_id')
                     ->label(__('fieldops::resource.structures.fields.cafca_material_id'))
                     ->nullable(),
@@ -160,7 +179,7 @@ class StructureResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['structureType', 'terrains'])
+            ->with(['structureType', 'accessType', 'safetyType', 'terrains'])
             ->withoutGlobalScope(SoftDeletingScope::class);
     }
 

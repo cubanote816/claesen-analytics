@@ -25,8 +25,10 @@ class UpdateStructureRequest extends FormRequest
             'info.en'            => ['sometimes', 'nullable', 'string', 'max:1000'],
             'info.fr'            => ['sometimes', 'nullable', 'string', 'max:1000'],
             'info.de'            => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'external_safety_id' => ['sometimes', 'nullable', 'integer'],
-            'external_access_id' => ['sometimes', 'nullable', 'integer'],
+            'access_type_id'     => ['sometimes', 'nullable', 'integer', 'exists:fo_access_types,id'],
+            'access_active'      => ['sometimes', 'nullable', 'boolean'],
+            'safety_type_id'     => ['sometimes', 'nullable', 'integer', 'exists:fo_safety_types,id'],
+            'safety_certified'   => ['sometimes', 'nullable', 'boolean'],
             'cafca_material_id'  => ['sometimes', 'nullable', 'integer'],
             // absent → no touch | null → detach all | array → sync
             'terrain_ids'        => ['sometimes', 'nullable', 'array'],

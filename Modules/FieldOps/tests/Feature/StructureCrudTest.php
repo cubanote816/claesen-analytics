@@ -6,7 +6,9 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\FieldOps\Models\AccessType;
 use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\SafetyType;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\StructureType;
 use Modules\FieldOps\Models\Terrain;
@@ -40,6 +42,16 @@ class StructureCrudTest extends TestCase
     private function terrain(): Terrain
     {
         return Terrain::factory()->create();
+    }
+
+    private function accessType(): AccessType
+    {
+        return AccessType::factory()->create();
+    }
+
+    private function safetyType(): SafetyType
+    {
+        return SafetyType::factory()->create();
     }
 
     // ── store ─────────────────────────────────────────────────────────────────
@@ -162,6 +174,69 @@ class StructureCrudTest extends TestCase
         $this->postJson('/api/v1/fieldops/structures', [
             'structure_type_id' => $this->structureType()->id,
         ])->assertStatus(401);
+    }
+
+    public function test_store_sets_access_and_safety(): void
+    {
+        [, $token] = $this->user();
+        $access = $this->accessType();
+        $safety = $this->safetyType();
+
+        $response = $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
+            'structure_type_id' => $this->structureType()->id,
+            'access_type_id'    => $access->id,
+            'access_active'     => true,
+            'safety_type_id'    => $safety->id,
+            'safety_certified'  => true,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.access_type.id', $access->id)
+            ->assertJsonPath('data.access_active', true)
+            ->assertJsonPath('data.safety_type.id', $safety->id)
+            ->assertJsonPath('data.safety_certified', true);
+
+        $this->assertDatabaseHas('fo_structures', [
+            'access_type_id'   => $access->id,
+            'access_active'    => true,
+            'safety_type_id'   => $safety->id,
+            'safety_certified' => true,
+        ]);
+    }
+
+    public function test_store_rejects_nonexistent_access_type_id(): void
+    {
+        [, $token] = $this->user();
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
+            'structure_type_id' => $this->structureType()->id,
+            'access_type_id'    => 99999,
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('access_type_id');
+    }
+
+    public function test_store_rejects_nonexistent_safety_type_id(): void
+    {
+        [, $token] = $this->user();
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
+            'structure_type_id' => $this->structureType()->id,
+            'safety_type_id'    => 99999,
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('safety_type_id');
+    }
+
+    public function test_store_defaults_access_and_safety_to_false(): void
+    {
+        [, $token] = $this->user();
+
+        $response = $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
+            'structure_type_id' => $this->structureType()->id,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.access_active', false)
+            ->assertJsonPath('data.safety_certified', false);
     }
 
     // ── update ────────────────────────────────────────────────────────────────
@@ -320,6 +395,36 @@ class StructureCrudTest extends TestCase
             'terrain_ids' => [$terrain->id, $terrain->id],
         ])->assertStatus(422)
             ->assertJsonValidationErrors('terrain_ids.1');
+    }
+
+    public function test_update_changes_access_and_safety(): void
+    {
+        [, $token] = $this->user();
+        $structure = Structure::factory()->create();
+        $access    = $this->accessType();
+        $safety    = $this->safetyType();
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$structure->id}", [
+            'access_type_id'   => $access->id,
+            'access_active'    => true,
+            'safety_type_id'   => $safety->id,
+            'safety_certified' => true,
+        ])->assertStatus(200)
+            ->assertJsonPath('data.access_type.id', $access->id)
+            ->assertJsonPath('data.access_active', true)
+            ->assertJsonPath('data.safety_type.id', $safety->id)
+            ->assertJsonPath('data.safety_certified', true);
+    }
+
+    public function test_update_rejects_nonexistent_access_type_id(): void
+    {
+        [, $token] = $this->user();
+        $structure = Structure::factory()->create();
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$structure->id}", [
+            'access_type_id' => 99999,
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('access_type_id');
     }
 
     public function test_update_returns_404_for_missing_structure(): void
