@@ -1,15 +1,17 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-03 (Employee/Intelligence: EMP-025→029 — sprint de Hours per Project cerrado)
+> Última actualización: 2026-07-03 (Core: CLA-205 — bloqueo de panel para project_manager)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** FieldOps (rama: `main`)
-- **Rama actual:** `main` — **52+ commits locales sin push a `origin/main`** (nunca se hizo push en este sprint). Antes de crear una rama nueva para trabajar en paralelo, decidir con el auditor si se hace `git push origin main` primero (recomendado, para no perder respaldo remoto) o se sigue trabajando solo local.
-- **Último hito código:** `c770e0c` (2026-07-03) — EMP-029 / CLA-204: badge distinto ("No contract yet — work in progress", bold/uppercase/borde) para proyectos con horas trabajadas pero sin contrato formal (solo facturables vía estimate), separado del badge normal de vacío de facturación (EMP-028). Verificado con tinker (4 proyectos `no_contract`, 41 `overdue`) — **sin confirmación visual explícita en navegador**, el auditor pasó a cerrar la rama antes de revisarlo en pantalla.
+- **Sprint activo:** ninguno declarado — CLA-205 fue un ticket puntual fuera de sprint (bloqueo de acceso al panel para `project_manager`).
+- **Rama actual:** `main` — **53+ commits locales sin push a `origin/main`** (nunca se hizo push en este sprint). Antes de crear una rama nueva para trabajar en paralelo, decidir con el auditor si se hace `git push origin main` primero (recomendado, para no perder respaldo remoto) o se sigue trabajando solo local.
+- **Último hito código:** `24b326e` (2026-07-03) — CLA-205: `project_manager` ya no tiene acceso al panel Filament (backoffice). `User::hasPanelAccess()` es la fuente única de verdad; `EnsurePanelAccess` (nuevo middleware, registrado tras `EnsurePasswordIsSet` en `AdminPanelProvider`) redirige a `/auth/no-access` — página de bienvenida propia en vez del 403 nativo de Filament — cuando el rol no tiene acceso. Se quitaron las 2 excepciones que aún permitían `project_manager` en `MonthlyBillingControlPage` y `ProjectIntelligenceDetail` (bloqueo total, sin excepciones). Se creó usuario de prueba `pm-test@claesen-analytics.com` (rol `project_manager`) para validación manual — **queda en la base de dev, no borrar sin avisar**.
+- **Bug encontrado y corregido en el mismo ticket:** la ruta de logout de Filament (`filament.admin.auth.logout`) vive dentro de las rutas del panel, así que `EnsurePanelAccess` la bloqueaba también, dejando al usuario sin forma de cerrar sesión desde la página de bienvenida. Fix: el middleware deja pasar cualquier ruta con nombre `filament.*.auth.logout` antes de evaluar `hasPanelAccess()`. Cubierto por test de regresión.
+- **Hito previo (sprint FieldOps / Hours per Project):** `c770e0c` (2026-07-03) — EMP-029 / CLA-204: badge distinto ("No contract yet — work in progress", bold/uppercase/borde) para proyectos con horas trabajadas pero sin contrato formal (solo facturables vía estimate), separado del badge normal de vacío de facturación (EMP-028). Verificado con tinker (4 proyectos `no_contract`, 41 `overdue`) — **sin confirmación visual explícita en navegador**, el auditor pasó a cerrar la rama antes de revisarlo en pantalla.
 - **Sprint Hours per Project (EMP-025→029) — resumen:** arrancó de un bug reportado por el auditor (`/projects-worked-hours-page` vacío) y escaló a una serie de mejoras relacionadas:
   - EMP-025 (`dccff22`): fix raíz — `getProjectsWithInvoiceInfo()` usaba SQL Server en vivo en vez del mirror MySQL.
   - EMP-026 (`698686e`): sincronizar `date_start`/`date_end` al mirror (columna "Start date" quedaba vacía).
@@ -39,6 +41,24 @@
 **Referencia — app previa `claesen_hours`:** `/home/totti/claesen_hours` (React + TypeScript + Vite, accesible en este mismo entorno WSL) es la app que el auditor viene integrando/migrando a este backoffice Filament. Antes de asumir para qué servía un endpoint del módulo Employee sin consumidor Filament conocido, conviene revisar ahí primero (`src/services/`, `src/private/features/employees/`) en vez de adivinar — así se encontró el objetivo real de `getEmployeeTimeStats()` para EMP-023/024.
 
 **Nota de entorno local — recompilar assets tras clases Tailwind nuevas:** `public/build/` (gitignored) es un artefacto de Vite/Tailwind que no se regenera solo. Si agregás una clase de Tailwind que nadie usaba antes (ej. `grid-cols-3` en EMP-021, 2026-07-02) y el bundle local quedó compilado antes de ese cambio, la clase simplemente no existe en el CSS servido — se ve como cards apiladas en vez de en fila, sin ningún error en consola. Correr `npm run build` (o `npm run dev` en watch) después de cambios de layout resuelve esto. **No es un riesgo de producción**: `infrastructure/scripts/deploy.sh` ya corre `npm ci && npm run build` en cada deploy (paso 5/10) — el problema es exclusivamente de sesiones de desarrollo local donde el bundle no se refrescó.
+
+### Sesión 2026-07-03 — Core: CLA-205 — bloqueo de panel Filament para project_manager + página de bienvenida ✅ Done
+
+**Commit:** `24b326e`
+
+**Contexto:** pedido directo del auditor — `project_manager` no debe poder usar el backoffice Filament (usan las PWA de Safety/FieldOps). El código tenía una inconsistencia: `canAccessPanel()` solo miraba `is_active` (ningún rol bloqueaba el panel), pero además 2 páginas (`MonthlyBillingControlPage`, `ProjectIntelligenceDetail`) daban acceso explícito a `project_manager` vía `canAccess()`. Se acordó con el auditor bloqueo total (sin excepciones) y que el login siga funcionando pero termine en una página de bienvenida propia, no en el 403 nativo de Filament.
+
+**Diseño:** mismo patrón que `EnsurePasswordIsSet` (ya existente para el flujo de activación) — `canAccessPanel()` no cambia (login sigue funcionando para cualquier `is_active`), y el gate real ocurre en un middleware nuevo dentro del stack del panel:
+- `User::hasPanelAccess()` — fuente única de verdad (`false` si `hasRole('project_manager')`).
+- `EnsurePanelAccess` middleware — si el usuario no tiene `hasPanelAccess()`, redirige a `auth.no-access` (ruta web fuera del panel, mismo patrón que `/auth/setup-password`). Registrado en `AdminPanelProvider` justo después de `EnsurePasswordIsSet`.
+- `NoPanelAccessController` + vista `core::auth.no-access` — página de bienvenida (NL): "cuenta registrada pero sin acceso", con botón de logout. Si el usuario sí tiene acceso, redirige al panel en vez de mostrar la página.
+- Quitado `project_manager` de `hasAnyRole([...])` en `MonthlyBillingControlPage` y `ProjectIntelligenceDetail`.
+
+**Bug encontrado en pruebas del auditor y corregido en el mismo ticket:** el botón "Afmelden" (logout) no devolvía al login. Causa: la ruta de logout de Filament (`filament.admin.auth.logout`) está registrada dentro de las rutas del panel, así que pasaba por el mismo `EnsurePanelAccess` y quedaba atrapada en el redirect a `/auth/no-access` antes de llegar al `LogoutController` — el usuario nunca cerraba sesión. Fix: el middleware deja pasar cualquier ruta con nombre `filament.*.auth.logout` antes de evaluar `hasPanelAccess()`.
+
+**Tests:** `Modules/Core/tests/Feature/PanelAccessTest.php` (6 tests nuevos, incluye regresión del logout) + suite completa de Core en verde (31 tests). Probado manualmente en navegador por el auditor con usuario de prueba `pm-test@claesen-analytics.com` (rol `project_manager`, password `Password123!`) — queda en la base de dev.
+
+**Ticket Linear:** CLA-205, creado y cerrado en la misma sesión (no pertenecía a ningún sprint declarado).
 
 ### Sesión 2026-07-02 — Employee module: EMP-014→024 — filas navegables, breadcrumb jerárquico, fix Daily breakdown, quitar € individual (UI + API), gráficos migrados de claesen_hours ✅ Done
 

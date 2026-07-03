@@ -76,6 +76,8 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 
 4. **Idioma:** código/variables/comentarios en inglés. UI/labels/notificaciones en holandés (NL) para navegadores NL, inglés para el resto.
 
+5. **`project_manager` no tiene acceso al panel Filament** (CLA-205, 2026-07-03). `User::hasPanelAccess()` es la fuente única de verdad; `canAccessPanel()` sigue permitiendo el login (solo mira `is_active`) y el gate real lo aplica el middleware `EnsurePanelAccess`, que redirige a `/auth/no-access` (página de bienvenida propia) en vez de usar el 403 nativo de Filament. No volver a agregar `project_manager` a ningún `canAccess()` de recurso/página del panel — usan las PWA de Safety/FieldOps, no este backoffice.
+
 ---
 
 ## Módulos
