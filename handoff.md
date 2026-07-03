@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-02 (Employee module: EMP-014→024 — filas navegables, breadcrumb jerárquico completo, fix Daily breakdown vacío, quitar € por empleado individual en UI y API, gráficos Laden/Werf/Transport migrados de claesen_hours, tendencia 12 meses)
+> Última actualización: 2026-07-03 (Employee module: EMP-025 — fix Hours per Project vacío, getProjectsWithInvoiceInfo migrado a mirror MySQL)
 
 ---
 
@@ -9,7 +9,8 @@
 
 - **Sprint activo:** FieldOps (rama: `main`)
 - **Rama actual:** `main`
-- **Último hito código:** `93de5d5` (2026-07-02) — EMP-024 / CLA-199: tendencia de 12 meses en el tab Hours de EmployeeResource.
+- **Último hito código:** `dccff22` (2026-07-03) — EMP-025 / CLA-200: `ProjectRepository::getProjectsWithInvoiceInfo()` migrado de `Cafca\Project` (SQL Server en vivo) a `MirrorProject`+`MirrorInvoice` (MySQL). `/projects-worked-hours-page` mostraba siempre "No active projects" porque la excepción de conexión SQL Server se tragaba en un try/catch. Mismo patrón de bug que `08b7453`, que había corregido `find()`/`getProjectsByIds()` pero dejó este método afuera. **Pendiente conocido (decisión del auditor: dejarlo así por ahora):** `intelligence_mirror_projects` no sincroniza `date_start`/`date_end` — columna "Start date" de esa página queda en `—`; si se necesita, requiere ticket aparte para sumarlos a `SyncMirrorDataService` + migración.
+- **Hito previo:** `93de5d5` (2026-07-02) — EMP-024 / CLA-199: tendencia de 12 meses en el tab Hours de EmployeeResource.
 - **Hito previo:** `4ded7c2` (2026-07-02) — EMP-023 / CLA-198: gráficos Laden/Werf/Transport (donut Day, stacked bar Week/Month) migrados desde claesen_hours.
 - **Hito previo:** `2384783` (2026-07-02) — EMP-022 / CLA-197: API — quitar Cost/Revenue/Margin a nivel de empleado individual (2 endpoints live + 4 Resources huérfanos limpiados).
 - **Hito previo:** `c1ec7b5` (2026-07-02) — EMP-021 / CLA-196: Day/Week Overview — quitar Cost/Revenue/Margin a nivel de empleado individual (decisión de producto, estándar de industria).
