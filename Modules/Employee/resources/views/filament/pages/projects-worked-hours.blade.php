@@ -79,16 +79,21 @@
                     <tbody>
                         @foreach($projects as $project)
                             @php
-                                $totalPending = $project['total_pending'] ?? 0;
-                                $hasInvoices  = $project['has_invoices_in_period'] ?? false;
-                                $billingGap   = $project['billing_gap'] ?? false;
-                                $gapDays      = $project['days_since_last_invoice'] ?? null;
+                                $totalPending   = $project['total_pending'] ?? 0;
+                                $hasInvoices    = $project['has_invoices_in_period'] ?? false;
+                                $billingGap     = $project['billing_gap'] ?? false;
+                                $gapReason      = $project['billing_gap_reason'] ?? null;
+                                $gapDays        = $project['days_since_last_invoice'] ?? null;
                             @endphp
                             <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                 <td class="py-2.5 pr-4">
                                     <div class="font-medium text-gray-900 dark:text-gray-100">{{ $project['descr'] ?? $project['name'] ?? '—' }}</div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">{{ $project['name'] ?? '' }} · {{ $project['id'] ?? '' }}</div>
-                                    @if($billingGap)
+                                    @if($gapReason === 'no_contract')
+                                        <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-danger-500/10 text-danger-600 border border-danger-500/20 mt-1">
+                                            {{ $isNl ? 'Nog geen contract — werk in uitvoering' : 'No contract yet — work in progress' }}
+                                        </span>
+                                    @elseif($billingGap)
                                         <span class="inline-flex items-center rounded-full bg-danger-100 px-2 py-0.5 text-xs font-medium text-danger-700 dark:bg-danger-900/30 dark:text-danger-400 mt-1">
                                             {{ $gapDays === null
                                                 ? ($isNl ? 'Nooit gefactureerd' : 'Never invoiced')

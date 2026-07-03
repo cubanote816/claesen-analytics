@@ -75,6 +75,15 @@ class ProjectRepository
                 $billingGap      = $isBillable
                     && ($lastInvoiceDate === null || Carbon::parse($lastInvoiceDate)->lt($gapCutoff));
 
+                // EMP-029: projects worked without a formal contract yet (billable
+                // only via a linked estimate) are a more urgent risk than a normal
+                // invoicing gap — unrecoverable cost if the scope is never confirmed.
+                $billingGapReason = match (true) {
+                    !$billingGap  => null,
+                    !$hasContract => 'no_contract',
+                    default       => 'overdue',
+                };
+
                 $project->has_invoices_in_period  = $hasInvoices;
                 $project->total_invoiced          = $totalInvoiced;
                 $project->total_paid              = $totalPaid;
@@ -82,6 +91,7 @@ class ProjectRepository
                 $project->date_start_formatted    = $project->date_start ? Carbon::parse($project->date_start)->format('Y-m-d') : null;
                 $project->date_end_formatted      = $project->date_end   ? Carbon::parse($project->date_end)->format('Y-m-d')   : null;
                 $project->billing_gap             = $billingGap;
+                $project->billing_gap_reason      = $billingGapReason;
                 $project->last_invoice_date        = $lastInvoiceDate ? Carbon::parse($lastInvoiceDate)->format('Y-m-d') : null;
                 $project->days_since_last_invoice = $lastInvoiceDate ? (int) Carbon::parse($lastInvoiceDate)->diffInDays(Carbon::now('Europe/Brussels')) : null;
                 $project->billing_gap_threshold_days = $daysWithoutInvoice;
