@@ -148,6 +148,7 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
                 \Modules\Core\Http\Middleware\BrowserLocaleMiddleware::class,
                 \Modules\Core\Http\Middleware\EnsurePasswordIsSet::class,
+                \Modules\Core\Http\Middleware\EnsurePanelAccess::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

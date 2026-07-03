@@ -66,6 +66,13 @@ class User extends Authenticatable implements FilamentUser
         return $this->password !== null && $this->password_set_at !== null;
     }
 
+    // Single source of truth for "can use the Filament backoffice".
+    // project_manager users work through the Safety/FieldOps PWAs, not this panel.
+    public function hasPanelAccess(): bool
+    {
+        return ! $this->hasRole('project_manager');
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return (bool) $this->is_active;

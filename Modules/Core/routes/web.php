@@ -29,3 +29,11 @@ Route::middleware(['web', 'auth'])->group(function () {
         [\Modules\Core\Http\Controllers\Auth\SetupPasswordController::class, 'store'])
         ->name('auth.setup-password.store');
 });
+
+// Welcome page for authenticated users without panel access (e.g. project_manager).
+// Intentionally outside the Filament panel so EnsurePanelAccess does not block it.
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/auth/no-access',
+        [\Modules\Core\Http\Controllers\Auth\NoPanelAccessController::class, 'show'])
+        ->name('auth.no-access');
+});

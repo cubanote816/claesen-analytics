@@ -47,7 +47,7 @@ class MonthlyBillingControlPage extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['super_admin', 'admin', 'project_manager']) ?? false;
+        return auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
     }
 
     public static function getNavigationGroup(): ?string
