@@ -35,6 +35,7 @@ class AdminPanelProvider extends PanelProvider
                 static fn(): string =>
                 view('prospects::filament.prospects.floating-mailing-button')->render() .
                     view('core::filament.sidebar-scroll-restore')->render() .
+                    view('core::filament.session-expired-modal')->render() .
                     \Illuminate\Support\Facades\Blade::render("@livewire('session-keeper', ['lifetime' => 7200, 'warningThreshold' => 300])"),
             );
 
