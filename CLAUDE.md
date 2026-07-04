@@ -272,6 +272,7 @@ Modules/Safety/
 - `Access`/`Safety` de estructura están denormalizados como columnas planas en `fo_structures` (`access_type_id`, `access_active`, `safety_type_id`, `safety_certified`) en vez de tablas de instancia separadas — mismo precedente que `LuminaireGroup` (relación 1:1 por estructura, nunca reutilizada). Catálogos `AccessType`/`SafetyType` sí son tablas propias (`super_admin` only).
 - `ElectricalBoard` (`fo_electrical_boards`) SÍ usa 3 tablas pivot reales (`fo_complex_electrical_board`, `fo_electrical_board_terrain`, `fo_electrical_board_structure`, todas con FK `cascadeOnDelete`) porque un cuadro eléctrico puede compartirse entre múltiples complejos/terrenos/estructuras — no es 1:1 como Access/Safety, así que aquí sí aplica tabla de instancia (pivot) en vez de denormalizar.
 - Adjuntos (fotos/PDFs) de `Complex`/`Terrain`/`Structure`/`ElectricalBoard` usan `spatie/laravel-medialibrary` con **disco privado `local`** (mismo `storage_path('app/private')` que `Modules/Safety`, no el disco `public` por defecto de la librería). Colecciones `photos`/`documents` vía trait compartido `HasFieldOpsMedia` — al añadir el trait a un modelo nuevo, resolver el conflicto de métodos con `InteractsWithMedia` usando `insteadof` (ver cualquiera de los 4 modelos existentes como ejemplo). Servir/subir siempre vía `FieldOpsMediaController` (genérico, no crear controllers de media por entidad).
+- **El dominio de Mantenimiento de luminarias (`TypeMaintenance`/`MaintenanceServicesHistory`/`ScheduledMaintenanceService`) SÍ está en uso real en producción** (confirmado directamente por el usuario, 2026-07-04) — no es código muerto del sistema anterior. Ver `FO-009` en el backlog: implementación pendiente de planificar, bloquea `FO-006` (cutover).
 
 ### Gaps abiertos (tickets Linear, equipo Claesen)
 
@@ -281,10 +282,11 @@ Modules/Safety/
 | FO-004 / CLA-207 | Slice E — Access/Safety de fijación de estructura | ✅ Done (`4f6d1c5`) |
 | FO-003 / CLA-209 | Slice D — Electrical Board (dominio completo) | ✅ Done (`603baf7`) |
 | FO-005 / CLA-210 | Slice F — Adjuntos de archivos/planos (Media Library) | ✅ Done (`f80e0cb`) |
-| FO-007 | Spike — evaluar alcance del dominio de Mantenimiento | ⬜ Todo |
-| FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (bloqueado por confirmación de negocio, ver FO-007) |
+| FO-007 / CLA-212 | Spike — evaluar alcance del dominio de Mantenimiento | ✅ Done — **está vivo en producción**, no se cierra como N/A |
+| FO-009 / CLA-213 | Slice G — Dominio de Mantenimiento de luminarias (implementación real) | ⬜ Backlog, sin planificar aún |
+| FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (bloqueado por FO-009) |
 
-**Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-006. Siguiente: **FO-007** (spike, sin código — solo investigación/decisión).
+**Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → **FO-009** → FO-006. FO-009 necesita su propia sesión de planificación (plan + aprobación) antes de implementar — no arrancar código sin ese paso.
 
 ### Cómo reanudar
 
