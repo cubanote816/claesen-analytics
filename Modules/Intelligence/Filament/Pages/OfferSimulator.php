@@ -22,6 +22,15 @@ class OfferSimulator extends Page implements HasForms
     protected static ?string $slug = 'offer-simulator';
     protected static ?int $navigationSort = 1;
 
+    public static function canAccess(): bool
+    {
+        if (app()->environment('production')) {
+            return false;
+        }
+
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
     public static function getNavigationBadge(): ?string
     {
         return 'DEMO';
