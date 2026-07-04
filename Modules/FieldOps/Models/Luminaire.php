@@ -78,4 +78,9 @@ class Luminaire extends Model
     {
         return $this->belongsTo(LuminaireSubgroup::class, 'luminaire_subgroup_id');
     }
+
+    public function maintenanceRecords()
+    {
+        return $this->morphMany(FoMaintenanceRecord::class, 'maintainable');
+    }
 }

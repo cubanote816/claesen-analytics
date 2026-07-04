@@ -1,14 +1,26 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-04 (push a origin/main: FO-008/004/003/005/007 + label Demo — `3c66c5f`)
+> Última actualización: 2026-07-04 (FO-009 / CLA-213 — dominio de Mantenimiento implementado, commit pendiente)
 
 ---
 
 ## Estado actual
 
-- **Sprint activo:** ninguno declarado.
-- **Rama actual:** `main`, **pusheado a `origin/main`** (`f38c6f6..3c66c5f`, 10 commits: FO-008, FO-004, FO-003, FO-005, FO-007 + docs + label "(Demo)"). El deploy en producción corre migraciones y `config:cache` automáticamente (confirmado por el usuario) — no se requiere acción manual post-push.
+- **Sprint activo:** FieldOps (FO-009 en cierre).
+- **Rama actual:** `main`. FO-009 aún sin commit (pendiente de GO técnico) — todo lo anterior (FO-008/004/003/005/007) ya está pusheado a `origin/main` (`f38c6f6..3c66c5f`). El deploy en producción corre migraciones y `config:cache` automáticamente (confirmado por el usuario) — no se requiere acción manual post-push.
+- **FO-009 / CLA-213 (implementado, pendiente de GO — 2026-07-04):** Slice G, dominio de Mantenimiento de luminarias. Hallazgo clave de esta sesión: el spike FO-007 había auditado la rama `master` del satélite viejo, pero la producción real corre sobre `origin/deploy`, que tiene un dominio mucho más rico (relación polimórfica Luminaire/ElectricalBoard, incidencias/emergencias, subdominio completo de "reportado por cliente"). Implementado:
+  - **Migraciones:** `create_fo_maintenance_types_table`, `create_fo_maintenance_records_table`.
+  - **Modelos:** `FoMaintenanceType` (catálogo traducible, `code` string en vez de IDs hardcodeados) y `FoMaintenanceRecord` (polimórfico `maintainable_type`/`maintainable_id` vía `morphs()`, apunta a `Luminaire` o `ElectricalBoard`).
+  - **`employee_id`** string, referencia blanda a `employees.id` (mismo patrón que `Safety\Inspection::incident_worker_id`), sin FK de BD.
+  - **Cliente-reportado:** columnas reales (`client_id` FK a `fo_clients`, `priority`, `contact_person`, `contact_phone`, `location_details`, `reported_by_client`) en vez de JSON enterrado como en el sistema viejo.
+  - **Un solo controller polimórfico** (`MaintenanceRecordController`) en vez de los dos duplicados del sistema viejo — mismo principio que `FieldOpsMediaController` (FO-005).
+  - **API:** rutas anidadas por equipo (`/luminaires/{id}/maintenance-records`, `/electrical-boards/{id}/maintenance-records`) + `/maintenance-records/{id}` CRUD + stats correctivo + subdominio cliente-reportado completo (store/pending/statistics/resolve) + catálogo `/maintenance-types`.
+  - **Filament:** catálogo `FoMaintenanceTypeResource` (super_admin only) + `FoMaintenanceRecordResource` (super_admin/admin, select dependiente tipo→equipo).
+  - **Excluido a propósito:** `ScheduledMaintenanceService` y `Task` del sistema viejo — CRUD genérico sin evolución real en 12+ meses de historial, sin relación de FK entre sí, a diferencia de `MaintenanceServicesHistory` (6+ commits de desarrollo sustancial). Decisión tomada con el usuario antes de implementar.
+  - **Bug real encontrado por el propio smoke test de esta sesión:** el closure `afterStateUpdated`/`options` del Select dependiente en Filament V5 requiere el type-hint `Filament\Schemas\Components\Utilities\Get`, no `Filament\Forms\Get` (namespace de V3/V4) — sin el fix, la página `/fo-maintenance-records/create` tiraba 500. Detectado porque se agregó un test de renderizado real de las páginas Filament (no solo API), no solo verificación de schema en tinker.
+  - **Tests:** 21 tests API nuevos (`MaintenanceRecordCrudTest`, `ClientReportedMaintenanceTest`) + 1 test de renderizado Filament (`FoMaintenanceFilamentTest`, 5 asserts, cubre index/create/edit de ambos resources). FieldOps completo: 187/187 ✅. Suite completa: 45 fallos preexistentes (mismo número ya documentado — Mailing/Website/Safety, sin relación con este ticket), 0 regresiones nuevas.
+  - **FO-006 (cutover) ya no bloqueado** por la parte de Mantenimiento cubierta aquí — si el cutover necesita mantenimiento *programado* a futuro (`ScheduledMaintenanceService`), es un ticket nuevo a abrir antes de cerrar C.6b.
 - **Auditoria FieldOps vs `api-claesen-sport-app` (2026-07-03):** el usuario pidió comparar `Modules/FieldOps` contra el API satelite anterior (`/home/totti/api-claesen-sport-app`) antes de un push a producción, para confirmar que no falta nada y no se duplica código. Hallazgo clave: `fo_admin` ya estaba mezclado en `main` y en `origin/main` (no era evitable, ya estaba pusheado) — se acordó con el usuario dejarlo, pero marcar el menú "Field Operations" como **"(Demo)"** en `lang/en,nl/navigation.php` (clave `navigation.groups.field_operations`) hasta que los gaps se cierren y se confirme el cutover. Gaps reales encontrados (ElectricalBoard, Access/Safety de estructura, adjuntos de archivos/Media, cutover de Sport, dominio de mantenimiento) — **no** son gaps: `LuminaireGroup` colapsado a `group_name` string y `ComplexZoomLevel` colapsado a `zoom` único en `Complex`, ambos son decisiones de diseño explícitas ya documentadas en `project_fieldops_sprint` memory / Slice C.
   - **Tickets Linear** (equipo Claesen): `CLA-206`/FO-008 (✅ Done), `CLA-207`/FO-004 (✅ Done), `CLA-209`/FO-003 (✅ Done), `CLA-210`/FO-005 (✅ Done), `CLA-212`/FO-007 (✅ Done, spike, ver abajo), `CLA-213`/FO-009 (Slice G Mantenimiento, ⬜ Backlog, sin planificar), `FO-006` (Slice C.6b cutover, ⬜ Todo, bloqueado por FO-009).
   - **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → **FO-009** → FO-006. FO-009 necesita su propia sesión de planificación antes de implementar.

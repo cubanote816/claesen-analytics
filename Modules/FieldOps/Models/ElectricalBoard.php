@@ -72,4 +72,9 @@ class ElectricalBoard extends Model implements HasMedia
     {
         return $this->belongsToMany(Structure::class, 'fo_electrical_board_structure');
     }
+
+    public function maintenanceRecords()
+    {
+        return $this->morphMany(FoMaintenanceRecord::class, 'maintainable');
+    }
 }
