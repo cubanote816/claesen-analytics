@@ -75,4 +75,16 @@ class OfferSimulatorAccessTest extends TestCase
 
         $this->assertTrue(OfferSimulator::canAccess());
     }
+
+    /**
+     * CLA-224 — hidden from the sidebar in every environment; still
+     * directly reachable by URL under the CLA-223 canAccess() gate.
+     */
+    public function test_navigation_item_is_never_registered(): void
+    {
+        $this->assertFalse(OfferSimulator::shouldRegisterNavigation());
+
+        app()->instance('env', 'staging');
+        $this->assertFalse(OfferSimulator::shouldRegisterNavigation());
+    }
 }

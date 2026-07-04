@@ -31,6 +31,11 @@ class OfferSimulator extends Page implements HasForms
         return auth()->user()?->hasRole('super_admin') ?? false;
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function getNavigationBadge(): ?string
     {
         return 'DEMO';
