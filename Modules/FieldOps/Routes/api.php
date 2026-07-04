@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\FieldOps\Http\Controllers\CatalogController;
 use Modules\FieldOps\Http\Controllers\ComplexController;
 use Modules\FieldOps\Http\Controllers\ElectricalBoardController;
+use Modules\FieldOps\Http\Controllers\FoClientController;
 use Modules\FieldOps\Http\Controllers\FieldOpsMediaController;
 use Modules\FieldOps\Http\Controllers\LuminaireController;
 use Modules\FieldOps\Http\Controllers\LuminaireFrameController;
@@ -13,6 +14,14 @@ use Modules\FieldOps\Http\Controllers\TerrainController;
 
 Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHeader::class])
     ->prefix('v1/fieldops')->group(function () {
+    // Clients
+    Route::get('/clients', [FoClientController::class, 'index']);
+    Route::post('/clients', [FoClientController::class, 'store']);
+    Route::get('/clients/{foClient}', [FoClientController::class, 'show']);
+    Route::put('/clients/{foClient}', [FoClientController::class, 'update']);
+    Route::patch('/clients/{foClient}', [FoClientController::class, 'update']);
+    Route::delete('/clients/{foClient}', [FoClientController::class, 'destroy']);
+
     // Complexes
     Route::get('/complexes', [ComplexController::class, 'index']);
     Route::post('/complexes', [ComplexController::class, 'store']);
