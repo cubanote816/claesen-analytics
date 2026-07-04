@@ -296,6 +296,14 @@ Modules/Safety/
 - Subdominio "reportado por cliente" con columnas reales (`client_id` FK a `fo_clients`, `priority`, `contact_person`, `contact_phone`, `location_details`, `reported_by_client`) en vez de enterrados en el JSON `details` como hacía el sistema viejo (que por eso agrupaba estadísticas en PHP, no en SQL).
 - `ScheduledMaintenanceService`/`Task` del sistema viejo quedaron fuera: CRUD genérico sin evolución real en 12+ meses de historial (a diferencia de `MaintenanceServicesHistory`, que sí tuvo 6+ commits de desarrollo sustancial) — si se confirma uso real más adelante, es un ticket nuevo.
 
+**Backfill pendiente en producción:** `fo_maintenance_types` queda vacía tras la migración — sin los 3 tipos base, `storeClientReported()` devuelve 422 ("no hay tipo de emergencia configurado"). Correr una vez:
+
+```bash
+php artisan db:seed --class="Modules\FieldOps\Database\Seeders\FoMaintenanceTypeSeeder"
+```
+
+Idempotente (`firstOrCreate` por `code`) — seguro de re-correr.
+
 ### Cómo reanudar
 
 ```
