@@ -13,7 +13,7 @@ class StructureController extends Controller
 {
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $structures = Structure::with('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy')
+        $structures = Structure::with('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy', 'media')
             ->when($request->filled('terrain_id'), fn ($q) =>
                 $q->whereHas('terrains', fn ($t) => $t->where('fo_terrains.id', $request->integer('terrain_id')))
             )
@@ -27,7 +27,7 @@ class StructureController extends Controller
 
     public function show(Structure $structure): \Illuminate\Http\JsonResponse
     {
-        $structure->load('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy', 'luminaireFrames.luminaires.luminaireType');
+        $structure->load('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy', 'media', 'luminaireFrames.luminaires.luminaireType');
 
         return response()->json([
             'success' => true,
@@ -50,7 +50,7 @@ class StructureController extends Controller
             $structure->terrains()->attach($terrainIds);
         }
 
-        $structure->load('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy');
+        $structure->load('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy', 'media');
 
         return response()->json([
             'success' => true,
@@ -80,7 +80,7 @@ class StructureController extends Controller
             $structure->terrains()->sync($validated['terrain_ids'] ?? []);
         }
 
-        $structure->load('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy');
+        $structure->load('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy', 'media');
 
         return response()->json([
             'success' => true,

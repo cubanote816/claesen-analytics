@@ -11,7 +11,7 @@ use Modules\FieldOps\Models\ElectricalBoard;
 
 class ElectricalBoardController extends Controller
 {
-    private const RELATIONS = ['electricalBoardType', 'complexes', 'terrains', 'structures', 'createdBy'];
+    private const RELATIONS = ['electricalBoardType', 'complexes', 'terrains', 'structures', 'createdBy', 'media'];
 
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {

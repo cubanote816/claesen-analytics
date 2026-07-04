@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\FieldOps\Http\Controllers\ComplexController;
 use Modules\FieldOps\Http\Controllers\ElectricalBoardController;
+use Modules\FieldOps\Http\Controllers\FieldOpsMediaController;
 use Modules\FieldOps\Http\Controllers\LuminaireController;
 use Modules\FieldOps\Http\Controllers\LuminaireFrameController;
 use Modules\FieldOps\Http\Controllers\StructureController;
@@ -60,4 +61,11 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
     Route::put('/electrical-boards/{electricalBoard}', [ElectricalBoardController::class, 'update']);
     Route::patch('/electrical-boards/{electricalBoard}', [ElectricalBoardController::class, 'update']);
     Route::delete('/electrical-boards/{electricalBoard}', [ElectricalBoardController::class, 'destroy']);
+
+    // Media (photos/documents attached to complexes, terrains, structures, electrical boards)
+    Route::post('/{modelType}/{modelId}/media', [FieldOpsMediaController::class, 'store'])
+        ->where('modelType', 'complexes|terrains|structures|electrical-boards')
+        ->where('modelId', '[0-9]+');
+    Route::get('/media/{media}', [FieldOpsMediaController::class, 'show']);
+    Route::delete('/media/{media}', [FieldOpsMediaController::class, 'destroy']);
 });

@@ -7,12 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Database\Factories\StructureFactory;
+use Modules\FieldOps\Traits\HasFieldOpsMedia;
 use Modules\Intelligence\Traits\HasAiTranslations;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\Translatable\HasTranslations;
 
-class Structure extends Model
+class Structure extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, HasTranslations, HasAiTranslations;
+    use HasFactory, SoftDeletes, HasTranslations, HasAiTranslations, InteractsWithMedia, HasFieldOpsMedia {
+        HasFieldOpsMedia::registerMediaCollections insteadof InteractsWithMedia;
+        HasFieldOpsMedia::registerMediaConversions insteadof InteractsWithMedia;
+    }
 
     protected $table = 'fo_structures';
 

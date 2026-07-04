@@ -3,9 +3,12 @@
 namespace Modules\FieldOps\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\FieldOps\Http\Resources\Concerns\HasMediaPayload;
 
 class StructureResource extends JsonResource
 {
+    use HasMediaPayload;
+
     public function toArray($request): array
     {
         return [
@@ -29,6 +32,8 @@ class StructureResource extends JsonResource
             ] : null),
             'safety_certified'   => (bool) $this->safety_certified,
             'cafca_material_id'  => $this->cafca_material_id,
+            'photos'             => $this->photosPayload(),
+            'documents'          => $this->documentsPayload(),
             'terrains'           => $this->whenLoaded('terrains', fn () =>
                 $this->terrains->map(fn ($t) => [
                     'id'   => $t->id,

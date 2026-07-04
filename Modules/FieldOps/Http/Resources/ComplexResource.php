@@ -3,9 +3,12 @@
 namespace Modules\FieldOps\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\FieldOps\Http\Resources\Concerns\HasMediaPayload;
 
 class ComplexResource extends JsonResource
 {
+    use HasMediaPayload;
+
     public function toArray($request): array
     {
         return [
@@ -18,6 +21,8 @@ class ComplexResource extends JsonResource
             'lng'        => $this->lng,
             'zoom'       => $this->zoom ?? 17.0,
             'client'     => $this->whenLoaded('client', fn () => new FoClientResource($this->client)),
+            'photos'     => $this->photosPayload(),
+            'documents'  => $this->documentsPayload(),
             'created_by' => $this->whenLoaded('createdBy', fn () => [
                 'id'   => $this->createdBy->id,
                 'name' => $this->createdBy->name,

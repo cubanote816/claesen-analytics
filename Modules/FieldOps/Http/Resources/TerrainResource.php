@@ -3,9 +3,12 @@
 namespace Modules\FieldOps\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\FieldOps\Http\Resources\Concerns\HasMediaPayload;
 
 class TerrainResource extends JsonResource
 {
+    use HasMediaPayload;
+
     public function toArray($request): array
     {
         return [
@@ -15,6 +18,8 @@ class TerrainResource extends JsonResource
             'terrain_type' => $this->whenLoaded('terrainType', fn () => new TerrainTypeResource($this->terrainType)),
             'lat'          => $this->lat,
             'lng'          => $this->lng,
+            'photos'       => $this->photosPayload(),
+            'documents'    => $this->documentsPayload(),
             'created_by'         => $this->whenLoaded('createdBy', fn () => [
                 'id'   => $this->createdBy->id,
                 'name' => $this->createdBy->name,

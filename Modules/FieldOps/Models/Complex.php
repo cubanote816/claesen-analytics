@@ -7,10 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Database\Factories\ComplexFactory;
+use Modules\FieldOps\Traits\HasFieldOpsMedia;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Complex extends Model
+class Complex extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, InteractsWithMedia, HasFieldOpsMedia {
+        HasFieldOpsMedia::registerMediaCollections insteadof InteractsWithMedia;
+        HasFieldOpsMedia::registerMediaConversions insteadof InteractsWithMedia;
+    }
 
     protected $table = 'fo_complexes';
 

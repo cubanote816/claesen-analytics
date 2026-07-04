@@ -154,4 +154,10 @@ return [
             'name_de'    => 'Naam (DE)',
         ],
     ],
+
+    'media' => [
+        'section_label' => "Foto's & documenten",
+        'photos'        => "Foto's",
+        'documents'     => 'Documenten (PDF)',
+    ],
 ];

@@ -3,9 +3,12 @@
 namespace Modules\FieldOps\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\FieldOps\Http\Resources\Concerns\HasMediaPayload;
 
 class ElectricalBoardResource extends JsonResource
 {
+    use HasMediaPayload;
+
     public function toArray($request): array
     {
         return [
@@ -17,6 +20,8 @@ class ElectricalBoardResource extends JsonResource
             'lat'                   => $this->lat,
             'lng'                   => $this->lng,
             'location_description'  => $this->getTranslations('location_description'),
+            'photos'                => $this->photosPayload(),
+            'documents'             => $this->documentsPayload(),
             'complexes'             => $this->whenLoaded('complexes', fn () =>
                 $this->complexes->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])
             ),

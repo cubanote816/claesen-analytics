@@ -15,7 +15,7 @@ class TerrainController extends Controller
 {
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $query = Terrain::with('terrainType', 'createdBy')->orderBy('id');
+        $query = Terrain::with('terrainType', 'createdBy', 'media')->orderBy('id');
 
         if ($request->filled('complex_id')) {
             $query->where('complex_id', $request->integer('complex_id'));
@@ -29,7 +29,7 @@ class TerrainController extends Controller
 
     public function show(Terrain $terrain): \Illuminate\Http\JsonResponse
     {
-        $terrain->load('terrainType', 'createdBy');
+        $terrain->load('terrainType', 'createdBy', 'media');
 
         return response()->json([
             'success' => true,
@@ -44,7 +44,7 @@ class TerrainController extends Controller
             ['created_by_user_id' => $request->user()->id],
         ));
 
-        $terrain->load('terrainType', 'createdBy');
+        $terrain->load('terrainType', 'createdBy', 'media');
 
         return response()->json([
             'success' => true,
@@ -65,7 +65,7 @@ class TerrainController extends Controller
         }
 
         $terrain->update($data);
-        $terrain->load('terrainType', 'createdBy');
+        $terrain->load('terrainType', 'createdBy', 'media');
 
         return response()->json([
             'success' => true,

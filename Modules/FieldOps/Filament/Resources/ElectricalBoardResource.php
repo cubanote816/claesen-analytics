@@ -10,6 +10,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -97,6 +98,21 @@ class ElectricalBoardResource extends Resource
                         ->label(__('fieldops::resource.electrical_boards.fields.location_description_de'))
                         ->rows(3),
                 ]),
+            ])->collapsible()->collapsed(),
+            Section::make(__('fieldops::resource.media.section_label'))->schema([
+                SpatieMediaLibraryFileUpload::make('photos')
+                    ->label(__('fieldops::resource.media.photos'))
+                    ->collection('photos')
+                    ->image()
+                    ->multiple()
+                    ->maxSize(10240)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp']),
+                SpatieMediaLibraryFileUpload::make('documents')
+                    ->label(__('fieldops::resource.media.documents'))
+                    ->collection('documents')
+                    ->multiple()
+                    ->maxSize(20480)
+                    ->acceptedFileTypes(['application/pdf']),
             ])->collapsible()->collapsed(),
         ]);
     }

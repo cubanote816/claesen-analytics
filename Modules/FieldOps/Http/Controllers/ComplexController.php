@@ -13,7 +13,7 @@ class ComplexController extends Controller
 {
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $complexes = Complex::with('client', 'createdBy')
+        $complexes = Complex::with('client', 'createdBy', 'media')
             ->when($request->filled('client_id'), fn ($q) => $q->where('client_id', $request->integer('client_id')))
             ->orderBy('name')
             ->paginate(50);
@@ -26,7 +26,7 @@ class ComplexController extends Controller
 
     public function show(Complex $complex): \Illuminate\Http\JsonResponse
     {
-        $complex->load('client', 'createdBy', 'terrains.terrainType', 'terrains.structures.structureType');
+        $complex->load('client', 'createdBy', 'media', 'terrains.terrainType', 'terrains.structures.structureType');
 
         return response()->json([
             'success' => true,
@@ -41,7 +41,7 @@ class ComplexController extends Controller
             ['created_by_user_id' => $request->user()->id],
         ));
 
-        $complex->load('client', 'createdBy');
+        $complex->load('client', 'createdBy', 'media');
 
         return response()->json([
             'success' => true,
@@ -53,7 +53,7 @@ class ComplexController extends Controller
     {
         $complex->update($request->validated());
 
-        $complex->load('client', 'createdBy');
+        $complex->load('client', 'createdBy', 'media');
 
         return response()->json([
             'success' => true,
