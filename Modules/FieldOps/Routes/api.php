@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\FieldOps\Http\Controllers\CatalogController;
 use Modules\FieldOps\Http\Controllers\ComplexController;
 use Modules\FieldOps\Http\Controllers\ElectricalBoardController;
 use Modules\FieldOps\Http\Controllers\FieldOpsMediaController;
@@ -83,6 +84,15 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
     Route::put('/maintenance-records/{maintenanceRecord}', [MaintenanceRecordController::class, 'update']);
     Route::patch('/maintenance-records/{maintenanceRecord}', [MaintenanceRecordController::class, 'update']);
     Route::delete('/maintenance-records/{maintenanceRecord}', [MaintenanceRecordController::class, 'destroy']);
+
+    // Catalogs (dropdown data for create/edit forms — mirrors /terrain-types)
+    Route::get('/structure-types', [CatalogController::class, 'structureTypes']);
+    Route::get('/access-types', [CatalogController::class, 'accessTypes']);
+    Route::get('/safety-types', [CatalogController::class, 'safetyTypes']);
+    Route::get('/electrical-board-types', [CatalogController::class, 'electricalBoardTypes']);
+    Route::get('/luminaire-frame-types', [CatalogController::class, 'luminaireFrameTypes']);
+    Route::get('/luminaire-types', [CatalogController::class, 'luminaireTypes']);
+    Route::get('/luminaire-subgroups', [CatalogController::class, 'luminaireSubgroups']);
 
     // Media (photos/documents attached to complexes, terrains, structures, electrical boards)
     Route::post('/{modelType}/{modelId}/media', [FieldOpsMediaController::class, 'store'])

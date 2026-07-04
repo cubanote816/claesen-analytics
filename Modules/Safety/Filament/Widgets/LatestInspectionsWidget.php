@@ -12,8 +12,14 @@ use Modules\Safety\Models\Inspection;
 
 class LatestInspectionsWidget extends BaseWidget
 {
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 3;
     protected int | string | array $columnSpan = 'full';
+
+    public static function canView(): bool
+    {
+        // Detalle operativo de Safety: vive en la página de Inspections, no en el dashboard general.
+        return ! request()->routeIs('filament.admin.pages.dashboard');
+    }
 
     protected function getTableHeading(): string
     {
@@ -27,7 +33,7 @@ class LatestInspectionsWidget extends BaseWidget
                 Inspection::query()
                     ->with(['user', 'checklist'])
                     ->latest('completed_at')
-                    ->limit(10)
+                    ->limit(5)
             )
             ->columns([
                 Tables\Columns\TextColumn::make('project_id')
