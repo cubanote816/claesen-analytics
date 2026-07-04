@@ -14,34 +14,53 @@ class SafetyStatsWidget extends BaseWidget
     protected static ?int $sort = 1;
     protected ?string $pollingInterval = '60s';
     protected int | string | array $columnSpan = 'full';
+    protected string $view = 'safety::filament.widgets.safety-stats-widget';
+
+    public string $period = '30';
+
+    protected function getPeriodOptions(): array
+    {
+        return [
+            '7'  => __('safety::inspections.widgets.periods.7'),
+            '30' => __('safety::inspections.widgets.periods.30'),
+            '90' => __('safety::inspections.widgets.periods.90'),
+        ];
+    }
+
+    protected function getPeriodLabel(): string
+    {
+        return $this->getPeriodOptions()[$this->period] ?? $this->getPeriodOptions()['30'];
+    }
 
     protected function getStats(): array
     {
-        $thisMonthStart = now()->startOfMonth();
-        $lastMonthStart = now()->subMonth()->startOfMonth();
-        $lastMonthEnd   = now()->subMonth()->endOfMonth();
+        $days = max(1, (int) $this->period);
+        $rangeStart = now()->subDays($days)->startOfDay();
+        $previousRangeStart = now()->subDays($days * 2)->startOfDay();
+        $previousRangeEnd = $rangeStart->copy()->subSecond();
 
-        $totalThisMonth = Inspection::where('completed_at', '>=', $thisMonthStart)->count();
-        $totalLastMonth = Inspection::whereBetween('completed_at', [$lastMonthStart, $lastMonthEnd])->count();
+        $period = $this->getPeriodLabel();
 
-        // NOK answers this month
-        $nokThisMonth = Answer::whereHas('inspection', fn ($q) =>
-            $q->where('completed_at', '>=', $thisMonthStart)
+        $totalCurrent = Inspection::where('completed_at', '>=', $rangeStart)->count();
+        $totalPrevious = Inspection::whereBetween('completed_at', [$previousRangeStart, $previousRangeEnd])->count();
+
+        $nokCurrent = Answer::whereHas('inspection', fn ($q) =>
+            $q->where('completed_at', '>=', $rangeStart)
         )->where('status', 'nok')->count();
 
         $totalInspections = Inspection::count();
         $pdfGenerated     = Inspection::whereNotNull('pdf_path')->count();
 
-        // Daily data for sparkline (last 7 days)
+        // Daily data for sparkline, matching the selected period
         $dailyCounts = Inspection::selectRaw('DATE(completed_at) as date, COUNT(*) as count')
-            ->where('completed_at', '>=', now()->subDays(6)->startOfDay())
+            ->where('completed_at', '>=', $rangeStart)
             ->groupBy('date')
             ->orderBy('date')
             ->pluck('count')
             ->toArray();
 
-        $trend = $totalLastMonth > 0
-            ? round((($totalThisMonth - $totalLastMonth) / $totalLastMonth) * 100)
+        $trend = $totalPrevious > 0
+            ? round((($totalCurrent - $totalPrevious) / $totalPrevious) * 100)
             : 0;
 
         $trendDesc = __('safety::inspections.widgets.stats.trend', [
@@ -49,16 +68,16 @@ class SafetyStatsWidget extends BaseWidget
         ]);
 
         return [
-            Stat::make(__('safety::inspections.widgets.stats.this_month'), $totalThisMonth)
+            Stat::make(__('safety::inspections.widgets.stats.title', ['period' => $period]), $totalCurrent)
                 ->description($trendDesc)
                 ->descriptionIcon($trend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->color($trend >= 0 ? 'success' : 'warning')
                 ->chart($dailyCounts ?: [0]),
 
-            Stat::make(__('safety::inspections.widgets.stats.nok_this_month'), $nokThisMonth)
+            Stat::make(__('safety::inspections.widgets.stats.nok_title', ['period' => $period]), $nokCurrent)
                 ->description(__('safety::inspections.widgets.stats.nok_hint'))
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color($nokThisMonth > 5 ? 'danger' : ($nokThisMonth > 0 ? 'warning' : 'success')),
+                ->color($nokCurrent > 5 ? 'danger' : ($nokCurrent > 0 ? 'warning' : 'success')),
 
             Stat::make(__('safety::inspections.widgets.stats.pdf_reports'), "{$pdfGenerated} / {$totalInspections}")
                 ->description(__('safety::inspections.widgets.stats.pdf_hint'))
