@@ -6,6 +6,7 @@ use Filament\Resources\Pages\ListRecords;
 use Modules\Safety\Filament\Resources\InspectionResource;
 use Modules\Safety\Filament\Widgets\SafetyStatsWidget;
 use Modules\Safety\Filament\Widgets\LatestInspectionsWidget;
+use Modules\Safety\Filament\Widgets\InspectionsTrendChartWidget;
 
 class ListInspections extends ListRecords
 {
@@ -22,6 +23,8 @@ class ListInspections extends ListRecords
     {
         return [
             SafetyStatsWidget::class,
+            InspectionsTrendChartWidget::class,
+            LatestInspectionsWidget::class,
         ];
     }
 }

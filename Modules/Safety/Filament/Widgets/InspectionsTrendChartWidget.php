@@ -9,9 +9,19 @@ use Modules\Safety\Models\Inspection;
 
 class InspectionsTrendChartWidget extends ChartWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 2;
+
+    protected int | string | array $columnSpan = 'full';
+
+    protected ?string $maxHeight = '300px';
 
     public ?string $filter = '30';
+
+    public static function canView(): bool
+    {
+        // Detalle operativo de Safety: vive en la página de Inspections, no en el dashboard general.
+        return ! request()->routeIs('filament.admin.pages.dashboard');
+    }
 
     public function getHeading(): string
     {

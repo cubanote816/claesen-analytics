@@ -18,6 +18,12 @@ class SafetyStatsWidget extends BaseWidget
 
     public string $period = '30';
 
+    public static function canView(): bool
+    {
+        // Detalle operativo de Safety: vive en la página de Inspections, no en el dashboard general.
+        return ! request()->routeIs('filament.admin.pages.dashboard');
+    }
+
     protected function getPeriodOptions(): array
     {
         return [
