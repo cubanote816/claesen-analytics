@@ -34,7 +34,9 @@
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                 @foreach($alerts as $i => $alert)
                     <tr @if($hasMore && $i >= $showLimit) x-show="showAll" x-cloak @endif
-                        class="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        wire:click="openModal({{ $alert->id }})"
+                        title="{{ $isNl ? 'Volledige details bekijken' : 'View full details' }}"
+                        class="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer">
 
                         @if($showType)
                         <td class="px-4 py-3">
@@ -69,6 +71,7 @@
                                 @if($hasLink)
                                     <a href="{{ \Modules\Performance\Filament\Resources\ProjectInsightResource::getUrl('view', ['record' => trim($alert->project_id)]) }}"
                                        target="_blank" rel="noopener"
+                                       @click.stop
                                        class="mt-1 inline-flex items-center gap-0.5 text-xs text-primary-600 dark:text-primary-400 hover:underline">
                                         &#8599; {{ $isNl ? 'Inzichten' : 'Insights' }}
                                     </a>
@@ -131,33 +134,28 @@
                         </td>
 
                         <td class="px-4 py-3 text-right whitespace-nowrap">
-                            <button
-                                wire:click="openModal({{ $alert->id }})"
-                                class="mr-2 text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-                                title="{{ $isNl ? 'Volledige details bekijken' : 'View full details' }}"
-                            >&#9432; {{ $isNl ? 'Details' : 'Details' }}</button>
                             @if($alert->status === 'open')
                                 <button
-                                    wire:click="markInReview({{ $alert->id }})"
+                                    wire:click.stop="markInReview({{ $alert->id }})"
                                     class="text-xs px-2 py-1 rounded bg-yellow-100 hover:bg-yellow-200 text-yellow-800 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 dark:text-yellow-400 transition-colors"
                                 >Review</button>
                             @elseif($alert->status === 'in_review')
                                 <button
-                                    wire:click="confirmAlert({{ $alert->id }})"
+                                    wire:click.stop="confirmAlert({{ $alert->id }})"
                                     class="text-xs px-2 py-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 mr-1 transition-colors"
                                 >{{ $isNl ? 'Bevestigen' : 'Confirm' }}</button>
                                 <button
-                                    wire:click="dismissAlert({{ $alert->id }})"
+                                    wire:click.stop="dismissAlert({{ $alert->id }})"
                                     class="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400 transition-colors"
                                 >{{ $isNl ? 'Afwijzen' : 'Dismiss' }}</button>
                             @elseif(in_array($alert->status, ['confirmed', 'dismissed']))
                                 <button
-                                    wire:click="resolveAlert({{ $alert->id }})"
+                                    wire:click.stop="resolveAlert({{ $alert->id }})"
                                     class="text-xs px-2 py-1 rounded bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400 mr-1 transition-colors"
                                 >{{ $isNl ? 'Oplossen' : 'Resolve' }}</button>
                                 @if($alert->status === 'dismissed')
                                     <button
-                                        wire:click="reopenAlert({{ $alert->id }})"
+                                        wire:click.stop="reopenAlert({{ $alert->id }})"
                                         class="text-xs px-2 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-400 transition-colors"
                                     >{{ $isNl ? 'Heropenen' : 'Reopen' }}</button>
                                 @endif
