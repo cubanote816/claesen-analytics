@@ -1,14 +1,14 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-04 (FO-007 / CLA-212: spike Mantenimiento cerrado — está vivo en producción)
+> Última actualización: 2026-07-04 (push a origin/main: FO-008/004/003/005/007 + label Demo — `3c66c5f`)
 
 ---
 
 ## Estado actual
 
 - **Sprint activo:** ninguno declarado.
-- **Rama actual:** `main`, **local adelantado a `origin/main`** por varios commits (FO-008, FO-004, FO-003, FO-005 + docs) — el usuario quiere hacer push a producción pero todavía no se ha ejecutado ese push en esta sesión. Confirmar con el usuario antes de pushear.
+- **Rama actual:** `main`, **pusheado a `origin/main`** (`f38c6f6..3c66c5f`, 10 commits: FO-008, FO-004, FO-003, FO-005, FO-007 + docs + label "(Demo)"). El deploy en producción corre migraciones y `config:cache` automáticamente (confirmado por el usuario) — no se requiere acción manual post-push.
 - **Auditoria FieldOps vs `api-claesen-sport-app` (2026-07-03):** el usuario pidió comparar `Modules/FieldOps` contra el API satelite anterior (`/home/totti/api-claesen-sport-app`) antes de un push a producción, para confirmar que no falta nada y no se duplica código. Hallazgo clave: `fo_admin` ya estaba mezclado en `main` y en `origin/main` (no era evitable, ya estaba pusheado) — se acordó con el usuario dejarlo, pero marcar el menú "Field Operations" como **"(Demo)"** en `lang/en,nl/navigation.php` (clave `navigation.groups.field_operations`) hasta que los gaps se cierren y se confirme el cutover. Gaps reales encontrados (ElectricalBoard, Access/Safety de estructura, adjuntos de archivos/Media, cutover de Sport, dominio de mantenimiento) — **no** son gaps: `LuminaireGroup` colapsado a `group_name` string y `ComplexZoomLevel` colapsado a `zoom` único en `Complex`, ambos son decisiones de diseño explícitas ya documentadas en `project_fieldops_sprint` memory / Slice C.
   - **Tickets Linear** (equipo Claesen): `CLA-206`/FO-008 (✅ Done), `CLA-207`/FO-004 (✅ Done), `CLA-209`/FO-003 (✅ Done), `CLA-210`/FO-005 (✅ Done), `CLA-212`/FO-007 (✅ Done, spike, ver abajo), `CLA-213`/FO-009 (Slice G Mantenimiento, ⬜ Backlog, sin planificar), `FO-006` (Slice C.6b cutover, ⬜ Todo, bloqueado por FO-009).
   - **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → **FO-009** → FO-006. FO-009 necesita su propia sesión de planificación antes de implementar.
