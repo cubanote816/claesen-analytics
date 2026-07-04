@@ -27,7 +27,7 @@ class LatestInspectionsWidget extends BaseWidget
                 Inspection::query()
                     ->with(['user', 'checklist'])
                     ->latest('completed_at')
-                    ->limit(10)
+                    ->limit(5)
             )
             ->columns([
                 Tables\Columns\TextColumn::make('project_id')
