@@ -23,7 +23,10 @@ class MicrosoftAuthController extends Controller
     private function oauthRedirectUri(Request $request): string
     {
         if ($request->is('api/*')) {
-            return config('services.azure.public_redirect', config('services.azure.redirect'));
+            // config()'s 2nd arg only applies when the key is absent — 'public_redirect' always
+            // exists (mapped from MICROSOFT_AUTH_PUBLIC_REDIRECT), so an unset env var resolves
+            // to null here rather than falling back. Coalesce on the resolved value instead.
+            return config('services.azure.public_redirect') ?? config('services.azure.redirect');
         }
 
         return config('services.azure.redirect');
