@@ -150,6 +150,7 @@ class MonthlyBillingControlPage extends Page
             'blocker'          => (clone $base)->where('alert_type', 'monthly_close_blocker')->whereIn('status', $activeStatuses)->exists(),
             'total_period'     => (clone $base)->count(),
             'resolved_period'  => (clone $base)->where('status', BillingAlert::STATUS_RESOLVED)->count(),
+            'period_ended'     => Carbon::create($year, $month, 1, 0, 0, 0, 'Europe/Brussels')->endOfMonth()->isPast(),
         ];
     }
 

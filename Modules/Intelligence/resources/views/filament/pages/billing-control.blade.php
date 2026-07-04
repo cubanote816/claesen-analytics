@@ -72,7 +72,8 @@
         $overdueTotal    = $overdueAlerts->sum('amount_open');
         $overdueMaxDays  = $overdueAlerts->max(fn($a) => ($a->evidence_json['days_overdue'] ?? 0));
 
-        $canClose = !$maand['blocker']
+        $canClose = $maand['period_ended']
+                    && !$maand['blocker']
                     && $maand['critical_open'] === 0
                     && $maand['high_open'] === 0
                     && $maand['confirmed_open'] === 0;
@@ -97,12 +98,24 @@
          Replaces the separate blocker banner. Sits at the very top.
     ═══════════════════════════════════════════════════════════════════ --}}
     <div id="section-maand"
-         class="mb-6 rounded-xl border p-5 {{ $canClose
-             ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/10'
-             : 'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10' }}">
+         class="mb-6 rounded-xl border p-5 {{ !$maand['period_ended']
+             ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40'
+             : ($canClose
+                 ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/10'
+                 : 'border-orange-200 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10') }}">
 
         <div class="flex items-start gap-3 mb-4">
-            @if($canClose)
+            @if(!$maand['period_ended'])
+                <x-heroicon-o-clock class="w-6 h-6 text-gray-400 flex-shrink-0 mt-0.5" />
+                <div>
+                    <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        {{ $isNl ? "De maand {$periodLabel} loopt nog." : "Month {$periodLabel} is still in progress." }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {{ $isNl ? 'Nog niet te beoordelen — wacht tot de maand is afgelopen.' : 'Not yet assessable — wait until the month has ended.' }}
+                    </p>
+                </div>
+            @elseif($canClose)
                 <x-heroicon-o-check-badge class="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
                 <div>
                     <p class="text-sm font-semibold text-green-700 dark:text-green-400">
