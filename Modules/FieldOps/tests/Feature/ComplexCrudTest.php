@@ -191,7 +191,7 @@ class ComplexCrudTest extends TestCase
         ])->assertStatus(404);
     }
 
-    public function test_update_accepts_null_client_id(): void
+    public function test_update_ignores_client_id_the_client_complex_link_is_immutable_here(): void
     {
         [, $token] = $this->user();
         $client  = FoClient::factory()->create();
@@ -200,7 +200,9 @@ class ComplexCrudTest extends TestCase
         $this->withToken($token)->patchJson("/api/v1/fieldops/complexes/{$complex->id}", [
             'client_id' => null,
         ])->assertStatus(200)
-            ->assertJsonPath('data.client', null);
+            ->assertJsonPath('data.client.id', $client->id);
+
+        $this->assertDatabaseHas('fo_complexes', ['id' => $complex->id, 'client_id' => $client->id]);
     }
 
     public function test_update_requires_authentication(): void
