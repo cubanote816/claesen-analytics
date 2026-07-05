@@ -16,12 +16,18 @@ class MirrorRelation extends Model
         'name',
         'zipcode',
         'city',
+        'street',
         'country',
         'language',
         'vat_number',
         'email',
         'phone',
         'contact_name',
+        'tp_customer',
+    ];
+
+    protected $casts = [
+        'tp_customer' => 'boolean',
     ];
 
     /**

@@ -19,6 +19,7 @@ use Modules\Performance\Models\Mirror\MirrorEstimateCalc;
 use Modules\Performance\Models\Mirror\MirrorProjectLink;
 use Modules\Performance\Models\Mirror\MirrorProjectResult;
 use Modules\Performance\Models\Mirror\MirrorRelation;
+use Modules\Performance\Models\Mirror\MirrorRelationDelivery;
 use Modules\Performance\Models\Mirror\MirrorWorkdoc;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,7 @@ class SyncMirrorDataService
 
         $this->syncProjects($fullHistory);
         $this->syncRelations();
+        $this->syncRelationDeliveries();
         $this->syncEmployees();
         $this->syncLaborTypes();
         $this->syncLabor($fullHistory);
@@ -350,6 +352,22 @@ class SyncMirrorDataService
      *
      * AUDITOR GATE: If relation column mapping changes, review this method.
      */
+    /**
+     * relation.language is a numeric ERP code with no lookup table on SQL Server
+     * (confirmed via INFORMATION_SCHEMA — no language/taal reference table exists).
+     * Mapping inferred from the code distribution among real customers (1=1118,
+     * 2=39, 3=5, 4=5) matching a Flemish-based contractor's client mix, and from
+     * this mirror's own canonical locale order (nl,en,fr,de) used everywhere else
+     * in FieldOps/Intelligence. UNCONFIRMED with the business — verify before
+     * trusting this for anything customer-facing (e.g. offer simulator output).
+     */
+    private const RELATION_LANGUAGE_CODES = [
+        1 => 'nl',
+        2 => 'fr',
+        3 => 'en',
+        4 => 'de',
+    ];
+
     public function syncRelations(): void
     {
         DB::connection('sqlsrv')->table('relation')->orderBy('id')->chunk(500, function ($relations) {
@@ -360,16 +378,43 @@ class SyncMirrorDataService
                         'name'         => trim($relation->name ?? ''),
                         'zipcode'      => trim($relation->zip ?? $relation->zipcode ?? ''),
                         'city'         => trim($relation->city ?? ''),
+                        'street'       => trim($relation->street ?? ''),
                         'country'      => trim($relation->country ?? 'BE'),
-                        'language'     => trim($relation->language ?? $relation->lang ?? 'nl'),
+                        'language'     => self::RELATION_LANGUAGE_CODES[(int) ($relation->language ?? 0)] ?? 'nl',
                         'vat_number'   => trim($relation->btwnr ?? $relation->vat ?? ''),
                         'email'        => trim($relation->email ?? ''),
-                        'phone'        => trim($relation->phone ?? $relation->tel ?? ''),
+                        'phone'        => trim($relation->tel1 ?? ''),
                         'contact_name' => trim($relation->contact ?? $relation->contact_name ?? ''),
+                        'tp_customer'  => (bool) ($relation->tp_customer ?? false),
                     ]
                 );
             }
         });
+    }
+
+    /**
+     * Sync CAFCA relation_delivery — per-client delivery/site addresses. For a
+     * lighting contractor these are real physical installations (sports halls,
+     * fields, stadiums), not just invoice addresses — FieldOps imports FoComplex
+     * from this mirror (Modules\FieldOps\Services\ComplexRelationDeliverySyncService).
+     */
+    public function syncRelationDeliveries(): void
+    {
+        DB::connection('sqlsrv')->table('relation_delivery')->orderBy('relation_id')->orderBy('seq_nr')
+            ->chunk(500, function ($deliveries) {
+                foreach ($deliveries as $delivery) {
+                    MirrorRelationDelivery::updateOrCreate(
+                        ['relation_id' => $delivery->relation_id, 'seq_nr' => $delivery->seq_nr],
+                        [
+                            'name'      => trim($delivery->name ?? ''),
+                            'street'    => trim($delivery->street ?? ''),
+                            'city'      => trim($delivery->city ?? ''),
+                            'zipcode'   => trim($delivery->zipcode ?? ''),
+                            'fl_active' => (bool) ($delivery->fl_active ?? true),
+                        ]
+                    );
+                }
+            });
     }
 
     /**

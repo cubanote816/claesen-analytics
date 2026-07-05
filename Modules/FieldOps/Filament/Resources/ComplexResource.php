@@ -21,7 +21,6 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Modules\FieldOps\Filament\Resources\Complexes\Pages\CreateComplex;
 use Modules\FieldOps\Filament\Resources\Complexes\Pages\EditComplex;
 use Modules\FieldOps\Filament\Resources\Complexes\Pages\ListComplexes;
 use Modules\FieldOps\Filament\Resources\Complexes\RelationManagers\TerrainsRelationManager;
@@ -39,6 +38,11 @@ class ComplexResource extends Resource
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return false;
     }
 
     public static function getNavigationGroup(): ?string
@@ -171,9 +175,8 @@ class ComplexResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListComplexes::route('/'),
-            'create' => CreateComplex::route('/create'),
-            'edit'   => EditComplex::route('/{record}/edit'),
+            'index' => ListComplexes::route('/'),
+            'edit'  => EditComplex::route('/{record}/edit'),
         ];
     }
 }

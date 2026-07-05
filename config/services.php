@@ -35,6 +35,10 @@ return [
         ],
     ],
 
+    'google_geocoding' => [
+        'key' => env('GOOGLE_GEOCODING_API_KEY'),
+    ],
+
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'url' => env('GEMINI_API_URL'),

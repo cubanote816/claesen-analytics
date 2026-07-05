@@ -14,7 +14,7 @@ class FoClient extends Model
     protected $table = 'fo_clients';
 
     protected $fillable = [
-        'name', 'city', 'street', 'phone', 'email', 'language',
+        'relation_id', 'name', 'city', 'street', 'phone', 'email', 'language',
     ];
 
     protected static function newFactory(): FoClientFactory

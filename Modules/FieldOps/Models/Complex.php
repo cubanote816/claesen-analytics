@@ -23,6 +23,8 @@ class Complex extends Model implements HasMedia
     protected $fillable = [
         'created_by_user_id',
         'client_id',
+        'relation_id',
+        'delivery_seq_nr',
         'name',
         'street',
         'city',

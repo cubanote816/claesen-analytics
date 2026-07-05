@@ -286,9 +286,23 @@ Modules/Safety/
 | FO-005 / CLA-210 | Slice F — Adjuntos de archivos/planos (Media Library) | ✅ Done (`f80e0cb`) |
 | FO-007 / CLA-212 | Spike — evaluar alcance del dominio de Mantenimiento | ✅ Done — **está vivo en producción**, no se cierra como N/A |
 | FO-009 / CLA-213 | Slice G — Dominio de Mantenimiento de luminarias (implementación real) | ✅ Done — `FoMaintenanceType` (catálogo) + `FoMaintenanceRecord` polimórfico (Luminaire\|ElectricalBoard) + subdominio cliente-reportado. Excluido a propósito: `ScheduledMaintenanceService`/`Task` (sin evidencia de uso real, ver detalle abajo) |
+| FO-012 / CLA-226 | Bridge `MirrorRelation` → `FoClient`, deshabilitar creación manual | ✅ Done |
+| FO-013 / CLA-227 | Bridge `MirrorRelationDelivery` → `Complex` + geocoding, deshabilitar creación manual | ✅ Done |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
-**Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → **FO-006**.
+**Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.
+
+### FO-012 / CLA-226 y FO-013 / CLA-227 — detalle de diseño (2026-07-05)
+
+Auditoría del satélite viejo (`api-claesen-sport-app`) confirmó que tanto `Client` como `Complex` nunca tuvieron una vía de creación manual *intencional*: el `ComplexController::store()` viejo existía pero jamás se registró en rutas, con un `//TODO importar desde cafca` explícito al lado. Se decidió con el usuario deshabilitar la creación manual en ambos (Filament `canCreate(): false` + páginas `create` quitadas de `getPages()`; mismo tratamiento en `Claesen-Sport` quitando el botón "+" de `ClientsListPage`/`ComplexesListPage`) y construir el bridge real desde el ERP.
+
+- **`FoClient` ← `MirrorRelation`** (`Modules/FieldOps/Services/ClientRelationSyncService`, comando `fieldops:sync-clients-from-relations`): solo importa relaciones con `tp_customer=1` (la tabla `relation` del ERP también tiene proveedores/transportistas/subcontratistas mezclados). Idempotente vía `fo_clients.relation_id` (nullable, único, sin FK — mismo patrón que `Safety::incident_worker_id`). `withTrashed()` + `restore()` para no chocar con el índice único si un cliente fue soft-deleted. Fixes de paso en `SyncMirrorDataService::syncRelations()`: `phone` ahora lee `tel1` (antes 100% vacío, leía columnas que no existen), se agrega `street` (nunca se sincronizaba), y se decodifica el código numérico de `language` del ERP (1/2/3/4, sin tabla de referencia en el ERP) a locale `nl/fr/en/de` — mapeo **inferido, no confirmado con el negocio** (por distribución real: 1=1118, 2=39, 3=5, 4=5), documentado con comentario en el código. Esto también corrige un bug preexistente en `MirrorRelation::getIsNlAttribute()` (usado por el Offer Simulator), que comparaba el código numérico crudo contra `'nl'` y siempre daba `false`. Resultado en dev: **1167 clientes reales** desde 3265 relaciones.
+
+- **`Complex` ← `MirrorRelationDelivery`** (nuevo mirror, tabla CAFCA `relation_delivery` — direcciones de entrega/sitio del cliente, que para un contratista de iluminación son instalaciones físicas reales: canchas, polideportivos, estadios). `Modules/FieldOps/Services/ComplexRelationDeliverySyncService`, comando `fieldops:sync-complexes-from-relation-deliveries`. Solo importa deliveries cuyo `relation_id` ya resolvió a un `FoClient` sincronizado (vía FO-012) y `relation_id != 0` (placeholder catch-all del ERP, mismo patrón que los IDs basura 100/101/102 de `relation`). Idempotente vía `(fo_complexes.relation_id, delivery_seq_nr)`. Resultado en dev: **887 complejos reales** desde 935 direcciones (26 sin cliente sincronizado, descartadas).
+
+- **Geocoding** (`Modules/FieldOps/Services/GeocodingService`): `relation_delivery` no trae coordenadas — se resuelven vía Google Geocoding API (`config('services.google_geocoding.key')` / env `GOOGLE_GEOCODING_API_KEY`) **solo la primera vez** que un `Complex` no tiene `lat`/`lng` — nunca pisa coordenadas ya pineadas a mano en el `MapPicker` del frontend, ni re-geocodifica en corridas siguientes del sync. Necesario porque `Claesen-Sport` va a listar complejos ordenados por proximidad al usuario. Resultado en dev: 883/887 geocodificados (5 sin street/city/zipcode en el ERP, quedan `null`).
+
+**Pendiente:** confirmar con el negocio el mapeo real de `relation.language` (1/2/3/4 → nl/fr/en/de) — hoy es una inferencia. La key de Google Geocoding está restringida por IP en Google Cloud Console a la IP de este entorno de dev (`169.155.241.57`, probablemente dinámica) — si se corre este sync desde producción (`prod-priv-01`) hay que agregar esa IP también.
 
 ### FO-009 / CLA-213 — detalle de diseño
 

@@ -17,11 +17,20 @@ class FieldOpsServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(module_path($this->name, 'Database/Migrations'));
         $this->registerTranslations();
+        $this->registerCommands();
     }
 
     public function register(): void
     {
         $this->app->register(RouteServiceProvider::class);
+    }
+
+    protected function registerCommands(): void
+    {
+        $this->commands([
+            \Modules\FieldOps\Console\Commands\SyncClientsFromRelationsCommand::class,
+            \Modules\FieldOps\Console\Commands\SyncComplexesFromRelationDeliveriesCommand::class,
+        ]);
     }
 
     public function registerTranslations(): void

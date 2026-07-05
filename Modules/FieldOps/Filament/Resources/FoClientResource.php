@@ -20,7 +20,6 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Modules\FieldOps\Filament\Resources\FoClients\Pages\CreateFoClient;
 use Modules\FieldOps\Filament\Resources\FoClients\Pages\EditFoClient;
 use Modules\FieldOps\Filament\Resources\FoClients\Pages\ListFoClients;
 use Modules\FieldOps\Models\FoClient;
@@ -36,6 +35,11 @@ class FoClientResource extends Resource
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return false;
     }
 
     public static function getNavigationGroup(): ?string
@@ -142,9 +146,8 @@ class FoClientResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListFoClients::route('/'),
-            'create' => CreateFoClient::route('/create'),
-            'edit'   => EditFoClient::route('/{record}/edit'),
+            'index' => ListFoClients::route('/'),
+            'edit'  => EditFoClient::route('/{record}/edit'),
         ];
     }
 }

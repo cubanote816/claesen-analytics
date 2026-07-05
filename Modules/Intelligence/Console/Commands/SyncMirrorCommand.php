@@ -12,6 +12,7 @@ class SyncMirrorCommand extends Command
                             {--force     : Skip confirmation prompt (use with --full in CI/scripts)}
                             {--materials : Sync the entire material catalog only}
                             {--relations : Sync CAFCA clients/relations only}
+                            {--deliveries : Sync CAFCA relation_delivery (client site addresses) only}
                             {--estimates : Sync CAFCA estimate items (offer lines) only}';
 
     protected $description = 'Synchronize legacy CAFCA data to local MySQL mirror tables.';
@@ -31,6 +32,13 @@ class SyncMirrorCommand extends Command
             $this->info('Syncing CAFCA clients (relation table)...');
             $syncService->syncRelations();
             $this->info('Relations sync finished. Count: ' . \Modules\Performance\Models\Mirror\MirrorRelation::count());
+            return;
+        }
+
+        if ($this->option('deliveries')) {
+            $this->info('Syncing CAFCA relation_delivery (client site addresses)...');
+            $syncService->syncRelationDeliveries();
+            $this->info('Deliveries sync finished. Count: ' . \Modules\Performance\Models\Mirror\MirrorRelationDelivery::count());
             return;
         }
 
