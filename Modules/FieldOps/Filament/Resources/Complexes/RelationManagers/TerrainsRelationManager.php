@@ -8,7 +8,6 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -28,17 +27,12 @@ class TerrainsRelationManager extends RelationManager
     {
         return $schema->components([
             Section::make(__('fieldops::resource.terrains.fields.name'))->schema([
-                Grid::make(2)->schema([
-                    TextInput::make('name.nl')
-                        ->label(__('fieldops::resource.terrains.fields.name_nl'))
-                        ->required(),
-                    TextInput::make('name.en')
-                        ->label(__('fieldops::resource.terrains.fields.name_en')),
-                    TextInput::make('name.fr')
-                        ->label(__('fieldops::resource.terrains.fields.name_fr')),
-                    TextInput::make('name.de')
-                        ->label(__('fieldops::resource.terrains.fields.name_de')),
-                ]),
+                // Single field in the admin's current locale (app()->getLocale(),
+                // set per-request by SetPanelLocale) — HasAiTranslations
+                // auto-translates to the other 3 canonical locales on save.
+                TextInput::make('name')
+                    ->label(__('fieldops::resource.terrains.fields.name'))
+                    ->required(),
             ]),
             Select::make('terrain_type_id')
                 ->label(__('fieldops::resource.terrains.fields.terrain_type'))

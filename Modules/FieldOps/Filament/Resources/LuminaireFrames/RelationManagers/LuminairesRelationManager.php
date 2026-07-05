@@ -9,7 +9,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -63,20 +62,12 @@ class LuminairesRelationManager extends RelationManager
                     ->nullable(),
             ])->columns(2),
             Section::make(__('fieldops::resource.luminaires.fields.info'))->schema([
-                Grid::make(2)->schema([
-                    Textarea::make('info.nl')
-                        ->label(__('fieldops::resource.luminaires.fields.info_nl'))
-                        ->rows(2),
-                    Textarea::make('info.en')
-                        ->label(__('fieldops::resource.luminaires.fields.info_en'))
-                        ->rows(2),
-                    Textarea::make('info.fr')
-                        ->label(__('fieldops::resource.luminaires.fields.info_fr'))
-                        ->rows(2),
-                    Textarea::make('info.de')
-                        ->label(__('fieldops::resource.luminaires.fields.info_de'))
-                        ->rows(2),
-                ]),
+                // Single field in the admin's current locale (app()->getLocale(),
+                // set per-request by SetPanelLocale) — HasAiTranslations
+                // auto-translates to the other 3 canonical locales on save.
+                Textarea::make('info')
+                    ->label(__('fieldops::resource.luminaires.fields.info'))
+                    ->rows(2),
             ])->collapsible()->collapsed(),
         ]);
     }

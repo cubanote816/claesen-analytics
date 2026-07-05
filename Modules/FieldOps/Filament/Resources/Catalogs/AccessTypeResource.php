@@ -11,7 +11,6 @@ use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -62,17 +61,12 @@ class AccessTypeResource extends Resource
     {
         return $schema->components([
             Section::make(__('fieldops::resource.catalogs.fields.name'))->schema([
-                Grid::make(2)->schema([
-                    TextInput::make('name.nl')
-                        ->label(__('fieldops::resource.catalogs.fields.name_nl'))
-                        ->required(),
-                    TextInput::make('name.en')
-                        ->label(__('fieldops::resource.catalogs.fields.name_en')),
-                    TextInput::make('name.fr')
-                        ->label(__('fieldops::resource.catalogs.fields.name_fr')),
-                    TextInput::make('name.de')
-                        ->label(__('fieldops::resource.catalogs.fields.name_de')),
-                ]),
+                // Single field in the admin's current locale (app()->getLocale(),
+                // set per-request by SetPanelLocale) — HasAiTranslations
+                // auto-translates to the other 3 canonical locales on save.
+                TextInput::make('name')
+                    ->label(__('fieldops::resource.catalogs.fields.name'))
+                    ->required(),
             ]),
         ]);
     }

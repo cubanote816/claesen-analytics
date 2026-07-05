@@ -15,7 +15,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -116,20 +115,12 @@ class StructureResource extends Resource
                     ->nullable(),
             ])->columns(2),
             Section::make(__('fieldops::resource.structures.fields.info'))->schema([
-                Grid::make(2)->schema([
-                    Textarea::make('info.nl')
-                        ->label(__('fieldops::resource.structures.fields.info_nl'))
-                        ->rows(3),
-                    Textarea::make('info.en')
-                        ->label(__('fieldops::resource.structures.fields.info_en'))
-                        ->rows(3),
-                    Textarea::make('info.fr')
-                        ->label(__('fieldops::resource.structures.fields.info_fr'))
-                        ->rows(3),
-                    Textarea::make('info.de')
-                        ->label(__('fieldops::resource.structures.fields.info_de'))
-                        ->rows(3),
-                ]),
+                // Single field in the admin's current locale (app()->getLocale(),
+                // set per-request by SetPanelLocale) — HasAiTranslations
+                // auto-translates to the other 3 canonical locales on save.
+                Textarea::make('info')
+                    ->label(__('fieldops::resource.structures.fields.info'))
+                    ->rows(3),
             ])->collapsible()->collapsed(),
             Section::make(__('fieldops::resource.media.section_label'))->schema([
                 SpatieMediaLibraryFileUpload::make('photos')

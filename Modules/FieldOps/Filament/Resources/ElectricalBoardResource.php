@@ -14,7 +14,6 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -84,20 +83,12 @@ class ElectricalBoardResource extends Resource
                     ->nullable(),
             ])->columns(2),
             Section::make(__('fieldops::resource.electrical_boards.fields.location_description'))->schema([
-                Grid::make(2)->schema([
-                    Textarea::make('location_description.nl')
-                        ->label(__('fieldops::resource.electrical_boards.fields.location_description_nl'))
-                        ->rows(3),
-                    Textarea::make('location_description.en')
-                        ->label(__('fieldops::resource.electrical_boards.fields.location_description_en'))
-                        ->rows(3),
-                    Textarea::make('location_description.fr')
-                        ->label(__('fieldops::resource.electrical_boards.fields.location_description_fr'))
-                        ->rows(3),
-                    Textarea::make('location_description.de')
-                        ->label(__('fieldops::resource.electrical_boards.fields.location_description_de'))
-                        ->rows(3),
-                ]),
+                // Single field in the admin's current locale (app()->getLocale(),
+                // set per-request by SetPanelLocale) — HasAiTranslations
+                // auto-translates to the other 3 canonical locales on save.
+                Textarea::make('location_description')
+                    ->label(__('fieldops::resource.electrical_boards.fields.location_description'))
+                    ->rows(3),
             ])->collapsible()->collapsed(),
             Section::make(__('fieldops::resource.media.section_label'))->schema([
                 SpatieMediaLibraryFileUpload::make('photos')

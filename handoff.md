@@ -1,13 +1,21 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-05 (FO-012/CLA-226 + FO-013/CLA-227 — bridge real MirrorRelation→FoClient y MirrorRelationDelivery→Complex+geocoding, deshabilitar creación manual — sobre el `main` ya actualizado con el merge `issue-dashboard`: CLA-219/221/222/223/224/225 + CLA-208 (port), FO-009/CLA-213, FO-010/CLA-214 y CLA-215/216/217)
+> Última actualización: 2026-07-05 (catálogos FieldOps portados + campo único con auto-traducción IA + fix 419 CSRF/sesión en Claesen-Sport — sobre FO-012/CLA-226 + FO-013/CLA-227 ya cerrados, y sobre el `main` ya actualizado con el merge `issue-dashboard`)
 
 ---
 
 ## Estado actual
 
 - **Sprint activo:** ninguno declarado.
+- **Sesión 2026-07-05 (cont.) — catálogos, UX de campos traducibles, y 419 (Done, ver detalle completo en `CLAUDE.md`):**
+  - `client_id` de `Complex` ahora inmutable vía API (`UpdateComplexRequest`) — el vínculo viene del sync CAFCA, nunca se reasigna a mano. De paso se encontró que el selector de cliente en `ComplexFormModal.tsx` solo cargaba los primeros 50 de 1167 clientes (por eso a veces se veía vacío) — resuelto reemplazándolo por texto de solo lectura.
+  - 8 catálogos de FieldOps (`AccessType`, `ElectricalBoardType`, `SafetyType`, `StructureType`, `TerrainType`, `LuminaireFrameType`, `LuminaireSubgroup`, `LuminaireType`) portados del satélite viejo — estaban vacíos en dev, los selects de Terrain/Structure/Luminaire/ElectricalBoard no tenían nada para elegir. `php artisan db:seed --class="Modules\FieldOps\Database\Seeders\FieldOpsCatalogSeeder"` (idempotente).
+  - Reemplazados los 4 inputs por-idioma (nl/en/fr/de) por un solo campo + auto-traducción IA (`HasAiTranslations` ya lo hacía automático, solo faltaba que la UI dejara de forzar los 4) — en 12 resources de Filament y en `TranslatableInput.tsx` de Claesen-Sport.
+  - Bug real encontrado de paso: `ComplexesListPage.tsx`/`ClientsListPage.tsx` tenían un loop infinito de render ("Maximum update depth exceeded") por `data = []` inline en la destructuración de `useQuery` — corregido con una constante estable a nivel módulo.
+  - Mapa satelital en `MapPicker.tsx` (Esri World Imagery, sin API key).
+  - **Bug real de CSRF (419) en Claesen-Sport, dos causas combinadas:** cookies `Secure` por defecto corriendo sobre `http://localhost` (`SESSION_SECURE_COOKIE=false` en `.env` local) + axios no manda `X-XSRF-TOKEN` en requests cross-origin por defecto desde v1.6, y `localhost:5173`→`localhost:8000` son puertos distintos (`withXSRFToken: true` en `client.ts`). Confirmado por el usuario que ya funciona.
+  - **Pendiente:** commitear (backend: 12 archivos Filament + seeders ya en `3bfd95f`; frontend: `TranslatableInput.tsx`, `client.ts`, `MapPicker.tsx`, `ComplexesListPage.tsx`, `ClientsListPage.tsx`, `ComplexFormModal.tsx`).
 - **FO-012 / CLA-226 y FO-013 / CLA-227 (Done, 2026-07-05, sin commitear todavía):** a partir de un pedido del usuario de que "la opción de crear un cliente no debería existir" en `Claesen-Sport`, se auditó el satélite viejo (`api-claesen-sport-app`) y se confirmó que ni `Client` ni `Complex` tuvieron nunca una vía de creación manual intencional (`ComplexController::store()` viejo nunca se registró en rutas, con un `//TODO importar desde cafca` explícito). Se construyó el bridge real desde el ERP para ambos, ver detalle completo en `CLAUDE.md` (sección FieldOps). Resumen:
   - `fieldops:sync-clients-from-relations`: 1167 clientes reales importados desde `MirrorRelation` (filtro `tp_customer=1`). De paso se corrigieron 2 bugs reales en `SyncMirrorDataService::syncRelations()` (`phone` 100% vacío, `language` sin decodificar — este último afecta también al Offer Simulator vía `MirrorRelation::getIsNlAttribute()`).
   - `fieldops:sync-complexes-from-relation-deliveries`: 887 complejos reales importados desde un mirror nuevo (`MirrorRelationDelivery`, tabla CAFCA `relation_delivery`) + geocoding automático (Google Geocoding API, solo primera vez, nunca pisa coordenadas manuales) — 883/887 con coordenadas reales.

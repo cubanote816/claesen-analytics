@@ -11,7 +11,6 @@ use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -62,17 +61,12 @@ class TerrainTypeResource extends Resource
     {
         return $schema->components([
             Section::make(__('fieldops::resource.catalogs.fields.type'))->schema([
-                Grid::make(2)->schema([
-                    TextInput::make('type.nl')
-                        ->label(__('fieldops::resource.catalogs.fields.type_nl'))
-                        ->required(),
-                    TextInput::make('type.en')
-                        ->label(__('fieldops::resource.catalogs.fields.type_en')),
-                    TextInput::make('type.fr')
-                        ->label(__('fieldops::resource.catalogs.fields.type_fr')),
-                    TextInput::make('type.de')
-                        ->label(__('fieldops::resource.catalogs.fields.type_de')),
-                ]),
+                // Single field in the admin's current locale (app()->getLocale(),
+                // set per-request by SetPanelLocale) — HasAiTranslations
+                // auto-translates to the other 3 canonical locales on save.
+                TextInput::make('type')
+                    ->label(__('fieldops::resource.catalogs.fields.type'))
+                    ->required(),
             ]),
         ]);
     }
