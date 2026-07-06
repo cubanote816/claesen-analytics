@@ -61,9 +61,11 @@ class User extends Authenticatable implements FilamentUser
     }
 
     // Single source of truth for "account fully activated".
+    // SSO users (microsoft_id set) are always considered activated — they authenticate via Azure.
     public function hasCompletedPasswordSetup(): bool
     {
-        return $this->password !== null && $this->password_set_at !== null;
+        return $this->microsoft_id !== null
+            || ($this->password !== null && $this->password_set_at !== null);
     }
 
     // Single source of truth for "can use the Filament backoffice".
