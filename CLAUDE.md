@@ -82,6 +82,8 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 
 7. **En prod-priv-01, `opcache.validate_timestamps=0`** (`/etc/php/8.4/fpm/conf.d/10-opcache-prod.ini`) — PHP-FPM nunca relee archivos por su cuenta (CLA-232, 2026-07-06: esto rompió el login de Azure OAuth porque `config:cache` reescribía el archivo pero los workers seguían con el bytecode viejo). `infrastructure/scripts/deploy.sh` ya recarga PHP-FPM en cada deploy completo (paso 9) — no quitar ese paso. Para ediciones manuales de `shared/.env` **sin** un deploy completo, correr `infrastructure/scripts/reload-config.sh` (config:clear + config:cache + `systemctl reload php8.4-fpm`), nunca solo `config:cache` a mano.
 
+8. **`SESSION_DOMAIN` no puede ser un valor estático en `.env`** (CLA-233, 2026-07-06). Filament (`backoffice.claesen.local`) y la PWA Safety/`service.claesen-verlichting` (Sanctum SPA sobre `*.claesen-verlichting.be`, requiere cookie compartida entre `service.claesen-verlichting.be` y `backend.claesen-verlichting.be`) necesitan dominios de cookie *incompatibles* — arreglar uno con un valor fijo en `.env` rompe el otro. Se resuelve por host de la request en `Modules/Core/Http/Middleware/ResolveSessionCookieDomain.php` (middleware global, `$middleware->prepend(...)` en `bootstrap/app.php`, corre antes que `StartSession`/`VerifyCsrfToken`/Sanctum stateful). No volver a fijar `SESSION_DOMAIN` a un valor concreto en `.env` de producción — debe quedar `null` (el middleware lo sobreescribe en runtime según el host). Si aparece un tercer dominio consumidor, agregar su caso a este middleware, no al `.env`.
+
 ---
 
 ## Módulos
