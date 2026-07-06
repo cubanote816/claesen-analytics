@@ -53,11 +53,14 @@ php artisan migrate:status
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+sudo systemctl reload php8.4-fpm   # obligatorio — ver nota opcache abajo
 ```
 
 - [ ] Reiniciar queue workers después de deploy
 - [ ] Verificar que el scheduler sigue activo: `php artisan schedule:list`
 - [ ] Smoke tests de los endpoints afectados
+
+**opcache.validate_timestamps=0 en prod-priv-01** (`/etc/php/8.4/fpm/conf.d/10-opcache-prod.ini`): PHP-FPM nunca vuelve a leer archivos en disco por su cuenta. `config:cache` reescribe el archivo pero los workers siguen sirviendo el bytecode viejo hasta un `systemctl reload php8.4-fpm`. `infrastructure/scripts/deploy.sh` ya hace este reload (paso 9) para deploys completos — pero si editás `shared/.env` a mano **sin** pasar por deploy.sh, correr `infrastructure/scripts/reload-config.sh` (nuevo, ver `commands-runbook.md`) o el reload manual. Sin esto, un cambio de `.env` puede parecer aplicado (el archivo cacheado ya tiene el valor nuevo) pero el tráfico real sigue viendo el valor viejo — así se manifestó CLA-232 (login de Azure roto por `SESSION_DOMAIN` desincronizado).
 
 ---
 

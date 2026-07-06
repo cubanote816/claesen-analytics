@@ -343,6 +343,8 @@ php artisan sync:employees
 
 ## Comandos de mantenimiento Laravel
 
+> **Producción (prod-priv-01):** `opcache.validate_timestamps=0` (`/etc/php/8.4/fpm/conf.d/10-opcache-prod.ini`) — PHP-FPM no relee archivos por su cuenta. Cualquier `config:cache`/`config:clear` corrido fuera de un deploy completo (edición manual de `shared/.env`, por ejemplo) requiere además `sudo systemctl reload php8.4-fpm`, o el cambio queda escrito en el archivo cacheado pero invisible para el tráfico real hasta el próximo deploy. Usar `infrastructure/scripts/reload-config.sh` para este caso (config:clear + config:cache como `www-data` + reload de PHP-FPM en un solo paso). `infrastructure/scripts/deploy.sh` ya hace el reload como parte de un deploy normal (paso 9), no hace falta correrlo aparte ahí.
+
 ```bash
 # Cache
 php artisan config:cache

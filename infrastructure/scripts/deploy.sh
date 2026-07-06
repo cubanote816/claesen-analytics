@@ -71,6 +71,10 @@ sudo -u www-data php "$RELEASE_DIR/artisan" config:cache
 # ── 9. ACTIVAR RELEASE ───────────────────────
 echo "[ 9/10] Activando release..."
 sudo rm -rf "$APP_DIR/current" && sudo ln -s "$RELEASE_DIR" "$APP_DIR/current"
+# opcache.validate_timestamps=0 en prod — sin este reload, PHP-FPM sigue
+# sirviendo el bytecode del release anterior aunque el symlink ya cambió.
+# No quitar (CLA-232). Para cambios de shared/.env sin deploy completo,
+# usar reload-config.sh en vez de repetir esto a mano.
 sudo systemctl reload php8.4-fpm
 
 # Reiniciar colas de forma elegante

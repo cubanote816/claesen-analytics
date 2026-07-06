@@ -80,6 +80,8 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 
 6. **Sesión expirada (419) usa modal branded, no el `confirm()` nativo de Livewire** (CLA-208, 2026-07-04). Interceptado vía `Livewire.hook('request', ({fail}) => fail(({status, preventDefault}) => {...}))` en `Modules/Core/resources/views/filament/session-expired-modal.blade.php`, enganchado al `PanelsRenderHook::BODY_END` de `AdminPanelProvider.php`. No revertir a dejar pasar el 419 sin `preventDefault()` — el `confirm()` del vendor volvería a dispararse. Si se agregan clases Tailwind arbitrarias nuevas en esta u otras vistas, correr `npm run build` local para verlas (no afecta producción, `deploy.sh` ya lo hace).
 
+7. **En prod-priv-01, `opcache.validate_timestamps=0`** (`/etc/php/8.4/fpm/conf.d/10-opcache-prod.ini`) — PHP-FPM nunca relee archivos por su cuenta (CLA-232, 2026-07-06: esto rompió el login de Azure OAuth porque `config:cache` reescribía el archivo pero los workers seguían con el bytecode viejo). `infrastructure/scripts/deploy.sh` ya recarga PHP-FPM en cada deploy completo (paso 9) — no quitar ese paso. Para ediciones manuales de `shared/.env` **sin** un deploy completo, correr `infrastructure/scripts/reload-config.sh` (config:clear + config:cache + `systemctl reload php8.4-fpm`), nunca solo `config:cache` a mano.
+
 ---
 
 ## Módulos
