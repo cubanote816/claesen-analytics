@@ -20,7 +20,15 @@
 </head>
 <body>
 
+    @php
+        $logoPath = public_path('img/brand-logo-light.png');
+        $logoB64  = file_exists($logoPath) ? base64_encode(file_get_contents($logoPath)) : null;
+    @endphp
+
     <div class="header">
+        @if($logoB64)
+            <img src="data:image/png;base64,{{ $logoB64 }}" style="height:45px;margin-bottom:8px;">
+        @endif
         <h1>{{ $inspection->type === 'incident' ? 'Incidentenrapport' : 'Werkplekinspectie Rapport' }}</h1>
     </div>
 
