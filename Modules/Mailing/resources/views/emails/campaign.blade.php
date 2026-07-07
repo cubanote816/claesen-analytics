@@ -92,8 +92,8 @@
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse;">
             <tr>
                 <td align="center" bgcolor="#0f172a" style="background-color: #0f172a; padding: 40px 20px;">
-                    <img src="https://claesen-verlichting.be/v1/assets/brand-logo-dark.png" 
-                         alt="Claesen Outdoor Lighting" 
+                    <img src="{{ $message->embed(public_path('img/brand-logo-dark.png')) }}"
+                         alt="Claesen Outdoor Lighting"
                          width="180" 
                          border="0" 
                          style="display: block; margin: 0 auto; width: 180px; height: auto;">
@@ -127,7 +127,7 @@
             </p>
 
             <p style="font-size: 12px; color: #94a3b8;">
-                Deze e-mail is verzonden naar u door de Claesen Intelligence Hub.<br>
+                Deze e-mail is verzonden naar u door het Claesen Outdoor Lighting Platform.<br>
                 © 2026 Claesen Verlichting. Alle rechten voorbehouden.
             </p>
         </div>

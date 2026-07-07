@@ -1,6 +1,6 @@
 <?php
 /**
- * Claesen Intelligence Hub - Microsoft Graph Mailer Transport
+ * Claesen Outdoor Lighting Platform - Microsoft Graph Mailer Transport
  * Path: Modules/Mailing/Mail/Transport/MicrosoftGraphTransport.php
  * 
  * Custom Symfony Mailer transport that uses Microsoft Graph API for email sending.
@@ -96,17 +96,27 @@ class MicrosoftGraphTransport extends AbstractTransport
             }
         }
 
-        // Add attachments
+        // Add attachments (incluye tanto adjuntos normales como imagenes
+        // embebidas via $message->embed() — sin isInline/contentId, Graph
+        // las manda como adjunto descargable suelto y el <img src="cid:...">
+        // del HTML queda roto en el cliente de correo).
         $attachments = $email->getAttachments();
         if (!empty($attachments)) {
             $payload['message']['attachments'] = [];
             foreach ($attachments as $attachment) {
-                $payload['message']['attachments'][] = [
+                $item = [
                     '@odata.type'  => '#microsoft.graph.fileAttachment',
                     'name'         => $attachment->getFilename() ?? 'attachment',
                     'contentType'  => $attachment->getMediaType() . '/' . $attachment->getMediaSubType(),
                     'contentBytes' => base64_encode($attachment->getBody()),
                 ];
+
+                if ($attachment->hasContentId()) {
+                    $item['isInline'] = true;
+                    $item['contentId'] = $attachment->getContentId();
+                }
+
+                $payload['message']['attachments'][] = $item;
             }
         }
 

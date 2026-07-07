@@ -24,7 +24,7 @@
 
         {{-- Logo --}}
         <div class="flex justify-center mb-6">
-            <img src="https://claesen-verlichting.be/v1/assets/brand-logo-dark.png"
+            <img src="{{ asset('img/brand-logo-dark.png') }}"
                  alt="Claesen Outdoor Lighting" class="h-12 w-auto">
         </div>
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Claesen Intelligence Hub - Microsoft Graph Service
+ * Claesen Outdoor Lighting Platform - Microsoft Graph Service
  * Path: Modules/Mailing/Services/MicrosoftGraphService.php
  * 
  * Handles OAuth 2.0 Client Credentials flow and Microsoft Graph API communication.

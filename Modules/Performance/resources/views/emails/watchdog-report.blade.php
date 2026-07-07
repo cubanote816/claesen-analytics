@@ -21,7 +21,7 @@
 <body>
     <div class="wrapper">
         <div class="header">
-            <img src="https://www.claesen-verlichting.be/v1/assets/brand-logo-dark.png" alt="Claesen Logo" style="height: 40px; width: auto; margin-bottom: 10px;">
+            <img src="{{ $message->embed(public_path('img/brand-logo-dark.png')) }}" alt="Claesen Logo" style="height: 40px; width: auto; margin-bottom: 10px;">
             <h1>🛡️ Claesen Watchdog</h1>
         </div>
         <div class="body">

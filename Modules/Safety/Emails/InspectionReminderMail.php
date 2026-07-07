@@ -24,7 +24,7 @@ class InspectionReminderMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('hostmaster@claesen-verlichting.be', 'Claesen Intelligence Hub'),
+            from: new Address('hostmaster@claesen-verlichting.be', 'Claesen Outdoor Lighting Platform'),
             subject: 'Herinnering: Veiligheidsinspectie vereist',
         );
     }

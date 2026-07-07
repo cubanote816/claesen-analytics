@@ -20,7 +20,7 @@
 <body>
     <div class="wrapper">
         <div class="header">
-            <img src="https://www.claesen-verlichting.be/v1/assets/brand-logo-dark.png" alt="Claesen Logo" style="height: 50px; width: auto; margin-bottom: 15px;">
+            <img src="{{ $message->embed(public_path('img/brand-logo-dark.png')) }}" alt="Claesen Logo" style="height: 50px; width: auto; margin-bottom: 15px;">
             <h1>🚨 VANGUARD ALERT</h1>
         </div>
         <div class="body">
@@ -57,7 +57,7 @@
             </div>
         </div>
         <div class="footer">
-            Dit is een <b>onmiddellijke veiligheidswaarschuwing</b> van de Claesen Intelligence Hub.<br>
+            Dit is een <b>onmiddellijke veiligheidswaarschuwing</b> van het Claesen Outdoor Lighting Platform.<br>
             Geen verdere onmiddellijke waarschuwingen zullen voor dit project worden verzonden tot het wekelijkse rapport.
         </div>
     </div>

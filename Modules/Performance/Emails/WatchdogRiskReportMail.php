@@ -24,7 +24,7 @@ class WatchdogRiskReportMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('hostmaster@claesen-verlichting.be', 'Claesen Intelligence Hub'),
+            from: new Address('hostmaster@claesen-verlichting.be', 'Claesen Outdoor Lighting Platform'),
             subject: '⚠️ Monday Morning Risk Report - Claesen Verlichting',
             replyTo: [
                 new Address('no-reply@claesen-verlichting.be', 'No-Reply'),

@@ -25,7 +25,7 @@
         <!-- Header: white background with brand logo -->
         <tr>
           <td style="background-color:#ffffff;padding:20px 36px;border-bottom:1px solid #e5e7eb;">
-            <img src="https://www.claesen-verlichting.be/v1/assets/brand-logo-light.png"
+            <img src="{{ $message->embed(public_path('img/brand-logo-light.png')) }}"
                  alt="Claesen Outdoor Lighting"
                  width="155" style="height:auto;display:block;border:0;">
           </td>

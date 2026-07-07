@@ -35,7 +35,7 @@ class ImmediateRiskAlertMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('hostmaster@claesen-verlichting.be', 'Claesen Intelligence Hub'),
+            from: new Address('hostmaster@claesen-verlichting.be', 'Claesen Outdoor Lighting Platform'),
             subject: '🚨 URGENT: High-Risk Financial Leak Detected - Project ' . $this->insight->project_id,
             replyTo: [
                 new Address('no-reply@claesen-verlichting.be', 'No-Reply'),
