@@ -25,6 +25,7 @@ return [
         'https://claesen-verlichting.be',
         'https://lightcoral-whale-907350.hostingersite.com',
         'http://localhost:5173',
+        'http://localhost:5174',
     ])),
 
     'allowed_origins_patterns' => [],

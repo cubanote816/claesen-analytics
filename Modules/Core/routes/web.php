@@ -18,6 +18,11 @@ Route::prefix('auth/microsoft')->group(function () {
 Route::get('api/v1/auth/microsoft/redirect', [\Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::class, 'redirect']);
 Route::get('api/v1/auth/microsoft/callback', [\Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::class, 'callback']);
 
+// Session-cookie login for browser-first SPAs (Safety PWA, Sport, etc.) — needs the 'web'
+// middleware group (session, CSRF) that api.php's stateless 'api' group does not provide.
+Route::post('api/v1/auth/login/spa', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'loginSpa'])
+    ->name('auth.login.spa');
+
 // Password setup — for users provisioned by an admin (Azure-first flow, Filament/web).
 // Protected by web session only (Auth::login() called in callback before redirect here).
 // Intentionally outside the Filament panel so EnsurePasswordIsSet does not block it.
