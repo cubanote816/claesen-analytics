@@ -60,27 +60,30 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
             ->navigationGroups([
-                NavigationGroup::make('Analyse & Intelligentie')
-                    ->label(__('navigation.groups.analyse_intelligentie'))
-                    ->icon('heroicon-o-presentation-chart-line'),
                 NavigationGroup::make('Workforce & Performance')
-                    ->label(__('navigation.groups.workforce_performance'))
+                    ->label(fn () => __('navigation.groups.workforce_performance'))
                     ->icon('heroicon-o-user-group'),
                 NavigationGroup::make('Growth & Acquisition')
-                    ->label(__('navigation.groups.growth_acquisition'))
+                    ->label(fn () => __('navigation.groups.growth_acquisition'))
                     ->icon('heroicon-o-chart-bar-square'),
-                NavigationGroup::make('Intelligence Hub')
-                    ->label(__('navigation.groups.intelligence_hub'))
-                    ->icon('heroicon-o-sparkles'),
+                NavigationGroup::make('Mailing')
+                    ->label(fn () => __('navigation.groups.mailing'))
+                    ->icon('heroicon-o-envelope'),
+                NavigationGroup::make('Safety & VCA')
+                    ->label(fn () => __('navigation.groups.safety_vca'))
+                    ->icon('heroicon-o-shield-check'),
                 NavigationGroup::make('Content & Website')
-                    ->label(__('navigation.groups.content_website'))
+                    ->label(fn () => __('navigation.groups.content_website'))
                     ->icon('heroicon-o-globe-alt'),
-                NavigationGroup::make('User Management')
-                    ->label(__('navigation.groups.user_management'))
-                    ->icon('heroicon-o-cog-6-tooth'),
+                NavigationGroup::make('Intelligence Hub')
+                    ->label(fn () => __('navigation.groups.intelligence_hub'))
+                    ->icon('heroicon-o-sparkles'),
                 NavigationGroup::make('Field Operations')
-                    ->label(__('navigation.groups.field_operations'))
+                    ->label(fn () => __('navigation.groups.field_operations'))
                     ->icon('heroicon-o-wrench-screwdriver'),
+                NavigationGroup::make('User Management')
+                    ->label(fn () => __('navigation.groups.user_management'))
+                    ->icon('heroicon-o-cog-6-tooth'),
             ])
             ->colors([
                 'primary' => Color::hex('#00aeef'), // Claesen Cyan
@@ -161,15 +164,15 @@ class AdminPanelProvider extends PanelProvider
             ->spa()
             ->defaultThemeMode(\Filament\Enums\ThemeMode::Dark)
             ->navigationItems([
-                NavigationItem::make(__('website.v1_demo_link'))
+                NavigationItem::make(fn () => __('website.v1_demo_link'))
                     ->url('https://backend.claesen-verlichting.be/', shouldOpenInNewTab: true)
                     ->icon('heroicon-o-arrow-top-right-on-square')
-                    ->group('Content & Website')
+                    ->group(fn () => __('navigation.groups.content_website'))
                     ->sort(10),
-                NavigationItem::make(__('website.safety_pwa_link'))
+                NavigationItem::make(fn () => __('website.safety_pwa_link'))
                     ->url('https://service.claesen-verlichting.be/', shouldOpenInNewTab: true)
                     ->icon('heroicon-o-shield-check')
-                    ->group('Content & Website')
+                    ->group(fn () => __('navigation.groups.content_website'))
                     ->sort(11),
             ]);
     }
