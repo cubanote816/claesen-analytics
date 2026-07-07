@@ -1,13 +1,22 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-07 — reordenado el menú lateral de Filament (User Management al final, grupo "Analyse & Intelligentie" ocultado) y encontrado un bug real de localización: `NavigationGroup::label(__(...))`/`NavigationItem::group('...')` evaluados como string plano en vez de closure quedan **congelados en el locale activo al bootear la app** (no en el del visitante), rompiendo el orden y duplicando grupos para cualquier locale ≠ el default. Corregido pasando closures (`fn () => __(...)`) en todo `AdminPanelProvider.php`. El resto sigue igual: membrete corporativo oficial en PDFs (`core::pdf.letterhead`), rebranding "Claesen Intelligence Hub" → "Claesen Outdoor Lighting Platform", bug de `MicrosoftGraphTransport` (logos embebidos sin `isInline`/`contentId`); segundo incidente de producción (`SESSION_DOMAIN`/Sanctum) resuelto; ElectricalBoard, Media (FileLibrary) y Client encontrados igual de rotos que Terrain/Structure/Luminaire; los 3 arreglados y verificados en vivo, sigue sin commitear.
+> Última actualización: 2026-07-07 — quitado el widget "Recent Safety Inspections" de `/inspections` (redundante con la tabla completa de la misma página, a pedido del usuario); widget eliminado por completo (sin otros usos). El resto sigue igual: reorden del menú lateral (User Management al final) + bug real de localización en `NavigationGroup`/`NavigationItem` corregido con closures; membrete corporativo oficial en PDFs (`core::pdf.letterhead`), rebranding "Claesen Intelligence Hub" → "Claesen Outdoor Lighting Platform", bug de `MicrosoftGraphTransport` (logos embebidos sin `isInline`/`contentId`); segundo incidente de producción (`SESSION_DOMAIN`/Sanctum) resuelto; ElectricalBoard, Media (FileLibrary) y Client encontrados igual de rotos que Terrain/Structure/Luminaire; los 3 arreglados y verificados en vivo, sigue sin commitear.
 
 ---
 
 ## Estado actual
 
 - **Sprint activo:** ninguno declarado. Trabajo de esta sesión no pasó por ticket Linear formal — es un "reto" exploratorio del usuario para portar `service.claesen-verlichting` (frontend legacy, antes apuntaba a `api-claesen-sport-app`) contra el backend real `Modules/FieldOps`. Documentado acá por su tamaño, pero **sin commitear todavía** en ninguno de los dos repos (`claesen_api_web_oficial` y `service.claesen-verlichting`).
+
+### Sesión 2026-07-07 (cont.) — Quitar widget "Recent Safety Inspections" de /inspections (Done, sin ticket Linear formal)
+
+**Contexto:** el usuario notó que la página `/inspections` (tabla completa de inspecciones con filtros/paginación) tenía además un widget "Recent Safety Inspections" arriba mostrando las últimas 5 — redundante, mismos datos y casi las mismas columnas que la tabla de abajo.
+
+- `LatestInspectionsWidget` (`Modules/Safety/Filament/Widgets/`) solo se usaba en un lugar (`ListInspections::getHeaderWidgets()`) y su propio `canView()` lo excluía explícitamente del dashboard general (CLA-217) — no tenía ningún otro consumidor. Quitado de `ListInspections.php` y **eliminado el archivo del widget por completo** (no quedaba código muerto).
+- `tests/Feature/DashboardWidgetPlacementTest.php` (creado en CLA-217 para testear `canView()` de los 3 widgets operativos de Safety) actualizado — ya solo cubre `SafetyStatsWidget`/`InspectionsTrendChartWidget`.
+- Clave de traducción huérfana `safety::inspections.widgets.latest_inspections` (nl/en, no existía en fr/de) removida.
+- Verificado: `DashboardWidgetPlacementTest` (1/1) y suite completa de Safety (124/124) ✅.
 
 ### Sesión 2026-07-07 (cont.) — Reordenar menú lateral + bug real de labels de navegación congelados por locale (Done, sin ticket Linear formal)
 

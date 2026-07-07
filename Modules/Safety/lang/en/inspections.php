@@ -51,7 +51,6 @@ return [
         'na'  => 'N/A',
     ],
     'widgets' => [
-        'latest_inspections' => 'Recent Safety Inspections',
         'periods' => [
             'yesterday' => 'Yesterday',
             '7'  => 'Last 7 days',

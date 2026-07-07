@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Modules\Safety\Filament\Widgets\InspectionsTrendChartWidget;
-use Modules\Safety\Filament\Widgets\LatestInspectionsWidget;
 use Modules\Safety\Filament\Widgets\SafetyStatsWidget;
 use Tests\TestCase;
 
@@ -23,7 +22,7 @@ final class DashboardWidgetPlacementTest extends TestCase
 
     public function test_detail_widgets_are_hidden_on_general_dashboard_but_visible_on_inspections_page(): void
     {
-        $widgets = [SafetyStatsWidget::class, InspectionsTrendChartWidget::class, LatestInspectionsWidget::class];
+        $widgets = [SafetyStatsWidget::class, InspectionsTrendChartWidget::class];
 
         $this->bindRequestForRoute('/', 'filament.admin.pages.dashboard');
         foreach ($widgets as $widget) {

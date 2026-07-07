@@ -51,7 +51,6 @@ return [
         'na'  => 'N/A',
     ],
     'widgets' => [
-        'latest_inspections' => 'Recente Werkplekinspecties',
         'periods' => [
             'yesterday' => 'Gisteren',
             '7'  => 'Laatste 7 dagen',
