@@ -2,8 +2,10 @@
 
 namespace Modules\Analytics\Providers;
 
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Modules\Analytics\Observers\TrackableModelObserver;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -27,6 +29,27 @@ class AnalyticsServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+        $this->registerResourceEventObservers();
+    }
+
+    // CLA-231 — attach TrackableModelObserver to every model behind a
+    // Filament resource. Every provider's register() (including
+    // AdminPanelProvider, which calls Filament::registerPanel()) has
+    // already run by the time any provider's boot() runs — that's Laravel's
+    // provider lifecycle guarantee — so panels/resources are available here
+    // unconditionally, with no dependency on an HTTP request being in
+    // flight (unlike Filament::serving(), which never fires outside real
+    // panel-routed requests and is therefore unusable in tests/console).
+    // The actual "was this inside the panel" check happens per-mutation
+    // inside TrackableModelObserver via Filament::getCurrentPanel().
+    // No changes needed in any of the ~30 existing Resource classes.
+    private function registerResourceEventObservers(): void
+    {
+        foreach (Filament::getPanels() as $panel) {
+            foreach ($panel->getResources() as $resourceClass) {
+                $resourceClass::getModel()::observe(TrackableModelObserver::class);
+            }
+        }
     }
 
     /**

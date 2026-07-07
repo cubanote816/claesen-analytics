@@ -268,7 +268,7 @@ Modules/Safety/
 
 ## Sprint Analytics — CLA-229 (rama: `codex/instrumentacion-apps-internas`)
 
-> Base de instrumentación de eventos de producto para medir adopción/fricción en Backoffice, Safety PWA y Claesen-Sport/FieldOps. Endpoint de ingesta y modelo de datos listos; ningún frontend emite eventos todavía.
+> Base de instrumentación de eventos de producto para medir adopción/fricción en Backoffice, Safety PWA y Claesen-Sport/FieldOps. Endpoint de ingesta y modelo de datos listos; Backoffice ya emite `resource_created`/`resource_updated` automáticamente (CLA-231); ningún frontend externo (Safety PWA/Claesen-Sport, repos separados) emite eventos todavía.
 
 ### Reglas Analytics (no negociables)
 
@@ -280,12 +280,16 @@ Modules/Safety/
 - **`app_events` es append-only** (`AppEvent::UPDATED_AT = null`) — no editar eventos ya registrados, mismo principio que `mailing_message_events`.
 - **`user_id` usa `nullOnDelete`** (no `cascadeOnDelete`) — borrar un usuario de Core no debe borrar el historial analítico. **`employee_id` es referencia blanda sin FK**, mismo patrón que `Safety::incident_worker_id`/`FieldOps::FoMaintenanceRecord.employee_id`.
 - **Limitación conocida y aceptada:** `session_ended` depende de que el frontend lo dispare (logout/`beforeunload`) — cierres bruscos (pestaña cerrada, PWA matada en background en campo) nunca lo emiten. Cualquier KPI de duración de sesión debe tolerar sesiones sin cierre formal; no es un bug a "arreglar" en el backend.
+- **`resource_created`/`resource_updated` de Backoffice se enganchan vía `Modules\Analytics\Observers\TrackableModelObserver`, attachado a *todos* los modelos de *todos* los recursos Filament en `AnalyticsServiceProvider::boot()`** (`Filament::getPanels()` → `getResources()` → `getModel()::observe(...)`) — no vía `Filament::serving()`, que solo dispara en requests HTTP reales ruteadas por el panel y por eso es inútil en tests/consola (CLA-231, encontrado empíricamente: el registro vía `serving()` nunca corría en `Livewire::test()`). El filtro real de "esto pasó en el panel, no en un sync command" vive **dentro del Observer**, no en el registro: `Filament::getCurrentPanel() !== null` (poblado por el middleware `SetUpPanel`, exclusivo de requests ruteadas por un panel). **No agregar opt-out por módulo/modelo** — el mecanismo ya es genérico y correcto sin lista de exclusión; si un modelo no debe trackearse, es porque no debería ser un recurso Filament en primer lugar.
+- **`report_exported` sigue sin implementar a propósito** — no hay un choke point genérico (cada módulo exporta PDFs distinto: Safety, Performance, Website), forzar una abstracción común sería sobre-ingeniería. Instrumentar caso por caso si se decide priorizarlo.
 
 ### Estado
 
 Implementado (CLA-229): migración `app_events`, modelo `AppEvent`, `EventTracker` (servicio de registro centralizado), `RecordAppEventJob` (cola), endpoint de ingesta, catálogo completo de eventos (7 transversales operativos + 12 reservados por app), 9 feature tests.
 
-Pendiente (sin ticket abierto todavía): integración real en Safety PWA y Claesen-Sport (repos separados, llamada HTTP al endpoint desde cada frontend); hook de `resource_created`/`resource_updated`/`report_exported` en Backoffice (deliberadamente no enganchado a Filament todavía — evaluar el patrón con datos reales de las otras apps primero); dashboards de adopción/fricción (Fase futura, requiere semanas de datos reales, mismo criterio que se aplicó en Mailing Fase 3).
+Implementado (CLA-231): `TrackableModelObserver` engancha `resource_created`/`resource_updated` en los ~30 recursos Filament existentes sin tocar ninguno de esos archivos. 3 feature tests adicionales (`BackofficeResourceEventTest`, vía `Livewire::test` real sobre `Permission`), 12/12 en verde en el módulo.
+
+Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home/totti/Claesen-Safety`, confirmado) y Claesen-Sport/FieldOps (`/home/totti/Claesen-Sport`) — repos separados, llamada HTTP al endpoint desde cada frontend; `report_exported` (ver regla arriba); dashboards de adopción/fricción (Fase futura, requiere semanas de datos reales, mismo criterio que se aplicó en Mailing Fase 3).
 
 ---
 
