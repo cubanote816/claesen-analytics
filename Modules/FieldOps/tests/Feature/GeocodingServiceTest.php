@@ -98,6 +98,35 @@ class GeocodingServiceTest extends TestCase
         $this->assertDatabaseHas('fo_geocoding_cache', ['status' => 'ZERO_RESULTS']);
     }
 
+    public function test_transient_infra_errors_are_not_cached_and_are_retried(): void
+    {
+        // Escenario real que motivó este test: la key de Google quedó restringida a
+        // una IP vieja (IP dinámica de este entorno de dev cambió) y devolvió
+        // REQUEST_DENIED para las ~887 direcciones reales del sync. Si eso se
+        // cacheara como definitivo, arreglar el IP allowlist en Google Cloud
+        // Console no serviría de nada — quedaría "recordado" el fallo para siempre.
+        Http::fakeSequence('maps.googleapis.com/*')
+            ->push(['status' => 'REQUEST_DENIED'])
+            ->push([
+                'status'  => 'OK',
+                'results' => [
+                    ['geometry' => ['location' => ['lat' => 50.9, 'lng' => 5.5]]],
+                ],
+            ]);
+
+        $service = app(GeocodingService::class);
+        $first = $service->geocode('Koutermanstraat 2', 'Alken', 'BE3570');
+
+        $this->assertNull($first);
+        $this->assertEquals(0, GeocodingCache::count());
+
+        // Una vez resuelto el problema real (key/IP arreglada), el próximo intento
+        // debe volver a pegarle a Google, no devolver un fallo cacheado.
+        $second = $service->geocode('Koutermanstraat 2', 'Alken', 'BE3570');
+
+        $this->assertEquals(['lat' => 50.9, 'lng' => 5.5], $second);
+    }
+
     public function test_returns_null_without_hitting_google_when_no_api_key_configured(): void
     {
         config(['services.google_geocoding.key' => null]);
