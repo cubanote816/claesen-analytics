@@ -8,6 +8,10 @@ use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\FieldOps\Models\AccessType;
 use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Models\LuminaireFrame;
+use Modules\FieldOps\Models\LuminaireSubgroup;
+use Modules\FieldOps\Models\LuminaireType;
 use Modules\FieldOps\Models\SafetyType;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\StructureType;
@@ -509,6 +513,33 @@ class StructureCrudTest extends TestCase
 
         $firstIndex = $indexResponse->json('data.0');
         $this->assertArrayNotHasKey('luminaire_frames', $firstIndex ?? []);
+    }
+
+    /**
+     * Regresion: luminaire_frames[].luminaires[].type llamaba a
+     * LuminaireType::getTranslations() (BadMethodCallException, 500) — LuminaireType.name es
+     * un string plano, no traducible (ver Slice C / CLAUDE.md FO-008), a diferencia de
+     * StructureType/AccessType/etc. Solo se detecta con una luminaria real (map() sobre
+     * coleccion vacia no ejecuta el closure).
+     */
+    public function test_show_includes_luminaire_type_name_when_frame_has_luminaires(): void
+    {
+        [, $token] = $this->user();
+        $structure = Structure::factory()->create();
+        $frame     = LuminaireFrame::factory()->create();
+        $frame->structures()->attach($structure->id);
+        $subgroup = LuminaireSubgroup::factory()->create();
+        $type     = LuminaireType::factory()->create(['luminaire_subgroup_id' => $subgroup->id, 'name' => 'LED Spot']);
+        Luminaire::factory()->create([
+            'luminaire_frame_id'    => $frame->id,
+            'luminaire_type_id'     => $type->id,
+            'luminaire_subgroup_id' => $subgroup->id,
+        ]);
+
+        $this->withToken($token)
+            ->getJson("/api/v1/fieldops/structures/{$structure->id}")
+            ->assertStatus(200)
+            ->assertJsonPath('data.luminaire_frames.0.luminaires.0.type', 'LED Spot');
     }
 
     // ── index filter: terrain_id ──────────────────────────────────────────────

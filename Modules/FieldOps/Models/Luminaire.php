@@ -36,6 +36,8 @@ class Luminaire extends Model
         'serial_number',
         'frame_x',
         'frame_y',
+        'scale_x',
+        'scale_y',
         'info',
         'cafca_material_id',
         'ai_translation_status',
@@ -44,6 +46,8 @@ class Luminaire extends Model
     protected $casts = [
         'frame_x'        => 'float',
         'frame_y'        => 'float',
+        'scale_x'        => 'float',
+        'scale_y'        => 'float',
         'frame_position' => 'integer',
     ];
 

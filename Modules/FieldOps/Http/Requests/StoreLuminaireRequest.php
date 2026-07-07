@@ -24,6 +24,8 @@ class StoreLuminaireRequest extends FormRequest
             'frame_position'        => ['nullable', 'integer', 'min:1'],
             'frame_x'               => ['nullable', 'numeric'],
             'frame_y'               => ['nullable', 'numeric'],
+            'scale_x'               => ['nullable', 'numeric', 'min:0'],
+            'scale_y'               => ['nullable', 'numeric', 'min:0'],
             'info'                  => ['nullable', 'array:nl,en,fr,de'],
             'info.nl'               => ['sometimes', 'nullable', 'string', 'max:1000'],
             'info.en'               => ['sometimes', 'nullable', 'string', 'max:1000'],

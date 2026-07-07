@@ -15,11 +15,14 @@ class LuminaireResource extends JsonResource
             'frame_position'     => $this->frame_position,
             'frame_x'            => $this->frame_x,
             'frame_y'            => $this->frame_y,
+            'scale_x'            => $this->scale_x,
+            'scale_y'            => $this->scale_y,
             'info'               => $this->getTranslations('info'),
             'cafca_material_id'  => $this->cafca_material_id,
             'luminaire_type'     => $this->whenLoaded('luminaireType', fn () => [
-                'id'   => $this->luminaireType->id,
-                'name' => $this->luminaireType->name,
+                'id'    => $this->luminaireType->id,
+                'name'  => $this->luminaireType->name,
+                'image' => $this->luminaireType->image,
             ]),
             'subgroup'           => $this->whenLoaded('subgroup', fn () => [
                 'id'         => $this->subgroup->id,

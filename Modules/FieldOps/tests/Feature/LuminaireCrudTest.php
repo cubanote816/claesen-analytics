@@ -141,7 +141,36 @@ class LuminaireCrudTest extends TestCase
             ->getJson("/api/v1/fieldops/luminaires/{$luminaire->id}")
             ->assertOk()
             ->assertJsonPath('data.id', $luminaire->id)
-            ->assertJsonStructure(['data' => ['id', 'serial_number', 'frame_position', 'frame_x', 'frame_y', 'info']]);
+            ->assertJsonStructure(['data' => ['id', 'serial_number', 'frame_position', 'frame_x', 'frame_y', 'scale_x', 'scale_y', 'info']]);
+    }
+
+    // ── SCALE (canvas resize) ─────────────────────────────────────────────
+
+    public function test_store_accepts_scale(): void
+    {
+        $this->actingAs($this->user)
+            ->postJson('/api/v1/fieldops/luminaires', $this->validPayload(['scale_x' => 1.5, 'scale_y' => 2]))
+            ->assertCreated()
+            ->assertJsonPath('data.scale_x', 1.5)
+            ->assertJsonPath('data.scale_y', 2);
+    }
+
+    public function test_update_scale(): void
+    {
+        $luminaire = Luminaire::factory()->create([
+            'luminaire_frame_id'    => $this->frame->id,
+            'luminaire_type_id'     => $this->type->id,
+            'luminaire_subgroup_id' => $this->subgroup->id,
+        ]);
+
+        $this->actingAs($this->user)
+            ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
+                'scale_x' => 0.8,
+                'scale_y' => 0.9,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.scale_x', 0.8)
+            ->assertJsonPath('data.scale_y', 0.9);
     }
 
     public function test_show_404_for_deleted(): void

@@ -30,6 +30,8 @@ class UpdateLuminaireRequest extends FormRequest
             'frame_position'        => ['sometimes', 'nullable', 'integer', 'min:1'],
             'frame_x'               => ['sometimes', 'nullable', 'numeric'],
             'frame_y'               => ['sometimes', 'nullable', 'numeric'],
+            'scale_x'               => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'scale_y'               => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'info'                  => ['sometimes', 'nullable', 'array:nl,en,fr,de'],
             'info.nl'               => ['sometimes', 'nullable', 'string', 'max:1000'],
             'info.en'               => ['sometimes', 'nullable', 'string', 'max:1000'],

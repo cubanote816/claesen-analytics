@@ -11,8 +11,9 @@ class LuminaireFrameResource extends JsonResource
         return [
             'id'         => $this->id,
             'frame_type' => $this->whenLoaded('frameType', fn () => [
-                'id'   => $this->frameType->id,
-                'name' => $this->frameType->name,
+                'id'    => $this->frameType->id,
+                'name'  => $this->frameType->name,
+                'image' => $this->frameType->image,
             ]),
             'structures' => $this->whenLoaded('structures', fn () =>
                 $this->structures->map(fn ($s) => ['id' => $s->id])

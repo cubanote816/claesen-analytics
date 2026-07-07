@@ -51,7 +51,9 @@ class StructureResource extends JsonResource
                     'id'        => $frame->id,
                     'luminaires' => $frame->luminaires->map(fn ($l) => [
                         'id'   => $l->id,
-                        'type' => $l->luminaireType?->getTranslations('name') ?? [],
+                        // LuminaireType.name es un string plano, no traducible (ver Slice C /
+                        // CLAUDE.md FO-008) — a diferencia de StructureType/AccessType/etc.
+                        'type' => $l->luminaireType?->name,
                     ]),
                 ])
             ),
