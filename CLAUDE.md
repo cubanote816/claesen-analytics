@@ -103,6 +103,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance, automatización — **Fase 0+1+2 completadas** | ✅ ~98% |
 | **Website** | Sitio público, formulario de consulta, galería proyectos — **sprint en curso** | 🚧 ~85% |
 | **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias (reemplazo del satélite `api-claesen-sport-app`) — **menú marcado "(Demo)", gaps abiertos, sin consumidor conectado** | 🚧 ~70% |
+| **Analytics** | Instrumentación de eventos de producto (`app_events`) para medir adopción/fricción en apps internas (Backoffice, Safety PWA, Claesen-Sport/FieldOps) — **CLA-229: base de ingesta lista, sin integración real en ningún frontend todavía** | 🚧 ~30% |
 
 ---
 
@@ -262,6 +263,29 @@ Modules/Safety/
 ├── Filament/Resources/
 └── Tests/Feature/     ← se crean en SAF-012/013/014
 ```
+
+---
+
+## Sprint Analytics — CLA-229 (rama: `codex/instrumentacion-apps-internas`)
+
+> Base de instrumentación de eventos de producto para medir adopción/fricción en Backoffice, Safety PWA y Claesen-Sport/FieldOps. Endpoint de ingesta y modelo de datos listos; ningún frontend emite eventos todavía.
+
+### Reglas Analytics (no negociables)
+
+- **Un solo catálogo de eventos: `Modules\Analytics\Enums\EventName`.** Ninguna app/módulo inventa un `event_name` fuera de este enum — `StoreAppEventRequest` lo rechaza con `Rule::enum`. Agregar un evento nuevo es un PR que agrega un `case` acá, nunca un string suelto en el payload del frontend. Mismo criterio para `AppSource` (catálogo de apps consumidoras).
+- **`event_name`/`app` son `string` en la tabla `app_events`, no `ENUM` de MySQL a propósito** — la validación vive en PHP para que agregar un evento nunca sea un `ALTER TABLE`. No "mejorar" esto a un `ENUM` de base de datos.
+- **Nombres de evento sin prefijo de app** (`inspection_started`, no `safety.inspection_started`) — la columna `app` ya namespacea el origen. No reintroducir prefijos dot-notation en el catálogo.
+- **`POST /api/v1/events` es intencionalmente público (sin `auth:sanctum`)** — soporta eventos anónimos/pre-sesión (ej. login fallido). `$request->user()` se resuelve solo si el middleware global `statefulApi()` ya autenticó la request (cookie de sesión o bearer token); si no, el evento se guarda con `user_id=null`, que es una señal válida, no un error. **Por esto mismo la ruta lleva `throttle:120,1`** — sin Sanctum de por medio, `config/cors.php` no protege nada contra un POST directo no-browser. No quitar el throttle sin poner otra mitigación equivalente.
+- **`properties` (JSON libre) tiene un cap de 5KB** en `StoreAppEventRequest` — sin este límite, el endpoint es un sumidero de storage sin fondo. No subir el límite sin una razón concreta de negocio.
+- **`app_events` es append-only** (`AppEvent::UPDATED_AT = null`) — no editar eventos ya registrados, mismo principio que `mailing_message_events`.
+- **`user_id` usa `nullOnDelete`** (no `cascadeOnDelete`) — borrar un usuario de Core no debe borrar el historial analítico. **`employee_id` es referencia blanda sin FK**, mismo patrón que `Safety::incident_worker_id`/`FieldOps::FoMaintenanceRecord.employee_id`.
+- **Limitación conocida y aceptada:** `session_ended` depende de que el frontend lo dispare (logout/`beforeunload`) — cierres bruscos (pestaña cerrada, PWA matada en background en campo) nunca lo emiten. Cualquier KPI de duración de sesión debe tolerar sesiones sin cierre formal; no es un bug a "arreglar" en el backend.
+
+### Estado
+
+Implementado (CLA-229): migración `app_events`, modelo `AppEvent`, `EventTracker` (servicio de registro centralizado), `RecordAppEventJob` (cola), endpoint de ingesta, catálogo completo de eventos (7 transversales operativos + 12 reservados por app), 9 feature tests.
+
+Pendiente (sin ticket abierto todavía): integración real en Safety PWA y Claesen-Sport (repos separados, llamada HTTP al endpoint desde cada frontend); hook de `resource_created`/`resource_updated`/`report_exported` en Backoffice (deliberadamente no enganchado a Filament todavía — evaluar el patrón con datos reales de las otras apps primero); dashboards de adopción/fricción (Fase futura, requiere semanas de datos reales, mismo criterio que se aplicó en Mailing Fase 3).
 
 ---
 
