@@ -4,24 +4,24 @@ namespace Modules\FieldOps\Filament\Resources;
 
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
+use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Modules\FieldOps\Filament\Resources\FoClients\Pages\EditFoClient;
 use Modules\FieldOps\Filament\Resources\FoClients\Pages\ListFoClients;
+use Modules\FieldOps\Filament\Resources\FoClients\Pages\ViewFoClient;
 use Modules\FieldOps\Models\FoClient;
 
 class FoClientResource extends Resource
@@ -38,6 +38,11 @@ class FoClientResource extends Resource
     }
 
     public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canEdit($record): bool
     {
         return false;
     }
@@ -62,33 +67,58 @@ class FoClientResource extends Resource
         return __('fieldops::resource.clients.plural_label');
     }
 
-    public static function form(Schema $schema): Schema
+    public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->schema([
-                TextInput::make('name')
-                    ->label(__('fieldops::resource.clients.fields.name'))
-                    ->required()
-                    ->maxLength(255),
-                TextInput::make('street')
-                    ->label(__('fieldops::resource.clients.fields.street'))
-                    ->maxLength(255),
-                TextInput::make('city')
-                    ->label(__('fieldops::resource.clients.fields.city'))
-                    ->maxLength(255),
-                TextInput::make('phone')
-                    ->label(__('fieldops::resource.clients.fields.phone'))
-                    ->tel()
-                    ->maxLength(50),
-                TextInput::make('email')
-                    ->label(__('fieldops::resource.clients.fields.email'))
-                    ->email()
-                    ->maxLength(255),
-                Select::make('language')
-                    ->label(__('fieldops::resource.clients.fields.language'))
-                    ->options(['nl' => 'Nederlands', 'en' => 'English', 'fr' => 'Français', 'de' => 'Deutsch'])
-                    ->default('nl'),
-            ])->columns(2),
+            Section::make(__('fieldops::resource.clients.model_label'))
+                ->icon(Heroicon::OutlinedUser)
+                ->schema([
+                    Group::make([
+                        TextEntry::make('name')
+                            ->label(__('fieldops::resource.clients.fields.name'))
+                            ->weight('bold')
+                            ->size(TextSize::Large),
+                        TextEntry::make('language')
+                            ->label(__('fieldops::resource.clients.fields.language'))
+                            ->badge()
+                            ->color('info'),
+                    ]),
+                    Group::make([
+                        TextEntry::make('phone')
+                            ->label(__('fieldops::resource.clients.fields.phone'))
+                            ->icon(Heroicon::OutlinedPhone)
+                            ->placeholder('—')
+                            ->url(fn ($record) => $record->phone ? 'tel:'.$record->phone : null),
+                        TextEntry::make('email')
+                            ->label(__('fieldops::resource.clients.fields.email'))
+                            ->icon(Heroicon::OutlinedEnvelope)
+                            ->placeholder('—')
+                            ->url(fn ($record) => $record->email ? 'mailto:'.$record->email : null),
+                        TextEntry::make('address')
+                            ->label(__('fieldops::resource.clients.fields.address'))
+                            ->icon(Heroicon::OutlinedMapPin)
+                            ->state(fn ($record) => collect([$record->street, $record->city])->filter()->implode(', ') ?: null)
+                            ->placeholder('—')
+                            ->url(fn ($record) => ($record->street || $record->city)
+                                ? 'https://www.google.com/maps/search/?api=1&query='.urlencode(collect([$record->street, $record->city])->filter()->implode(', '))
+                                : null)
+                            ->openUrlInNewTab(),
+                    ]),
+                ])
+                ->columns(2),
+
+            Section::make(__('fieldops::resource.clients.fields.complexes_count'))
+                ->icon(Heroicon::OutlinedBuildingOffice2)
+                ->schema([
+                    ViewEntry::make('complexes')
+                        ->hiddenLabel()
+                        // Filament's Entry::getState() falls back to null on an empty
+                        // relationship collection (Laravel's blank() treats a 0-count
+                        // Collection as blank) — ->default() is what backfills it, so
+                        // the blade's @forelse always gets an iterable, never null.
+                        ->default(fn () => collect())
+                        ->view('fieldops::filament.infolists.associated-complexes'),
+                ]),
         ]);
     }
 
@@ -126,7 +156,6 @@ class FoClientResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make(),
                 RestoreAction::make(),
             ])
             ->toolbarActions([
@@ -147,7 +176,7 @@ class FoClientResource extends Resource
     {
         return [
             'index' => ListFoClients::route('/'),
-            'edit'  => EditFoClient::route('/{record}/edit'),
+            'view'  => ViewFoClient::route('/{record}'),
         ];
     }
 }

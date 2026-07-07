@@ -14,8 +14,10 @@ return [
             'phone'    => 'Telefoon',
             'email'    => 'E-mail',
             'language' => 'Taal',
+            'address'  => 'Adres',
             'complexes_count' => 'Complexen',
         ],
+        'no_complexes' => 'Deze klant heeft geen complexen.',
     ],
 
     'complexes' => [

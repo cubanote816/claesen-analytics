@@ -14,8 +14,10 @@ return [
             'phone'    => 'Phone',
             'email'    => 'Email',
             'language' => 'Language',
+            'address'  => 'Address',
             'complexes_count' => 'Complexes',
         ],
+        'no_complexes' => 'This client has no complexes.',
     ],
 
     'complexes' => [
