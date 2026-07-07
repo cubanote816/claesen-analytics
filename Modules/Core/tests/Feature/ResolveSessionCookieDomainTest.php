@@ -57,4 +57,16 @@ class ResolveSessionCookieDomainTest extends TestCase
 
         $this->assertNull(config('session.domain'));
     }
+
+    public function test_local_dev_stateful_origin_gets_no_fixed_domain(): void
+    {
+        // localhost:5173/5174 are in SANCTUM_STATEFUL_DOMAINS for local dev (Claesen-Sport,
+        // service.claesen-verlichting), so EnsureFrontendRequestsAreStateful::fromFrontend()
+        // is true here too — but they must NOT get the production ".claesen-verlichting.be"
+        // cookie domain, since a browser on localhost will never send that cookie back.
+        $this->withHeaders(['Origin' => 'http://localhost:5174'])
+            ->get('http://localhost:8000/up');
+
+        $this->assertNull(config('session.domain'));
+    }
 }
