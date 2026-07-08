@@ -314,4 +314,118 @@ class ComplexCrudTest extends TestCase
         $this->assertContains('Complex A', $names);
         $this->assertContains('Complex B', $names);
     }
+
+    // ── index filter: search ─────────────────────────────────────────────────
+
+    public function test_index_search_matches_name(): void
+    {
+        [, $token] = $this->user();
+        Complex::factory()->create(['name' => 'Sportpark Balen']);
+        Complex::factory()->create(['name' => 'Sportpark Leuven']);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/fieldops/complexes?search=balen')
+            ->assertOk();
+
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertContains('Sportpark Balen', $names);
+        $this->assertNotContains('Sportpark Leuven', $names);
+    }
+
+    public function test_index_search_is_case_insensitive(): void
+    {
+        [, $token] = $this->user();
+        Complex::factory()->create(['name' => 'Sportpark Balen']);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/fieldops/complexes?search=BALEN')
+            ->assertOk();
+
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertContains('Sportpark Balen', $names);
+    }
+
+    public function test_index_search_matches_city(): void
+    {
+        [, $token] = $this->user();
+        Complex::factory()->create(['name' => 'Terrein 1', 'city' => 'Balen']);
+        Complex::factory()->create(['name' => 'Terrein 2', 'city' => 'Leuven']);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/fieldops/complexes?search=balen')
+            ->assertOk();
+
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertContains('Terrein 1', $names);
+        $this->assertNotContains('Terrein 2', $names);
+    }
+
+    public function test_index_search_matches_street(): void
+    {
+        [, $token] = $this->user();
+        Complex::factory()->create(['name' => 'Terrein 1', 'street' => 'Balenstraat 12']);
+        Complex::factory()->create(['name' => 'Terrein 2', 'street' => 'Leuvensesteenweg 1']);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/fieldops/complexes?search=balenstraat')
+            ->assertOk();
+
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertContains('Terrein 1', $names);
+        $this->assertNotContains('Terrein 2', $names);
+    }
+
+    public function test_index_search_matches_client_name(): void
+    {
+        [, $token] = $this->user();
+        $clientBalen = FoClient::factory()->create(['name' => 'Gemeente Balen']);
+        $clientOther = FoClient::factory()->create(['name' => 'Gemeente Leuven']);
+
+        Complex::factory()->create(['client_id' => $clientBalen->id, 'name' => 'Terrein 1']);
+        Complex::factory()->create(['client_id' => $clientOther->id, 'name' => 'Terrein 2']);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/fieldops/complexes?search=balen')
+            ->assertOk();
+
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertContains('Terrein 1', $names);
+        $this->assertNotContains('Terrein 2', $names);
+    }
+
+    public function test_index_search_combines_with_client_id_filter(): void
+    {
+        [, $token] = $this->user();
+        $clientA = FoClient::factory()->create();
+        $clientB = FoClient::factory()->create();
+
+        Complex::factory()->create(['client_id' => $clientA->id, 'name' => 'Balen A']);
+        Complex::factory()->create(['client_id' => $clientB->id, 'name' => 'Balen B']);
+
+        $response = $this->withToken($token)
+            ->getJson("/api/v1/fieldops/complexes?search=balen&client_id={$clientA->id}")
+            ->assertOk();
+
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertContains('Balen A', $names);
+        $this->assertNotContains('Balen B', $names);
+    }
+
+    public function test_index_search_no_match_returns_empty(): void
+    {
+        [, $token] = $this->user();
+        Complex::factory()->create(['name' => 'Sportpark Leuven']);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/fieldops/complexes?search=zzz-nonexistent')
+            ->assertOk();
+
+        $this->assertSame([], $response->json('data'));
+    }
+
+    public function test_index_search_requires_authentication(): void
+    {
+        $this->getJson('/api/v1/fieldops/complexes?search=balen')
+            ->assertStatus(401);
+    }
 }

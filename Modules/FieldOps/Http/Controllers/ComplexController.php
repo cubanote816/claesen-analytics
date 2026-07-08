@@ -15,6 +15,17 @@ class ComplexController extends Controller
     {
         $complexes = Complex::with('client', 'createdBy', 'media')
             ->when($request->filled('client_id'), fn ($q) => $q->where('client_id', $request->integer('client_id')))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = trim((string) $request->string('search'));
+
+                $q->where(function ($q) use ($term) {
+                    $q->where('name', 'like', "%{$term}%")
+                        ->orWhere('city', 'like', "%{$term}%")
+                        ->orWhere('street', 'like', "%{$term}%")
+                        ->orWhere('zipcode', 'like', "%{$term}%")
+                        ->orWhereHas('client', fn ($q) => $q->where('name', 'like', "%{$term}%"));
+                });
+            })
             ->orderBy('name')
             ->paginate(50);
 
