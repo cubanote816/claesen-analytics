@@ -41,9 +41,38 @@ class FoMaintenanceFilamentTest extends TestCase
         $this->get('/fo-maintenance-records')->assertOk();
         $this->get('/fo-maintenance-records/create')->assertOk();
         $record = FoMaintenanceRecord::first();
+        $this->get("/fo-maintenance-records/{$record->id}")->assertOk();
         $this->get("/fo-maintenance-records/{$record->id}/edit")->assertOk();
 
         $this->get('/catalogs/fo-maintenance-types')->assertOk();
         $this->get('/catalogs/fo-maintenance-types/create')->assertOk();
+    }
+
+    public function test_view_page_renders_emergency_client_reported_record(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $board = ElectricalBoard::factory()->create();
+        $record = FoMaintenanceRecord::factory()->forMaintainable($board)->clientReported()->create();
+
+        $this->get("/fo-maintenance-records/{$record->id}")->assertOk();
+    }
+
+    public function test_view_page_renders_resolved_preventive_record_without_incident_section(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $luminaire = Luminaire::factory()->create();
+        $record = FoMaintenanceRecord::factory()->forMaintainable($luminaire)->create([
+            'fo_maintenance_type_id' => FoMaintenanceType::factory()->preventive()->create()->id,
+            'problem_reported_at' => null,
+            'problem_solved_at' => null,
+        ]);
+
+        $this->get("/fo-maintenance-records/{$record->id}")->assertOk();
     }
 }

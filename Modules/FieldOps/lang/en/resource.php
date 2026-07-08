@@ -145,9 +145,19 @@ return [
     ],
 
     'maintenance_records' => [
-        'navigation'   => 'Maintenance',
-        'model_label'  => 'Maintenance record',
-        'plural_label' => 'Maintenance records',
+        'navigation'          => 'Maintenance',
+        'model_label'         => 'Maintenance record',
+        'plural_label'        => 'Maintenance records',
+        'status_label'        => 'Status',
+        'group_by_date'       => 'Date',
+        'incident_section'    => 'Incident / emergency',
+        'client_reported_section' => 'Client-reported',
+        'status' => [
+            'emergency'   => 'Emergency — open',
+            'resolved'    => 'Resolved',
+            'in_progress' => 'In progress',
+            'none'        => 'Routine',
+        ],
         'fields' => [
             'maintainable'        => 'Equipment',
             'maintenance_type'    => 'Maintenance type',
@@ -162,6 +172,7 @@ return [
             'problem_reported_at' => 'Problem reported at',
             'problem_solved_at'   => 'Problem solved at',
             'downtime_hours'      => 'Downtime (hours)',
+            'resolution_time_hours' => 'Resolution time (hours)',
             'reported_by_client'  => 'Reported by client',
             'priority'            => 'Priority',
             'contact_person'      => 'Contact person',

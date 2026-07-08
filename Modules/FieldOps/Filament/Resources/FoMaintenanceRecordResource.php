@@ -9,20 +9,25 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
+use Filament\Tables\Grouping\Group as TableGroup;
 use Filament\Tables\Table;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,6 +36,7 @@ use Modules\Cafca\Models\Employee;
 use Modules\FieldOps\Filament\Resources\MaintenanceRecords\Pages\CreateFoMaintenanceRecord;
 use Modules\FieldOps\Filament\Resources\MaintenanceRecords\Pages\EditFoMaintenanceRecord;
 use Modules\FieldOps\Filament\Resources\MaintenanceRecords\Pages\ListFoMaintenanceRecords;
+use Modules\FieldOps\Filament\Resources\MaintenanceRecords\Pages\ViewFoMaintenanceRecord;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
@@ -164,11 +170,148 @@ class FoMaintenanceRecordResource extends Resource
         ]);
     }
 
+    /**
+     * Emergency + client-reported + plain preventive/corrective all live in the
+     * same table — the question that actually matters when scanning this list is
+     * "is this still open?", not which columns are filled in. is_emergency wins
+     * over the raw problem_status accessor so an unresolved emergency never reads
+     * as a calmer "in progress".
+     */
+    private static function statusColor(FoMaintenanceRecord $record): string
+    {
+        if ($record->is_emergency && $record->problem_status !== 'resolved') {
+            return 'danger';
+        }
+
+        return match ($record->problem_status) {
+            'resolved' => 'success',
+            'in_progress' => 'warning',
+            default => 'gray',
+        };
+    }
+
+    private static function statusLabel(FoMaintenanceRecord $record): string
+    {
+        $key = ($record->is_emergency && $record->problem_status !== 'resolved') ? 'emergency' : $record->problem_status;
+
+        return __('fieldops::resource.maintenance_records.status.'.$key);
+    }
+
+    private static function maintainableUrl(FoMaintenanceRecord $record): ?string
+    {
+        return match ($record->maintainable_type) {
+            Luminaire::class => LuminaireResource::getUrl('view', ['record' => $record->maintainable_id]),
+            ElectricalBoard::class => ElectricalBoardResource::getUrl('view', ['record' => $record->maintainable_id]),
+            default => null,
+        };
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make()->schema([
+                Group::make([
+                    TextEntry::make('status')
+                        ->label(__('fieldops::resource.maintenance_records.status_label'))
+                        ->state(fn (FoMaintenanceRecord $record) => static::statusLabel($record))
+                        ->badge()
+                        ->color(fn (FoMaintenanceRecord $record) => static::statusColor($record)),
+                    TextEntry::make('maintenanceType.name')
+                        ->label(__('fieldops::resource.maintenance_records.fields.maintenance_type'))
+                        ->getStateUsing(fn ($record) => $record->maintenanceType?->getTranslation('name', app()->getLocale(), false)
+                            ?: $record->maintenanceType?->getTranslation('name', 'nl', false))
+                        ->badge()
+                        ->color('info'),
+                ]),
+                TextEntry::make('maintainable_type')
+                    ->label(__('fieldops::resource.maintenance_records.fields.maintainable'))
+                    ->state(fn (FoMaintenanceRecord $record) => (match ($record->maintainable_type) {
+                        Luminaire::class => 'Luminaire',
+                        ElectricalBoard::class => 'Electrical board',
+                        default => $record->maintainable_type,
+                    }).' #'.$record->maintainable_id)
+                    ->url(fn (FoMaintenanceRecord $record) => static::maintainableUrl($record)),
+                Group::make([
+                    TextEntry::make('employee.name')
+                        ->label(__('fieldops::resource.maintenance_records.fields.employee'))
+                        ->placeholder('—'),
+                    TextEntry::make('maintenance_at')
+                        ->label(__('fieldops::resource.maintenance_records.fields.maintenance_at'))
+                        ->dateTime(),
+                ]),
+                TextEntry::make('notes')
+                    ->label(__('fieldops::resource.maintenance_records.fields.notes'))
+                    ->placeholder('—')
+                    ->columnSpanFull(),
+            ])->columns(2),
+
+            Section::make(__('fieldops::resource.maintenance_records.incident_section'))
+                ->schema([
+                    TextEntry::make('problem_description')
+                        ->label(__('fieldops::resource.maintenance_records.fields.problem_description'))
+                        ->placeholder('—')
+                        ->columnSpanFull(),
+                    TextEntry::make('root_cause')
+                        ->label(__('fieldops::resource.maintenance_records.fields.root_cause'))
+                        ->placeholder('—'),
+                    TextEntry::make('solution_applied')
+                        ->label(__('fieldops::resource.maintenance_records.fields.solution_applied'))
+                        ->placeholder('—'),
+                    TextEntry::make('problem_reported_at')
+                        ->label(__('fieldops::resource.maintenance_records.fields.problem_reported_at'))
+                        ->dateTime()
+                        ->placeholder('—'),
+                    TextEntry::make('problem_solved_at')
+                        ->label(__('fieldops::resource.maintenance_records.fields.problem_solved_at'))
+                        ->dateTime()
+                        ->placeholder('—'),
+                    TextEntry::make('resolution_time_hours')
+                        ->label(__('fieldops::resource.maintenance_records.fields.resolution_time_hours'))
+                        ->placeholder('—'),
+                ])
+                ->columns(2)
+                ->visible(fn (FoMaintenanceRecord $record) => filled($record->problem_reported_at)),
+
+            Section::make(__('fieldops::resource.maintenance_records.client_reported_section'))
+                ->schema([
+                    TextEntry::make('client.name')
+                        ->label(__('fieldops::resource.maintenance_records.fields.client'))
+                        ->placeholder('—'),
+                    TextEntry::make('priority')
+                        ->label(__('fieldops::resource.maintenance_records.fields.priority'))
+                        ->placeholder('—')
+                        ->badge()
+                        ->color(fn ($state) => match ($state) {
+                            'high' => 'danger',
+                            'medium' => 'warning',
+                            default => 'gray',
+                        }),
+                    TextEntry::make('contact_person')
+                        ->label(__('fieldops::resource.maintenance_records.fields.contact_person'))
+                        ->placeholder('—'),
+                    TextEntry::make('contact_phone')
+                        ->label(__('fieldops::resource.maintenance_records.fields.contact_phone'))
+                        ->placeholder('—'),
+                    TextEntry::make('location_details')
+                        ->label(__('fieldops::resource.maintenance_records.fields.location_details'))
+                        ->placeholder('—')
+                        ->columnSpanFull(),
+                ])
+                ->columns(2)
+                ->visible(fn (FoMaintenanceRecord $record) => $record->reported_by_client),
+        ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 TextColumn::make('id')->label('ID')->sortable(),
+                TextColumn::make('status')
+                    ->label(__('fieldops::resource.maintenance_records.status_label'))
+                    ->state(fn (FoMaintenanceRecord $record) => static::statusLabel($record))
+                    ->badge()
+                    ->color(fn (FoMaintenanceRecord $record) => static::statusColor($record)),
                 TextColumn::make('maintainable_type')
                     ->label(__('fieldops::resource.maintenance_records.fields.maintainable'))
                     ->formatStateUsing(fn ($state) => match ($state) {
@@ -185,9 +328,6 @@ class FoMaintenanceRecordResource extends Resource
                     ->label(__('fieldops::resource.maintenance_records.fields.maintenance_at'))
                     ->dateTime()
                     ->sortable(),
-                IconColumn::make('is_emergency')
-                    ->label(__('fieldops::resource.maintenance_records.fields.is_emergency'))
-                    ->boolean(),
                 IconColumn::make('reported_by_client')
                     ->label(__('fieldops::resource.maintenance_records.fields.reported_by_client'))
                     ->boolean(),
@@ -196,6 +336,12 @@ class FoMaintenanceRecordResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->groups([
+                TableGroup::make('maintenance_at')
+                    ->date()
+                    ->label(__('fieldops::resource.maintenance_records.group_by_date')),
+            ])
+            ->defaultGroup('maintenance_at')
             ->filters([
                 TrashedFilter::make(),
                 SelectFilter::make('maintainable_type')
@@ -204,8 +350,13 @@ class FoMaintenanceRecordResource extends Resource
                         Luminaire::class => 'Luminaire',
                         ElectricalBoard::class => 'Electrical board',
                     ]),
+                TernaryFilter::make('is_emergency')
+                    ->label(__('fieldops::resource.maintenance_records.fields.is_emergency')),
+                TernaryFilter::make('reported_by_client')
+                    ->label(__('fieldops::resource.maintenance_records.fields.reported_by_client')),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 RestoreAction::make(),
             ])
@@ -221,7 +372,7 @@ class FoMaintenanceRecordResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['maintainable', 'maintenanceType'])
+            ->with(['maintainable', 'maintenanceType', 'employee', 'client'])
             ->withoutGlobalScope(SoftDeletingScope::class);
     }
 
@@ -230,6 +381,7 @@ class FoMaintenanceRecordResource extends Resource
         return [
             'index'  => ListFoMaintenanceRecords::route('/'),
             'create' => CreateFoMaintenanceRecord::route('/create'),
+            'view'   => ViewFoMaintenanceRecord::route('/{record}'),
             'edit'   => EditFoMaintenanceRecord::route('/{record}/edit'),
         ];
     }

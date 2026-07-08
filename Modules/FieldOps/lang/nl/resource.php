@@ -145,9 +145,19 @@ return [
     ],
 
     'maintenance_records' => [
-        'navigation'   => 'Onderhoud',
-        'model_label'  => 'Onderhoudsregistratie',
-        'plural_label' => 'Onderhoudsregistraties',
+        'navigation'          => 'Onderhoud',
+        'model_label'         => 'Onderhoudsregistratie',
+        'plural_label'        => 'Onderhoudsregistraties',
+        'status_label'        => 'Status',
+        'group_by_date'       => 'Datum',
+        'incident_section'    => 'Incident / noodgeval',
+        'client_reported_section' => 'Gemeld door klant',
+        'status' => [
+            'emergency'   => 'Noodgeval — open',
+            'resolved'    => 'Opgelost',
+            'in_progress' => 'Bezig',
+            'none'        => 'Routine',
+        ],
         'fields' => [
             'maintainable'        => 'Uitrusting',
             'maintenance_type'    => 'Onderhoudstype',
@@ -162,6 +172,7 @@ return [
             'problem_reported_at' => 'Probleem gemeld op',
             'problem_solved_at'   => 'Probleem opgelost op',
             'downtime_hours'      => 'Uitvaltijd (uren)',
+            'resolution_time_hours' => 'Oplostijd (uren)',
             'reported_by_client'  => 'Gemeld door klant',
             'priority'            => 'Prioriteit',
             'contact_person'      => 'Contactpersoon',
