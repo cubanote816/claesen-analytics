@@ -31,6 +31,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             ProjectInsightSeeder::class,
+            \Modules\FieldOps\Database\Seeders\FieldOpsCatalogSeeder::class,
+            \Modules\FieldOps\Database\Seeders\FoMaintenanceTypeSeeder::class,
+            \Modules\FieldOps\Database\Seeders\FieldOpsDemoDataSeeder::class,
         ]);
 
         $user1->syncRoles(['super_admin']);
