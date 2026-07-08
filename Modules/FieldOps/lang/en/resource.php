@@ -21,9 +21,10 @@ return [
     ],
 
     'complexes' => [
-        'navigation'   => 'Complexes',
-        'model_label'  => 'Complex',
-        'plural_label' => 'Complexes',
+        'navigation'      => 'Complexes',
+        'model_label'     => 'Complex',
+        'plural_label'    => 'Complexes',
+        'no_coordinates'  => 'Not geocoded yet',
         'fields' => [
             'name'            => 'Name',
             'street'          => 'Street',

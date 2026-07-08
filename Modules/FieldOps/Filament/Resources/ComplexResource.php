@@ -9,10 +9,14 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -23,7 +27,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Modules\FieldOps\Filament\Resources\Complexes\Pages\EditComplex;
 use Modules\FieldOps\Filament\Resources\Complexes\Pages\ListComplexes;
+use Modules\FieldOps\Filament\Resources\Complexes\Pages\ViewComplex;
 use Modules\FieldOps\Filament\Resources\Complexes\RelationManagers\TerrainsRelationManager;
+use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\ElectricalBoardsRelationManager;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\FoClient;
 
@@ -119,6 +125,52 @@ class ComplexResource extends Resource
         ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make()->schema([
+                Group::make([
+                    TextEntry::make('name')
+                        ->label(__('fieldops::resource.complexes.fields.name'))
+                        ->weight('bold')
+                        ->placeholder('—'),
+                    TextEntry::make('client.name')
+                        ->label(__('fieldops::resource.complexes.fields.client'))
+                        ->placeholder('—')
+                        ->url(fn ($record) => $record->client
+                            ? \Modules\FieldOps\Filament\Resources\FoClientResource::getUrl('view', ['record' => $record->client])
+                            : null),
+                ]),
+                TextEntry::make('address')
+                    ->label(__('fieldops::resource.complexes.fields.street'))
+                    ->state(fn ($record) => collect([$record->street, $record->zipcode, $record->city])->filter()->implode(', ') ?: null)
+                    ->placeholder('—'),
+                Group::make([
+                    TextEntry::make('lat')
+                        ->label(__('fieldops::resource.complexes.fields.lat'))
+                        ->placeholder(__('fieldops::resource.complexes.no_coordinates')),
+                    TextEntry::make('lng')
+                        ->label(__('fieldops::resource.complexes.fields.lng'))
+                        ->placeholder(__('fieldops::resource.complexes.no_coordinates')),
+                ]),
+            ])->columns(2),
+
+            Section::make(__('fieldops::resource.media.section_label'))
+                ->schema([
+                    ViewEntry::make('photos')
+                        ->label(__('fieldops::resource.media.photos'))
+                        ->state(fn ($record) => $record->getMedia('photos'))
+                        ->default(fn () => collect())
+                        ->view('fieldops::filament.infolists.media-gallery'),
+                    TextEntry::make('documents_count')
+                        ->label(__('fieldops::resource.media.documents'))
+                        ->state(fn ($record) => (string) $record->getMedia('documents')->count()),
+                ])
+                ->collapsible()
+                ->collapsed(fn ($record) => $record->getMedia('photos')->isEmpty() && $record->getMedia('documents')->isEmpty()),
+        ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -148,6 +200,7 @@ class ComplexResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 RestoreAction::make(),
             ])
@@ -163,6 +216,10 @@ class ComplexResource extends Resource
     {
         return [
             TerrainsRelationManager::class,
+            // Reused from StructureResource — same relationship name ("electricalBoards"),
+            // same generic attach/detach behaviour. First real attach/detach UI for this
+            // pivot from the Complex side (Structure/Terrain already had it, Complex didn't).
+            ElectricalBoardsRelationManager::class,
         ];
     }
 
@@ -176,6 +233,7 @@ class ComplexResource extends Resource
     {
         return [
             'index' => ListComplexes::route('/'),
+            'view'  => ViewComplex::route('/{record}'),
             'edit'  => EditComplex::route('/{record}/edit'),
         ];
     }
