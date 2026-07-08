@@ -98,9 +98,13 @@ return [
     ],
 
     'luminaires' => [
-        'navigation'   => 'Luminaires',
-        'model_label'  => 'Luminaire',
-        'plural_label' => 'Luminaires',
+        'navigation'      => 'Luminaires',
+        'model_label'     => 'Luminaire',
+        'plural_label'    => 'Luminaires',
+        'where_it_sits'   => 'Where it sits',
+        'recent_maintenance' => 'Recent maintenance',
+        'no_maintenance'  => 'No maintenance recorded yet.',
+        'view_full_history' => 'View full history',
         'fields' => [
             'luminaire_type'    => 'Luminaire type',
             'subgroup'          => 'Subgroup',

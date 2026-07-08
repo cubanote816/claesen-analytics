@@ -109,9 +109,13 @@ class LuminaireFrameResource extends Resource
      * is flagged (amber) when its luminaire has an open maintenance issue —
      * problem_reported_at set, problem_solved_at still null.
      *
-     * @return array<int, array{id: int, left: float, top: float, size: int, label: string, serial: ?string, flagged: bool, url: string}>
+     * Public (not just used by this resource's own infolist): LuminaireResource
+     * reuses this to draw the same frame layout on a single Luminaire's own view
+     * page, with that luminaire's own marker highlighted via $selectedLuminaireId.
+     *
+     * @return array<int, array{id: int, left: float, top: float, size: int, label: string, serial: ?string, flagged: bool, selected: bool, url: string}>
      */
-    protected static function buildCanvasMarkers(LuminaireFrame $record): array
+    public static function buildCanvasMarkers(LuminaireFrame $record, ?int $selectedLuminaireId = null): array
     {
         $luminaires = $record->luminaires()->with('luminaireType')->orderBy('frame_position')->get();
 
@@ -126,7 +130,7 @@ class LuminaireFrameResource extends Resource
         $rangeX = max(($xs->max() ?? 100) - $minX, 1);
         $rangeY = max(($ys->max() ?? 100) - $minY, 1);
 
-        return $luminaires->map(function (Luminaire $luminaire) use ($minX, $rangeX, $minY, $rangeY) {
+        return $luminaires->map(function (Luminaire $luminaire) use ($minX, $rangeX, $minY, $rangeY, $selectedLuminaireId) {
             $hasOpenIssue = $luminaire->maintenanceRecords()
                 ->whereNotNull('problem_reported_at')
                 ->whereNull('problem_solved_at')
@@ -140,6 +144,7 @@ class LuminaireFrameResource extends Resource
                 'label' => (string) ($luminaire->frame_position ?? '?'),
                 'serial' => $luminaire->serial_number,
                 'flagged' => $hasOpenIssue,
+                'selected' => $selectedLuminaireId !== null && $luminaire->id === $selectedLuminaireId,
                 'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('edit', ['record' => $luminaire]),
             ];
         })->values()->all();

@@ -1,5 +1,5 @@
 @php
-    /** @var array<int, array{id:int,left:float,top:float,size:int,label:string,serial:?string,flagged:bool,url:string}> $markers */
+    /** @var array<int, array{id:int,left:float,top:float,size:int,label:string,serial:?string,flagged:bool,selected?:bool,url:string}> $markers */
     $markers = $getState();
 @endphp
 
@@ -9,7 +9,7 @@
             <a
                 href="{{ $marker['url'] }}"
                 title="{{ $marker['serial'] ?? ('#'.$marker['label']) }}"
-                class="absolute flex items-center justify-center rounded-full border-2 border-white font-mono text-[10px] font-semibold text-white shadow dark:border-gray-900 {{ $marker['flagged'] ? 'bg-amber-500' : 'bg-sky-500 dark:bg-sky-400' }}"
+                class="absolute flex items-center justify-center rounded-full border-2 border-white font-mono text-[10px] font-semibold text-white shadow dark:border-gray-900 {{ $marker['flagged'] ? 'bg-amber-500' : 'bg-sky-500 dark:bg-sky-400' }} {{ ($marker['selected'] ?? false) ? 'ring-4 ring-offset-2 ring-sky-600 dark:ring-offset-gray-900' : '' }}"
                 style="left: {{ $marker['left'] }}%; top: {{ $marker['top'] }}%; width: {{ $marker['size'] }}px; height: {{ $marker['size'] }}px; transform: translate(-50%, -50%);"
             >{{ $marker['label'] }}</a>
         @endforeach

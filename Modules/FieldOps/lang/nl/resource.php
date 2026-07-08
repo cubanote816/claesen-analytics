@@ -98,9 +98,13 @@ return [
     ],
 
     'luminaires' => [
-        'navigation'   => 'Armaturen',
-        'model_label'  => 'Armatuur',
-        'plural_label' => 'Armaturen',
+        'navigation'         => 'Armaturen',
+        'model_label'        => 'Armatuur',
+        'plural_label'       => 'Armaturen',
+        'where_it_sits'      => 'Locatie',
+        'recent_maintenance' => 'Recent onderhoud',
+        'no_maintenance'     => 'Nog geen onderhoud geregistreerd.',
+        'view_full_history'  => 'Volledige geschiedenis bekijken',
         'fields' => [
             'luminaire_type'    => 'Armatuurtype',
             'subgroup'          => 'Subgroep',

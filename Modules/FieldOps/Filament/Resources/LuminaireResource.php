@@ -9,10 +9,14 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -24,6 +28,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\CreateLuminaire;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\EditLuminaire;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\ListLuminaires;
+use Modules\FieldOps\Filament\Resources\Luminaires\Pages\ViewLuminaire;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireSubgroup;
@@ -104,6 +109,16 @@ class LuminaireResource extends Resource
                     ->label(__('fieldops::resource.luminaires.fields.frame_y'))
                     ->numeric()
                     ->nullable(),
+                TextInput::make('scale_x')
+                    ->label(__('fieldops::resource.luminaires.fields.scale_x'))
+                    ->numeric()
+                    ->step(0.01)
+                    ->nullable(),
+                TextInput::make('scale_y')
+                    ->label(__('fieldops::resource.luminaires.fields.scale_y'))
+                    ->numeric()
+                    ->step(0.01)
+                    ->nullable(),
                 TextInput::make('cafca_material_id')
                     ->label(__('fieldops::resource.luminaires.fields.cafca_material_id'))
                     ->nullable(),
@@ -117,6 +132,79 @@ class LuminaireResource extends Resource
                     ->rows(2),
             ])->collapsible()->collapsed(),
         ]);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make()->schema([
+                Group::make([
+                    TextEntry::make('serial_number')
+                        ->label(__('fieldops::resource.luminaires.fields.serial_number'))
+                        ->placeholder('—'),
+                    TextEntry::make('frame_position')
+                        ->label(__('fieldops::resource.luminaires.fields.frame_position'))
+                        ->placeholder('—'),
+                ]),
+                Group::make([
+                    TextEntry::make('luminaireType.name')
+                        ->label(__('fieldops::resource.luminaires.fields.luminaire_type'))
+                        ->placeholder('—')
+                        ->badge()
+                        ->color('info'),
+                    TextEntry::make('subgroup.group_name')
+                        ->label(__('fieldops::resource.luminaires.fields.subgroup'))
+                        ->getStateUsing(fn ($record) => $record->subgroup
+                            ? "{$record->subgroup->group_name} — {$record->subgroup->brand}"
+                            : null)
+                        ->placeholder('—'),
+                ]),
+                TextEntry::make('frame_x')
+                    ->label(__('fieldops::resource.luminaires.fields.frame_x').' / '.__('fieldops::resource.luminaires.fields.frame_y'))
+                    ->getStateUsing(fn ($record) => "{$record->frame_x}, {$record->frame_y}")
+                    ->badge(),
+                TextEntry::make('scale_x')
+                    ->label(__('fieldops::resource.luminaires.fields.scale_x').' / '.__('fieldops::resource.luminaires.fields.scale_y'))
+                    ->getStateUsing(fn ($record) => ($record->scale_x ?? '—').', '.($record->scale_y ?? '—'))
+                    ->badge(),
+            ])->columns(2),
+
+            Section::make()->schema([
+                Group::make([
+                    ViewEntry::make('recent_maintenance')
+                        ->label(__('fieldops::resource.luminaires.recent_maintenance'))
+                        ->state(fn (Luminaire $record) => static::buildRecentMaintenance($record))
+                        ->default(fn () => [])
+                        ->view('fieldops::filament.infolists.maintenance-teaser'),
+                    ViewEntry::make('canvas')
+                        ->label(__('fieldops::resource.luminaires.where_it_sits'))
+                        ->state(fn (Luminaire $record) => $record->luminaireFrame
+                            ? LuminaireFrameResource::buildCanvasMarkers($record->luminaireFrame, $record->id)
+                            : [])
+                        ->default(fn () => [])
+                        ->view('fieldops::filament.infolists.luminaire-canvas'),
+                ])->columns(2),
+            ]),
+        ]);
+    }
+
+    /**
+     * @return array<int, array{date: ?string, type: ?string, status: string}>
+     */
+    protected static function buildRecentMaintenance(Luminaire $record): array
+    {
+        return $record->maintenanceRecords()
+            ->with('maintenanceType')
+            ->latest('maintenance_at')
+            ->limit(2)
+            ->get()
+            ->map(fn ($maintenanceRecord) => [
+                'date' => $maintenanceRecord->maintenance_at?->format('d M'),
+                'type' => $maintenanceRecord->maintenanceType?->getTranslation('name', app()->getLocale(), false)
+                    ?: $maintenanceRecord->maintenanceType?->getTranslation('name', 'nl', false),
+                'status' => ($maintenanceRecord->problem_reported_at && ! $maintenanceRecord->problem_solved_at) ? 'open' : 'resolved',
+            ])
+            ->all();
     }
 
     public static function table(Table $table): Table
@@ -151,6 +239,7 @@ class LuminaireResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 RestoreAction::make(),
             ])
@@ -174,6 +263,7 @@ class LuminaireResource extends Resource
         return [
             'index'  => ListLuminaires::route('/'),
             'create' => CreateLuminaire::route('/create'),
+            'view'   => ViewLuminaire::route('/{record}'),
             'edit'   => EditLuminaire::route('/{record}/edit'),
         ];
     }
