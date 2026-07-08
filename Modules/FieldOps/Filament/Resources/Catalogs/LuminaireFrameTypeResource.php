@@ -14,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -72,15 +73,24 @@ class LuminaireFrameTypeResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Only 2 of the 8 FieldOps catalogs carry a real image (this one and
+            // LuminaireType) — the image IS the point (it becomes the icon drawn on
+            // the Luminaire frame canvas), so it gets a visual card grid instead of
+            // a plain table. The other 6 catalogs are pure text and stay as a list.
+            ->contentGrid(['md' => 3, 'xl' => 4])
             ->columns([
+                ImageColumn::make('image')
+                    ->label(__('fieldops::resource.catalogs.fields.image'))
+                    ->size(64)
+                    ->extraImgAttributes(['class' => 'rounded-lg object-cover']),
                 TextColumn::make('name')
                     ->label(__('fieldops::resource.catalogs.fields.name'))
+                    ->weight('bold')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('luminaire_frames_count')
+                    ->label(__('fieldops::resource.catalogs.fields.used_by'))
+                    ->counts('luminaireFrames'),
             ])
             ->filters([
                 TrashedFilter::make(),

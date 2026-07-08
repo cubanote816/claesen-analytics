@@ -200,6 +200,7 @@ return [
             'group_name' => 'Groepsnaam',
             'subgroup'   => 'Subgroep',
             'image'      => 'Afbeelding',
+            'used_by'    => 'Gebruikt door',
             'type_nl'    => 'Type (NL)',
             'type_en'    => 'Type (EN)',
             'type_fr'    => 'Type (FR)',

@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireTypes\Pages\CreateLuminaireType;
@@ -76,9 +77,18 @@ class LuminaireTypeResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // Same treatment as LuminaireFrameTypeResource — image is the point here
+            // too (the icon drawn on the Luminaire frame canvas), so a visual card
+            // grid instead of a plain table.
+            ->contentGrid(['md' => 3, 'xl' => 4])
             ->columns([
+                ImageColumn::make('image')
+                    ->label(__('fieldops::resource.catalogs.fields.image'))
+                    ->size(64)
+                    ->extraImgAttributes(['class' => 'rounded-lg object-cover']),
                 TextColumn::make('name')
                     ->label(__('fieldops::resource.catalogs.fields.name'))
+                    ->weight('bold')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('subgroup.group_name')
@@ -87,10 +97,9 @@ class LuminaireTypeResource extends Resource
                     ->sortable(),
                 TextColumn::make('subgroup.brand')
                     ->label(__('fieldops::resource.catalogs.fields.brand')),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('luminaires_count')
+                    ->label(__('fieldops::resource.catalogs.fields.used_by'))
+                    ->counts('luminaires'),
             ])
             ->recordActions([
                 EditAction::make(),
