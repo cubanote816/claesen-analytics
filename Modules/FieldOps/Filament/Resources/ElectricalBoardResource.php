@@ -36,6 +36,8 @@ class ElectricalBoardResource extends Resource
 {
     protected static ?string $model = ElectricalBoard::class;
 
+    protected static ?string $recordTitleAttribute = 'location_description';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBolt;
 
     protected static ?int $navigationSort = 7;

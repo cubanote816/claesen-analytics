@@ -37,6 +37,8 @@ class ComplexResource extends Resource
 {
     protected static ?string $model = Complex::class;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMapPin;
 
     protected static ?int $navigationSort = 2;

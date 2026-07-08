@@ -49,6 +49,28 @@ class FoMaintenanceRecordResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWrenchScrewdriver;
 
+    // FoMaintenanceRecord has no "name" column — see StructureResource::getRecordTitle()
+    // for why hasRecordTitle() also needs overriding alongside this.
+    public static function hasRecordTitle(): bool
+    {
+        return true;
+    }
+
+    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        if (! $record instanceof FoMaintenanceRecord) {
+            return static::getModelLabel();
+        }
+
+        $equipment = match ($record->maintainable_type) {
+            Luminaire::class => 'Luminaire',
+            ElectricalBoard::class => 'Electrical board',
+            default => static::getModelLabel(),
+        };
+
+        return "{$equipment} #{$record->maintainable_id} — ".$record->maintenance_at?->format('d M Y');
+    }
+
     protected static ?int $navigationSort = 7;
 
     public static function canAccess(): bool

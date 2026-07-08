@@ -45,6 +45,28 @@ class StructureResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBoltSlash;
 
+    // Structure has no "name" column — the closest thing to an identifying label
+    // is its type + id, same format already used for Select options elsewhere.
+    // hasRecordTitle() must also be overridden: Filament only calls getRecordTitle()
+    // when it's true, and its default implementation only checks $recordTitleAttribute
+    // (which doesn't apply here, since the title isn't a single plain column).
+    public static function hasRecordTitle(): bool
+    {
+        return true;
+    }
+
+    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        if (! $record instanceof Structure) {
+            return static::getModelLabel();
+        }
+
+        $typeName = $record->structureType?->getTranslation('name', app()->getLocale(), false)
+            ?: $record->structureType?->getTranslation('name', 'nl', false);
+
+        return '#'.$record->id.($typeName ? " — {$typeName}" : '');
+    }
+
     protected static ?int $navigationSort = 4;
 
     public static function canAccess(): bool

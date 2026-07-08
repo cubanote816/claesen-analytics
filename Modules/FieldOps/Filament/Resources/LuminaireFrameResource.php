@@ -37,6 +37,22 @@ class LuminaireFrameResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleGroup;
 
+    // LuminaireFrame has no "name" column — see StructureResource::getRecordTitle()
+    // for why hasRecordTitle() also needs overriding alongside this.
+    public static function hasRecordTitle(): bool
+    {
+        return true;
+    }
+
+    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        if (! $record instanceof LuminaireFrame) {
+            return static::getModelLabel();
+        }
+
+        return '#'.$record->id.($record->frameType?->name ? " — {$record->frameType->name}" : '');
+    }
+
     protected static ?int $navigationSort = 5;
 
     public static function canAccess(): bool

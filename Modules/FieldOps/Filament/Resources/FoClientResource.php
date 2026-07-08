@@ -28,6 +28,8 @@ class FoClientResource extends Resource
 {
     protected static ?string $model = FoClient::class;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
 
     protected static ?int $navigationSort = 1;

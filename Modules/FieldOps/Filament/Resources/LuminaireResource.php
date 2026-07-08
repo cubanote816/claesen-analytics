@@ -38,6 +38,8 @@ class LuminaireResource extends Resource
 {
     protected static ?string $model = Luminaire::class;
 
+    protected static ?string $recordTitleAttribute = 'serial_number';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLightBulb;
 
     protected static ?int $navigationSort = 6;
