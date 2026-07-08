@@ -9,10 +9,13 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -25,6 +28,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalBoard;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\EditElectricalBoard;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\ListElectricalBoards;
+use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\ViewElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoardType;
 
@@ -108,6 +112,84 @@ class ElectricalBoardResource extends Resource
         ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make()->schema([
+                TextEntry::make('electricalBoardType.name')
+                    ->label(__('fieldops::resource.electrical_boards.fields.electrical_board_type'))
+                    ->getStateUsing(fn ($record) => $record->electricalBoardType?->getTranslation('name', app()->getLocale(), false)
+                        ?: $record->electricalBoardType?->getTranslation('name', 'nl', false))
+                    ->placeholder('—')
+                    ->badge()
+                    ->color('warning'),
+                TextEntry::make('location_description')
+                    ->label(__('fieldops::resource.electrical_boards.fields.location_description'))
+                    ->getStateUsing(fn ($record) => $record->getTranslation('location_description', app()->getLocale(), false)
+                        ?: $record->getTranslation('location_description', 'nl', false))
+                    ->placeholder('—'),
+            ])->columns(2),
+
+            Section::make(__('fieldops::resource.electrical_boards.used_by_label'))
+                ->schema([
+                    ViewEntry::make('used_by')
+                        ->hiddenLabel()
+                        ->state(fn (ElectricalBoard $record) => static::buildUsedByGroups($record))
+                        ->view('fieldops::filament.infolists.used-by'),
+                ]),
+
+            Section::make(__('fieldops::resource.media.section_label'))
+                ->schema([
+                    ViewEntry::make('photos')
+                        ->label(__('fieldops::resource.media.photos'))
+                        ->state(fn ($record) => $record->getMedia('photos'))
+                        ->default(fn () => collect())
+                        ->view('fieldops::filament.infolists.media-gallery'),
+                    TextEntry::make('documents_count')
+                        ->label(__('fieldops::resource.media.documents'))
+                        ->state(fn ($record) => (string) $record->getMedia('documents')->count()),
+                ])
+                ->collapsible()
+                ->collapsed(fn ($record) => $record->getMedia('photos')->isEmpty() && $record->getMedia('documents')->isEmpty()),
+        ]);
+    }
+
+    /**
+     * ElectricalBoard has no single owner (Complex/Terrain/Structure are all
+     * belongsToMany, Pattern C) — this view stays read-only "used by" on purpose.
+     * Attach/detach for these same 3 pivots already lives on Structure's and
+     * Terrain's own pages (their side of the relationship); Complex's side still
+     * has no attach/detach UI anywhere yet — a real gap, not addressed here.
+     *
+     * @return array<int, array{label: string, items: array<int, array{label: string, url: string}>}>
+     */
+    protected static function buildUsedByGroups(ElectricalBoard $record): array
+    {
+        return [
+            [
+                'label' => __('fieldops::resource.complexes.plural_label'),
+                'items' => $record->complexes()->get()->map(fn ($complex) => [
+                    'label' => $complex->name,
+                    'url' => \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('edit', ['record' => $complex]),
+                ])->all(),
+            ],
+            [
+                'label' => __('fieldops::resource.terrains.plural_label'),
+                'items' => $record->terrains()->get()->map(fn ($terrain) => [
+                    'label' => $terrain->getTranslation('name', app()->getLocale(), false) ?: $terrain->getTranslation('name', 'nl', false),
+                    'url' => \Modules\FieldOps\Filament\Resources\TerrainResource::getUrl('view', ['record' => $terrain]),
+                ])->all(),
+            ],
+            [
+                'label' => __('fieldops::resource.structures.plural_label'),
+                'items' => $record->structures()->with('structureType')->get()->map(fn ($structure) => [
+                    'label' => '#'.$structure->id.' — '.($structure->structureType?->getTranslation('name', app()->getLocale(), false) ?: $structure->structureType?->getTranslation('name', 'nl', false)),
+                    'url' => \Modules\FieldOps\Filament\Resources\StructureResource::getUrl('view', ['record' => $structure]),
+                ])->all(),
+            ],
+        ];
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -144,6 +226,7 @@ class ElectricalBoardResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 RestoreAction::make(),
             ])
@@ -167,6 +250,7 @@ class ElectricalBoardResource extends Resource
         return [
             'index'  => ListElectricalBoards::route('/'),
             'create' => CreateElectricalBoard::route('/create'),
+            'view'   => ViewElectricalBoard::route('/{record}'),
             'edit'   => EditElectricalBoard::route('/{record}/edit'),
         ];
     }

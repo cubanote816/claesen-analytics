@@ -121,9 +121,10 @@ return [
     ],
 
     'electrical_boards' => [
-        'navigation'   => 'Electrical boards',
-        'model_label'  => 'Electrical board',
-        'plural_label' => 'Electrical boards',
+        'navigation'     => 'Electrical boards',
+        'model_label'    => 'Electrical board',
+        'plural_label'   => 'Electrical boards',
+        'used_by_label'  => 'Used by',
         'fields' => [
             'electrical_board_type'      => 'Board type',
             'lat'                        => 'Latitude',

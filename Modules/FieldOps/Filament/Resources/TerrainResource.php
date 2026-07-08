@@ -9,10 +9,14 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -22,9 +26,12 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\ElectricalBoardsRelationManager;
 use Modules\FieldOps\Filament\Resources\Terrains\Pages\CreateTerrain;
 use Modules\FieldOps\Filament\Resources\Terrains\Pages\EditTerrain;
 use Modules\FieldOps\Filament\Resources\Terrains\Pages\ListTerrains;
+use Modules\FieldOps\Filament\Resources\Terrains\Pages\ViewTerrain;
+use Modules\FieldOps\Filament\Resources\Terrains\RelationManagers\StructuresRelationManager;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Models\TerrainType;
@@ -114,6 +121,48 @@ class TerrainResource extends Resource
         ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make()->schema([
+                Group::make([
+                    TextEntry::make('name')
+                        ->label(__('fieldops::resource.terrains.fields.name'))
+                        ->getStateUsing(fn ($record) => $record->getTranslation('name', app()->getLocale(), false)
+                            ?: $record->getTranslation('name', 'nl', false))
+                        ->placeholder('—'),
+                    TextEntry::make('terrainType.type')
+                        ->label(__('fieldops::resource.terrains.fields.terrain_type'))
+                        ->getStateUsing(fn ($record) => $record->terrainType?->getTranslation('type', app()->getLocale(), false)
+                            ?: $record->terrainType?->getTranslation('type', 'nl', false))
+                        ->placeholder('—')
+                        ->badge()
+                        ->color('info'),
+                ]),
+                TextEntry::make('complex.name')
+                    ->label(__('fieldops::resource.terrains.fields.complex'))
+                    ->placeholder('—')
+                    ->url(fn ($record) => $record->complex
+                        ? \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('edit', ['record' => $record->complex])
+                        : null),
+            ])->columns(2),
+
+            Section::make(__('fieldops::resource.media.section_label'))
+                ->schema([
+                    ViewEntry::make('photos')
+                        ->label(__('fieldops::resource.media.photos'))
+                        ->state(fn ($record) => $record->getMedia('photos'))
+                        ->default(fn () => collect())
+                        ->view('fieldops::filament.infolists.media-gallery'),
+                    TextEntry::make('documents_count')
+                        ->label(__('fieldops::resource.media.documents'))
+                        ->state(fn ($record) => (string) $record->getMedia('documents')->count()),
+                ])
+                ->collapsible()
+                ->collapsed(fn ($record) => $record->getMedia('photos')->isEmpty() && $record->getMedia('documents')->isEmpty()),
+        ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -154,6 +203,7 @@ class TerrainResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 RestoreAction::make(),
             ])
@@ -172,11 +222,22 @@ class TerrainResource extends Resource
             ->withoutGlobalScope(SoftDeletingScope::class);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            StructuresRelationManager::class,
+            // Reused from StructureResource — same relationship name ("electricalBoards"),
+            // same generic attach/detach behaviour, no Structure-specific logic inside.
+            ElectricalBoardsRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index'  => ListTerrains::route('/'),
             'create' => CreateTerrain::route('/create'),
+            'view'   => ViewTerrain::route('/{record}'),
             'edit'   => EditTerrain::route('/{record}/edit'),
         ];
     }
