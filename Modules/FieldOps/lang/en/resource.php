@@ -76,12 +76,20 @@ return [
             'cafca_material_id'  => 'CAFCA Material ID',
             'terrains_count'     => 'Terrains',
         ],
+        'status' => [
+            'access_active'      => 'Active',
+            'access_inactive'    => 'Inactive',
+            'safety_certified'   => 'Certified',
+            'safety_uncertified' => 'Not certified',
+        ],
     ],
 
     'luminaire_frames' => [
-        'navigation'   => 'Luminaire frames',
-        'model_label'  => 'Luminaire frame',
-        'plural_label' => 'Luminaire frames',
+        'navigation'    => 'Luminaire frames',
+        'model_label'   => 'Luminaire frame',
+        'plural_label'  => 'Luminaire frames',
+        'canvas_label'  => 'Layout',
+        'no_luminaires' => 'No luminaires placed on this frame yet.',
         'fields' => [
             'frame_type'       => 'Frame type',
             'luminaires_count' => 'Luminaires',
@@ -101,6 +109,8 @@ return [
             'serial_number'     => 'Serial number',
             'frame_x'           => 'X position',
             'frame_y'           => 'Y position',
+            'scale_x'           => 'X scale',
+            'scale_y'           => 'Y scale',
             'info'              => 'Info',
             'info_nl'           => 'Info (NL)',
             'info_en'           => 'Info (EN)',
@@ -189,5 +199,6 @@ return [
         'section_label' => 'Photos & documents',
         'photos'        => 'Photos',
         'documents'     => 'Documents (PDF)',
+        'no_photos'     => 'No photos uploaded yet.',
     ],
 ];

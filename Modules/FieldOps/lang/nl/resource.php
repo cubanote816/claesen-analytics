@@ -76,12 +76,20 @@ return [
             'cafca_material_id'  => 'CAFCA Materiaal ID',
             'terrains_count'     => 'Terreinen',
         ],
+        'status' => [
+            'access_active'      => 'Actief',
+            'access_inactive'    => 'Inactief',
+            'safety_certified'   => 'Gecertificeerd',
+            'safety_uncertified' => 'Niet gecertificeerd',
+        ],
     ],
 
     'luminaire_frames' => [
-        'navigation'   => 'Verlichtingsframes',
-        'model_label'  => 'Verlichtingsframe',
-        'plural_label' => 'Verlichtingsframes',
+        'navigation'    => 'Verlichtingsframes',
+        'model_label'   => 'Verlichtingsframe',
+        'plural_label'  => 'Verlichtingsframes',
+        'canvas_label'  => 'Indeling',
+        'no_luminaires' => 'Nog geen armaturen geplaatst op dit frame.',
         'fields' => [
             'frame_type'       => 'Frametype',
             'luminaires_count' => 'Verlichtingsarmaturen',
@@ -101,6 +109,8 @@ return [
             'serial_number'     => 'Serienummer',
             'frame_x'           => 'X-positie',
             'frame_y'           => 'Y-positie',
+            'scale_x'           => 'X-schaal',
+            'scale_y'           => 'Y-schaal',
             'info'              => 'Info',
             'info_nl'           => 'Info (NL)',
             'info_en'           => 'Info (EN)',
@@ -189,5 +199,6 @@ return [
         'section_label' => "Foto's & documenten",
         'photos'        => "Foto's",
         'documents'     => 'Documenten (PDF)',
+        'no_photos'     => "Nog geen foto's geüpload.",
     ],
 ];

@@ -57,6 +57,16 @@ class LuminairesRelationManager extends RelationManager
                     ->label(__('fieldops::resource.luminaires.fields.frame_y'))
                     ->numeric()
                     ->nullable(),
+                TextInput::make('scale_x')
+                    ->label(__('fieldops::resource.luminaires.fields.scale_x'))
+                    ->numeric()
+                    ->step(0.01)
+                    ->nullable(),
+                TextInput::make('scale_y')
+                    ->label(__('fieldops::resource.luminaires.fields.scale_y'))
+                    ->numeric()
+                    ->step(0.01)
+                    ->nullable(),
                 TextInput::make('cafca_material_id')
                     ->label(__('fieldops::resource.luminaires.fields.cafca_material_id'))
                     ->nullable(),

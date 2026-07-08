@@ -9,12 +9,16 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -26,6 +30,10 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\EditStructure;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\ListStructures;
+use Modules\FieldOps\Filament\Resources\Structures\Pages\ViewStructure;
+use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\ElectricalBoardsRelationManager;
+use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\LuminaireFramesRelationManager;
+use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\TerrainsRelationManager;
 use Modules\FieldOps\Models\AccessType;
 use Modules\FieldOps\Models\SafetyType;
 use Modules\FieldOps\Models\Structure;
@@ -140,6 +148,69 @@ class StructureResource extends Resource
         ]);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make()->schema([
+                Group::make([
+                    TextEntry::make('structureType.name')
+                        ->label(__('fieldops::resource.structures.fields.structure_type'))
+                        ->getStateUsing(fn ($record) => $record->structureType?->getTranslation('name', app()->getLocale(), false)
+                            ?: $record->structureType?->getTranslation('name', 'nl', false))
+                        ->placeholder('—')
+                        ->badge()
+                        ->color('info'),
+                    TextEntry::make('height')
+                        ->label(__('fieldops::resource.structures.fields.height'))
+                        ->suffix(' cm')
+                        ->placeholder('—'),
+                ]),
+                Group::make([
+                    TextEntry::make('access_status')
+                        ->label(__('fieldops::resource.structures.fields.access_type'))
+                        ->state(fn ($record) => $record->accessType
+                            ? trim(($record->accessType->getTranslation('name', app()->getLocale(), false) ?: $record->accessType->getTranslation('name', 'nl', false))
+                                .' · '.($record->access_active ? __('fieldops::resource.structures.status.access_active') : __('fieldops::resource.structures.status.access_inactive')))
+                            : null)
+                        ->placeholder('—')
+                        ->badge()
+                        ->color(fn ($record) => $record->access_active ? 'success' : 'warning'),
+                    TextEntry::make('safety_status')
+                        ->label(__('fieldops::resource.structures.fields.safety_type'))
+                        ->state(fn ($record) => $record->safetyType
+                            ? trim(($record->safetyType->getTranslation('name', app()->getLocale(), false) ?: $record->safetyType->getTranslation('name', 'nl', false))
+                                .' · '.($record->safety_certified ? __('fieldops::resource.structures.status.safety_certified') : __('fieldops::resource.structures.status.safety_uncertified')))
+                            : null)
+                        ->placeholder('—')
+                        ->badge()
+                        ->color(fn ($record) => $record->safety_certified ? 'success' : 'warning'),
+                ]),
+                TextEntry::make('info')
+                    ->label(__('fieldops::resource.structures.fields.info'))
+                    ->getStateUsing(fn ($record) => $record->getTranslation('info', app()->getLocale(), false) ?: $record->getTranslation('info', 'nl', false))
+                    ->placeholder('—')
+                    ->columnSpanFull(),
+            ])->columns(2),
+
+            Section::make(__('fieldops::resource.media.section_label'))
+                ->schema([
+                    ViewEntry::make('photos')
+                        ->label(__('fieldops::resource.media.photos'))
+                        ->state(fn ($record) => $record->getMedia('photos'))
+                        // Entry::getState() collapses an empty Collection to null (Laravel's
+                        // blank() treats 0-count as blank) — ->default() backfills it so the
+                        // blade always gets an iterable, never null. Same gotcha as ViewFoClient.
+                        ->default(fn () => collect())
+                        ->view('fieldops::filament.infolists.media-gallery'),
+                    TextEntry::make('documents_count')
+                        ->label(__('fieldops::resource.media.documents'))
+                        ->state(fn ($record) => (string) $record->getMedia('documents')->count()),
+                ])
+                ->collapsible()
+                ->collapsed(fn ($record) => $record->getMedia('photos')->isEmpty() && $record->getMedia('documents')->isEmpty()),
+        ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -172,6 +243,7 @@ class StructureResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
                 RestoreAction::make(),
             ])
@@ -190,11 +262,21 @@ class StructureResource extends Resource
             ->withoutGlobalScope(SoftDeletingScope::class);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            TerrainsRelationManager::class,
+            LuminaireFramesRelationManager::class,
+            ElectricalBoardsRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index'  => ListStructures::route('/'),
             'create' => CreateStructure::route('/create'),
+            'view'   => ViewStructure::route('/{record}'),
             'edit'   => EditStructure::route('/{record}/edit'),
         ];
     }
