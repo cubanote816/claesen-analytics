@@ -29,6 +29,8 @@ return [
         'no_coordinates'  => 'Nog niet gegeocodeerd',
         'fields' => [
             'name'            => 'Naam',
+            'address'         => 'Adres',
+            'map'             => 'Kaart',
             'street'          => 'Straat',
             'city'            => 'Stad',
             'zipcode'         => 'Postcode',

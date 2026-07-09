@@ -148,15 +148,21 @@ class ComplexResource extends Resource
                     ],
                     'meta' => [
                         [
-                            'label' => __('fieldops::resource.complexes.fields.street'),
+                            'label' => __('fieldops::resource.complexes.fields.address'),
                             'value' => collect([$record->street, $record->zipcode, $record->city])->filter()->implode(', ') ?: null,
                             'placeholder' => '—',
                             'icon' => 'heroicon-o-map-pin',
                         ],
                         [
-                            'label' => __('fieldops::resource.complexes.fields.lat').' / '.__('fieldops::resource.complexes.fields.lng'),
-                            'value' => ($record->lat !== null && $record->lng !== null) ? "{$record->lat}, {$record->lng}" : null,
+                            'type' => 'map',
+                            'label' => __('fieldops::resource.complexes.fields.map'),
                             'placeholder' => __('fieldops::resource.complexes.no_coordinates'),
+                            // Google Maps for now — a page of our own showing the complex
+                            // with all its terrain/structure pins is a bigger follow-up.
+                            'url' => ($record->lat !== null && $record->lng !== null)
+                                ? "https://www.google.com/maps/search/?api=1&query={$record->lat},{$record->lng}"
+                                : null,
+                            'newTab' => true,
                         ],
                     ],
                 ])

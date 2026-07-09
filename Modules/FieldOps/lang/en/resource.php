@@ -29,6 +29,8 @@ return [
         'no_coordinates'  => 'Not geocoded yet',
         'fields' => [
             'name'            => 'Name',
+            'address'         => 'Address',
+            'map'             => 'Map',
             'street'          => 'Street',
             'city'            => 'City',
             'zipcode'         => 'Zip code',
