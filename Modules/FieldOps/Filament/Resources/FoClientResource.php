@@ -129,10 +129,12 @@ class FoClientResource extends Resource
                         ],
                     ],
                 ])
-                ->view('fieldops::filament.infolists.profile-header'),
+                ->view('fieldops::filament.infolists.profile-header')
+                ->columnSpanFull(),
 
             Section::make(fn (FoClient $record) => __('fieldops::resource.complexes.plural_label').' ('.$record->complexes()->count().')')
                 ->icon(Heroicon::OutlinedBuildingOffice2)
+                ->columnSpanFull()
                 ->schema([
                     ViewEntry::make('complexes')
                         ->hiddenLabel()
