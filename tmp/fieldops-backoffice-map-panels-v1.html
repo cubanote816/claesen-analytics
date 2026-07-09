@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLA-255 - FieldOps Backoffice Map Panels</title>
+  <style>
+    :root {
+      --primary: #00aeef;
+      --primary-700: #007fb1;
+      --lime: #a5d610;
+      --magenta: #e6007e;
+      --warning: #fcd34d;
+      --ink: #0b0b0f;
+      --muted: #667085;
+      --line: #dfe5ec;
+      --soft: #f8fafc;
+      --card: #ffffff;
+      --sidebar: #f5f7f9;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #f6f8fb;
+      font-family: ui-sans-serif, "Segoe UI", Arial, sans-serif;
+      line-height: 1.45;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 320px minmax(980px, 1fr);
+    }
+
+    .sidebar {
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+      padding: 18px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .brand {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px;
+    }
+
+    .brand-mark {
+      width: 76px;
+      height: 42px;
+      border-radius: 10px;
+      background:
+        radial-gradient(circle at 20px 8px, #e6007e 0 4px, transparent 5px),
+        radial-gradient(circle at 32px 8px, #a5d610 0 4px, transparent 5px),
+        radial-gradient(circle at 44px 8px, #00aeef 0 4px, transparent 5px),
+        linear-gradient(135deg, #fff, #e9edf2);
+      border: 1px solid var(--line);
+    }
+
+    .brand span {
+      color: #475467;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .nav-title {
+      color: #7a8796;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin: 18px 0 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 10px;
+      color: #374151;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .nav-item::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #aab4c0;
+    }
+
+    .nav-item.active {
+      background: #eef7fc;
+      color: #007fb1;
+    }
+
+    .nav-item.active::before {
+      background: var(--primary);
+    }
+
+    .main {
+      min-width: 0;
+    }
+
+    .topbar {
+      height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 18px;
+      padding: 0 48px;
+      background: white;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .search {
+      width: 280px;
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      color: #98a2b3;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      font-size: 14px;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: #05070a;
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .content {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 40px 72px;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #667085;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 54px;
+    }
+
+    .page-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 28px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      background: var(--primary);
+      color: white;
+      padding: 10px 16px;
+      font-weight: 800;
+      box-shadow: 0 8px 18px rgba(0, 174, 239, 0.22);
+    }
+
+    .profile {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 32px;
+      align-items: end;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      color: #667085;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin: 0 0 4px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -0.04em;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 6px 10px;
+      color: #344054;
+      font-size: 12px;
+      font-weight: 700;
+      background: white;
+    }
+
+    .chip::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--primary);
+    }
+
+    .stat {
+      text-align: right;
+      padding-right: 8px;
+    }
+
+    .stat strong {
+      display: block;
+      color: var(--primary);
+      font-size: 28px;
+      line-height: 1;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .stat span {
+      color: #667085;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 22px;
+      margin-bottom: 24px;
+    }
+
+    .meta-label {
+      color: #667085;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .meta-value {
+      font-weight: 750;
+      color: #111827;
+    }
+
+    .map-panel {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: white;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 26px;
+    }
+
+    .map-panel-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .map-panel-title {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+    }
+
+    .map-panel-subtitle {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .map-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toolbar-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 0 11px;
+      color: #344054;
+      background: #fbfdff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .map-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      min-height: 480px;
+    }
+
+    .map-content.board {
+      grid-template-columns: minmax(0, 1fr) 380px;
+    }
+
+    .map-stage {
+      position: relative;
+      min-height: 480px;
+      overflow: hidden;
+      background: #486f42;
+    }
+
+    .map-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .map-stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.18), transparent 28%, transparent 70%, rgba(0,0,0,.18)),
+        radial-gradient(circle at center, transparent 45%, rgba(0,0,0,.16));
+      pointer-events: none;
+    }
+
+    .zoom {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      z-index: 4;
+      display: grid;
+      gap: 8px;
+    }
+
+    .zoom button {
+      width: 38px;
+      height: 38px;
+      border: 0;
+      border-radius: 9px;
+      background: white;
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: 0 8px 20px rgba(0,0,0,.18);
+    }
+
+    .map-legend {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      z-index: 4;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      max-width: 70%;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: rgba(10, 14, 20, .78);
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .legend-mark {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      background: var(--lime);
+      border: 2px solid white;
+    }
+
+    .legend-mark.board {
+      background: #64748b;
+      border-color: var(--warning);
+    }
+
+    .legend-mark.structure {
+      background: #1f2937;
+      border-color: var(--warning);
+    }
+
+    .legend-mark.center {
+      border-radius: 50% 50% 50% 0;
+      rotate: -45deg;
+      background: #ef4444;
+    }
+
+    .coord {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      z-index: 4;
+      background: rgba(10, 14, 20, .78);
+      color: white;
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .marker {
+      position: absolute;
+      z-index: 5;
+      filter: drop-shadow(0 9px 12px rgba(0,0,0,.32));
+    }
+
+    .marker.center {
+      width: 30px;
+      height: 30px;
+      border-radius: 50% 50% 50% 0;
+      rotate: -45deg;
+      background: #ef4444;
+      border: 3px solid white;
+      transform: translate(-50%, -100%);
+    }
+
+    .marker.center::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: 999px;
+      background: white;
+    }
+
+    .marker.field {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: #4ade80;
+      border: 3px solid white;
+      transform: translate(-50%, -50%);
+    }
+
+    .marker.field::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 5px;
+      bottom: 5px;
+      width: 2px;
+      background: white;
+    }
+
+    .marker.board {
+      width: 34px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      border: 3px solid white;
+      background: #64748b;
+      color: var(--warning);
+      font-weight: 950;
+      transform: translate(-50%, -50%);
+    }
+
+    .marker.structure {
+      width: 42px;
+      height: 54px;
+      transform: translate(-50%, -85%);
+    }
+
+    .marker.structure::before {
+      content: "";
+      position: absolute;
+      left: 18px;
+      top: 14px;
+      width: 7px;
+      height: 36px;
+      border-radius: 4px;
+      background: #1f2937;
+    }
+
+    .marker.structure::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 8px;
+      width: 34px;
+      height: 9px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #fcd34d, #f59e0b);
+    }
+
+    .focus {
+      position: absolute;
+      z-index: 3;
+      width: 90px;
+      height: 90px;
+      border-radius: 999px;
+      border: 2px solid rgba(0, 174, 239, .9);
+      background: rgba(0, 174, 239, .12);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 18px rgba(0, 174, 239, .08);
+    }
+
+    .map-side {
+      border-left: 1px solid var(--line);
+      background: #fbfcfe;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .side-card {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .side-card.active {
+      border-color: rgba(0, 174, 239, .45);
+      box-shadow: 0 12px 24px rgba(0, 174, 239, .12);
+    }
+
+    .side-card h3 {
+      margin: 0 0 4px;
+      font-size: 15px;
+    }
+
+    .side-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .metric {
+      border-radius: 10px;
+      background: #f4f7fa;
+      padding: 8px;
+      min-width: 0;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .tabs-card {
+      width: max-content;
+      margin: 20px auto 22px;
+      display: flex;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: white;
+      padding: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .tab {
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #475467;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .tab.active {
+      background: #f0f9ff;
+      color: var(--primary-700);
+    }
+
+    .data-card {
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: white;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 42px;
+    }
+
+    .data-card h2 {
+      margin: 0;
+      padding: 18px 22px;
+      font-size: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 16px 22px;
+      text-align: left;
+      border-bottom: 1px solid #ecf0f4;
+    }
+
+    th {
+      background: #f8fafc;
+      font-size: 12px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .badge {
+      display: inline-flex;
+      border-radius: 999px;
+      background: #e7f6ff;
+      color: #007fb1;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .empty-map {
+      min-height: 250px;
+      display: grid;
+      place-items: center;
+      padding: 40px;
+      background:
+        linear-gradient(90deg, rgba(148, 163, 184, .14) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(148, 163, 184, .14) 1px, transparent 1px),
+        #f8fafc;
+      background-size: 18px 18px;
+      color: var(--muted);
+      text-align: center;
+      border-top: 1px solid var(--line);
+    }
+
+    .screen-label {
+      margin: 58px 0 18px;
+      color: #007fb1;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <span>Field Operations (Demo)</span>
+      </div>
+      <div class="nav-title">Resources</div>
+      <div class="nav-item">Clients</div>
+      <div class="nav-item active">Complexes</div>
+      <div class="nav-item">Terrains</div>
+      <div class="nav-item">Structures</div>
+      <div class="nav-item">Luminaire frames</div>
+      <div class="nav-item">Luminaires</div>
+      <div class="nav-item">Electrical boards</div>
+      <div class="nav-item">Maintenance</div>
+      <div class="nav-title">Catalogs</div>
+      <div class="nav-item">Terrain types</div>
+      <div class="nav-item">Structure types</div>
+      <div class="nav-item">Frame types</div>
+      <div class="nav-item">Safety types</div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="search">Search</div>
+        <div>Bell</div>
+        <div class="avatar">OL</div>
+      </div>
+
+      <div class="content">
+        <div class="breadcrumb">Complexes <span>/</span> Balen K. Verbroedering <span>/</span> View</div>
+        <div class="page-actions"><button class="btn">Edit</button></div>
+
+        <section class="profile">
+          <div>
+            <p class="eyebrow">Complex</p>
+            <h1>Balen K. Verbroedering</h1>
+            <div class="chips">
+              <span class="chip">Balen K. Verbroedering</span>
+              <span class="chip">zoom 13</span>
+            </div>
+          </div>
+          <div class="stat">
+            <strong>2</strong>
+            <span>Terrains</span>
+          </div>
+        </section>
+
+        <section class="meta">
+          <div>
+            <div class="meta-label">Address</div>
+            <div class="meta-value">Molenstraat 259, BE2490, Balen</div>
+          </div>
+          <div>
+            <div class="meta-label">Map status</div>
+            <div class="meta-value">Centered by child coordinates</div>
+          </div>
+        </section>
+
+        <section class="map-panel">
+          <header class="map-panel-header">
+            <div>
+              <h2 class="map-panel-title">Map overview</h2>
+              <p class="map-panel-subtitle">Backoffice desktop panel. Uses terrains and electrical boards even when the complex itself is not geocoded.</p>
+            </div>
+            <div class="map-toolbar">
+              <span class="toolbar-pill">2 terrains</span>
+              <span class="toolbar-pill">1 board</span>
+              <span class="toolbar-pill">Leaflet panel</span>
+            </div>
+          </header>
+          <div class="map-content">
+            <div class="map-stage">
+              <canvas class="map-canvas" data-theme="complex"></canvas>
+              <div class="focus" style="left:51%;top:50%"></div>
+              <div class="marker center" style="left:54%;top:53%"></div>
+              <div class="marker field" style="left:43%;top:45%"></div>
+              <div class="marker field" style="left:45%;top:60%"></div>
+              <div class="marker board" style="left:63%;top:48%">!</div>
+              <div class="zoom"><button>+</button><button>-</button></div>
+              <div class="map-legend">
+                <span class="legend-item"><span class="legend-mark center"></span>Complex fallback center</span>
+                <span class="legend-item"><span class="legend-mark"></span>Terrain</span>
+                <span class="legend-item"><span class="legend-mark board"></span>Electrical board</span>
+              </div>
+              <div class="coord">51.164 / 5.164</div>
+            </div>
+            <aside class="map-side">
+              <div class="side-card active">
+                <h3>terrain-a</h3>
+                <p>Soccer. Primary field with known coordinates.</p>
+                <div class="metrics">
+                  <div class="metric"><strong>4</strong><span>structures</span></div>
+                  <div class="metric"><strong>1</strong><span>board</span></div>
+                  <div class="metric"><strong>12</strong><span>media</span></div>
+                </div>
+              </div>
+              <div class="side-card">
+                <h3>terrain-b</h3>
+                <p>Soccer. Secondary field.</p>
+              </div>
+              <div class="side-card">
+                <h3>Schakelbord A</h3>
+                <p>Shared infrastructure attached to this complex.</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="tabs-card">
+          <div class="tab active">Terrains</div>
+          <div class="tab">Electrical boards <span class="badge">1</span></div>
+        </section>
+
+        <section class="data-card">
+          <h2>Terrains</h2>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Terrain type</th><th>Structures</th><th>Map</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>terrain-a</td><td><span class="badge">Soccer</span></td><td>4</td><td>Has coordinates</td></tr>
+              <tr><td>terrain-b</td><td><span class="badge">Soccer</span></td><td>0</td><td>Has coordinates</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <div class="screen-label">Terrain detail variant</div>
+        <section class="map-panel">
+          <header class="map-panel-header">
+            <div>
+              <h2 class="map-panel-title">Terrain map</h2>
+              <p class="map-panel-subtitle">For TerrainResource: structures and electrical boards, no iPad-style navigation.</p>
+            </div>
+            <div class="map-toolbar">
+              <span class="toolbar-pill">4 structures</span>
+              <span class="toolbar-pill">1 board</span>
+            </div>
+          </header>
+          <div class="map-content">
+            <div class="map-stage">
+              <canvas class="map-canvas" data-theme="terrain"></canvas>
+              <div class="focus" style="left:52%;top:48%"></div>
+              <div class="marker center" style="left:52%;top:48%"></div>
+              <div class="marker structure" style="left:44%;top:36%"></div>
+              <div class="marker structure" style="left:62%;top:34%"></div>
+              <div class="marker structure" style="left:40%;top:68%"></div>
+              <div class="marker structure" style="left:65%;top:70%"></div>
+              <div class="marker board" style="left:55%;top:56%">!</div>
+              <div class="zoom"><button>+</button><button>-</button></div>
+              <div class="map-legend">
+                <span class="legend-item"><span class="legend-mark center"></span>Terrain</span>
+                <span class="legend-item"><span class="legend-mark structure"></span>Structure</span>
+                <span class="legend-item"><span class="legend-mark board"></span>Electrical board</span>
+              </div>
+              <div class="coord">51.164 / 5.164</div>
+            </div>
+            <aside class="map-side">
+              <div class="side-card active">
+                <h3>Vakwerk mast</h3>
+                <p>18m. Certified safety. Click row or marker to open structure.</p>
+              </div>
+              <div class="side-card"><h3>Dakconstructie</h3><p>13m.</p></div>
+              <div class="side-card"><h3>Conische mast</h3><p>19m.</p></div>
+            </aside>
+          </div>
+        </section>
+
+        <div class="screen-label">Electrical board detail variant</div>
+        <section class="map-panel">
+          <header class="map-panel-header">
+            <div>
+              <h2 class="map-panel-title">Electrical board location</h2>
+              <p class="map-panel-subtitle">For ElectricalBoardResource: exact marker plus read-only used-by context.</p>
+            </div>
+            <div class="map-toolbar">
+              <span class="toolbar-pill">Exact location</span>
+            </div>
+          </header>
+          <div class="map-content board">
+            <div class="map-stage">
+              <canvas class="map-canvas" data-theme="board"></canvas>
+              <div class="focus" style="left:50%;top:54%"></div>
+              <div class="marker board" style="left:50%;top:54%">!</div>
+              <div class="zoom"><button>+</button><button>-</button></div>
+              <div class="map-legend">
+                <span class="legend-item"><span class="legend-mark board"></span>Electrical board</span>
+              </div>
+              <div class="coord">51.164234 / 5.164090</div>
+            </div>
+            <aside class="map-side">
+              <div class="side-card active">
+                <h3>Hoofdbord</h3>
+                <p>Location description in current panel locale.</p>
+                <div class="metrics">
+                  <div class="metric"><strong>1</strong><span>complex</span></div>
+                  <div class="metric"><strong>1</strong><span>terrain</span></div>
+                  <div class="metric"><strong>1</strong><span>structure</span></div>
+                </div>
+              </div>
+              <div class="side-card"><h3>Used by</h3><p>Balen K. Verbroedering, terrain-a, Vakwerk mast.</p></div>
+            </aside>
+          </div>
+        </section>
+
+        <div class="screen-label">No coordinates state</div>
+        <section class="map-panel">
+          <header class="map-panel-header">
+            <div>
+              <h2 class="map-panel-title">Map overview</h2>
+              <p class="map-panel-subtitle">Fallback when no parent or child marker has usable lat/lng.</p>
+            </div>
+            <div class="map-toolbar"><span class="toolbar-pill">0 markers</span></div>
+          </header>
+          <div class="empty-map">
+            <div>
+              <strong>No coordinates available yet.</strong>
+              <p>Keep the relation tables visible. The map panel should not break the page or hide operational data.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function resize(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = rect.width * ratio;
+      canvas.height = rect.height * ratio;
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { ctx, width: rect.width, height: rect.height };
+    }
+
+    function road(ctx, w, h, x1, y1, x2, y2, size) {
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(86, 72, 57, .35)';
+      ctx.lineWidth = size + 7;
+      ctx.beginPath();
+      ctx.moveTo(w * x1, h * y1);
+      ctx.lineTo(w * x2, h * y2);
+      ctx.stroke();
+      ctx.strokeStyle = '#d9d2c5';
+      ctx.lineWidth = size;
+      ctx.beginPath();
+      ctx.moveTo(w * x1, h * y1);
+      ctx.lineTo(w * x2, h * y2);
+      ctx.stroke();
+    }
+
+    function draw(canvas) {
+      const { ctx, width, height } = resize(canvas);
+      const theme = canvas.dataset.theme;
+      ctx.fillStyle = '#547d4b';
+      ctx.fillRect(0, 0, width, height);
+
+      for (let i = 0; i < 26; i++) {
+        const x = (i * 113) % width - 40;
+        const y = (i * 61) % height - 40;
+        const pw = 130 + (i * 29) % 190;
+        const ph = 80 + (i * 31) % 140;
+        ctx.save();
+        ctx.translate(x + pw / 2, y + ph / 2);
+        ctx.rotate(((i % 7) - 3) * .08);
+        ctx.fillStyle = i % 4 === 0 ? '#b0905e' : i % 3 === 0 ? '#78a76a' : '#8fbd7d';
+        ctx.globalAlpha = .86;
+        ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+        ctx.strokeStyle = 'rgba(255,255,255,.14)';
+        ctx.strokeRect(-pw / 2, -ph / 2, pw, ph);
+        ctx.restore();
+      }
+
+      road(ctx, width, height, .08, .95, .92, .08, 16);
+      road(ctx, width, height, .04, .22, .92, .78, 12);
+      road(ctx, width, height, .63, -.1, .68, 1.1, 14);
+
+      if (theme !== 'complex') {
+        road(ctx, width, height, .82, -.1, .88, 1.1, 16);
+      }
+
+      for (let i = 0; i < 64; i++) {
+        const x = (i * 47) % width;
+        const y = (i * 79) % height;
+        ctx.beginPath();
+        ctx.arc(x, y, 6 + i % 11, 0, Math.PI * 2);
+        ctx.fillStyle = i % 2 ? 'rgba(20, 64, 34, .6)' : 'rgba(18, 54, 30, .7)';
+        ctx.fill();
+      }
+
+      for (let i = 0; i < 20; i++) {
+        const x = (i * 137) % width;
+        const y = (i * 91) % height;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(((i % 5) - 2) * .11);
+        ctx.fillStyle = '#e7dfd3';
+        ctx.fillRect(-18, -10, 36, 20);
+        ctx.fillStyle = '#ad6744';
+        ctx.fillRect(-18, -10, 36, 5);
+        ctx.restore();
+      }
+    }
+
+    function drawAll() {
+      document.querySelectorAll('.map-canvas').forEach(draw);
+    }
+
+    window.addEventListener('resize', drawAll);
+    drawAll();
+  </script>
+</body>
+</html>

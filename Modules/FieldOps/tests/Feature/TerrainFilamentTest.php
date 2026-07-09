@@ -37,7 +37,10 @@ class TerrainFilamentTest extends TestCase
         $terrain->electricalBoards()->attach($board->id);
 
         $this->get('/terrains')->assertOk();
-        $this->get("/terrains/{$terrain->id}")->assertOk();
+        $this->get("/terrains/{$terrain->id}")
+            ->assertOk()
+            ->assertSee('data-fieldops-map-panel', false)
+            ->assertSee('Desktop map overview');
         $this->get("/terrains/{$terrain->id}/edit")->assertOk();
     }
 
@@ -49,6 +52,8 @@ class TerrainFilamentTest extends TestCase
 
         $terrain = Terrain::factory()->create();
 
-        $this->get("/terrains/{$terrain->id}")->assertOk();
+        $this->get("/terrains/{$terrain->id}")
+            ->assertOk()
+            ->assertSee('data-fieldops-map-panel', false);
     }
 }

@@ -37,7 +37,10 @@ class ElectricalBoardFilamentTest extends TestCase
         $board->structures()->attach(Structure::factory()->create()->id);
 
         $this->get('/electrical-boards')->assertOk();
-        $this->get("/electrical-boards/{$board->id}")->assertOk();
+        $this->get("/electrical-boards/{$board->id}")
+            ->assertOk()
+            ->assertSee('data-fieldops-map-panel', false)
+            ->assertSee('Desktop location map');
         $this->get("/electrical-boards/{$board->id}/edit")->assertOk();
     }
 
@@ -49,6 +52,8 @@ class ElectricalBoardFilamentTest extends TestCase
 
         $board = ElectricalBoard::factory()->create();
 
-        $this->get("/electrical-boards/{$board->id}")->assertOk();
+        $this->get("/electrical-boards/{$board->id}")
+            ->assertOk()
+            ->assertSee('data-fieldops-map-panel', false);
     }
 }

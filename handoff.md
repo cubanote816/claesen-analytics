@@ -26,6 +26,27 @@
 - Tests/checks: no se tocaron archivos de aplicación. Verificación realizada sobre el artifact: existe, 1313 líneas, contiene las secciones `CLA-249`, `FieldOpsMapShell` y la implementación por fases.
 - Estado: mockup listo para revisión del usuario. Siguiente paso natural: aprobar direction visual y abrir/usar tickets hijos para implementar primero el refactor frontend o el partial Filament.
 
+### Sesión 2026-07-09 (cont.) — CLA-255: mapas desktop en backoffice FieldOps (Done)
+
+**Contexto:** el usuario aclaró que el rediseño de mapas inmediato era para el **backoffice Filament desktop**, no para la app frontend/iPad. Se creó primero el mockup desktop `tmp/fieldops-backoffice-map-panels-v1.html` y luego se implementó el patrón en Filament.
+
+- **Nuevo partial reusable:** `Modules/FieldOps/resources/views/filament/infolists/map-panel.blade.php`.
+  - Renderiza un panel desktop horizontal con mapa base OpenStreetMap embebido (`iframe`) y overlay de marcadores calculado server-side.
+  - No usa JS ni assets Leaflet dentro del componente: se intentó primero Leaflet, pero Livewire en modo debug falló con `MultipleRootElementsDetectedException` por assets/scripts en el render del page component. La solución final evita ese riesgo y mantiene un mapa real, estable, con marcadores visibles.
+  - Calcula bounds desde todos los markers disponibles y no depende de que el record padre tenga coordenadas.
+  - Incluye panel lateral de markers con tipo, descripción, coordenadas y link al record.
+  - Incluye estado vacío si no hay coordenadas disponibles.
+- **Integración en Resources:**
+  - `ComplexResource`: mapa con marker del Complex si tiene lat/lng + Terrains + ElectricalBoards. Cubre el caso real visto por el usuario donde `Complex` dice "Not geocoded yet": si sus hijos tienen coordenadas, el mapa se centra por los hijos.
+  - `TerrainResource`: mapa con Terrain + Structures + ElectricalBoards.
+  - `ElectricalBoardResource`: mapa con ElectricalBoard + Complex/Terrain/Structure relacionados que tengan coordenadas, manteniendo "Used by" como sección read-only aparte.
+- **Tests actualizados:** `ComplexFilamentTest`, `TerrainFilamentTest`, `ElectricalBoardFilamentTest` ahora verifican que el panel de mapa renderiza y que el fallback sin coordenadas no rompe la página.
+- **Verificación:**
+  - `php -l` limpio para `ComplexResource`, `TerrainResource`, `ElectricalBoardResource`.
+  - `git diff --check` limpio.
+  - `docker exec claesen_api_web_oficial-laravel.test-1 php artisan test Modules/FieldOps/tests/Feature/ComplexFilamentTest.php Modules/FieldOps/tests/Feature/TerrainFilamentTest.php Modules/FieldOps/tests/Feature/ElectricalBoardFilamentTest.php` → **6 passed, 22 assertions**.
+- **Pendiente opcional:** si se quiere satélite Mapbox real como frontend, hacerlo en un ticket separado con asset pipeline/config pública controlada, no con token hardcodeado ni scripts sueltos en ViewEntry.
+
 ### Sesión 2026-07-09 (cont.) — Filas de Terrain/Structure/ElectricalBoard clickeables en las relation manager tables (Done, sin ticket Linear formal)
 
 **Contexto:** siguiendo la fidelidad al mockup aprobado (mismo espíritu de CLA-242→247), el usuario pidió que las filas de las tablas que listan Terrain/Structure/ElectricalBoard como relación naveguen a la página de detalle de esa fila, en vez de quedarse estáticas con solo el botón Detach/Edit.

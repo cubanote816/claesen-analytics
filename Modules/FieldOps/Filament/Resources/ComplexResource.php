@@ -169,6 +169,12 @@ class ComplexResource extends Resource
                 ->view('fieldops::filament.infolists.profile-header')
                 ->columnSpanFull(),
 
+            ViewEntry::make('map_panel')
+                ->hiddenLabel()
+                ->state(fn (Complex $record) => static::buildMapPanelState($record))
+                ->view('fieldops::filament.infolists.map-panel')
+                ->columnSpanFull(),
+
             Section::make(__('fieldops::resource.media.section_label'))
                 ->columnSpanFull()
                 ->schema([
@@ -184,6 +190,74 @@ class ComplexResource extends Resource
                 ->collapsible()
                 ->collapsed(fn ($record) => $record->getMedia('photos')->isEmpty() && $record->getMedia('documents')->isEmpty()),
         ]);
+    }
+
+    /**
+     * @return array{title: string, subtitle: string, emptyTitle: string, emptyDescription: string, summary: array<int, array{label: string, value: int|string}>, markers: array<int, array<string, mixed>>}
+     */
+    protected static function buildMapPanelState(Complex $record): array
+    {
+        $record->loadMissing(['terrains.terrainType', 'electricalBoards.electricalBoardType']);
+
+        $terrainMarkers = $record->terrains
+            ->filter(fn ($terrain) => static::hasCoordinates($terrain))
+            ->map(fn ($terrain) => [
+                'type' => 'terrain',
+                'label' => $terrain->getTranslation('name', app()->getLocale(), false)
+                    ?: $terrain->getTranslation('name', 'nl', false)
+                    ?: '#'.$terrain->id,
+                'description' => $terrain->terrainType?->getTranslation('type', app()->getLocale(), false)
+                    ?: $terrain->terrainType?->getTranslation('type', 'nl', false),
+                'lat' => $terrain->lat,
+                'lng' => $terrain->lng,
+                'url' => TerrainResource::getUrl('view', ['record' => $terrain]),
+            ]);
+
+        $boardMarkers = $record->electricalBoards
+            ->filter(fn ($board) => static::hasCoordinates($board))
+            ->map(fn ($board) => [
+                'type' => 'electrical-board',
+                'label' => $board->electricalBoardType?->getTranslation('name', app()->getLocale(), false)
+                    ?: $board->electricalBoardType?->getTranslation('name', 'nl', false)
+                    ?: '#'.$board->id,
+                'description' => $board->getTranslation('location_description', app()->getLocale(), false)
+                    ?: $board->getTranslation('location_description', 'nl', false),
+                'lat' => $board->lat,
+                'lng' => $board->lng,
+                'url' => ElectricalBoardResource::getUrl('view', ['record' => $board]),
+            ]);
+
+        $complexMarker = static::hasCoordinates($record)
+            ? collect([[
+                'type' => 'complex',
+                'label' => $record->name,
+                'description' => collect([$record->street, $record->zipcode, $record->city])->filter()->implode(', '),
+                'lat' => $record->lat,
+                'lng' => $record->lng,
+                'url' => null,
+            ]])
+            : collect();
+
+        return [
+            'title' => __('fieldops::resource.complexes.fields.map'),
+            'subtitle' => 'Desktop map overview for this complex and its related FieldOps assets.',
+            'emptyTitle' => __('fieldops::resource.complexes.no_coordinates'),
+            'emptyDescription' => 'No complex, terrain, or electrical board coordinates are available yet.',
+            'summary' => [
+                ['value' => $terrainMarkers->count(), 'label' => __('fieldops::resource.terrains.plural_label')],
+                ['value' => $boardMarkers->count(), 'label' => __('fieldops::resource.electrical_boards.plural_label')],
+            ],
+            'markers' => $complexMarker
+                ->concat($terrainMarkers)
+                ->concat($boardMarkers)
+                ->values()
+                ->all(),
+        ];
+    }
+
+    protected static function hasCoordinates($record): bool
+    {
+        return is_numeric($record->lat ?? null) && is_numeric($record->lng ?? null);
     }
 
     public static function table(Table $table): Table

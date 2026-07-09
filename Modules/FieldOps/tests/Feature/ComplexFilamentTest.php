@@ -37,7 +37,10 @@ class ComplexFilamentTest extends TestCase
         $complex->electricalBoards()->attach($board->id);
 
         $this->get('/complexes')->assertOk();
-        $this->get("/complexes/{$complex->id}")->assertOk();
+        $this->get("/complexes/{$complex->id}")
+            ->assertOk()
+            ->assertSee('data-fieldops-map-panel', false)
+            ->assertSee('Desktop map overview');
         $this->get("/complexes/{$complex->id}/edit")->assertOk();
     }
 
@@ -53,6 +56,9 @@ class ComplexFilamentTest extends TestCase
             'lng' => null,
         ]);
 
-        $this->get("/complexes/{$complex->id}")->assertOk();
+        $this->get("/complexes/{$complex->id}")
+            ->assertOk()
+            ->assertSee('data-fieldops-map-panel', false)
+            ->assertSee(__('fieldops::resource.complexes.no_coordinates'));
     }
 }
