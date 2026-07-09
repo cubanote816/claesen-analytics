@@ -53,19 +53,28 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 static fn (): string => <<<'HTML'
 <style id="claesen-filament-topbar-override">
-    .fi-topbar-ctn,
-    .fi-topbar {
-        background: #ffffff !important;
-        opacity: 1 !important;
-        backdrop-filter: none !important;
-    }
-
     .fi-topbar-ctn {
+        position: fixed !important;
+        inset: 0 0 auto 0 !important;
+        z-index: 10000 !important;
+        width: 100% !important;
+        background: #ffffff !important;
         border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
     }
 
     .fi-topbar {
+        background: #ffffff !important;
+        opacity: 1 !important;
+        backdrop-filter: none !important;
         box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06) !important;
+    }
+
+    .fi-body-has-topbar .fi-layout {
+        padding-top: 4rem !important;
+    }
+
+    .fi-topbar-ctn {
+        overflow-x: clip !important;
     }
 
     .dark .fi-topbar-ctn,
@@ -77,43 +86,6 @@ class AdminPanelProvider extends PanelProvider
         border-bottom-color: rgba(255, 255, 255, 0.08) !important;
     }
 </style>
-HTML
-            );
-
-            FilamentView::registerRenderHook(
-                PanelsRenderHook::BODY_END,
-                static fn (): string => <<<'HTML'
-<script id="claesen-filament-topbar-height">
-    (function () {
-        if (window.__claesenFilamentTopbarHeightSyncInstalled) {
-            return;
-        }
-
-        window.__claesenFilamentTopbarHeightSyncInstalled = true;
-
-        function syncTopbarHeight() {
-            var topbar = document.querySelector('.fi-topbar-ctn');
-            if (!topbar) {
-                return;
-            }
-
-            var height = Math.ceil(topbar.getBoundingClientRect().height || topbar.offsetHeight || 64);
-            document.documentElement.style.setProperty('--claesen-filament-topbar-height', height + 'px');
-        }
-
-        function scheduleSync() {
-            window.requestAnimationFrame(syncTopbarHeight);
-        }
-
-        document.addEventListener('DOMContentLoaded', scheduleSync, { once: true });
-        document.addEventListener('livewire:navigated', scheduleSync);
-        window.addEventListener('resize', scheduleSync);
-
-        if (document.readyState === 'interactive' || document.readyState === 'complete') {
-            scheduleSync();
-        }
-    })();
-</script>
 HTML
             );
         });

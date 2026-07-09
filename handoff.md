@@ -3,6 +3,18 @@
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
 > Última actualización: 2026-07-09 — **Sistema de rediseño de UI de FieldOps implementado y verificado en vivo contra capturas reales del usuario** (CLA-230 a CLA-247, ver detalle abajo), más un fix de navegación en las relaciones Terrain↔Structure↔ElectricalBoard (sin ticket Linear formal, ver sesión más abajo). El usuario revisó cada entidad comparando el navegador real contra el mockup aprobado y esto sacó a la luz varios bugs reales de fidelidad (título nativo duplicado, layout de 2 columnas por defecto de Filament, colisión de texto por flex vs grid) — ya corregidos. Pendiente: página propia de mapa con pines de Terrain/Structure para Complex (backlog, CLA-248). El resto sigue igual: CLA-231/CLA-229 (Analytics) en revisión en `codex/instrumentacion-apps-internas`; `service.claesen-verlichting` es el frontend **FieldOps** (no Safety); Safety PWA real es `/home/totti/Claesen-Safety`; widget "Recent Safety Inspections" quitado; reorden de menú + bug de localización corregido; membrete corporativo + rebranding + bug de `MicrosoftGraphTransport`; segundo incidente de producción (`SESSION_DOMAIN`/Sanctum) resuelto.
 
+### Sesión 2026-07-09 (cont.) — CLA-255: corrección del solape del topbar Filament en mapas FieldOps backoffice (en progreso)
+
+**Contexto:** el usuario siguió reportando que el mapa se metía visualmente por encima del header/topbar al hacer scroll en el backoffice desktop. El problema no era el panel del mapa sino el shell de Filament: la sobreescritura anterior había forzado `.fi-topbar-ctn` a `fixed` y añadía padding dinámico al layout, rompiendo el comportamiento nativo sticky de Filament.
+
+- **Corrección aplicada:** se retiró la fijación manual del topbar y la sincronización de altura, dejando a Filament volver a su layout sticky nativo.
+- **Archivos tocados:** `resources/css/filament/admin/theme.css`, `app/Providers/Filament/AdminPanelProvider.php`.
+- **Verificación:** `php -l` limpio en ambos archivos. La suite de FieldOps no pudo cerrarse todavía en este entorno:
+  - `php artisan test ...FieldOps...` falla por falta de driver/host de BD en el contenedor local (`mysql` no resuelve; `sqlite` tampoco está disponible en esta imagen).
+  - Se intentó ejecutar la misma suite dentro de Sail para validar con el entorno real; quedó pendiente por bloqueo del daemon/herramienta en esta sesión.
+  - Verificación visual adicional con Playwright en navegador real contra `http://localhost:8000/complexes/465` usando `orelvys.cuellar@claesen-verlichting.be / password`: el topbar queda en `65px` y el mapa comienza en `74px` tras scroll; no hay solape geométrico del mapa con el header.
+- **Estado:** fix aplicado y validado visualmente; pendiente solo de la validación de suite en Sail si se quiere cerrar con evidencia automatizada adicional.
+
 ### Sesión 2026-07-09 (cont.) — CLA-249: propuesta de rediseño para mapas FieldOps (mockup creado, sin código de app)
 
 **Contexto:** el usuario pidió pausar la implementación general de UI y rediseñar primero las pantallas reales donde el frontend muestra mapas: Complex → Terrains, Terrain → Structures y ElectricalBoard → Location. Referencias visuales: capturas reales del navegador local y repo frontend `/home/totti/Claesen-Sport-updateing`.

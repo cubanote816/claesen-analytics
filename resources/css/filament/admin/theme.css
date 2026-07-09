@@ -47,39 +47,16 @@
         @apply bg-industrial text-gray-100;
     }
 
-    .fi-layout {
-        position: relative;
-        isolation: isolate;
-    }
-
-    .fi-main-ctn,
-    .fi-main {
-        position: relative;
-        z-index: 0;
+    .fi-topbar {
+        background: #ffffff;
+        backdrop-filter: none;
     }
 
     .fi-topbar-ctn {
-        position: fixed !important;
-        inset: 0 0 auto 0 !important;
-        z-index: 10000 !important;
-        width: 100%;
-        height: auto !important;
         background: #ffffff;
         border-bottom: 1px solid rgba(15, 23, 42, 0.08);
     }
 
-    .fi-topbar {
-        position: relative !important;
-        z-index: 10001 !important;
-        background: #ffffff;
-        backdrop-filter: none;
-        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
-    }
-
-    .fi-body-has-topbar .fi-layout {
-        padding-top: var(--claesen-filament-topbar-height, 4rem) !important;
-    }
-    
     .dark .fi-sidebar {
         @apply bg-surface border-r border-border;
     }
