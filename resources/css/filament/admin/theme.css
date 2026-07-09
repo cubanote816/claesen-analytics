@@ -47,10 +47,26 @@
         @apply bg-industrial text-gray-100;
     }
 
+    .fi-layout {
+        position: relative;
+        isolation: isolate;
+    }
+
+    .fi-main-ctn,
+    .fi-main {
+        position: relative;
+        z-index: 0;
+    }
+
+    .fi-topbar-ctn {
+        position: relative;
+        z-index: 1000;
+    }
+
     .fi-topbar {
         position: sticky;
         top: 0;
-        z-index: 80;
+        z-index: 1001;
     }
     
     .dark .fi-sidebar {
@@ -540,6 +556,5 @@
 @source "../../../../resources/views/filament/**/*.blade.php";
 @source "../../../../Modules/**/*.php";
 @source "../../../../Modules/**/*.blade.php";
-
 
 
