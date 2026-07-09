@@ -46,6 +46,12 @@
     .dark body {
         @apply bg-industrial text-gray-100;
     }
+
+    .fi-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 80;
+    }
     
     .dark .fi-sidebar {
         @apply bg-surface border-r border-border;
@@ -135,6 +141,8 @@
 
 /* FieldOps map panel */
 .fieldops-map-panel {
+    position: relative;
+    z-index: 0;
     overflow: hidden;
     border: 1px solid #d9e2ea;
     border-radius: 18px;
@@ -532,7 +540,6 @@
 @source "../../../../resources/views/filament/**/*.blade.php";
 @source "../../../../Modules/**/*.php";
 @source "../../../../Modules/**/*.blade.php";
-
 
 
 
