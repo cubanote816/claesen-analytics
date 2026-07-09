@@ -17,7 +17,10 @@ return [
             'address'  => 'Adres',
             'complexes_count' => 'Complexen',
         ],
-        'no_complexes' => 'Deze klant heeft geen complexen.',
+        'no_complexes'   => 'Deze klant heeft geen complexen.',
+        'no_phone'       => 'Geen telefoonnummer bekend',
+        'no_email'       => 'Geen e-mailadres bekend',
+        'fields_on_file' => ':filled van :total velden ingevuld',
     ],
 
     'complexes' => [

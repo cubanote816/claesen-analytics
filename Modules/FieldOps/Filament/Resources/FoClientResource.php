@@ -7,13 +7,10 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
-use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
@@ -69,47 +66,72 @@ class FoClientResource extends Resource
         return __('fieldops::resource.clients.plural_label');
     }
 
+    /**
+     * "Fields on file" chip counts language (always set, has a default), phone,
+     * email and address (street or city) — the same 4 fields shown in the meta
+     * strip below. Purely informational: nudges whoever syncs/edits client data
+     * toward completing the record, doesn't gate anything.
+     */
+    private static function fieldsOnFileCount(FoClient $record): int
+    {
+        return collect([
+            $record->language,
+            $record->phone,
+            $record->email,
+            collect([$record->street, $record->city])->filter()->isNotEmpty() ? true : null,
+        ])->filter()->count();
+    }
+
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make(__('fieldops::resource.clients.model_label'))
-                ->icon(Heroicon::OutlinedUser)
-                ->schema([
-                    Group::make([
-                        TextEntry::make('name')
-                            ->label(__('fieldops::resource.clients.fields.name'))
-                            ->weight('bold')
-                            ->size(TextSize::Large),
-                        TextEntry::make('language')
-                            ->label(__('fieldops::resource.clients.fields.language'))
-                            ->badge()
-                            ->color('info'),
-                    ]),
-                    Group::make([
-                        TextEntry::make('phone')
-                            ->label(__('fieldops::resource.clients.fields.phone'))
-                            ->icon(Heroicon::OutlinedPhone)
-                            ->placeholder('—')
-                            ->url(fn ($record) => $record->phone ? 'tel:'.$record->phone : null),
-                        TextEntry::make('email')
-                            ->label(__('fieldops::resource.clients.fields.email'))
-                            ->icon(Heroicon::OutlinedEnvelope)
-                            ->placeholder('—')
-                            ->url(fn ($record) => $record->email ? 'mailto:'.$record->email : null),
-                        TextEntry::make('address')
-                            ->label(__('fieldops::resource.clients.fields.address'))
-                            ->icon(Heroicon::OutlinedMapPin)
-                            ->state(fn ($record) => collect([$record->street, $record->city])->filter()->implode(', ') ?: null)
-                            ->placeholder('—')
-                            ->url(fn ($record) => ($record->street || $record->city)
+            ViewEntry::make('profile_header')
+                ->hiddenLabel()
+                ->state(fn (FoClient $record) => [
+                    'eyebrow' => static::getModelLabel(),
+                    'name' => $record->name,
+                    'chips' => [
+                        ['label' => $record->language, 'color' => 'info'],
+                        [
+                            'label' => __('fieldops::resource.clients.fields_on_file', [
+                                'filled' => static::fieldsOnFileCount($record),
+                                'total' => 4,
+                            ]),
+                            'color' => static::fieldsOnFileCount($record) === 4 ? 'success' : 'warning',
+                        ],
+                    ],
+                    'stat' => [
+                        'value' => $record->complexes()->count(),
+                        'label' => __('fieldops::resource.complexes.plural_label'),
+                    ],
+                    'meta' => [
+                        [
+                            'label' => __('fieldops::resource.clients.fields.phone'),
+                            'value' => $record->phone,
+                            'placeholder' => __('fieldops::resource.clients.no_phone'),
+                            'url' => $record->phone ? 'tel:'.$record->phone : null,
+                        ],
+                        [
+                            'label' => __('fieldops::resource.clients.fields.email'),
+                            'value' => $record->email,
+                            'placeholder' => __('fieldops::resource.clients.no_email'),
+                            'url' => $record->email ? 'mailto:'.$record->email : null,
+                        ],
+                        [
+                            'label' => __('fieldops::resource.clients.fields.address'),
+                            'value' => collect([$record->street, $record->city])->filter()->implode(', ') ?: null,
+                            'placeholder' => '—',
+                            'icon' => 'heroicon-o-map-pin',
+                            'url' => ($record->street || $record->city)
                                 ? 'https://www.google.com/maps/search/?api=1&query='.urlencode(collect([$record->street, $record->city])->filter()->implode(', '))
-                                : null)
-                            ->openUrlInNewTab(),
-                    ]),
+                                : null,
+                            'newTab' => true,
+                        ],
+                    ],
                 ])
-                ->columns(2),
+                ->view('fieldops::filament.infolists.profile-header'),
 
-            Section::make(__('fieldops::resource.clients.fields.complexes_count'))
+            Section::make(fn (FoClient $record) => __('fieldops::resource.complexes.plural_label').' ('.$record->complexes()->count().')')
                 ->icon(Heroicon::OutlinedBuildingOffice2)
                 ->schema([
                     ViewEntry::make('complexes')

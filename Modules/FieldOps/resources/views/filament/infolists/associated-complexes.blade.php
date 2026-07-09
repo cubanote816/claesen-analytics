@@ -13,6 +13,10 @@
                 <th class="px-4 py-2 text-start text-xs font-medium text-gray-500 dark:text-gray-400">
                     {{ __('fieldops::resource.complexes.fields.city') }}
                 </th>
+                <th class="px-4 py-2 text-end text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {{ __('fieldops::resource.complexes.fields.terrains_count') }}
+                </th>
+                <th class="w-6"></th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
@@ -20,7 +24,7 @@
                 <tr class="divide-x divide-gray-200 dark:divide-white/10">
                     <td class="px-4 py-3 text-sm">
                         <a
-                            href="{{ \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('edit', ['record' => $complex]) }}"
+                            href="{{ \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('view', ['record' => $complex]) }}"
                             class="font-medium text-primary-600 hover:underline dark:text-primary-400"
                         >
                             {{ $complex->name }}
@@ -29,10 +33,16 @@
                     <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                         {{ $complex->city ?? '—' }}
                     </td>
+                    <td class="px-4 py-3 text-end font-mono text-sm text-gray-500 dark:text-gray-400">
+                        {{ $complex->terrains_count ?? $complex->terrains()->count() }}
+                    </td>
+                    <td class="px-2 py-3 text-end text-gray-400 dark:text-gray-500">
+                        <a href="{{ \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('view', ['record' => $complex]) }}">&rsaquo;</a>
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="2" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <td colspan="4" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                         {{ __('fieldops::resource.clients.no_complexes') }}
                     </td>
                 </tr>

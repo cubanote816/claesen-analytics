@@ -17,7 +17,10 @@ return [
             'address'  => 'Address',
             'complexes_count' => 'Complexes',
         ],
-        'no_complexes' => 'This client has no complexes.',
+        'no_complexes'  => 'This client has no complexes.',
+        'no_phone'      => 'No phone on file',
+        'no_email'      => 'No email on file',
+        'fields_on_file' => ':filled of :total fields on file',
     ],
 
     'complexes' => [

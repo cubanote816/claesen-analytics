@@ -13,8 +13,17 @@ class ViewFoClient extends ViewRecord
     // Filament's default ViewRecord::getTitle() wraps getRecordTitle() in a
     // "View :label" translation string — the record's own name is the point of
     // this page, not the name of the CRUD action, so the wrapper is skipped here.
+    // Still feeds the browser <title> tag.
     public function getTitle(): string|Htmlable
     {
         return $this->getRecordTitle();
+    }
+
+    // getHeading() defaults to getTitle(), rendering the record name a second time
+    // as the page's native H1 — redundant with the eyebrow+name inside
+    // profile-header.blade.php (infolist()), so the native heading is hidden here.
+    public function getHeading(): string|Htmlable|null
+    {
+        return null;
     }
 }
