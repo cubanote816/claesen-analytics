@@ -10,6 +10,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Modules\FieldOps\Filament\Resources\StructureResource;
 use Modules\FieldOps\Models\Structure;
 
 /**
@@ -41,6 +42,7 @@ class StructuresRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
+            ->recordUrl(fn ($record) => StructureResource::getUrl('view', ['record' => $record]))
             ->columns([
                 TextColumn::make('structureType.name')
                     ->label(__('fieldops::resource.structures.fields.structure_type'))

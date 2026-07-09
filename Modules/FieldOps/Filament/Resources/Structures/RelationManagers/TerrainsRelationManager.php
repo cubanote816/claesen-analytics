@@ -10,6 +10,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Modules\FieldOps\Filament\Resources\TerrainResource;
 
 /**
  * Structure belongsToMany Terrain (fo_structure_terrain) — a pole can sit on the
@@ -39,6 +40,7 @@ class TerrainsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
+            ->recordUrl(fn ($record) => TerrainResource::getUrl('view', ['record' => $record]))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('fieldops::resource.terrains.fields.name'))

@@ -10,6 +10,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Models\ElectricalBoard;
 
 /**
@@ -40,6 +41,7 @@ class ElectricalBoardsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
+            ->recordUrl(fn ($record) => ElectricalBoardResource::getUrl('view', ['record' => $record]))
             ->columns([
                 TextColumn::make('electricalBoardType.name')
                     ->label(__('fieldops::resource.electrical_boards.fields.electrical_board_type'))

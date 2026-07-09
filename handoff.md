@@ -1,7 +1,22 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-09 — **Sistema de rediseño de UI de FieldOps implementado y verificado en vivo contra capturas reales del usuario** (CLA-230 a CLA-247, ver detalle abajo). El usuario revisó cada entidad comparando el navegador real contra el mockup aprobado y esto sacó a la luz varios bugs reales de fidelidad (título nativo duplicado, layout de 2 columnas por defecto de Filament, colisión de texto por flex vs grid) — ya corregidos. Pendiente: página propia de mapa con pines de Terrain/Structure para Complex (backlog, CLA-248). El resto sigue igual: CLA-231/CLA-229 (Analytics) en revisión en `codex/instrumentacion-apps-internas`; `service.claesen-verlichting` es el frontend **FieldOps** (no Safety); Safety PWA real es `/home/totti/Claesen-Safety`; widget "Recent Safety Inspections" quitado; reorden de menú + bug de localización corregido; membrete corporativo + rebranding + bug de `MicrosoftGraphTransport`; segundo incidente de producción (`SESSION_DOMAIN`/Sanctum) resuelto.
+> Última actualización: 2026-07-09 — **Sistema de rediseño de UI de FieldOps implementado y verificado en vivo contra capturas reales del usuario** (CLA-230 a CLA-247, ver detalle abajo), más un fix de navegación en las relaciones Terrain↔Structure↔ElectricalBoard (sin ticket Linear formal, ver sesión más abajo). El usuario revisó cada entidad comparando el navegador real contra el mockup aprobado y esto sacó a la luz varios bugs reales de fidelidad (título nativo duplicado, layout de 2 columnas por defecto de Filament, colisión de texto por flex vs grid) — ya corregidos. Pendiente: página propia de mapa con pines de Terrain/Structure para Complex (backlog, CLA-248). El resto sigue igual: CLA-231/CLA-229 (Analytics) en revisión en `codex/instrumentacion-apps-internas`; `service.claesen-verlichting` es el frontend **FieldOps** (no Safety); Safety PWA real es `/home/totti/Claesen-Safety`; widget "Recent Safety Inspections" quitado; reorden de menú + bug de localización corregido; membrete corporativo + rebranding + bug de `MicrosoftGraphTransport`; segundo incidente de producción (`SESSION_DOMAIN`/Sanctum) resuelto.
+
+### Sesión 2026-07-09 (cont.) — Filas de Terrain/Structure/ElectricalBoard clickeables en las relation manager tables (Done, sin ticket Linear formal)
+
+**Contexto:** siguiendo la fidelidad al mockup aprobado (mismo espíritu de CLA-242→247), el usuario pidió que las filas de las tablas que listan Terrain/Structure/ElectricalBoard como relación naveguen a la página de detalle de esa fila, en vez de quedarse estáticas con solo el botón Detach/Edit.
+
+- **Gap real:** ninguna de las 4 `RelationManager` tables que muestran estas 3 entidades como filas hijas tenía `->recordUrl()` — solo tenían `recordActions`/`headerActions` (Detach, Attach, Edit), la fila en sí no era clickeable.
+- **Fix, mismo patrón ya usado en `Cafca\Employees\Tables\EmployeesTable`/`Performance\ProjectResource`** (`->recordUrl(fn ($record) => XResource::getUrl('view', ['record' => $record]))`, coexiste sin conflicto con los record actions existentes — Filament ya maneja el stopPropagation del botón de acción de forma nativa):
+  - `Complexes/RelationManagers/TerrainsRelationManager.php` (filas = Terrain, vista de Complex) → `/terrains/{id}`
+  - `Structures/RelationManagers/TerrainsRelationManager.php` (filas = Terrain, vista de Structure) → `/terrains/{id}`
+  - `Terrains/RelationManagers/StructuresRelationManager.php` (filas = Structure, vista de Terrain) → `/structures/{id}`
+  - `Structures/RelationManagers/ElectricalBoardsRelationManager.php` (filas = ElectricalBoard, **reutilizado** en las vistas de Structure y de Terrain — un solo fix cubre ambos consumidores) → `/electrical-boards/{id}`
+- El "Used by" de `ElectricalBoardResource` (chips de Complex/Terrains/Structures en la vista de Electrical board) ya era clickeable de antes (`<a href>` real en `used-by.blade.php`) — verificado, sin cambios ahí.
+- **Tests:** ningún test nuevo (cambio de navegación pura, no de datos/lógica) — FieldOps completo verificado en cada paso: **254/254 ✅**. Confirmado en vivo por el usuario en el navegador tras el segundo fix (el primero solo cubrió Structures/ElectricalBoards, faltaban las 2 tablas de Terrain).
+- Commit: `<HASH>`.
+- **Pendiente:** ninguno de este bloque puntual. Sigue abierto CLA-248 (mapa propio con pines) y FO-006 (cutover Sport→Core) como próximos pasos grandes del sprint FieldOps.
 
 ### Sesión 2026-07-09 — CLA-242→CLA-247: fidelidad real del sistema de FieldOps contra capturas del usuario (Done)
 

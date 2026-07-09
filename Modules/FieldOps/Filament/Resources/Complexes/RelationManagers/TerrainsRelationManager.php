@@ -12,6 +12,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Modules\FieldOps\Filament\Resources\TerrainResource;
 use Modules\FieldOps\Models\TerrainType;
 
 class TerrainsRelationManager extends RelationManager
@@ -56,6 +57,7 @@ class TerrainsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
+            ->recordUrl(fn ($record) => TerrainResource::getUrl('view', ['record' => $record]))
             ->columns([
                 TextColumn::make('name')
                     ->label(__('fieldops::resource.terrains.fields.name'))
