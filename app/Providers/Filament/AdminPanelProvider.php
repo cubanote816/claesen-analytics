@@ -48,6 +48,37 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
+
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::HEAD_END,
+                static fn (): string => <<<'HTML'
+<style id="claesen-filament-topbar-override">
+    .fi-topbar-ctn,
+    .fi-topbar {
+        background: #ffffff !important;
+        opacity: 1 !important;
+        backdrop-filter: none !important;
+    }
+
+    .fi-topbar-ctn {
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+    }
+
+    .fi-topbar {
+        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06) !important;
+    }
+
+    .dark .fi-topbar-ctn,
+    .dark .fi-topbar {
+        background: #14141b !important;
+    }
+
+    .dark .fi-topbar-ctn {
+        border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+    }
+</style>
+HTML
+            );
         });
     }
     public function panel(Panel $panel): Panel

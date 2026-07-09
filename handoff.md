@@ -1120,6 +1120,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-07-09 | CLA-255 | Follow-up 8 — override crítico inyectado en `HEAD_END` del panel Filament para forzar el topbar opaco con `!important`, sin depender del bundle CSS. Esto ataca la causa más probable del “through” visual persistente. |
 | 2026-07-09 | CLA-255 | Follow-up 7 — el topbar Filament quedó opaco y con su propio fondo tanto en claro como en oscuro (`fi-topbar-ctn`/`fi-topbar`). Esto elimina el efecto de mapa visible atravesando el header durante el scroll. |
 | 2026-07-09 | CLA-255 | Follow-up 6 — aislado el layout Filament (`.fi-layout`/`.fi-main`) y elevado el topbar con `z-index` superior para evitar que el mapa FieldOps atraviese el header al hacer scroll. |
 | 2026-07-09 | CLA-255 | Follow-up 5 — se fijó `fi-topbar` por encima del contenido con `position: sticky` + `z-index` para impedir que el mapa FieldOps se superponga al header al hacer scroll. El panel del mapa quedó con `z-index: 0` para comportarse siempre como contenido de fondo. |
