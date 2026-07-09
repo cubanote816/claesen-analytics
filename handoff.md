@@ -1120,6 +1120,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-07-09 | CLA-255 | Follow-up 7 — el topbar Filament quedó opaco y con su propio fondo tanto en claro como en oscuro (`fi-topbar-ctn`/`fi-topbar`). Esto elimina el efecto de mapa visible atravesando el header durante el scroll. |
 | 2026-07-09 | CLA-255 | Follow-up 6 — aislado el layout Filament (`.fi-layout`/`.fi-main`) y elevado el topbar con `z-index` superior para evitar que el mapa FieldOps atraviese el header al hacer scroll. |
 | 2026-07-09 | CLA-255 | Follow-up 5 — se fijó `fi-topbar` por encima del contenido con `position: sticky` + `z-index` para impedir que el mapa FieldOps se superponga al header al hacer scroll. El panel del mapa quedó con `z-index: 0` para comportarse siempre como contenido de fondo. |
 | 2026-07-09 | CLA-255 | Follow-up 4 — el panel de mapa vuelve a ser autosuficiente en el blade con CSS embebido, sin depender del build de Vite. Esto corrige la regresión visual donde el mapa quedaba reducido a una caja mínima y el contenido aparecía sin estilos. |
