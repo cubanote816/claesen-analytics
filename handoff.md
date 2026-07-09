@@ -1120,6 +1120,7 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 
 | Fecha | Ticket | Acción |
 |-------|--------|--------|
+| 2026-07-09 | CLA-255 | Follow-up 10 — el offset del topbar ahora se mide en runtime y se expone como `--claesen-filament-topbar-height`, evitando el desajuste entre la altura real del header y el padding del layout. |
 | 2026-07-09 | CLA-255 | Follow-up 9 — el topbar Filament pasó a `position: fixed` con compensación `padding-top: 4rem` en `.fi-layout`. Esto saca el header del flujo y elimina el solapamiento real con mapas pesados en scroll. |
 | 2026-07-09 | CLA-255 | Follow-up 8 — override crítico inyectado en `HEAD_END` del panel Filament para forzar el topbar opaco con `!important`, sin depender del bundle CSS. Esto ataca la causa más probable del “through” visual persistente. |
 | 2026-07-09 | CLA-255 | Follow-up 7 — el topbar Filament quedó opaco y con su propio fondo tanto en claro como en oscuro (`fi-topbar-ctn`/`fi-topbar`). Esto elimina el efecto de mapa visible atravesando el header durante el scroll. |

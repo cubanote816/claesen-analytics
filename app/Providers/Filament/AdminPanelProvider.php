@@ -79,6 +79,43 @@ class AdminPanelProvider extends PanelProvider
 </style>
 HTML
             );
+
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::BODY_END,
+                static fn (): string => <<<'HTML'
+<script id="claesen-filament-topbar-height">
+    (function () {
+        if (window.__claesenFilamentTopbarHeightSyncInstalled) {
+            return;
+        }
+
+        window.__claesenFilamentTopbarHeightSyncInstalled = true;
+
+        function syncTopbarHeight() {
+            var topbar = document.querySelector('.fi-topbar-ctn');
+            if (!topbar) {
+                return;
+            }
+
+            var height = Math.ceil(topbar.getBoundingClientRect().height || topbar.offsetHeight || 64);
+            document.documentElement.style.setProperty('--claesen-filament-topbar-height', height + 'px');
+        }
+
+        function scheduleSync() {
+            window.requestAnimationFrame(syncTopbarHeight);
+        }
+
+        document.addEventListener('DOMContentLoaded', scheduleSync, { once: true });
+        document.addEventListener('livewire:navigated', scheduleSync);
+        window.addEventListener('resize', scheduleSync);
+
+        if (document.readyState === 'interactive' || document.readyState === 'complete') {
+            scheduleSync();
+        }
+    })();
+</script>
+HTML
+            );
         });
     }
     public function panel(Panel $panel): Panel
