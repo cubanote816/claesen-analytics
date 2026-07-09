@@ -15,7 +15,7 @@
   - `Structures/RelationManagers/ElectricalBoardsRelationManager.php` (filas = ElectricalBoard, **reutilizado** en las vistas de Structure y de Terrain — un solo fix cubre ambos consumidores) → `/electrical-boards/{id}`
 - El "Used by" de `ElectricalBoardResource` (chips de Complex/Terrains/Structures en la vista de Electrical board) ya era clickeable de antes (`<a href>` real en `used-by.blade.php`) — verificado, sin cambios ahí.
 - **Tests:** ningún test nuevo (cambio de navegación pura, no de datos/lógica) — FieldOps completo verificado en cada paso: **254/254 ✅**. Confirmado en vivo por el usuario en el navegador tras el segundo fix (el primero solo cubrió Structures/ElectricalBoards, faltaban las 2 tablas de Terrain).
-- Commit: `<HASH>`.
+- Commit: `0801870`.
 - **Pendiente:** ninguno de este bloque puntual. Sigue abierto CLA-248 (mapa propio con pines) y FO-006 (cutover Sport→Core) como próximos pasos grandes del sprint FieldOps.
 
 ### Sesión 2026-07-09 — CLA-242→CLA-247: fidelidad real del sistema de FieldOps contra capturas del usuario (Done)
