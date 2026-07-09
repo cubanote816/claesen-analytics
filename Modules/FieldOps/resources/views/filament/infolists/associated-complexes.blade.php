@@ -19,12 +19,16 @@
                 <th class="w-6"></th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+        <tbody class="divide-y divide-gray-200 dark:divide-white/10 [&>tr:last-child>td]:pb-4">
             @forelse ($complexes as $complex)
-                <tr class="divide-x divide-gray-200 dark:divide-white/10">
+                @php $complexUrl = \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('view', ['record' => $complex]); @endphp
+                <tr
+                    class="cursor-pointer divide-x divide-gray-200 hover:bg-gray-50 dark:divide-white/10 dark:hover:bg-white/5"
+                    onclick="window.location='{{ $complexUrl }}'"
+                >
                     <td class="px-4 py-3 text-sm">
                         <a
-                            href="{{ \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('view', ['record' => $complex]) }}"
+                            href="{{ $complexUrl }}"
                             class="font-medium text-primary-600 hover:underline dark:text-primary-400"
                         >
                             {{ $complex->name }}
@@ -36,9 +40,7 @@
                     <td class="px-4 py-3 text-end font-mono text-sm text-gray-500 dark:text-gray-400">
                         {{ $complex->terrains_count ?? $complex->terrains()->count() }}
                     </td>
-                    <td class="px-2 py-3 text-end text-gray-400 dark:text-gray-500">
-                        <a href="{{ \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('view', ['record' => $complex]) }}">&rsaquo;</a>
-                    </td>
+                    <td class="px-2 py-3 text-end text-gray-400 dark:text-gray-500">&rsaquo;</td>
                 </tr>
             @empty
                 <tr>

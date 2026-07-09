@@ -66,22 +66,6 @@ class FoClientResource extends Resource
         return __('fieldops::resource.clients.plural_label');
     }
 
-    /**
-     * "Fields on file" chip counts language (always set, has a default), phone,
-     * email and address (street or city) — the same 4 fields shown in the meta
-     * strip below. Purely informational: nudges whoever syncs/edits client data
-     * toward completing the record, doesn't gate anything.
-     */
-    private static function fieldsOnFileCount(FoClient $record): int
-    {
-        return collect([
-            $record->language,
-            $record->phone,
-            $record->email,
-            collect([$record->street, $record->city])->filter()->isNotEmpty() ? true : null,
-        ])->filter()->count();
-    }
-
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
@@ -92,13 +76,6 @@ class FoClientResource extends Resource
                     'name' => $record->name,
                     'chips' => [
                         ['label' => $record->language, 'color' => 'info'],
-                        [
-                            'label' => __('fieldops::resource.clients.fields_on_file', [
-                                'filled' => static::fieldsOnFileCount($record),
-                                'total' => 4,
-                            ]),
-                            'color' => static::fieldsOnFileCount($record) === 4 ? 'success' : 'warning',
-                        ],
                     ],
                     'stat' => [
                         'value' => $record->complexes()->count(),
@@ -132,7 +109,7 @@ class FoClientResource extends Resource
                 ->view('fieldops::filament.infolists.profile-header')
                 ->columnSpanFull(),
 
-            Section::make(fn (FoClient $record) => __('fieldops::resource.complexes.plural_label').' ('.$record->complexes()->count().')')
+            Section::make(__('fieldops::resource.complexes.plural_label'))
                 ->icon(Heroicon::OutlinedBuildingOffice2)
                 ->columnSpanFull()
                 ->schema([
