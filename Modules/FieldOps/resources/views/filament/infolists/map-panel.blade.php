@@ -17,16 +17,16 @@
         ->all();
 
     $typeStyles = [
-        'complex' => ['label' => 'Complex', 'class' => 'bg-rose-500'],
-        'terrain' => ['label' => 'Terrain', 'class' => 'bg-lime-500'],
-        'structure' => ['label' => 'Structure', 'class' => 'bg-amber-500'],
-        'electrical-board' => ['label' => 'Electrical board', 'class' => 'bg-slate-500'],
+        'complex' => ['label' => 'Complex', 'color' => '#e6007e', 'text' => '#ffffff', 'initial' => 'C'],
+        'terrain' => ['label' => 'Terrain', 'color' => '#a5d610', 'text' => '#102014', 'initial' => 'T'],
+        'structure' => ['label' => 'Structure', 'color' => '#f59e0b', 'text' => '#111827', 'initial' => 'S'],
+        'electrical-board' => ['label' => 'Electrical board', 'color' => '#00aeef', 'text' => '#ffffff', 'initial' => 'E'],
     ];
 
     $legend = collect($markers)
         ->pluck('type')
         ->unique()
-        ->map(fn ($type) => $typeStyles[$type] ?? ['label' => ucfirst(str_replace('-', ' ', $type)), 'class' => 'bg-primary-500'])
+        ->map(fn ($type) => $typeStyles[$type] ?? ['label' => ucfirst(str_replace('-', ' ', $type)), 'color' => '#64748b', 'text' => '#ffffff', 'initial' => 'P'])
         ->values()
         ->all();
 
@@ -70,26 +70,31 @@
         ->all();
 @endphp
 
-<div class="fieldops-map-panel-root">
+<div class="fieldops-map-panel-root" style="width: 100%;">
 <div
     id="{{ $id }}"
-    class="fieldops-map-panel overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-gray-900"
+    class="fieldops-map-panel"
+    style="overflow: hidden; border: 1px solid #d9e2ea; border-radius: 18px; background: #ffffff; box-shadow: 0 18px 45px rgba(15, 23, 42, 0.09);"
     data-fieldops-map-panel
 >
-    <div class="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-white/10">
-        <div>
-            <h3 class="text-base font-semibold text-gray-950 dark:text-white">{{ $data['title'] }}</h3>
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 20px 24px; border-bottom: 1px solid #dbe5ed; background: linear-gradient(135deg, #ffffff 0%, #f6fbfe 58%, #edf8fd 100%);">
+        <div style="min-width: 0;">
+            <div style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #008fc8; font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;">
+                <span style="display: inline-block; width: 24px; height: 3px; border-radius: 999px; background: #00aeef;"></span>
+                FieldOps map
+            </div>
+            <h3 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">{{ $data['title'] }}</h3>
             @if (! empty($data['subtitle']))
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $data['subtitle'] }}</p>
+                <p style="margin: 6px 0 0; max-width: 680px; color: #64748b; font-size: 13px; line-height: 1.5;">{{ $data['subtitle'] }}</p>
             @endif
         </div>
 
         @if (! empty($data['summary']))
-            <div class="flex flex-wrap gap-2">
+            <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;">
                 @foreach ($data['summary'] as $item)
-                    <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
-                        <span class="font-mono text-primary-600 dark:text-primary-400">{{ $item['value'] }}</span>
-                        {{ $item['label'] }}
+                    <span style="display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 6px 11px; border: 1px solid #cfeaf6; border-radius: 999px; background: rgba(255,255,255,0.86); color: #475569; font-size: 12px; font-weight: 700; box-shadow: 0 8px 20px rgba(0, 174, 239, 0.07);">
+                        <span style="display: inline-grid; min-width: 24px; height: 24px; place-items: center; border-radius: 999px; background: #e6f7fd; color: #008fc8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 900;">{{ $item['value'] }}</span>
+                        <span>{{ $item['label'] }}</span>
                     </span>
                 @endforeach
             </div>
@@ -97,44 +102,44 @@
     </div>
 
     @if (empty($markers))
-        <div class="grid min-h-64 place-items-center bg-gray-50 px-6 py-12 text-center dark:bg-white/5">
-            <div>
-                <div class="text-sm font-semibold text-gray-950 dark:text-white">{{ $data['emptyTitle'] ?? 'No coordinates available yet' }}</div>
-                <p class="mt-1 max-w-xl text-sm text-gray-500 dark:text-gray-400">
+        <div style="display: grid; min-height: 360px; place-items: center; padding: 48px 24px; text-align: center; background: radial-gradient(circle at center, #effbff 0%, #f8fafc 62%, #ffffff 100%);">
+            <div style="max-width: 560px;">
+                <div style="color: #0f172a; font-size: 15px; font-weight: 800;">{{ $data['emptyTitle'] ?? 'No coordinates available yet' }}</div>
+                <p style="margin: 6px 0 0; color: #64748b; font-size: 13px; line-height: 1.55;">
                     {{ $data['emptyDescription'] ?? 'Add coordinates to this record or one of its related records to show the map.' }}
                 </p>
             </div>
         </div>
     @else
-        <div class="grid min-h-[30rem] grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <div class="relative min-h-[30rem]">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: 540px;">
+            <div style="position: relative; min-height: 540px; overflow: hidden; background: #dbe8ee;">
                 <iframe
                     title="{{ $data['title'] }}"
                     src="{{ $mapUrl }}"
-                    class="absolute inset-0 h-full w-full border-0"
+                    style="position: absolute; inset: 0; width: 100%; height: 100%; border: 0; filter: saturate(0.96) contrast(1.02);"
                     loading="lazy"
                     referrerpolicy="no-referrer-when-downgrade"
                 ></iframe>
-                <div class="pointer-events-none absolute inset-0 z-[350] bg-gradient-to-b from-gray-950/5 via-transparent to-gray-950/10"></div>
+                <div style="pointer-events: none; position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgba(15, 23, 42, 0.06), transparent 40%, rgba(15, 23, 42, 0.13));"></div>
+                <div style="pointer-events: none; position: absolute; inset: 18px; z-index: 3; border: 1px solid rgba(255,255,255,0.48); border-radius: 18px; box-shadow: inset 0 0 0 1px rgba(15,23,42,0.08);"></div>
                 @foreach ($displayMarkers as $marker)
                     @php
-                        $style = $typeStyles[$marker['type']] ?? ['label' => ucfirst(str_replace('-', ' ', $marker['type'])), 'class' => 'bg-primary-500'];
+                        $style = $typeStyles[$marker['type']] ?? ['label' => ucfirst(str_replace('-', ' ', $marker['type'])), 'color' => '#64748b', 'text' => '#ffffff', 'initial' => 'P'];
                         $markerTag = ! empty($marker['url']) ? 'a' : 'span';
                     @endphp
                     <{{ $markerTag }}
                         @if (! empty($marker['url'])) href="{{ $marker['url'] }}" @endif
                         title="{{ $marker['label'] }}"
-                        class="absolute z-[410] grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-white text-[0.65rem] font-bold text-white shadow-lg ring-4 ring-white/30 transition hover:scale-110 {{ $style['class'] }}"
-                        style="left: {{ number_format($marker['left'], 4, '.', '') }}%; top: {{ number_format($marker['top'], 4, '.', '') }}%;"
+                        style="position: absolute; z-index: 5; left: {{ number_format($marker['left'], 4, '.', '') }}%; top: {{ number_format($marker['top'], 4, '.', '') }}%; display: grid; width: 34px; height: 34px; place-items: center; transform: translate(-50%, -50%); border: 3px solid #ffffff; border-radius: 999px; background: {{ $style['color'] }}; color: {{ $style['text'] }}; font-size: 12px; font-weight: 900; text-decoration: none; box-shadow: 0 12px 26px rgba(15, 23, 42, 0.28), 0 0 0 6px rgba(255,255,255,0.28);"
                     >
-                        {{ strtoupper(substr($style['label'], 0, 1)) }}
+                        {{ $style['initial'] }}
                     </{{ $markerTag }}>
                 @endforeach
                 @if (! empty($legend))
-                    <div class="pointer-events-none absolute bottom-4 left-4 z-[400] flex max-w-[calc(100%-2rem)] flex-wrap gap-2">
+                    <div style="pointer-events: none; position: absolute; left: 28px; bottom: 26px; z-index: 6; display: flex; max-width: calc(100% - 56px); flex-wrap: wrap; gap: 8px;">
                         @foreach ($legend as $item)
-                            <span class="inline-flex items-center gap-1.5 rounded-full bg-gray-950/80 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
-                                <span class="h-2.5 w-2.5 rounded-full {{ $item['class'] }}"></span>
+                            <span style="display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; background: rgba(15,23,42,0.82); color: #ffffff; font-size: 12px; font-weight: 750; box-shadow: 0 10px 24px rgba(15,23,42,0.22); backdrop-filter: blur(8px);">
+                                <span style="width: 10px; height: 10px; border-radius: 999px; background: {{ $item['color'] }};"></span>
                                 {{ $item['label'] }}
                             </span>
                         @endforeach
@@ -142,29 +147,33 @@
                 @endif
             </div>
 
-            <div class="border-t border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5 xl:border-l xl:border-t-0">
-                <div class="space-y-3">
+            <div style="display: flex; flex-direction: column; min-height: 540px; max-height: 540px; border-left: 1px solid #dbe5ed; background: #f8fbfd;">
+                <div style="padding: 18px 18px 12px; border-bottom: 1px solid #e5edf3;">
+                    <div style="color: #0f172a; font-size: 14px; font-weight: 850;">Map objects</div>
+                    <div style="margin-top: 3px; color: #64748b; font-size: 12px;">Click an item to open its detail page when available.</div>
+                </div>
+                <div style="display: flex; flex: 1; flex-direction: column; gap: 10px; overflow-y: auto; padding: 14px;">
                     @foreach ($markers as $marker)
                         @php
-                            $style = $typeStyles[$marker['type']] ?? ['label' => ucfirst(str_replace('-', ' ', $marker['type'])), 'class' => 'bg-primary-500'];
+                            $style = $typeStyles[$marker['type']] ?? ['label' => ucfirst(str_replace('-', ' ', $marker['type'])), 'color' => '#64748b', 'text' => '#ffffff', 'initial' => 'P'];
                         @endphp
                         <a
                             @if (! empty($marker['url'])) href="{{ $marker['url'] }}" @endif
-                            class="block rounded-lg border border-gray-200 bg-white p-3 transition hover:border-primary-300 hover:shadow-sm dark:border-white/10 dark:bg-gray-900"
+                            style="display: block; border: 1px solid #dbe5ed; border-radius: 14px; background: #ffffff; padding: 13px; color: inherit; text-decoration: none; box-shadow: 0 8px 20px rgba(15,23,42,0.045);"
                         >
-                            <div class="flex items-center justify-between gap-3">
-                                <div class="min-w-0">
-                                    <div class="truncate text-sm font-semibold text-gray-950 dark:text-white">{{ $marker['label'] }}</div>
+                            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+                                <div style="min-width: 0;">
+                                    <div style="overflow: hidden; color: #0f172a; font-size: 13px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap;">{{ $marker['label'] }}</div>
                                     @if (! empty($marker['description']))
-                                        <div class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">{{ $marker['description'] }}</div>
+                                        <div style="margin-top: 3px; overflow: hidden; color: #64748b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap;">{{ $marker['description'] }}</div>
                                     @endif
                                 </div>
-                                <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[0.65rem] font-medium text-gray-600 dark:bg-white/10 dark:text-gray-300">
-                                    <span class="h-1.5 w-1.5 rounded-full {{ $style['class'] }}"></span>
+                                <span style="display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 999px; background: #eef4f7; color: #475569; font-size: 11px; font-weight: 800;">
+                                    <span style="width: 7px; height: 7px; border-radius: 999px; background: {{ $style['color'] }};"></span>
                                     {{ $style['label'] }}
                                 </span>
                             </div>
-                            <div class="mt-2 font-mono text-[0.7rem] text-gray-400">
+                            <div style="margin-top: 10px; color: #94a3b8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;">
                                 {{ number_format((float) $marker['lat'], 6) }}, {{ number_format((float) $marker['lng'], 6) }}
                             </div>
                         </a>

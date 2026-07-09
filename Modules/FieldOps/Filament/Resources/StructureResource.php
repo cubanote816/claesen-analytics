@@ -214,6 +214,12 @@ class StructureResource extends Resource
                     ->columnSpanFull(),
             ])->columns(2),
 
+            ViewEntry::make('map_panel')
+                ->hiddenLabel()
+                ->state(fn (Structure $record) => static::buildMapPanelState($record))
+                ->view('fieldops::filament.infolists.map-panel')
+                ->columnSpanFull(),
+
             Section::make(__('fieldops::resource.media.section_label'))
                 ->schema([
                     ViewEntry::make('photos')
@@ -231,6 +237,81 @@ class StructureResource extends Resource
                 ->collapsible()
                 ->collapsed(fn ($record) => $record->getMedia('photos')->isEmpty() && $record->getMedia('documents')->isEmpty()),
         ]);
+    }
+
+    /**
+     * @return array{title: string, subtitle: string, emptyTitle: string, emptyDescription: string, summary: array<int, array{label: string, value: int|string}>, markers: array<int, array<string, mixed>>}
+     */
+    protected static function buildMapPanelState(Structure $record): array
+    {
+        $record->loadMissing([
+            'structureType',
+            'terrains.terrainType',
+            'electricalBoards.electricalBoardType',
+        ]);
+
+        $structureMarker = static::hasCoordinates($record)
+            ? collect([[
+                'type' => 'structure',
+                'label' => $record->structureType?->getTranslation('name', app()->getLocale(), false)
+                    ?: $record->structureType?->getTranslation('name', 'nl', false)
+                    ?: '#'.$record->id,
+                'description' => $record->height ? __('fieldops::resource.structures.fields.height').': '.$record->height.' cm' : null,
+                'lat' => $record->lat,
+                'lng' => $record->lng,
+                'url' => null,
+            ]])
+            : collect();
+
+        $terrainMarkers = $record->terrains
+            ->filter(fn ($terrain) => static::hasCoordinates($terrain))
+            ->map(fn ($terrain) => [
+                'type' => 'terrain',
+                'label' => $terrain->getTranslation('name', app()->getLocale(), false)
+                    ?: $terrain->getTranslation('name', 'nl', false)
+                    ?: '#'.$terrain->id,
+                'description' => $terrain->terrainType?->getTranslation('type', app()->getLocale(), false)
+                    ?: $terrain->terrainType?->getTranslation('type', 'nl', false),
+                'lat' => $terrain->lat,
+                'lng' => $terrain->lng,
+                'url' => TerrainResource::getUrl('view', ['record' => $terrain]),
+            ]);
+
+        $boardMarkers = $record->electricalBoards
+            ->filter(fn ($board) => static::hasCoordinates($board))
+            ->map(fn ($board) => [
+                'type' => 'electrical-board',
+                'label' => $board->electricalBoardType?->getTranslation('name', app()->getLocale(), false)
+                    ?: $board->electricalBoardType?->getTranslation('name', 'nl', false)
+                    ?: '#'.$board->id,
+                'description' => $board->getTranslation('location_description', app()->getLocale(), false)
+                    ?: $board->getTranslation('location_description', 'nl', false),
+                'lat' => $board->lat,
+                'lng' => $board->lng,
+                'url' => ElectricalBoardResource::getUrl('view', ['record' => $board]),
+            ]);
+
+        return [
+            'title' => 'Map overview',
+            'subtitle' => 'Desktop location map for this structure, its terrains, and its electrical boards.',
+            'emptyTitle' => 'No coordinates available yet',
+            'emptyDescription' => 'Add coordinates to this structure or one of its related records to show the map.',
+            'summary' => [
+                ['value' => $structureMarker->count(), 'label' => __('fieldops::resource.structures.model_label')],
+                ['value' => $terrainMarkers->count(), 'label' => __('fieldops::resource.terrains.plural_label')],
+                ['value' => $boardMarkers->count(), 'label' => __('fieldops::resource.electrical_boards.plural_label')],
+            ],
+            'markers' => $structureMarker
+                ->concat($terrainMarkers)
+                ->concat($boardMarkers)
+                ->values()
+                ->all(),
+        ];
+    }
+
+    protected static function hasCoordinates($record): bool
+    {
+        return is_numeric($record->lat ?? null) && is_numeric($record->lng ?? null);
     }
 
     public static function table(Table $table): Table

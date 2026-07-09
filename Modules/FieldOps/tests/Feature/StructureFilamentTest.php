@@ -38,16 +38,27 @@ class StructureFilamentTest extends TestCase
             'access_active' => true,
             'safety_type_id' => SafetyType::factory(),
             'safety_certified' => true,
+            'lat' => 51.163145,
+            'lng' => 5.163746,
         ]);
-        $terrain = Terrain::factory()->create();
+        $terrain = Terrain::factory()->create([
+            'lat' => 51.163912,
+            'lng' => 5.163982,
+        ]);
         $structure->terrains()->attach($terrain->id);
         $frame = LuminaireFrame::factory()->create();
         $structure->luminaireFrames()->attach($frame->id);
-        $board = ElectricalBoard::factory()->create();
+        $board = ElectricalBoard::factory()->create([
+            'lat' => 51.164234,
+            'lng' => 5.164098,
+        ]);
         $structure->electricalBoards()->attach($board->id);
 
         $this->get('/structures')->assertOk();
-        $this->get("/structures/{$structure->id}")->assertOk();
+        $this->get("/structures/{$structure->id}")
+            ->assertOk()
+            ->assertSee('data-fieldops-map-panel', false)
+            ->assertSee('Map objects');
         $this->get("/structures/{$structure->id}/edit")->assertOk();
     }
 
