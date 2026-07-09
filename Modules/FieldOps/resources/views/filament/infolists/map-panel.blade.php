@@ -9,9 +9,8 @@
      *     markers: array<int, array{type: string, label: string, description?: ?string, lat: float|int|string|null, lng: float|int|string|null, url?: ?string}>,
      *     summary?: array<int, array{label: string, value: int|string}>,
      * } $data
-     */
+    */
     $data = $getState();
-    $id = 'fieldops-map-'.md5(json_encode($data));
     $items = collect($data['items'] ?? $data['markers'] ?? [])
         ->values()
         ->all();
@@ -38,26 +37,25 @@
 <div class="fieldops-map-panel-root" style="width: 100%;">
 <div
     class="fieldops-map-panel"
-    style="overflow: hidden; border: 1px solid #d9e2ea; border-radius: 18px; background: #ffffff; box-shadow: 0 18px 45px rgba(15, 23, 42, 0.09);"
     data-fieldops-map-panel
 >
-    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 20px 24px; border-bottom: 1px solid #dbe5ed; background: linear-gradient(135deg, #ffffff 0%, #f6fbfe 58%, #edf8fd 100%);">
-        <div style="min-width: 0;">
-            <div style="display: inline-flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #008fc8; font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;">
-                <span style="display: inline-block; width: 24px; height: 3px; border-radius: 999px; background: #00aeef;"></span>
+    <div class="fieldops-map-panel__header">
+        <div class="fieldops-map-panel__header-copy">
+            <div class="fieldops-map-panel__eyebrow">
+                <span class="fieldops-map-panel__eyebrow-bar"></span>
                 FieldOps map
             </div>
-            <h3 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">{{ $data['title'] }}</h3>
+            <h3 class="fieldops-map-panel__title">{{ $data['title'] }}</h3>
             @if (! empty($data['subtitle']))
-                <p style="margin: 6px 0 0; max-width: 680px; color: #64748b; font-size: 13px; line-height: 1.5;">{{ $data['subtitle'] }}</p>
+                <p class="fieldops-map-panel__subtitle">{{ $data['subtitle'] }}</p>
             @endif
         </div>
 
         @if (! empty($data['summary']))
-            <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;">
+            <div class="fieldops-map-panel__summary">
                 @foreach ($data['summary'] as $item)
-                    <span style="display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 6px 11px; border: 1px solid #cfeaf6; border-radius: 999px; background: rgba(255,255,255,0.86); color: #475569; font-size: 12px; font-weight: 700; box-shadow: 0 8px 20px rgba(0, 174, 239, 0.07);">
-                        <span style="display: inline-grid; min-width: 24px; height: 24px; place-items: center; border-radius: 999px; background: #e6f7fd; color: #008fc8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 900;">{{ $item['value'] }}</span>
+                    <span class="fieldops-map-panel__summary-pill">
+                        <span class="fieldops-map-panel__summary-value">{{ $item['value'] }}</span>
                         <span>{{ $item['label'] }}</span>
                     </span>
                 @endforeach
@@ -65,20 +63,20 @@
         @endif
     </div>
 
-    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: 540px;">
+    <div class="fieldops-map-panel__body">
         <div
-            style="position: relative; min-height: 540px; overflow: hidden; background: linear-gradient(180deg, #eff7fb, #dbe8ee);"
+            class="fieldops-map-panel__map-shell"
             wire:ignore
             x-data="fieldopsMapPanel(@js($mapConfig))"
             x-init="init()"
         >
             @if ($hasMap)
-                <div x-ref="map" style="height: 100%; min-height: 540px;"></div>
+                <div x-ref="map" class="fieldops-map-panel__map"></div>
             @else
-                <div style="display: grid; min-height: 540px; place-items: center; padding: 48px 24px; text-align: center; background: radial-gradient(circle at center, #effbff 0%, #f8fafc 62%, #ffffff 100%);">
-                    <div style="max-width: 560px;">
-                        <div style="color: #0f172a; font-size: 15px; font-weight: 800;">{{ $data['emptyTitle'] ?? 'No coordinates available yet' }}</div>
-                        <p style="margin: 6px 0 0; color: #64748b; font-size: 13px; line-height: 1.55;">
+                <div class="fieldops-map-panel__empty">
+                    <div class="fieldops-map-panel__empty-copy">
+                        <div class="fieldops-map-panel__empty-title">{{ $data['emptyTitle'] ?? 'No coordinates available yet' }}</div>
+                        <p class="fieldops-map-panel__empty-text">
                             {{ $data['emptyDescription'] ?? 'Add coordinates to this record or one of its related records to show the map.' }}
                         </p>
                     </div>
@@ -86,12 +84,12 @@
             @endif
         </div>
 
-        <div style="display: flex; flex-direction: column; min-height: 540px; max-height: 540px; border-left: 1px solid #dbe5ed; background: #f8fbfd;">
-            <div style="padding: 18px 18px 12px; border-bottom: 1px solid #e5edf3;">
-                <div style="color: #0f172a; font-size: 14px; font-weight: 850;">Map objects</div>
-                <div style="margin-top: 3px; color: #64748b; font-size: 12px;">Everything related to this record, including items without coordinates.</div>
+        <div class="fieldops-map-panel__rail">
+            <div class="fieldops-map-panel__rail-header">
+                <div class="fieldops-map-panel__rail-title">Map objects</div>
+                <div class="fieldops-map-panel__rail-subtitle">Everything related to this record, including items without coordinates.</div>
             </div>
-            <div style="display: flex; flex: 1; flex-direction: column; gap: 10px; overflow-y: auto; padding: 14px;">
+            <div class="fieldops-map-panel__rail-list">
                 @foreach ($items as $item)
                     @php
                         $style = $typeStyles[$item['type']] ?? ['label' => ucfirst(str_replace('-', ' ', $item['type'])), 'color' => '#64748b', 'text' => '#ffffff', 'initial' => 'P'];
@@ -100,32 +98,32 @@
                     @if (! empty($item['url']))
                         <a
                             href="{{ $item['url'] }}"
-                            style="display: block; border: 1px solid #dbe5ed; border-radius: 14px; background: #ffffff; padding: 13px; color: inherit; text-decoration: none; box-shadow: 0 8px 20px rgba(15,23,42,0.045);"
+                            class="fieldops-map-panel__item"
                         >
                     @else
-                        <div style="display: block; border: 1px solid #dbe5ed; border-radius: 14px; background: #ffffff; padding: 13px; color: inherit; text-decoration: none; box-shadow: 0 8px 20px rgba(15,23,42,0.045);">
+                        <div class="fieldops-map-panel__item">
                     @endif
-                            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
-                                <div style="min-width: 0;">
-                                    <div style="overflow: hidden; color: #0f172a; font-size: 13px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap;">{{ $item['label'] }}</div>
+                            <div class="fieldops-map-panel__item-top">
+                                <div class="fieldops-map-panel__item-copy">
+                                    <div class="fieldops-map-panel__item-title">{{ $item['label'] }}</div>
                                     @if (! empty($item['description']))
-                                        <div style="margin-top: 3px; overflow: hidden; color: #64748b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap;">{{ $item['description'] }}</div>
+                                        <div class="fieldops-map-panel__item-description">{{ $item['description'] }}</div>
                                     @endif
                                 </div>
-                                <span style="display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 999px; background: #eef4f7; color: #475569; font-size: 11px; font-weight: 800;">
-                                    <span style="width: 7px; height: 7px; border-radius: 999px; background: {{ $style['color'] }};"></span>
+                                <span class="fieldops-map-panel__badge">
+                                    <span class="fieldops-map-panel__badge-dot" style="background: {{ $style['color'] }};"></span>
                                     {{ $style['label'] }}
                                 </span>
                             </div>
-                            <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #94a3b8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;">
-                                <span>
+                            <div class="fieldops-map-panel__item-bottom">
+                                <span class="fieldops-map-panel__coords">
                                     @if ($hasCoordinates)
                                         {{ number_format((float) $item['lat'], 6) }}, {{ number_format((float) $item['lng'], 6) }}
                                     @else
                                         No coordinates yet
                                     @endif
                                 </span>
-                                <span style="display: inline-flex; align-items: center; border-radius: 999px; background: {{ $hasCoordinates ? '#e6f7fd' : '#eef2f7' }}; padding: 3px 8px; color: {{ $hasCoordinates ? '#008fc8' : '#64748b' }}; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;">
+                                <span class="fieldops-map-panel__state {{ $hasCoordinates ? 'is-pinned' : 'is-unmapped' }}">
                                     {{ $hasCoordinates ? 'Pinned' : 'Unmapped' }}
                                 </span>
                             </div>
@@ -181,6 +179,9 @@
 
             window.fieldopsMapPanel = function (config) {
                 return {
+                    markerLayer: null,
+                    baseLayer: null,
+
                     async init() {
                         if (! this.$refs.map) {
                             return;
@@ -206,10 +207,22 @@
 
                         L.control.zoom({ position: 'topright' }).addTo(map);
 
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
-                            attribution: '&copy; OpenStreetMap contributors',
-                        }).addTo(map);
+                        this.baseLayer = L.tileLayer(
+                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                            {
+                                maxZoom: 19,
+                                attribution: 'Tiles &copy; Esri',
+                            }
+                        ).addTo(map);
+
+                        L.tileLayer(
+                            'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+                            {
+                                maxZoom: 19,
+                                attribution: 'Labels &copy; Esri',
+                                opacity: 0.9,
+                            }
+                        ).addTo(map);
 
                         const markers = Array.isArray(config.markers) ? config.markers : [];
 
@@ -256,7 +269,44 @@
                             }
                         });
 
+                        this.syncTheme(map);
+                        this.observeTheme(map);
                         setTimeout(() => map.invalidateSize(), 0);
+                    },
+
+                    syncTheme(map) {
+                        const isDark = document.documentElement.classList.contains('dark');
+                        const container = this.$el.closest('.fieldops-map-panel');
+
+                        if (container) {
+                            container.dataset.theme = isDark ? 'dark' : 'light';
+                        }
+
+                        if (map && map._controlCorners) {
+                            const corners = map._controlCorners;
+                            Object.values(corners).forEach((corner) => {
+                                if (corner) {
+                                    corner.classList.toggle('fieldops-map-panel__leaflet-corners--dark', isDark);
+                                }
+                            });
+                        }
+                    },
+
+                    observeTheme(map) {
+                        if (this._themeObserver) {
+                            return;
+                        }
+
+                        const observer = new MutationObserver(() => {
+                            this.syncTheme(map);
+                        });
+
+                        observer.observe(document.documentElement, {
+                            attributes: true,
+                            attributeFilter: ['class'],
+                        });
+
+                        this._themeObserver = observer;
                     },
                 };
             };
