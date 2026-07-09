@@ -17,6 +17,13 @@ class ViewComplex extends ViewRecord
         return $this->getRecordTitle();
     }
 
+    // See ViewFoClient::getHeading() — profile-header.blade.php already shows the
+    // eyebrow+name, so the native heading (which would repeat the same name) is hidden.
+    public function getHeading(): string|Htmlable|null
+    {
+        return null;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

@@ -16,7 +16,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -130,34 +129,42 @@ class ComplexResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->schema([
-                Group::make([
-                    TextEntry::make('name')
-                        ->label(__('fieldops::resource.complexes.fields.name'))
-                        ->weight('bold')
-                        ->placeholder('—'),
-                    TextEntry::make('client.name')
-                        ->label(__('fieldops::resource.complexes.fields.client'))
-                        ->placeholder('—')
-                        ->url(fn ($record) => $record->client
-                            ? \Modules\FieldOps\Filament\Resources\FoClientResource::getUrl('view', ['record' => $record->client])
-                            : null),
-                ]),
-                TextEntry::make('address')
-                    ->label(__('fieldops::resource.complexes.fields.street'))
-                    ->state(fn ($record) => collect([$record->street, $record->zipcode, $record->city])->filter()->implode(', ') ?: null)
-                    ->placeholder('—'),
-                Group::make([
-                    TextEntry::make('lat')
-                        ->label(__('fieldops::resource.complexes.fields.lat'))
-                        ->placeholder(__('fieldops::resource.complexes.no_coordinates')),
-                    TextEntry::make('lng')
-                        ->label(__('fieldops::resource.complexes.fields.lng'))
-                        ->placeholder(__('fieldops::resource.complexes.no_coordinates')),
-                ]),
-            ])->columns(2),
+            ViewEntry::make('profile_header')
+                ->hiddenLabel()
+                ->state(fn (Complex $record) => [
+                    'eyebrow' => static::getModelLabel(),
+                    'name' => $record->name,
+                    'chips' => [
+                        $record->client ? [
+                            'label' => $record->client->name,
+                            'color' => 'info',
+                            'url' => \Modules\FieldOps\Filament\Resources\FoClientResource::getUrl('view', ['record' => $record->client]),
+                        ] : ['label' => __('fieldops::resource.complexes.fields.client').': —', 'color' => 'warning'],
+                        ['label' => 'zoom '.$record->zoom, 'color' => 'gray'],
+                    ],
+                    'stat' => [
+                        'value' => $record->terrains()->count(),
+                        'label' => __('fieldops::resource.terrains.plural_label'),
+                    ],
+                    'meta' => [
+                        [
+                            'label' => __('fieldops::resource.complexes.fields.street'),
+                            'value' => collect([$record->street, $record->zipcode, $record->city])->filter()->implode(', ') ?: null,
+                            'placeholder' => '—',
+                            'icon' => 'heroicon-o-map-pin',
+                        ],
+                        [
+                            'label' => __('fieldops::resource.complexes.fields.lat').' / '.__('fieldops::resource.complexes.fields.lng'),
+                            'value' => ($record->lat !== null && $record->lng !== null) ? "{$record->lat}, {$record->lng}" : null,
+                            'placeholder' => __('fieldops::resource.complexes.no_coordinates'),
+                        ],
+                    ],
+                ])
+                ->view('fieldops::filament.infolists.profile-header')
+                ->columnSpanFull(),
 
             Section::make(__('fieldops::resource.media.section_label'))
+                ->columnSpanFull()
                 ->schema([
                     ViewEntry::make('photos')
                         ->label(__('fieldops::resource.media.photos'))

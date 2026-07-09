@@ -2,7 +2,7 @@
     /**
      * @var array{
      *     eyebrow: string, name: string,
-     *     chips: array<int, array{label: string, color?: string}>,
+     *     chips: array<int, array{label: string, color?: string, url?: ?string}>,
      *     stat: ?array{value: int|string, label: string},
      *     meta: array<int, array{label: string, value: ?string, placeholder: string, icon?: ?string, url?: ?string, newTab?: bool}>,
      * } $data
@@ -13,6 +13,7 @@
         'success' => 'bg-lime-500',
         'warning' => 'bg-amber-500',
         'danger' => 'bg-rose-500',
+        'gray' => 'bg-gray-400',
         default => 'bg-primary-500',
     };
 @endphp
@@ -25,10 +26,14 @@
             @if (! empty($data['chips']))
                 <div class="mt-3 flex flex-wrap gap-2">
                     @foreach ($data['chips'] as $chip)
-                        <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-600 dark:border-white/10 dark:text-gray-300">
+                        @php $chipTag = ($chip['url'] ?? null) ? 'a' : 'span'; @endphp
+                        <{{ $chipTag }}
+                            @if ($chip['url'] ?? null) href="{{ $chip['url'] }}" @endif
+                            class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-600 dark:border-white/10 dark:text-gray-300 {{ ($chip['url'] ?? null) ? 'hover:underline' : '' }}"
+                        >
                             <span class="h-1.5 w-1.5 rounded-full {{ $chipDot($chip['color'] ?? 'info') }}"></span>
                             {{ $chip['label'] }}
-                        </span>
+                        </{{ $chipTag }}>
                     @endforeach
                 </div>
             @endif
