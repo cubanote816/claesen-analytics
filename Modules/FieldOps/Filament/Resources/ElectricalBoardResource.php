@@ -184,23 +184,23 @@ class ElectricalBoardResource extends Resource
                     ?: $record->getTranslation('location_description', 'nl', false),
                 'lat' => $record->lat,
                 'lng' => $record->lng,
+                'hasCoordinates' => true,
                 'url' => null,
             ]])
             : collect();
 
         $complexMarkers = $record->complexes
-            ->filter(fn ($complex) => static::hasCoordinates($complex))
             ->map(fn ($complex) => [
                 'type' => 'complex',
                 'label' => $complex->name,
                 'description' => collect([$complex->street, $complex->zipcode, $complex->city])->filter()->implode(', '),
                 'lat' => $complex->lat,
                 'lng' => $complex->lng,
+                'hasCoordinates' => static::hasCoordinates($complex),
                 'url' => ComplexResource::getUrl('view', ['record' => $complex]),
             ]);
 
         $terrainMarkers = $record->terrains
-            ->filter(fn ($terrain) => static::hasCoordinates($terrain))
             ->map(fn ($terrain) => [
                 'type' => 'terrain',
                 'label' => $terrain->getTranslation('name', app()->getLocale(), false)
@@ -210,11 +210,11 @@ class ElectricalBoardResource extends Resource
                     ?: $terrain->terrainType?->getTranslation('type', 'nl', false),
                 'lat' => $terrain->lat,
                 'lng' => $terrain->lng,
+                'hasCoordinates' => static::hasCoordinates($terrain),
                 'url' => TerrainResource::getUrl('view', ['record' => $terrain]),
             ]);
 
         $structureMarkers = $record->structures
-            ->filter(fn ($structure) => static::hasCoordinates($structure))
             ->map(fn ($structure) => [
                 'type' => 'structure',
                 'label' => $structure->structureType?->getTranslation('name', app()->getLocale(), false)
@@ -223,8 +223,16 @@ class ElectricalBoardResource extends Resource
                 'description' => $structure->height ? __('fieldops::resource.structures.fields.height').': '.$structure->height.'m' : null,
                 'lat' => $structure->lat,
                 'lng' => $structure->lng,
+                'hasCoordinates' => static::hasCoordinates($structure),
                 'url' => StructureResource::getUrl('view', ['record' => $structure]),
             ]);
+
+        $items = $boardMarker
+            ->concat($complexMarkers)
+            ->concat($terrainMarkers)
+            ->concat($structureMarkers)
+            ->values()
+            ->all();
 
         return [
             'title' => __('fieldops::resource.complexes.fields.map'),
@@ -232,15 +240,11 @@ class ElectricalBoardResource extends Resource
             'emptyTitle' => 'No coordinates available yet',
             'emptyDescription' => 'Add coordinates to this electrical board or one of its used-by records to show the map.',
             'summary' => [
-                ['value' => $boardMarker->count(), 'label' => __('fieldops::resource.electrical_boards.model_label')],
-                ['value' => $complexMarkers->count() + $terrainMarkers->count() + $structureMarkers->count(), 'label' => __('fieldops::resource.electrical_boards.used_by_label')],
+                ['value' => 1, 'label' => __('fieldops::resource.electrical_boards.model_label')],
+                ['value' => $record->complexes->count() + $record->terrains->count() + $record->structures->count(), 'label' => __('fieldops::resource.electrical_boards.used_by_label')],
             ],
-            'markers' => $boardMarker
-                ->concat($complexMarkers)
-                ->concat($terrainMarkers)
-                ->concat($structureMarkers)
-                ->values()
-                ->all(),
+            'items' => $items,
+            'markers' => array_values(array_filter($items, fn ($item) => ! empty($item['hasCoordinates']))),
         ];
     }
 

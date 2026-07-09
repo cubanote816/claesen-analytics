@@ -259,12 +259,12 @@ class StructureResource extends Resource
                 'description' => $record->height ? __('fieldops::resource.structures.fields.height').': '.$record->height.' cm' : null,
                 'lat' => $record->lat,
                 'lng' => $record->lng,
+                'hasCoordinates' => true,
                 'url' => null,
             ]])
             : collect();
 
         $terrainMarkers = $record->terrains
-            ->filter(fn ($terrain) => static::hasCoordinates($terrain))
             ->map(fn ($terrain) => [
                 'type' => 'terrain',
                 'label' => $terrain->getTranslation('name', app()->getLocale(), false)
@@ -274,11 +274,11 @@ class StructureResource extends Resource
                     ?: $terrain->terrainType?->getTranslation('type', 'nl', false),
                 'lat' => $terrain->lat,
                 'lng' => $terrain->lng,
+                'hasCoordinates' => static::hasCoordinates($terrain),
                 'url' => TerrainResource::getUrl('view', ['record' => $terrain]),
             ]);
 
         $boardMarkers = $record->electricalBoards
-            ->filter(fn ($board) => static::hasCoordinates($board))
             ->map(fn ($board) => [
                 'type' => 'electrical-board',
                 'label' => $board->electricalBoardType?->getTranslation('name', app()->getLocale(), false)
@@ -288,8 +288,15 @@ class StructureResource extends Resource
                     ?: $board->getTranslation('location_description', 'nl', false),
                 'lat' => $board->lat,
                 'lng' => $board->lng,
+                'hasCoordinates' => static::hasCoordinates($board),
                 'url' => ElectricalBoardResource::getUrl('view', ['record' => $board]),
             ]);
+
+        $items = $structureMarker
+            ->concat($terrainMarkers)
+            ->concat($boardMarkers)
+            ->values()
+            ->all();
 
         return [
             'title' => 'Map overview',
@@ -297,15 +304,12 @@ class StructureResource extends Resource
             'emptyTitle' => 'No coordinates available yet',
             'emptyDescription' => 'Add coordinates to this structure or one of its related records to show the map.',
             'summary' => [
-                ['value' => $structureMarker->count(), 'label' => __('fieldops::resource.structures.model_label')],
-                ['value' => $terrainMarkers->count(), 'label' => __('fieldops::resource.terrains.plural_label')],
-                ['value' => $boardMarkers->count(), 'label' => __('fieldops::resource.electrical_boards.plural_label')],
+                ['value' => 1, 'label' => __('fieldops::resource.structures.model_label')],
+                ['value' => $record->terrains->count(), 'label' => __('fieldops::resource.terrains.plural_label')],
+                ['value' => $record->electricalBoards->count(), 'label' => __('fieldops::resource.electrical_boards.plural_label')],
             ],
-            'markers' => $structureMarker
-                ->concat($terrainMarkers)
-                ->concat($boardMarkers)
-                ->values()
-                ->all(),
+            'items' => $items,
+            'markers' => array_values(array_filter($items, fn ($item) => ! empty($item['hasCoordinates']))),
         ];
     }
 

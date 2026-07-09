@@ -49,8 +49,8 @@ class StructureFilamentTest extends TestCase
         $frame = LuminaireFrame::factory()->create();
         $structure->luminaireFrames()->attach($frame->id);
         $board = ElectricalBoard::factory()->create([
-            'lat' => 51.164234,
-            'lng' => 5.164098,
+            'lat' => null,
+            'lng' => null,
         ]);
         $structure->electricalBoards()->attach($board->id);
 
@@ -58,7 +58,9 @@ class StructureFilamentTest extends TestCase
         $this->get("/structures/{$structure->id}")
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
-            ->assertSee('Map objects');
+            ->assertSee('Map objects')
+            ->assertSee('Unmapped')
+            ->assertSee('No coordinates yet');
         $this->get("/structures/{$structure->id}/edit")->assertOk();
     }
 

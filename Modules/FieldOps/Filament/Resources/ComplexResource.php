@@ -200,7 +200,6 @@ class ComplexResource extends Resource
         $record->loadMissing(['terrains.terrainType', 'electricalBoards.electricalBoardType']);
 
         $terrainMarkers = $record->terrains
-            ->filter(fn ($terrain) => static::hasCoordinates($terrain))
             ->map(fn ($terrain) => [
                 'type' => 'terrain',
                 'label' => $terrain->getTranslation('name', app()->getLocale(), false)
@@ -210,11 +209,11 @@ class ComplexResource extends Resource
                     ?: $terrain->terrainType?->getTranslation('type', 'nl', false),
                 'lat' => $terrain->lat,
                 'lng' => $terrain->lng,
+                'hasCoordinates' => static::hasCoordinates($terrain),
                 'url' => TerrainResource::getUrl('view', ['record' => $terrain]),
             ]);
 
         $boardMarkers = $record->electricalBoards
-            ->filter(fn ($board) => static::hasCoordinates($board))
             ->map(fn ($board) => [
                 'type' => 'electrical-board',
                 'label' => $board->electricalBoardType?->getTranslation('name', app()->getLocale(), false)
@@ -224,6 +223,7 @@ class ComplexResource extends Resource
                     ?: $board->getTranslation('location_description', 'nl', false),
                 'lat' => $board->lat,
                 'lng' => $board->lng,
+                'hasCoordinates' => static::hasCoordinates($board),
                 'url' => ElectricalBoardResource::getUrl('view', ['record' => $board]),
             ]);
 
@@ -234,9 +234,16 @@ class ComplexResource extends Resource
                 'description' => collect([$record->street, $record->zipcode, $record->city])->filter()->implode(', '),
                 'lat' => $record->lat,
                 'lng' => $record->lng,
+                'hasCoordinates' => true,
                 'url' => null,
             ]])
             : collect();
+
+        $items = $complexMarker
+            ->concat($terrainMarkers)
+            ->concat($boardMarkers)
+            ->values()
+            ->all();
 
         return [
             'title' => __('fieldops::resource.complexes.fields.map'),
@@ -244,14 +251,11 @@ class ComplexResource extends Resource
             'emptyTitle' => __('fieldops::resource.complexes.no_coordinates'),
             'emptyDescription' => 'No complex, terrain, or electrical board coordinates are available yet.',
             'summary' => [
-                ['value' => $terrainMarkers->count(), 'label' => __('fieldops::resource.terrains.plural_label')],
-                ['value' => $boardMarkers->count(), 'label' => __('fieldops::resource.electrical_boards.plural_label')],
+                ['value' => $record->terrains->count(), 'label' => __('fieldops::resource.terrains.plural_label')],
+                ['value' => $record->electricalBoards->count(), 'label' => __('fieldops::resource.electrical_boards.plural_label')],
             ],
-            'markers' => $complexMarker
-                ->concat($terrainMarkers)
-                ->concat($boardMarkers)
-                ->values()
-                ->all(),
+            'items' => $items,
+            'markers' => array_values(array_filter($items, fn ($item) => ! empty($item['hasCoordinates']))),
         ];
     }
 

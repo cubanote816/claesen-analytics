@@ -30,17 +30,28 @@ class TerrainFilamentTest extends TestCase
         $user->assignRole('super_admin');
         $this->actingAs($user);
 
-        $terrain = Terrain::factory()->create();
-        $structure = Structure::factory()->create();
+        $terrain = Terrain::factory()->create([
+            'lat' => 51.164145,
+            'lng' => 5.163746,
+        ]);
+        $structure = Structure::factory()->create([
+            'lat' => null,
+            'lng' => null,
+        ]);
         $terrain->structures()->attach($structure->id);
-        $board = ElectricalBoard::factory()->create();
+        $board = ElectricalBoard::factory()->create([
+            'lat' => null,
+            'lng' => null,
+        ]);
         $terrain->electricalBoards()->attach($board->id);
 
         $this->get('/terrains')->assertOk();
         $this->get("/terrains/{$terrain->id}")
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
-            ->assertSee('Desktop map overview');
+            ->assertSee('Desktop map overview')
+            ->assertSee('Unmapped')
+            ->assertSee('No coordinates yet');
         $this->get("/terrains/{$terrain->id}/edit")->assertOk();
     }
 

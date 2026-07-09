@@ -32,15 +32,24 @@ class ComplexFilamentTest extends TestCase
         $this->actingAs($user);
 
         $complex = Complex::factory()->create(['client_id' => FoClient::factory()->create()->id]);
-        Terrain::factory()->create(['complex_id' => $complex->id]);
-        $board = ElectricalBoard::factory()->create();
+        Terrain::factory()->create([
+            'complex_id' => $complex->id,
+            'lat' => 51.163912,
+            'lng' => 5.163982,
+        ]);
+        $board = ElectricalBoard::factory()->create([
+            'lat' => null,
+            'lng' => null,
+        ]);
         $complex->electricalBoards()->attach($board->id);
 
         $this->get('/complexes')->assertOk();
         $this->get("/complexes/{$complex->id}")
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
-            ->assertSee('Desktop map overview');
+            ->assertSee('Desktop map overview')
+            ->assertSee('Unmapped')
+            ->assertSee('No coordinates yet');
         $this->get("/complexes/{$complex->id}/edit")->assertOk();
     }
 

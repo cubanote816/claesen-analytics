@@ -31,16 +31,30 @@ class ElectricalBoardFilamentTest extends TestCase
         $user->assignRole('super_admin');
         $this->actingAs($user);
 
-        $board = ElectricalBoard::factory()->create();
-        $board->complexes()->attach(Complex::factory()->create()->id);
-        $board->terrains()->attach(Terrain::factory()->create()->id);
-        $board->structures()->attach(Structure::factory()->create()->id);
+        $board = ElectricalBoard::factory()->create([
+            'lat' => 51.163145,
+            'lng' => 5.163746,
+        ]);
+        $board->complexes()->attach(Complex::factory()->create([
+            'lat' => null,
+            'lng' => null,
+        ])->id);
+        $board->terrains()->attach(Terrain::factory()->create([
+            'lat' => null,
+            'lng' => null,
+        ])->id);
+        $board->structures()->attach(Structure::factory()->create([
+            'lat' => null,
+            'lng' => null,
+        ])->id);
 
         $this->get('/electrical-boards')->assertOk();
         $this->get("/electrical-boards/{$board->id}")
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
-            ->assertSee('Desktop location map');
+            ->assertSee('Desktop location map')
+            ->assertSee('Unmapped')
+            ->assertSee('No coordinates yet');
         $this->get("/electrical-boards/{$board->id}/edit")->assertOk();
     }
 
