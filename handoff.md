@@ -3,6 +3,29 @@
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
 > Última actualización: 2026-07-09 — **Sistema de rediseño de UI de FieldOps implementado y verificado en vivo contra capturas reales del usuario** (CLA-230 a CLA-247, ver detalle abajo), más un fix de navegación en las relaciones Terrain↔Structure↔ElectricalBoard (sin ticket Linear formal, ver sesión más abajo). El usuario revisó cada entidad comparando el navegador real contra el mockup aprobado y esto sacó a la luz varios bugs reales de fidelidad (título nativo duplicado, layout de 2 columnas por defecto de Filament, colisión de texto por flex vs grid) — ya corregidos. Pendiente: página propia de mapa con pines de Terrain/Structure para Complex (backlog, CLA-248). El resto sigue igual: CLA-231/CLA-229 (Analytics) en revisión en `codex/instrumentacion-apps-internas`; `service.claesen-verlichting` es el frontend **FieldOps** (no Safety); Safety PWA real es `/home/totti/Claesen-Safety`; widget "Recent Safety Inspections" quitado; reorden de menú + bug de localización corregido; membrete corporativo + rebranding + bug de `MicrosoftGraphTransport`; segundo incidente de producción (`SESSION_DOMAIN`/Sanctum) resuelto.
 
+### Sesión 2026-07-09 (cont.) — CLA-249: propuesta de rediseño para mapas FieldOps (mockup creado, sin código de app)
+
+**Contexto:** el usuario pidió pausar la implementación general de UI y rediseñar primero las pantallas reales donde el frontend muestra mapas: Complex → Terrains, Terrain → Structures y ElectricalBoard → Location. Referencias visuales: capturas reales del navegador local y repo frontend `/home/totti/Claesen-Sport-updateing`.
+
+- Se inspeccionó el frontend real (`React + Leaflet/Mapbox`) en:
+  - `/home/totti/Claesen-Sport-updateing/src/components/map/Complex.tsx` (`MapMain`: mapa principal para Complex/Terrain, marcadores, zoom persistido, navegación).
+  - `/home/totti/Claesen-Sport-updateing/src/components/list/ListView.tsx` (layout mapa + lista/panel).
+  - `/home/totti/Claesen-Sport-updateing/src/components/map/MapWithMarker.tsx` (selector de ubicación en formularios).
+  - `/home/totti/Claesen-Sport-updateing/src/private/features/complex/pages/views/electricalBoard/components/ElectricalBoardLocationTab.tsx` (detalle de ubicación de tablero).
+- Hallazgo técnico importante: el frontend ya tiene buena base de datos/comportamiento, pero duplica shell, token/tiles, popups, controles y estilos de mapa entre varios componentes. La implementación recomendada es extraer un contrato común (`FieldOpsMapShell`, marcadores, leyenda, toolbar y panel contextual) en vez de reescribir cada pantalla de cero.
+- Backoffice FieldOps: no existe todavía mapa real en Filament; `profile-header.blade.php` solo tiene un mini placeholder de ubicación y `luminaire-canvas.blade.php` cubre otro patrón. Por tanto, la versión Filament debe implementarse como nuevo partial reutilizable de mapa, no como copia 1:1 del frontend.
+- Artifact creado: `tmp/fieldops-map-ui-system-v3.html` (HTML/CSS/canvas autocontenido, sin tokens reales ni capturas embebidas). Contiene 3 pantallas:
+  - Complex map: terrenos + electrical boards + panel lateral.
+  - Terrain map: structures + electrical boards + panel lateral.
+  - ElectricalBoard location: mapa grande + ficha contextual + "used by".
+- Plan por fases documentado dentro del artifact:
+  - Fase 1: congelar contrato visual y tokens.
+  - Fase 2: refactor frontend React reutilizando `ListView`, `MapMain`, `MapWithMarker` y `ElectricalBoardLocationTab`.
+  - Fase 3: partial Filament/Blade (`fieldops-map-panel.blade.php`) para Complex, Terrain y ElectricalBoard.
+  - Fase 4: endurecer proveedor de mapas, token/config, fallback sin coordenadas y pruebas.
+- Tests/checks: no se tocaron archivos de aplicación. Verificación realizada sobre el artifact: existe, 1313 líneas, contiene las secciones `CLA-249`, `FieldOpsMapShell` y la implementación por fases.
+- Estado: mockup listo para revisión del usuario. Siguiente paso natural: aprobar direction visual y abrir/usar tickets hijos para implementar primero el refactor frontend o el partial Filament.
+
 ### Sesión 2026-07-09 (cont.) — Filas de Terrain/Structure/ElectricalBoard clickeables en las relation manager tables (Done, sin ticket Linear formal)
 
 **Contexto:** siguiendo la fidelidad al mockup aprobado (mismo espíritu de CLA-242→247), el usuario pidió que las filas de las tablas que listan Terrain/Structure/ElectricalBoard como relación naveguen a la página de detalle de esa fila, en vez de quedarse estáticas con solo el botón Detach/Edit.
