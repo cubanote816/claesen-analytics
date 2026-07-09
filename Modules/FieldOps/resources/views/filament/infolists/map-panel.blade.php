@@ -34,6 +34,405 @@
 
 @endphp
 
+@once
+    <style>
+        .fieldops-map-panel {
+            overflow: hidden;
+            border: 1px solid #d9e2ea;
+            border-radius: 18px;
+            background: #ffffff;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.09);
+        }
+
+        .fieldops-map-panel__header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 20px 24px;
+            border-bottom: 1px solid #dbe5ed;
+            background: linear-gradient(135deg, #ffffff 0%, #f6fbfe 58%, #edf8fd 100%);
+        }
+
+        .fieldops-map-panel__header-copy {
+            min-width: 0;
+        }
+
+        .fieldops-map-panel__eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #008fc8;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .fieldops-map-panel__eyebrow-bar {
+            display: inline-block;
+            width: 24px;
+            height: 3px;
+            border-radius: 999px;
+            background: #00aeef;
+        }
+
+        .fieldops-map-panel__title {
+            margin: 0;
+            color: #0f172a;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .fieldops-map-panel__subtitle {
+            margin: 6px 0 0;
+            max-width: 680px;
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .fieldops-map-panel__summary {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .fieldops-map-panel__summary-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 34px;
+            padding: 6px 11px;
+            border: 1px solid #cfeaf6;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.86);
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            box-shadow: 0 8px 20px rgba(0, 174, 239, 0.07);
+        }
+
+        .fieldops-map-panel__summary-value {
+            display: inline-grid;
+            min-width: 24px;
+            height: 24px;
+            place-items: center;
+            border-radius: 999px;
+            background: #e6f7fd;
+            color: #008fc8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-weight: 900;
+        }
+
+        .fieldops-map-panel__body {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            min-height: 540px;
+        }
+
+        .fieldops-map-panel__map-shell {
+            position: relative;
+            min-height: 540px;
+            overflow: hidden;
+            background: linear-gradient(180deg, #eff7fb, #dbe8ee);
+        }
+
+        .fieldops-map-panel__map {
+            height: 540px;
+            min-height: 540px;
+            width: 100%;
+        }
+
+        .fieldops-map-panel__empty {
+            display: grid;
+            min-height: 540px;
+            place-items: center;
+            padding: 48px 24px;
+            text-align: center;
+            background: radial-gradient(circle at center, #effbff 0%, #f8fafc 62%, #ffffff 100%);
+        }
+
+        .fieldops-map-panel__empty-copy {
+            max-width: 560px;
+        }
+
+        .fieldops-map-panel__empty-title {
+            color: #0f172a;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .fieldops-map-panel__empty-text {
+            margin: 6px 0 0;
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .fieldops-map-panel__rail {
+            display: flex;
+            flex-direction: column;
+            min-height: 540px;
+            max-height: 540px;
+            border-left: 1px solid #dbe5ed;
+            background: #f8fbfd;
+        }
+
+        .fieldops-map-panel__rail-header {
+            padding: 18px 18px 12px;
+            border-bottom: 1px solid #e5edf3;
+        }
+
+        .fieldops-map-panel__rail-title {
+            color: #0f172a;
+            font-size: 14px;
+            font-weight: 850;
+        }
+
+        .fieldops-map-panel__rail-subtitle {
+            margin-top: 3px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .fieldops-map-panel__rail-list {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            padding: 14px;
+        }
+
+        .fieldops-map-panel__item {
+            display: block;
+            border: 1px solid #dbe5ed;
+            border-radius: 14px;
+            background: #ffffff;
+            padding: 13px;
+            color: inherit;
+            text-decoration: none;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);
+        }
+
+        .fieldops-map-panel__item-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .fieldops-map-panel__item-copy {
+            min-width: 0;
+        }
+
+        .fieldops-map-panel__item-title {
+            overflow: hidden;
+            color: #0f172a;
+            font-size: 13px;
+            font-weight: 850;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fieldops-map-panel__item-description {
+            margin-top: 3px;
+            overflow: hidden;
+            color: #64748b;
+            font-size: 12px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fieldops-map-panel__badge {
+            display: inline-flex;
+            flex-shrink: 0;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 8px;
+            border-radius: 999px;
+            background: #eef4f7;
+            color: #475569;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .fieldops-map-panel__badge-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+        }
+
+        .fieldops-map-panel__item-bottom {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: #94a3b8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 11px;
+        }
+
+        .fieldops-map-panel__coords {
+            min-width: 0;
+        }
+
+        .fieldops-map-panel__state {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .fieldops-map-panel__state.is-pinned {
+            background: #e6f7fd;
+            color: #008fc8;
+        }
+
+        .fieldops-map-panel__state.is-unmapped {
+            background: #eef2f7;
+            color: #64748b;
+        }
+
+        .fieldops-map-panel .leaflet-container {
+            background: #dbe8ee;
+        }
+
+        .fieldops-map-panel .leaflet-control-zoom,
+        .fieldops-map-panel .leaflet-control-attribution {
+            border: 1px solid rgba(255, 255, 255, 0.65);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+        }
+
+        .fieldops-map-panel .leaflet-control-zoom a {
+            background: rgba(255, 255, 255, 0.92);
+            color: #0f172a;
+        }
+
+        .fieldops-map-panel .leaflet-control-attribution {
+            background: rgba(255, 255, 255, 0.84);
+            color: #334155;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] {
+            border-color: #2a3240;
+            background: #10151d;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__header {
+            border-bottom-color: #243042;
+            background: linear-gradient(135deg, #111827 0%, #0f172a 58%, #101d2b 100%);
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__eyebrow {
+            color: #80dfff;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__title {
+            color: #f8fafc;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__subtitle {
+            color: #94a3b8;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__summary-pill {
+            border-color: #2a4455;
+            background: rgba(15, 23, 42, 0.82);
+            color: #dbeafe;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__summary-value {
+            background: #12364a;
+            color: #80dfff;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__map-shell {
+            background: linear-gradient(180deg, #0f172a, #111827);
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__rail {
+            border-left-color: #243042;
+            background: #0f172a;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__rail-header {
+            border-bottom-color: #1f2a39;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__rail-title {
+            color: #f8fafc;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__rail-subtitle {
+            color: #94a3b8;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__item {
+            border-color: #243042;
+            background: #111827;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__item-title {
+            color: #f8fafc;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__item-description {
+            color: #94a3b8;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__badge {
+            background: #1f2a39;
+            color: #e2e8f0;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__item-bottom {
+            color: #94a3b8;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__state.is-pinned {
+            background: #12364a;
+            color: #80dfff;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__state.is-unmapped {
+            background: #1f2a39;
+            color: #94a3b8;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__empty {
+            background: radial-gradient(circle at center, #111827 0%, #0f172a 62%, #0b0f17 100%);
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__empty-title {
+            color: #f8fafc;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .fieldops-map-panel__empty-text {
+            color: #94a3b8;
+        }
+
+        .fieldops-map-panel[data-theme="dark"] .leaflet-control-zoom a,
+        .fieldops-map-panel[data-theme="dark"] .leaflet-control-attribution {
+            background: rgba(15, 23, 42, 0.82);
+            color: #e2e8f0;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+@endonce
+
 <div class="fieldops-map-panel-root" style="width: 100%;">
 <div
     class="fieldops-map-panel"
