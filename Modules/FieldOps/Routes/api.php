@@ -36,6 +36,7 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
     // Terrains
     Route::get('/terrains', [TerrainController::class, 'index']);
     Route::post('/terrains', [TerrainController::class, 'store']);
+    Route::get('/terrains/count', [TerrainController::class, 'count']);
     Route::get('/terrains/{terrain}', [TerrainController::class, 'show']);
     Route::put('/terrains/{terrain}', [TerrainController::class, 'update']);
     Route::patch('/terrains/{terrain}', [TerrainController::class, 'update']);

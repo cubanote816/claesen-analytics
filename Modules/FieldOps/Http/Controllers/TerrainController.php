@@ -27,6 +27,15 @@ class TerrainController extends Controller
         ]);
     }
 
+    public function count(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data'    => ['total' => Terrain::count()],
+            'message' => '',
+        ]);
+    }
+
     public function show(Terrain $terrain): \Illuminate\Http\JsonResponse
     {
         $terrain->load('terrainType', 'createdBy', 'media');
