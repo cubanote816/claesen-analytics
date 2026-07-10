@@ -144,26 +144,6 @@ class TerrainResource extends Resource
                             'url' => ComplexResource::getUrl('view', ['record' => $record->complex]),
                         ] : null,
                     ])),
-                    'stat' => [
-                        'value' => $record->structures()->count(),
-                        'label' => __('fieldops::resource.structures.plural_label'),
-                    ],
-                    'meta' => [
-                        [
-                            'label' => __('fieldops::resource.terrains.fields.complex'),
-                            'value' => $record->complex?->name,
-                            'placeholder' => '—',
-                            'url' => $record->complex
-                                ? ComplexResource::getUrl('view', ['record' => $record->complex])
-                                : null,
-                        ],
-                        [
-                            'label' => __('fieldops::resource.terrains.fields.terrain_type'),
-                            'value' => $record->terrainType?->getTranslation('type', app()->getLocale(), false)
-                                ?: $record->terrainType?->getTranslation('type', 'nl', false),
-                            'placeholder' => '—',
-                        ],
-                    ],
                 ])
                 ->view('fieldops::filament.infolists.profile-header')
                 ->columnSpanFull(),

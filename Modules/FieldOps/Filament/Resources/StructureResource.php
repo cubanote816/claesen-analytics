@@ -198,14 +198,6 @@ class StructureResource extends Resource
                         'value' => $record->height ?? '—',
                         'label' => __('fieldops::resource.structures.fields.height'),
                     ],
-                    'meta' => [
-                        [
-                            'label' => __('fieldops::resource.structures.fields.info'),
-                            'value' => $record->getTranslation('info', app()->getLocale(), false)
-                                ?: $record->getTranslation('info', 'nl', false),
-                            'placeholder' => '—',
-                        ],
-                    ],
                 ])
                 ->view('fieldops::filament.infolists.profile-header')
                 ->columnSpanFull(),
