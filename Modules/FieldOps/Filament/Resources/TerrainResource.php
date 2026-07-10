@@ -140,14 +140,14 @@ class TerrainResource extends Resource
                         ->placeholder('—')
                         ->badge()
                         ->color('info'),
-                ]),
-                TextEntry::make('complex.name')
-                    ->label(__('fieldops::resource.terrains.fields.complex'))
-                    ->placeholder('—')
-                    ->url(fn ($record) => $record->complex
-                        ? \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('edit', ['record' => $record->complex])
-                        : null),
-            ])->columns(2),
+                    TextEntry::make('complex.name')
+                        ->label(__('fieldops::resource.terrains.fields.complex'))
+                        ->placeholder('—')
+                        ->url(fn ($record) => $record->complex
+                            ? \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('edit', ['record' => $record->complex])
+                            : null),
+                ])->columns(3),
+            ]),
 
             ViewEntry::make('map_panel')
                 ->hiddenLabel()
