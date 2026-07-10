@@ -23,7 +23,7 @@
             @forelse ($complexes as $complex)
                 @php $complexUrl = \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('view', ['record' => $complex]); @endphp
                 <tr
-                    class="cursor-pointer divide-x divide-gray-200 hover:bg-gray-50 dark:divide-white/10 dark:hover:bg-white/5"
+                    class="cursor-pointer divide-x divide-gray-200 transition-colors hover:bg-gray-50 dark:divide-white/10 dark:hover:bg-gray-950/50"
                     onclick="window.location='{{ $complexUrl }}'"
                 >
                     <td class="px-4 py-3 text-sm">
