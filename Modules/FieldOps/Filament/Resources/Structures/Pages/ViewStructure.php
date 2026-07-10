@@ -17,6 +17,11 @@ class ViewStructure extends ViewRecord
         return $this->getRecordTitle();
     }
 
+    public function getHeading(): string|Htmlable|null
+    {
+        return null;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

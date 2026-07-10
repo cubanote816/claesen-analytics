@@ -11,7 +11,6 @@ use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -96,16 +95,24 @@ class LuminaireFrameResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->schema([
-                TextEntry::make('frameType.name')
-                    ->label(__('fieldops::resource.luminaire_frames.fields.frame_type'))
-                    ->placeholder('—')
-                    ->badge()
-                    ->color('info'),
-                TextEntry::make('luminaires_count')
-                    ->label(__('fieldops::resource.luminaire_frames.fields.luminaires_count'))
-                    ->state(fn (LuminaireFrame $record) => (string) $record->luminaires()->count()),
-            ])->columns(2),
+            ViewEntry::make('profile_header')
+                ->hiddenLabel()
+                ->state(fn (LuminaireFrame $record) => [
+                    'eyebrow' => static::getModelLabel(),
+                    'name' => static::getRecordTitle($record),
+                    'chips' => [
+                        [
+                            'label' => $record->frameType?->name ?? '—',
+                            'color' => 'info',
+                        ],
+                    ],
+                    'stat' => [
+                        'value' => $record->luminaires()->count(),
+                        'label' => __('fieldops::resource.luminaires.plural_label'),
+                    ],
+                ])
+                ->view('fieldops::filament.infolists.profile-header')
+                ->columnSpanFull(),
 
             Section::make(__('fieldops::resource.luminaire_frames.canvas_label'))
                 ->schema([

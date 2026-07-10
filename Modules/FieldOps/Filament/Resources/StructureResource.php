@@ -18,7 +18,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -173,46 +172,43 @@ class StructureResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->schema([
-                Group::make([
-                    TextEntry::make('structureType.name')
-                        ->label(__('fieldops::resource.structures.fields.structure_type'))
-                        ->getStateUsing(fn ($record) => $record->structureType?->getTranslation('name', app()->getLocale(), false)
-                            ?: $record->structureType?->getTranslation('name', 'nl', false))
-                        ->placeholder('—')
-                        ->badge()
-                        ->color('info'),
-                    TextEntry::make('height')
-                        ->label(__('fieldops::resource.structures.fields.height'))
-                        ->suffix(' cm')
-                        ->placeholder('—'),
-                ]),
-                Group::make([
-                    TextEntry::make('access_status')
-                        ->label(__('fieldops::resource.structures.fields.access_type'))
-                        ->state(fn ($record) => $record->accessType
-                            ? trim(($record->accessType->getTranslation('name', app()->getLocale(), false) ?: $record->accessType->getTranslation('name', 'nl', false))
-                                .' · '.($record->access_active ? __('fieldops::resource.structures.status.access_active') : __('fieldops::resource.structures.status.access_inactive')))
-                            : null)
-                        ->placeholder('—')
-                        ->badge()
-                        ->color(fn ($record) => $record->access_active ? 'success' : 'warning'),
-                    TextEntry::make('safety_status')
-                        ->label(__('fieldops::resource.structures.fields.safety_type'))
-                        ->state(fn ($record) => $record->safetyType
-                            ? trim(($record->safetyType->getTranslation('name', app()->getLocale(), false) ?: $record->safetyType->getTranslation('name', 'nl', false))
-                                .' · '.($record->safety_certified ? __('fieldops::resource.structures.status.safety_certified') : __('fieldops::resource.structures.status.safety_uncertified')))
-                            : null)
-                        ->placeholder('—')
-                        ->badge()
-                        ->color(fn ($record) => $record->safety_certified ? 'success' : 'warning'),
-                ]),
-                TextEntry::make('info')
-                    ->label(__('fieldops::resource.structures.fields.info'))
-                    ->getStateUsing(fn ($record) => $record->getTranslation('info', app()->getLocale(), false) ?: $record->getTranslation('info', 'nl', false))
-                    ->placeholder('—')
-                    ->columnSpanFull(),
-            ])->columns(2),
+            ViewEntry::make('profile_header')
+                ->hiddenLabel()
+                ->state(fn (Structure $record) => [
+                    'eyebrow' => static::getModelLabel(),
+                    'name' => static::getRecordTitle($record),
+                    'chips' => array_values(array_filter([
+                        $record->structureType ? [
+                            'label' => $record->structureType->getTranslation('name', app()->getLocale(), false)
+                                ?: $record->structureType->getTranslation('name', 'nl', false),
+                            'color' => 'info',
+                        ] : null,
+                        $record->accessType ? [
+                            'label' => trim(($record->accessType->getTranslation('name', app()->getLocale(), false) ?: $record->accessType->getTranslation('name', 'nl', false))
+                                .' · '.($record->access_active ? __('fieldops::resource.structures.status.access_active') : __('fieldops::resource.structures.status.access_inactive'))),
+                            'color' => $record->access_active ? 'success' : 'warning',
+                        ] : null,
+                        $record->safetyType ? [
+                            'label' => trim(($record->safetyType->getTranslation('name', app()->getLocale(), false) ?: $record->safetyType->getTranslation('name', 'nl', false))
+                                .' · '.($record->safety_certified ? __('fieldops::resource.structures.status.safety_certified') : __('fieldops::resource.structures.status.safety_uncertified'))),
+                            'color' => $record->safety_certified ? 'success' : 'warning',
+                        ] : null,
+                    ])),
+                    'stat' => [
+                        'value' => $record->height ?? '—',
+                        'label' => __('fieldops::resource.structures.fields.height'),
+                    ],
+                    'meta' => [
+                        [
+                            'label' => __('fieldops::resource.structures.fields.info'),
+                            'value' => $record->getTranslation('info', app()->getLocale(), false)
+                                ?: $record->getTranslation('info', 'nl', false),
+                            'placeholder' => '—',
+                        ],
+                    ],
+                ])
+                ->view('fieldops::filament.infolists.profile-header')
+                ->columnSpanFull(),
 
             ViewEntry::make('map_panel')
                 ->hiddenLabel()

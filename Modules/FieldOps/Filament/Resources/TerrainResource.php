@@ -16,7 +16,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -126,28 +125,48 @@ class TerrainResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->schema([
-                Group::make([
-                    TextEntry::make('name')
-                        ->label(__('fieldops::resource.terrains.fields.name'))
-                        ->getStateUsing(fn ($record) => $record->getTranslation('name', app()->getLocale(), false)
-                            ?: $record->getTranslation('name', 'nl', false))
-                        ->placeholder('—'),
-                    TextEntry::make('terrainType.type')
-                        ->label(__('fieldops::resource.terrains.fields.terrain_type'))
-                        ->getStateUsing(fn ($record) => $record->terrainType?->getTranslation('type', app()->getLocale(), false)
-                            ?: $record->terrainType?->getTranslation('type', 'nl', false))
-                        ->placeholder('—')
-                        ->badge()
-                        ->color('info'),
-                    TextEntry::make('complex.name')
-                        ->label(__('fieldops::resource.terrains.fields.complex'))
-                        ->placeholder('—')
-                        ->url(fn ($record) => $record->complex
-                            ? \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('edit', ['record' => $record->complex])
-                            : null),
-                ])->columns(3),
-            ]),
+            ViewEntry::make('profile_header')
+                ->hiddenLabel()
+                ->state(fn (Terrain $record) => [
+                    'eyebrow' => static::getModelLabel(),
+                    'name' => $record->getTranslation('name', app()->getLocale(), false)
+                        ?: $record->getTranslation('name', 'nl', false)
+                        ?: '#'.$record->id,
+                    'chips' => array_values(array_filter([
+                        $record->terrainType ? [
+                            'label' => $record->terrainType->getTranslation('type', app()->getLocale(), false)
+                                ?: $record->terrainType->getTranslation('type', 'nl', false),
+                            'color' => 'info',
+                        ] : null,
+                        $record->complex ? [
+                            'label' => $record->complex->name,
+                            'color' => 'gray',
+                            'url' => ComplexResource::getUrl('view', ['record' => $record->complex]),
+                        ] : null,
+                    ])),
+                    'stat' => [
+                        'value' => $record->structures()->count(),
+                        'label' => __('fieldops::resource.structures.plural_label'),
+                    ],
+                    'meta' => [
+                        [
+                            'label' => __('fieldops::resource.terrains.fields.complex'),
+                            'value' => $record->complex?->name,
+                            'placeholder' => '—',
+                            'url' => $record->complex
+                                ? ComplexResource::getUrl('view', ['record' => $record->complex])
+                                : null,
+                        ],
+                        [
+                            'label' => __('fieldops::resource.terrains.fields.terrain_type'),
+                            'value' => $record->terrainType?->getTranslation('type', app()->getLocale(), false)
+                                ?: $record->terrainType?->getTranslation('type', 'nl', false),
+                            'placeholder' => '—',
+                        ],
+                    ],
+                ])
+                ->view('fieldops::filament.infolists.profile-header')
+                ->columnSpanFull(),
 
             ViewEntry::make('map_panel')
                 ->hiddenLabel()
