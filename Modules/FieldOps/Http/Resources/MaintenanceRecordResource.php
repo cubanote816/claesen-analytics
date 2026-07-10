@@ -46,6 +46,8 @@ class MaintenanceRecordResource extends JsonResource
             'contact_person'       => $this->contact_person,
             'contact_phone'        => $this->contact_phone,
             'location_details'     => $this->location_details,
+            'created_at'           => $this->created_at?->toIso8601String(),
+            'updated_at'           => $this->updated_at?->toIso8601String(),
         ];
     }
 }
