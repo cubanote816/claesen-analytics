@@ -132,15 +132,17 @@ class TerrainResource extends Resource
                     'name' => $record->getTranslation('name', app()->getLocale(), false)
                         ?: $record->getTranslation('name', 'nl', false)
                         ?: '#'.$record->id,
-                    'chips' => array_values(array_filter([
-                        $record->terrainType ? [
-                            'label' => $record->terrainType->getTranslation('type', app()->getLocale(), false)
-                                ?: $record->terrainType->getTranslation('type', 'nl', false),
-                            'color' => 'info',
-                        ] : null,
+                    'facts' => array_values(array_filter([
+                        [
+                            'label' => __('fieldops::resource.terrains.fields.terrain_type'),
+                            'value' => $record->terrainType?->getTranslation('type', app()->getLocale(), false)
+                                ?: $record->terrainType?->getTranslation('type', 'nl', false),
+                            'placeholder' => '—',
+                        ],
                         $record->complex ? [
-                            'label' => $record->complex->name,
-                            'color' => 'gray',
+                            'label' => __('fieldops::resource.complexes.model_label'),
+                            'value' => $record->complex->name,
+                            'placeholder' => '—',
                             'url' => ComplexResource::getUrl('view', ['record' => $record->complex]),
                         ] : null,
                     ])),

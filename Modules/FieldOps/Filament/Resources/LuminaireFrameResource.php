@@ -100,15 +100,17 @@ class LuminaireFrameResource extends Resource
                 ->state(fn (LuminaireFrame $record) => [
                     'eyebrow' => static::getModelLabel(),
                     'name' => static::getRecordTitle($record),
-                    'chips' => [
+                    'facts' => [
                         [
-                            'label' => $record->frameType?->name ?? '—',
-                            'color' => 'info',
+                            'label' => __('fieldops::resource.luminaire_frames.fields.frame_type'),
+                            'value' => $record->frameType?->name ?? '—',
+                            'placeholder' => '—',
                         ],
-                    ],
-                    'stat' => [
-                        'value' => $record->luminaires()->count(),
-                        'label' => __('fieldops::resource.luminaires.plural_label'),
+                        [
+                            'label' => __('fieldops::resource.luminaires.plural_label'),
+                            'value' => $record->luminaires()->count(),
+                            'placeholder' => '0',
+                        ],
                     ],
                 ])
                 ->view('fieldops::filament.infolists.profile-header')

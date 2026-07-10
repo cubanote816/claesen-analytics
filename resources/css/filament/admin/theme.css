@@ -286,9 +286,9 @@
 }
 
 .fieldops-profile-hero__meta {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    gap: 1rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
     padding: 1rem 1.5rem 1.35rem;
     border-top: 1px solid #dbe5ed;
 }
@@ -299,6 +299,18 @@
 
 .fieldops-profile-hero__meta-item {
     min-width: 0;
+    flex: 1 1 12rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.dark .fieldops-profile-hero__meta-item {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
 }
 
 .fieldops-profile-hero__meta-label {
@@ -321,6 +333,7 @@
     color: #0f172a;
     font-size: 0.98rem;
     font-weight: 600;
+    line-height: 1.35;
 }
 
 .dark .fieldops-profile-hero__meta-value {
