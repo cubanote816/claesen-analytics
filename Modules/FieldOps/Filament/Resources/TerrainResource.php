@@ -331,33 +331,31 @@ class TerrainResource extends Resource
     /**
      * @return array<string, array{label: string, initial: string, color: string, text: string}>
      */
+    /**
+     * `pin_color` (CLA-256) is the single source of truth for terrain pin color — shared
+     * with the /terrain-types API payload consumed by the Claesen-Sport frontend, so both
+     * apps render the same color per terrain type. Previously this cycled a hardcoded
+     * palette by row index, which reshuffled every color whenever a type was inserted or
+     * reordered.
+     */
     protected static function resolveTerrainPinVariants(): array
     {
-        $palette = [
-            ['color' => '#00aeef', 'text' => '#ffffff'],
-            ['color' => '#e6007e', 'text' => '#ffffff'],
-            ['color' => '#a5d610', 'text' => '#102014'],
-            ['color' => '#f59e0b', 'text' => '#111827'],
-            ['color' => '#8b5cf6', 'text' => '#ffffff'],
-            ['color' => '#14b8a6', 'text' => '#042f2e'],
-        ];
+        $fallbackColor = '#00aeef';
 
         return TerrainType::query()
             ->orderBy('id')
             ->get()
-            ->values()
-            ->mapWithKeys(function (TerrainType $type, int $index) use ($palette): array {
+            ->mapWithKeys(function (TerrainType $type) use ($fallbackColor): array {
                 $label = $type->getTranslation('type', app()->getLocale(), false)
                     ?: $type->getTranslation('type', 'nl', false)
                     ?: '#'.$type->id;
-                $style = $palette[$index % count($palette)];
 
                 return [
                     (string) $type->id => [
                         'label' => $label,
                         'initial' => Str::of($label)->trim()->substr(0, 1)->upper()->value() ?: 'T',
-                        'color' => $style['color'],
-                        'text' => $style['text'],
+                        'color' => $type->pin_color ?: $fallbackColor,
+                        'text' => '#ffffff',
                     ],
                 ];
             })

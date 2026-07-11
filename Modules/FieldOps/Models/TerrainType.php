@@ -22,7 +22,7 @@ class TerrainType extends Model
         return ['type'];
     }
 
-    protected $fillable = ['type', 'ai_translation_status'];
+    protected $fillable = ['type', 'code', 'pin_color', 'ai_translation_status'];
 
     protected static function newFactory(): TerrainTypeFactory
     {

@@ -22,6 +22,8 @@ class TerrainTypeFactory extends Factory
                 'fr' => $word,
                 'es' => $word,
             ],
+            'code' => $this->faker->unique()->slug(2, false),
+            'pin_color' => $this->faker->hexColor(),
         ];
     }
 }

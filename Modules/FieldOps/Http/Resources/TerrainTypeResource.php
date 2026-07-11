@@ -9,8 +9,10 @@ class TerrainTypeResource extends JsonResource
     public function toArray($request): array
     {
         return [
-            'id'   => $this->id,
-            'type' => $this->getTranslations('type'),
+            'id'        => $this->id,
+            'type'      => $this->getTranslations('type'),
+            'code'      => $this->code,
+            'pin_color' => $this->pin_color,
         ];
     }
 }
