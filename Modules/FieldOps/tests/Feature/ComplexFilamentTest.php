@@ -68,6 +68,7 @@ class ComplexFilamentTest extends TestCase
         $this->get("/complexes/{$complex->id}")
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
-            ->assertSee(__('fieldops::resource.complexes.no_coordinates'));
+            ->assertSee(__('fieldops::resource.complexes.no_coordinates'))
+            ->assertSee(__('fieldops::resource.terrains.actions.create'));
     }
 }

@@ -46,6 +46,11 @@ return [
         'navigation'   => 'Terreinen',
         'model_label'  => 'Terrein',
         'plural_label' => 'Terreinen',
+        'empty_state_heading' => 'Nog geen terreinen',
+        'empty_state_description' => 'Maak meteen het eerste terrein aan voor dit complex zonder de pagina te verlaten.',
+        'actions' => [
+            'create' => 'Terrein aanmaken',
+        ],
         'fields' => [
             'name'              => 'Naam',
             'name_nl'           => 'Naam (NL)',

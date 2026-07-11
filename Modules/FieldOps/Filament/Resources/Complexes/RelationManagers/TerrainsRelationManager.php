@@ -2,7 +2,6 @@
 
 namespace Modules\FieldOps\Filament\Resources\Complexes\RelationManagers;
 
-use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -12,7 +11,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Modules\FieldOps\Filament\Resources\TerrainResource;
 use Modules\FieldOps\Models\TerrainType;
 
 class TerrainsRelationManager extends RelationManager
@@ -78,13 +76,6 @@ class TerrainsRelationManager extends RelationManager
                     ->label(__('fieldops::resource.terrains.fields.structures_count'))
                     ->counts('structures')
                     ->sortable(),
-            ])
-            ->headerActions([
-                CreateAction::make()
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $data['created_by_user_id'] = auth()->id();
-                        return $data;
-                    }),
             ])
             ->actions([
                 EditAction::make(),

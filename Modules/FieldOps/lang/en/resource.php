@@ -46,6 +46,11 @@ return [
         'navigation'   => 'Terrains',
         'model_label'  => 'Terrain',
         'plural_label' => 'Terrains',
+        'empty_state_heading' => 'No terrains yet',
+        'empty_state_description' => 'Create the first terrain for this complex without leaving the page.',
+        'actions' => [
+            'create' => 'Create terrain',
+        ],
         'fields' => [
             'name'              => 'Name',
             'name_nl'           => 'Name (NL)',

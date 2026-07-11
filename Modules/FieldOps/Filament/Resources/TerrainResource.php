@@ -86,6 +86,7 @@ class TerrainResource extends Resource
                     ->label(__('fieldops::resource.terrains.fields.complex'))
                     ->options(Complex::orderBy('name')->pluck('name', 'id'))
                     ->searchable()
+                    ->default(fn () => request()->integer('complex_id') ?: null)
                     ->required(),
                 Select::make('terrain_type_id')
                     ->label(__('fieldops::resource.terrains.fields.terrain_type'))
