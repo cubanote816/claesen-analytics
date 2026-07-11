@@ -2,12 +2,10 @@
 
 namespace Modules\FieldOps\Filament\Resources\Complexes\Pages;
 
-use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 use Modules\FieldOps\Filament\Resources\ComplexResource;
-use Modules\FieldOps\Filament\Resources\TerrainResource;
 
 class ViewComplex extends ViewRecord
 {
@@ -29,13 +27,6 @@ class ViewComplex extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('createTerrain')
-                ->label(__('fieldops::resource.terrains.actions.create'))
-                ->icon('heroicon-m-plus')
-                ->color('primary')
-                ->url(TerrainResource::getUrl('create', [
-                    'complex_id' => $this->record->getKey(),
-                ])),
             EditAction::make(),
         ];
     }

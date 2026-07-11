@@ -146,6 +146,14 @@ class ComplexResource extends Resource
                         'value' => $record->terrains()->count(),
                         'label' => __('fieldops::resource.terrains.plural_label'),
                     ],
+                    'actions' => [
+                        [
+                            'label' => __('fieldops::resource.terrains.actions.create'),
+                            'url' => \Modules\FieldOps\Filament\Resources\TerrainResource::getUrl('create', [
+                                'complex_id' => $record->getKey(),
+                            ]),
+                        ],
+                    ],
                     'meta' => [
                         [
                             'label' => __('fieldops::resource.complexes.fields.address'),
