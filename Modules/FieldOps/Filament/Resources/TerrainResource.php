@@ -82,7 +82,7 @@ class TerrainResource extends Resource
         return $schema
             ->columns(1)
             ->components([
-            Section::make(__('fieldops::resource.terrains.fields.name'))
+            Section::make()
                 ->columnSpanFull()
                 ->schema([
                 // Single field in the admin's current locale (app()->getLocale(),
@@ -91,10 +91,6 @@ class TerrainResource extends Resource
                 TextInput::make('name')
                     ->label(__('fieldops::resource.terrains.fields.name'))
                     ->required(),
-            ]),
-            Section::make()
-                ->columnSpanFull()
-                ->schema([
                 Select::make('complex_id')
                     ->label(__('fieldops::resource.terrains.fields.complex'))
                     ->options(Complex::orderBy('name')->pluck('name', 'id'))
@@ -124,6 +120,10 @@ class TerrainResource extends Resource
                         $set('terrain_pin_variant', static::resolveTerrainPinVariant($state ? (int) $state : null));
                     })
                     ->nullable(),
+            ])->columns(3),
+            Section::make()
+                ->columnSpanFull()
+                ->schema([
                 Hidden::make('lat')
                     ->default($locationDefaults['lat']),
                 Hidden::make('lng')
