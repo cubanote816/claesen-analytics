@@ -112,6 +112,7 @@ class TerrainResource extends Resource
                             ?: $t->getTranslation('type', 'nl', false),
                     ]))
                     ->searchable()
+                    ->extraAttributes(['class' => 'relative z-50'])
                     ->live()
                     ->afterStateHydrated(function (Set $set, $state): void {
                         $set('terrain_pin_variant', static::resolveTerrainPinVariant($state ? (int) $state : null));
