@@ -38,6 +38,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Session Expiry Warning Threshold
+    |--------------------------------------------------------------------------
+    |
+    | Number of seconds before expiry at which the Filament session warning
+    | should become active.
+    |
+    */
+
+    'warning_threshold' => (int) env('SESSION_WARNING_THRESHOLD', 300),
+
+    /*
+    |--------------------------------------------------------------------------
     | Session Encryption
     |--------------------------------------------------------------------------
     |

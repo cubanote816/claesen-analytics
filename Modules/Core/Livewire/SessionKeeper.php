@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\Auth;
 class SessionKeeper extends Component
 {
     public int $lifetime;
-    public int $warningThreshold = 5; // 5 minutes before expiry
+    public int $warningThreshold;
 
     public function mount(?int $lifetime = null, ?int $warningThreshold = null)
     {
         // Now working in SECONDS to avoid float-to-int conversion issues
         $this->lifetime = $lifetime ?? (config('session.lifetime', 120) * 60);
-        $this->warningThreshold = $warningThreshold ?? (5 * 60);
+        $this->warningThreshold = $warningThreshold ?? (int) config('session.warning_threshold', 300);
     }
 
     /**
