@@ -84,6 +84,7 @@ class TerrainResource extends Resource
             ->components([
             Section::make()
                 ->columnSpanFull()
+                ->extraAttributes(['class' => 'relative z-30'])
                 ->schema([
                 // Single field in the admin's current locale (app()->getLocale(),
                 // set per-request by SetPanelLocale) — HasAiTranslations
@@ -112,7 +113,7 @@ class TerrainResource extends Resource
                             ?: $t->getTranslation('type', 'nl', false),
                     ]))
                     ->searchable()
-                    ->extraAttributes(['class' => 'relative z-50'])
+                    ->extraFieldWrapperAttributes(['class' => 'relative z-50'])
                     ->live()
                     ->afterStateHydrated(function (Set $set, $state): void {
                         $set('terrain_pin_variant', static::resolveTerrainPinVariant($state ? (int) $state : null));
@@ -124,6 +125,7 @@ class TerrainResource extends Resource
             ])->columns(3),
             Section::make()
                 ->columnSpanFull()
+                ->extraAttributes(['class' => 'relative z-10'])
                 ->schema([
                 Hidden::make('lat')
                     ->default($locationDefaults['lat']),
