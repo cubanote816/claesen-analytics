@@ -10,7 +10,8 @@
     x-show="show"
     x-cloak
     style="display: none;"
-    class="fixed inset-0 z-[1000] flex items-center justify-center p-4"
+    class="fixed inset-0 z-[2147483647] flex items-center justify-center p-4"
+    style="display: none; z-index: 2147483647;"
     role="alertdialog"
     aria-modal="true"
     aria-labelledby="session-expired-title"
