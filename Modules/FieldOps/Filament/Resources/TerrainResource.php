@@ -10,9 +10,11 @@ use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
@@ -72,6 +74,8 @@ class TerrainResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $locationDefaults = static::resolveLocationDefaults();
+
         return $schema->components([
             Section::make(__('fieldops::resource.terrains.fields.name'))->schema([
                 // Single field in the admin's current locale (app()->getLocale(),
@@ -96,14 +100,23 @@ class TerrainResource extends Resource
                     ]))
                     ->searchable()
                     ->nullable(),
-                TextInput::make('lat')
-                    ->label(__('fieldops::resource.terrains.fields.lat'))
-                    ->numeric()
-                    ->nullable(),
-                TextInput::make('lng')
-                    ->label(__('fieldops::resource.terrains.fields.lng'))
-                    ->numeric()
-                    ->nullable(),
+                Hidden::make('lat')
+                    ->default($locationDefaults['lat']),
+                Hidden::make('lng')
+                    ->default($locationDefaults['lng']),
+                ViewField::make('location_map')
+                    ->hiddenLabel()
+                    ->dehydrated(false)
+                    ->view('fieldops::filament.forms.terrain-location-picker')
+                    ->viewData([
+                        'complexLabel' => $locationDefaults['complex_label'],
+                        'defaultLat' => $locationDefaults['lat'],
+                        'defaultLng' => $locationDefaults['lng'],
+                        'defaultZoom' => $locationDefaults['zoom'],
+                        'latInputId' => 'form.lat',
+                        'lngInputId' => 'form.lng',
+                    ])
+                    ->columnSpanFull(),
             ])->columns(2),
             Section::make(__('fieldops::resource.media.section_label'))->schema([
                 SpatieMediaLibraryFileUpload::make('photos')
@@ -245,6 +258,35 @@ class TerrainResource extends Resource
     protected static function hasCoordinates($record): bool
     {
         return is_numeric($record->lat ?? null) && is_numeric($record->lng ?? null);
+    }
+
+    /**
+     * @return array{lat: float, lng: float, zoom: int, complex_label: ?string}
+     */
+    protected static function resolveLocationDefaults(): array
+    {
+        $fallbackLat = 51.1635;
+        $fallbackLng = 5.1640;
+        $fallbackZoom = 16;
+
+        $complexId = request()->integer('complex_id');
+        $complex = $complexId ? Complex::query()->find($complexId) : null;
+
+        if ($complex && static::hasCoordinates($complex)) {
+            return [
+                'lat' => (float) $complex->lat,
+                'lng' => (float) $complex->lng,
+                'zoom' => 17,
+                'complex_label' => $complex->name,
+            ];
+        }
+
+        return [
+            'lat' => $fallbackLat,
+            'lng' => $fallbackLng,
+            'zoom' => $fallbackZoom,
+            'complex_label' => $complex?->name,
+        ];
     }
 
     public static function table(Table $table): Table
