@@ -268,6 +268,8 @@ class TerrainResource extends Resource
                     ?: '#'.$record->id,
                 'description' => $record->terrainType?->getTranslation('type', app()->getLocale(), false)
                     ?: $record->terrainType?->getTranslation('type', 'nl', false),
+                'terrainTypeCode' => $record->terrainType?->code,
+                'terrainTypeColor' => $record->terrainType?->pin_color,
                 'lat' => $record->lat,
                 'lng' => $record->lng,
                 'hasCoordinates' => true,
@@ -354,6 +356,7 @@ class TerrainResource extends Resource
                     (string) $type->id => [
                         'label' => $label,
                         'initial' => Str::of($label)->trim()->substr(0, 1)->upper()->value() ?: 'T',
+                        'code' => $type->code,
                         'color' => $type->pin_color ?: $fallbackColor,
                         'text' => '#ffffff',
                     ],

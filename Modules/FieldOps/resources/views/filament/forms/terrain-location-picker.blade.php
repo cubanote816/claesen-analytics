@@ -10,7 +10,7 @@
      *     centerLatInputId: string,
      *     centerLngInputId: string,
      *     variantInputId: string,
-     *     pinVariants: array<string, array{label: string, initial: string, color: string, text: string}>,
+     *     pinVariants: array<string, array{label: string, initial: string, code?: ?string, color: string, text: string}>,
      *     defaultPinVariant: string,
      * } $data
      */
@@ -321,6 +321,109 @@
             return window.__fieldopsLeafletPromise;
         };
 
+        const buildTerrainMarkerSvg = (code, color) => {
+            const fill = color || '#e6007e';
+
+            switch (code) {
+                case 'soccer':
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="5" y="5" width="30" height="30" fill="${fill}" rx="4"/>
+                            <rect x="7" y="7" width="26" height="26" fill="none" stroke="white" stroke-width="2"/>
+                            <line x1="20" y1="7" x2="20" y2="33" stroke="white" stroke-width="2"/>
+                            <circle cx="20" cy="20" r="5" fill="none" stroke="white" stroke-width="2"/>
+                        </svg>
+                    `;
+                case 'athletics':
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <ellipse cx="20" cy="20" rx="15" ry="12" fill="${fill}"/>
+                            <ellipse cx="20" cy="20" rx="12" ry="9" fill="none" stroke="white" stroke-width="2"/>
+                            <ellipse cx="20" cy="20" rx="9" ry="6" fill="none" stroke="white" stroke-width="2"/>
+                        </svg>
+                    `;
+                case 'tennis':
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="5" y="5" width="30" height="30" fill="${fill}" rx="4"/>
+                            <line x1="20" y1="7" x2="20" y2="33" stroke="white" stroke-width="2"/>
+                            <rect x="7" y="7" width="26" height="26" fill="none" stroke="white" stroke-width="2"/>
+                            <path d="M7,20 Q20,25 33,20 M7,20 Q20,15 33,20" fill="none" stroke="white" stroke-width="1"/>
+                        </svg>
+                    `;
+                case 'padel':
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="5" y="5" width="30" height="30" fill="${fill}" rx="4"/>
+                            <path d="M20,10 Q26,10 26,18 Q26,25 20,27 Q14,25 14,18 Q14,10 20,10 Z" fill="white"/>
+                            <circle cx="17.5" cy="15" r="1.1" fill="${fill}"/>
+                            <circle cx="22.5" cy="15" r="1.1" fill="${fill}"/>
+                            <circle cx="20" cy="19" r="1.1" fill="${fill}"/>
+                            <line x1="20" y1="27" x2="20" y2="32" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    `;
+                case 'hockey':
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="5" y="5" width="30" height="30" fill="${fill}" rx="4"/>
+                            <path d="M17,10 L17,24 Q17,29 23,29" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                            <circle cx="26.5" cy="29" r="1.8" fill="white"/>
+                        </svg>
+                    `;
+                case 'basketball':
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="5" y="5" width="30" height="30" fill="${fill}" rx="4"/>
+                            <circle cx="20" cy="20" r="9" fill="none" stroke="white" stroke-width="1.6"/>
+                            <line x1="20" y1="11" x2="20" y2="29" stroke="white" stroke-width="1.4"/>
+                            <line x1="11" y1="20" x2="29" y2="20" stroke="white" stroke-width="1.4"/>
+                            <path d="M12.5,15 Q20,18.5 27.5,15" fill="none" stroke="white" stroke-width="1.4"/>
+                            <path d="M12.5,25 Q20,21.5 27.5,25" fill="none" stroke="white" stroke-width="1.4"/>
+                        </svg>
+                    `;
+                case 'volleyball':
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="5" y="5" width="30" height="30" fill="${fill}" rx="4"/>
+                            <circle cx="20" cy="20" r="9" fill="none" stroke="white" stroke-width="1.6"/>
+                            <path d="M13,13 Q22,17 17,27" fill="none" stroke="white" stroke-width="1.3"/>
+                            <path d="M13,13 Q18,21 28,16" fill="none" stroke="white" stroke-width="1.3"/>
+                            <path d="M17,27 Q23,24 28,16" fill="none" stroke="white" stroke-width="1.3"/>
+                        </svg>
+                    `;
+                case 'petanque':
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="5" y="5" width="30" height="30" fill="${fill}" rx="4"/>
+                            <circle cx="17" cy="22" r="5.2" fill="none" stroke="white" stroke-width="1.6"/>
+                            <circle cx="24.5" cy="17.5" r="5.2" fill="none" stroke="white" stroke-width="1.6"/>
+                            <circle cx="20.5" cy="26.5" r="3.8" fill="none" stroke="white" stroke-width="1.3"/>
+                            <circle cx="11.5" cy="12.5" r="1.7" fill="white"/>
+                        </svg>
+                    `;
+                case 'multi_sport':
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="5" y="5" width="30" height="30" fill="${fill}" rx="4"/>
+                            <rect x="9" y="12" width="22" height="16" rx="1.5" fill="none" stroke="white" stroke-width="1.6"/>
+                            <line x1="20" y1="12" x2="20" y2="28" stroke="white" stroke-width="1.4"/>
+                            <circle cx="20" cy="20" r="3.4" fill="none" stroke="white" stroke-width="1.4"/>
+                        </svg>
+                    `;
+                default:
+                    return `
+                        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 4C14.48 4 10 8.48 10 14C10 21.5 20 36 20 36C20 36 30 21.5 30 14C30 8.48 25.52 4 20 4Z"
+                                  fill="${fill}"
+                                  stroke="white"
+                                  stroke-width="1"/>
+                            <line x1="16.5" y1="10" x2="16.5" y2="21" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+                            <path d="M16.5,10 L23,12.7 L16.5,15.4 Z" fill="white"/>
+                        </svg>
+                    `;
+            }
+        };
+
         const registerTerrainLocationPicker = () => {
             if (! window.Alpine) {
                 return;
@@ -536,22 +639,25 @@
                     return keys[0] || 'generic';
                 },
 
-                getVariantStyle(variant) {
+                getVariantData(variant) {
                     const resolvedVariant = this.resolveVariantKey(variant);
 
                     return this.config.pinVariants?.[resolvedVariant]
                         ?? this.config.pinVariants?.generic
-                        ?? { color: '#e6007e', text: '#ffffff' };
+                        ?? { color: '#e6007e', text: '#ffffff', code: null };
                 },
 
                 buildMarkerIcon(L, variant) {
-                    const style = this.getVariantStyle(variant);
+                    const style = this.getVariantData(variant);
+                    const svg = style.code
+                        ? buildTerrainMarkerSvg(style.code, style.color)
+                        : buildTerrainMarkerSvg(null, style.color);
 
-                    return L.divIcon({
-                        className: 'fieldops-terrain-location-picker__marker',
-                        html: `<span class="fieldops-terrain-location-picker__pin" style="--fieldops-pin-color: ${style.color}; --fieldops-pin-text: ${style.text};"></span>`,
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 24],
+                    return L.icon({
+                        iconUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40],
+                        popupAnchor: [0, -40],
                     });
                 },
 
