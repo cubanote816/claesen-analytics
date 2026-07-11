@@ -7,6 +7,11 @@
      *     defaultZoom: int,
      *     latInputId: string,
      *     lngInputId: string,
+     *     centerLatInputId: string,
+     *     centerLngInputId: string,
+     *     variantInputId: string,
+     *     pinVariants: array<string, array{label: string, initial: string, color: string, text: string}>,
+     *     defaultPinVariant: string,
      * } $data
      */
     $data = array_merge([
@@ -16,6 +21,11 @@
         'defaultZoom' => 16,
         'latInputId' => 'form.lat',
         'lngInputId' => 'form.lng',
+        'centerLatInputId' => 'form.map_center_lat',
+        'centerLngInputId' => 'form.map_center_lng',
+        'variantInputId' => 'form.terrain_pin_variant',
+        'pinVariants' => [],
+        'defaultPinVariant' => 'generic',
     ], $getViewData());
 @endphp
 
@@ -188,12 +198,14 @@
         }
 
         .fieldops-terrain-location-picker__pin {
+            --fieldops-pin-color: #e6007e;
+            --fieldops-pin-text: #ffffff;
             width: 1.25rem;
             height: 1.25rem;
             border: 3px solid #fff;
             border-radius: 999px 999px 999px 0;
-            background: #e6007e;
-            box-shadow: 0 12px 20px rgba(230, 0, 126, 0.25);
+            background: var(--fieldops-pin-color);
+            box-shadow: 0 12px 20px color-mix(in srgb, var(--fieldops-pin-color) 35%, transparent);
             transform: rotate(-45deg);
         }
 
@@ -205,7 +217,7 @@
             width: 0.35rem;
             height: 0.35rem;
             border-radius: 999px;
-            background: #fff;
+            background: var(--fieldops-pin-text);
             transform: rotate(45deg);
         }
 
@@ -230,13 +242,19 @@
 <div
     class="fieldops-terrain-location-picker"
     data-theme="light"
+    wire:ignore
     x-data="fieldopsTerrainLocationPicker({
         latInputId: @js($data['latInputId']),
         lngInputId: @js($data['lngInputId']),
+        centerLatInputId: @js($data['centerLatInputId']),
+        centerLngInputId: @js($data['centerLngInputId']),
+        variantInputId: @js($data['variantInputId']),
         defaultLat: @js($data['defaultLat']),
         defaultLng: @js($data['defaultLng']),
         defaultZoom: @js($data['defaultZoom']),
         complexLabel: @js($data['complexLabel']),
+        pinVariants: @js($data['pinVariants']),
+        defaultPinVariant: @js($data['defaultPinVariant']),
     })"
     x-init="init()"
 >
@@ -314,12 +332,24 @@
                 marker: null,
                 latInput: null,
                 lngInput: null,
+                centerLatInput: null,
+                centerLngInput: null,
+                variantInput: null,
                 coordsLabel: '',
                 complexLabel: config.complexLabel,
+                currentPinCoords: null,
+                currentCenterCoords: null,
+                currentVariant: null,
+                lastCenterKey: null,
+                stateObserver: null,
+                statePoller: null,
 
                 async init() {
                     this.latInput = document.getElementById(this.config.latInputId);
                     this.lngInput = document.getElementById(this.config.lngInputId);
+                    this.centerLatInput = document.getElementById(this.config.centerLatInputId);
+                    this.centerLngInput = document.getElementById(this.config.centerLngInputId);
+                    this.variantInput = document.getElementById(this.config.variantInputId);
 
                     await window.fieldopsLoadLeaflet();
 
@@ -329,7 +359,8 @@
 
                     this.$refs.map.dataset.fieldopsInitialized = '1';
 
-                    const initial = this.readCoords();
+                    const initial = this.readPinCoords();
+                    const variant = this.readVariant();
                     const L = window.L;
 
                     this.map = L.map(this.$refs.map, {
@@ -344,30 +375,70 @@
 
                     this.marker = L.marker([initial.lat, initial.lng], {
                         draggable: true,
-                        icon: L.divIcon({
-                            className: 'fieldops-terrain-location-picker__marker',
-                            html: '<span class="fieldops-terrain-location-picker__pin"></span>',
-                            iconSize: [24, 24],
-                            iconAnchor: [12, 24],
-                        }),
+                        icon: this.buildMarkerIcon(L, variant),
                     }).addTo(this.map);
 
                     this.map.setView([initial.lat, initial.lng], Number(this.config.defaultZoom || 16));
                     this.marker.on('dragend', () => this.syncFromLatLng(this.marker.getLatLng(), false));
                     this.map.on('click', (event) => this.syncFromLatLng(event.latlng));
 
-                    this.syncFromLatLng(initial, false);
+                    this.syncFromLatLng(initial, false, false);
+                    this.syncMarkerVariant(variant, true);
+                    this.bindStateObservers();
+                    this.syncExternalState(true);
                     this.syncTheme();
                     this.observeTheme();
 
                     setTimeout(() => this.map.invalidateSize(), 0);
                 },
 
-                readCoords() {
-                    const lat = this.parseValue(this.latInput?.value, this.config.defaultLat);
-                    const lng = this.parseValue(this.lngInput?.value, this.config.defaultLng);
+                bindStateObservers() {
+                    const handler = () => this.syncExternalState(false);
+
+                    [this.centerLatInput, this.centerLngInput, this.variantInput].forEach((input) => {
+                        if (! input) {
+                            return;
+                        }
+
+                        input.addEventListener('input', handler);
+                        input.addEventListener('change', handler);
+                    });
+
+                    this.statePoller = window.setInterval(() => this.syncExternalState(false), 350);
+                },
+
+                readPinCoords() {
+                    const lat = this.parseValue(this.latInput?.value ?? this.currentPinCoords?.lat, this.config.defaultLat);
+                    const lng = this.parseValue(this.lngInput?.value ?? this.currentPinCoords?.lng, this.config.defaultLng);
+
+                    this.currentPinCoords = { lat, lng };
 
                     return { lat, lng };
+                },
+
+                readCenterCoords() {
+                    const centerLat = this.parseValue(this.centerLatInput?.value ?? this.currentCenterCoords?.lat, NaN);
+                    const centerLng = this.parseValue(this.centerLngInput?.value ?? this.currentCenterCoords?.lng, NaN);
+                    const pinCoords = this.readPinCoords();
+                    const defaultLat = Number.parseFloat(this.config.defaultLat);
+                    const defaultLng = Number.parseFloat(this.config.defaultLng);
+
+                    if (
+                        Number.isFinite(centerLat)
+                        && Number.isFinite(centerLng)
+                        && (centerLat !== defaultLat || centerLng !== defaultLng)
+                    ) {
+                        this.currentCenterCoords = { lat: centerLat, lng: centerLng };
+                        return { lat: centerLat, lng: centerLng };
+                    }
+
+                    return pinCoords;
+                },
+
+                readVariant() {
+                    const variant = String(this.variantInput?.value ?? '').trim();
+
+                    return variant || this.config.defaultPinVariant || 'generic';
                 },
 
                 parseValue(value, fallback) {
@@ -376,9 +447,28 @@
                     return Number.isFinite(parsed) ? parsed : Number.parseFloat(fallback);
                 },
 
-                syncFromLatLng(latlng, moveMap = true) {
+                syncExternalState(force = false) {
+                    const center = this.readCenterCoords();
+                    const centerKey = `${center.lat.toFixed(6)},${center.lng.toFixed(6)}`;
+                    const variant = this.readVariant();
+
+                    if (force || centerKey !== this.lastCenterKey) {
+                        this.syncFromLatLng(center, true, true);
+                        this.lastCenterKey = centerKey;
+                    }
+
+                    if (force || variant !== this.currentVariant) {
+                        this.syncMarkerVariant(variant);
+                    }
+                },
+
+                syncFromLatLng(latlng, moveMap = true, syncCenterFields = false) {
                     const lat = Number.parseFloat(latlng.lat).toFixed(6);
                     const lng = Number.parseFloat(latlng.lng).toFixed(6);
+                    const parsedLat = Number.parseFloat(lat);
+                    const parsedLng = Number.parseFloat(lng);
+
+                    this.currentPinCoords = { lat: parsedLat, lng: parsedLng };
 
                     this.coordsLabel = `${lat}, ${lng}`;
 
@@ -394,6 +484,18 @@
                         this.lngInput.dispatchEvent(new Event('change', { bubbles: true }));
                     }
 
+                    if (syncCenterFields) {
+                        if (this.centerLatInput) {
+                            this.centerLatInput.value = lat;
+                        }
+
+                        if (this.centerLngInput) {
+                            this.centerLngInput.value = lng;
+                        }
+
+                        this.currentCenterCoords = { lat: parsedLat, lng: parsedLng };
+                    }
+
                     if (! this.map || ! this.marker) {
                         return;
                     }
@@ -404,6 +506,53 @@
                     if (moveMap) {
                         this.map.setView(position, this.map.getZoom(), { animate: true });
                     }
+                },
+
+                syncMarkerVariant(variant, force = false) {
+                    const resolvedVariant = this.resolveVariantKey(variant);
+
+                    if (! force && resolvedVariant === this.currentVariant) {
+                        return;
+                    }
+
+                    this.currentVariant = resolvedVariant;
+
+                    if (this.marker && window.L) {
+                        this.marker.setIcon(this.buildMarkerIcon(window.L, resolvedVariant));
+                    }
+                },
+
+                resolveVariantKey(variant) {
+                    if (this.config.pinVariants && this.config.pinVariants[variant]) {
+                        return variant;
+                    }
+
+                    if (this.config.pinVariants && this.config.pinVariants.generic) {
+                        return 'generic';
+                    }
+
+                    const keys = Object.keys(this.config.pinVariants || {});
+
+                    return keys[0] || 'generic';
+                },
+
+                getVariantStyle(variant) {
+                    const resolvedVariant = this.resolveVariantKey(variant);
+
+                    return this.config.pinVariants?.[resolvedVariant]
+                        ?? this.config.pinVariants?.generic
+                        ?? { color: '#e6007e', text: '#ffffff' };
+                },
+
+                buildMarkerIcon(L, variant) {
+                    const style = this.getVariantStyle(variant);
+
+                    return L.divIcon({
+                        className: 'fieldops-terrain-location-picker__marker',
+                        html: `<span class="fieldops-terrain-location-picker__pin" style="--fieldops-pin-color: ${style.color}; --fieldops-pin-text: ${style.text};"></span>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 24],
+                    });
                 },
 
                 syncTheme() {
@@ -427,6 +576,7 @@
                         attributes: true,
                         attributeFilter: ['class'],
                     });
+                    this.stateObserver = observer;
                 },
             }));
         };

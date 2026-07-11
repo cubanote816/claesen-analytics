@@ -27,6 +27,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
 use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\ElectricalBoardsRelationManager;
 use Modules\FieldOps\Filament\Resources\Terrains\Pages\CreateTerrain;
 use Modules\FieldOps\Filament\Resources\Terrains\Pages\EditTerrain;
@@ -36,6 +37,7 @@ use Modules\FieldOps\Filament\Resources\Terrains\RelationManagers\StructuresRela
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Models\TerrainType;
+use Filament\Schemas\Components\Utilities\Set;
 
 class TerrainResource extends Resource
 {
@@ -75,9 +77,14 @@ class TerrainResource extends Resource
     public static function form(Schema $schema): Schema
     {
         $locationDefaults = static::resolveLocationDefaults();
+        $terrainPinVariants = static::resolveTerrainPinVariants();
 
-        return $schema->components([
-            Section::make(__('fieldops::resource.terrains.fields.name'))->schema([
+        return $schema
+            ->columns(1)
+            ->components([
+            Section::make(__('fieldops::resource.terrains.fields.name'))
+                ->columnSpanFull()
+                ->schema([
                 // Single field in the admin's current locale (app()->getLocale(),
                 // set per-request by SetPanelLocale) — HasAiTranslations
                 // auto-translates to the other 3 canonical locales on save.
@@ -85,11 +92,21 @@ class TerrainResource extends Resource
                     ->label(__('fieldops::resource.terrains.fields.name'))
                     ->required(),
             ]),
-            Section::make()->schema([
+            Section::make()
+                ->columnSpanFull()
+                ->schema([
                 Select::make('complex_id')
                     ->label(__('fieldops::resource.terrains.fields.complex'))
                     ->options(Complex::orderBy('name')->pluck('name', 'id'))
                     ->searchable()
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, $state): void {
+                        $location = static::resolveLocationDefaults($state ? (int) $state : null);
+                        $set('map_center_lat', $location['lat']);
+                        $set('map_center_lng', $location['lng']);
+                        $set('lat', $location['lat']);
+                        $set('lng', $location['lng']);
+                    })
                     ->default(fn () => request()->integer('complex_id') ?: null)
                     ->required(),
                 Select::make('terrain_type_id')
@@ -99,11 +116,27 @@ class TerrainResource extends Resource
                             ?: $t->getTranslation('type', 'nl', false),
                     ]))
                     ->searchable()
+                    ->live()
+                    ->afterStateHydrated(function (Set $set, $state): void {
+                        $set('terrain_pin_variant', static::resolveTerrainPinVariant($state ? (int) $state : null));
+                    })
+                    ->afterStateUpdated(function (Set $set, $state): void {
+                        $set('terrain_pin_variant', static::resolveTerrainPinVariant($state ? (int) $state : null));
+                    })
                     ->nullable(),
                 Hidden::make('lat')
                     ->default($locationDefaults['lat']),
                 Hidden::make('lng')
                     ->default($locationDefaults['lng']),
+                Hidden::make('map_center_lat')
+                    ->dehydrated(false)
+                    ->default($locationDefaults['lat']),
+                Hidden::make('map_center_lng')
+                    ->dehydrated(false)
+                    ->default($locationDefaults['lng']),
+                Hidden::make('terrain_pin_variant')
+                    ->dehydrated(false)
+                    ->default(static::resolveTerrainPinVariant(null)),
                 ViewField::make('location_map')
                     ->hiddenLabel()
                     ->dehydrated(false)
@@ -115,10 +148,17 @@ class TerrainResource extends Resource
                         'defaultZoom' => $locationDefaults['zoom'],
                         'latInputId' => 'form.lat',
                         'lngInputId' => 'form.lng',
+                        'centerLatInputId' => 'form.map_center_lat',
+                        'centerLngInputId' => 'form.map_center_lng',
+                        'variantInputId' => 'form.terrain_pin_variant',
+                        'pinVariants' => $terrainPinVariants,
+                        'defaultPinVariant' => static::resolveTerrainPinVariant(null),
                     ])
                     ->columnSpanFull(),
-            ])->columns(2),
-            Section::make(__('fieldops::resource.media.section_label'))->schema([
+            ])->columns(1),
+            Section::make(__('fieldops::resource.media.section_label'))
+                ->columnSpanFull()
+                ->schema([
                 SpatieMediaLibraryFileUpload::make('photos')
                     ->label(__('fieldops::resource.media.photos'))
                     ->collection('photos')
@@ -263,13 +303,12 @@ class TerrainResource extends Resource
     /**
      * @return array{lat: float, lng: float, zoom: int, complex_label: ?string}
      */
-    protected static function resolveLocationDefaults(): array
+    protected static function resolveLocationDefaults(?int $complexId = null): array
     {
         $fallbackLat = 51.1635;
         $fallbackLng = 5.1640;
         $fallbackZoom = 16;
 
-        $complexId = request()->integer('complex_id');
         $complex = $complexId ? Complex::query()->find($complexId) : null;
 
         if ($complex && static::hasCoordinates($complex)) {
@@ -287,6 +326,59 @@ class TerrainResource extends Resource
             'zoom' => $fallbackZoom,
             'complex_label' => $complex?->name,
         ];
+    }
+
+    /**
+     * @return array<string, array{label: string, initial: string, color: string, text: string}>
+     */
+    protected static function resolveTerrainPinVariants(): array
+    {
+        $palette = [
+            ['color' => '#00aeef', 'text' => '#ffffff'],
+            ['color' => '#e6007e', 'text' => '#ffffff'],
+            ['color' => '#a5d610', 'text' => '#102014'],
+            ['color' => '#f59e0b', 'text' => '#111827'],
+            ['color' => '#8b5cf6', 'text' => '#ffffff'],
+            ['color' => '#14b8a6', 'text' => '#042f2e'],
+        ];
+
+        return TerrainType::query()
+            ->orderBy('id')
+            ->get()
+            ->values()
+            ->mapWithKeys(function (TerrainType $type, int $index) use ($palette): array {
+                $label = $type->getTranslation('type', app()->getLocale(), false)
+                    ?: $type->getTranslation('type', 'nl', false)
+                    ?: '#'.$type->id;
+                $style = $palette[$index % count($palette)];
+
+                return [
+                    (string) $type->id => [
+                        'label' => $label,
+                        'initial' => Str::of($label)->trim()->substr(0, 1)->upper()->value() ?: 'T',
+                        'color' => $style['color'],
+                        'text' => $style['text'],
+                    ],
+                ];
+            })
+            ->prepend([
+                'label' => __('fieldops::resource.terrains.fields.terrain_type'),
+                'initial' => 'T',
+                'color' => '#e6007e',
+                'text' => '#ffffff',
+            ], 'generic')
+            ->all();
+    }
+
+    protected static function resolveTerrainPinVariant(?int $terrainTypeId): string
+    {
+        if (! $terrainTypeId) {
+            return 'generic';
+        }
+
+        $exists = TerrainType::query()->whereKey($terrainTypeId)->exists();
+
+        return $exists ? (string) $terrainTypeId : 'generic';
     }
 
     public static function table(Table $table): Table
