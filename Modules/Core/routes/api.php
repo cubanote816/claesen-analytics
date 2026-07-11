@@ -41,4 +41,14 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\EnsurePasswordI
             ->name('auth.change-password');
         Route::get('/me', [\Modules\Core\Http\Controllers\Auth\ProfileController::class, 'me']);
         Route::apiResource('cores', CoreController::class)->names('core');
+
+        Route::prefix('user/preferences')->group(function () {
+            Route::get('/', [\Modules\Core\Http\Controllers\UserPreferencesController::class, 'show']);
+            Route::put('/', [\Modules\Core\Http\Controllers\UserPreferencesController::class, 'update']);
+            Route::put('/advanced', [\Modules\Core\Http\Controllers\UserPreferencesController::class, 'updateAdvanced']);
+            Route::get('/defaults', [\Modules\Core\Http\Controllers\UserPreferencesController::class, 'defaults']);
+            Route::post('/reset', [\Modules\Core\Http\Controllers\UserPreferencesController::class, 'resetToDefaults']);
+            Route::get('/history', [\Modules\Core\Http\Controllers\UserPreferencesController::class, 'history']);
+            Route::post('/validate', [\Modules\Core\Http\Controllers\UserPreferencesController::class, 'validateStructure']);
+        });
     });

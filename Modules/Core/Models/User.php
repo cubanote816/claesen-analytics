@@ -33,6 +33,9 @@ class User extends Authenticatable implements FilamentUser
         'azure_token',
         'azure_refresh_token',
         'azure_token_expires_at',
+        'language',
+        'theme',
+        'preferences_data',
     ];
 
     protected $hidden = [
@@ -51,6 +54,7 @@ class User extends Authenticatable implements FilamentUser
             'activation_code_expires_at' => 'datetime',
             'last_active_at'             => 'datetime',
             'is_active'                  => 'boolean',
+            'preferences_data'           => 'array',
         ];
     }
 
