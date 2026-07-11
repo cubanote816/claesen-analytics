@@ -4,7 +4,6 @@
      *     eyebrow: string, name: string,
      *     chips: array<int, array{label: string, color?: string, url?: ?string}>,
      *     stat: ?array{value: int|string, label: string},
-     *     actions?: array<int, array{label: string, url: string}>,
      *     facts?: array<int, array{label: string, value: ?string, placeholder: string, icon?: ?string, url?: ?string, newTab?: bool, type?: string}>,
      *     meta: array<int, array{label: string, value: ?string, placeholder: string, icon?: ?string, url?: ?string, newTab?: bool}>,
      * } $data
@@ -123,46 +122,6 @@
         .fieldops-profile-hero__stat {
             min-width: 7rem;
             text-align: right;
-        }
-
-        .fieldops-profile-hero__actions {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.6rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .fieldops-profile-hero__action {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 2.4rem;
-            padding: 0.5rem 0.95rem;
-            border-radius: 0.85rem;
-            background: linear-gradient(180deg, #00aeef 0%, #0098d1 100%);
-            color: #ffffff;
-            font-size: 0.88rem;
-            font-weight: 800;
-            line-height: 1;
-            white-space: nowrap;
-            box-shadow: 0 10px 24px rgba(0, 174, 239, 0.22);
-            transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease;
-        }
-
-        .fieldops-profile-hero__action:hover {
-            filter: brightness(1.03);
-            transform: translateY(-1px);
-            box-shadow: 0 14px 28px rgba(0, 174, 239, 0.28);
-        }
-
-        .fieldops-profile-hero__action:focus-visible {
-            outline: 2px solid rgba(0, 174, 239, 0.55);
-            outline-offset: 2px;
-        }
-
-        .dark .fieldops-profile-hero__action {
-            box-shadow: 0 10px 24px rgba(0, 174, 239, 0.16);
         }
 
         .fieldops-profile-hero__stat-value {
@@ -347,22 +306,10 @@
             @endif
         </div>
 
-        @if (! empty($data['stat']) || ! empty($data['actions'] ?? []))
+        @if (! empty($data['stat']))
             <div class="fieldops-profile-hero__stat">
-                @if (! empty($data['actions'] ?? []))
-                    <div class="fieldops-profile-hero__actions">
-                        @foreach ($data['actions'] as $action)
-                            <a href="{{ $action['url'] }}" class="fieldops-profile-hero__action">
-                                {{ $action['label'] }}
-                            </a>
-                        @endforeach
-                    </div>
-                @endif
-
-                @if (! empty($data['stat']))
-                    <div class="fieldops-profile-hero__stat-value">{{ $data['stat']['value'] }}</div>
-                    <div class="fieldops-profile-hero__stat-label">{{ $data['stat']['label'] }}</div>
-                @endif
+                <div class="fieldops-profile-hero__stat-value">{{ $data['stat']['value'] }}</div>
+                <div class="fieldops-profile-hero__stat-label">{{ $data['stat']['label'] }}</div>
             </div>
         @endif
     </div>

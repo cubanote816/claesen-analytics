@@ -2,6 +2,7 @@
 
 namespace Modules\FieldOps\Filament\Resources\Complexes\RelationManagers;
 
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -11,6 +12,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Modules\FieldOps\Filament\Resources\TerrainResource;
 use Modules\FieldOps\Models\TerrainType;
 
 class TerrainsRelationManager extends RelationManager
@@ -76,6 +78,16 @@ class TerrainsRelationManager extends RelationManager
                     ->label(__('fieldops::resource.terrains.fields.structures_count'))
                     ->counts('structures')
                     ->sortable(),
+            ])
+            ->headerActions([
+                Action::make('createTerrain')
+                    ->label(__('fieldops::resource.terrains.actions.create'))
+                    ->icon('heroicon-m-plus')
+                    ->button()
+                    ->color('primary')
+                    ->url(TerrainResource::getUrl('create', [
+                        'complex_id' => $this->getOwnerRecord()->getKey(),
+                    ])),
             ])
             ->actions([
                 EditAction::make(),
