@@ -9,6 +9,15 @@ class CreateElectricalBoard extends CreateRecord
 {
     protected static string $resource = ElectricalBoardResource::class;
 
+    public ?int $complexId = null;
+
+    public function mount(): void
+    {
+        parent::mount();
+
+        $this->complexId = request()->integer('complex_id') ?: null;
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['created_by_user_id'] = auth()->id();
@@ -18,10 +27,8 @@ class CreateElectricalBoard extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $complexId = request()->integer('complex_id');
-
-        if ($complexId) {
-            $this->record?->complexes()->syncWithoutDetaching([$complexId]);
+        if ($this->complexId) {
+            $this->record?->complexes()->syncWithoutDetaching([$this->complexId]);
         }
     }
 }

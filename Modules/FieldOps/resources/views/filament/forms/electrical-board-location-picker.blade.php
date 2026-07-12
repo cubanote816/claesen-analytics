@@ -225,6 +225,13 @@
     @once
         @push('scripts')
             <script>
+        (() => {
+        if (window.fieldopsElectricalBoardLocationPickerBootstrapped) {
+            return;
+        }
+
+        window.fieldopsElectricalBoardLocationPickerBootstrapped = true;
+
         window.fieldopsLoadLeaflet = window.fieldopsLoadLeaflet || function () {
             if (window.L) {
                 return Promise.resolve(window.L);
@@ -256,7 +263,7 @@
             return window.__fieldopsLeafletPromise;
         };
 
-        const registerElectricalBoardLocationPicker = () => {
+        window.fieldopsRegisterElectricalBoardLocationPicker = window.fieldopsRegisterElectricalBoardLocationPicker || function () {
             if (! window.Alpine) {
                 return;
             }
@@ -458,10 +465,11 @@
         };
 
         if (window.Alpine) {
-            registerElectricalBoardLocationPicker();
+            window.fieldopsRegisterElectricalBoardLocationPicker();
         } else {
-            document.addEventListener('alpine:init', registerElectricalBoardLocationPicker);
+            document.addEventListener('alpine:init', window.fieldopsRegisterElectricalBoardLocationPicker);
         }
+        })();
             </script>
         @endpush
     @endonce
