@@ -141,6 +141,16 @@ return [
         'used_by_label'  => 'Used by',
         'actions' => [
             'attach' => 'Attach electrical board',
+            'create' => 'Create electrical board',
+        ],
+        'map' => [
+            'section_label' => 'Location',
+            'title' => 'Adjust the electrical board pin',
+            'description' => 'Click on the map or drag the pin to set the exact electrical board coordinates.',
+            'starting_from' => 'Starting from',
+            'default_center' => 'Starting from the default site center.',
+            'footer_sync' => 'Latitude and longitude stay synchronized automatically.',
+            'footer_move' => 'Move the pin before saving.',
         ],
         'fields' => [
             'electrical_board_type'      => 'Board type',

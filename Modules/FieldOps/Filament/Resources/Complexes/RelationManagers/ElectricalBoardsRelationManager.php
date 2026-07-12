@@ -15,8 +15,8 @@ use Modules\FieldOps\Models\ElectricalBoard;
 
 /**
  * Complex belongsToMany ElectricalBoard (fo_electrical_board_structure) — same pivot as
- * Structure, but seen from the Complex side. Attach/detach of existing boards, never
- * create/edit (ElectricalBoard has its own resource and lifecycle).
+ * Structure, but seen from the Complex side. Existing boards can be attached here and
+ * new ones can be created in the dedicated ElectricalBoard resource page.
  */
 class ElectricalBoardsRelationManager extends RelationManager
 {
@@ -55,11 +55,19 @@ class ElectricalBoardsRelationManager extends RelationManager
                         ?: $record->getTranslation('location_description', 'nl', false)),
             ])
             ->headerActions([
+                Action::make('createElectricalBoard')
+                    ->label(__('fieldops::resource.electrical_boards.actions.create'))
+                    ->button()
+                    ->icon('heroicon-m-plus')
+                    ->color('primary')
+                    ->url(ElectricalBoardResource::getUrl('create', [
+                        'complex_id' => $this->getOwnerRecord()->getKey(),
+                    ])),
                 Action::make('attachElectricalBoard')
                     ->label(__('fieldops::resource.electrical_boards.actions.attach'))
                     ->button()
                     ->icon('heroicon-m-plus')
-                    ->color('primary')
+                    ->color('gray')
                     ->modalHeading(__('fieldops::resource.electrical_boards.actions.attach'))
                     ->modalSubmitActionLabel(__('fieldops::resource.electrical_boards.actions.attach'))
                     ->form([

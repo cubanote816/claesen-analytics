@@ -141,6 +141,16 @@ return [
         'used_by_label'  => 'Gebruikt door',
         'actions' => [
             'attach' => 'Elektrisch bord koppelen',
+            'create' => 'Elektrisch bord aanmaken',
+        ],
+        'map' => [
+            'section_label' => 'Locatie',
+            'title' => 'Pas de pin van het elektrisch bord aan',
+            'description' => 'Klik op de kaart of sleep de pin om de exacte coördinaten van het elektrisch bord in te stellen.',
+            'starting_from' => 'Start vanaf',
+            'default_center' => 'Start vanaf het standaard midden van de site.',
+            'footer_sync' => 'Breedte- en lengtegraad blijven automatisch synchroon.',
+            'footer_move' => 'Verplaats de pin voor het opslaan.',
         ],
         'fields' => [
             'electrical_board_type'      => 'Bordtype',

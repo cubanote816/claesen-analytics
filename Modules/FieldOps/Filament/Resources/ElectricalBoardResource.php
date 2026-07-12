@@ -10,10 +10,11 @@ use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
@@ -29,6 +30,7 @@ use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalB
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\EditElectricalBoard;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\ListElectricalBoards;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\ViewElectricalBoard;
+use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoardType;
 
@@ -69,6 +71,8 @@ class ElectricalBoardResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $locationDefaults = static::resolveLocationDefaults(request()->integer('complex_id'));
+
         return $schema->components([
             Section::make()->schema([
                 Select::make('electrical_board_type_id')
@@ -79,14 +83,16 @@ class ElectricalBoardResource extends Resource
                     ]))
                     ->searchable()
                     ->required(),
-                TextInput::make('lat')
-                    ->label(__('fieldops::resource.electrical_boards.fields.lat'))
-                    ->numeric()
-                    ->nullable(),
-                TextInput::make('lng')
-                    ->label(__('fieldops::resource.electrical_boards.fields.lng'))
-                    ->numeric()
-                    ->nullable(),
+                Hidden::make('lat')
+                    ->default($locationDefaults['lat']),
+                Hidden::make('lng')
+                    ->default($locationDefaults['lng']),
+                Hidden::make('map_center_lat')
+                    ->dehydrated(false)
+                    ->default($locationDefaults['lat']),
+                Hidden::make('map_center_lng')
+                    ->dehydrated(false)
+                    ->default($locationDefaults['lng']),
             ])->columns(2),
             Section::make(__('fieldops::resource.electrical_boards.fields.location_description'))->schema([
                 // Single field in the admin's current locale (app()->getLocale(),
@@ -96,6 +102,25 @@ class ElectricalBoardResource extends Resource
                     ->label(__('fieldops::resource.electrical_boards.fields.location_description'))
                     ->rows(3),
             ])->collapsible()->collapsed(),
+            Section::make(__('fieldops::resource.electrical_boards.map.section_label'))
+                ->columnSpanFull()
+                ->schema([
+                    ViewField::make('location_map')
+                        ->hiddenLabel()
+                        ->dehydrated(false)
+                        ->view('fieldops::filament.forms.electrical-board-location-picker')
+                        ->viewData([
+                            'complexLabel' => $locationDefaults['complex_label'],
+                            'defaultLat' => $locationDefaults['lat'],
+                            'defaultLng' => $locationDefaults['lng'],
+                            'defaultZoom' => $locationDefaults['zoom'],
+                            'latInputId' => 'form.lat',
+                            'lngInputId' => 'form.lng',
+                            'centerLatInputId' => 'form.map_center_lat',
+                            'centerLngInputId' => 'form.map_center_lng',
+                        ])
+                        ->columnSpanFull(),
+                ])->collapsible()->collapsed(false),
             Section::make(__('fieldops::resource.media.section_label'))->schema([
                 SpatieMediaLibraryFileUpload::make('photos')
                     ->label(__('fieldops::resource.media.photos'))
@@ -160,6 +185,39 @@ class ElectricalBoardResource extends Resource
                 ->collapsible()
                 ->collapsed(fn ($record) => $record->getMedia('photos')->isEmpty() && $record->getMedia('documents')->isEmpty()),
         ]);
+    }
+
+    /**
+     * @return array{lat: float, lng: float, zoom: int, complex_label: ?string}
+     */
+    protected static function resolveLocationDefaults(?int $complexId = null): array
+    {
+        $fallbackLat = 51.1635;
+        $fallbackLng = 5.1640;
+        $fallbackZoom = 16;
+
+        $complex = $complexId ? Complex::query()->find($complexId) : null;
+
+        if ($complex && static::hasCoordinates($complex)) {
+            return [
+                'lat' => (float) $complex->lat,
+                'lng' => (float) $complex->lng,
+                'zoom' => 17,
+                'complex_label' => $complex->name,
+            ];
+        }
+
+        return [
+            'lat' => $fallbackLat,
+            'lng' => $fallbackLng,
+            'zoom' => $fallbackZoom,
+            'complex_label' => $complex?->name,
+        ];
+    }
+
+    protected static function hasCoordinates($record): bool
+    {
+        return is_numeric($record->lat ?? null) && is_numeric($record->lng ?? null);
     }
 
     /**
@@ -252,8 +310,8 @@ class ElectricalBoardResource extends Resource
      * ElectricalBoard has no single owner (Complex/Terrain/Structure are all
      * belongsToMany, Pattern C) — this view stays read-only "used by" on purpose.
      * Attach/detach for these same 3 pivots already lives on Structure's and
-     * Terrain's own pages (their side of the relationship); Complex's side still
-     * has no attach/detach UI anywhere yet — a real gap, not addressed here.
+     * Terrain's own pages (their side of the relationship); Complex's side now
+     * has attach/create flow in its relation manager.
      *
      * @return array<int, array{label: string, items: array<int, array{label: string, url: string}>}>
      */
@@ -282,11 +340,6 @@ class ElectricalBoardResource extends Resource
                 ])->all(),
             ],
         ];
-    }
-
-    protected static function hasCoordinates($record): bool
-    {
-        return is_numeric($record->lat ?? null) && is_numeric($record->lng ?? null);
     }
 
     public static function table(Table $table): Table
