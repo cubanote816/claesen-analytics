@@ -2,7 +2,7 @@
 
 namespace Modules\FieldOps\Filament\Resources\Complexes\RelationManagers;
 
-use Filament\Actions\AttachAction;
+use Filament\Actions\Action;
 use Filament\Actions\DetachAction;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -55,26 +55,39 @@ class ElectricalBoardsRelationManager extends RelationManager
                         ?: $record->getTranslation('location_description', 'nl', false)),
             ])
             ->headerActions([
-                AttachAction::make()
+                Action::make('attachElectricalBoard')
                     ->label(__('fieldops::resource.electrical_boards.actions.attach'))
                     ->button()
                     ->icon('heroicon-m-plus')
                     ->color('primary')
-                    ->recordSelect(fn (Select $select) => $select
-                        ->searchable()
-                        ->getSearchResultsUsing(fn (string $search) => ElectricalBoard::query()
-                            ->where('location_description->nl', 'like', "%{$search}%")
-                            ->limit(50)
-                            ->get()
-                            ->mapWithKeys(fn (ElectricalBoard $board) => [$board->id => $board->getTranslation('location_description', app()->getLocale(), false)
-                                ?: $board->getTranslation('location_description', 'nl', false)]))
-                        ->getOptionLabelUsing(function ($value) {
-                            $board = ElectricalBoard::find($value);
+                    ->modalHeading(__('fieldops::resource.electrical_boards.actions.attach'))
+                    ->modalSubmitActionLabel(__('fieldops::resource.electrical_boards.actions.attach'))
+                    ->form([
+                        Select::make('board_id')
+                            ->label(__('fieldops::resource.electrical_boards.fields.location_description'))
+                            ->searchable()
+                            ->required()
+                            ->getSearchResultsUsing(fn (string $search) => ElectricalBoard::query()
+                                ->where('location_description->nl', 'like', "%{$search}%")
+                                ->limit(50)
+                                ->get()
+                                ->mapWithKeys(fn (ElectricalBoard $board) => [
+                                    $board->id => $board->getTranslation('location_description', app()->getLocale(), false)
+                                        ?: $board->getTranslation('location_description', 'nl', false),
+                                ]))
+                            ->getOptionLabelUsing(function ($value) {
+                                $board = ElectricalBoard::find($value);
 
-                            return $board
-                                ? ($board->getTranslation('location_description', app()->getLocale(), false) ?: $board->getTranslation('location_description', 'nl', false))
-                                : null;
-                        })),
+                                return $board
+                                    ? ($board->getTranslation('location_description', app()->getLocale(), false) ?: $board->getTranslation('location_description', 'nl', false))
+                                    : null;
+                            }),
+                    ])
+                    ->action(function (array $data): void {
+                        $this->getOwnerRecord()->electricalBoards()->syncWithoutDetaching([
+                            $data['board_id'],
+                        ]);
+                    }),
             ])
             ->recordActions([
                 DetachAction::make(),
