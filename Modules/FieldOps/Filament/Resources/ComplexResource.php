@@ -27,8 +27,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Modules\FieldOps\Filament\Resources\Complexes\Pages\EditComplex;
 use Modules\FieldOps\Filament\Resources\Complexes\Pages\ListComplexes;
 use Modules\FieldOps\Filament\Resources\Complexes\Pages\ViewComplex;
+use Modules\FieldOps\Filament\Resources\Complexes\RelationManagers\ElectricalBoardsRelationManager;
 use Modules\FieldOps\Filament\Resources\Complexes\RelationManagers\TerrainsRelationManager;
-use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\ElectricalBoardsRelationManager;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\FoClient;
 
@@ -309,9 +309,6 @@ class ComplexResource extends Resource
     {
         return [
             TerrainsRelationManager::class,
-            // Reused from StructureResource — same relationship name ("electricalBoards"),
-            // same generic attach/detach behaviour. First real attach/detach UI for this
-            // pivot from the Complex side (Structure/Terrain already had it, Complex didn't).
             ElectricalBoardsRelationManager::class,
         ];
     }
