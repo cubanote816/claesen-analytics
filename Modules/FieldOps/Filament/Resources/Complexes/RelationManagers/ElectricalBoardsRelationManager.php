@@ -56,6 +56,10 @@ class ElectricalBoardsRelationManager extends RelationManager
             ])
             ->headerActions([
                 AttachAction::make()
+                    ->label(__('fieldops::resource.electrical_boards.actions.attach'))
+                    ->button()
+                    ->icon('heroicon-m-plus')
+                    ->color('primary')
                     ->recordSelect(fn (Select $select) => $select
                         ->searchable()
                         ->getSearchResultsUsing(fn (string $search) => ElectricalBoard::query()

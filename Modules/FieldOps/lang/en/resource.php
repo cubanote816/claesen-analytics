@@ -139,6 +139,9 @@ return [
         'model_label'    => 'Electrical board',
         'plural_label'   => 'Electrical boards',
         'used_by_label'  => 'Used by',
+        'actions' => [
+            'attach' => 'Attach electrical board',
+        ],
         'fields' => [
             'electrical_board_type'      => 'Board type',
             'lat'                        => 'Latitude',

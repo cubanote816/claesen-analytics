@@ -139,6 +139,9 @@ return [
         'model_label'    => 'Elektrisch bord',
         'plural_label'   => 'Elektrische borden',
         'used_by_label'  => 'Gebruikt door',
+        'actions' => [
+            'attach' => 'Elektrisch bord koppelen',
+        ],
         'fields' => [
             'electrical_board_type'      => 'Bordtype',
             'lat'                        => 'Breedtegraad',
