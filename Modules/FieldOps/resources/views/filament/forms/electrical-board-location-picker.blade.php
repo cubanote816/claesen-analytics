@@ -40,7 +40,8 @@
     x-init="init()"
 >
     @once
-        <style>
+        @push('styles')
+            <style>
         .fieldops-electrical-board-location-picker {
             overflow: hidden;
             border: 1px solid rgba(148, 163, 184, 0.18);
@@ -188,7 +189,8 @@
                 min-height: 360px;
             }
         }
-    </style>
+            </style>
+        @endpush
     @endonce
 
     <div class="fieldops-electrical-board-location-picker__header">
@@ -221,7 +223,8 @@
     </div>
 
     @once
-        <script>
+        @push('scripts')
+            <script>
         window.fieldopsLoadLeaflet = window.fieldopsLoadLeaflet || function () {
             if (window.L) {
                 return Promise.resolve(window.L);
@@ -459,6 +462,7 @@
         } else {
             document.addEventListener('alpine:init', registerElectricalBoardLocationPicker);
         }
-        </script>
+            </script>
+        @endpush
     @endonce
 </div>
