@@ -23,8 +23,24 @@
     ], $getViewData());
 @endphp
 
-@once
-    <style>
+<div
+    class="fieldops-electrical-board-location-picker"
+    data-theme="light"
+    wire:ignore
+    x-data="fieldopsElectricalBoardLocationPicker({
+        latInputId: @js($data['latInputId']),
+        lngInputId: @js($data['lngInputId']),
+        centerLatInputId: @js($data['centerLatInputId']),
+        centerLngInputId: @js($data['centerLngInputId']),
+        defaultLat: @js($data['defaultLat']),
+        defaultLng: @js($data['defaultLng']),
+        defaultZoom: @js($data['defaultZoom']),
+        complexLabel: @js($data['complexLabel']),
+    })"
+    x-init="init()"
+>
+    @once
+        <style>
         .fieldops-electrical-board-location-picker {
             overflow: hidden;
             border: 1px solid rgba(148, 163, 184, 0.18);
@@ -173,24 +189,8 @@
             }
         }
     </style>
-@endonce
+    @endonce
 
-<div
-    class="fieldops-electrical-board-location-picker"
-    data-theme="light"
-    wire:ignore
-    x-data="fieldopsElectricalBoardLocationPicker({
-        latInputId: @js($data['latInputId']),
-        lngInputId: @js($data['lngInputId']),
-        centerLatInputId: @js($data['centerLatInputId']),
-        centerLngInputId: @js($data['centerLngInputId']),
-        defaultLat: @js($data['defaultLat']),
-        defaultLng: @js($data['defaultLng']),
-        defaultZoom: @js($data['defaultZoom']),
-        complexLabel: @js($data['complexLabel']),
-    })"
-    x-init="init()"
->
     <div class="fieldops-electrical-board-location-picker__header">
         <div>
             <div class="fieldops-electrical-board-location-picker__eyebrow">{{ __('fieldops::resource.electrical_boards.map.section_label') }}</div>
@@ -219,10 +219,9 @@
         <span>{{ __('fieldops::resource.electrical_boards.map.footer_sync') }}</span>
         <span>{{ __('fieldops::resource.electrical_boards.map.footer_move') }}</span>
     </div>
-</div>
 
-@once
-    <script>
+    @once
+        <script>
         window.fieldopsLoadLeaflet = window.fieldopsLoadLeaflet || function () {
             if (window.L) {
                 return Promise.resolve(window.L);
@@ -460,5 +459,6 @@
         } else {
             document.addEventListener('alpine:init', registerElectricalBoardLocationPicker);
         }
-    </script>
-@endonce
+        </script>
+    @endonce
+</div>
