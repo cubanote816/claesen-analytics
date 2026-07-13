@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Filament\Facades\Filament;
+use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
 use Modules\FieldOps\Models\AccessType;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\SafetyType;
 use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\StructureType;
 use Modules\FieldOps\Models\Terrain;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
@@ -32,6 +36,7 @@ class StructureFilamentTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('super_admin');
         $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         $structure = Structure::factory()->create([
             'access_type_id' => AccessType::factory(),
@@ -62,6 +67,31 @@ class StructureFilamentTest extends TestCase
             ->assertSee('Unmapped')
             ->assertSee('No coordinates yet');
         $this->get("/structures/{$structure->id}/edit")->assertOk();
+    }
+
+    public function test_structure_create_page_uses_map_picker_for_coordinates(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $terrain = Terrain::factory()->create([
+            'lat' => 51.164145,
+            'lng' => 5.163746,
+        ]);
+        StructureType::factory()->create();
+
+        $this->get('/structures/create?terrain_ids%5B0%5D='.$terrain->id)
+            ->assertOk()
+            ->assertSee('fieldops-structure-location-picker', false)
+            ->assertSee('Adjust the structure pin')
+            ->assertDontSee('Latitude')
+            ->assertDontSee('Longitude');
+
+        Livewire::test(CreateStructure::class)
+            ->set('terrainIds', [$terrain->id])
+            ->assertHasNoFormErrors();
     }
 
     public function test_structure_without_access_or_safety_renders(): void

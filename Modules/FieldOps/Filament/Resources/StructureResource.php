@@ -10,10 +10,12 @@ use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
@@ -26,6 +28,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Arr;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\EditStructure;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\ListStructures;
@@ -37,6 +40,7 @@ use Modules\FieldOps\Models\AccessType;
 use Modules\FieldOps\Models\SafetyType;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\StructureType;
+use Modules\FieldOps\Models\Terrain;
 
 class StructureResource extends Resource
 {
@@ -95,6 +99,9 @@ class StructureResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $terrainIds = Arr::wrap(request()->input('terrain_ids', []));
+        $locationDefaults = static::resolveLocationDefaults($terrainIds);
+
         return $schema->components([
             Section::make()->schema([
                 Select::make('structure_type_id')
@@ -107,14 +114,6 @@ class StructureResource extends Resource
                     ->nullable(),
                 TextInput::make('height')
                     ->label(__('fieldops::resource.structures.fields.height'))
-                    ->numeric()
-                    ->nullable(),
-                TextInput::make('lat')
-                    ->label(__('fieldops::resource.structures.fields.lat'))
-                    ->numeric()
-                    ->nullable(),
-                TextInput::make('lng')
-                    ->label(__('fieldops::resource.structures.fields.lng'))
                     ->numeric()
                     ->nullable(),
                 Select::make('access_type_id')
@@ -143,6 +142,35 @@ class StructureResource extends Resource
                     ->label(__('fieldops::resource.structures.fields.cafca_material_id'))
                     ->nullable(),
             ])->columns(2),
+            Section::make()
+                ->columnSpanFull()
+                ->schema([
+                    Hidden::make('lat')
+                        ->default($locationDefaults['lat']),
+                    Hidden::make('lng')
+                        ->default($locationDefaults['lng']),
+                    Hidden::make('map_center_lat')
+                        ->dehydrated(false)
+                        ->default($locationDefaults['lat']),
+                    Hidden::make('map_center_lng')
+                        ->dehydrated(false)
+                        ->default($locationDefaults['lng']),
+                    ViewField::make('location_map')
+                        ->hiddenLabel()
+                        ->dehydrated(false)
+                        ->view('fieldops::filament.forms.structure-location-picker')
+                        ->viewData([
+                            'terrainLabel' => $locationDefaults['terrain_label'],
+                            'defaultLat' => $locationDefaults['lat'],
+                            'defaultLng' => $locationDefaults['lng'],
+                            'defaultZoom' => $locationDefaults['zoom'],
+                            'latInputId' => 'form.lat',
+                            'lngInputId' => 'form.lng',
+                            'centerLatInputId' => 'form.map_center_lat',
+                            'centerLngInputId' => 'form.map_center_lng',
+                        ])
+                        ->columnSpanFull(),
+                ]),
             Section::make(__('fieldops::resource.structures.fields.info'))->schema([
                 // Single field in the admin's current locale (app()->getLocale(),
                 // set per-request by SetPanelLocale) — HasAiTranslations
@@ -167,6 +195,54 @@ class StructureResource extends Resource
                     ->acceptedFileTypes(['application/pdf']),
             ])->collapsible()->collapsed(),
         ]);
+    }
+
+    /**
+     * @param array<int, int|string> $terrainIds
+     * @return array{lat: float, lng: float, zoom: int, terrain_label: ?string}
+     */
+    protected static function resolveLocationDefaults(array $terrainIds = []): array
+    {
+        $fallbackLat = 51.1635;
+        $fallbackLng = 5.1640;
+        $fallbackZoom = 16;
+
+        $terrainId = collect($terrainIds)
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (int) $value)
+            ->first();
+
+        if ($terrainId) {
+            $terrain = Terrain::query()->with('complex')->find($terrainId);
+
+            if ($terrain) {
+                $location = static::hasCoordinates($terrain)
+                    ? ['lat' => (float) $terrain->lat, 'lng' => (float) $terrain->lng, 'zoom' => 17]
+                    : ($terrain->complex && static::hasCoordinates($terrain->complex)
+                        ? ['lat' => (float) $terrain->complex->lat, 'lng' => (float) $terrain->complex->lng, 'zoom' => 16]
+                        : null);
+
+                if ($location) {
+                    return $location + [
+                        'terrain_label' => $terrain->getTranslation('name', app()->getLocale(), false)
+                            ?: $terrain->getTranslation('name', 'nl', false)
+                            ?: '#'.$terrain->id,
+                    ];
+                }
+            }
+        }
+
+        return [
+            'lat' => $fallbackLat,
+            'lng' => $fallbackLng,
+            'zoom' => $fallbackZoom,
+            'terrain_label' => null,
+        ];
+    }
+
+    protected static function hasCoordinates($record): bool
+    {
+        return is_numeric($record->lat ?? null) && is_numeric($record->lng ?? null);
     }
 
     public static function infolist(Schema $schema): Schema
@@ -299,11 +375,6 @@ class StructureResource extends Resource
             'items' => $items,
             'markers' => array_values(array_filter($items, fn ($item) => ! empty($item['hasCoordinates']))),
         ];
-    }
-
-    protected static function hasCoordinates($record): bool
-    {
-        return is_numeric($record->lat ?? null) && is_numeric($record->lng ?? null);
     }
 
     public static function table(Table $table): Table
