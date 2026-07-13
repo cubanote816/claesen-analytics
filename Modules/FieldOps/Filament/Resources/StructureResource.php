@@ -103,45 +103,47 @@ class StructureResource extends Resource
         $locationDefaults = static::resolveLocationDefaults($terrainIds);
 
         return $schema->components([
-            Section::make()->schema([
-                Select::make('structure_type_id')
-                    ->label(__('fieldops::resource.structures.fields.structure_type'))
-                    ->options(StructureType::all()->mapWithKeys(fn ($t) => [
-                        $t->id => $t->getTranslation('name', app()->getLocale(), false)
-                            ?: $t->getTranslation('name', 'nl', false),
-                    ]))
-                    ->searchable()
-                    ->nullable(),
-                TextInput::make('height')
-                    ->label(__('fieldops::resource.structures.fields.height'))
-                    ->numeric()
-                    ->nullable(),
-                Select::make('access_type_id')
-                    ->label(__('fieldops::resource.structures.fields.access_type'))
-                    ->options(AccessType::all()->mapWithKeys(fn ($t) => [
-                        $t->id => $t->getTranslation('name', app()->getLocale(), false)
-                            ?: $t->getTranslation('name', 'nl', false),
-                    ]))
-                    ->searchable()
-                    ->nullable(),
-                Toggle::make('access_active')
-                    ->label(__('fieldops::resource.structures.fields.access_active'))
-                    ->default(false),
-                Select::make('safety_type_id')
-                    ->label(__('fieldops::resource.structures.fields.safety_type'))
-                    ->options(SafetyType::all()->mapWithKeys(fn ($t) => [
-                        $t->id => $t->getTranslation('name', app()->getLocale(), false)
-                            ?: $t->getTranslation('name', 'nl', false),
-                    ]))
-                    ->searchable()
-                    ->nullable(),
-                Toggle::make('safety_certified')
-                    ->label(__('fieldops::resource.structures.fields.safety_certified'))
-                    ->default(false),
-                TextInput::make('cafca_material_id')
-                    ->label(__('fieldops::resource.structures.fields.cafca_material_id'))
-                    ->nullable(),
-            ])->columns(2),
+            Section::make()
+                ->columnSpanFull()
+                ->schema([
+                    Select::make('structure_type_id')
+                        ->label(__('fieldops::resource.structures.fields.structure_type'))
+                        ->options(StructureType::all()->mapWithKeys(fn ($t) => [
+                            $t->id => $t->getTranslation('name', app()->getLocale(), false)
+                                ?: $t->getTranslation('name', 'nl', false),
+                        ]))
+                        ->searchable()
+                        ->nullable(),
+                    TextInput::make('height')
+                        ->label(__('fieldops::resource.structures.fields.height'))
+                        ->numeric()
+                        ->nullable(),
+                    Select::make('access_type_id')
+                        ->label(__('fieldops::resource.structures.fields.access_type'))
+                        ->options(AccessType::all()->mapWithKeys(fn ($t) => [
+                            $t->id => $t->getTranslation('name', app()->getLocale(), false)
+                                ?: $t->getTranslation('name', 'nl', false),
+                        ]))
+                        ->searchable()
+                        ->nullable(),
+                    Toggle::make('access_active')
+                        ->label(__('fieldops::resource.structures.fields.access_active'))
+                        ->default(false),
+                    Select::make('safety_type_id')
+                        ->label(__('fieldops::resource.structures.fields.safety_type'))
+                        ->options(SafetyType::all()->mapWithKeys(fn ($t) => [
+                            $t->id => $t->getTranslation('name', app()->getLocale(), false)
+                                ?: $t->getTranslation('name', 'nl', false),
+                        ]))
+                        ->searchable()
+                        ->nullable(),
+                    Toggle::make('safety_certified')
+                        ->label(__('fieldops::resource.structures.fields.safety_certified'))
+                        ->default(false),
+                    TextInput::make('cafca_material_id')
+                        ->label(__('fieldops::resource.structures.fields.cafca_material_id'))
+                        ->nullable(),
+                ])->columns(4),
             Section::make()
                 ->columnSpanFull()
                 ->schema([
@@ -171,29 +173,37 @@ class StructureResource extends Resource
                         ])
                         ->columnSpanFull(),
                 ]),
-            Section::make(__('fieldops::resource.structures.fields.info'))->schema([
-                // Single field in the admin's current locale (app()->getLocale(),
-                // set per-request by SetPanelLocale) — HasAiTranslations
-                // auto-translates to the other 3 canonical locales on save.
-                Textarea::make('info')
-                    ->label(__('fieldops::resource.structures.fields.info'))
-                    ->rows(3),
-            ])->collapsible()->collapsed(),
-            Section::make(__('fieldops::resource.media.section_label'))->schema([
-                SpatieMediaLibraryFileUpload::make('photos')
-                    ->label(__('fieldops::resource.media.photos'))
-                    ->collection('photos')
-                    ->image()
-                    ->multiple()
-                    ->maxSize(10240)
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp']),
-                SpatieMediaLibraryFileUpload::make('documents')
-                    ->label(__('fieldops::resource.media.documents'))
-                    ->collection('documents')
-                    ->multiple()
-                    ->maxSize(20480)
-                    ->acceptedFileTypes(['application/pdf']),
-            ])->collapsible()->collapsed(),
+            Section::make(__('fieldops::resource.structures.fields.info'))
+                ->columnSpanFull()
+                ->schema([
+                    // Single field in the admin's current locale (app()->getLocale(),
+                    // set per-request by SetPanelLocale) — HasAiTranslations
+                    // auto-translates to the other 3 canonical locales on save.
+                    Textarea::make('info')
+                        ->label(__('fieldops::resource.structures.fields.info'))
+                        ->rows(3),
+                ])
+                ->collapsible()
+                ->collapsed(),
+            Section::make(__('fieldops::resource.media.section_label'))
+                ->columnSpanFull()
+                ->schema([
+                    SpatieMediaLibraryFileUpload::make('photos')
+                        ->label(__('fieldops::resource.media.photos'))
+                        ->collection('photos')
+                        ->image()
+                        ->multiple()
+                        ->maxSize(10240)
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp']),
+                    SpatieMediaLibraryFileUpload::make('documents')
+                        ->label(__('fieldops::resource.media.documents'))
+                        ->collection('documents')
+                        ->multiple()
+                        ->maxSize(20480)
+                        ->acceptedFileTypes(['application/pdf']),
+                ])
+                ->collapsible()
+                ->collapsed(),
         ]);
     }
 
