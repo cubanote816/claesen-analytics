@@ -24,7 +24,7 @@
 @endphp
 
 <div
-    class="fieldops-electrical-board-location-picker"
+    class="fieldops-complex-location-picker"
     data-theme="light"
     wire:ignore
     x-data="fieldopsElectricalBoardLocationPicker({
@@ -42,7 +42,7 @@
     @once
         @push('styles')
             <style>
-        .fieldops-electrical-board-location-picker {
+        .fieldops-complex-location-picker {
             overflow: hidden;
             border: 1px solid rgba(148, 163, 184, 0.18);
             border-radius: 1.25rem;
@@ -52,7 +52,15 @@
             box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
         }
 
-        .fieldops-electrical-board-location-picker__header {
+        .dark .fieldops-complex-location-picker {
+            border-color: rgba(255, 255, 255, 0.08);
+            background:
+                radial-gradient(circle at top left, rgba(0, 174, 239, 0.14), transparent 30%),
+                linear-gradient(180deg, #171725 0%, #11111a 100%);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 60px -18px rgba(0, 0, 0, 0.62);
+        }
+
+        .fieldops-complex-location-picker__header {
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
@@ -61,7 +69,7 @@
             border-bottom: 1px solid rgba(148, 163, 184, 0.14);
         }
 
-        .fieldops-electrical-board-location-picker__eyebrow {
+        .fieldops-complex-location-picker__eyebrow {
             color: #009bd6;
             font-size: 0.68rem;
             font-weight: 800;
@@ -69,7 +77,7 @@
             text-transform: uppercase;
         }
 
-        .fieldops-electrical-board-location-picker__title {
+        .fieldops-complex-location-picker__title {
             margin-top: 0.35rem;
             color: #0f172a;
             font-size: 1.05rem;
@@ -77,14 +85,22 @@
             letter-spacing: -0.02em;
         }
 
-        .fieldops-electrical-board-location-picker__description {
+        .dark .fieldops-complex-location-picker__title {
+            color: #f8fafc;
+        }
+
+        .fieldops-complex-location-picker__description {
             margin-top: 0.3rem;
             color: #64748b;
             font-size: 0.9rem;
             line-height: 1.45;
         }
 
-        .fieldops-electrical-board-location-picker__coords {
+        .dark .fieldops-complex-location-picker__description {
+            color: #94a3b8;
+        }
+
+        .fieldops-complex-location-picker__coords {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
@@ -93,7 +109,7 @@
             text-align: right;
         }
 
-        .fieldops-electrical-board-location-picker__coords-pill {
+        .fieldops-complex-location-picker__coords-pill {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -108,13 +124,23 @@
             font-weight: 800;
         }
 
-        .fieldops-electrical-board-location-picker__hint {
+        .dark .fieldops-complex-location-picker__coords-pill {
+            border-color: rgba(0, 174, 239, 0.24);
+            background: rgba(0, 174, 239, 0.12);
+            color: #7dd3fc;
+        }
+
+        .fieldops-complex-location-picker__hint {
             color: #64748b;
             font-size: 0.78rem;
             line-height: 1.4;
         }
 
-        .fieldops-electrical-board-location-picker__map {
+        .dark .fieldops-complex-location-picker__hint {
+            color: #94a3b8;
+        }
+
+        .fieldops-complex-location-picker__map {
             position: relative;
             z-index: 0;
             height: 480px;
@@ -123,7 +149,7 @@
             background: linear-gradient(180deg, #eff7fb, #dbe8ee);
         }
 
-        .fieldops-electrical-board-location-picker__footer {
+        .fieldops-complex-location-picker__footer {
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
@@ -134,27 +160,48 @@
             font-size: 0.86rem;
         }
 
-        .fieldops-electrical-board-location-picker .leaflet-container {
+        .dark .fieldops-complex-location-picker__footer {
+            border-top-color: rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+        }
+
+        .fieldops-complex-location-picker .leaflet-container {
             background: transparent;
         }
 
-        .fieldops-electrical-board-location-picker .leaflet-control-zoom,
-        .fieldops-electrical-board-location-picker .leaflet-control-attribution {
+        .fieldops-complex-location-picker .leaflet-control-zoom,
+        .fieldops-complex-location-picker .leaflet-control-attribution {
             border: 1px solid rgba(148, 163, 184, 0.18);
             box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12);
         }
 
-        .fieldops-electrical-board-location-picker .leaflet-control-zoom a {
+        .fieldops-complex-location-picker .leaflet-control-zoom a {
             background: #fff;
             color: #0f172a;
         }
 
-        .fieldops-electrical-board-location-picker .leaflet-control-attribution {
+        .fieldops-complex-location-picker .leaflet-control-attribution {
             background: rgba(255, 255, 255, 0.9);
             color: #64748b;
         }
 
-        .fieldops-electrical-board-location-picker__pin {
+        .fieldops-complex-location-picker[data-theme="dark"] .leaflet-control-zoom a {
+            background: #1d2030;
+            color: #e2e8f0;
+        }
+
+        .fieldops-complex-location-picker[data-theme="dark"] .leaflet-control-zoom,
+        .fieldops-complex-location-picker[data-theme="dark"] .leaflet-control-attribution {
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+        }
+
+        .fieldops-complex-location-picker[data-theme="dark"] .leaflet-control-attribution {
+            background: rgba(15, 23, 42, 0.9);
+            color: #94a3b8;
+        }
+
+        .fieldops-complex-location-picker__pin {
             width: 1.25rem;
             height: 1.25rem;
             border: 3px solid #fff;
@@ -164,7 +211,7 @@
             transform: rotate(-45deg);
         }
 
-        .fieldops-electrical-board-location-picker__pin::after {
+        .fieldops-complex-location-picker__pin::after {
             content: "";
             position: absolute;
             inset: 0;
@@ -177,16 +224,16 @@
         }
 
         @media (max-width: 768px) {
-            .fieldops-electrical-board-location-picker__header {
+            .fieldops-complex-location-picker__header {
                 flex-direction: column;
             }
 
-            .fieldops-electrical-board-location-picker__coords {
+            .fieldops-complex-location-picker__coords {
                 align-items: flex-start;
                 text-align: left;
             }
 
-            .fieldops-electrical-board-location-picker__map {
+            .fieldops-complex-location-picker__map {
                 height: 360px;
                 min-height: 360px;
             }
@@ -195,33 +242,33 @@
         @endpush
     @endonce
 
-    <div class="fieldops-electrical-board-location-picker__header">
+    <div class="fieldops-complex-location-picker__header">
         <div>
-            <div class="fieldops-electrical-board-location-picker__eyebrow">{{ __('fieldops::resource.electrical_boards.map.section_label') }}</div>
-            <div class="fieldops-electrical-board-location-picker__title">{{ __('fieldops::resource.electrical_boards.map.title') }}</div>
-            <div class="fieldops-electrical-board-location-picker__description">
-                {{ __('fieldops::resource.electrical_boards.map.description') }}
+            <div class="fieldops-complex-location-picker__eyebrow">{{ __('fieldops::resource.complexes.fields.map') }}</div>
+            <div class="fieldops-complex-location-picker__title">Adjust the complex location</div>
+            <div class="fieldops-complex-location-picker__description">
+                Click on the map or drag the pin to update the complex coordinates.
             </div>
         </div>
 
-        <div class="fieldops-electrical-board-location-picker__coords">
-            <div class="fieldops-electrical-board-location-picker__coords-pill" x-text="coordsLabel"></div>
-            <div class="fieldops-electrical-board-location-picker__hint">
+        <div class="fieldops-complex-location-picker__coords">
+            <div class="fieldops-complex-location-picker__coords-pill" x-text="coordsLabel"></div>
+            <div class="fieldops-complex-location-picker__hint">
                 <template x-if="complexLabel">
-                    <span>{{ __('fieldops::resource.electrical_boards.map.starting_from') }} <span x-text="complexLabel"></span>.</span>
+                    <span>Starting from <span x-text="complexLabel"></span>.</span>
                 </template>
                 <template x-if="! complexLabel">
-                    <span>{{ __('fieldops::resource.electrical_boards.map.default_center') }}</span>
+                    <span>Starting from the default site center.</span>
                 </template>
             </div>
         </div>
     </div>
 
-    <div x-ref="map" class="fieldops-electrical-board-location-picker__map"></div>
+    <div x-ref="map" class="fieldops-complex-location-picker__map"></div>
 
-    <div class="fieldops-electrical-board-location-picker__footer">
-        <span>{{ __('fieldops::resource.electrical_boards.map.footer_sync') }}</span>
-        <span>{{ __('fieldops::resource.electrical_boards.map.footer_move') }}</span>
+    <div class="fieldops-complex-location-picker__footer">
+        <span>Coordinates stay synchronized automatically.</span>
+        <span>Move the pin before saving.</span>
     </div>
 
     @once
@@ -317,7 +364,7 @@
                         draggable: true,
                         icon: L.divIcon({
                             className: '',
-                            html: '<div class="fieldops-electrical-board-location-picker__pin"></div>',
+                            html: '<div class="fieldops-complex-location-picker__pin"></div>',
                             iconSize: [24, 24],
                             iconAnchor: [12, 24],
                         }),
@@ -450,7 +497,7 @@
 
                     Object.values(this.map._controlCorners).forEach((corner) => {
                         if (corner && corner.classList) {
-                            corner.classList.toggle('fieldops-electrical-board-location-picker__leaflet-corners--dark', isDark);
+                            corner.classList.toggle('fieldops-complex-location-picker__leaflet-corners--dark', isDark);
                         }
                     });
                 },

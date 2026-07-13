@@ -10,9 +10,11 @@ use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
@@ -74,8 +76,16 @@ class ComplexResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $recordId = request()->route('record');
+        $recordId = $recordId instanceof Complex
+            ? $recordId->getKey()
+            : (is_numeric($recordId) ? (int) $recordId : null);
+        $locationDefaults = static::resolveLocationDefaults($recordId);
+
         return $schema->components([
-            Section::make()->schema([
+            Section::make()
+                ->columnSpanFull()
+                ->schema([
                 TextInput::make('name')
                     ->label(__('fieldops::resource.complexes.fields.name'))
                     ->required()
@@ -84,31 +94,72 @@ class ComplexResource extends Resource
                     ->label(__('fieldops::resource.complexes.fields.client'))
                     ->options(FoClient::orderBy('name')->pluck('name', 'id'))
                     ->searchable()
+                    ->disabled()
+                    ->extraInputAttributes([
+                        'class' => 'bg-gray-100 text-gray-500 opacity-80 cursor-not-allowed dark:bg-gray-800 dark:text-gray-400',
+                    ])
                     ->nullable(),
                 TextInput::make('street')
                     ->label(__('fieldops::resource.complexes.fields.street'))
+                    ->disabled()
+                    ->extraInputAttributes([
+                        'class' => 'bg-gray-100 text-gray-500 opacity-80 cursor-not-allowed dark:bg-gray-800 dark:text-gray-400',
+                    ])
                     ->maxLength(255),
                 TextInput::make('city')
                     ->label(__('fieldops::resource.complexes.fields.city'))
+                    ->disabled()
+                    ->extraInputAttributes([
+                        'class' => 'bg-gray-100 text-gray-500 opacity-80 cursor-not-allowed dark:bg-gray-800 dark:text-gray-400',
+                    ])
                     ->maxLength(255),
                 TextInput::make('zipcode')
                     ->label(__('fieldops::resource.complexes.fields.zipcode'))
+                    ->disabled()
+                    ->extraInputAttributes([
+                        'class' => 'bg-gray-100 text-gray-500 opacity-80 cursor-not-allowed dark:bg-gray-800 dark:text-gray-400',
+                    ])
                     ->maxLength(20),
-                TextInput::make('lat')
-                    ->label(__('fieldops::resource.complexes.fields.lat'))
-                    ->numeric()
-                    ->nullable(),
-                TextInput::make('lng')
-                    ->label(__('fieldops::resource.complexes.fields.lng'))
-                    ->numeric()
-                    ->nullable(),
                 TextInput::make('zoom')
                     ->label(__('fieldops::resource.complexes.fields.zoom'))
                     ->numeric()
                     ->default(17.0)
                     ->nullable(),
-            ])->columns(2),
-            Section::make(__('fieldops::resource.media.section_label'))->schema([
+            ])->columns(3),
+            Section::make(__('fieldops::resource.complexes.fields.map'))
+                ->columnSpanFull()
+                ->schema([
+                    Hidden::make('lat')
+                        ->default($locationDefaults['lat']),
+                    Hidden::make('lng')
+                        ->default($locationDefaults['lng']),
+                    Hidden::make('map_center_lat')
+                        ->dehydrated(false)
+                        ->default($locationDefaults['lat']),
+                    Hidden::make('map_center_lng')
+                        ->dehydrated(false)
+                        ->default($locationDefaults['lng']),
+                    ViewField::make('location_map')
+                        ->hiddenLabel()
+                        ->dehydrated(false)
+                        ->view('fieldops::filament.forms.complex-location-picker')
+                        ->viewData([
+                            'complexLabel' => $locationDefaults['complex_label'],
+                            'defaultLat' => $locationDefaults['lat'],
+                            'defaultLng' => $locationDefaults['lng'],
+                            'defaultZoom' => $locationDefaults['zoom'],
+                            'latInputId' => 'form.lat',
+                            'lngInputId' => 'form.lng',
+                            'centerLatInputId' => 'form.map_center_lat',
+                            'centerLngInputId' => 'form.map_center_lng',
+                        ])
+                        ->columnSpanFull(),
+                ])
+                ->collapsible()
+                ->collapsed(false),
+            Section::make(__('fieldops::resource.media.section_label'))
+                ->columnSpanFull()
+                ->schema([
                 SpatieMediaLibraryFileUpload::make('photos')
                     ->label(__('fieldops::resource.media.photos'))
                     ->collection('photos')
@@ -131,41 +182,31 @@ class ComplexResource extends Resource
         return $schema->components([
             ViewEntry::make('profile_header')
                 ->hiddenLabel()
-                ->state(fn (Complex $record) => [
-                    'eyebrow' => static::getModelLabel(),
-                    'name' => $record->name,
-                    'chips' => [
-                        $record->client ? [
-                            'label' => $record->client->name,
-                            'color' => 'info',
-                            'url' => \Modules\FieldOps\Filament\Resources\FoClientResource::getUrl('view', ['record' => $record->client]),
-                        ] : ['label' => __('fieldops::resource.complexes.fields.client').': —', 'color' => 'warning'],
-                        ['label' => 'zoom '.$record->zoom, 'color' => 'gray'],
-                    ],
-                    'stat' => [
-                        'value' => $record->terrains()->count(),
-                        'label' => __('fieldops::resource.terrains.plural_label'),
-                    ],
-                    'meta' => [
-                        [
-                            'label' => __('fieldops::resource.complexes.fields.address'),
-                            'value' => collect([$record->street, $record->zipcode, $record->city])->filter()->implode(', ') ?: null,
-                            'placeholder' => '—',
-                            'icon' => 'heroicon-o-map-pin',
+                ->state(function (Complex $record) {
+                    $address = collect([$record->street, $record->zipcode, $record->city])->filter()->implode(', ') ?: null;
+
+                    return [
+                        'eyebrow' => static::getModelLabel(),
+                        'name' => $record->name,
+                        'chips' => array_values(array_filter([
+                            $record->client ? [
+                                'label' => $record->client->name,
+                                'color' => 'info',
+                                'url' => \Modules\FieldOps\Filament\Resources\FoClientResource::getUrl('view', ['record' => $record->client]),
+                            ] : ['label' => __('fieldops::resource.complexes.fields.client').': —', 'color' => 'warning'],
+                            $address ? [
+                                'label' => $address,
+                                'color' => 'gray',
+                            ] : null,
+                            ['label' => 'zoom '.$record->zoom, 'color' => 'gray'],
+                        ])),
+                        'stat' => [
+                            'value' => $record->terrains()->count(),
+                            'label' => __('fieldops::resource.terrains.plural_label'),
                         ],
-                        [
-                            'type' => 'map',
-                            'label' => __('fieldops::resource.complexes.fields.map'),
-                            'placeholder' => __('fieldops::resource.complexes.no_coordinates'),
-                            // Google Maps for now — a page of our own showing the complex
-                            // with all its terrain/structure pins is a bigger follow-up.
-                            'url' => ($record->lat !== null && $record->lng !== null)
-                                ? "https://www.google.com/maps/search/?api=1&query={$record->lat},{$record->lng}"
-                                : null,
-                            'newTab' => true,
-                        ],
-                    ],
-                ])
+                        'meta' => [],
+                    ];
+                })
                 ->view('fieldops::filament.infolists.profile-header')
                 ->columnSpanFull(),
 
@@ -190,6 +231,39 @@ class ComplexResource extends Resource
                 ->collapsible()
                 ->collapsed(fn ($record) => $record->getMedia('photos')->isEmpty() && $record->getMedia('documents')->isEmpty()),
         ]);
+    }
+
+    /**
+     * @return array{lat: float, lng: float, zoom: int, complex_label: ?string}
+     */
+    protected static function resolveLocationDefaults(?int $complexId = null): array
+    {
+        $fallbackLat = 51.1635;
+        $fallbackLng = 5.1640;
+        $fallbackZoom = 16;
+
+        $complex = $complexId ? Complex::query()->find($complexId) : null;
+
+        if ($complex && static::hasCoordinates($complex)) {
+            return [
+                'lat' => (float) $complex->lat,
+                'lng' => (float) $complex->lng,
+                'zoom' => 17,
+                'complex_label' => $complex->name,
+            ];
+        }
+
+        return [
+            'lat' => $fallbackLat,
+            'lng' => $fallbackLng,
+            'zoom' => $fallbackZoom,
+            'complex_label' => $complex?->name,
+        ];
+    }
+
+    protected static function hasCoordinates($record): bool
+    {
+        return is_numeric($record->lat ?? null) && is_numeric($record->lng ?? null);
     }
 
     /**
@@ -257,11 +331,6 @@ class ComplexResource extends Resource
             'items' => $items,
             'markers' => array_values(array_filter($items, fn ($item) => ! empty($item['hasCoordinates']))),
         ];
-    }
-
-    protected static function hasCoordinates($record): bool
-    {
-        return is_numeric($record->lat ?? null) && is_numeric($record->lng ?? null);
     }
 
     public static function table(Table $table): Table
