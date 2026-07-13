@@ -69,6 +69,9 @@ return [
         'navigation'   => 'Structures',
         'model_label'  => 'Structure',
         'plural_label' => 'Structures',
+        'actions' => [
+            'create' => 'Create structure',
+        ],
         'fields' => [
             'structure_type'     => 'Structure type',
             'height'             => 'Height (cm)',

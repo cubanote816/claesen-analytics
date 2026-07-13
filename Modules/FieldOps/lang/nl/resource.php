@@ -69,6 +69,9 @@ return [
         'navigation'   => 'Structuren',
         'model_label'  => 'Structuur',
         'plural_label' => 'Structuren',
+        'actions' => [
+            'create' => 'Structuur aanmaken',
+        ],
         'fields' => [
             'structure_type'    => 'Structuurtype',
             'height'            => 'Hoogte (cm)',

@@ -5,9 +5,15 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Filament\Facades\Filament;
+use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalBoard;
+use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
 use Modules\FieldOps\Models\ElectricalBoard;
+use Modules\FieldOps\Models\ElectricalBoardType;
 use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\StructureType;
 use Modules\FieldOps\Models\Terrain;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
@@ -29,6 +35,7 @@ class TerrainFilamentTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('super_admin');
         $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         $terrain = Terrain::factory()->create([
             'lat' => 51.164145,
@@ -50,9 +57,89 @@ class TerrainFilamentTest extends TestCase
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
             ->assertSee('Desktop map overview')
+            ->assertSee('Create structure')
+            ->assertSee('Create electrical board')
             ->assertSee('Unmapped')
             ->assertSee('No coordinates yet');
-        $this->get("/terrains/{$terrain->id}/edit")->assertOk();
+        $this->get("/terrains/{$terrain->id}/edit")
+            ->assertOk()
+            ->assertDontSee('Create structure')
+            ->assertDontSee('Create electrical board');
+    }
+
+    public function test_terrain_edit_page_hydrates_translatable_name_as_string(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $terrain = Terrain::factory()->create([
+            'name' => [
+                'nl' => 'Terrein A',
+                'en' => 'Terrain A',
+            ],
+        ]);
+
+        $this->get("/terrains/{$terrain->id}/edit")
+            ->assertOk()
+            ->assertSee('Terrein A', false)
+            ->assertDontSee('[object Object]', false);
+    }
+
+    public function test_structure_creation_from_terrain_attaches_the_current_terrain(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $terrain = Terrain::factory()->create();
+        $type = StructureType::factory()->create();
+
+        Livewire::test(CreateStructure::class)
+            ->set('terrainIds', [$terrain->id])
+            ->set('data.structure_type_id', $type->id)
+            ->set('data.height', 900)
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('fo_structures', [
+            'created_by_user_id' => $user->id,
+            'structure_type_id' => $type->id,
+            'height' => 900,
+        ]);
+
+        $this->assertDatabaseHas('fo_structure_terrain', [
+            'terrain_id' => $terrain->id,
+        ]);
+    }
+
+    public function test_electrical_board_creation_from_terrain_attaches_the_current_terrain(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $terrain = Terrain::factory()->create();
+        $type = ElectricalBoardType::factory()->create();
+
+        Livewire::test(CreateElectricalBoard::class)
+            ->set('terrainIds', [$terrain->id])
+            ->set('data.electrical_board_type_id', $type->id)
+            ->set('data.location_description', 'Terrace board')
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('fo_electrical_boards', [
+            'created_by_user_id' => $user->id,
+            'electrical_board_type_id' => $type->id,
+        ]);
+
+        $this->assertDatabaseHas('fo_electrical_board_terrain', [
+            'terrain_id' => $terrain->id,
+        ]);
     }
 
     public function test_terrain_without_relations_renders(): void
@@ -60,6 +147,7 @@ class TerrainFilamentTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('super_admin');
         $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
 
         $terrain = Terrain::factory()->create();
 

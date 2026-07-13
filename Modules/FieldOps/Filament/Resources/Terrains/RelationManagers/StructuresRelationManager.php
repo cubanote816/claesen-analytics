@@ -2,6 +2,7 @@
 
 namespace Modules\FieldOps\Filament\Resources\Terrains\RelationManagers;
 
+use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
 use Filament\Forms\Components\Select;
@@ -16,8 +17,8 @@ use Modules\FieldOps\Models\Structure;
 /**
  * Terrain belongsToMany Structure (fo_structure_terrain) — same pivot as
  * Structures\RelationManagers\TerrainsRelationManager, seen from the other side.
- * Attach/detach of existing Structures, never create/edit (Structure has its own
- * resource and lifecycle).
+ * On the terrain page we allow both creating a new structure for this terrain
+ * and attaching existing ones.
  */
 class StructuresRelationManager extends RelationManager
 {
@@ -55,6 +56,14 @@ class StructuresRelationManager extends RelationManager
                     ->suffix(' cm'),
             ])
             ->headerActions([
+                Action::make('createStructure')
+                    ->label(__('fieldops::resource.structures.actions.create'))
+                    ->button()
+                    ->icon('heroicon-m-plus')
+                    ->color('primary')
+                    ->url(StructureResource::getUrl('create', [
+                        'terrain_ids' => [$this->getOwnerRecord()->getKey()],
+                    ])),
                 AttachAction::make()
                     ->recordSelect(fn (Select $select) => $select
                         ->searchable()
