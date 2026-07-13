@@ -57,13 +57,12 @@ class TerrainFilamentTest extends TestCase
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
             ->assertSee('Desktop map overview')
-            ->assertSee('Create structure')
             ->assertSee('Create electrical board')
+            ->assertDontSee('Create structure')
             ->assertSee('Unmapped')
             ->assertSee('No coordinates yet');
         $this->get("/terrains/{$terrain->id}/edit")
             ->assertOk()
-            ->assertDontSee('Create structure')
             ->assertDontSee('Create electrical board');
     }
 
