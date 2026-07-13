@@ -101,6 +101,9 @@ return [
         'navigation'    => 'Luminaire frames',
         'model_label'   => 'Luminaire frame',
         'plural_label'  => 'Luminaire frames',
+        'actions' => [
+            'create' => 'Create luminaire frame',
+        ],
         'canvas_label'  => 'Layout',
         'no_luminaires' => 'No luminaires placed on this frame yet.',
         'fields' => [

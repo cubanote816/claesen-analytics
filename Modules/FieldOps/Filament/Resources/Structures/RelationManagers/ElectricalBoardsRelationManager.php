@@ -2,6 +2,7 @@
 
 namespace Modules\FieldOps\Filament\Resources\Structures\RelationManagers;
 
+use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
 use Filament\Forms\Components\Select;
@@ -16,7 +17,8 @@ use Modules\FieldOps\Models\ElectricalBoard;
 /**
  * Structure belongsToMany ElectricalBoard (fo_electrical_board_structure) — a board
  * is shared infrastructure with no single owner (Pattern C), so this is attach/detach
- * of existing boards, never create/edit.
+ * of existing boards and a create shortcut that re-links the new board back to the
+ * structure, preserving any terrains the structure already spans.
  */
 class ElectricalBoardsRelationManager extends RelationManager
 {
@@ -55,6 +57,15 @@ class ElectricalBoardsRelationManager extends RelationManager
                         ?: $record->getTranslation('location_description', 'nl', false)),
             ])
             ->headerActions([
+                Action::make('createElectricalBoard')
+                    ->label(__('fieldops::resource.electrical_boards.actions.create'))
+                    ->button()
+                    ->icon('heroicon-m-plus')
+                    ->color('primary')
+                    ->url(ElectricalBoardResource::getUrl('create', [
+                        'structure_ids' => [$this->getOwnerRecord()->getKey()],
+                        'terrain_ids' => $this->getOwnerRecord()->terrains()->pluck('id')->all(),
+                    ])),
                 AttachAction::make()
                     ->recordSelect(fn (Select $select) => $select
                         ->searchable()

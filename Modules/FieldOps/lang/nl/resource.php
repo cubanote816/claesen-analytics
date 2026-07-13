@@ -101,6 +101,9 @@ return [
         'navigation'    => 'Verlichtingsframes',
         'model_label'   => 'Verlichtingsframe',
         'plural_label'  => 'Verlichtingsframes',
+        'actions' => [
+            'create' => 'Verlichtingsframe aanmaken',
+        ],
         'canvas_label'  => 'Indeling',
         'no_luminaires' => 'Nog geen armaturen geplaatst op dit frame.',
         'fields' => [

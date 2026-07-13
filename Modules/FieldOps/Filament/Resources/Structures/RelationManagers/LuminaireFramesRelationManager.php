@@ -2,6 +2,7 @@
 
 namespace Modules\FieldOps\Filament\Resources\Structures\RelationManagers;
 
+use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
 use Filament\Forms\Components\Select;
@@ -10,12 +11,13 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Models\LuminaireFrame;
 
 /**
  * Structure belongsToMany LuminaireFrame (fo_luminaire_frame_structure) — attach/detach
- * of existing frames, never create/edit (a frame's own luminaires are managed from
- * the Luminaire frame resource itself).
+ * of existing frames and a create shortcut that links the new frame back to this
+ * structure. The frame's own luminaires are still managed from its resource page.
  */
 class LuminaireFramesRelationManager extends RelationManager
 {
@@ -51,6 +53,14 @@ class LuminaireFramesRelationManager extends RelationManager
                     ->counts('luminaires'),
             ])
             ->headerActions([
+                Action::make('createLuminaireFrame')
+                    ->label(__('fieldops::resource.luminaire_frames.actions.create'))
+                    ->button()
+                    ->icon('heroicon-m-plus')
+                    ->color('primary')
+                    ->url(LuminaireFrameResource::getUrl('create', [
+                        'structure_ids' => [$this->getOwnerRecord()->getKey()],
+                    ])),
                 AttachAction::make()
                     ->recordSelect(fn (Select $select) => $select
                         ->searchable()

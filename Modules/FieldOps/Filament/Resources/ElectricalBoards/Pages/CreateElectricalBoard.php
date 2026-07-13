@@ -11,6 +11,7 @@ class CreateElectricalBoard extends CreateRecord
     protected static string $resource = ElectricalBoardResource::class;
 
     public ?int $complexId = null;
+    public ?array $structureIds = null;
     public ?array $terrainIds = null;
 
     public function mount(): void
@@ -18,6 +19,10 @@ class CreateElectricalBoard extends CreateRecord
         parent::mount();
 
         $this->complexId = request()->integer('complex_id') ?: null;
+        $structureIds = request()->input('structure_ids');
+        $this->structureIds = is_array($structureIds)
+            ? array_values(array_filter($structureIds, fn ($value) => $value !== null && $value !== ''))
+            : null;
         $terrainIds = request()->input('terrain_ids');
         $this->terrainIds = is_array($terrainIds)
             ? array_values(array_filter(Arr::wrap($terrainIds), fn ($value) => $value !== null && $value !== ''))
@@ -35,6 +40,10 @@ class CreateElectricalBoard extends CreateRecord
     {
         if ($this->complexId) {
             $this->record?->complexes()->syncWithoutDetaching([$this->complexId]);
+        }
+
+        if ($this->structureIds !== null) {
+            $this->record?->structures()->syncWithoutDetaching($this->structureIds);
         }
 
         if ($this->terrainIds !== null) {
