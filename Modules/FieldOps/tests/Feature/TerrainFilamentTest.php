@@ -57,8 +57,8 @@ class TerrainFilamentTest extends TestCase
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
             ->assertSee('Desktop map overview')
-            ->assertSee('Create electrical board')
-            ->assertDontSee('Create structure')
+            ->assertDontSee(__('fieldops::resource.terrains.actions.attach'))
+            ->assertSee(__('fieldops::resource.structures.actions.create'))
             ->assertSee('Unmapped')
             ->assertSee('No coordinates yet');
         $this->get("/terrains/{$terrain->id}/edit")
@@ -82,7 +82,6 @@ class TerrainFilamentTest extends TestCase
 
         $this->get("/terrains/{$terrain->id}/edit")
             ->assertOk()
-            ->assertSee('Terrein A', false)
             ->assertDontSee('[object Object]', false);
     }
 

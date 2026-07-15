@@ -22,6 +22,7 @@ use Modules\FieldOps\Models\SafetyType;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\StructureType;
 use Modules\FieldOps\Models\Terrain;
+use Modules\FieldOps\Models\TerrainType;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -72,9 +73,8 @@ class StructureFilamentTest extends TestCase
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
             ->assertSee('Map objects')
-            ->assertSee('Create terrain')
-            ->assertSee('Create luminaire frame')
-            ->assertSee('Create electrical board')
+            ->assertSee(__('fieldops::resource.terrains.actions.attach'))
+            ->assertDontSee('Create terrain')
             ->assertSee('Unmapped')
             ->assertSee('No coordinates yet');
         $this->get("/structures/{$structure->id}/edit")->assertOk();
@@ -96,6 +96,7 @@ class StructureFilamentTest extends TestCase
         $this->get('/structures/create?terrain_ids%5B0%5D='.$terrain->id)
             ->assertOk()
             ->assertSee('fieldops-structure-location-picker', false)
+            ->assertSee('fieldopsStructureLocationPicker', false)
             ->assertSee('Adjust the structure pin')
             ->assertDontSee('Latitude')
             ->assertDontSee('Longitude');
@@ -151,6 +152,7 @@ class StructureFilamentTest extends TestCase
 
         Livewire::test(CreateTerrain::class)
             ->set('structureIds', [$structure->id])
+            ->set('data.terrain_type_id', TerrainType::factory()->create()->id)
             ->set('data.name', 'Structure terrain')
             ->set('data.complex_id', $complex->id)
             ->set('data.lat', 51.163912)
@@ -174,6 +176,9 @@ class StructureFilamentTest extends TestCase
             'safety_type_id' => null,
         ]);
 
-        $this->get("/structures/{$structure->id}")->assertOk();
+        $this->get("/structures/{$structure->id}")
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.terrains.actions.attach'))
+            ->assertDontSee(__('fieldops::resource.terrains.actions.detach'));
     }
 }

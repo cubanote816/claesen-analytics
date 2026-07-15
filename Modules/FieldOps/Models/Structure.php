@@ -82,6 +82,11 @@ class Structure extends Model implements HasMedia
         return $this->belongsToMany(Terrain::class, 'fo_structure_terrain');
     }
 
+    public function terrainComplexId(): ?int
+    {
+        return $this->terrains()->value('complex_id');
+    }
+
     public function luminaireFrames()
     {
         return $this->belongsToMany(LuminaireFrame::class, 'fo_luminaire_frame_structure');

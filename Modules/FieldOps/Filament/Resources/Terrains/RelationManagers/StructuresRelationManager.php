@@ -2,22 +2,20 @@
 
 namespace Modules\FieldOps\Filament\Resources\Terrains\RelationManagers;
 
-use Filament\Actions\AttachAction;
+use Filament\Actions\Action;
 use Filament\Actions\DetachAction;
-use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Modules\FieldOps\Filament\Resources\StructureResource;
-use Modules\FieldOps\Models\Structure;
 
 /**
  * Terrain belongsToMany Structure (fo_structure_terrain) — same pivot as
  * Structures\RelationManagers\TerrainsRelationManager, seen from the other side.
- * On the terrain page we only attach existing structures here because a single
- * structure can span multiple terrains and should not be duplicated.
+ * The terrain page also exposes a create shortcut here so a new structure can
+ * be created prelinked to the current terrain.
  */
 class StructuresRelationManager extends RelationManager
 {
@@ -55,22 +53,14 @@ class StructuresRelationManager extends RelationManager
                     ->suffix(' cm'),
             ])
             ->headerActions([
-                AttachAction::make()
-                    ->recordSelect(fn (Select $select) => $select
-                        ->searchable()
-                        ->getSearchResultsUsing(fn (string $search) => Structure::query()
-                            ->where('id', 'like', "%{$search}%")
-                            ->with('structureType')
-                            ->limit(50)
-                            ->get()
-                            ->mapWithKeys(fn (Structure $structure) => [$structure->id => '#'.$structure->id.' — '.($structure->structureType?->getTranslation('name', app()->getLocale(), false) ?: $structure->structureType?->getTranslation('name', 'nl', false))]))
-                        ->getOptionLabelUsing(function ($value) {
-                            $structure = Structure::with('structureType')->find($value);
-
-                            return $structure
-                                ? '#'.$structure->id.' — '.($structure->structureType?->getTranslation('name', app()->getLocale(), false) ?: $structure->structureType?->getTranslation('name', 'nl', false))
-                                : null;
-                        })),
+                Action::make('createStructure')
+                    ->label(__('fieldops::resource.structures.actions.create'))
+                    ->icon('heroicon-m-plus')
+                    ->button()
+                    ->color('primary')
+                    ->url(StructureResource::getUrl('create', [
+                        'terrain_ids' => [$this->getOwnerRecord()->getKey()],
+                    ])),
             ])
             ->recordActions([
                 DetachAction::make(),

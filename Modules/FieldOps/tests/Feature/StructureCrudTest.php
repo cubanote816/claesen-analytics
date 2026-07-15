@@ -64,12 +64,14 @@ class StructureCrudTest extends TestCase
     {
         [, $token] = $this->user();
         $type = $this->structureType();
+        $terrain = $this->terrain();
 
         $response = $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
             'structure_type_id' => $type->id,
             'height'            => 8,
             'lat'               => 50.85,
             'lng'               => 4.35,
+            'terrain_ids'       => [$terrain->id],
         ]);
 
         $response->assertStatus(201)
@@ -82,9 +84,11 @@ class StructureCrudTest extends TestCase
     public function test_store_injects_created_by_user_id(): void
     {
         [$user, $token] = $this->user();
+        $terrain = $this->terrain();
 
         $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
             'structure_type_id' => $this->structureType()->id,
+            'terrain_ids'       => [$terrain->id],
         ]);
 
         $this->assertDatabaseHas('fo_structures', ['created_by_user_id' => $user->id]);
@@ -161,16 +165,29 @@ class StructureCrudTest extends TestCase
             ->assertJsonValidationErrors('terrain_ids.0');
     }
 
-    public function test_store_without_terrain_ids_creates_structure_without_pivot_rows(): void
+    public function test_store_requires_at_least_one_terrain(): void
     {
         [, $token] = $this->user();
 
-        $response = $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
+        $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
             'structure_type_id' => $this->structureType()->id,
-        ]);
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('terrain_ids');
+    }
 
-        $response->assertStatus(201);
-        $this->assertDatabaseCount('fo_structure_terrain', 0);
+    public function test_store_rejects_terrain_ids_from_multiple_complexes(): void
+    {
+        [, $token] = $this->user();
+        $complexA = Complex::factory()->create();
+        $complexB = Complex::factory()->create();
+        $terrainA = Terrain::factory()->create(['complex_id' => $complexA->id]);
+        $terrainB = Terrain::factory()->create(['complex_id' => $complexB->id]);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
+            'structure_type_id' => $this->structureType()->id,
+            'terrain_ids'       => [$terrainA->id, $terrainB->id],
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('terrain_ids');
     }
 
     public function test_store_requires_authentication(): void
@@ -185,9 +202,11 @@ class StructureCrudTest extends TestCase
         [, $token] = $this->user();
         $access = $this->accessType();
         $safety = $this->safetyType();
+        $terrain = $this->terrain();
 
         $response = $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
             'structure_type_id' => $this->structureType()->id,
+            'terrain_ids'       => [$terrain->id],
             'access_type_id'    => $access->id,
             'access_active'     => true,
             'safety_type_id'    => $safety->id,
@@ -233,9 +252,11 @@ class StructureCrudTest extends TestCase
     public function test_store_defaults_access_and_safety_to_false(): void
     {
         [, $token] = $this->user();
+        $terrain = $this->terrain();
 
         $response = $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
             'structure_type_id' => $this->structureType()->id,
+            'terrain_ids'       => [$terrain->id],
         ]);
 
         $response->assertStatus(201)
@@ -329,7 +350,7 @@ class StructureCrudTest extends TestCase
         ]);
     }
 
-    public function test_update_null_terrain_ids_detaches_all(): void
+    public function test_update_null_terrain_ids_is_rejected(): void
     {
         [, $token] = $this->user();
         $terrain   = $this->terrain();
@@ -338,14 +359,16 @@ class StructureCrudTest extends TestCase
 
         $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$structure->id}", [
             'terrain_ids' => null,
-        ])->assertStatus(200);
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('terrain_ids');
 
-        $this->assertDatabaseMissing('fo_structure_terrain', [
+        $this->assertDatabaseHas('fo_structure_terrain', [
             'structure_id' => $structure->id,
+            'terrain_id'   => $terrain->id,
         ]);
     }
 
-    public function test_update_empty_array_terrain_ids_detaches_all(): void
+    public function test_update_empty_array_terrain_ids_is_rejected(): void
     {
         [, $token] = $this->user();
         $terrain   = $this->terrain();
@@ -354,19 +377,38 @@ class StructureCrudTest extends TestCase
 
         $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$structure->id}", [
             'terrain_ids' => [],
-        ])->assertStatus(200);
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('terrain_ids');
 
-        $this->assertDatabaseMissing('fo_structure_terrain', [
+        $this->assertDatabaseHas('fo_structure_terrain', [
             'structure_id' => $structure->id,
+            'terrain_id'   => $terrain->id,
         ]);
+    }
+
+    public function test_update_rejects_terrain_ids_from_multiple_complexes(): void
+    {
+        [, $token] = $this->user();
+        $complexA = Complex::factory()->create();
+        $complexB = Complex::factory()->create();
+        $terrainA = Terrain::factory()->create(['complex_id' => $complexA->id]);
+        $terrainB = Terrain::factory()->create(['complex_id' => $complexB->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrainA->id);
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$structure->id}", [
+            'terrain_ids' => [$terrainA->id, $terrainB->id],
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('terrain_ids');
     }
 
     public function test_update_terrain_ids_array_syncs_pivot(): void
     {
         [, $token] = $this->user();
-        $terrainA  = $this->terrain();
-        $terrainB  = $this->terrain();
-        $terrainC  = $this->terrain();
+        $complex   = Complex::factory()->create();
+        $terrainA  = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $terrainB  = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $terrainC  = Terrain::factory()->create(['complex_id' => $complex->id]);
         $structure = Structure::factory()->create();
         $structure->terrains()->attach([$terrainA->id, $terrainB->id]);
 
