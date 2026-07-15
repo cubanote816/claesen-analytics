@@ -6,32 +6,116 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use Modules\Core\Services\AccessAnalyticsService;
 use Modules\Core\Models\User;
 
 class AuthController extends Controller
 {
+    private const LOGIN_ATTEMPT_LIMIT = 5;
+    private const LOGIN_LOCKOUT_SECONDS = 300;
+
     /**
      * Session-based login for browser-first SPAs (Safety PWA, Sport, etc.).
      * Establishes an HttpOnly cookie session — never returns a token.
      */
-    public function loginSpa(Request $request)
+    public function loginSpa(Request $request, AccessAnalyticsService $analytics)
     {
         $request->validate([
             'email'    => 'required|email',
             'password' => 'required',
         ]);
 
+        $appSource = $this->resolveAppSource($request, 'spa');
+        $throttleKey = $this->throttleKey($request);
+
+        if ($this->isRateLimited($throttleKey)) {
+            $analytics->recordThrottledLogin(
+                null,
+                $request->input('email'),
+                $appSource,
+                'session_cookie',
+                $request,
+                'rate_limited',
+                ['retry_after_seconds' => RateLimiter::availableIn($throttleKey)]
+            );
+
+            throw $this->throttleException($throttleKey);
+        }
+
         $user = User::where('email', $request->email)->first();
 
-        if (! $user || ! $user->is_active || ! $user->hasCompletedPasswordSetup() || ! Hash::check($request->password, $user->password)) {
+        if (! $user) {
+            $analytics->recordFailedLogin(
+                null,
+                $request->input('email'),
+                $appSource,
+                'session_cookie',
+                $request,
+                'unknown_user'
+            );
+            $this->hitRateLimiter($throttleKey);
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        if (! $user->is_active) {
+            $analytics->recordBlockedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'session_cookie',
+                $request,
+                'inactive_account'
+            );
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        if (! $user->hasCompletedPasswordSetup()) {
+            $analytics->recordBlockedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'session_cookie',
+                $request,
+                'password_setup_required'
+            );
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        if (! Hash::check($request->password, $user->password)) {
+            $analytics->recordFailedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'session_cookie',
+                $request,
+                'invalid_password'
+            );
+            $this->hitRateLimiter($throttleKey);
+
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
             ]);
         }
 
         Auth::login($user);
-        $request->session()->regenerate();
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
+
+        RateLimiter::clear($throttleKey);
+
+        $analytics->recordLogin($user, $appSource, 'session_cookie', $request);
 
         return response()->json([
             'user' => [
@@ -47,7 +131,7 @@ class AuthController extends Controller
      * Canonical Login endpoint for the Core App.
      * Prepares Identity logic to absorb satellite apps.
      */
-    public function login(Request $request)
+    public function login(Request $request, AccessAnalyticsService $analytics)
     {
         $request->validate([
             'email' => 'required|email',
@@ -55,16 +139,94 @@ class AuthController extends Controller
             'device_name' => 'nullable|string',
         ]);
 
+        $appSource = $this->resolveAppSource($request, 'api');
+        $throttleKey = $this->throttleKey($request);
+
+        if ($this->isRateLimited($throttleKey)) {
+            $analytics->recordThrottledLogin(
+                null,
+                $request->input('email'),
+                $appSource,
+                'sanctum_token',
+                $request,
+                'rate_limited',
+                ['retry_after_seconds' => RateLimiter::availableIn($throttleKey)]
+            );
+
+            throw $this->throttleException($throttleKey);
+        }
+
         $user = User::where('email', $request->email)->first();
 
-        // Suspended, not-yet-activated, or wrong credentials → same generic error.
-        if (! $user || ! $user->is_active || ! $user->hasCompletedPasswordSetup() || ! Hash::check($request->password, $user->password)) {
+        if (! $user) {
+            $analytics->recordFailedLogin(
+                null,
+                $request->input('email'),
+                $appSource,
+                'sanctum_token',
+                $request,
+                'unknown_user'
+            );
+            $this->hitRateLimiter($throttleKey);
+
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
             ]);
         }
 
-        // Return robust canonical structure for the Core App while maintaining strict backwards compatibility with Sport App
+        // Suspended, not-yet-activated, or wrong credentials → same generic error.
+        if (! $user->is_active) {
+            $analytics->recordBlockedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'sanctum_token',
+                $request,
+                'inactive_account'
+            );
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        if (! $user->hasCompletedPasswordSetup()) {
+            $analytics->recordBlockedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'sanctum_token',
+                $request,
+                'password_setup_required'
+            );
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        if (! Hash::check($request->password, $user->password)) {
+            $analytics->recordFailedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'sanctum_token',
+                $request,
+                'invalid_password'
+            );
+            $this->hitRateLimiter($throttleKey);
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        $analytics->recordLogin($user, $appSource, 'sanctum_token', $request, [
+            'access_token_name' => $request->input('device_name'),
+        ]);
+
+        RateLimiter::clear($throttleKey);
+
         return response()->json([
             'success' => true,
             'accessToken' => $user->createToken($request->device_name ?? config('app.token_name', 'API Token'))->plainTextToken,
@@ -101,8 +263,17 @@ class AuthController extends Controller
     /**
      * Canonical Logout endpoint for the Core App.
      */
-    public function logout(Request $request)
+    public function logout(Request $request, AccessAnalyticsService $analytics)
     {
+        if ($request->user()) {
+            $analytics->recordLogout(
+                $request->user(),
+                $request->user()->last_login_app_source ?? 'unknown',
+                $request->user()->last_login_channel ?? 'unknown',
+                $request
+            );
+        }
+
         if ($request->user() && method_exists($request->user(), 'currentAccessToken')) {
             $token = $request->user()->currentAccessToken();
             if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) {
@@ -111,12 +282,52 @@ class AuthController extends Controller
         }
 
         Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Logged out successfully',
         ]);
+    }
+
+    private function resolveAppSource(Request $request, string $fallback): string
+    {
+        return $request->string('app_source')->trim()->toString()
+            ?: $request->string('source')->trim()->toString()
+            ?: $request->string('device_name')->trim()->toString()
+            ?: $fallback;
+    }
+
+    private function throttleKey(Request $request): string
+    {
+        $email = $request->string('email')->trim()->lower()->toString();
+        $ip = $request->ip() ?? 'unknown';
+
+        return "core-login:{$email}|{$ip}";
+    }
+
+    private function isRateLimited(string $key): bool
+    {
+        return RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPT_LIMIT);
+    }
+
+    private function hitRateLimiter(string $key): void
+    {
+        RateLimiter::hit($key, self::LOGIN_LOCKOUT_SECONDS);
+    }
+
+    private function throttleException(string $key): ValidationException
+    {
+        $seconds = RateLimiter::availableIn($key);
+
+        return ValidationException::withMessages([
+            'email' => [__('auth.throttle', [
+                'seconds' => $seconds,
+                'minutes' => (int) max(1, ceil($seconds / 60)),
+            ])],
+        ])->status(429);
     }
 }

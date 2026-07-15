@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Modules\Core\Models\User;
 use Modules\Core\Services\Auth\AzureRoleService;
+use Modules\Core\Services\AccessAnalyticsService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Filament\Facades\Filament;
@@ -39,8 +40,10 @@ class MicrosoftAuthController extends Controller
      */
     public function redirect(Request $request): RedirectResponse
     {
-        if ($request->has('source')) {
-            session(['auth_source' => $request->get('source')]);
+        $source = $request->input('source', $request->input('app_source'));
+
+        if ($source) {
+            session(['auth_source' => $source]);
         }
 
         if ($request->has('custom_redirect_url')) {
@@ -66,7 +69,7 @@ class MicrosoftAuthController extends Controller
      * @param AzureRoleService $roleService
      * @return RedirectResponse
      */
-    public function callback(Request $request, AzureRoleService $roleService): RedirectResponse
+    public function callback(Request $request, AzureRoleService $roleService, AccessAnalyticsService $analytics): RedirectResponse
     {
         try {
             $azureUser = Socialite::driver('azure')
@@ -78,6 +81,16 @@ class MicrosoftAuthController extends Controller
 
             // SECURITY: If user does not exist locally, deny access
             if (!$user) {
+                $analytics->recordFailedLogin(
+                    null,
+                    $azureUser->getEmail(),
+                    'backoffice',
+                    'azure_oauth_session',
+                    $request,
+                    'account_not_authorized',
+                    ['provider' => 'azure']
+                );
+
                 return redirect('/login')
                     ->withErrors(['microsoft' => "Toegang Geweigerd: Uw Microsoft-account ({$azureUser->getEmail()}) is niet geautoriseerd voor deze applicatie. Neem contact op met de beheerder."]);
             }
@@ -97,17 +110,33 @@ class MicrosoftAuthController extends Controller
 
             // Suspended accounts are blocked regardless of flow.
             if (! $user->is_active) {
+                $analytics->recordBlockedLogin(
+                    $user,
+                    $azureUser->getEmail(),
+                    'backoffice',
+                    'azure_oauth_session',
+                    $request,
+                    'inactive_account',
+                    ['provider' => 'azure']
+                );
+
                 Auth::logout();
                 return redirect('/login')->withErrors(['email' => 'This account has been deactivated.']);
             }
 
             Auth::login($user);
-            $request->session()->regenerate();
+            if ($request->hasSession()) {
+                $request->session()->regenerate();
+            }
 
             $source = session()->pull('auth_source', 'frontend');
 
             // 1. Filament (web session) — intercept accounts pending setup.
             if ($source === 'filament') {
+                $analytics->recordLogin($user, 'backoffice', 'azure_oauth_session', $request, [
+                    'redirect' => 'filament',
+                ]);
+
                 if (! $user->hasCompletedPasswordSetup()) {
                     return redirect()->route('auth.setup-password');
                 }
@@ -144,8 +173,15 @@ class MicrosoftAuthController extends Controller
                 $frontendUrl = rtrim($frontendUrl, '/') . '/';
             }
 
+            $appSource = $this->deriveAppSource($source, $frontendUrl);
+
             // Accounts pending setup: issue a one-time activation code (never a bearer token in URL).
             if (! $user->hasCompletedPasswordSetup()) {
+                $analytics->recordLogin($user, $appSource, 'azure_oauth_session', $request, [
+                    'redirect_url' => $frontendUrl,
+                    'setup_required' => true,
+                ]);
+
                 $user->tokens()->where('name', 'password-setup')->delete();
 
                 $code = Str::random(64);
@@ -157,11 +193,46 @@ class MicrosoftAuthController extends Controller
                 return redirect()->to("{$frontendUrl}?activation_code={$code}&setup_required=true");
             }
 
+            $analytics->recordLogin($user, $appSource, 'azure_oauth_session', $request, [
+                'redirect_url' => $frontendUrl,
+            ]);
+
             // Fully activated accounts: keep the session cookie flow only.
             return redirect()->to($frontendUrl);
         } catch (Exception $e) {
+            $analytics->recordFailedLogin(
+                null,
+                $request->input('email'),
+                $this->deriveAppSource((string) ($request->input('source', $request->input('app_source', 'frontend'))), null),
+                'azure_oauth_session',
+                $request,
+                'oauth_exception',
+                ['exception_class' => class_basename($e)]
+            );
+
             return redirect('/login')
                 ->withErrors(['microsoft' => 'Inloggen via Microsoft is mislukt: ' . $e->getMessage()]);
         }
+    }
+
+    private function deriveAppSource(string $source, ?string $frontendUrl): string
+    {
+        if ($source !== '' && $source !== 'frontend') {
+            return $source;
+        }
+
+        if (! $frontendUrl) {
+            return 'frontend';
+        }
+
+        $path = parse_url($frontendUrl, PHP_URL_PATH) ?: '';
+
+        foreach (['safety', 'sport', 'fieldops'] as $candidate) {
+            if (str_contains($path, $candidate)) {
+                return $candidate;
+            }
+        }
+
+        return 'frontend';
     }
 }

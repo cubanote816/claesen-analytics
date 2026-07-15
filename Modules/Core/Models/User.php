@@ -8,9 +8,11 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Modules\Core\Models\AccessEvent;
 use Modules\Cafca\Models\Employee;
 
 class User extends Authenticatable implements FilamentUser
@@ -33,6 +35,9 @@ class User extends Authenticatable implements FilamentUser
         'azure_token',
         'azure_refresh_token',
         'azure_token_expires_at',
+        'last_login_at',
+        'last_login_app_source',
+        'last_login_channel',
     ];
 
     protected $hidden = [
@@ -50,6 +55,7 @@ class User extends Authenticatable implements FilamentUser
             'password_set_at'            => 'datetime',
             'activation_code_expires_at' => 'datetime',
             'last_active_at'             => 'datetime',
+            'last_login_at'              => 'datetime',
             'is_active'                  => 'boolean',
         ];
     }
@@ -58,6 +64,11 @@ class User extends Authenticatable implements FilamentUser
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
+    public function accessEvents(): HasMany
+    {
+        return $this->hasMany(AccessEvent::class);
     }
 
     // Single source of truth for "account fully activated".
