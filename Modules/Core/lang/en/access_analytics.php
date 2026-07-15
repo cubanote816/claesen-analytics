@@ -4,7 +4,7 @@ return [
     'navigation_label' => 'Login analytics',
     'title' => 'Login & adoption analytics',
     'hero_title' => 'Login analytics by consumer app',
-    'hero_description' => 'Track the last login, the app origin, recent activity and adoption by app without breaking the current authentication flow.',
+    'hero_description' => 'Track the last login, the app origin, recent activity and adoption by app without breaking the current authentication flow. Login adoption is the primary signal; active usage adoption uses recent activity as a proxy.',
     'period_label' => 'Window',
     'periods' => [
         '7' => 'Last 7 days',
@@ -14,7 +14,7 @@ return [
     'stats' => [
         'eligible_users' => 'Eligible users',
         'eligible_users_hint' => 'Active backoffice accounts only.',
-        'active_users' => 'Active users',
+        'active_users' => 'Login adopters',
         'active_users_hint' => 'Accounts with at least one login in the selected window (:days).',
         'inactive_users' => 'Inactive users',
         'inactive_users_hint' => 'Active accounts without a login in the selected window.',
@@ -26,6 +26,8 @@ return [
         'adoption_overview_hint' => 'Current adoption footprint in the selected window (:days).',
         'app_summary' => 'Adoption by app',
         'app_summary_hint' => 'Login counts and distinct users per detected app origin.',
+        'activity_summary' => 'Active usage by app',
+        'activity_summary_hint' => 'Active users per detected app origin in the selected window (:days). This is a proxy based on recent activity.',
         'security_summary' => 'Security watch',
         'security_summary_hint' => 'Signals that help detect brute force, lockouts and suspicious access patterns.',
         'recent_activity' => 'Recent activity',
@@ -39,6 +41,8 @@ return [
         'app_source' => 'App origin',
         'login_count' => 'Logins',
         'unique_users' => 'Users',
+        'active_users' => 'Active users',
+        'share_of_eligible' => 'Share of eligible',
         'last_login_at' => 'Last login',
         'user' => 'User',
         'last_login_app' => 'Last app',
@@ -55,6 +59,7 @@ return [
     ],
     'empty_states' => [
         'no_app_data' => 'No login data was recorded for the selected window yet.',
+        'no_activity_data' => 'No active usage data was recorded for the selected window yet.',
         'no_recent_activity' => 'No access events were recorded for the selected window yet.',
         'no_users' => 'No active users are available.',
     ],

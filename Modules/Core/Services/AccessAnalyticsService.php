@@ -163,6 +163,19 @@ class AccessAnalyticsService
                 ->get()
             : collect();
 
+        $activitySummary = $this->userColumnExists('last_active_at') && $this->userColumnExists('last_login_app_source')
+            ? User::query()
+                ->where('is_active', true)
+                ->whereNotNull('last_active_at')
+                ->where('last_active_at', '>=', $since)
+                ->selectRaw("COALESCE(NULLIF(last_login_app_source, ''), 'unknown') as app_source")
+                ->selectRaw('COUNT(*) as active_users')
+                ->selectRaw('MAX(last_active_at) as last_active_at')
+                ->groupBy('app_source')
+                ->orderByDesc('active_users')
+                ->get()
+            : collect();
+
         $recentEvents = $eventsAvailable
             ? AccessEvent::query()
                 ->with('user:id,name,email')
@@ -329,6 +342,7 @@ class AccessAnalyticsService
             'inactive_users' => $inactiveCount,
             'apps_seen' => $appSummary->count(),
             'app_summary' => $appSummary,
+            'activity_summary' => $activitySummary,
             'recent_events' => $recentEvents,
             'failed_attempts' => $failedAttempts,
             'blocked_attempts' => $blockedAttempts,
@@ -358,6 +372,7 @@ class AccessAnalyticsService
             'last_login_at' => $user->last_login_at,
             'last_login_app_source' => $user->last_login_app_source,
             'last_login_channel' => $user->last_login_channel,
+            'last_active_at' => $user->last_active_at,
             'recent_login_at' => $recent?->occurred_at,
         ];
     }

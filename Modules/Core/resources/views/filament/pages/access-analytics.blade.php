@@ -182,6 +182,46 @@
             </div>
         </section>
 
+        <section class="{{ $surfaceClass }} p-5">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <h2 class="{{ $headingClass }}">{{ __('core::access_analytics.sections.activity_summary') }}</h2>
+                    <p class="{{ $bodyClass }}">{{ __('core::access_analytics.sections.activity_summary_hint', ['days' => $periodLabel]) }}</p>
+                </div>
+            </div>
+
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                    <thead class="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        <tr>
+                            <th class="py-3 pr-4">{{ __('core::access_analytics.tables.app_source') }}</th>
+                            <th class="py-3 pr-4">{{ __('core::access_analytics.tables.active_users') }}</th>
+                            <th class="py-3 pr-4">{{ __('core::access_analytics.tables.share_of_eligible') }}</th>
+                            <th class="py-3 pr-4">{{ __('core::access_analytics.tables.last_activity_at') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        @forelse ($data['activity_summary'] as $row)
+                            <tr class="align-top">
+                                <td class="py-3 pr-4 font-semibold text-slate-950 dark:text-slate-100">{{ $row->app_source !== 'unknown' ? $row->app_source : $unknownSource }}</td>
+                                <td class="py-3 pr-4 text-slate-700 dark:text-slate-300">{{ $row->active_users }}</td>
+                                <td class="py-3 pr-4 text-slate-700 dark:text-slate-300">
+                                    {{ number_format(($data['eligible_users'] > 0 ? ($row->active_users / $data['eligible_users']) * 100 : 0), 1) }}%
+                                </td>
+                                <td class="py-3 pr-4 text-slate-700 dark:text-slate-300">
+                                    {{ $row->last_active_at ? \Illuminate\Support\Carbon::parse($row->last_active_at)->format('d M Y · H:i') : '—' }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="py-6 text-sm text-slate-500 dark:text-slate-400">{{ __('core::access_analytics.empty_states.no_activity_data') }}</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <section class="space-y-4">
             <div>
                 <h2 class="{{ $headingClass }}">{{ __('core::access_analytics.sections.security_summary') }}</h2>

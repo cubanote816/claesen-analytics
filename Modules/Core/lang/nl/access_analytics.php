@@ -4,7 +4,7 @@ return [
     'navigation_label' => 'Login-analyse',
     'title' => 'Login- en adoptieanalyse',
     'hero_title' => 'Login-analyse per consumer app',
-    'hero_description' => 'Volg de laatste login, de bronapp, recente activiteit en adoptie per app zonder de bestaande authenticatie te breken.',
+    'hero_description' => 'Volg de laatste login, de bronapp, recente activiteit en adoptie per app zonder de bestaande authenticatie te breken. Login-adoptie is het primaire signaal; actieve gebruiksadoptie gebruikt recente activiteit als proxy.',
     'period_label' => 'Venster',
     'periods' => [
         '7' => 'Laatste 7 dagen',
@@ -14,7 +14,7 @@ return [
     'stats' => [
         'eligible_users' => 'Geschikte gebruikers',
         'eligible_users_hint' => 'Alleen actieve backoffice-accounts.',
-        'active_users' => 'Actieve gebruikers',
+        'active_users' => 'Login-adoptie',
         'active_users_hint' => 'Accounts met minstens één login in het gekozen venster (:days).',
         'inactive_users' => 'Inactieve gebruikers',
         'inactive_users_hint' => 'Actieve accounts zonder login in het gekozen venster.',
@@ -26,6 +26,8 @@ return [
         'adoption_overview_hint' => 'Huidig adoptiebeeld in het gekozen venster (:days).',
         'app_summary' => 'Adoptie per app',
         'app_summary_hint' => 'Login-aantallen en unieke gebruikers per gedetecteerde app-bron.',
+        'activity_summary' => 'Actief gebruik per app',
+        'activity_summary_hint' => 'Actieve gebruikers per gedetecteerde app-bron in het gekozen venster (:days). Dit is een proxy op basis van recente activiteit.',
         'security_summary' => 'Beveiligingsbewaking',
         'security_summary_hint' => 'Signalen voor brute force, lockouts en verdachte toegangs­patronen.',
         'recent_activity' => 'Recente activiteit',
@@ -39,6 +41,8 @@ return [
         'app_source' => 'App-bron',
         'login_count' => 'Logins',
         'unique_users' => 'Gebruikers',
+        'active_users' => 'Actieve gebruikers',
+        'share_of_eligible' => 'Aandeel van geschikt',
         'last_login_at' => 'Laatste login',
         'user' => 'Gebruiker',
         'last_login_app' => 'Laatste app',
@@ -55,6 +59,7 @@ return [
     ],
     'empty_states' => [
         'no_app_data' => 'Er zijn nog geen logingegevens vastgelegd voor het gekozen venster.',
+        'no_activity_data' => 'Er zijn nog geen gegevens voor actief gebruik vastgelegd voor het gekozen venster.',
         'no_recent_activity' => 'Er zijn nog geen access-events vastgelegd voor het gekozen venster.',
         'no_users' => 'Er zijn geen actieve gebruikers beschikbaar.',
     ],

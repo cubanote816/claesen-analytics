@@ -38,6 +38,7 @@ class AccessAnalyticsFallbackTest extends TestCase
         $this->assertSame(0, $data['active_users']);
         $this->assertSame(1, $data['inactive_users']);
         $this->assertCount(0, $data['app_summary']);
+        $this->assertCount(0, $data['activity_summary']);
         $this->assertCount(0, $data['recent_events']);
 
         $service->recordLogin($user, 'Claesen-Safety', 'session_cookie');
@@ -48,6 +49,10 @@ class AccessAnalyticsFallbackTest extends TestCase
         $this->assertNull($fresh->last_login_at);
         $this->assertNull($fresh->last_login_app_source);
         $this->assertNull($fresh->last_login_channel);
+        $summary = $service->userSummary($user);
+        $this->assertNotNull($summary['last_active_at']);
+        $this->assertNull($summary['last_login_at']);
+        $this->assertNull($summary['recent_login_at']);
         $this->assertFalse($failedAttempt->exists);
     }
 

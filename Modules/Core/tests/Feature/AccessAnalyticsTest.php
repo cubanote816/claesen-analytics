@@ -170,6 +170,53 @@ class AccessAnalyticsTest extends TestCase
         $this->assertNull($inactiveUser->fresh()->last_login_at);
     }
 
+    public function test_dashboard_data_groups_active_usage_by_last_known_app_origin(): void
+    {
+        $service = app(AccessAnalyticsService::class);
+
+        $safetyUserA = $this->activeUser(['email' => 'activity-safety-a@example.test']);
+        $safetyUserB = $this->activeUser(['email' => 'activity-safety-b@example.test']);
+        $sportUser = $this->activeUser(['email' => 'activity-sport@example.test']);
+        $staleUser = $this->activeUser(['email' => 'activity-stale@example.test']);
+
+        $safetyUserA->forceFill([
+            'last_login_app_source' => 'Claesen-Safety',
+            'last_active_at' => now()->subHour(),
+        ])->saveQuietly();
+
+        $safetyUserB->forceFill([
+            'last_login_app_source' => 'Claesen-Safety',
+            'last_active_at' => now()->subMinutes(20),
+        ])->saveQuietly();
+
+        $sportUser->forceFill([
+            'last_login_app_source' => 'Claesen-Sport-updateing',
+            'last_active_at' => now()->subMinutes(45),
+        ])->saveQuietly();
+
+        $staleUser->forceFill([
+            'last_login_app_source' => 'Claesen-Website',
+            'last_active_at' => now()->subDays(40),
+        ])->saveQuietly();
+
+        $data = $service->dashboardData(30, 10, 10);
+
+        $this->assertCount(2, $data['activity_summary']);
+
+        $safetySummary = $data['activity_summary']->firstWhere('app_source', 'Claesen-Safety');
+        $sportSummary = $data['activity_summary']->firstWhere('app_source', 'Claesen-Sport-updateing');
+
+        $this->assertNotNull($safetySummary);
+        $this->assertSame(2, (int) $safetySummary->active_users);
+        $this->assertNotNull($safetySummary->last_active_at);
+
+        $this->assertNotNull($sportSummary);
+        $this->assertSame(1, (int) $sportSummary->active_users);
+        $this->assertNotNull($sportSummary->last_active_at);
+
+        $this->assertNull($data['activity_summary']->firstWhere('app_source', 'Claesen-Website'));
+    }
+
     public function test_dashboard_data_includes_security_summary_and_failed_login_counts(): void
     {
         $service = app(AccessAnalyticsService::class);
