@@ -232,7 +232,7 @@
     class="fieldops-structure-location-picker"
     data-theme="light"
     wire:ignore
-    x-data="fieldopsElectricalBoardLocationPicker({
+    x-data="fieldopsStructureLocationPicker({
         latInputId: @js($data['latInputId']),
         lngInputId: @js($data['lngInputId']),
         centerLatInputId: @js($data['centerLatInputId']),
@@ -253,6 +253,26 @@
         }
 
         window.fieldopsStructureLocationPickerBootstrapped = true;
+
+        window.fieldopsRegisterStructureLocationCommitHook = window.fieldopsRegisterStructureLocationCommitHook || function () {
+            if (! window.Livewire || window.__fieldopsStructureLocationPickerCommitHookRegistered) {
+                return;
+            }
+
+            window.__fieldopsStructureLocationPickerCommitHookRegistered = true;
+
+            Livewire.hook('commit', function (hookData) {
+                hookData.succeed(() => {
+                    window.dispatchEvent(new CustomEvent('fieldops-structure-location-commit'));
+                });
+            });
+        };
+
+        if (window.Livewire) {
+            window.fieldopsRegisterStructureLocationCommitHook();
+        } else {
+            window.addEventListener('livewire:initialized', window.fieldopsRegisterStructureLocationCommitHook);
+        }
 
         window.fieldopsLoadLeaflet = window.fieldopsLoadLeaflet || function () {
             if (window.L) {
@@ -285,12 +305,12 @@
             return window.__fieldopsLeafletPromise;
         };
 
-        window.fieldopsRegisterElectricalBoardLocationPicker = window.fieldopsRegisterElectricalBoardLocationPicker || function () {
+        window.fieldopsRegisterStructureLocationPicker = window.fieldopsRegisterStructureLocationPicker || function () {
             if (! window.Alpine) {
                 return;
             }
 
-            window.Alpine.data('fieldopsElectricalBoardLocationPicker', (config) => ({
+            window.Alpine.data('fieldopsStructureLocationPicker', (config) => ({
                 config,
                 map: null,
                 marker: null,
@@ -305,8 +325,12 @@
                 lastCenterKey: null,
                 stateObserver: null,
                 statePoller: null,
+                locationRestoredHandler: null,
+                livewireCommitHandler: null,
+                storageKey: null,
 
                 async init() {
+                    this.storageKey = this.buildStorageKey();
                     this.latInput = document.getElementById(this.config.latInputId);
                     this.lngInput = document.getElementById(this.config.lngInputId);
                     this.centerLatInput = document.getElementById(this.config.centerLatInputId);
@@ -320,7 +344,7 @@
 
                     this.$refs.map.dataset.fieldopsInitialized = '1';
 
-                    const initial = this.readPinCoords();
+                    const initial = this.readInitialCoords();
                     const L = window.L;
 
                     this.map = L.map(this.$refs.map, {
@@ -349,6 +373,8 @@
 
                     this.syncFromLatLng(initial, false, false);
                     this.bindStateObservers();
+                    this.bindLivewireCommitListener();
+                    this.bindLocationRestoredListener();
                     this.syncExternalState(true);
                     this.syncTheme();
                     this.observeTheme();
@@ -369,6 +395,109 @@
                     });
 
                     this.statePoller = window.setInterval(() => this.syncExternalState(false), 350);
+                },
+
+                bindLocationRestoredListener() {
+                    if (this.locationRestoredHandler) {
+                        return;
+                    }
+
+                    this.locationRestoredHandler = (event) => {
+                        const payload = event?.detail?.[0] ?? {};
+                        const lat = Number.parseFloat(payload.lat);
+                        const lng = Number.parseFloat(payload.lng);
+
+                        if (! Number.isFinite(lat) || ! Number.isFinite(lng)) {
+                            return;
+                        }
+
+                        this.syncFromLatLng({ lat, lng }, false, true);
+                        this.lastCenterKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+                        this.persistCoords(lat, lng);
+                    };
+
+                    window.addEventListener('fieldops-structure-location-restored', this.locationRestoredHandler);
+                    window.addEventListener('fieldops-structure-location-clear', () => {
+                        try {
+                            window.sessionStorage.removeItem(this.storageKey);
+                        } catch (error) {
+                            // Ignore storage failures.
+                        }
+                    }, { once: false });
+                },
+
+                bindLivewireCommitListener() {
+                    if (this.livewireCommitHandler) {
+                        return;
+                    }
+
+                    this.livewireCommitHandler = () => this.syncExternalState(true);
+                    window.addEventListener('fieldops-structure-location-commit', this.livewireCommitHandler);
+                },
+
+                buildStorageKey() {
+                    return [
+                        'fieldops-structure-location',
+                        window.location.pathname,
+                        window.location.search,
+                    ].join(':');
+                },
+
+                readInitialCoords() {
+                    const pinCoords = this.readPinCoords();
+
+                    if (this.hasMeaningfulCoords(pinCoords)) {
+                        return pinCoords;
+                    }
+
+                    const persisted = this.readPersistedCoords();
+
+                    if (persisted) {
+                        return persisted;
+                    }
+
+                    return pinCoords;
+                },
+
+                hasMeaningfulCoords(coords) {
+                    const defaultLat = Number.parseFloat(this.config.defaultLat);
+                    const defaultLng = Number.parseFloat(this.config.defaultLng);
+
+                    return (
+                        Number.isFinite(coords?.lat)
+                        && Number.isFinite(coords?.lng)
+                        && (coords.lat !== defaultLat || coords.lng !== defaultLng)
+                    );
+                },
+
+                readPersistedCoords() {
+                    try {
+                        const raw = window.sessionStorage.getItem(this.storageKey);
+
+                        if (! raw) {
+                            return null;
+                        }
+
+                        const parsed = JSON.parse(raw);
+                        const lat = Number.parseFloat(parsed?.lat);
+                        const lng = Number.parseFloat(parsed?.lng);
+
+                        if (! Number.isFinite(lat) || ! Number.isFinite(lng)) {
+                            return null;
+                        }
+
+                        return { lat, lng };
+                    } catch (error) {
+                        return null;
+                    }
+                },
+
+                persistCoords(lat, lng) {
+                    try {
+                        window.sessionStorage.setItem(this.storageKey, JSON.stringify({ lat, lng }));
+                    } catch (error) {
+                        // Ignore storage failures; the form still keeps the live inputs.
+                    }
                 },
 
                 readPinCoords() {
@@ -406,6 +535,15 @@
                 },
 
                 syncExternalState(force = false) {
+                    const persisted = this.readPersistedCoords();
+                    const livePin = this.readPinCoords();
+
+                    if (persisted && this.needsPersistedCoords(livePin, persisted)) {
+                        this.syncFromLatLng(persisted, true, true);
+                        this.lastCenterKey = `${persisted.lat.toFixed(6)},${persisted.lng.toFixed(6)}`;
+                        return;
+                    }
+
                     const center = this.readCenterCoords();
                     const centerKey = `${center.lat.toFixed(6)},${center.lng.toFixed(6)}`;
 
@@ -413,6 +551,13 @@
                         this.syncFromLatLng(center, true, true);
                         this.lastCenterKey = centerKey;
                     }
+                },
+
+                needsPersistedCoords(livePin, persisted) {
+                    const liveKey = `${Number.parseFloat(livePin.lat).toFixed(6)},${Number.parseFloat(livePin.lng).toFixed(6)}`;
+                    const persistedKey = `${Number.parseFloat(persisted.lat).toFixed(6)},${Number.parseFloat(persisted.lng).toFixed(6)}`;
+
+                    return liveKey !== persistedKey && ! this.hasMeaningfulCoords(livePin);
                 },
 
                 syncFromLatLng(latlng, moveMap = true, syncCenterFields = false) {
@@ -423,6 +568,7 @@
 
                     this.currentPinCoords = { lat: parsedLat, lng: parsedLng };
                     this.coordsLabel = `${lat}, ${lng}`;
+                    this.persistCoords(parsedLat, parsedLng);
 
                     if (this.latInput) {
                         this.latInput.value = lat;
@@ -487,9 +633,9 @@
         };
 
         if (window.Alpine) {
-            window.fieldopsRegisterElectricalBoardLocationPicker();
+            window.fieldopsRegisterStructureLocationPicker();
         } else {
-            document.addEventListener('alpine:init', window.fieldopsRegisterElectricalBoardLocationPicker);
+            document.addEventListener('alpine:init', window.fieldopsRegisterStructureLocationPicker);
         }
         })();
             </script>

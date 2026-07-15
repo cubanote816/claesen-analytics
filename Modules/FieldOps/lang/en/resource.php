@@ -49,6 +49,8 @@ return [
         'empty_state_heading' => 'No terrains yet',
         'empty_state_description' => 'Create the first terrain for this complex without leaving the page.',
         'actions' => [
+            'attach' => 'Attach terrain',
+            'detach' => 'Detach terrain',
             'create' => 'Create terrain',
         ],
         'fields' => [
@@ -71,6 +73,7 @@ return [
         'plural_label' => 'Structures',
         'actions' => [
             'create' => 'Create structure',
+            'attach' => 'Attach structure',
         ],
         'fields' => [
             'structure_type'     => 'Structure type',
@@ -94,6 +97,18 @@ return [
             'access_inactive'    => 'Inactive',
             'safety_certified'   => 'Certified',
             'safety_uncertified' => 'Not certified',
+        ],
+        'validation' => [
+            'terrain_helper' => 'Choose one or more terrains. All terrains must belong to the same complex.',
+            'min_terrain' => 'A structure must always stay attached to at least one terrain.',
+            'terrain_same_complex' => 'All selected terrains must belong to the same complex.',
+            'proximity_warning_title' => 'Possible duplicate structure',
+            'proximity_warning_body' => 'An existing structure is within :distance m of the position you entered. It may be the same structure. Review it, attach the selected terrains to it, or continue creating a new structure.',
+            'proximity_review' => 'Review structure',
+            'proximity_attach' => 'Attach terrains',
+            'proximity_create_anyway' => 'Create anyway',
+            'proximity_within_radius' => 'Within :radius m',
+            'proximity_attach_success' => 'The selected terrains were attached to :label.',
         ],
     ],
 

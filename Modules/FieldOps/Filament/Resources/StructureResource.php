@@ -105,6 +105,18 @@ class StructureResource extends Resource
         return $schema->components([
             Section::make()
                 ->columnSpanFull()
+                ->visible(fn ($livewire): bool => $livewire instanceof CreateStructure && filled($livewire->proximityMatch))
+                ->schema([
+                    ViewField::make('proximity_warning')
+                        ->hiddenLabel()
+                        ->dehydrated(false)
+                        ->view('fieldops::filament.forms.structure-proximity-warning')
+                        ->viewData(fn ($livewire): array => [
+                            'proximityMatch' => $livewire->proximityMatch,
+                        ]),
+                ]),
+            Section::make()
+                ->columnSpanFull()
                 ->schema([
                     Select::make('structure_type_id')
                         ->label(__('fieldops::resource.structures.fields.structure_type'))
@@ -113,7 +125,24 @@ class StructureResource extends Resource
                                 ?: $t->getTranslation('name', 'nl', false),
                         ]))
                         ->searchable()
-                        ->nullable(),
+                        ->required(),
+                    Select::make('terrain_ids')
+                        ->label(__('fieldops::resource.terrains.plural_label'))
+                        ->multiple()
+                        ->searchable()
+                        ->visible(fn (string $operation): bool => $operation === 'create')
+                        ->required(fn (string $operation): bool => $operation === 'create')
+                        ->default(fn () => Arr::wrap(request()->input('terrain_ids', [])))
+                        ->helperText(__('fieldops::resource.structures.validation.terrain_helper'))
+                        ->options(Terrain::query()
+                            ->orderBy('name')
+                            ->limit(100)
+                            ->get()
+                            ->mapWithKeys(fn (Terrain $terrain) => [
+                                $terrain->id => $terrain->getTranslation('name', app()->getLocale(), false)
+                                    ?: $terrain->getTranslation('name', 'nl', false),
+                            ])
+                            ->all()),
                     TextInput::make('height')
                         ->label(__('fieldops::resource.structures.fields.height'))
                         ->numeric()

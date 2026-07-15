@@ -49,6 +49,8 @@ return [
         'empty_state_heading' => 'Nog geen terreinen',
         'empty_state_description' => 'Maak meteen het eerste terrein aan voor dit complex zonder de pagina te verlaten.',
         'actions' => [
+            'attach' => 'Terrein koppelen',
+            'detach' => 'Terrein ontkoppelen',
             'create' => 'Terrein aanmaken',
         ],
         'fields' => [
@@ -71,6 +73,7 @@ return [
         'plural_label' => 'Structuren',
         'actions' => [
             'create' => 'Structuur aanmaken',
+            'attach' => 'Structuur koppelen',
         ],
         'fields' => [
             'structure_type'    => 'Structuurtype',
@@ -94,6 +97,18 @@ return [
             'access_inactive'    => 'Inactief',
             'safety_certified'   => 'Gecertificeerd',
             'safety_uncertified' => 'Niet gecertificeerd',
+        ],
+        'validation' => [
+            'terrain_helper' => 'Kies één of meer terreinen. Alle terreinen moeten tot hetzelfde complex behoren.',
+            'min_terrain' => 'Een structuur moet altijd gekoppeld blijven aan minstens één terrein.',
+            'terrain_same_complex' => 'Alle geselecteerde terreinen moeten tot hetzelfde complex behoren.',
+            'proximity_warning_title' => 'Mogelijke dubbele structuur',
+            'proximity_warning_body' => 'Een bestaande structuur ligt binnen :distance m van de ingevoerde positie. Het kan om dezelfde structuur gaan. Bekijk ze, koppel de geselecteerde terreinen eraan of ga verder met een nieuwe structuur.',
+            'proximity_review' => 'Structuur bekijken',
+            'proximity_attach' => 'Terreinen koppelen',
+            'proximity_create_anyway' => 'Toch aanmaken',
+            'proximity_within_radius' => 'Binnen :radius m',
+            'proximity_attach_success' => 'De geselecteerde terreinen zijn gekoppeld aan :label.',
         ],
     ],
 

@@ -15,6 +15,7 @@ class FieldOpsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadConfig();
         $this->loadMigrationsFrom(module_path($this->name, 'Database/Migrations'));
         $this->loadViewsFrom(module_path($this->name, 'resources/views'), $this->nameLower);
         $this->registerTranslations();
@@ -32,6 +33,14 @@ class FieldOpsServiceProvider extends ServiceProvider
             \Modules\FieldOps\Console\Commands\SyncClientsFromRelationsCommand::class,
             \Modules\FieldOps\Console\Commands\SyncComplexesFromRelationDeliveriesCommand::class,
         ]);
+    }
+
+    protected function loadConfig(): void
+    {
+        $configPath = module_path($this->name, 'Config/config.php');
+
+        $this->mergeConfigFrom($configPath, $this->nameLower);
+        $this->publishes([$configPath => config_path($this->nameLower . '.php')], 'config');
     }
 
     public function registerTranslations(): void
