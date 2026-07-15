@@ -9,7 +9,6 @@
     x-on:open-session-expired-modal.window="show = true"
     x-show="show"
     x-cloak
-    style="display: none;"
     class="fixed inset-0 z-[2147483647] flex items-center justify-center p-4"
     style="display: none; z-index: 2147483647;"
     role="alertdialog"
