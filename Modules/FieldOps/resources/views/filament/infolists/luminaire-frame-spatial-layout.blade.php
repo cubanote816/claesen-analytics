@@ -58,6 +58,12 @@
         'eyebrow' => $data['eyebrow'] ?? '',
         'selectedMarker' => $data['selectedMarker'] ?? null,
     ];
+
+    $markers = $payload['markers'];
+    $unpositioned = $payload['unpositioned'];
+    $summary = $payload['summary'];
+    $bounds = $payload['bounds'];
+    $selected = $payload['selectedMarker'];
 @endphp
 
 @once
