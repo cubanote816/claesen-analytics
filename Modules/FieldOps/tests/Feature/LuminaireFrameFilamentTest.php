@@ -10,6 +10,7 @@ use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
+use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -54,7 +55,9 @@ class LuminaireFrameFilamentTest extends TestCase
             ->assertSee(__('fieldops::resource.luminaire_frames.view.eyebrow'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.layout_hint'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.sidebar_title'))
-            ->assertSee(__('fieldops::resource.luminaire_frames.view.selected_label'))
+            ->assertSee(__('fieldops::resource.luminaire_frames.view.selected_position_label'))
+            ->assertSee(__('fieldops::resource.luminaire_frames.view.open_position_details'))
+            ->assertSee(LuminaireResource::getUrl('view', ['record' => $l1]), false)
             ->assertSee('Traverse 1')
             ->assertSee('Traverse 2');
         $this->get("/luminaire-frames/{$frame->id}/edit")->assertOk();

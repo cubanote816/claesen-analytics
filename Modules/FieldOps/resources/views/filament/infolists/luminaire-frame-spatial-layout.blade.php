@@ -390,8 +390,10 @@
             }
 
             .fieldops-luminaire-frame-spatial__marker {
-                position: absolute;
+                position: relative;
                 z-index: 2;
+                width: 100%;
+                height: 100%;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
@@ -401,8 +403,13 @@
                 background: linear-gradient(180deg, #00aeef 0%, #008fc8 100%);
                 color: #ffffff;
                 box-shadow: 0 18px 30px rgba(0, 174, 239, 0.26);
-                transform: translate(-50%, -50%);
                 transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, border-color 150ms ease;
+            }
+
+            .fieldops-luminaire-frame-spatial__marker-shell {
+                position: absolute;
+                z-index: 2;
+                transform: translate(-50%, -50%);
             }
 
             .dark .fieldops-luminaire-frame-spatial__marker {
@@ -448,6 +455,35 @@
                 color: #e2e8f0;
                 font-size: 0.48rem;
                 font-weight: 900;
+            }
+
+            .fieldops-luminaire-frame-spatial__marker-open {
+                position: absolute;
+                z-index: 4;
+                right: -0.35rem;
+                top: -0.35rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 1.45rem;
+                height: 1.45rem;
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                border-radius: 999px;
+                background: rgba(15, 23, 42, 0.88);
+                color: #f8fafc;
+                box-shadow: 0 10px 18px rgba(0, 0, 0, 0.26);
+                transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease;
+            }
+
+            .fieldops-luminaire-frame-spatial__marker-open:hover {
+                transform: scale(1.04);
+                border-color: rgba(56, 189, 248, 0.46);
+                background: rgba(14, 165, 233, 0.92);
+            }
+
+            .fieldops-luminaire-frame-spatial__marker-open svg {
+                width: 0.78rem;
+                height: 0.78rem;
             }
 
             .fieldops-luminaire-frame-spatial__empty {
@@ -607,6 +643,7 @@
                 display: flex;
                 gap: 0.5rem;
                 margin-top: 1rem;
+                flex-wrap: wrap;
             }
 
             .fieldops-luminaire-frame-spatial__link {
@@ -623,17 +660,19 @@
                 font-weight: 700;
             }
 
-            .fieldops-luminaire-frame-spatial__link--ghost {
-                background: rgba(255, 255, 255, 0.04);
-                color: #0f172a;
-            }
-
-            .dark .fieldops-luminaire-frame-spatial__link--ghost {
-                color: #e2e8f0;
-            }
-
             .fieldops-luminaire-frame-spatial__hint {
                 padding-top: 0.2rem;
+            }
+
+            .fieldops-luminaire-frame-spatial__selected-hint {
+                margin-top: 0.35rem;
+                color: #64748b;
+                font-size: 0.82rem;
+                line-height: 1.45;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__selected-hint {
+                color: #94a3b8;
             }
 
             @media (max-width: 1024px) {
@@ -715,13 +754,6 @@
                         }
 
                         element.requestFullscreen?.();
-                    },
-                    openSelected() {
-                        const marker = this.selectedMarker();
-
-                        if (marker?.url) {
-                            window.location.href = marker.url;
-                        }
                     },
                     surfaceStyle() {
                         return `--fieldops-frame-zoom: ${this.zoom};`;
@@ -818,20 +850,38 @@
                             :style="surfaceStyle()"
                         >
                             @foreach ($markers as $marker)
-                                <button
-                                    type="button"
-                                    class="fieldops-luminaire-frame-spatial__marker {{ $marker['selected'] ? 'fieldops-luminaire-frame-spatial__marker--selected' : '' }} {{ $marker['flagged'] ? 'fieldops-luminaire-frame-spatial__marker--flagged' : '' }}"
+                                <div
+                                    class="fieldops-luminaire-frame-spatial__marker-shell"
                                     :style="markerStyle(@js($marker))"
-                                    @click="selectMarker({{ $marker['id'] }})"
-                                    :aria-pressed="Number(selectedId) === {{ $marker['id'] }}"
-                                    :aria-label="'{{ $marker['title'] }} #{{ $marker['label'] }}'"
-                                    title="{{ $marker['title'] }} #{{ $marker['label'] }}"
                                 >
-                                    <span class="fieldops-luminaire-frame-spatial__marker-label">{{ $marker['label'] }}</span>
-                                    @if ($marker['flagged'])
-                                        <span class="fieldops-luminaire-frame-spatial__marker-sub" aria-hidden="true">!</span>
-                                    @endif
-                                </button>
+                                    <button
+                                        type="button"
+                                        class="fieldops-luminaire-frame-spatial__marker {{ $marker['selected'] ? 'fieldops-luminaire-frame-spatial__marker--selected' : '' }} {{ $marker['flagged'] ? 'fieldops-luminaire-frame-spatial__marker--flagged' : '' }}"
+                                        @click="selectMarker({{ $marker['id'] }})"
+                                        :aria-pressed="Number(selectedId) === {{ $marker['id'] }}"
+                                        :aria-label="'{{ $marker['title'] }} #{{ $marker['label'] }}'"
+                                        title="{{ $marker['title'] }} #{{ $marker['label'] }}"
+                                    >
+                                        <span class="fieldops-luminaire-frame-spatial__marker-label">{{ $marker['label'] }}</span>
+                                        @if ($marker['flagged'])
+                                            <span class="fieldops-luminaire-frame-spatial__marker-sub" aria-hidden="true">!</span>
+                                        @endif
+                                    </button>
+
+                                    <a
+                                        href="{{ $marker['url'] }}"
+                                        class="fieldops-luminaire-frame-spatial__marker-open"
+                                        title="{{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}"
+                                        aria-label="{{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}"
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M14 5h5v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            <path d="M10 14L19 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            <path d="M19 14v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            <path d="M5 10v9h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </a>
+                                </div>
                             @endforeach
                         </div>
                     @else
@@ -929,10 +979,14 @@
                 @php($selected = $data['selectedMarker'] ?? null)
 
                 <div class="fieldops-luminaire-frame-spatial__selected-title">
-                    {{ __('fieldops::resource.luminaire_frames.view.selected_label') }}
+                    {{ __('fieldops::resource.luminaire_frames.view.selected_position_label') }}
                 </div>
 
                 @if ($selected)
+                    <div class="fieldops-luminaire-frame-spatial__selected-hint">
+                        {{ __('fieldops::resource.luminaire_frames.view.selected_hint') }}
+                    </div>
+
                     <div class="fieldops-luminaire-frame-spatial__selected-row">
                         <div class="fieldops-luminaire-frame-spatial__selected-stat">
                             <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
@@ -981,7 +1035,7 @@
 
                         <div class="fieldops-luminaire-frame-spatial__selected-stat">
                             <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
-                                {{ __('fieldops::resource.luminaire_frames.view.selected_label') }}
+                                {{ __('fieldops::resource.luminaire_frames.view.selected_position') }}
                             </div>
                             <div class="fieldops-luminaire-frame-spatial__selected-stat-value">
                                 #{{ $selected['label'] }}
@@ -991,11 +1045,8 @@
 
                     <div class="fieldops-luminaire-frame-spatial__selected-actions">
                         <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['url'] }}">
-                            {{ __('fieldops::resource.luminaire_frames.view.open_luminaire') }}
+                            {{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}
                         </a>
-                        <button type="button" class="fieldops-luminaire-frame-spatial__link fieldops-luminaire-frame-spatial__link--ghost" @click="selectMarker({{ $selected['id'] }})">
-                            {{ __('fieldops::resource.luminaire_frames.view.selected_label') }}
-                        </button>
                     </div>
                 @else
                     <div class="fieldops-luminaire-frame-spatial__empty-text">

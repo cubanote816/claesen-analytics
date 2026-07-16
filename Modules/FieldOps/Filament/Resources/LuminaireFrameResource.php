@@ -221,7 +221,7 @@ class LuminaireFrameResource extends Resource
                     ? 'X '.number_format((float) $luminaire->frame_x, 1).' · Y '.number_format((float) $luminaire->frame_y, 1)
                     : __('fieldops::resource.luminaire_frames.view.no_position'),
                 'flagged' => $hasOpenIssue,
-                'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('edit', ['record' => $luminaire]),
+                'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('view', ['record' => $luminaire]),
                 'hasCoordinates' => is_numeric($luminaire->frame_x) && is_numeric($luminaire->frame_y),
             ];
         });
