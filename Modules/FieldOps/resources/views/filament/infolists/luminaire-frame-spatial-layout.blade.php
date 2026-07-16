@@ -908,6 +908,34 @@
                                 : @js(__('fieldops::resource.luminaire_frames.view.resolved')))
                             : '';
                     },
+                    selectedMarkerSourceLabel() {
+                        const marker = this.selectedMarker();
+                        if (!marker || !marker.positionSource) {
+                            return '—';
+                        }
+
+                        const labels = {
+                            frontend: @js(__('fieldops::resource.luminaires.position_sources.frontend')),
+                            backoffice: @js(__('fieldops::resource.luminaires.position_sources.backoffice')),
+                        };
+
+                        return labels[marker.positionSource] ?? marker.positionSource;
+                    },
+                    selectedMarkerVerifiedAtLabel() {
+                        const marker = this.selectedMarker();
+                        if (!marker || !marker.positionVerifiedAt) {
+                            return '—';
+                        }
+
+                        try {
+                            return new Intl.DateTimeFormat(undefined, {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                            }).format(new Date(marker.positionVerifiedAt));
+                        } catch (error) {
+                            return marker.positionVerifiedAt;
+                        }
+                    },
                     selectedMarkerLabel() {
                         return this.selectedMarker()?.label ?? '';
                     },
@@ -1023,15 +1051,23 @@
                                 headers: {
                                     Accept: 'application/json',
                                     'Content-Type': 'application/json',
+                                    'X-FieldOps-Editor': 'backoffice',
                                 },
                                 credentials: 'same-origin',
                                 body: JSON.stringify({
                                     frame_x: Math.round(Number(marker.left) * 10) / 10,
                                     frame_y: Math.round(Number(marker.top) * 10) / 10,
+                                    position_version: Number(marker.positionVersion ?? 1),
                                 }),
                             });
 
                             if (!response.ok) {
+                                if (response.status === 409) {
+                                    const payload = await response.json().catch(() => ({}));
+                                    this.statusMessage = payload.message ?? @js(__('fieldops::resource.luminaire_frames.view.save_failed'));
+                                    return;
+                                }
+
                                 throw new Error(`Unable to save marker position (${response.status})`);
                             }
 
@@ -1425,9 +1461,16 @@
 
                             <div class="fieldops-luminaire-frame-spatial__selected-stat">
                                 <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
-                                    {{ __('fieldops::resource.luminaire_frames.view.selected_position') }}
+                                    {{ __('fieldops::resource.luminaires.fields.position_source') }}
                                 </div>
-                                <div class="fieldops-luminaire-frame-spatial__selected-stat-value" x-text="'#' + selectedMarkerLabel()"></div>
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-value" x-text="selectedMarkerSourceLabel()"></div>
+                            </div>
+
+                            <div class="fieldops-luminaire-frame-spatial__selected-stat">
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
+                                    {{ __('fieldops::resource.luminaires.fields.position_verified_at') }}
+                                </div>
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-value" x-text="selectedMarkerVerifiedAtLabel()"></div>
                             </div>
                         </div>
 
@@ -1495,10 +1538,19 @@
 
                             <div class="fieldops-luminaire-frame-spatial__selected-stat">
                                 <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
-                                    {{ __('fieldops::resource.luminaire_frames.view.selected_position') }}
+                                    {{ __('fieldops::resource.luminaires.fields.position_source') }}
                                 </div>
                                 <div class="fieldops-luminaire-frame-spatial__selected-stat-value">
-                                    #{{ $selected['label'] }}
+                                    {{ $selected['positionSource'] ? __('fieldops::resource.luminaires.position_sources.'.$selected['positionSource']) : '—' }}
+                                </div>
+                            </div>
+
+                            <div class="fieldops-luminaire-frame-spatial__selected-stat">
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
+                                    {{ __('fieldops::resource.luminaires.fields.position_verified_at') }}
+                                </div>
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-value">
+                                    {{ $selected['positionVerifiedAt'] ? \Illuminate\Support\Carbon::parse($selected['positionVerifiedAt'])->format('d M Y H:i') : '—' }}
                                 </div>
                             </div>
                         </div>

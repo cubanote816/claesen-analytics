@@ -10,6 +10,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -73,6 +74,8 @@ class LuminaireResource extends Resource
     {
         return $schema->components([
             Section::make()->schema([
+                Hidden::make('position_version')
+                    ->default(1),
                 Select::make('luminaire_frame_id')
                     ->label(__('fieldops::resource.luminaires.fields.frame'))
                     ->options(LuminaireFrame::with('frameType')
@@ -169,6 +172,15 @@ class LuminaireResource extends Resource
                     ->label(__('fieldops::resource.luminaires.fields.scale_x').' / '.__('fieldops::resource.luminaires.fields.scale_y'))
                     ->getStateUsing(fn ($record) => ($record->scale_x ?? '—').', '.($record->scale_y ?? '—'))
                     ->badge(),
+                TextEntry::make('position_source')
+                    ->label(__('fieldops::resource.luminaires.fields.position_source'))
+                    ->getStateUsing(fn ($record) => $record->position_source ? __('fieldops::resource.luminaires.position_sources.'.$record->position_source) : '—')
+                    ->badge()
+                    ->color(fn ($record) => $record->position_source === 'frontend' ? 'success' : ($record->position_source === 'backoffice' ? 'warning' : 'gray')),
+                TextEntry::make('position_verified_at')
+                    ->label(__('fieldops::resource.luminaires.fields.position_verified_at'))
+                    ->dateTime()
+                    ->placeholder('—'),
             ])->columns(2),
 
             Section::make()->schema([

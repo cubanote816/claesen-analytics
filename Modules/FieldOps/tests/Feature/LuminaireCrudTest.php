@@ -185,16 +185,65 @@ class LuminaireCrudTest extends TestCase
             ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
                 'frame_x' => 42.5,
                 'frame_y' => 63.2,
+                'position_version' => 1,
             ])
             ->assertOk()
             ->assertJsonPath('data.frame_x', 42.5)
-            ->assertJsonPath('data.frame_y', 63.2);
+            ->assertJsonPath('data.frame_y', 63.2)
+            ->assertJsonPath('data.position_version', 2)
+            ->assertJsonPath('data.position_source', 'backoffice');
 
         $this->assertDatabaseHas('fo_luminaires', [
             'id' => $luminaire->id,
             'frame_x' => 42.5,
             'frame_y' => 63.2,
+            'position_version' => 2,
+            'position_source' => 'backoffice',
         ]);
+    }
+
+    public function test_update_frame_coordinates_from_frontend_marks_verified(): void
+    {
+        $luminaire = Luminaire::factory()->create([
+            'luminaire_frame_id'    => $this->frame->id,
+            'luminaire_type_id'     => $this->type->id,
+            'luminaire_subgroup_id' => $this->subgroup->id,
+        ]);
+
+        $this->actingAs($this->user)
+            ->withHeader('X-FieldOps-Editor', 'frontend')
+            ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
+                'frame_x' => 18.5,
+                'frame_y' => 27.25,
+                'position_version' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.position_version', 2)
+            ->assertJsonPath('data.position_source', 'frontend');
+
+        $fresh = $luminaire->fresh();
+        $this->assertSame('frontend', $fresh->position_source);
+        $this->assertNotNull($fresh->position_verified_at);
+        $this->assertEquals(2, $fresh->position_version);
+    }
+
+    public function test_update_frame_coordinates_conflict_returns_409(): void
+    {
+        $luminaire = Luminaire::factory()->create([
+            'luminaire_frame_id'    => $this->frame->id,
+            'luminaire_type_id'     => $this->type->id,
+            'luminaire_subgroup_id' => $this->subgroup->id,
+            'position_version'      => 3,
+        ]);
+
+        $this->actingAs($this->user)
+            ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
+                'frame_x' => 12,
+                'frame_y' => 34,
+                'position_version' => 1,
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('current_position_version', 3);
     }
 
     public function test_show_404_for_deleted(): void

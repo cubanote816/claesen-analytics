@@ -22,8 +22,10 @@ class LuminaireController extends Controller
 
     public function store(StoreLuminaireRequest $request): \Illuminate\Http\JsonResponse
     {
+        $data = $this->applyPositionAuditMetadata($request->validated(), $request->header('X-FieldOps-Editor', 'backoffice'), null, $request->user()?->id);
+
         $luminaire = Luminaire::create(array_merge(
-            $request->validated(),
+            $data,
             ['created_by_user_id' => $request->user()->id],
         ));
         $luminaire->load('luminaireType', 'subgroup', 'createdBy');
@@ -37,10 +39,29 @@ class LuminaireController extends Controller
     public function update(UpdateLuminaireRequest $request, Luminaire $luminaire): \Illuminate\Http\JsonResponse
     {
         $data = $request->validated();
+        $touchesPosition = array_key_exists('frame_x', $data) || array_key_exists('frame_y', $data);
 
         // Merge info translations locale-by-locale to avoid overwriting untouched locales
         if (isset($data['info'])) {
             $data['info'] = array_merge($luminaire->getTranslations('info'), $data['info']);
+        }
+
+        if ($touchesPosition) {
+            $expectedVersion = (int) ($request->input('position_version') ?? 0);
+
+            if ($expectedVersion !== (int) $luminaire->position_version) {
+                return response()->json([
+                    'message' => __('fieldops::resource.luminaires.position_conflict'),
+                    'current_position_version' => $luminaire->position_version,
+                ], 409);
+            }
+
+            $data = $this->applyPositionAuditMetadata(
+                $data,
+                $request->header('X-FieldOps-Editor', 'backoffice'),
+                $luminaire,
+                $request->user()?->id,
+            );
         }
 
         // When moving to a different frame without an explicit frame_position,
@@ -60,6 +81,33 @@ class LuminaireController extends Controller
             'success' => true,
             'data'    => new LuminaireResource($luminaire),
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function applyPositionAuditMetadata(array $data, string $source, ?Luminaire $current, ?int $userId): array
+    {
+        $touchesPosition = array_key_exists('frame_x', $data) || array_key_exists('frame_y', $data);
+
+        if (! $touchesPosition && $current === null) {
+            return $data;
+        }
+
+        $effectiveSource = $source === 'frontend' ? 'frontend' : 'backoffice';
+        $data['position_version'] = $current ? ((int) $current->position_version + 1) : 1;
+        $data['position_source'] = $effectiveSource;
+
+        if ($effectiveSource === 'frontend') {
+            $data['position_verified_at'] = now();
+            $data['position_verified_by_user_id'] = $userId;
+        } else {
+            $data['position_verified_at'] = null;
+            $data['position_verified_by_user_id'] = null;
+        }
+
+        return $data;
     }
 
     public function destroy(Luminaire $luminaire): \Illuminate\Http\Response

@@ -17,6 +17,9 @@ class LuminaireResource extends JsonResource
             'frame_y'            => $this->frame_y,
             'scale_x'            => $this->scale_x,
             'scale_y'            => $this->scale_y,
+            'position_version'   => $this->position_version,
+            'position_source'    => $this->position_source,
+            'position_verified_at' => $this->position_verified_at?->toIso8601String(),
             'info'               => $this->getTranslations('info'),
             'cafca_material_id'  => $this->cafca_material_id,
             'luminaire_type'     => $this->whenLoaded('luminaireType', fn () => [

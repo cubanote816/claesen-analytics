@@ -38,6 +38,10 @@ class Luminaire extends Model
         'frame_y',
         'scale_x',
         'scale_y',
+        'position_version',
+        'position_source',
+        'position_verified_by_user_id',
+        'position_verified_at',
         'info',
         'cafca_material_id',
         'ai_translation_status',
@@ -48,7 +52,9 @@ class Luminaire extends Model
         'frame_y'        => 'float',
         'scale_x'        => 'float',
         'scale_y'        => 'float',
+        'position_version' => 'integer',
         'frame_position' => 'integer',
+        'position_verified_at' => 'datetime',
     ];
 
     protected static function boot(): void
