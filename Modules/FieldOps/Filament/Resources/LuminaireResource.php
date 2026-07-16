@@ -166,7 +166,13 @@ class LuminaireResource extends Resource
                 ]),
                 TextEntry::make('frame_x')
                     ->label(__('fieldops::resource.luminaires.fields.frame_x').' / '.__('fieldops::resource.luminaires.fields.frame_y'))
-                    ->getStateUsing(fn ($record) => "{$record->frame_x}, {$record->frame_y}")
+                    ->getStateUsing(fn ($record) => \Modules\FieldOps\Filament\Resources\LuminaireFrameResource::normalizeFrameCoordinate($record->frame_x) !== null && \Modules\FieldOps\Filament\Resources\LuminaireFrameResource::normalizeFrameCoordinate($record->frame_y) !== null
+                        ? sprintf(
+                            'X %.2f / Y %.2f',
+                            \Modules\FieldOps\Filament\Resources\LuminaireFrameResource::normalizeFrameCoordinate($record->frame_x),
+                            \Modules\FieldOps\Filament\Resources\LuminaireFrameResource::normalizeFrameCoordinate($record->frame_y),
+                        )
+                        : '—')
                     ->badge(),
                 TextEntry::make('scale_x')
                     ->label(__('fieldops::resource.luminaires.fields.scale_x').' / '.__('fieldops::resource.luminaires.fields.scale_y'))

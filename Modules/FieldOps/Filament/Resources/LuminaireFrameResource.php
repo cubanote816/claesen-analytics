@@ -54,6 +54,22 @@ class LuminaireFrameResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
+    /**
+     * frame_x / frame_y are stored as normalized coordinates between 0 and 1.
+     * Older records may still contain percentage-style values, so we accept both
+     * and normalize them to the 0..1 space used by the frontend canvas.
+     */
+    public static function normalizeFrameCoordinate(mixed $value): ?float
+    {
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $numeric = (float) $value;
+
+        return $numeric > 1.0 ? $numeric / 100 : $numeric;
+    }
+
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
@@ -228,13 +244,13 @@ class LuminaireFrameResource extends Resource
                 'positionVersion' => (int) ($luminaire->position_version ?? 1),
                 'positionSource' => $luminaire->position_source,
                 'positionVerifiedAt' => $luminaire->position_verified_at?->toIso8601String(),
-                'positionLabel' => is_numeric($luminaire->frame_x) && is_numeric($luminaire->frame_y)
-                    ? 'X '.number_format((float) $luminaire->frame_x, 1).' · Y '.number_format((float) $luminaire->frame_y, 1)
+                'positionLabel' => self::normalizeFrameCoordinate($luminaire->frame_x) !== null && self::normalizeFrameCoordinate($luminaire->frame_y) !== null
+                    ? 'X '.number_format(self::normalizeFrameCoordinate($luminaire->frame_x), 1).' · Y '.number_format(self::normalizeFrameCoordinate($luminaire->frame_y), 1)
                     : __('fieldops::resource.luminaire_frames.view.no_position'),
                 'flagged' => $hasOpenIssue,
                 'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('view', ['record' => $luminaire]),
                 'updateUrl' => url("/api/v1/fieldops/luminaires/{$luminaire->id}"),
-                'hasCoordinates' => is_numeric($luminaire->frame_x) && is_numeric($luminaire->frame_y),
+                'hasCoordinates' => self::normalizeFrameCoordinate($luminaire->frame_x) !== null && self::normalizeFrameCoordinate($luminaire->frame_y) !== null,
             ];
         });
 
@@ -255,15 +271,15 @@ class LuminaireFrameResource extends Resource
             : null;
 
         if ($positioned->isNotEmpty()) {
-            $xs = $positioned->pluck('frameX')->map(fn ($value) => (float) $value);
-            $ys = $positioned->pluck('frameY')->map(fn ($value) => (float) $value);
+            $xs = $positioned->pluck('frameX')->map(fn ($value) => (float) (self::normalizeFrameCoordinate($value) ?? 0));
+            $ys = $positioned->pluck('frameY')->map(fn ($value) => (float) (self::normalizeFrameCoordinate($value) ?? 0));
             $minX = (float) $xs->min();
             $maxX = (float) $xs->max();
             $minY = (float) $ys->min();
             $maxY = (float) $ys->max();
             $positioned = $positioned->map(function (array $item) use ($selectedId): array {
-                $left = max(0.0, min(100.0, (float) $item['frameX']));
-                $top = max(0.0, min(100.0, (float) $item['frameY']));
+                $left = max(0.0, min(100.0, (self::normalizeFrameCoordinate($item['frameX']) ?? 0.5) * 100));
+                $top = max(0.0, min(100.0, (self::normalizeFrameCoordinate($item['frameY']) ?? 0.5) * 100));
                 $scale = max((float) ($item['scaleX'] ?? 1.0), 0.65);
 
                 return array_merge($item, [
@@ -288,8 +304,8 @@ class LuminaireFrameResource extends Resource
             $bounds = null;
             $positioned = $positioned->map(function (array $item) use ($selectedId): array {
                 return array_merge($item, [
-                    'left' => max(0.0, min(100.0, is_numeric($item['frameX']) ? (float) $item['frameX'] : 50.0)),
-                    'top' => max(0.0, min(100.0, is_numeric($item['frameY']) ? (float) $item['frameY'] : 50.0)),
+                    'left' => max(0.0, min(100.0, (self::normalizeFrameCoordinate($item['frameX']) ?? 0.5) * 100)),
+                    'top' => max(0.0, min(100.0, (self::normalizeFrameCoordinate($item['frameY']) ?? 0.5) * 100)),
                     'size' => 30,
                     'selected' => $selectedId !== null && $item['id'] === $selectedId,
                 ]);
@@ -350,11 +366,13 @@ class LuminaireFrameResource extends Resource
                 ->whereNotNull('problem_reported_at')
                 ->whereNull('problem_solved_at')
                 ->exists();
+            $frameX = self::normalizeFrameCoordinate($luminaire->frame_x);
+            $frameY = self::normalizeFrameCoordinate($luminaire->frame_y);
 
             return [
                 'id' => $luminaire->id,
-                'left' => round(max(0.0, min(100.0, (float) ($luminaire->frame_x ?? 50))), 1),
-                'top' => round(max(0.0, min(100.0, (float) ($luminaire->frame_y ?? 50))), 1),
+                'left' => round(max(0.0, min(100.0, ($frameX ?? 0.5) * 100)), 1),
+                'top' => round(max(0.0, min(100.0, ($frameY ?? 0.5) * 100)), 1),
                 'size' => (int) round(28 * max((float) ($luminaire->scale_x ?? 1.0), 0.5)),
                 'label' => (string) ($luminaire->frame_position ?? '?'),
                 'serial' => $luminaire->serial_number,

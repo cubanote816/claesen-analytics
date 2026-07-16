@@ -40,6 +40,7 @@ class LuminaireController extends Controller
     {
         $data = $request->validated();
         $touchesPosition = array_key_exists('frame_x', $data) || array_key_exists('frame_y', $data);
+        $editorSource = $request->header('X-FieldOps-Editor', 'backoffice');
 
         // Merge info translations locale-by-locale to avoid overwriting untouched locales
         if (isset($data['info'])) {
@@ -47,18 +48,20 @@ class LuminaireController extends Controller
         }
 
         if ($touchesPosition) {
-            $expectedVersion = (int) ($request->input('position_version') ?? 0);
+            if ($editorSource !== 'frontend') {
+                $expectedVersion = (int) ($request->input('position_version') ?? 0);
 
-            if ($expectedVersion !== (int) $luminaire->position_version) {
-                return response()->json([
-                    'message' => __('fieldops::resource.luminaires.position_conflict'),
-                    'current_position_version' => $luminaire->position_version,
-                ], 409);
+                if ($expectedVersion !== (int) $luminaire->position_version) {
+                    return response()->json([
+                        'message' => __('fieldops::resource.luminaires.position_conflict'),
+                        'current_position_version' => $luminaire->position_version,
+                    ], 409);
+                }
             }
 
             $data = $this->applyPositionAuditMetadata(
                 $data,
-                $request->header('X-FieldOps-Editor', 'backoffice'),
+                $editorSource,
                 $luminaire,
                 $request->user()?->id,
             );

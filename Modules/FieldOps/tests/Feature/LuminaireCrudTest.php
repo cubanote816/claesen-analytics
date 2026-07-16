@@ -227,6 +227,33 @@ class LuminaireCrudTest extends TestCase
         $this->assertEquals(2, $fresh->position_version);
     }
 
+    public function test_update_frame_coordinates_from_frontend_without_version_still_persists(): void
+    {
+        $luminaire = Luminaire::factory()->create([
+            'luminaire_frame_id'    => $this->frame->id,
+            'luminaire_type_id'     => $this->type->id,
+            'luminaire_subgroup_id' => $this->subgroup->id,
+            'position_version'      => 4,
+        ]);
+
+        $this->actingAs($this->user)
+            ->withHeader('X-FieldOps-Editor', 'frontend')
+            ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
+                'frame_x' => 0.42,
+                'frame_y' => 0.63,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.frame_x', 0.42)
+            ->assertJsonPath('data.frame_y', 0.63)
+            ->assertJsonPath('data.position_version', 5)
+            ->assertJsonPath('data.position_source', 'frontend');
+
+        $fresh = $luminaire->fresh();
+        $this->assertSame('frontend', $fresh->position_source);
+        $this->assertNotNull($fresh->position_verified_at);
+        $this->assertEquals(5, $fresh->position_version);
+    }
+
     public function test_update_frame_coordinates_conflict_returns_409(): void
     {
         $luminaire = Luminaire::factory()->create([

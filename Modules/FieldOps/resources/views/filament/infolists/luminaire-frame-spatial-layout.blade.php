@@ -1055,8 +1055,8 @@
                                 },
                                 credentials: 'same-origin',
                                 body: JSON.stringify({
-                                    frame_x: Math.round(Number(marker.left) * 10) / 10,
-                                    frame_y: Math.round(Number(marker.top) * 10) / 10,
+                                    frame_x: Math.round((Number(marker.left) / 100) * 10000) / 10000,
+                                    frame_y: Math.round((Number(marker.top) / 100) * 10000) / 10000,
                                     position_version: Number(marker.positionVersion ?? 1),
                                 }),
                             });
