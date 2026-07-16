@@ -170,6 +170,8 @@ return [
             'selected_state' => 'State',
             'selected_position_label' => 'Selected position',
             'open_position_details' => 'Open position details',
+            'drag_hint' => 'Drag a marker or use the arrow keys to reposition it. Changes save automatically.',
+            'save_failed' => 'Unable to save the new position.',
             'open' => 'Open',
             'resolved' => 'Resolved',
         ],

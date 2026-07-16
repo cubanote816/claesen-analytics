@@ -153,6 +153,7 @@ class LuminaireFrameResource extends Resource
      *     title: string,
      *     subtitle: string,
      *     frameType: ?string,
+     *     frameImage: ?string,
      *     summary: array<int, array{label: string, value: int|string}>,
      *     bounds: ?array{minX: float, maxX: float, minY: float, maxY: float},
      *     markers: array<int, array{
@@ -198,6 +199,7 @@ class LuminaireFrameResource extends Resource
             ->with(['luminaireType', 'subgroup'])
             ->orderBy('frame_position')
             ->get();
+        $frameImage = static::resolveFrameTypePreviewUrl($record->frameType?->image);
 
         $items = $luminaires->map(function (Luminaire $luminaire): array {
             $hasOpenIssue = $luminaire->maintenanceRecords()
@@ -222,6 +224,7 @@ class LuminaireFrameResource extends Resource
                     : __('fieldops::resource.luminaire_frames.view.no_position'),
                 'flagged' => $hasOpenIssue,
                 'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('view', ['record' => $luminaire]),
+                'updateUrl' => url("/api/v1/fieldops/luminaires/{$luminaire->id}"),
                 'hasCoordinates' => is_numeric($luminaire->frame_x) && is_numeric($luminaire->frame_y),
             ];
         });
@@ -249,12 +252,9 @@ class LuminaireFrameResource extends Resource
             $maxX = (float) $xs->max();
             $minY = (float) $ys->min();
             $maxY = (float) $ys->max();
-            $rangeX = max($maxX - $minX, 1.0);
-            $rangeY = max($maxY - $minY, 1.0);
-
-            $positioned = $positioned->map(function (array $item) use ($minX, $rangeX, $minY, $rangeY, $selectedId): array {
-                $left = 10 + ((((float) $item['frameX']) - $minX) / $rangeX) * 80;
-                $top = 10 + ((((float) $item['frameY']) - $minY) / $rangeY) * 80;
+            $positioned = $positioned->map(function (array $item) use ($selectedId): array {
+                $left = max(0.0, min(100.0, (float) $item['frameX']));
+                $top = max(0.0, min(100.0, (float) $item['frameY']));
                 $scale = max((float) ($item['scaleX'] ?? 1.0), 0.65);
 
                 return array_merge($item, [
@@ -279,8 +279,8 @@ class LuminaireFrameResource extends Resource
             $bounds = null;
             $positioned = $positioned->map(function (array $item) use ($selectedId): array {
                 return array_merge($item, [
-                    'left' => 50.0,
-                    'top' => 50.0,
+                    'left' => max(0.0, min(100.0, is_numeric($item['frameX']) ? (float) $item['frameX'] : 50.0)),
+                    'top' => max(0.0, min(100.0, is_numeric($item['frameY']) ? (float) $item['frameY'] : 50.0)),
                     'size' => 30,
                     'selected' => $selectedId !== null && $item['id'] === $selectedId,
                 ]);
@@ -300,6 +300,7 @@ class LuminaireFrameResource extends Resource
                 'positioned' => $positioned->count(),
             ]),
             'frameType' => $record->frameType?->name,
+            'frameImage' => $frameImage,
             'summary' => [
                 ['label' => __('fieldops::resource.luminaire_frames.view.summary_total'), 'value' => $items->count()],
                 ['label' => __('fieldops::resource.luminaire_frames.view.summary_positioned'), 'value' => $positioned->count()],
@@ -315,11 +316,11 @@ class LuminaireFrameResource extends Resource
     }
 
     /**
-     * frame_x/frame_y have no declared value range in the schema, so markers are
-     * normalized to the actual min/max of this frame's luminaires (with padding)
-     * instead of assuming a fixed 0-100 scale. scale_x drives marker size; a marker
-     * is flagged (amber) when its luminaire has an open maintenance issue —
-     * problem_reported_at set, problem_solved_at still null.
+     * frame_x/frame_y are treated as relative coordinates inside the frame
+     * background, so the layout keeps the same coordinate space as the frontend
+     * editor. scale_x drives marker size; a marker is flagged (amber) when its
+     * luminaire has an open maintenance issue — problem_reported_at set,
+     * problem_solved_at still null.
      *
      * Public (not just used by this resource's own infolist): LuminaireResource
      * reuses this to draw the same frame layout on a single Luminaire's own view
@@ -335,14 +336,7 @@ class LuminaireFrameResource extends Resource
             return [];
         }
 
-        $xs = $luminaires->pluck('frame_x')->filter(fn ($v) => $v !== null);
-        $ys = $luminaires->pluck('frame_y')->filter(fn ($v) => $v !== null);
-        $minX = $xs->min() ?? 0.0;
-        $minY = $ys->min() ?? 0.0;
-        $rangeX = max(($xs->max() ?? 100) - $minX, 1);
-        $rangeY = max(($ys->max() ?? 100) - $minY, 1);
-
-        return $luminaires->map(function (Luminaire $luminaire) use ($minX, $rangeX, $minY, $rangeY, $selectedLuminaireId) {
+        return $luminaires->map(function (Luminaire $luminaire) use ($selectedLuminaireId) {
             $hasOpenIssue = $luminaire->maintenanceRecords()
                 ->whereNotNull('problem_reported_at')
                 ->whereNull('problem_solved_at')
@@ -350,8 +344,8 @@ class LuminaireFrameResource extends Resource
 
             return [
                 'id' => $luminaire->id,
-                'left' => round(10 + (($luminaire->frame_x - $minX) / $rangeX) * 80, 1),
-                'top' => round(10 + (($luminaire->frame_y - $minY) / $rangeY) * 80, 1),
+                'left' => round(max(0.0, min(100.0, (float) ($luminaire->frame_x ?? 50))), 1),
+                'top' => round(max(0.0, min(100.0, (float) ($luminaire->frame_y ?? 50))), 1),
                 'size' => (int) round(28 * max((float) ($luminaire->scale_x ?? 1.0), 0.5)),
                 'label' => (string) ($luminaire->frame_position ?? '?'),
                 'serial' => $luminaire->serial_number,

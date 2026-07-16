@@ -173,6 +173,30 @@ class LuminaireCrudTest extends TestCase
             ->assertJsonPath('data.scale_y', 0.9);
     }
 
+    public function test_update_frame_coordinates(): void
+    {
+        $luminaire = Luminaire::factory()->create([
+            'luminaire_frame_id'    => $this->frame->id,
+            'luminaire_type_id'     => $this->type->id,
+            'luminaire_subgroup_id' => $this->subgroup->id,
+        ]);
+
+        $this->actingAs($this->user)
+            ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
+                'frame_x' => 42.5,
+                'frame_y' => 63.2,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.frame_x', 42.5)
+            ->assertJsonPath('data.frame_y', 63.2);
+
+        $this->assertDatabaseHas('fo_luminaires', [
+            'id' => $luminaire->id,
+            'frame_x' => 42.5,
+            'frame_y' => 63.2,
+        ]);
+    }
+
     public function test_show_404_for_deleted(): void
     {
         $luminaire = Luminaire::factory()->create([

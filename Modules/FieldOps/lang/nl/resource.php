@@ -170,6 +170,8 @@ return [
             'selected_state' => 'Status',
             'selected_position_label' => 'Geselecteerde positie',
             'open_position_details' => 'Positiedetails openen',
+            'drag_hint' => 'Sleep een marker of gebruik de pijltjestoetsen om de positie aan te passen. Wijzigingen worden automatisch opgeslagen.',
+            'save_failed' => 'De nieuwe positie kon niet worden opgeslagen.',
             'open' => 'Open',
             'resolved' => 'Opgelost',
         ],
