@@ -345,7 +345,8 @@
             .fieldops-luminaire-frame-spatial__surface {
                 position: relative;
                 width: calc(100% * var(--fieldops-frame-zoom));
-                min-height: calc(42rem * var(--fieldops-frame-zoom));
+                aspect-ratio: 2 / 1;
+                min-height: calc(32rem * var(--fieldops-frame-zoom));
                 margin: 0 auto;
                 border: 1px solid rgba(148, 163, 184, 0.18);
                 border-radius: 1rem;
