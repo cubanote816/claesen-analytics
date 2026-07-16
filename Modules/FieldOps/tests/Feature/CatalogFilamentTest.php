@@ -33,6 +33,25 @@ class CatalogFilamentTest extends TestCase
         $this->get('/catalogs/luminaire-frame-types')->assertOk();
     }
 
+    public function test_luminaire_frame_type_create_and_edit_render_image_editor(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $record = LuminaireFrameType::factory()->create(['name' => 'Traverse 6', 'image' => null]);
+
+        $this->get('/catalogs/luminaire-frame-types/create')
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.catalogs.frame_type_editor.upload_title'), false)
+            ->assertSee(__('fieldops::resource.catalogs.frame_type_editor.draw_title'), false);
+
+        $this->get("/catalogs/luminaire-frame-types/{$record->id}/edit")
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.catalogs.frame_type_editor.upload_title'), false)
+            ->assertSee(__('fieldops::resource.catalogs.frame_type_editor.draw_title'), false);
+    }
+
     public function test_luminaire_type_content_grid_renders_with_and_without_image(): void
     {
         $user = User::factory()->create();

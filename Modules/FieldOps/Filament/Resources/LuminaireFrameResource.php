@@ -10,7 +10,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\ViewField;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -82,14 +82,58 @@ class LuminaireFrameResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->schema([
-                Select::make('luminaire_frame_type_id')
+            Section::make()
+                ->columnSpanFull()
+                ->schema([
+                ViewField::make('luminaire_frame_type_id')
                     ->label(__('fieldops::resource.luminaire_frames.fields.frame_type'))
-                    ->options(LuminaireFrameType::orderBy('name')->pluck('name', 'id'))
-                    ->searchable()
+                    ->helperText(__('fieldops::resource.luminaire_frames.gallery.helper'))
+                    ->view('fieldops::filament.forms.luminaire-frame-gallery-selector')
+                    ->viewData([
+                        'frames' => static::buildFrameTypeGalleryFrames(),
+                    ])
+                    ->columnSpanFull()
                     ->required(),
-            ]),
+                ]),
         ]);
+    }
+
+    /**
+     * @return array<int, array{id: int|string, title: string, typeLabel: string, indicator: string, previewUrl: ?string, previewAlt: string, hasPreview: bool}>
+     */
+    protected static function buildFrameTypeGalleryFrames(): array
+    {
+        return LuminaireFrameType::query()
+            ->orderBy('name')
+            ->get()
+            ->map(function (LuminaireFrameType $frameType): array {
+                $previewUrl = static::resolveFrameTypePreviewUrl($frameType->image);
+                $indicator = '#'.$frameType->id;
+
+                return [
+                    'id' => $frameType->id,
+                    'title' => $frameType->name,
+                    'typeLabel' => $frameType->name,
+                    'indicator' => $indicator,
+                    'previewUrl' => $previewUrl,
+                    'previewAlt' => $frameType->name.' '.$indicator,
+                    'hasPreview' => $previewUrl !== null,
+                ];
+            })
+            ->all();
+    }
+
+    protected static function resolveFrameTypePreviewUrl(?string $image): ?string
+    {
+        if (! $image) {
+            return null;
+        }
+
+        if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://') || str_starts_with($image, 'data:')) {
+            return $image;
+        }
+
+        return asset(ltrim($image, '/'));
     }
 
     public static function infolist(Schema $schema): Schema

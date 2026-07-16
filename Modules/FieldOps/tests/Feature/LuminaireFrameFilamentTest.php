@@ -9,6 +9,7 @@ use Modules\Core\Models\User;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
+use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -77,5 +78,39 @@ class LuminaireFrameFilamentTest extends TestCase
         ]);
 
         $this->get("/luminaire-frames/{$frame->id}")->assertOk();
+    }
+
+    public function test_frame_form_renders_gallery_selection_with_preview_and_selected_state(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $withImage = LuminaireFrameType::factory()->create([
+            'name' => 'Balcony',
+            'image' => 'https://example.test/balcony.jpg',
+        ]);
+
+        $withoutImage = LuminaireFrameType::factory()->create([
+            'name' => 'Traverse 1',
+            'image' => null,
+        ]);
+
+        $frame = LuminaireFrame::factory()->create([
+            'luminaire_frame_type_id' => $withImage->id,
+        ]);
+
+        $this->get('/luminaire-frames/create')
+            ->assertOk()
+            ->assertSee('data-fieldops-frame-gallery-selector', false)
+            ->assertSee('Balcony')
+            ->assertSee('Traverse 1')
+            ->assertSee(__('fieldops::resource.luminaire_frames.gallery.create_type'))
+            ->assertSee(__('fieldops::resource.luminaire_frames.gallery.open_preview'))
+            ->assertSee(__('fieldops::resource.luminaire_frames.gallery.no_preview'));
+
+        $this->get("/luminaire-frames/{$frame->id}/edit")
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.luminaire_frames.gallery.selected'));
     }
 }

@@ -10,6 +10,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -61,11 +62,19 @@ class LuminaireFrameTypeResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->schema([
+            Section::make()->columnSpanFull()->schema([
                 TextInput::make('name')
                     ->label(__('fieldops::resource.catalogs.fields.name'))
                     ->required()
                     ->maxLength(255),
+                ViewField::make('image')
+                    ->label(__('fieldops::resource.catalogs.fields.image'))
+                    ->helperText(__('fieldops::resource.catalogs.frame_type_editor.helper'))
+                    ->view('fieldops::filament.forms.luminaire-frame-type-image-editor')
+                    ->viewData([
+                        'uploadUrl' => route('fieldops.catalogs.luminaire-frame-types.image-store'),
+                    ])
+                    ->columnSpanFull(),
             ]),
         ]);
     }
