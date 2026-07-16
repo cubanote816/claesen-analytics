@@ -85,15 +85,15 @@ class LuminaireFrameResource extends Resource
             Section::make()
                 ->columnSpanFull()
                 ->schema([
-                ViewField::make('luminaire_frame_type_id')
-                    ->label(__('fieldops::resource.luminaire_frames.fields.frame_type'))
-                    ->helperText(__('fieldops::resource.luminaire_frames.gallery.helper'))
-                    ->view('fieldops::filament.forms.luminaire-frame-gallery-selector')
-                    ->viewData([
-                        'frames' => static::buildFrameTypeGalleryFrames(),
-                    ])
-                    ->columnSpanFull()
-                    ->required(),
+                    ViewField::make('luminaire_frame_type_id')
+                        ->label(__('fieldops::resource.luminaire_frames.fields.frame_type'))
+                        ->helperText(__('fieldops::resource.luminaire_frames.gallery.helper'))
+                        ->view('fieldops::filament.forms.luminaire-frame-gallery-selector')
+                        ->viewData([
+                            'frames' => static::buildFrameTypeGalleryFrames(),
+                        ])
+                        ->columnSpanFull()
+                        ->required(),
                 ]),
         ]);
     }
@@ -139,36 +139,179 @@ class LuminaireFrameResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
-            ViewEntry::make('profile_header')
+            ViewEntry::make('spatial_layout')
                 ->hiddenLabel()
-                ->state(fn (LuminaireFrame $record) => [
-                    'eyebrow' => static::getModelLabel(),
-                    'name' => static::getRecordTitle($record),
-                    'facts' => [
-                        [
-                            'label' => __('fieldops::resource.luminaire_frames.fields.frame_type'),
-                            'value' => $record->frameType?->name ?? '—',
-                            'placeholder' => '—',
-                        ],
-                        [
-                            'label' => __('fieldops::resource.luminaires.plural_label'),
-                            'value' => $record->luminaires()->count(),
-                            'placeholder' => '0',
-                        ],
-                    ],
-                ])
-                ->view('fieldops::filament.infolists.profile-header')
+                ->state(fn (LuminaireFrame $record) => static::buildSpatialLayoutState($record))
+                ->view('fieldops::filament.infolists.luminaire-frame-spatial-layout')
                 ->columnSpanFull(),
-
-            Section::make(__('fieldops::resource.luminaire_frames.canvas_label'))
-                ->schema([
-                    ViewEntry::make('canvas')
-                        ->hiddenLabel()
-                        ->state(fn (LuminaireFrame $record) => static::buildCanvasMarkers($record))
-                        ->default(fn () => [])
-                        ->view('fieldops::filament.infolists.luminaire-canvas'),
-                ]),
         ]);
+    }
+
+    /**
+     * @return array{
+     *     eyebrow: string,
+     *     title: string,
+     *     subtitle: string,
+     *     frameType: ?string,
+     *     summary: array<int, array{label: string, value: int|string}>,
+     *     bounds: ?array{minX: float, maxX: float, minY: float, maxY: float},
+     *     markers: array<int, array{
+     *         id: int,
+     *         label: string,
+     *         serial: ?string,
+     *         title: string,
+     *         subgroup: ?string,
+     *         frameX: float|int|string|null,
+     *         frameY: float|int|string|null,
+     *         scaleX: float|int|string|null,
+     *         scaleY: float|int|string|null,
+     *         positionLabel: string,
+     *         left: float,
+     *         top: float,
+     *         size: int,
+     *         flagged: bool,
+     *         selected: bool,
+     *         url: string,
+     *     }>,
+     *     unpositioned: array<int, array{
+     *         id: int,
+     *         label: string,
+     *         serial: ?string,
+     *         title: string,
+     *         subgroup: ?string,
+     *         frameX: float|int|string|null,
+     *         frameY: float|int|string|null,
+     *         scaleX: float|int|string|null,
+     *         scaleY: float|int|string|null,
+     *         positionLabel: string,
+     *         flagged: bool,
+     *         selected: bool,
+     *         url: string,
+     *     }>,
+     *     selectedId: ?int,
+     *     selectedMarker: ?array<string, mixed>,
+     * }
+     */
+    protected static function buildSpatialLayoutState(LuminaireFrame $record): array
+    {
+        $luminaires = $record->luminaires()
+            ->with(['luminaireType', 'subgroup'])
+            ->orderBy('frame_position')
+            ->get();
+
+        $items = $luminaires->map(function (Luminaire $luminaire): array {
+            $hasOpenIssue = $luminaire->maintenanceRecords()
+                ->whereNotNull('problem_reported_at')
+                ->whereNull('problem_solved_at')
+                ->exists();
+
+            return [
+                'id' => $luminaire->id,
+                'label' => (string) ($luminaire->frame_position ?? '?'),
+                'serial' => $luminaire->serial_number,
+                'title' => $luminaire->luminaireType?->name ?? __('fieldops::resource.luminaires.model_label'),
+                'subgroup' => $luminaire->subgroup
+                    ? "{$luminaire->subgroup->group_name} — {$luminaire->subgroup->brand}"
+                    : null,
+                'frameX' => $luminaire->frame_x,
+                'frameY' => $luminaire->frame_y,
+                'scaleX' => $luminaire->scale_x,
+                'scaleY' => $luminaire->scale_y,
+                'positionLabel' => is_numeric($luminaire->frame_x) && is_numeric($luminaire->frame_y)
+                    ? 'X '.number_format((float) $luminaire->frame_x, 1).' · Y '.number_format((float) $luminaire->frame_y, 1)
+                    : __('fieldops::resource.luminaire_frames.view.no_position'),
+                'flagged' => $hasOpenIssue,
+                'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('edit', ['record' => $luminaire]),
+                'hasCoordinates' => is_numeric($luminaire->frame_x) && is_numeric($luminaire->frame_y),
+            ];
+        });
+
+        $positioned = $items->filter(fn (array $item) => $item['hasCoordinates'])->values();
+        $unpositioned = $items->reject(fn (array $item) => $item['hasCoordinates'])->values();
+
+        $selectedId = request()->integer('luminaire') ?: request()->integer('selected');
+        if ($selectedId !== null && ! $items->contains(fn (array $item) => $item['id'] === $selectedId)) {
+            $selectedId = null;
+        }
+
+        if ($selectedId === null) {
+            $selectedId = $positioned->first()['id'] ?? $items->first()['id'] ?? null;
+        }
+
+        $selectedMarker = $selectedId !== null
+            ? $items->firstWhere('id', $selectedId)
+            : null;
+
+        if ($positioned->isNotEmpty()) {
+            $xs = $positioned->pluck('frameX')->map(fn ($value) => (float) $value);
+            $ys = $positioned->pluck('frameY')->map(fn ($value) => (float) $value);
+            $minX = (float) $xs->min();
+            $maxX = (float) $xs->max();
+            $minY = (float) $ys->min();
+            $maxY = (float) $ys->max();
+            $rangeX = max($maxX - $minX, 1.0);
+            $rangeY = max($maxY - $minY, 1.0);
+
+            $positioned = $positioned->map(function (array $item) use ($minX, $rangeX, $minY, $rangeY, $selectedId): array {
+                $left = 10 + ((((float) $item['frameX']) - $minX) / $rangeX) * 80;
+                $top = 10 + ((((float) $item['frameY']) - $minY) / $rangeY) * 80;
+                $scale = max((float) ($item['scaleX'] ?? 1.0), 0.65);
+
+                return array_merge($item, [
+                    'left' => round($left, 1),
+                    'top' => round($top, 1),
+                    'size' => (int) round(max(24, min(60, 26 * $scale))),
+                    'selected' => $selectedId !== null && $item['id'] === $selectedId,
+                ]);
+            });
+
+            $unpositioned = $unpositioned->map(fn (array $item): array => array_merge($item, [
+                'selected' => $selectedId !== null && $item['id'] === $selectedId,
+            ]));
+
+            $bounds = [
+                'minX' => round($minX, 2),
+                'maxX' => round($maxX, 2),
+                'minY' => round($minY, 2),
+                'maxY' => round($maxY, 2),
+            ];
+        } else {
+            $bounds = null;
+            $positioned = $positioned->map(function (array $item) use ($selectedId): array {
+                return array_merge($item, [
+                    'left' => 50.0,
+                    'top' => 50.0,
+                    'size' => 30,
+                    'selected' => $selectedId !== null && $item['id'] === $selectedId,
+                ]);
+            });
+            $unpositioned = $unpositioned->map(fn (array $item): array => array_merge($item, [
+                'selected' => $selectedId !== null && $item['id'] === $selectedId,
+            ]));
+        }
+
+        $openIssues = $items->filter(fn (array $item) => $item['flagged'])->count();
+
+        return [
+            'eyebrow' => __('fieldops::resource.luminaire_frames.view.eyebrow'),
+            'title' => static::getRecordTitle($record),
+            'subtitle' => __('fieldops::resource.luminaire_frames.view.subtitle', [
+                'count' => $items->count(),
+                'positioned' => $positioned->count(),
+            ]),
+            'frameType' => $record->frameType?->name,
+            'summary' => [
+                ['label' => __('fieldops::resource.luminaire_frames.view.summary_total'), 'value' => $items->count()],
+                ['label' => __('fieldops::resource.luminaire_frames.view.summary_positioned'), 'value' => $positioned->count()],
+                ['label' => __('fieldops::resource.luminaire_frames.view.summary_unpositioned'), 'value' => $unpositioned->count()],
+                ['label' => __('fieldops::resource.luminaire_frames.view.summary_open_issues'), 'value' => $openIssues],
+            ],
+            'bounds' => $bounds,
+            'markers' => $positioned->values()->all(),
+            'unpositioned' => $unpositioned->values()->all(),
+            'selectedId' => $selectedId,
+            'selectedMarker' => $selectedMarker,
+        ];
     }
 
     /**

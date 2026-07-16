@@ -49,7 +49,14 @@ class LuminaireFrameFilamentTest extends TestCase
         ]);
 
         $this->get('/luminaire-frames')->assertOk();
-        $this->get("/luminaire-frames/{$frame->id}")->assertOk();
+        $this->get("/luminaire-frames/{$frame->id}")
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.luminaire_frames.view.eyebrow'))
+            ->assertSee(__('fieldops::resource.luminaire_frames.view.layout_hint'))
+            ->assertSee(__('fieldops::resource.luminaire_frames.view.sidebar_title'))
+            ->assertSee(__('fieldops::resource.luminaire_frames.view.selected_label'))
+            ->assertSee('Traverse 1')
+            ->assertSee('Traverse 2');
         $this->get("/luminaire-frames/{$frame->id}/edit")->assertOk();
     }
 
