@@ -755,7 +755,7 @@
                     </span>
                 @endif
 
-                @foreach ($summary as $item)
+                @foreach ($payload['summary'] as $item)
                     <span class="fieldops-luminaire-frame-spatial__summary-pill">
                         <span>{{ $item['label'] }}</span>
                         <span class="fieldops-luminaire-frame-spatial__summary-value">{{ $item['value'] }}</span>
