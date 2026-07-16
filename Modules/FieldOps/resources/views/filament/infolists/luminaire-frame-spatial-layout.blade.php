@@ -345,8 +345,7 @@
             .fieldops-luminaire-frame-spatial__surface {
                 position: relative;
                 width: calc(100% * var(--fieldops-frame-zoom));
-                aspect-ratio: var(--fieldops-frame-ratio, 16 / 9);
-                min-height: calc(34rem * var(--fieldops-frame-zoom));
+                min-height: calc(42rem * var(--fieldops-frame-zoom));
                 margin: 0 auto;
                 border: 1px solid rgba(148, 163, 184, 0.18);
                 border-radius: 1rem;
@@ -356,7 +355,6 @@
                     linear-gradient(180deg, rgba(248, 250, 252, 0.88), rgba(234, 244, 250, 0.96));
                 box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.42);
                 --fieldops-frame-zoom: 1;
-                --fieldops-frame-ratio: 16 / 9;
             }
 
             .dark .fieldops-luminaire-frame-spatial__surface {
@@ -393,11 +391,13 @@
 
             .fieldops-luminaire-frame-spatial__surface-frame {
                 position: absolute;
-                inset: 0;
+                inset-inline: 0;
+                bottom: 0;
                 width: 100%;
-                height: 100%;
-                object-fit: cover;
-                object-position: center;
+                height: auto;
+                max-height: calc(100% - 60px);
+                object-fit: contain;
+                object-position: bottom center;
                 z-index: 0;
                 pointer-events: none;
                 filter: saturate(0.95) contrast(0.98);
@@ -407,6 +407,13 @@
                 background:
                     radial-gradient(circle at top left, rgba(0, 174, 239, 0.14), transparent 30%),
                     linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.9));
+            }
+
+            .fieldops-luminaire-frame-spatial__surface-stage {
+                position: relative;
+                min-height: 42rem;
+                padding-top: 1.5rem;
+                padding-bottom: 60px;
             }
 
             .fieldops-luminaire-frame-spatial__surface-grid {
@@ -819,7 +826,6 @@
                     bounds: payload.bounds ?? null,
                     frameType: payload.frameType ?? null,
                     frameImage: payload.frameImage ?? null,
-                    frameRatio: 16 / 9,
                     draggingId: null,
                     dragPointerId: null,
                     dragStartX: 0,
@@ -850,12 +856,7 @@
                         return Math.min(max, Math.max(min, value));
                     },
                     measureFrameRatio() {
-                        const image = this.$refs.frameImage;
-                        if (!image || !image.naturalWidth || !image.naturalHeight) {
-                            return;
-                        }
-
-                        this.frameRatio = image.naturalWidth / image.naturalHeight;
+                        return;
                     },
                     getMarker(id) {
                         return this.markers.find((item) => Number(item.id) === Number(id))
@@ -1153,7 +1154,7 @@
                         element.requestFullscreen?.();
                     },
                     surfaceStyle() {
-                        return `--fieldops-frame-zoom: ${this.zoom}; --fieldops-frame-ratio: ${this.frameRatio};`;
+                        return `--fieldops-frame-zoom: ${this.zoom};`;
                     },
                     markerStyle(marker) {
                         const size = Math.max(24, Math.round(Number(marker.size) * this.zoom));
@@ -1251,69 +1252,71 @@
                             @pointermove.window="onPointerMove($event)"
                             @pointerup.window="onPointerUp($event)"
                         >
-                            @if ($payload['frameImage'])
-                                <img
-                                    x-ref="frameImage"
-                                    class="fieldops-luminaire-frame-spatial__surface-frame"
-                                    src="{{ $payload['frameImage'] }}"
-                                    alt="{{ $payload['frameType'] ? $payload['frameType'].' frame background' : 'Luminaire frame background' }}"
-                                    @load="measureFrameRatio()"
-                                >
-                            @else
-                                <div class="fieldops-luminaire-frame-spatial__surface-frame fieldops-luminaire-frame-spatial__surface-frame--fallback" aria-hidden="true"></div>
+                            <div class="fieldops-luminaire-frame-spatial__surface-stage">
+                                @if ($payload['frameImage'])
+                                    <img
+                                        x-ref="frameImage"
+                                        class="fieldops-luminaire-frame-spatial__surface-frame"
+                                        src="{{ $payload['frameImage'] }}"
+                                        alt="{{ $payload['frameType'] ? $payload['frameType'].' frame background' : 'Luminaire frame background' }}"
+                                        @load="measureFrameRatio()"
+                                    >
+                                @else
+                                    <div class="fieldops-luminaire-frame-spatial__surface-frame fieldops-luminaire-frame-spatial__surface-frame--fallback" aria-hidden="true"></div>
 
-                                <div class="fieldops-luminaire-frame-spatial__surface-placeholder">
-                                    <div class="fieldops-luminaire-frame-spatial__surface-placeholder-copy">
-                                        <div class="fieldops-luminaire-frame-spatial__surface-placeholder-title">
-                                            {{ __('fieldops::resource.luminaire_frames.view.layout_empty_title') }}
-                                        </div>
-                                        <div class="fieldops-luminaire-frame-spatial__surface-placeholder-text">
-                                            {{ __('fieldops::resource.luminaire_frames.view.layout_empty_text') }}
+                                    <div class="fieldops-luminaire-frame-spatial__surface-placeholder">
+                                        <div class="fieldops-luminaire-frame-spatial__surface-placeholder-copy">
+                                            <div class="fieldops-luminaire-frame-spatial__surface-placeholder-title">
+                                                {{ __('fieldops::resource.luminaire_frames.view.layout_empty_title') }}
+                                            </div>
+                                            <div class="fieldops-luminaire-frame-spatial__surface-placeholder-text">
+                                                {{ __('fieldops::resource.luminaire_frames.view.layout_empty_text') }}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            @endif
+                                @endif
 
-                            <div class="fieldops-luminaire-frame-spatial__surface-grid" aria-hidden="true"></div>
+                                <div class="fieldops-luminaire-frame-spatial__surface-grid" aria-hidden="true"></div>
 
-                            @foreach ($markers as $marker)
-                                <div
-                                    class="fieldops-luminaire-frame-spatial__marker-shell"
-                                    data-marker-id="{{ $marker['id'] }}"
-                                    :style="markerStyle(@js($marker))"
-                                >
-                                    <button
-                                        type="button"
-                                        class="fieldops-luminaire-frame-spatial__marker {{ $marker['flagged'] ? 'fieldops-luminaire-frame-spatial__marker--flagged' : '' }}"
-                                        :class="Number(selectedId) === {{ $marker['id'] }} ? 'fieldops-luminaire-frame-spatial__marker--selected' : ''"
-                                        @pointerdown="beginDrag($event, {{ $marker['id'] }})"
-                                        @click="handleMarkerClick({{ $marker['id'] }})"
-                                        @keydown="handleMarkerKeydown($event, {{ $marker['id'] }})"
-                                        :aria-pressed="Number(selectedId) === {{ $marker['id'] }}"
-                                        :aria-label="'{{ $marker['title'] }} #{{ $marker['label'] }}'"
-                                        title="{{ $marker['title'] }} #{{ $marker['label'] }}"
+                                @foreach ($markers as $marker)
+                                    <div
+                                        class="fieldops-luminaire-frame-spatial__marker-shell"
+                                        data-marker-id="{{ $marker['id'] }}"
+                                        :style="markerStyle(@js($marker))"
                                     >
-                                        <span class="fieldops-luminaire-frame-spatial__marker-label">{{ $marker['label'] }}</span>
-                                        @if ($marker['flagged'])
-                                            <span class="fieldops-luminaire-frame-spatial__marker-sub" aria-hidden="true">!</span>
-                                        @endif
-                                    </button>
+                                        <button
+                                            type="button"
+                                            class="fieldops-luminaire-frame-spatial__marker {{ $marker['flagged'] ? 'fieldops-luminaire-frame-spatial__marker--flagged' : '' }}"
+                                            :class="Number(selectedId) === {{ $marker['id'] }} ? 'fieldops-luminaire-frame-spatial__marker--selected' : ''"
+                                            @pointerdown="beginDrag($event, {{ $marker['id'] }})"
+                                            @click="handleMarkerClick({{ $marker['id'] }})"
+                                            @keydown="handleMarkerKeydown($event, {{ $marker['id'] }})"
+                                            :aria-pressed="Number(selectedId) === {{ $marker['id'] }}"
+                                            :aria-label="'{{ $marker['title'] }} #{{ $marker['label'] }}'"
+                                            title="{{ $marker['title'] }} #{{ $marker['label'] }}"
+                                        >
+                                            <span class="fieldops-luminaire-frame-spatial__marker-label">{{ $marker['label'] }}</span>
+                                            @if ($marker['flagged'])
+                                                <span class="fieldops-luminaire-frame-spatial__marker-sub" aria-hidden="true">!</span>
+                                            @endif
+                                        </button>
 
-                                    <a
-                                        href="{{ $marker['url'] }}"
-                                        class="fieldops-luminaire-frame-spatial__marker-open"
-                                        title="{{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}"
-                                        aria-label="{{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}"
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                            <path d="M14 5h5v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                            <path d="M10 14L19 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                            <path d="M19 14v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                            <path d="M5 10v9h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                        </svg>
-                                    </a>
-                                </div>
-                            @endforeach
+                                        <a
+                                            href="{{ $marker['url'] }}"
+                                            class="fieldops-luminaire-frame-spatial__marker-open"
+                                            title="{{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}"
+                                            aria-label="{{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}"
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                <path d="M14 5h5v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path d="M10 14L19 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path d="M19 14v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path d="M5 10v9h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     @else
                         <div class="fieldops-luminaire-frame-spatial__empty">
