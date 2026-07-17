@@ -152,6 +152,24 @@ class LuminaireFrameResource extends Resource
         return asset(ltrim($image, '/'));
     }
 
+    protected static function resolveMarkerImageUrl(?string $image): ?string
+    {
+        if (! $image) {
+            return null;
+        }
+
+        if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://') || str_starts_with($image, 'data:')) {
+            return $image;
+        }
+
+        return asset(ltrim($image, '/'));
+    }
+
+    protected static function resolveMarkerPlaceholderUrl(): string
+    {
+        return asset('assets/luminaire-subgroups/image_placeholder.png');
+    }
+
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
@@ -186,6 +204,8 @@ class LuminaireFrameResource extends Resource
      *         positionSource: ?string,
      *         positionVerifiedAt: ?string,
      *         positionLabel: string,
+     *         imageUrl: ?string,
+     *         hasImage: bool,
      *         left: float,
      *         top: float,
      *         size: int,
@@ -207,6 +227,8 @@ class LuminaireFrameResource extends Resource
      *         positionSource: ?string,
      *         positionVerifiedAt: ?string,
      *         positionLabel: string,
+     *         imageUrl: ?string,
+     *         hasImage: bool,
      *         flagged: bool,
      *         selected: bool,
      *         url: string,
@@ -222,12 +244,14 @@ class LuminaireFrameResource extends Resource
             ->orderBy('frame_position')
             ->get();
         $frameImage = static::resolveFrameTypePreviewUrl($record->frameType?->image);
+        $placeholderImage = static::resolveMarkerPlaceholderUrl();
 
-        $items = $luminaires->map(function (Luminaire $luminaire): array {
+        $items = $luminaires->map(function (Luminaire $luminaire) use ($placeholderImage): array {
             $hasOpenIssue = $luminaire->maintenanceRecords()
                 ->whereNotNull('problem_reported_at')
                 ->whereNull('problem_solved_at')
                 ->exists();
+            $imageUrl = static::resolveMarkerImageUrl($luminaire->luminaireType?->image) ?? static::resolveMarkerPlaceholderUrl();
 
             return [
                 'id' => $luminaire->id,
@@ -247,6 +271,8 @@ class LuminaireFrameResource extends Resource
                 'positionLabel' => self::normalizeFrameCoordinate($luminaire->frame_x) !== null && self::normalizeFrameCoordinate($luminaire->frame_y) !== null
                     ? 'X '.number_format(self::normalizeFrameCoordinate($luminaire->frame_x), 1).' · Y '.number_format(self::normalizeFrameCoordinate($luminaire->frame_y), 1)
                     : __('fieldops::resource.luminaire_frames.view.no_position'),
+                'imageUrl' => $imageUrl,
+                'hasImage' => $imageUrl !== $placeholderImage,
                 'flagged' => $hasOpenIssue,
                 'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('view', ['record' => $luminaire]),
                 'updateUrl' => url("/api/v1/fieldops/luminaires/{$luminaire->id}"),
@@ -351,23 +377,25 @@ class LuminaireFrameResource extends Resource
      * reuses this to draw the same frame layout on a single Luminaire's own view
      * page, with that luminaire's own marker highlighted via $selectedLuminaireId.
      *
-     * @return array<int, array{id: int, left: float, top: float, size: int, label: string, serial: ?string, flagged: bool, selected: bool, url: string}>
+     * @return array<int, array{id: int, left: float, top: float, size: int, label: string, serial: ?string, imageUrl: ?string, hasImage: bool, flagged: bool, selected: bool, url: string}>
      */
     public static function buildCanvasMarkers(LuminaireFrame $record, ?int $selectedLuminaireId = null): array
     {
         $luminaires = $record->luminaires()->with('luminaireType')->orderBy('frame_position')->get();
+        $placeholderImage = static::resolveMarkerPlaceholderUrl();
 
         if ($luminaires->isEmpty()) {
             return [];
         }
 
-        return $luminaires->map(function (Luminaire $luminaire) use ($selectedLuminaireId) {
+        return $luminaires->map(function (Luminaire $luminaire) use ($selectedLuminaireId, $placeholderImage) {
             $hasOpenIssue = $luminaire->maintenanceRecords()
                 ->whereNotNull('problem_reported_at')
                 ->whereNull('problem_solved_at')
                 ->exists();
             $frameX = self::normalizeFrameCoordinate($luminaire->frame_x);
             $frameY = self::normalizeFrameCoordinate($luminaire->frame_y);
+            $imageUrl = static::resolveMarkerImageUrl($luminaire->luminaireType?->image) ?? $placeholderImage;
 
             return [
                 'id' => $luminaire->id,
@@ -379,6 +407,8 @@ class LuminaireFrameResource extends Resource
                 'positionVersion' => (int) ($luminaire->position_version ?? 1),
                 'positionSource' => $luminaire->position_source,
                 'positionVerifiedAt' => $luminaire->position_verified_at?->toIso8601String(),
+                'imageUrl' => $imageUrl,
+                'hasImage' => $imageUrl !== $placeholderImage,
                 'flagged' => $hasOpenIssue,
                 'selected' => $selectedLuminaireId !== null && $luminaire->id === $selectedLuminaireId,
                 'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('edit', ['record' => $luminaire]),

@@ -19,6 +19,8 @@
      *         scaleX: float|int|string|null,
      *         scaleY: float|int|string|null,
      *         positionLabel: string,
+     *         imageUrl: ?string,
+     *         hasImage: bool,
      *         left: float,
      *         top: float,
      *         size: int,
@@ -37,6 +39,8 @@
      *         scaleX: float|int|string|null,
      *         scaleY: float|int|string|null,
      *         positionLabel: string,
+     *         imageUrl: ?string,
+     *         hasImage: bool,
      *         flagged: bool,
      *         selected: bool,
      *         url: string,
@@ -66,6 +70,7 @@
     $summary = $payload['summary'];
     $bounds = $payload['bounds'];
     $selected = $payload['selectedMarker'];
+    $placeholderImage = asset('assets/luminaire-subgroups/image_placeholder.png');
 @endphp
 
 @once
@@ -475,19 +480,71 @@
                 z-index: 2;
                 width: 100%;
                 height: 100%;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
+                display: block;
                 padding: 0;
                 border: 2px solid rgba(255, 255, 255, 0.94);
-                border-radius: 999px;
-                background: linear-gradient(180deg, #00aeef 0%, #008fc8 100%);
+                border-radius: 1rem;
+                overflow: hidden;
+                background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.98) 100%);
                 color: #ffffff;
                 box-shadow: 0 18px 30px rgba(0, 174, 239, 0.26);
                 transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, border-color 150ms ease;
                 cursor: grab;
                 touch-action: none;
                 user-select: none;
+            }
+
+            .fieldops-luminaire-frame-spatial__marker--selected {
+                border-color: rgba(245, 158, 11, 0.94);
+                box-shadow: 0 0 0 0.28rem rgba(245, 158, 11, 0.18), 0 22px 40px rgba(245, 158, 11, 0.28);
+            }
+
+            .fieldops-luminaire-frame-spatial__marker--flagged {
+                border-color: rgba(251, 191, 36, 0.92);
+            }
+
+            .fieldops-luminaire-frame-spatial__marker-media {
+                position: absolute;
+                inset: 0;
+                z-index: 0;
+            }
+
+            .fieldops-luminaire-frame-spatial__marker-image {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                object-position: center center;
+                display: block;
+                filter: saturate(0.95) contrast(0.98);
+            }
+
+            .fieldops-luminaire-frame-spatial__marker-fallback {
+                position: absolute;
+                inset: 0;
+                display: grid;
+                place-items: center;
+                gap: 0.25rem;
+                padding: 0.35rem;
+                text-align: center;
+                background:
+                    radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 42%),
+                    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.98));
+            }
+
+            .fieldops-luminaire-frame-spatial__marker-fallback-icon {
+                width: 1.1rem;
+                height: 1.1rem;
+                color: rgba(226, 232, 240, 0.9);
+            }
+
+            .fieldops-luminaire-frame-spatial__marker-fallback-text {
+                max-width: 100%;
+                color: #cbd5e1;
+                font-size: 0.55rem;
+                font-weight: 800;
+                line-height: 1.1;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
             }
 
             .fieldops-luminaire-frame-spatial__marker-shell {
@@ -502,39 +559,38 @@
                 box-shadow: 0 18px 30px rgba(0, 174, 239, 0.32);
             }
 
-            .fieldops-luminaire-frame-spatial__marker--selected {
-                background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-                box-shadow: 0 0 0 0.28rem rgba(245, 158, 11, 0.18), 0 22px 40px rgba(245, 158, 11, 0.28);
-            }
-
-            .fieldops-luminaire-frame-spatial__marker--flagged {
-                background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-            }
-
             .fieldops-luminaire-frame-spatial__marker-label {
+                position: absolute;
+                left: 0.3rem;
+                top: 0.3rem;
+                z-index: 2;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                min-width: 1.55rem;
-                height: 1.55rem;
-                padding: 0 0.35rem;
+                min-width: 1.45rem;
+                height: 1.45rem;
+                padding: 0 0.3rem;
                 border-radius: 999px;
+                background: rgba(15, 23, 42, 0.82);
+                border: 1px solid rgba(255, 255, 255, 0.22);
                 font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-                font-size: 0.8rem;
+                font-size: 0.72rem;
                 font-weight: 900;
                 line-height: 1;
+                backdrop-filter: blur(10px);
             }
 
             .fieldops-luminaire-frame-spatial__marker-sub {
                 position: absolute;
-                right: -0.2rem;
-                bottom: -0.2rem;
+                right: 0.3rem;
+                bottom: 0.3rem;
+                z-index: 2;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
                 width: 0.95rem;
                 height: 0.95rem;
-                border: 2px solid rgba(255, 255, 255, 0.95);
+                border: 1px solid rgba(255, 255, 255, 0.95);
                 border-radius: 999px;
                 background: #0f172a;
                 color: #e2e8f0;
@@ -545,8 +601,8 @@
             .fieldops-luminaire-frame-spatial__marker-open {
                 position: absolute;
                 z-index: 4;
-                right: -0.35rem;
-                top: -0.35rem;
+                right: 0.25rem;
+                top: 0.25rem;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
@@ -1298,7 +1354,7 @@
                                     >
                                         <button
                                             type="button"
-                                            class="fieldops-luminaire-frame-spatial__marker {{ $marker['flagged'] ? 'fieldops-luminaire-frame-spatial__marker--flagged' : '' }}"
+                                            class="fieldops-luminaire-frame-spatial__marker {{ $marker['flagged'] ? 'fieldops-luminaire-frame-spatial__marker--flagged' : '' }} {{ $marker['hasImage'] ? 'fieldops-luminaire-frame-spatial__marker--image' : 'fieldops-luminaire-frame-spatial__marker--placeholder' }}"
                                             :class="Number(selectedId) === {{ $marker['id'] }} ? 'fieldops-luminaire-frame-spatial__marker--selected' : ''"
                                             @pointerdown="beginDrag($event, {{ $marker['id'] }})"
                                             @click="handleMarkerClick({{ $marker['id'] }})"
@@ -1307,6 +1363,29 @@
                                             :aria-label="'{{ $marker['title'] }} #{{ $marker['label'] }}'"
                                             title="{{ $marker['title'] }} #{{ $marker['label'] }}"
                                         >
+                                            @if ($marker['hasImage'])
+                                                <div class="fieldops-luminaire-frame-spatial__marker-media" aria-hidden="true">
+                                                    <img
+                                                        class="fieldops-luminaire-frame-spatial__marker-image"
+                                                        src="{{ $marker['imageUrl'] }}"
+                                                        alt=""
+                                                        loading="lazy"
+                                                        onerror="this.onerror=null;this.src='{{ $placeholderImage }}';"
+                                                    >
+                                                </div>
+                                            @else
+                                                <div class="fieldops-luminaire-frame-spatial__marker-fallback" aria-hidden="true">
+                                                    <svg class="fieldops-luminaire-frame-spatial__marker-fallback-icon" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M12 3v18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                                        <path d="M5 10h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                                        <path d="M7.5 7h9l2 3.5-6.5 6.5-6.5-6.5L7.5 7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                                                    </svg>
+                                                    <span class="fieldops-luminaire-frame-spatial__marker-fallback-text">
+                                                        {{ __('fieldops::resource.luminaire_frames.view.layout_empty_title') }}
+                                                    </span>
+                                                </div>
+                                            @endif
+
                                             <span class="fieldops-luminaire-frame-spatial__marker-label">{{ $marker['label'] }}</span>
                                             @if ($marker['flagged'])
                                                 <span class="fieldops-luminaire-frame-spatial__marker-sub" aria-hidden="true">!</span>

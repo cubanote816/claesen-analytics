@@ -1,6 +1,7 @@
 @php
-    /** @var array<int, array{id:int,left:float,top:float,size:int,label:string,serial:?string,flagged:bool,selected?:bool,url:string}> $markers */
+    /** @var array<int, array{id:int,left:float,top:float,size:int,label:string,serial:?string,imageUrl:?string,hasImage:bool,flagged:bool,selected?:bool,url:string}> $markers */
     $markers = $getState();
+    $placeholderImage = asset('assets/luminaire-subgroups/image_placeholder.png');
 @endphp
 
 @if (count($markers) > 0)
@@ -9,9 +10,30 @@
             <a
                 href="{{ $marker['url'] }}"
                 title="{{ $marker['serial'] ?? ('#'.$marker['label']) }}"
-                class="absolute flex items-center justify-center rounded-full border-2 border-white font-mono text-[10px] font-semibold text-white shadow dark:border-gray-900 {{ $marker['flagged'] ? 'bg-amber-500' : 'bg-sky-500 dark:bg-sky-400' }} {{ ($marker['selected'] ?? false) ? 'ring-4 ring-offset-2 ring-sky-600 dark:ring-offset-gray-900' : '' }}"
+                class="absolute overflow-hidden rounded-xl border-2 border-white shadow dark:border-gray-900 {{ ($marker['selected'] ?? false) ? 'ring-4 ring-offset-2 ring-sky-600 dark:ring-offset-gray-900' : '' }}"
                 style="left: {{ $marker['left'] }}%; top: {{ $marker['top'] }}%; width: {{ $marker['size'] }}px; height: {{ $marker['size'] }}px; transform: translate(-50%, -50%);"
-            >{{ $marker['label'] }}</a>
+            >
+                @if (! empty($marker['imageUrl']))
+                    <img
+                        src="{{ $marker['imageUrl'] }}"
+                        alt=""
+                        class="h-full w-full object-cover"
+                        loading="lazy"
+                        onerror="this.onerror=null;this.src='{{ $placeholderImage }}';"
+                    >
+                @else
+                    <div class="grid h-full w-full place-items-center bg-slate-900 text-white">
+                        <svg class="h-4 w-4 opacity-85" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M12 3v18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            <path d="M5 10h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            <path d="M7.5 7h9l2 3.5-6.5 6.5-6.5-6.5L7.5 7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                @endif
+                <span class="absolute left-1 top-1 rounded-full bg-slate-900/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white backdrop-blur-sm">
+                    {{ $marker['label'] }}
+                </span>
+            </a>
         @endforeach
     </div>
 @else
