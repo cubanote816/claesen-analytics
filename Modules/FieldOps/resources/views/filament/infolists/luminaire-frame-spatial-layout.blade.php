@@ -345,8 +345,7 @@
             .fieldops-luminaire-frame-spatial__surface {
                 position: relative;
                 width: calc(100% * var(--fieldops-frame-zoom));
-                aspect-ratio: 2 / 1;
-                min-height: calc(32rem * var(--fieldops-frame-zoom));
+                aspect-ratio: var(--fieldops-frame-ratio, 2 / 1);
                 margin: 0 auto;
                 border: 1px solid rgba(148, 163, 184, 0.18);
                 border-radius: 1rem;
@@ -392,13 +391,11 @@
 
             .fieldops-luminaire-frame-spatial__surface-frame {
                 position: absolute;
-                inset-inline: 0;
-                bottom: 0;
+                inset: 0;
                 width: 100%;
-                height: auto;
-                max-height: calc(100% - 60px);
+                height: 100%;
                 object-fit: contain;
-                object-position: bottom center;
+                object-position: center center;
                 z-index: 0;
                 pointer-events: none;
                 filter: saturate(0.95) contrast(0.98);
@@ -411,10 +408,8 @@
             }
 
             .fieldops-luminaire-frame-spatial__surface-stage {
-                position: relative;
-                min-height: 42rem;
-                padding-top: 1.5rem;
-                padding-bottom: 60px;
+                position: absolute;
+                inset: 0;
             }
 
             .fieldops-luminaire-frame-spatial__surface-grid {
@@ -815,6 +810,7 @@
                     zoom: 1,
                     minZoom: 0.75,
                     maxZoom: 1.75,
+                    frameRatio: '2 / 1',
                     selectedId: payload.selectedId ?? null,
                     markers: (payload.markers ?? []).map((item) => ({
                         ...item,
@@ -857,7 +853,22 @@
                         return Math.min(max, Math.max(min, value));
                     },
                     measureFrameRatio() {
-                        return;
+                        const image = this.$refs.frameImage;
+                        const stage = this.$refs.stage;
+
+                        if (!image || !stage) {
+                            return;
+                        }
+
+                        const naturalWidth = Number(image.naturalWidth ?? 0);
+                        const naturalHeight = Number(image.naturalHeight ?? 0);
+
+                        if (naturalWidth > 0 && naturalHeight > 0) {
+                            this.frameRatio = `${naturalWidth} / ${naturalHeight}`;
+                            stage.style.setProperty('--fieldops-frame-ratio', this.frameRatio);
+                        }
+
+                        this.$nextTick(() => this.refreshMarkerSizes());
                     },
                     getMarker(id) {
                         return this.markers.find((item) => Number(item.id) === Number(id))
@@ -1155,7 +1166,7 @@
                         element.requestFullscreen?.();
                     },
                     surfaceStyle() {
-                        return `--fieldops-frame-zoom: ${this.zoom};`;
+                        return `--fieldops-frame-zoom: ${this.zoom}; --fieldops-frame-ratio: ${this.frameRatio};`;
                     },
                     markerStyle(marker) {
                         const size = Math.max(24, Math.round(Number(marker.size) * this.zoom));
