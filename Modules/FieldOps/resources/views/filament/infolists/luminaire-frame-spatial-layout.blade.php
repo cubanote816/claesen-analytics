@@ -1143,9 +1143,24 @@
                                 throw new Error(`Unable to save marker position (${response.status})`);
                             }
 
-                            const url = new URL(window.location.href);
-                            url.searchParams.set('selected', marker.id);
-                            window.location.href = url.toString();
+                            const payload = await response.json().catch(() => ({}));
+                            const updated = payload?.data ?? payload ?? null;
+
+                            if (updated) {
+                                marker.left = this.clamp(Number(updated.frame_x ?? marker.left), 0, 100);
+                                marker.top = this.clamp(Number(updated.frame_y ?? marker.top), 0, 100);
+                                marker.positionVersion = Number(updated.position_version ?? marker.positionVersion ?? 1);
+                                marker.positionSource = updated.position_source ?? marker.positionSource;
+                                marker.positionVerifiedAt = updated.position_verified_at ?? marker.positionVerifiedAt;
+
+                                if (this.selectedId === Number(marker.id)) {
+                                    this.selectedId = Number(marker.id);
+                                }
+
+                                this.$nextTick(() => this.refreshMarkerSizes());
+                            }
+
+                            this.statusMessage = null;
                         } catch (error) {
                             console.error(error);
                             this.statusMessage = @js(__('fieldops::resource.luminaire_frames.view.save_failed'));
