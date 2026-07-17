@@ -482,12 +482,13 @@
                 height: 100%;
                 display: block;
                 padding: 0;
-                border: 2px solid rgba(255, 255, 255, 0.94);
-                border-radius: 1rem;
+                border: 1px solid rgba(148, 163, 184, 0.42);
+                border-radius: 0.7rem;
                 overflow: hidden;
-                background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.98) 100%);
+                background:
+                    linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(17, 24, 39, 0.98) 100%);
                 color: #ffffff;
-                box-shadow: 0 18px 30px rgba(0, 174, 239, 0.26);
+                box-shadow: 0 12px 22px rgba(2, 6, 23, 0.28);
                 transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease, border-color 150ms ease;
                 cursor: grab;
                 touch-action: none;
@@ -495,12 +496,12 @@
             }
 
             .fieldops-luminaire-frame-spatial__marker--selected {
-                border-color: rgba(245, 158, 11, 0.94);
-                box-shadow: 0 0 0 0.28rem rgba(245, 158, 11, 0.18), 0 22px 40px rgba(245, 158, 11, 0.28);
+                border-color: rgba(56, 189, 248, 0.92);
+                box-shadow: 0 0 0 0.22rem rgba(56, 189, 248, 0.16), 0 18px 32px rgba(2, 132, 199, 0.24);
             }
 
             .fieldops-luminaire-frame-spatial__marker--flagged {
-                border-color: rgba(251, 191, 36, 0.92);
+                border-color: rgba(251, 191, 36, 0.88);
             }
 
             .fieldops-luminaire-frame-spatial__marker-media {
@@ -512,10 +513,11 @@
             .fieldops-luminaire-frame-spatial__marker-image {
                 width: 100%;
                 height: 100%;
-                object-fit: cover;
+                object-fit: contain;
                 object-position: center center;
                 display: block;
-                filter: saturate(0.95) contrast(0.98);
+                padding: 0.3rem;
+                filter: saturate(0.82) contrast(1.04) brightness(0.98);
             }
 
             .fieldops-luminaire-frame-spatial__marker-fallback {
@@ -527,8 +529,8 @@
                 padding: 0.35rem;
                 text-align: center;
                 background:
-                    radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 42%),
-                    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.98));
+                    radial-gradient(circle at top, rgba(56, 189, 248, 0.16), transparent 42%),
+                    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.98));
             }
 
             .fieldops-luminaire-frame-spatial__marker-fallback-icon {
@@ -567,17 +569,18 @@
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                min-width: 1.45rem;
-                height: 1.45rem;
-                padding: 0 0.3rem;
-                border-radius: 999px;
-                background: rgba(15, 23, 42, 0.82);
-                border: 1px solid rgba(255, 255, 255, 0.22);
+                min-width: 1.3rem;
+                height: 1.3rem;
+                padding: 0 0.25rem;
+                border-radius: 0.35rem;
+                background: rgba(15, 23, 42, 0.84);
+                border: 1px solid rgba(148, 163, 184, 0.26);
                 font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-                font-size: 0.72rem;
+                font-size: 0.66rem;
                 font-weight: 900;
                 line-height: 1;
-                backdrop-filter: blur(10px);
+                letter-spacing: 0.04em;
+                backdrop-filter: blur(8px);
             }
 
             .fieldops-luminaire-frame-spatial__marker-sub {
@@ -590,9 +593,9 @@
                 justify-content: center;
                 width: 0.95rem;
                 height: 0.95rem;
-                border: 1px solid rgba(255, 255, 255, 0.95);
-                border-radius: 999px;
-                background: #0f172a;
+                border: 1px solid rgba(148, 163, 184, 0.3);
+                border-radius: 0.3rem;
+                background: rgba(15, 23, 42, 0.92);
                 color: #e2e8f0;
                 font-size: 0.48rem;
                 font-weight: 900;
@@ -606,13 +609,13 @@
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 1.45rem;
-                height: 1.45rem;
+                width: 1.25rem;
+                height: 1.25rem;
                 border: 1px solid rgba(148, 163, 184, 0.28);
-                border-radius: 999px;
-                background: rgba(15, 23, 42, 0.88);
+                border-radius: 0.35rem;
+                background: rgba(15, 23, 42, 0.86);
                 color: #f8fafc;
-                box-shadow: 0 10px 18px rgba(0, 0, 0, 0.26);
+                box-shadow: 0 8px 14px rgba(0, 0, 0, 0.22);
                 transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease;
             }
 
