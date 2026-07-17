@@ -20,7 +20,7 @@ class StoreLuminaireRequest extends FormRequest
             'luminaire_frame_id'    => ['required', 'integer', 'exists:fo_luminaire_frames,id'],
             'luminaire_type_id'     => ['required', 'integer', 'exists:fo_luminaire_types,id'],
             'luminaire_subgroup_id' => ['required', 'integer', 'exists:fo_luminaire_subgroups,id'],
-            'serial_number'         => ['required', 'string', 'max:50', 'unique:fo_luminaires,serial_number'],
+            'serial_number'         => ['sometimes', 'nullable', 'string', 'max:50', 'unique:fo_luminaires,serial_number'],
             'frame_position'        => ['nullable', 'integer', 'min:1'],
             'frame_x'               => ['nullable', 'numeric'],
             'frame_y'               => ['nullable', 'numeric'],

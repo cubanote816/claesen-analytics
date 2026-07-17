@@ -119,12 +119,23 @@ class LuminaireCrudTest extends TestCase
             ->assertJsonValidationErrors(['luminaire_type_id']);
     }
 
+    public function test_store_generates_serial_number_when_missing(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/v1/fieldops/luminaires', $this->validPayload(['serial_number' => null]))
+            ->assertCreated()
+            ->assertJsonPath('success', true);
+
+        $this->assertNotEmpty($response->json('data.serial_number'));
+        $this->assertStringStartsWith('AUTO-', (string) $response->json('data.serial_number'));
+    }
+
     public function test_store_required_fields(): void
     {
         $this->actingAs($this->user)
             ->postJson('/api/v1/fieldops/luminaires', [])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['luminaire_frame_id', 'luminaire_type_id', 'luminaire_subgroup_id', 'serial_number']);
+            ->assertJsonValidationErrors(['luminaire_frame_id', 'luminaire_type_id', 'luminaire_subgroup_id']);
     }
 
     // ── SHOW ──────────────────────────────────────────────────────────────

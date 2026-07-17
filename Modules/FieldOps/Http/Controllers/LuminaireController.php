@@ -3,6 +3,7 @@
 namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Str;
 use Modules\FieldOps\Http\Requests\StoreLuminaireRequest;
 use Modules\FieldOps\Http\Requests\UpdateLuminaireRequest;
 use Modules\FieldOps\Http\Resources\LuminaireResource;
@@ -22,7 +23,9 @@ class LuminaireController extends Controller
 
     public function store(StoreLuminaireRequest $request): \Illuminate\Http\JsonResponse
     {
-        $data = $this->applyPositionAuditMetadata($request->validated(), $request->header('X-FieldOps-Editor', 'backoffice'), null, $request->user()?->id);
+        $data = $request->validated();
+        $data['serial_number'] = $this->resolveSerialNumber($data['serial_number'] ?? null);
+        $data = $this->applyPositionAuditMetadata($data, $request->header('X-FieldOps-Editor', 'backoffice'), null, $request->user()?->id);
 
         $luminaire = Luminaire::create(array_merge(
             $data,
@@ -111,6 +114,17 @@ class LuminaireController extends Controller
         }
 
         return $data;
+    }
+
+    private function resolveSerialNumber(mixed $serialNumber): string
+    {
+        $serial = trim((string) $serialNumber);
+
+        if ($serial !== '') {
+            return mb_substr($serial, 0, 50);
+        }
+
+        return 'AUTO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(6));
     }
 
     public function destroy(Luminaire $luminaire): \Illuminate\Http\Response

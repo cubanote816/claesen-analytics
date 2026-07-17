@@ -1109,7 +1109,7 @@
                             this.suppressNextClick = false;
                         }, 0);
                     },
-                    async persistMarkerPosition(marker) {
+                    async persistMarkerPosition(marker, retryOnConflict = true) {
                         if (this.savePending) {
                             return;
                         }
@@ -1136,6 +1136,13 @@
                             if (!response.ok) {
                                 if (response.status === 409) {
                                     const payload = await response.json().catch(() => ({}));
+                                    const currentVersion = Number(payload.current_position_version ?? marker.positionVersion ?? 1);
+                                    marker.positionVersion = currentVersion;
+
+                                    if (retryOnConflict && Number.isFinite(currentVersion) && currentVersion > 0) {
+                                        return await this.persistMarkerPosition(marker, false);
+                                    }
+
                                     this.statusMessage = payload.message ?? @js(__('fieldops::resource.luminaire_frames.view.save_failed'));
                                     return;
                                 }
