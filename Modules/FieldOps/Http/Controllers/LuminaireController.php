@@ -44,6 +44,7 @@ class LuminaireController extends Controller
         $data = $request->validated();
         $touchesPosition = array_key_exists('frame_x', $data) || array_key_exists('frame_y', $data);
         $editorSource = $request->header('X-FieldOps-Editor', 'backoffice');
+        $currentPositionVersion = $this->normalizePositionVersion($luminaire->position_version);
 
         // Merge info translations locale-by-locale to avoid overwriting untouched locales
         if (isset($data['info'])) {
@@ -52,12 +53,12 @@ class LuminaireController extends Controller
 
         if ($touchesPosition) {
             if ($editorSource !== 'frontend') {
-                $expectedVersion = (int) ($request->input('position_version') ?? 0);
+                $expectedVersion = (int) ($request->input('position_version') ?? $currentPositionVersion);
 
-                if ($expectedVersion !== (int) $luminaire->position_version) {
+                if ($expectedVersion !== $currentPositionVersion) {
                     return response()->json([
                         'message' => __('fieldops::resource.luminaires.position_conflict'),
-                        'current_position_version' => $luminaire->position_version,
+                        'current_position_version' => $currentPositionVersion,
                     ], 409);
                 }
             }
@@ -102,7 +103,7 @@ class LuminaireController extends Controller
         }
 
         $effectiveSource = $source === 'frontend' ? 'frontend' : 'backoffice';
-        $data['position_version'] = $current ? ((int) $current->position_version + 1) : 1;
+        $data['position_version'] = $current ? ($this->normalizePositionVersion($current->position_version) + 1) : 1;
         $data['position_source'] = $effectiveSource;
 
         if ($effectiveSource === 'frontend') {
@@ -114,6 +115,13 @@ class LuminaireController extends Controller
         }
 
         return $data;
+    }
+
+    private function normalizePositionVersion(mixed $version): int
+    {
+        $numeric = (int) ($version ?? 0);
+
+        return $numeric > 0 ? $numeric : 1;
     }
 
     private function resolveSerialNumber(mixed $serialNumber): string

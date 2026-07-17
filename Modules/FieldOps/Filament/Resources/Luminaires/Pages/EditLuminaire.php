@@ -25,15 +25,20 @@ class EditLuminaire extends EditRecord
         $touchesPosition = array_key_exists('frame_x', $data) || array_key_exists('frame_y', $data);
 
         if ($touchesPosition) {
-            $expectedVersion = (int) ($data['position_version'] ?? 0);
+            $currentVersion = (int) ($this->record->position_version ?? 1);
+            $expectedVersion = (int) ($data['position_version'] ?? $currentVersion);
 
-            if ($expectedVersion !== (int) $this->record->position_version) {
+            if ($currentVersion <= 0) {
+                $currentVersion = 1;
+            }
+
+            if ($expectedVersion !== $currentVersion) {
                 throw ValidationException::withMessages([
                     'position_version' => __('fieldops::resource.luminaires.position_conflict'),
                 ]);
             }
 
-            $data['position_version'] = (int) $this->record->position_version + 1;
+            $data['position_version'] = $currentVersion + 1;
             $data['position_source'] = 'backoffice';
             $data['position_verified_at'] = null;
             $data['position_verified_by_user_id'] = null;
