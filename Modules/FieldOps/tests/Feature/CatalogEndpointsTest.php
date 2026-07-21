@@ -83,7 +83,7 @@ class CatalogEndpointsTest extends TestCase
             ->assertJsonStructure(['data' => [['id', 'name', 'image']]]);
     }
 
-    public function test_luminaire_types_returns_all_with_subgroup_id(): void
+    public function test_luminaire_types_returns_catalog_details_and_subgroup_id(): void
     {
         LuminaireType::factory()->create();
 
@@ -91,7 +91,16 @@ class CatalogEndpointsTest extends TestCase
 
         $response->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonStructure(['data' => [['id', 'name', 'image', 'luminaire_subgroup_id']]]);
+            ->assertJsonStructure(['data' => [[
+                'id',
+                'name',
+                'product_family',
+                'model_reference',
+                'typical_application',
+                'image',
+                'image_source_url',
+                'luminaire_subgroup_id',
+            ]]]);
     }
 
     public function test_luminaire_subgroups_returns_all(): void

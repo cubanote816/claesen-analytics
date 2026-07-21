@@ -17,7 +17,16 @@ class LuminaireType extends Model
 
     protected $table = 'fo_luminaire_types';
 
-    protected $fillable = ['created_by_user_id', 'luminaire_subgroup_id', 'name', 'image'];
+    protected $fillable = [
+        'created_by_user_id',
+        'luminaire_subgroup_id',
+        'name',
+        'product_family',
+        'model_reference',
+        'typical_application',
+        'image',
+        'image_source_url',
+    ];
 
     public function createdBy()
     {

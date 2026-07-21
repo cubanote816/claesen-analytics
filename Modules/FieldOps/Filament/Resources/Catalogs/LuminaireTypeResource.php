@@ -4,10 +4,10 @@ namespace Modules\FieldOps\Filament\Resources\Catalogs;
 
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -63,6 +63,12 @@ class LuminaireTypeResource extends Resource
                     ->label(__('fieldops::resource.catalogs.fields.name'))
                     ->required()
                     ->maxLength(255),
+                TextInput::make('product_family')
+                    ->label(__('fieldops::resource.catalogs.fields.product_family'))
+                    ->maxLength(255),
+                TextInput::make('model_reference')
+                    ->label(__('fieldops::resource.catalogs.fields.model_reference'))
+                    ->maxLength(255),
                 Select::make('luminaire_subgroup_id')
                     ->label(__('fieldops::resource.catalogs.fields.subgroup'))
                     ->options(LuminaireSubgroup::orderBy('group_name')->get()
@@ -70,6 +76,16 @@ class LuminaireTypeResource extends Resource
                     )
                     ->searchable()
                     ->nullable(),
+                TextInput::make('image')
+                    ->label(__('fieldops::resource.catalogs.fields.image'))
+                    ->maxLength(255),
+                TextInput::make('image_source_url')
+                    ->label(__('fieldops::resource.catalogs.fields.image_source_url'))
+                    ->url(),
+                Textarea::make('typical_application')
+                    ->label(__('fieldops::resource.catalogs.fields.typical_application'))
+                    ->rows(3)
+                    ->columnSpanFull(),
             ])->columns(2),
         ]);
     }
@@ -84,6 +100,7 @@ class LuminaireTypeResource extends Resource
             ->columns([
                 ImageColumn::make('image')
                     ->label(__('fieldops::resource.catalogs.fields.image'))
+                    ->getStateUsing(fn (LuminaireType $record): ?string => static::resolveImageUrl($record->image))
                     ->size(64)
                     ->extraImgAttributes(['class' => 'rounded-lg object-cover']),
                 TextColumn::make('name')
@@ -91,6 +108,14 @@ class LuminaireTypeResource extends Resource
                     ->weight('bold')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('product_family')
+                    ->label(__('fieldops::resource.catalogs.fields.product_family'))
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('model_reference')
+                    ->label(__('fieldops::resource.catalogs.fields.model_reference'))
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('subgroup.group_name')
                     ->label(__('fieldops::resource.catalogs.fields.subgroup'))
                     ->searchable()
@@ -100,6 +125,10 @@ class LuminaireTypeResource extends Resource
                 TextColumn::make('luminaires_count')
                     ->label(__('fieldops::resource.catalogs.fields.used_by'))
                     ->counts('luminaires'),
+                TextColumn::make('typical_application')
+                    ->label(__('fieldops::resource.catalogs.fields.typical_application'))
+                    ->limit(80)
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -114,9 +143,22 @@ class LuminaireTypeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListLuminaireTypes::route('/'),
+            'index' => ListLuminaireTypes::route('/'),
             'create' => CreateLuminaireType::route('/create'),
-            'edit'   => EditLuminaireType::route('/{record}/edit'),
+            'edit' => EditLuminaireType::route('/{record}/edit'),
         ];
+    }
+
+    protected static function resolveImageUrl(?string $image): ?string
+    {
+        if (! $image) {
+            return null;
+        }
+
+        if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://') || str_starts_with($image, 'data:')) {
+            return $image;
+        }
+
+        return asset(ltrim($image, '/'));
     }
 }

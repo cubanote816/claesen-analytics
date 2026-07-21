@@ -60,7 +60,35 @@ class CatalogFilamentTest extends TestCase
 
         LuminaireType::factory()->create(['name' => 'BVP525', 'image' => null]);
         LuminaireType::factory()->create(['name' => 'Custom type', 'image' => 'https://example.test/type.jpg']);
+        LuminaireType::factory()->create([
+            'name' => 'BVP518',
+            'image' => '/assets/luminaire-types/bvp518-optivision-led-gen3-5.png',
+        ]);
 
-        $this->get('/catalogs/luminaire-types')->assertOk();
+        $this->get('/catalogs/luminaire-types')
+            ->assertOk()
+            ->assertSee('https://example.test/type.jpg', false)
+            ->assertSee(asset('assets/luminaire-types/bvp518-optivision-led-gen3-5.png'), false);
+    }
+
+    public function test_luminaire_type_editor_renders_product_catalog_fields(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $record = LuminaireType::factory()->create([
+            'product_family' => 'OptiVision LED gen3.5',
+            'model_reference' => 'BVP518',
+            'typical_application' => 'Recreational football',
+        ]);
+
+        $this->get("/catalogs/luminaire-types/{$record->id}/edit")
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.catalogs.fields.product_family'), false)
+            ->assertSee(__('fieldops::resource.catalogs.fields.model_reference'), false)
+            ->assertSee(__('fieldops::resource.catalogs.fields.typical_application'), false)
+            ->assertSee('OptiVision LED gen3.5', false)
+            ->assertSee('BVP518', false);
     }
 }
