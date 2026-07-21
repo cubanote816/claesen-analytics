@@ -4,7 +4,6 @@ namespace Modules\FieldOps\Filament\Resources;
 
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
@@ -342,21 +341,26 @@ class LuminaireFrameResource extends Resource
         }
 
         $openIssues = $items->filter(fn (array $item) => $item['flagged'])->count();
+        $latestVerifiedAt = $luminaires
+            ->pluck('position_verified_at')
+            ->filter()
+            ->sortDesc()
+            ->first();
+        $latestVerifiedLabel = $latestVerifiedAt
+            ? $latestVerifiedAt->copy()->locale(app()->getLocale())->translatedFormat('d M Y')
+            : __('fieldops::resource.luminaire_frames.view.not_verified');
 
         return [
             'eyebrow' => __('fieldops::resource.luminaire_frames.view.eyebrow'),
             'title' => static::getRecordTitle($record),
-            'subtitle' => __('fieldops::resource.luminaire_frames.view.subtitle', [
-                'count' => $items->count(),
-                'positioned' => $positioned->count(),
-            ]),
+            'subtitle' => __('fieldops::resource.luminaire_frames.view.subtitle'),
             'frameType' => $record->frameType?->name,
             'frameImage' => $frameImage,
             'summary' => [
                 ['label' => __('fieldops::resource.luminaire_frames.view.summary_total'), 'value' => $items->count()],
-                ['label' => __('fieldops::resource.luminaire_frames.view.summary_positioned'), 'value' => $positioned->count()],
                 ['label' => __('fieldops::resource.luminaire_frames.view.summary_unpositioned'), 'value' => $unpositioned->count()],
                 ['label' => __('fieldops::resource.luminaire_frames.view.summary_open_issues'), 'value' => $openIssues],
+                ['label' => __('fieldops::resource.luminaire_frames.view.summary_last_verified'), 'value' => $latestVerifiedLabel],
             ],
             'bounds' => $bounds,
             'markers' => $positioned->values()->all(),
@@ -473,10 +477,10 @@ class LuminaireFrameResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListLuminaireFrames::route('/'),
+            'index' => ListLuminaireFrames::route('/'),
             'create' => CreateLuminaireFrame::route('/create'),
-            'view'   => ViewLuminaireFrame::route('/{record}'),
-            'edit'   => EditLuminaireFrame::route('/{record}/edit'),
+            'view' => ViewLuminaireFrame::route('/{record}'),
+            'edit' => EditLuminaireFrame::route('/{record}/edit'),
         ];
     }
 }

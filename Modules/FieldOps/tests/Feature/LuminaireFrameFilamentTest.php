@@ -6,11 +6,11 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
-use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -37,29 +37,54 @@ class LuminaireFrameFilamentTest extends TestCase
             'luminaire_frame_id' => $frame->id,
             'frame_position' => 1,
             'frame_x' => 10, 'frame_y' => 10, 'scale_x' => 1.0, 'scale_y' => 1.0,
+            'position_verified_at' => now()->subDay(),
         ]);
         $l2 = Luminaire::factory()->create([
             'luminaire_frame_id' => $frame->id,
             'frame_position' => 2,
             'frame_x' => 90, 'frame_y' => 90, 'scale_x' => 1.5, 'scale_y' => 1.5,
         ]);
+        $l1->luminaireType()->update(['name' => 'BVP525 OptiVision']);
+        $l2->luminaireType()->update(['name' => 'BVP527 OptiVision']);
 
         FoMaintenanceRecord::factory()->forMaintainable($l2)->create([
             'problem_reported_at' => now()->subHours(2),
             'problem_solved_at' => null,
         ]);
 
-        $this->get('/luminaire-frames')->assertOk();
-        $this->get("/luminaire-frames/{$frame->id}")
+        $this->withHeader('Accept-Language', 'en-US')->get('/luminaire-frames')->assertOk();
+        $this->withHeader('Accept-Language', 'en-US')->get("/luminaire-frames/{$frame->id}")
             ->assertOk()
             ->assertSee(__('fieldops::resource.luminaire_frames.view.eyebrow'))
+            ->assertSee('Frame overview')
+            ->assertSee('Technical layout')
+            ->assertSee('Open maintenance issues')
+            ->assertSee('Last verified')
+            ->assertSee('No open issues')
+            ->assertSee('Hide details')
+            ->assertSee('Show details')
             ->assertSee(__('fieldops::resource.luminaire_frames.view.layout_hint'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.sidebar_title'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.selected_position_label'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.open_position_details'))
+            ->assertDontSee('fieldops::resource.luminaire_frames.view.canvas_label')
+            ->assertDontSee('Resolved')
             ->assertSee(LuminaireResource::getUrl('view', ['record' => $l1]), false)
-            ->assertSee('Traverse 1')
-            ->assertSee('Traverse 2');
+            ->assertSee('BVP525 OptiVision')
+            ->assertSee('BVP527 OptiVision');
+
+        $this->withHeader('Accept-Language', 'nl-BE')->get("/luminaire-frames/{$frame->id}")
+            ->assertOk()
+            ->assertSee('Frameoverzicht')
+            ->assertSee('Technische indeling')
+            ->assertSee('Open onderhoudsmeldingen')
+            ->assertSee('Laatst geverifieerd')
+            ->assertSee('Geen open meldingen')
+            ->assertSee('Details verbergen')
+            ->assertSee('Details tonen')
+            ->assertDontSee('fieldops::resource.luminaire_frames.view.canvas_label')
+            ->assertDontSee('Opgelost');
+
         $this->get("/luminaire-frames/{$frame->id}/edit")->assertOk();
     }
 

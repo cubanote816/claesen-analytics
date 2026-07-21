@@ -96,7 +96,7 @@
 
             .fieldops-luminaire-frame-spatial__header {
                 display: grid;
-                grid-template-columns: minmax(0, 1fr) auto;
+                grid-template-columns: minmax(0, 1fr);
                 gap: 1rem 1.25rem;
                 padding: 1.35rem 1.45rem 1rem;
                 border-bottom: 1px solid rgba(148, 163, 184, 0.14);
@@ -141,7 +141,8 @@
 
             .fieldops-luminaire-frame-spatial__chips,
             .fieldops-luminaire-frame-spatial__summary,
-            .fieldops-luminaire-frame-spatial__toolbar {
+            .fieldops-luminaire-frame-spatial__toolbar,
+            .fieldops-luminaire-frame-spatial__mode-switcher {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 0.5rem;
@@ -149,6 +150,11 @@
 
             .fieldops-luminaire-frame-spatial__chips {
                 margin-top: 0.95rem;
+            }
+
+            .fieldops-luminaire-frame-spatial__header > .fieldops-luminaire-frame-spatial__chips {
+                grid-column: 1 / -1;
+                margin-top: 0;
             }
 
             .fieldops-luminaire-frame-spatial__chip,
@@ -199,11 +205,13 @@
                 display: inline-grid;
                 min-width: 2.05rem;
                 height: 2.05rem;
+                padding: 0 0.6rem;
                 place-items: center;
                 border-radius: 999px;
                 background: rgba(0, 174, 239, 0.1);
                 color: #008fc8;
                 font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 0.76rem;
                 font-weight: 900;
             }
 
@@ -215,6 +223,46 @@
             .fieldops-luminaire-frame-spatial__toolbar {
                 justify-content: flex-end;
                 align-items: flex-start;
+            }
+
+            .fieldops-luminaire-frame-spatial__mode-switcher {
+                width: fit-content;
+                margin-top: 1rem;
+                padding: 0.25rem;
+                border: 1px solid rgba(148, 163, 184, 0.18);
+                border-radius: 0.9rem;
+                background: rgba(148, 163, 184, 0.08);
+            }
+
+            .fieldops-luminaire-frame-spatial__mode-button {
+                min-height: 2.15rem;
+                padding: 0.4rem 0.8rem;
+                border-radius: 0.7rem;
+                color: #64748b;
+                font-size: 0.84rem;
+                font-weight: 800;
+                transition: color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+            }
+
+            .fieldops-luminaire-frame-spatial__mode-button--active {
+                background: #ffffff;
+                color: #075985;
+                box-shadow: 0 5px 14px rgba(15, 23, 42, 0.09);
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__mode-switcher {
+                border-color: rgba(255, 255, 255, 0.08);
+                background: rgba(255, 255, 255, 0.035);
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__mode-button {
+                color: #94a3b8;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__mode-button--active {
+                background: rgba(56, 189, 248, 0.13);
+                color: #7dd3fc;
+                box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.16);
             }
 
             .fieldops-luminaire-frame-spatial__button {
@@ -248,6 +296,10 @@
                 grid-template-columns: minmax(0, 1.75fr) minmax(18rem, 0.82fr);
                 gap: 1rem;
                 padding: 1rem 1.2rem 1.2rem;
+            }
+
+            .fieldops-luminaire-frame-spatial__body--details-hidden {
+                grid-template-columns: minmax(0, 1fr);
             }
 
             .fieldops-luminaire-frame-spatial__main,
@@ -322,6 +374,17 @@
                 flex-wrap: wrap;
                 justify-content: flex-end;
                 gap: 0.45rem;
+            }
+
+            .fieldops-luminaire-frame-spatial__board-actions {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 0.55rem;
+            }
+
+            .fieldops-luminaire-frame-spatial__board-actions .fieldops-luminaire-frame-spatial__toolbar {
+                justify-content: flex-end;
             }
 
             .fieldops-luminaire-frame-spatial__board-pill {
@@ -493,6 +556,10 @@
                 cursor: grab;
                 touch-action: none;
                 user-select: none;
+            }
+
+            .fieldops-luminaire-frame-spatial__marker--readonly {
+                cursor: pointer;
             }
 
             .fieldops-luminaire-frame-spatial__marker--selected {
@@ -739,6 +806,39 @@
                 padding: 1rem;
             }
 
+            .fieldops-luminaire-frame-spatial__status-banner {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+                margin-top: 0.9rem;
+                padding: 0.75rem 0.85rem;
+                border: 1px solid rgba(34, 197, 94, 0.2);
+                border-radius: 0.9rem;
+                background: rgba(34, 197, 94, 0.08);
+                color: #166534;
+                font-size: 0.85rem;
+                font-weight: 800;
+            }
+
+            .fieldops-luminaire-frame-spatial__status-banner--warning {
+                border-color: rgba(245, 158, 11, 0.25);
+                background: rgba(245, 158, 11, 0.1);
+                color: #92400e;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__status-banner {
+                border-color: rgba(74, 222, 128, 0.18);
+                background: rgba(34, 197, 94, 0.09);
+                color: #86efac;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__status-banner--warning {
+                border-color: rgba(251, 191, 36, 0.2);
+                background: rgba(245, 158, 11, 0.1);
+                color: #fcd34d;
+            }
+
             .fieldops-luminaire-frame-spatial__selected-title {
                 color: #0f172a;
                 font-size: 1.1rem;
@@ -833,6 +933,43 @@
                 color: #94a3b8;
             }
 
+            .fieldops-luminaire-frame-spatial:fullscreen {
+                width: 100vw;
+                height: 100vh;
+                border: 0;
+                border-radius: 0;
+            }
+
+            .fieldops-luminaire-frame-spatial:fullscreen > .fieldops-luminaire-frame-spatial__header {
+                display: none;
+            }
+
+            .fieldops-luminaire-frame-spatial:fullscreen > .fieldops-luminaire-frame-spatial__body {
+                height: 100vh;
+                padding: 0.75rem;
+            }
+
+            .fieldops-luminaire-frame-spatial:fullscreen .fieldops-luminaire-frame-spatial__main,
+            .fieldops-luminaire-frame-spatial:fullscreen .fieldops-luminaire-frame-spatial__board-shell {
+                min-height: 0;
+                height: 100%;
+            }
+
+            .fieldops-luminaire-frame-spatial:fullscreen .fieldops-luminaire-frame-spatial__board-shell {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .fieldops-luminaire-frame-spatial:fullscreen .fieldops-luminaire-frame-spatial__viewport {
+                flex: 1;
+                min-height: 0;
+            }
+
+            .fieldops-luminaire-frame-spatial:fullscreen .fieldops-luminaire-frame-spatial__rail {
+                max-height: calc(100vh - 1.5rem);
+                overflow-y: auto;
+            }
+
             @media (max-width: 1024px) {
                 .fieldops-luminaire-frame-spatial__body {
                     grid-template-columns: minmax(0, 1fr);
@@ -855,6 +992,19 @@
                     justify-content: flex-start;
                 }
 
+                .fieldops-luminaire-frame-spatial__board-header {
+                    flex-direction: column;
+                }
+
+                .fieldops-luminaire-frame-spatial__board-actions {
+                    width: 100%;
+                    align-items: flex-start;
+                }
+
+                .fieldops-luminaire-frame-spatial__board-meta {
+                    justify-content: flex-start;
+                }
+
                 .fieldops-luminaire-frame-spatial__selected-row {
                     grid-template-columns: minmax(0, 1fr);
                 }
@@ -866,6 +1016,8 @@
         <script>
             window.fieldopsLuminaireFrameLayout = function (payload) {
                 return {
+                    viewMode: 'overview',
+                    overviewDetailsVisible: true,
                     zoom: 1,
                     minZoom: 0.75,
                     maxZoom: 1.75,
@@ -977,7 +1129,7 @@
                         return marker
                             ? (marker.flagged
                                 ? @js(__('fieldops::resource.luminaire_frames.view.open'))
-                                : @js(__('fieldops::resource.luminaire_frames.view.resolved')))
+                                : @js(__('fieldops::resource.luminaire_frames.view.no_open_issues')))
                             : '';
                     },
                     selectedMarkerSourceLabel() {
@@ -1279,60 +1431,96 @@
                 {{ $payload['subtitle'] }}
             </div>
 
-            <div class="fieldops-luminaire-frame-spatial__chips">
-                @if ($payload['frameType'])
-                    <span class="fieldops-luminaire-frame-spatial__chip">
-                        {{ $payload['frameType'] }}
-                    </span>
-                @endif
-
-                @foreach ($payload['summary'] as $item)
-                    <span class="fieldops-luminaire-frame-spatial__summary-pill">
-                        <span>{{ $item['label'] }}</span>
-                        <span class="fieldops-luminaire-frame-spatial__summary-value">{{ $item['value'] }}</span>
-                    </span>
-                @endforeach
+            <div class="fieldops-luminaire-frame-spatial__mode-switcher" role="tablist" aria-label="{{ __('fieldops::resource.luminaire_frames.view.eyebrow') }}">
+                <button
+                    type="button"
+                    role="tab"
+                    class="fieldops-luminaire-frame-spatial__mode-button"
+                    :class="viewMode === 'overview' ? 'fieldops-luminaire-frame-spatial__mode-button--active' : ''"
+                    :aria-selected="viewMode === 'overview'"
+                    @click="viewMode = 'overview'"
+                >
+                    {{ __('fieldops::resource.luminaire_frames.view.overview_tab') }}
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    class="fieldops-luminaire-frame-spatial__mode-button"
+                    :class="viewMode === 'technical' ? 'fieldops-luminaire-frame-spatial__mode-button--active' : ''"
+                    :aria-selected="viewMode === 'technical'"
+                    @click="viewMode = 'technical'"
+                >
+                    {{ __('fieldops::resource.luminaire_frames.view.technical_tab') }}
+                </button>
             </div>
+
         </div>
 
-        <div class="fieldops-luminaire-frame-spatial__toolbar">
-            <button type="button" class="fieldops-luminaire-frame-spatial__button" @click="zoomOut()">
-                {{ __('fieldops::resource.luminaire_frames.view.zoom_out') }}
-            </button>
-            <button type="button" class="fieldops-luminaire-frame-spatial__button" @click="zoomIn()">
-                {{ __('fieldops::resource.luminaire_frames.view.zoom_in') }}
-            </button>
-            <button type="button" class="fieldops-luminaire-frame-spatial__button" @click="resetZoom()">
-                {{ __('fieldops::resource.luminaire_frames.view.reset_zoom') }}
-            </button>
-            <button type="button" class="fieldops-luminaire-frame-spatial__button fieldops-luminaire-frame-spatial__button--primary" @click="toggleFullscreen()">
-                <span x-show="!isFullscreen">{{ __('fieldops::resource.luminaire_frames.view.fullscreen') }}</span>
-                <span x-show="isFullscreen" x-cloak>{{ __('fieldops::resource.luminaire_frames.view.exit_fullscreen') }}</span>
-            </button>
+        <div class="fieldops-luminaire-frame-spatial__chips">
+            @foreach ($payload['summary'] as $item)
+                <span class="fieldops-luminaire-frame-spatial__summary-pill">
+                    <span>{{ $item['label'] }}</span>
+                    <span class="fieldops-luminaire-frame-spatial__summary-value">{{ $item['value'] }}</span>
+                </span>
+            @endforeach
         </div>
     </div>
 
-    <div class="fieldops-luminaire-frame-spatial__body">
+    <div
+        class="fieldops-luminaire-frame-spatial__body"
+        :class="viewMode === 'overview' && !overviewDetailsVisible ? 'fieldops-luminaire-frame-spatial__body--details-hidden' : ''"
+    >
         <div class="fieldops-luminaire-frame-spatial__main">
             <div class="fieldops-luminaire-frame-spatial__board-shell">
                 <div class="fieldops-luminaire-frame-spatial__board-header">
                     <div>
                         <div class="fieldops-luminaire-frame-spatial__board-title">
-                            {{ __('fieldops::resource.luminaire_frames.view.canvas_label') }}
+                            <span x-show="viewMode === 'overview'">{{ __('fieldops::resource.luminaire_frames.view.canvas_label') }}</span>
+                            <span x-show="viewMode === 'technical'" x-cloak>{{ __('fieldops::resource.luminaire_frames.view.technical_canvas_label') }}</span>
                         </div>
                         <div class="fieldops-luminaire-frame-spatial__board-subtitle">
-                            {{ __('fieldops::resource.luminaire_frames.view.layout_hint') }}
+                            <span x-show="viewMode === 'overview'">{{ __('fieldops::resource.luminaire_frames.view.overview_hint') }}</span>
+                            <span x-show="viewMode === 'technical'" x-cloak>{{ __('fieldops::resource.luminaire_frames.view.layout_hint') }}</span>
                         </div>
                     </div>
 
-                    <div class="fieldops-luminaire-frame-spatial__board-meta">
-                        @if ($bounds)
-                            <span class="fieldops-luminaire-frame-spatial__board-pill">X {{ $bounds['minX'] }} - {{ $bounds['maxX'] }}</span>
-                            <span class="fieldops-luminaire-frame-spatial__board-pill">Y {{ $bounds['minY'] }} - {{ $bounds['maxY'] }}</span>
-                        @endif
-                        <span class="fieldops-luminaire-frame-spatial__board-pill">
-                            {{ count($markers) }} {{ __('fieldops::resource.luminaire_frames.view.summary_positioned') }}
-                        </span>
+                    <div class="fieldops-luminaire-frame-spatial__board-actions">
+                        <div x-show="viewMode === 'technical'" x-cloak class="fieldops-luminaire-frame-spatial__board-meta">
+                            @if ($bounds)
+                                <span class="fieldops-luminaire-frame-spatial__board-pill">X {{ $bounds['minX'] }} - {{ $bounds['maxX'] }}</span>
+                                <span class="fieldops-luminaire-frame-spatial__board-pill">Y {{ $bounds['minY'] }} - {{ $bounds['maxY'] }}</span>
+                            @endif
+                            <span class="fieldops-luminaire-frame-spatial__board-pill">
+                                {{ count($markers) }} {{ __('fieldops::resource.luminaire_frames.view.summary_positioned') }}
+                            </span>
+                        </div>
+
+                        <div class="fieldops-luminaire-frame-spatial__toolbar">
+                            <button
+                                x-show="viewMode === 'overview'"
+                                type="button"
+                                class="fieldops-luminaire-frame-spatial__button"
+                                aria-controls="fieldops-luminaire-frame-overview-details"
+                                :aria-expanded="overviewDetailsVisible"
+                                @click="overviewDetailsVisible = !overviewDetailsVisible"
+                            >
+                                <span x-show="overviewDetailsVisible">{{ __('fieldops::resource.luminaire_frames.view.hide_details') }}</span>
+                                <span x-show="!overviewDetailsVisible" x-cloak>{{ __('fieldops::resource.luminaire_frames.view.show_details') }}</span>
+                            </button>
+                            <button x-show="viewMode === 'technical'" x-cloak type="button" class="fieldops-luminaire-frame-spatial__button" @click="zoomOut()">
+                                {{ __('fieldops::resource.luminaire_frames.view.zoom_out') }}
+                            </button>
+                            <button x-show="viewMode === 'technical'" x-cloak type="button" class="fieldops-luminaire-frame-spatial__button" @click="zoomIn()">
+                                {{ __('fieldops::resource.luminaire_frames.view.zoom_in') }}
+                            </button>
+                            <button x-show="viewMode === 'technical'" x-cloak type="button" class="fieldops-luminaire-frame-spatial__button" @click="resetZoom()">
+                                {{ __('fieldops::resource.luminaire_frames.view.reset_zoom') }}
+                            </button>
+                            <button type="button" class="fieldops-luminaire-frame-spatial__button fieldops-luminaire-frame-spatial__button--primary" @click="toggleFullscreen()">
+                                <span x-show="!isFullscreen">{{ __('fieldops::resource.luminaire_frames.view.fullscreen') }}</span>
+                                <span x-show="isFullscreen" x-cloak>{{ __('fieldops::resource.luminaire_frames.view.exit_fullscreen') }}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1351,7 +1539,7 @@
                                         x-ref="frameImage"
                                         class="fieldops-luminaire-frame-spatial__surface-frame"
                                         src="{{ $payload['frameImage'] }}"
-                                        alt="{{ $payload['frameType'] ? $payload['frameType'].' frame background' : 'Luminaire frame background' }}"
+                                        alt="{{ __('fieldops::resource.luminaire_frames.view.frame_image_alt', ['frame' => $payload['frameType'] ?? __('fieldops::resource.luminaire_frames.model_label')]) }}"
                                         @load="measureFrameRatio()"
                                     >
                                 @else
@@ -1369,7 +1557,7 @@
                                     </div>
                                 @endif
 
-                                <div class="fieldops-luminaire-frame-spatial__surface-grid" aria-hidden="true"></div>
+                                <div x-show="viewMode === 'technical'" x-cloak class="fieldops-luminaire-frame-spatial__surface-grid" aria-hidden="true"></div>
 
                                 @foreach ($markers as $marker)
                                     <div
@@ -1380,8 +1568,11 @@
                                         <button
                                             type="button"
                                             class="fieldops-luminaire-frame-spatial__marker {{ $marker['flagged'] ? 'fieldops-luminaire-frame-spatial__marker--flagged' : '' }} {{ $marker['hasImage'] ? 'fieldops-luminaire-frame-spatial__marker--image' : 'fieldops-luminaire-frame-spatial__marker--placeholder' }}"
-                                            :class="Number(selectedId) === {{ $marker['id'] }} ? 'fieldops-luminaire-frame-spatial__marker--selected' : ''"
-                                            @pointerdown="beginDrag($event, {{ $marker['id'] }})"
+                                            :class="{
+                                                'fieldops-luminaire-frame-spatial__marker--selected': Number(selectedId) === {{ $marker['id'] }},
+                                                'fieldops-luminaire-frame-spatial__marker--readonly': viewMode !== 'technical',
+                                            }"
+                                            @pointerdown="viewMode === 'technical' && beginDrag($event, {{ $marker['id'] }})"
                                             @click="handleMarkerClick({{ $marker['id'] }})"
                                             @keydown="handleMarkerKeydown($event, {{ $marker['id'] }})"
                                             :aria-pressed="Number(selectedId) === {{ $marker['id'] }}"
@@ -1448,18 +1639,75 @@
                     @endif
                 </div>
 
-                <div class="fieldops-luminaire-frame-spatial__hint">
-                    {{ __('fieldops::resource.luminaire_frames.view.layout_hint') }}
-                </div>
-                <div class="fieldops-luminaire-frame-spatial__drag-hint">
+                <div x-show="viewMode === 'technical'" x-cloak class="fieldops-luminaire-frame-spatial__drag-hint">
                     <span aria-hidden="true">↕</span>
                     <span>{{ __('fieldops::resource.luminaire_frames.view.drag_hint') }}</span>
                 </div>
             </div>
         </div>
 
-        <aside class="fieldops-luminaire-frame-spatial__rail">
-            <div class="fieldops-luminaire-frame-spatial__panel">
+        <aside
+            id="fieldops-luminaire-frame-overview-details"
+            class="fieldops-luminaire-frame-spatial__rail"
+            x-show="viewMode === 'technical' || overviewDetailsVisible"
+            x-transition.opacity.duration.150ms
+        >
+            <div x-show="viewMode === 'overview'" class="fieldops-luminaire-frame-spatial__panel fieldops-luminaire-frame-spatial__selected-card">
+                <div class="fieldops-luminaire-frame-spatial__selected-title">
+                    {{ __('fieldops::resource.luminaire_frames.view.selected_position_label') }}
+                </div>
+
+                <template x-if="selectedMarker()">
+                    <div>
+                        <div class="fieldops-luminaire-frame-spatial__selected-hint">
+                            {{ __('fieldops::resource.luminaire_frames.view.selected_overview_hint') }}
+                        </div>
+
+                        <div
+                            class="fieldops-luminaire-frame-spatial__status-banner"
+                            :class="selectedMarker()?.flagged ? 'fieldops-luminaire-frame-spatial__status-banner--warning' : ''"
+                        >
+                            <span x-text="selectedMarkerTitle()"></span>
+                            <span x-text="selectedMarkerStateLabel()"></span>
+                        </div>
+
+                        <div class="fieldops-luminaire-frame-spatial__selected-row">
+                            <div class="fieldops-luminaire-frame-spatial__selected-stat">
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
+                                    {{ __('fieldops::resource.luminaires.fields.frame_position') }}
+                                </div>
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-value" x-text="'#' + selectedMarkerLabel()"></div>
+                            </div>
+
+                            <div class="fieldops-luminaire-frame-spatial__selected-stat">
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
+                                    {{ __('fieldops::resource.luminaire_frames.view.selected_serial') }}
+                                </div>
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-value" x-text="selectedMarkerSerial()"></div>
+                            </div>
+
+                            <div class="fieldops-luminaire-frame-spatial__selected-stat">
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
+                                    {{ __('fieldops::resource.luminaires.fields.position_verified_at') }}
+                                </div>
+                                <div class="fieldops-luminaire-frame-spatial__selected-stat-value" x-text="selectedMarkerVerifiedAtLabel()"></div>
+                            </div>
+                        </div>
+
+                        <div class="fieldops-luminaire-frame-spatial__selected-actions">
+                            <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.url">
+                                {{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}
+                            </a>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="fieldops-luminaire-frame-spatial__empty-text" x-show="!selectedMarker()" x-cloak>
+                    {{ __('fieldops::resource.luminaire_frames.view.selected_empty') }}
+                </div>
+            </div>
+
+            <div x-show="viewMode === 'technical'" x-cloak class="fieldops-luminaire-frame-spatial__panel">
                 <div class="fieldops-luminaire-frame-spatial__panel-header">
                     <div>
                         <div class="fieldops-luminaire-frame-spatial__sidebar-title">
@@ -1485,12 +1733,12 @@
                                     {{ $marker['title'] }}
                                 </span>
                                 <span class="fieldops-luminaire-frame-spatial__sidebar-hint block">
-                                    #{{ $marker['label'] }} · {{ $marker['positionLabel'] }}
+                                    #{{ $marker['label'] }}{{ $marker['serial'] ? ' · '.$marker['serial'] : '' }}
                                 </span>
                             </span>
 
                             <span class="fieldops-luminaire-frame-spatial__mini-pill">
-                                {{ $marker['flagged'] ? __('fieldops::resource.luminaire_frames.view.open') : __('fieldops::resource.luminaire_frames.view.resolved') }}
+                                {{ $marker['flagged'] ? __('fieldops::resource.luminaire_frames.view.open') : __('fieldops::resource.luminaire_frames.view.no_open_issues') }}
                             </span>
                         </button>
                     @endforeach
@@ -1522,8 +1770,8 @@
                                     </span>
                                 </span>
 
-                                <span class="fieldops-luminaire-frame-spatial__mini-pill">
-                                    {{ $item['flagged'] ? __('fieldops::resource.luminaire_frames.view.open') : __('fieldops::resource.luminaire_frames.view.resolved') }}
+                            <span class="fieldops-luminaire-frame-spatial__mini-pill">
+                                    {{ $item['flagged'] ? __('fieldops::resource.luminaire_frames.view.open') : __('fieldops::resource.luminaire_frames.view.no_open_issues') }}
                                 </span>
                             </button>
                         @endforeach
@@ -1531,7 +1779,7 @@
                 </div>
             </div>
 
-            <div class="fieldops-luminaire-frame-spatial__panel fieldops-luminaire-frame-spatial__selected-card">
+            <div x-show="viewMode === 'technical'" x-cloak class="fieldops-luminaire-frame-spatial__panel fieldops-luminaire-frame-spatial__selected-card">
                 <div class="fieldops-luminaire-frame-spatial__selected-title">
                     {{ __('fieldops::resource.luminaire_frames.view.selected_position_label') }}
                 </div>
@@ -1651,7 +1899,7 @@
                                     {{ __('fieldops::resource.luminaire_frames.view.selected_state') }}
                                 </div>
                                 <div class="fieldops-luminaire-frame-spatial__selected-stat-value">
-                                    {{ $selected['flagged'] ? __('fieldops::resource.luminaire_frames.view.open') : __('fieldops::resource.luminaire_frames.view.resolved') }}
+                                    {{ $selected['flagged'] ? __('fieldops::resource.luminaire_frames.view.open') : __('fieldops::resource.luminaire_frames.view.no_open_issues') }}
                                 </div>
                             </div>
 
@@ -1669,7 +1917,7 @@
                                     {{ __('fieldops::resource.luminaires.fields.position_verified_at') }}
                                 </div>
                                 <div class="fieldops-luminaire-frame-spatial__selected-stat-value">
-                                    {{ $selected['positionVerifiedAt'] ? \Illuminate\Support\Carbon::parse($selected['positionVerifiedAt'])->format('d M Y H:i') : '—' }}
+                                    {{ $selected['positionVerifiedAt'] ? \Illuminate\Support\Carbon::parse($selected['positionVerifiedAt'])->locale(app()->getLocale())->translatedFormat('d M Y H:i') : '—' }}
                                 </div>
                             </div>
                         </div>
