@@ -47,6 +47,9 @@
      *     }>,
      *     selectedId: ?int,
      *     selectedMarker: ?array<string, mixed>,
+     *     frameId: int,
+     *     createUrl: string,
+     *     luminaireTypes: array<int, array{id: int, name: string, subgroupId: int, subgroupLabel: string, imageUrl: string, hasImage: bool}>,
      * } $data
      */
 
@@ -63,6 +66,9 @@
         'subtitle' => $data['subtitle'] ?? '',
         'eyebrow' => $data['eyebrow'] ?? '',
         'selectedMarker' => $data['selectedMarker'] ?? null,
+        'frameId' => $data['frameId'] ?? null,
+        'createUrl' => $data['createUrl'] ?? '',
+        'luminaireTypes' => $data['luminaireTypes'] ?? [],
     ];
 
     $markers = $payload['markers'];
@@ -289,6 +295,234 @@
                 border-color: rgba(56, 189, 248, 0.28);
                 background: rgba(56, 189, 248, 0.14);
                 color: #7dd3fc;
+            }
+
+            .fieldops-luminaire-frame-spatial__button:disabled {
+                cursor: not-allowed;
+                opacity: 0.5;
+                transform: none;
+            }
+
+            .fieldops-luminaire-frame-spatial__modal {
+                position: fixed;
+                z-index: 100;
+                inset: 0;
+                display: grid;
+                padding: 1rem;
+                place-items: center;
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-backdrop {
+                position: absolute;
+                inset: 0;
+                background: rgba(2, 6, 23, 0.72);
+                backdrop-filter: blur(4px);
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-panel {
+                position: relative;
+                width: min(32rem, 100%);
+                overflow: hidden;
+                border: 1px solid rgba(148, 163, 184, 0.24);
+                border-radius: 1.2rem;
+                background: #ffffff;
+                box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__modal-panel {
+                border-color: rgba(255, 255, 255, 0.1);
+                background: #171725;
+                box-shadow: 0 32px 80px rgba(0, 0, 0, 0.62);
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 1rem;
+                padding: 1.1rem 1.15rem;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__modal-header {
+                border-bottom-color: rgba(255, 255, 255, 0.08);
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-title {
+                color: #0f172a;
+                font-size: 1.05rem;
+                font-weight: 900;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__modal-title {
+                color: #f8fafc;
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-copy {
+                margin-top: 0.2rem;
+                color: #64748b;
+                font-size: 0.82rem;
+                line-height: 1.45;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__modal-copy {
+                color: #94a3b8;
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-close {
+                display: inline-grid;
+                width: 2rem;
+                height: 2rem;
+                flex: 0 0 auto;
+                place-items: center;
+                border-radius: 999px;
+                color: #64748b;
+                font-size: 1.15rem;
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-close:hover {
+                background: rgba(148, 163, 184, 0.12);
+                color: #0f172a;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__modal-close:hover {
+                color: #f8fafc;
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-body {
+                display: grid;
+                gap: 1rem;
+                padding: 1.15rem;
+            }
+
+            .fieldops-luminaire-frame-spatial__type-preview {
+                display: grid;
+                grid-template-columns: 5.5rem minmax(0, 1fr);
+                align-items: center;
+                gap: 0.9rem;
+                padding: 0.75rem;
+                border: 1px solid rgba(14, 165, 233, 0.2);
+                border-radius: 0.9rem;
+                background: rgba(14, 165, 233, 0.06);
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__type-preview {
+                border-color: rgba(56, 189, 248, 0.2);
+                background: rgba(14, 165, 233, 0.08);
+            }
+
+            .fieldops-luminaire-frame-spatial__type-preview-media {
+                display: grid;
+                width: 5.5rem;
+                aspect-ratio: 1;
+                overflow: hidden;
+                place-items: center;
+                border-radius: 0.75rem;
+                background: #ffffff;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__type-preview-media {
+                background: rgba(255, 255, 255, 0.06);
+            }
+
+            .fieldops-luminaire-frame-spatial__type-preview-image {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+
+            .fieldops-luminaire-frame-spatial__type-preview-name {
+                color: #0f172a;
+                font-size: 0.94rem;
+                font-weight: 900;
+                line-height: 1.25;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__type-preview-name {
+                color: #f8fafc;
+            }
+
+            .fieldops-luminaire-frame-spatial__type-preview-meta {
+                margin-top: 0.25rem;
+                color: #64748b;
+                font-size: 0.76rem;
+                line-height: 1.35;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__type-preview-meta {
+                color: #94a3b8;
+            }
+
+            .fieldops-luminaire-frame-spatial__field {
+                display: grid;
+                gap: 0.4rem;
+            }
+
+            .fieldops-luminaire-frame-spatial__field-label {
+                color: #334155;
+                font-size: 0.78rem;
+                font-weight: 800;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__field-label {
+                color: #dbeafe;
+            }
+
+            .fieldops-luminaire-frame-spatial__field-control {
+                width: 100%;
+                min-height: 2.65rem;
+                padding: 0.58rem 0.72rem;
+                border: 1px solid rgba(148, 163, 184, 0.32);
+                border-radius: 0.8rem;
+                background: #ffffff;
+                color: #0f172a;
+                font-size: 0.88rem;
+                outline: none;
+            }
+
+            .fieldops-luminaire-frame-spatial__field-control:focus {
+                border-color: rgba(14, 165, 233, 0.72);
+                box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.12);
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__field-control {
+                border-color: rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.045);
+                color: #f8fafc;
+            }
+
+            .fieldops-luminaire-frame-spatial__field-hint,
+            .fieldops-luminaire-frame-spatial__modal-error {
+                font-size: 0.76rem;
+                line-height: 1.45;
+            }
+
+            .fieldops-luminaire-frame-spatial__field-hint {
+                color: #64748b;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__field-hint {
+                color: #94a3b8;
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-error {
+                padding: 0.7rem 0.8rem;
+                border: 1px solid rgba(239, 68, 68, 0.22);
+                border-radius: 0.75rem;
+                background: rgba(239, 68, 68, 0.08);
+                color: #b91c1c;
+                font-weight: 700;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__modal-error {
+                color: #fca5a5;
+            }
+
+            .fieldops-luminaire-frame-spatial__modal-actions {
+                display: flex;
+                justify-content: flex-end;
+                gap: 0.55rem;
+                padding: 0 1.15rem 1.15rem;
             }
 
             .fieldops-luminaire-frame-spatial__body {
@@ -671,13 +905,13 @@
             .fieldops-luminaire-frame-spatial__marker-open {
                 position: absolute;
                 z-index: 4;
-                right: 0.25rem;
-                top: 0.25rem;
+                right: -0.5rem;
+                top: -0.5rem;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 1.25rem;
-                height: 1.25rem;
+                width: 1.1rem;
+                height: 1.1rem;
                 border: 1px solid rgba(148, 163, 184, 0.28);
                 border-radius: 0.35rem;
                 background: rgba(15, 23, 42, 0.86);
@@ -890,6 +1124,143 @@
                 flex-wrap: wrap;
             }
 
+            .fieldops-luminaire-frame-spatial__scale-tools {
+                position: absolute;
+                z-index: 12;
+                left: 50%;
+                top: calc(100% + 0.45rem);
+                transform: translateX(-50%);
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-tools--above {
+                top: auto;
+                bottom: calc(100% + 0.45rem);
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-trigger {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 2rem;
+                height: 2rem;
+                padding: 0;
+                border: 1px solid rgba(56, 189, 248, 0.42);
+                border-radius: 999px;
+                background: rgba(8, 47, 73, 0.94);
+                color: #bae6fd;
+                box-shadow: 0 8px 20px rgba(2, 6, 23, 0.3);
+                backdrop-filter: blur(10px);
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-trigger:hover,
+            .fieldops-luminaire-frame-spatial__scale-trigger--active {
+                border-color: rgba(56, 189, 248, 0.88);
+                background: rgba(3, 105, 161, 0.96);
+                color: #ffffff;
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-trigger svg {
+                width: 1rem;
+                height: 1rem;
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-popover {
+                position: absolute;
+                top: calc(100% + 0.45rem);
+                left: 50%;
+                width: 16rem;
+                max-width: calc(100vw - 2rem);
+                padding: 0.9rem;
+                border: 1px solid rgba(148, 163, 184, 0.16);
+                border-radius: 0.95rem;
+                background: rgba(248, 250, 252, 0.98);
+                box-shadow: 0 18px 40px rgba(2, 6, 23, 0.28);
+                transform: translateX(-50%);
+                backdrop-filter: blur(16px);
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__scale-popover {
+                border-color: rgba(255, 255, 255, 0.12);
+                background: rgba(15, 23, 42, 0.98);
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-tools--above .fieldops-luminaire-frame-spatial__scale-popover {
+                top: auto;
+                bottom: calc(100% + 0.45rem);
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-tools--align-left .fieldops-luminaire-frame-spatial__scale-popover {
+                left: -0.25rem;
+                transform: none;
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-tools--align-right .fieldops-luminaire-frame-spatial__scale-popover {
+                right: -0.25rem;
+                left: auto;
+                transform: none;
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-header,
+            .fieldops-luminaire-frame-spatial__scale-presets {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.65rem;
+                flex-wrap: wrap;
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-value {
+                color: #0284c7;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 0.84rem;
+                font-weight: 900;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__scale-value {
+                color: #7dd3fc;
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-slider {
+                width: 100%;
+                margin: 0.85rem 0 0.75rem;
+                accent-color: #0ea5e9;
+                cursor: pointer;
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-slider:disabled {
+                cursor: wait;
+                opacity: 0.58;
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-preset {
+                min-height: 2rem;
+                padding: 0.35rem 0.6rem;
+                border: 1px solid rgba(148, 163, 184, 0.2);
+                border-radius: 0.7rem;
+                background: rgba(255, 255, 255, 0.58);
+                color: #334155;
+                font-size: 0.75rem;
+                font-weight: 800;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__scale-preset {
+                border-color: rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.05);
+                color: #e2e8f0;
+            }
+
+            .fieldops-luminaire-frame-spatial__scale-preset:hover,
+            .fieldops-luminaire-frame-spatial__scale-preset--active {
+                border-color: rgba(14, 165, 233, 0.5);
+                background: rgba(14, 165, 233, 0.12);
+                color: #0369a1;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__scale-preset:hover,
+            .dark .fieldops-luminaire-frame-spatial__scale-preset--active {
+                color: #7dd3fc;
+            }
+
             .fieldops-luminaire-frame-spatial__link {
                 display: inline-flex;
                 align-items: center;
@@ -1018,6 +1389,7 @@
                 return {
                     viewMode: 'overview',
                     overviewDetailsVisible: true,
+                    technicalDetailsVisible: true,
                     zoom: 1,
                     minZoom: 0.75,
                     maxZoom: 1.75,
@@ -1028,12 +1400,24 @@
                         left: Number(item.left ?? item.frameX ?? 50),
                         top: Number(item.top ?? item.frameY ?? 50),
                         size: Number(item.size ?? 30),
+                        scaleX: Number(item.scaleX ?? 1),
+                        scaleY: Number(item.scaleY ?? 1),
+                        persistedScaleX: Number(item.scaleX ?? 1),
+                        persistedScaleY: Number(item.scaleY ?? 1),
                     })),
                     unpositioned: payload.unpositioned ?? [],
                     summary: payload.summary ?? [],
                     bounds: payload.bounds ?? null,
                     frameType: payload.frameType ?? null,
                     frameImage: payload.frameImage ?? null,
+                    frameId: Number(payload.frameId),
+                    createUrl: payload.createUrl ?? '',
+                    luminaireTypes: payload.luminaireTypes ?? [],
+                    createModalOpen: false,
+                    createPending: false,
+                    createError: null,
+                    newLuminaireTypeId: '',
+                    newLuminaireSerial: '',
                     draggingId: null,
                     dragPointerId: null,
                     dragStartX: 0,
@@ -1044,8 +1428,16 @@
                     suppressNextClick: false,
                     statusMessage: null,
                     savePending: false,
+                    saveStatusTimer: null,
+                    scaleSaveTimers: {},
+                    scaleSavePending: false,
+                    scaleEditorId: null,
                     dragShellElement: null,
+                    resizeObserver: null,
                     init() {
+                        const requestedLayout = new URL(window.location.href).searchParams.get('layout');
+                        this.viewMode = requestedLayout === 'technical' ? 'technical' : 'overview';
+
                         if (this.selectedId === null) {
                             const first = this.markers[0] ?? this.unpositioned[0] ?? null;
                             this.selectedId = first ? Number(first.id) : null;
@@ -1055,13 +1447,212 @@
                             this.$nextTick(() => this.measureFrameRatio());
                         }
 
+                        this.$nextTick(() => {
+                            if (this.$refs.stage && window.ResizeObserver) {
+                                this.resizeObserver = new ResizeObserver(() => this.refreshMarkerSizes());
+                                this.resizeObserver.observe(this.$refs.stage);
+                            }
+
+                            this.refreshMarkerSizes();
+                        });
+
                         document.addEventListener('fullscreenchange', () => {
                             this.isFullscreen = Boolean(document.fullscreenElement);
                         });
                     },
+                    destroy() {
+                        this.resizeObserver?.disconnect();
+                        Object.values(this.scaleSaveTimers).forEach((timer) => window.clearTimeout(timer));
+                    },
                     isFullscreen: false,
                     clamp(value, min, max) {
                         return Math.min(max, Math.max(min, value));
+                    },
+                    requestHeaders() {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                        return {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-FieldOps-Editor': 'backoffice',
+                            ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                        };
+                    },
+                    setViewMode(mode) {
+                        this.viewMode = mode === 'technical' ? 'technical' : 'overview';
+                        if (this.viewMode !== 'technical') {
+                            this.closeScaleEditor();
+                        }
+
+                        const destination = new URL(window.location.href);
+                        if (this.viewMode === 'technical') {
+                            destination.searchParams.set('layout', 'technical');
+                        } else {
+                            destination.searchParams.delete('layout');
+                        }
+
+                        window.history.replaceState({}, '', destination.toString());
+                        this.$nextTick(() => this.refreshMarkerSizes());
+                    },
+                    openCreateModal() {
+                        if (this.luminaireTypes.length === 0) {
+                            this.statusMessage = @js(__('fieldops::resource.luminaire_frames.view.no_luminaire_types'));
+                            return;
+                        }
+
+                        this.createError = null;
+                        this.newLuminaireSerial = '';
+                        this.newLuminaireTypeId = String(this.luminaireTypes[0].id);
+                        this.createModalOpen = true;
+                        this.$nextTick(() => document.getElementById('fieldops-new-luminaire-type')?.focus());
+                    },
+                    closeCreateModal() {
+                        if (this.createPending) {
+                            return;
+                        }
+
+                        this.createModalOpen = false;
+                        this.createError = null;
+                    },
+                    selectedCreateType() {
+                        return this.luminaireTypes.find((type) => Number(type.id) === Number(this.newLuminaireTypeId)) ?? null;
+                    },
+                    async createLuminaire() {
+                        const type = this.selectedCreateType();
+
+                        if (!type) {
+                            this.createError = @js(__('fieldops::resource.luminaire_frames.view.create_type_required'));
+                            return;
+                        }
+
+                        this.createPending = true;
+                        this.createError = null;
+
+                        const requestBody = {
+                            luminaire_frame_id: this.frameId,
+                            luminaire_type_id: Number(type.id),
+                            luminaire_subgroup_id: Number(type.subgroupId),
+                            frame_x: 0.5,
+                            frame_y: 0.5,
+                            scale_x: 1,
+                            scale_y: 1,
+                        };
+                        const serial = this.newLuminaireSerial.trim();
+                        if (serial !== '') {
+                            requestBody.serial_number = serial;
+                        }
+
+                        try {
+                            const response = await fetch(this.createUrl, {
+                                method: 'POST',
+                                headers: this.requestHeaders(),
+                                credentials: 'same-origin',
+                                body: JSON.stringify(requestBody),
+                            });
+                            const responsePayload = await response.json().catch(() => ({}));
+
+                            if (!response.ok) {
+                                const validationMessage = Object.values(responsePayload.errors ?? {}).flat()[0];
+                                throw new Error(validationMessage ?? responsePayload.message ?? @js(__('fieldops::resource.luminaire_frames.view.create_failed')));
+                            }
+
+                            const createdId = Number(responsePayload?.data?.id);
+                            if (!Number.isFinite(createdId) || createdId <= 0) {
+                                throw new Error(@js(__('fieldops::resource.luminaire_frames.view.create_failed')));
+                            }
+
+                            const destination = new URL(window.location.href);
+                            destination.searchParams.delete('selected');
+                            destination.searchParams.set('luminaire', String(createdId));
+                            destination.searchParams.set('layout', 'technical');
+                            window.location.assign(destination.toString());
+                        } catch (error) {
+                            console.error(error);
+                            this.createError = error?.message ?? @js(__('fieldops::resource.luminaire_frames.view.create_failed'));
+                            this.createPending = false;
+                        }
+                    },
+                    normalizeCoordinate(value) {
+                        const numeric = Number(value);
+                        if (!Number.isFinite(numeric)) {
+                            return null;
+                        }
+
+                        return numeric > 1 ? numeric / 100 : numeric;
+                    },
+                    toCanvasPercentage(value, fallback = 0) {
+                        const normalized = this.normalizeCoordinate(value);
+
+                        return normalized === null
+                            ? this.clamp(Number(fallback), 0, 100)
+                            : this.clamp(normalized * 100, 0, 100);
+                    },
+                    coordinateLabel(value) {
+                        const normalized = this.normalizeCoordinate(value);
+                        if (normalized === null) {
+                            return '—';
+                        }
+
+                        return new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(normalized);
+                    },
+                    syncMarkerElement(marker) {
+                        const shell = this.$refs.stage?.querySelector(`[data-marker-id="${marker.id}"]`);
+                        if (!shell) {
+                            return;
+                        }
+
+                        const dimensions = this.markerDimensions(marker);
+                        shell.style.left = `${marker.left}%`;
+                        shell.style.top = `${marker.top}%`;
+                        shell.style.width = `${dimensions.width}px`;
+                        shell.style.height = `${dimensions.height}px`;
+                    },
+                    applyPersistedPosition(marker, updated) {
+                        marker.frameX = updated.frame_x ?? marker.frameX;
+                        marker.frameY = updated.frame_y ?? marker.frameY;
+                        marker.left = this.toCanvasPercentage(marker.frameX, marker.left);
+                        marker.top = this.toCanvasPercentage(marker.frameY, marker.top);
+                        marker.positionVersion = Number(updated.position_version ?? marker.positionVersion ?? 1);
+                        marker.positionSource = updated.position_source ?? marker.positionSource;
+
+                        if (Object.prototype.hasOwnProperty.call(updated, 'position_verified_at')) {
+                            marker.positionVerifiedAt = updated.position_verified_at;
+                        }
+
+                        marker.positionLabel = `X ${this.coordinateLabel(marker.frameX)} · Y ${this.coordinateLabel(marker.frameY)}`;
+                        this.$nextTick(() => this.syncMarkerElement(marker));
+                    },
+                    applyPersistedScale(marker, updated) {
+                        marker.scaleX = Number(updated.scale_x ?? marker.scaleX ?? 1);
+                        marker.scaleY = Number(updated.scale_y ?? marker.scaleY ?? 1);
+                        marker.persistedScaleX = marker.scaleX;
+                        marker.persistedScaleY = marker.scaleY;
+                        this.$nextTick(() => this.syncMarkerElement(marker));
+                    },
+                    async refreshMarkerFromServer(marker) {
+                        const response = await fetch(marker.updateUrl, {
+                            method: 'GET',
+                            headers: this.requestHeaders(),
+                            credentials: 'same-origin',
+                        });
+
+                        if (!response.ok) {
+                            return;
+                        }
+
+                        const responsePayload = await response.json().catch(() => ({}));
+                        const current = responsePayload?.data ?? null;
+                        if (current) {
+                            this.applyPersistedPosition(marker, current);
+                            this.applyPersistedScale(marker, current);
+                        }
+                    },
+                    flashStatus(message) {
+                        window.clearTimeout(this.saveStatusTimer);
+                        this.statusMessage = message;
+                        this.saveStatusTimer = window.setTimeout(() => {
+                            this.statusMessage = null;
+                        }, 2400);
                     },
                     measureFrameRatio() {
                         const image = this.$refs.frameImage;
@@ -1086,6 +1677,22 @@
                             ?? this.unpositioned.find((item) => Number(item.id) === Number(id))
                             ?? null;
                     },
+                    markerBaseSize() {
+                        const stageWidth = Number(this.$refs.stage?.getBoundingClientRect().width ?? 0);
+                        const logicalWidth = stageWidth > 0 ? stageWidth / Math.max(this.zoom, 0.01) : 1000;
+
+                        return this.clamp(logicalWidth * 0.045, 40, 64);
+                    },
+                    markerDimensions(marker) {
+                        const baseSize = this.markerBaseSize();
+                        const scaleX = this.clamp(Number(marker.scaleX ?? 1), 0.01, 10);
+                        const scaleY = this.clamp(Number(marker.scaleY ?? 1), 0.01, 10);
+
+                        return {
+                            width: Math.round(this.clamp(baseSize * scaleX, 24, 160) * this.zoom),
+                            height: Math.round(this.clamp(baseSize * scaleY, 24, 160) * this.zoom),
+                        };
+                    },
                     refreshMarkerSizes() {
                         const stage = this.$refs.stage;
                         if (!stage) {
@@ -1098,9 +1705,9 @@
                                 return;
                             }
 
-                            const size = Math.max(24, Math.round(Number(marker.size) * this.zoom));
-                            shell.style.width = `${size}px`;
-                            shell.style.height = `${size}px`;
+                            const dimensions = this.markerDimensions(marker);
+                            shell.style.width = `${dimensions.width}px`;
+                            shell.style.height = `${dimensions.height}px`;
                         });
                     },
                     selectedMarker() {
@@ -1121,7 +1728,111 @@
                             return '—';
                         }
 
-                        return `X ${marker.scaleX ?? '—'} / Y ${marker.scaleY ?? '—'}`;
+                        const scaleX = Number(marker.scaleX ?? 1);
+                        const scaleY = Number(marker.scaleY ?? 1);
+
+                        return `X ${scaleX.toFixed(2)} / Y ${scaleY.toFixed(2)}`;
+                    },
+                    selectedMarkerUniformScale() {
+                        const marker = this.selectedMarker();
+
+                        return marker ? Number(marker.scaleX ?? 1) : 1;
+                    },
+                    isScaleEditorOpen(id) {
+                        return Number(this.scaleEditorId) === Number(id);
+                    },
+                    toggleScaleEditor(id) {
+                        const markerId = Number(id);
+                        this.selectedId = markerId;
+                        this.scaleEditorId = this.isScaleEditorOpen(markerId) ? null : markerId;
+                    },
+                    closeScaleEditor() {
+                        this.scaleEditorId = null;
+                    },
+                    scaleEditorClasses(id) {
+                        const marker = this.getMarker(id);
+                        if (!marker) {
+                            return '';
+                        }
+
+                        const stageRect = this.$refs.stage?.getBoundingClientRect();
+                        const stageWidth = Number(stageRect?.width ?? 0);
+                        const stageHeight = Number(stageRect?.height ?? 0);
+                        const anchorX = stageWidth * (Number(marker.left) / 100);
+                        const remainingBelow = stageHeight * (1 - (Number(marker.top) / 100));
+
+                        return {
+                            'fieldops-luminaire-frame-spatial__scale-tools--above': stageHeight > 0
+                                ? remainingBelow < 230 && Number(marker.top) > 42
+                                : Number(marker.top) > 55,
+                            'fieldops-luminaire-frame-spatial__scale-tools--align-left': stageWidth > 0
+                                ? anchorX < 136
+                                : Number(marker.left) < 22,
+                            'fieldops-luminaire-frame-spatial__scale-tools--align-right': stageWidth > 0
+                                ? (stageWidth - anchorX) < 136
+                                : Number(marker.left) > 78,
+                        };
+                    },
+                    isSelectedMarkerScale(scale) {
+                        return Math.abs(this.selectedMarkerUniformScale() - Number(scale)) < 0.001;
+                    },
+                    previewSelectedMarkerScale(value) {
+                        const marker = this.selectedMarker();
+                        const scale = this.clamp(Number(value), 0.25, 3);
+
+                        if (!marker || !Number.isFinite(scale)) {
+                            return;
+                        }
+
+                        marker.scaleX = Math.round(scale * 100) / 100;
+                        marker.scaleY = marker.scaleX;
+                        this.syncMarkerElement(marker);
+
+                        window.clearTimeout(this.scaleSaveTimers[marker.id]);
+                        this.scaleSaveTimers[marker.id] = window.setTimeout(() => this.persistMarkerScale(marker), 600);
+                    },
+                    async persistMarkerScale(marker) {
+                        if (this.scaleSavePending) {
+                            this.scaleSaveTimers[marker.id] = window.setTimeout(() => this.persistMarkerScale(marker), 200);
+                            return;
+                        }
+
+                        delete this.scaleSaveTimers[marker.id];
+                        this.scaleSavePending = true;
+                        this.statusMessage = null;
+
+                        try {
+                            const response = await fetch(marker.updateUrl, {
+                                method: 'PATCH',
+                                headers: this.requestHeaders(),
+                                credentials: 'same-origin',
+                                body: JSON.stringify({
+                                    scale_x: Number(marker.scaleX),
+                                    scale_y: Number(marker.scaleY),
+                                }),
+                            });
+
+                            if (!response.ok) {
+                                throw new Error(`Unable to save marker scale (${response.status})`);
+                            }
+
+                            const responsePayload = await response.json().catch(() => ({}));
+                            const updated = responsePayload?.data ?? responsePayload ?? null;
+
+                            if (updated) {
+                                this.applyPersistedScale(marker, updated);
+                            }
+
+                            this.flashStatus(@js(__('fieldops::resource.luminaire_frames.view.scale_saved')));
+                        } catch (error) {
+                            console.error(error);
+                            marker.scaleX = Number(marker.persistedScaleX ?? 1);
+                            marker.scaleY = Number(marker.persistedScaleY ?? 1);
+                            this.syncMarkerElement(marker);
+                            this.statusMessage = @js(__('fieldops::resource.luminaire_frames.view.scale_save_failed'));
+                        } finally {
+                            this.scaleSavePending = false;
+                        }
                     },
                     selectedMarkerStateLabel() {
                         const marker = this.selectedMarker();
@@ -1168,6 +1879,9 @@
                             return;
                         }
 
+                        if (Number(this.selectedId) !== Number(id)) {
+                            this.closeScaleEditor();
+                        }
                         this.selectedId = Number(id);
                     },
                     handleMarkerClick(id) {
@@ -1233,11 +1947,11 @@
                         marker.top = this.clamp(pointerTop - this.dragOffsetY, 0, 100);
 
                         if (this.dragShellElement) {
-                            const size = Math.max(24, Math.round(Number(marker.size) * this.zoom));
+                            const dimensions = this.markerDimensions(marker);
                             this.dragShellElement.style.left = `${marker.left}%`;
                             this.dragShellElement.style.top = `${marker.top}%`;
-                            this.dragShellElement.style.width = `${size}px`;
-                            this.dragShellElement.style.height = `${size}px`;
+                            this.dragShellElement.style.width = `${dimensions.width}px`;
+                            this.dragShellElement.style.height = `${dimensions.height}px`;
                         }
                     },
                     async onPointerUp(event) {
@@ -1261,7 +1975,7 @@
                             this.suppressNextClick = false;
                         }, 0);
                     },
-                    async persistMarkerPosition(marker, retryOnConflict = true) {
+                    async persistMarkerPosition(marker) {
                         if (this.savePending) {
                             return;
                         }
@@ -1272,11 +1986,7 @@
                         try {
                             const response = await fetch(marker.updateUrl, {
                                 method: 'PATCH',
-                                headers: {
-                                    Accept: 'application/json',
-                                    'Content-Type': 'application/json',
-                                    'X-FieldOps-Editor': 'backoffice',
-                                },
+                                headers: this.requestHeaders(),
                                 credentials: 'same-origin',
                                 body: JSON.stringify({
                                     frame_x: Math.round((Number(marker.left) / 100) * 10000) / 10000,
@@ -1290,12 +2000,8 @@
                                     const payload = await response.json().catch(() => ({}));
                                     const currentVersion = Number(payload.current_position_version ?? marker.positionVersion ?? 1);
                                     marker.positionVersion = currentVersion;
-
-                                    if (retryOnConflict && Number.isFinite(currentVersion) && currentVersion > 0) {
-                                        return await this.persistMarkerPosition(marker, false);
-                                    }
-
-                                    this.statusMessage = payload.message ?? @js(__('fieldops::resource.luminaire_frames.view.save_failed'));
+                                    await this.refreshMarkerFromServer(marker);
+                                    this.statusMessage = @js(__('fieldops::resource.luminaire_frames.view.position_conflict'));
                                     return;
                                 }
 
@@ -1306,20 +2012,14 @@
                             const updated = payload?.data ?? payload ?? null;
 
                             if (updated) {
-                                marker.left = this.clamp(Number(updated.frame_x ?? marker.left), 0, 100);
-                                marker.top = this.clamp(Number(updated.frame_y ?? marker.top), 0, 100);
-                                marker.positionVersion = Number(updated.position_version ?? marker.positionVersion ?? 1);
-                                marker.positionSource = updated.position_source ?? marker.positionSource;
-                                marker.positionVerifiedAt = updated.position_verified_at ?? marker.positionVerifiedAt;
+                                this.applyPersistedPosition(marker, updated);
 
                                 if (this.selectedId === Number(marker.id)) {
                                     this.selectedId = Number(marker.id);
                                 }
-
-                                this.$nextTick(() => this.refreshMarkerSizes());
                             }
 
-                            this.statusMessage = null;
+                            this.flashStatus(@js(__('fieldops::resource.luminaire_frames.view.position_saved')));
                         } catch (error) {
                             console.error(error);
                             this.statusMessage = @js(__('fieldops::resource.luminaire_frames.view.save_failed'));
@@ -1332,6 +2032,10 @@
                         const marker = this.markers.find((item) => Number(item.id) === Number(id));
 
                         if (!marker) {
+                            return;
+                        }
+
+                        if (this.viewMode !== 'technical' && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
                             return;
                         }
 
@@ -1367,26 +2071,26 @@
                             event.preventDefault();
                             const shell = event.currentTarget?.parentElement ?? null;
                             if (shell) {
-                                const size = Math.max(24, Math.round(Number(marker.size) * this.zoom));
+                                const dimensions = this.markerDimensions(marker);
                                 shell.style.left = `${marker.left}%`;
                                 shell.style.top = `${marker.top}%`;
-                                shell.style.width = `${size}px`;
-                                shell.style.height = `${size}px`;
+                                shell.style.width = `${dimensions.width}px`;
+                                shell.style.height = `${dimensions.height}px`;
                             }
                             this.persistMarkerPosition(marker);
                         }
                     },
                     zoomIn() {
                         this.zoom = Math.min(this.maxZoom, Math.round((this.zoom + 0.1) * 10) / 10);
-                        this.refreshMarkerSizes();
+                        this.$nextTick(() => this.refreshMarkerSizes());
                     },
                     zoomOut() {
                         this.zoom = Math.max(this.minZoom, Math.round((this.zoom - 0.1) * 10) / 10);
-                        this.refreshMarkerSizes();
+                        this.$nextTick(() => this.refreshMarkerSizes());
                     },
                     resetZoom() {
                         this.zoom = 1;
-                        this.refreshMarkerSizes();
+                        this.$nextTick(() => this.refreshMarkerSizes());
                     },
                     toggleFullscreen() {
                         const element = this.$root;
@@ -1402,9 +2106,9 @@
                         return `--fieldops-frame-zoom: ${this.zoom}; --fieldops-frame-ratio: ${this.frameRatio};`;
                     },
                     markerStyle(marker) {
-                        const size = Math.max(24, Math.round(Number(marker.size) * this.zoom));
+                        const dimensions = this.markerDimensions(marker);
 
-                        return `left: ${marker.left}%; top: ${marker.top}%; width: ${size}px; height: ${size}px;`;
+                        return `left: ${marker.left}%; top: ${marker.top}%; width: ${dimensions.width}px; height: ${dimensions.height}px;`;
                     },
                 };
             };
@@ -1438,7 +2142,7 @@
                     class="fieldops-luminaire-frame-spatial__mode-button"
                     :class="viewMode === 'overview' ? 'fieldops-luminaire-frame-spatial__mode-button--active' : ''"
                     :aria-selected="viewMode === 'overview'"
-                    @click="viewMode = 'overview'"
+                    @click="setViewMode('overview')"
                 >
                     {{ __('fieldops::resource.luminaire_frames.view.overview_tab') }}
                 </button>
@@ -1448,7 +2152,7 @@
                     class="fieldops-luminaire-frame-spatial__mode-button"
                     :class="viewMode === 'technical' ? 'fieldops-luminaire-frame-spatial__mode-button--active' : ''"
                     :aria-selected="viewMode === 'technical'"
-                    @click="viewMode = 'technical'"
+                    @click="setViewMode('technical')"
                 >
                     {{ __('fieldops::resource.luminaire_frames.view.technical_tab') }}
                 </button>
@@ -1468,7 +2172,10 @@
 
     <div
         class="fieldops-luminaire-frame-spatial__body"
-        :class="viewMode === 'overview' && !overviewDetailsVisible ? 'fieldops-luminaire-frame-spatial__body--details-hidden' : ''"
+        :class="(
+            (viewMode === 'overview' && !overviewDetailsVisible)
+            || (viewMode === 'technical' && !technicalDetailsVisible)
+        ) ? 'fieldops-luminaire-frame-spatial__body--details-hidden' : ''"
     >
         <div class="fieldops-luminaire-frame-spatial__main">
             <div class="fieldops-luminaire-frame-spatial__board-shell">
@@ -1497,6 +2204,17 @@
 
                         <div class="fieldops-luminaire-frame-spatial__toolbar">
                             <button
+                                x-show="viewMode === 'technical'"
+                                x-cloak
+                                type="button"
+                                class="fieldops-luminaire-frame-spatial__button fieldops-luminaire-frame-spatial__button--primary"
+                                :disabled="luminaireTypes.length === 0"
+                                @click="openCreateModal()"
+                            >
+                                <span aria-hidden="true">+</span>
+                                <span>{{ __('fieldops::resource.luminaire_frames.view.add_luminaire') }}</span>
+                            </button>
+                            <button
                                 x-show="viewMode === 'overview'"
                                 type="button"
                                 class="fieldops-luminaire-frame-spatial__button"
@@ -1507,6 +2225,19 @@
                                 <span x-show="overviewDetailsVisible">{{ __('fieldops::resource.luminaire_frames.view.hide_details') }}</span>
                                 <span x-show="!overviewDetailsVisible" x-cloak>{{ __('fieldops::resource.luminaire_frames.view.show_details') }}</span>
                             </button>
+                            <button
+                                x-show="viewMode === 'technical'"
+                                x-cloak
+                                type="button"
+                                class="fieldops-luminaire-frame-spatial__button"
+                                data-fieldops-technical-details-toggle
+                                aria-controls="fieldops-luminaire-frame-overview-details"
+                                :aria-expanded="technicalDetailsVisible"
+                                @click="technicalDetailsVisible = !technicalDetailsVisible"
+                            >
+                                <span x-show="technicalDetailsVisible">{{ __('fieldops::resource.luminaire_frames.view.hide_details') }}</span>
+                                <span x-show="!technicalDetailsVisible" x-cloak>{{ __('fieldops::resource.luminaire_frames.view.show_details') }}</span>
+                            </button>
                             <button x-show="viewMode === 'technical'" x-cloak type="button" class="fieldops-luminaire-frame-spatial__button" @click="zoomOut()">
                                 {{ __('fieldops::resource.luminaire_frames.view.zoom_out') }}
                             </button>
@@ -1516,7 +2247,12 @@
                             <button x-show="viewMode === 'technical'" x-cloak type="button" class="fieldops-luminaire-frame-spatial__button" @click="resetZoom()">
                                 {{ __('fieldops::resource.luminaire_frames.view.reset_zoom') }}
                             </button>
-                            <button type="button" class="fieldops-luminaire-frame-spatial__button fieldops-luminaire-frame-spatial__button--primary" @click="toggleFullscreen()">
+                            <button
+                                type="button"
+                                class="fieldops-luminaire-frame-spatial__button"
+                                :class="viewMode === 'overview' ? 'fieldops-luminaire-frame-spatial__button--primary' : ''"
+                                @click="toggleFullscreen()"
+                            >
                                 <span x-show="!isFullscreen">{{ __('fieldops::resource.luminaire_frames.view.fullscreen') }}</span>
                                 <span x-show="isFullscreen" x-cloak>{{ __('fieldops::resource.luminaire_frames.view.exit_fullscreen') }}</span>
                             </button>
@@ -1621,6 +2357,91 @@
                                                 <path d="M5 10v9h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                             </svg>
                                         </a>
+
+                                        <div
+                                            x-show="viewMode === 'technical' && Number(selectedId) === {{ $marker['id'] }}"
+                                            x-cloak
+                                            class="fieldops-luminaire-frame-spatial__scale-tools"
+                                            :class="scaleEditorClasses({{ $marker['id'] }})"
+                                            @pointerdown.stop
+                                            @click.stop
+                                            @click.outside="closeScaleEditor()"
+                                            @keydown.escape.window="closeScaleEditor()"
+                                        >
+                                            <button
+                                                type="button"
+                                                class="fieldops-luminaire-frame-spatial__scale-trigger"
+                                                :class="isScaleEditorOpen({{ $marker['id'] }}) ? 'fieldops-luminaire-frame-spatial__scale-trigger--active' : ''"
+                                                :aria-expanded="isScaleEditorOpen({{ $marker['id'] }})"
+                                                aria-controls="fieldops-marker-scale-editor-{{ $marker['id'] }}"
+                                                aria-label="{{ __('fieldops::resource.luminaire_frames.view.resize_marker') }}"
+                                                title="{{ __('fieldops::resource.luminaire_frames.view.resize_marker') }}"
+                                                @click="toggleScaleEditor({{ $marker['id'] }})"
+                                            >
+                                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                    <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                                    <path d="m3 3 6 6m12-6-6 6M3 21l6-6m12 6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                                </svg>
+                                            </button>
+
+                                            <div
+                                                id="fieldops-marker-scale-editor-{{ $marker['id'] }}"
+                                                x-show="isScaleEditorOpen({{ $marker['id'] }})"
+                                                x-cloak
+                                                x-transition.opacity.duration.120ms
+                                                class="fieldops-luminaire-frame-spatial__scale-popover"
+                                                data-fieldops-marker-scale-control
+                                                role="dialog"
+                                                aria-label="{{ __('fieldops::resource.luminaire_frames.view.marker_size') }}"
+                                            >
+                                                <div class="fieldops-luminaire-frame-spatial__scale-header">
+                                                    <div>
+                                                        <div class="fieldops-luminaire-frame-spatial__selected-stat-label">
+                                                            {{ __('fieldops::resource.luminaire_frames.view.marker_size') }}
+                                                        </div>
+                                                        <div class="fieldops-luminaire-frame-spatial__selected-hint">
+                                                            {{ __('fieldops::resource.luminaire_frames.view.marker_size_hint') }}
+                                                        </div>
+                                                    </div>
+                                                    <output
+                                                        class="fieldops-luminaire-frame-spatial__scale-value"
+                                                        x-text="selectedMarkerUniformScale().toFixed(2) + '×'"
+                                                    ></output>
+                                                </div>
+
+                                                <input
+                                                    type="range"
+                                                    class="fieldops-luminaire-frame-spatial__scale-slider"
+                                                    min="0.25"
+                                                    max="3"
+                                                    step="0.05"
+                                                    :value="selectedMarkerUniformScale()"
+                                                    :disabled="scaleSavePending"
+                                                    aria-label="{{ __('fieldops::resource.luminaire_frames.view.marker_size') }}"
+                                                    @input="previewSelectedMarkerScale($event.target.value)"
+                                                >
+
+                                                <div class="fieldops-luminaire-frame-spatial__scale-presets">
+                                                    <div class="flex flex-wrap gap-2">
+                                                        @foreach ([0.5, 1, 1.5, 2] as $scalePreset)
+                                                            <button
+                                                                type="button"
+                                                                class="fieldops-luminaire-frame-spatial__scale-preset"
+                                                                :class="isSelectedMarkerScale({{ $scalePreset }}) ? 'fieldops-luminaire-frame-spatial__scale-preset--active' : ''"
+                                                                :disabled="scaleSavePending"
+                                                                @click="previewSelectedMarkerScale({{ $scalePreset }})"
+                                                            >
+                                                                {{ $scalePreset }}×
+                                                            </button>
+                                                        @endforeach
+                                                    </div>
+
+                                                    <span class="fieldops-luminaire-frame-spatial__selected-hint" x-show="scaleSavePending" x-cloak>
+                                                        {{ __('fieldops::resource.luminaire_frames.view.saving_scale') }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>
@@ -1649,7 +2470,7 @@
         <aside
             id="fieldops-luminaire-frame-overview-details"
             class="fieldops-luminaire-frame-spatial__rail"
-            x-show="viewMode === 'technical' || overviewDetailsVisible"
+            x-show="(viewMode === 'technical' && technicalDetailsVisible) || (viewMode === 'overview' && overviewDetailsVisible)"
             x-transition.opacity.duration.150ms
         >
             <div x-show="viewMode === 'overview'" class="fieldops-luminaire-frame-spatial__panel fieldops-luminaire-frame-spatial__selected-card">
@@ -1936,4 +2757,137 @@
             </div>
         </aside>
     </div>
+
+    <template x-teleport="body">
+        <div
+            x-show="createModalOpen"
+            x-cloak
+            x-transition.opacity.duration.150ms
+            class="fieldops-luminaire-frame-spatial__modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fieldops-add-luminaire-title"
+            @keydown.escape.window="closeCreateModal()"
+        >
+            <div class="fieldops-luminaire-frame-spatial__modal-backdrop" @click="closeCreateModal()"></div>
+
+            <form
+                class="fieldops-luminaire-frame-spatial__modal-panel"
+                :aria-busy="createPending"
+                @submit.prevent="createLuminaire()"
+            >
+                <div class="fieldops-luminaire-frame-spatial__modal-header">
+                    <div>
+                        <div id="fieldops-add-luminaire-title" class="fieldops-luminaire-frame-spatial__modal-title">
+                            {{ __('fieldops::resource.luminaire_frames.view.add_luminaire') }}
+                        </div>
+                        <div class="fieldops-luminaire-frame-spatial__modal-copy">
+                            {{ __('fieldops::resource.luminaire_frames.view.add_luminaire_copy') }}
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="fieldops-luminaire-frame-spatial__modal-close"
+                        :disabled="createPending"
+                        aria-label="{{ __('fieldops::resource.luminaire_frames.view.cancel') }}"
+                        @click="closeCreateModal()"
+                    >
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+
+                <div class="fieldops-luminaire-frame-spatial__modal-body">
+                    <label class="fieldops-luminaire-frame-spatial__field" for="fieldops-new-luminaire-type">
+                        <span class="fieldops-luminaire-frame-spatial__field-label">
+                            {{ __('fieldops::resource.luminaires.fields.luminaire_type') }}
+                        </span>
+                        <select
+                            id="fieldops-new-luminaire-type"
+                            class="fieldops-luminaire-frame-spatial__field-control"
+                            x-model="newLuminaireTypeId"
+                            :disabled="createPending"
+                            required
+                        >
+                            @foreach ($payload['luminaireTypes'] as $type)
+                                <option value="{{ $type['id'] }}">
+                                    {{ $type['productFamily'] ?: $type['name'] }} — {{ $type['modelReference'] ?: $type['name'] }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <template x-if="selectedCreateType()">
+                        <div class="fieldops-luminaire-frame-spatial__type-preview" data-fieldops-luminaire-type-preview>
+                            <div class="fieldops-luminaire-frame-spatial__type-preview-media">
+                                <img
+                                    class="fieldops-luminaire-frame-spatial__type-preview-image"
+                                    :src="selectedCreateType().imageUrl"
+                                    :alt="selectedCreateType().name"
+                                    x-on:error="$event.target.src = @js($placeholderImage)"
+                                >
+                            </div>
+                            <div>
+                                <div class="fieldops-luminaire-frame-spatial__type-preview-name" x-text="selectedCreateType().productFamily || selectedCreateType().name"></div>
+                                <div
+                                    class="fieldops-luminaire-frame-spatial__type-preview-meta"
+                                    x-show="selectedCreateType().modelReference"
+                                    x-text="selectedCreateType().modelReference"
+                                ></div>
+                                <div class="fieldops-luminaire-frame-spatial__type-preview-meta" x-text="selectedCreateType().subgroupLabel"></div>
+                                <div
+                                    class="fieldops-luminaire-frame-spatial__type-preview-meta"
+                                    x-show="selectedCreateType().typicalApplication"
+                                    x-text="selectedCreateType().typicalApplication"
+                                ></div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <label class="fieldops-luminaire-frame-spatial__field" for="fieldops-new-luminaire-serial">
+                        <span class="fieldops-luminaire-frame-spatial__field-label">
+                            {{ __('fieldops::resource.luminaires.fields.serial_number') }}
+                        </span>
+                        <input
+                            id="fieldops-new-luminaire-serial"
+                            type="text"
+                            class="fieldops-luminaire-frame-spatial__field-control"
+                            x-model="newLuminaireSerial"
+                            :disabled="createPending"
+                            maxlength="50"
+                            autocomplete="off"
+                        >
+                        <span class="fieldops-luminaire-frame-spatial__field-hint">
+                            {{ __('fieldops::resource.luminaire_frames.view.serial_optional_hint') }}
+                        </span>
+                    </label>
+
+                    <div class="fieldops-luminaire-frame-spatial__field-hint">
+                        {{ __('fieldops::resource.luminaire_frames.view.initial_position_hint') }}
+                    </div>
+
+                    <div x-show="createError" x-cloak class="fieldops-luminaire-frame-spatial__modal-error" x-text="createError"></div>
+                </div>
+
+                <div class="fieldops-luminaire-frame-spatial__modal-actions">
+                    <button
+                        type="button"
+                        class="fieldops-luminaire-frame-spatial__button"
+                        :disabled="createPending"
+                        @click="closeCreateModal()"
+                    >
+                        {{ __('fieldops::resource.luminaire_frames.view.cancel') }}
+                    </button>
+                    <button
+                        type="submit"
+                        class="fieldops-luminaire-frame-spatial__button fieldops-luminaire-frame-spatial__button--primary"
+                        :disabled="createPending || !newLuminaireTypeId"
+                    >
+                        <span x-show="!createPending">{{ __('fieldops::resource.luminaire_frames.view.add_luminaire') }}</span>
+                        <span x-show="createPending" x-cloak>{{ __('fieldops::resource.luminaire_frames.view.creating_luminaire') }}</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </template>
 </div>

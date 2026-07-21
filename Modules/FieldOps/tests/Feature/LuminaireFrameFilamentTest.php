@@ -44,7 +44,13 @@ class LuminaireFrameFilamentTest extends TestCase
             'frame_position' => 2,
             'frame_x' => 90, 'frame_y' => 90, 'scale_x' => 1.5, 'scale_y' => 1.5,
         ]);
-        $l1->luminaireType()->update(['name' => 'BVP525 OptiVision']);
+        $l1->luminaireType()->update([
+            'name' => 'BVP525 OptiVision',
+            'product_family' => 'OptiVision LED gen3.5',
+            'model_reference' => 'BVP518',
+            'typical_application' => 'Recreational football and tennis',
+            'image' => 'https://example.test/bvp525.jpg',
+        ]);
         $l2->luminaireType()->update(['name' => 'BVP527 OptiVision']);
 
         FoMaintenanceRecord::factory()->forMaintainable($l2)->create([
@@ -63,6 +69,21 @@ class LuminaireFrameFilamentTest extends TestCase
             ->assertSee('No open issues')
             ->assertSee('Hide details')
             ->assertSee('Show details')
+            ->assertSee('Add luminaire')
+            ->assertSee('Choose the luminaire type')
+            ->assertSee('fieldops-new-luminaire-type', false)
+            ->assertSee('data-fieldops-luminaire-type-preview', false)
+            ->assertSee('data-fieldops-technical-details-toggle', false)
+            ->assertSee('data-fieldops-marker-scale-control', false)
+            ->assertSee("setViewMode('technical')", false)
+            ->assertSee("destination.searchParams.set('layout', 'technical')", false)
+            ->assertSee('https://example.test/bvp525.jpg', false)
+            ->assertSee('OptiVision LED gen3.5')
+            ->assertSee('BVP518')
+            ->assertSee('Recreational football and tennis')
+            ->assertSee(__('fieldops::resource.luminaire_frames.view.marker_size'))
+            ->assertSee(__('fieldops::resource.luminaire_frames.view.marker_size_hint'))
+            ->assertSee(__('fieldops::resource.luminaire_frames.view.resize_marker'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.layout_hint'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.sidebar_title'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.selected_position_label'))
@@ -82,6 +103,8 @@ class LuminaireFrameFilamentTest extends TestCase
             ->assertSee('Geen open meldingen')
             ->assertSee('Details verbergen')
             ->assertSee('Details tonen')
+            ->assertSee('Armatuur toevoegen')
+            ->assertSee('Kies het armatuurtype')
             ->assertDontSee('fieldops::resource.luminaire_frames.view.canvas_label')
             ->assertDontSee('Opgelost');
 

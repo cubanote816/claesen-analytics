@@ -9,6 +9,7 @@ use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireSubgroup;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class LuminaireCrudTest extends TestCase
@@ -25,6 +26,8 @@ class LuminaireCrudTest extends TestCase
         parent::setUp();
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
         $this->user     = User::factory()->create();
+        Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        $this->user->assignRole('super_admin');
         $this->subgroup = LuminaireSubgroup::factory()->create();
         $this->type     = LuminaireType::factory()->create(['luminaire_subgroup_id' => $this->subgroup->id]);
         $this->frame    = LuminaireFrame::factory()->create();
@@ -45,6 +48,20 @@ class LuminaireCrudTest extends TestCase
     public function test_store_requires_auth(): void
     {
         $this->postJson('/api/v1/fieldops/luminaires', [])->assertUnauthorized();
+    }
+
+    public function test_backoffice_editor_store_requires_auth(): void
+    {
+        $this->postJson(route('fieldops.luminaire-frame-editor.luminaires.store'), [])->assertUnauthorized();
+    }
+
+    public function test_backoffice_editor_forbids_user_without_admin_role(): void
+    {
+        $userWithoutRole = User::factory()->create();
+
+        $this->actingAs($userWithoutRole)
+            ->postJson(route('fieldops.luminaire-frame-editor.luminaires.store'), $this->validPayload())
+            ->assertForbidden();
     }
 
     // ── STORE ─────────────────────────────────────────────────────────────
@@ -92,6 +109,54 @@ class LuminaireCrudTest extends TestCase
             ->postJson('/api/v1/fieldops/luminaires', $this->validPayload(['serial_number' => 'SN-002']))
             ->assertCreated()
             ->assertJsonPath('data.frame_position', 2);
+    }
+
+    public function test_canvas_create_and_position_update_persist_after_reload(): void
+    {
+        $created = $this->actingAs($this->user)
+            ->postJson(route('fieldops.luminaire-frame-editor.luminaires.store'), $this->validPayload([
+                'serial_number' => null,
+                'frame_x' => 0.5,
+                'frame_y' => 0.5,
+                'scale_x' => 1,
+                'scale_y' => 1,
+            ]))
+            ->assertCreated()
+            ->assertJsonPath('data.frame_position', 1)
+            ->assertJsonPath('data.frame_x', 0.5)
+            ->assertJsonPath('data.frame_y', 0.5)
+            ->assertJsonPath('data.position_version', 1)
+            ->assertJsonPath('data.position_source', 'backoffice');
+
+        $luminaireId = (int) $created->json('data.id');
+
+        $this->actingAs($this->user)
+            ->patchJson(route('fieldops.luminaire-frame-editor.luminaires.update', ['luminaire' => $luminaireId]), [
+                'frame_x' => 0.73,
+                'frame_y' => 0.28,
+                'position_version' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.frame_x', 0.73)
+            ->assertJsonPath('data.frame_y', 0.28)
+            ->assertJsonPath('data.position_version', 2);
+
+        $this->assertDatabaseHas('fo_luminaires', [
+            'id' => $luminaireId,
+            'luminaire_frame_id' => $this->frame->id,
+            'frame_position' => 1,
+            'frame_x' => 0.73,
+            'frame_y' => 0.28,
+            'position_version' => 2,
+            'position_source' => 'backoffice',
+        ]);
+
+        $this->actingAs($this->user)
+            ->getJson(route('fieldops.luminaire-frame-editor.luminaires.show', ['luminaire' => $luminaireId]))
+            ->assertOk()
+            ->assertJsonPath('data.frame_x', 0.73)
+            ->assertJsonPath('data.frame_y', 0.28)
+            ->assertJsonPath('data.position_version', 2);
     }
 
     public function test_store_fails_with_duplicate_serial_number(): void
@@ -184,6 +249,44 @@ class LuminaireCrudTest extends TestCase
             ->assertJsonPath('data.scale_y', 0.9);
     }
 
+    public function test_backoffice_scale_update_preserves_exact_frame_position(): void
+    {
+        $verifiedAt = now()->subHour()->startOfSecond();
+        $luminaire = Luminaire::factory()->create([
+            'luminaire_frame_id' => $this->frame->id,
+            'luminaire_type_id' => $this->type->id,
+            'luminaire_subgroup_id' => $this->subgroup->id,
+            'frame_x' => 0.2713,
+            'frame_y' => 0.6842,
+            'scale_x' => 1,
+            'scale_y' => 1,
+            'position_version' => 7,
+            'position_source' => 'frontend',
+            'position_verified_by_user_id' => $this->user->id,
+            'position_verified_at' => $verifiedAt,
+        ]);
+
+        $this->actingAs($this->user)
+            ->patchJson(route('fieldops.luminaire-frame-editor.luminaires.update', ['luminaire' => $luminaire]), [
+                'scale_x' => 1.75,
+                'scale_y' => 1.75,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.scale_x', 1.75)
+            ->assertJsonPath('data.scale_y', 1.75)
+            ->assertJsonPath('data.frame_x', 0.2713)
+            ->assertJsonPath('data.frame_y', 0.6842)
+            ->assertJsonPath('data.position_version', 7)
+            ->assertJsonPath('data.position_source', 'frontend');
+
+        $fresh = $luminaire->fresh();
+        $this->assertEqualsWithDelta(0.2713, (float) $fresh->frame_x, 0.00001);
+        $this->assertEqualsWithDelta(0.6842, (float) $fresh->frame_y, 0.00001);
+        $this->assertSame(7, $fresh->position_version);
+        $this->assertSame('frontend', $fresh->position_source);
+        $this->assertTrue($verifiedAt->equalTo($fresh->position_verified_at));
+    }
+
     public function test_update_frame_coordinates(): void
     {
         $luminaire = Luminaire::factory()->create([
@@ -271,6 +374,8 @@ class LuminaireCrudTest extends TestCase
             'luminaire_frame_id'    => $this->frame->id,
             'luminaire_type_id'     => $this->type->id,
             'luminaire_subgroup_id' => $this->subgroup->id,
+            'frame_x' => 0.2,
+            'frame_y' => 0.3,
             'position_version'      => 3,
         ]);
 
@@ -281,7 +386,15 @@ class LuminaireCrudTest extends TestCase
                 'position_version' => 1,
             ])
             ->assertStatus(409)
-            ->assertJsonPath('current_position_version', 3);
+            ->assertJsonPath('current_position_version', 3)
+            ->assertJsonPath('message', __('fieldops::resource.luminaires.position_conflict'));
+
+        $this->assertDatabaseHas('fo_luminaires', [
+            'id' => $luminaire->id,
+            'frame_x' => 0.2,
+            'frame_y' => 0.3,
+            'position_version' => 3,
+        ]);
     }
 
     public function test_show_404_for_deleted(): void

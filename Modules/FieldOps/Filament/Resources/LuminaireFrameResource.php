@@ -28,6 +28,7 @@ use Modules\FieldOps\Filament\Resources\LuminaireFrames\RelationManagers\Luminai
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
+use Modules\FieldOps\Models\LuminaireType;
 
 class LuminaireFrameResource extends Resource
 {
@@ -234,6 +235,9 @@ class LuminaireFrameResource extends Resource
      *     }>,
      *     selectedId: ?int,
      *     selectedMarker: ?array<string, mixed>,
+     *     frameId: int,
+     *     createUrl: string,
+     *     luminaireTypes: array<int, array{id: int, name: string, productFamily: ?string, modelReference: ?string, typicalApplication: ?string, subgroupId: int, subgroupLabel: string, imageUrl: string, hasImage: bool}>,
      * }
      */
     protected static function buildSpatialLayoutState(LuminaireFrame $record): array
@@ -274,7 +278,7 @@ class LuminaireFrameResource extends Resource
                 'hasImage' => $imageUrl !== $placeholderImage,
                 'flagged' => $hasOpenIssue,
                 'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('view', ['record' => $luminaire]),
-                'updateUrl' => url("/api/v1/fieldops/luminaires/{$luminaire->id}"),
+                'updateUrl' => route('fieldops.luminaire-frame-editor.luminaires.update', ['luminaire' => $luminaire]),
                 'hasCoordinates' => self::normalizeFrameCoordinate($luminaire->frame_x) !== null && self::normalizeFrameCoordinate($luminaire->frame_y) !== null,
             ];
         });
@@ -367,6 +371,26 @@ class LuminaireFrameResource extends Resource
             'unpositioned' => $unpositioned->values()->all(),
             'selectedId' => $selectedId,
             'selectedMarker' => $selectedMarker,
+            'frameId' => (int) $record->getKey(),
+            'createUrl' => route('fieldops.luminaire-frame-editor.luminaires.store'),
+            'luminaireTypes' => LuminaireType::query()
+                ->with('subgroup')
+                ->whereHas('subgroup')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (LuminaireType $type): array => [
+                    'id' => (int) $type->getKey(),
+                    'name' => $type->name,
+                    'productFamily' => $type->product_family,
+                    'modelReference' => $type->model_reference,
+                    'typicalApplication' => $type->typical_application,
+                    'subgroupId' => (int) $type->luminaire_subgroup_id,
+                    'subgroupLabel' => "{$type->subgroup->group_name} — {$type->subgroup->brand}",
+                    'imageUrl' => static::resolveMarkerImageUrl($type->image) ?? $placeholderImage,
+                    'hasImage' => static::resolveMarkerImageUrl($type->image) !== null,
+                ])
+                ->values()
+                ->all(),
         ];
     }
 

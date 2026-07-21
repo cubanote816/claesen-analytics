@@ -2,6 +2,8 @@
 
 namespace Modules\FieldOps\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
 use Modules\FieldOps\Http\Requests\StoreLuminaireRequest;
@@ -11,6 +13,27 @@ use Modules\FieldOps\Models\Luminaire;
 
 class LuminaireController extends Controller
 {
+    public function showFromBackoffice(Request $request, Luminaire $luminaire): JsonResponse
+    {
+        $this->authorizeBackofficeEditor($request);
+
+        return $this->show($luminaire);
+    }
+
+    public function storeFromBackoffice(StoreLuminaireRequest $request): JsonResponse
+    {
+        $this->authorizeBackofficeEditor($request);
+
+        return $this->store($request);
+    }
+
+    public function updateFromBackoffice(UpdateLuminaireRequest $request, Luminaire $luminaire): JsonResponse
+    {
+        $this->authorizeBackofficeEditor($request);
+
+        return $this->update($request, $luminaire);
+    }
+
     public function show(Luminaire $luminaire): \Illuminate\Http\JsonResponse
     {
         $luminaire->load('luminaireType', 'subgroup', 'createdBy');
@@ -133,6 +156,14 @@ class LuminaireController extends Controller
         }
 
         return 'AUTO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(6));
+    }
+
+    private function authorizeBackofficeEditor(Request $request): void
+    {
+        abort_unless(
+            $request->user()?->hasAnyRole(['super_admin', 'admin']) ?? false,
+            403,
+        );
     }
 
     public function destroy(Luminaire $luminaire): \Illuminate\Http\Response
