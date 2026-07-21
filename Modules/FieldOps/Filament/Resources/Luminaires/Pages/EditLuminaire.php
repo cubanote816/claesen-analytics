@@ -4,9 +4,11 @@ namespace Modules\FieldOps\Filament\Resources\Luminaires\Pages;
 
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Validation\ValidationException;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
+use Modules\FieldOps\Models\LuminaireType;
 
 class EditLuminaire extends EditRecord
 {
@@ -15,6 +17,7 @@ class EditLuminaire extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ViewAction::make(),
             RestoreAction::make(),
             DeleteAction::make(),
         ];
@@ -22,6 +25,12 @@ class EditLuminaire extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        if (array_key_exists('luminaire_type_id', $data)) {
+            $data['luminaire_subgroup_id'] = $data['luminaire_type_id']
+                ? LuminaireType::find($data['luminaire_type_id'])?->luminaire_subgroup_id
+                : null;
+        }
+
         $touchesPosition = array_key_exists('frame_x', $data) || array_key_exists('frame_y', $data);
 
         if ($touchesPosition) {

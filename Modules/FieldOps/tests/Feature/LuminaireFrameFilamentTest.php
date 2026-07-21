@@ -6,6 +6,7 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
@@ -75,6 +76,12 @@ class LuminaireFrameFilamentTest extends TestCase
             ->assertSee('data-fieldops-luminaire-type-preview', false)
             ->assertSee('data-fieldops-technical-details-toggle', false)
             ->assertSee('data-fieldops-marker-scale-control', false)
+            ->assertSee('draggable="false"', false)
+            ->assertSee('@dragstart.prevent', false)
+            ->assertSee("this.viewMode === 'overview'", false)
+            ->assertSee('window.Livewire.navigate(marker.url)', false)
+            ->assertSee('wire:navigate', false)
+            ->assertSee('x-show="viewMode === \'technical\'"', false)
             ->assertSee("setViewMode('technical')", false)
             ->assertSee("destination.searchParams.set('layout', 'technical')", false)
             ->assertSee('https://example.test/bvp525.jpg', false)
@@ -88,6 +95,12 @@ class LuminaireFrameFilamentTest extends TestCase
             ->assertSee(__('fieldops::resource.luminaire_frames.view.sidebar_title'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.selected_position_label'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.open_position_details'))
+            ->assertSee(__('fieldops::resource.luminaires.actions.add_maintenance'))
+            ->assertSee(FoMaintenanceRecordResource::getUrl('create', [
+                'maintainable_type' => Luminaire::class,
+                'maintainable_id' => $l1->id,
+                'return_luminaire' => $l1->id,
+            ]))
             ->assertDontSee('fieldops::resource.luminaire_frames.view.canvas_label')
             ->assertDontSee('Resolved')
             ->assertSee(LuminaireResource::getUrl('view', ['record' => $l1]), false)
@@ -104,6 +117,7 @@ class LuminaireFrameFilamentTest extends TestCase
             ->assertSee('Details verbergen')
             ->assertSee('Details tonen')
             ->assertSee('Armatuur toevoegen')
+            ->assertSee('Onderhoud toevoegen')
             ->assertSee('Kies het armatuurtype')
             ->assertDontSee('fieldops::resource.luminaire_frames.view.canvas_label')
             ->assertDontSee('Opgelost');

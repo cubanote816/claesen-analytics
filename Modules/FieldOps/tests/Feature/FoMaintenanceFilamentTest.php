@@ -75,4 +75,37 @@ class FoMaintenanceFilamentTest extends TestCase
 
         $this->get("/fo-maintenance-records/{$record->id}")->assertOk();
     }
+
+    public function test_luminaire_scoped_history_and_create_navigation_render(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $target = Luminaire::factory()->create();
+        $other = Luminaire::factory()->create();
+        $targetType = FoMaintenanceType::factory()->preventive()->create();
+        $targetType->setTranslation('name', 'en', 'Target inspection')->save();
+        $otherType = FoMaintenanceType::factory()->corrective()->create();
+        $otherType->setTranslation('name', 'en', 'Other inspection')->save();
+
+        FoMaintenanceRecord::factory()->forMaintainable($target)->create(['fo_maintenance_type_id' => $targetType->id]);
+        FoMaintenanceRecord::factory()->forMaintainable($other)->create(['fo_maintenance_type_id' => $otherType->id]);
+
+        $this->withHeader('Accept-Language', 'en-US')->get("/fo-maintenance-records?luminaire={$target->id}")
+            ->assertOk()
+            ->assertSee('Target inspection')
+            ->assertDontSee('Other inspection')
+            ->assertSee('Back to luminaire');
+
+        $createUrl = '/fo-maintenance-records/create?'.http_build_query([
+            'maintainable_type' => Luminaire::class,
+            'maintainable_id' => $target->id,
+            'return_luminaire' => $target->id,
+        ]);
+
+        $this->withHeader('Accept-Language', 'en-US')->get($createUrl)
+            ->assertOk()
+            ->assertSee($target->serial_number);
+    }
 }

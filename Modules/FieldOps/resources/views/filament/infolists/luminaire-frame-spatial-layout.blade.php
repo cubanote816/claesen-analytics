@@ -818,6 +818,9 @@
                 object-position: center center;
                 display: block;
                 padding: 0.3rem;
+                pointer-events: none;
+                user-select: none;
+                -webkit-user-drag: none;
                 filter: saturate(0.82) contrast(1.04) brightness(0.98);
             }
 
@@ -1885,7 +1888,27 @@
                         this.selectedId = Number(id);
                     },
                     handleMarkerClick(id) {
+                        if (this.viewMode === 'overview') {
+                            this.openMarker(id);
+
+                            return;
+                        }
+
                         this.selectMarker(id);
+                    },
+                    openMarker(id) {
+                        const marker = this.markers.find((item) => Number(item.id) === Number(id));
+                        if (!marker?.url) {
+                            return;
+                        }
+
+                        if (window.Livewire && typeof window.Livewire.navigate === 'function') {
+                            window.Livewire.navigate(marker.url);
+
+                            return;
+                        }
+
+                        window.location.assign(marker.url);
                     },
                     beginDrag(event, id) {
                         const marker = this.markers.find((item) => Number(item.id) === Number(id));
@@ -2322,6 +2345,8 @@
                                                         src="{{ $marker['imageUrl'] }}"
                                                         alt=""
                                                         loading="lazy"
+                                                        draggable="false"
+                                                        @dragstart.prevent
                                                         onerror="this.onerror=null;this.src='{{ $placeholderImage }}';"
                                                     >
                                                 </div>
@@ -2347,6 +2372,11 @@
                                         <a
                                             href="{{ $marker['url'] }}"
                                             class="fieldops-luminaire-frame-spatial__marker-open"
+                                            x-show="viewMode === 'technical'"
+                                            x-cloak
+                                            wire:navigate
+                                            @pointerdown.stop
+                                            @click.stop
                                             title="{{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}"
                                             aria-label="{{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}"
                                         >
@@ -2519,6 +2549,12 @@
                             <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.url">
                                 {{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}
                             </a>
+                            <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceCreateUrl">
+                                {{ __('fieldops::resource.luminaires.actions.add_maintenance') }}
+                            </a>
+                            <a x-show="selectedMarker()?.maintenanceCount > 0" class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceIndexUrl">
+                                {{ __('fieldops::resource.luminaires.actions.view_history') }}
+                            </a>
                         </div>
                     </div>
                 </template>
@@ -2666,6 +2702,12 @@
                             <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.url">
                                 {{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}
                             </a>
+                            <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceCreateUrl">
+                                {{ __('fieldops::resource.luminaires.actions.add_maintenance') }}
+                            </a>
+                            <a x-show="selectedMarker()?.maintenanceCount > 0" class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceIndexUrl">
+                                {{ __('fieldops::resource.luminaires.actions.view_history') }}
+                            </a>
                         </div>
 
                         <div x-show="statusMessage" class="fieldops-luminaire-frame-spatial__selected-hint" x-text="statusMessage"></div>
@@ -2747,6 +2789,14 @@
                             <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['url'] }}">
                                 {{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}
                             </a>
+                            <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceCreateUrl'] }}">
+                                {{ __('fieldops::resource.luminaires.actions.add_maintenance') }}
+                            </a>
+                            @if (($selected['maintenanceCount'] ?? 0) > 0)
+                                <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceIndexUrl'] }}">
+                                    {{ __('fieldops::resource.luminaires.actions.view_history') }}
+                                </a>
+                            @endif
                         </div>
                     </div>
                 @else

@@ -117,12 +117,14 @@ class FoMaintenanceRecordResource extends Resource
                         Luminaire::class => 'Luminaire',
                         ElectricalBoard::class => 'Electrical board',
                     ])
+                    ->default(fn () => request('maintainable_type'))
                     ->required()
                     ->live()
                     ->afterStateUpdated(fn ($set) => $set('maintainable_id', null)),
                 Select::make('maintainable_id')
                     ->label(' ')
                     ->options(fn (Get $get) => self::maintainableOptions($get('maintainable_type')))
+                    ->default(fn () => request()->integer('maintainable_id') ?: null)
                     ->searchable()
                     ->required(),
                 Select::make('fo_maintenance_type_id')
