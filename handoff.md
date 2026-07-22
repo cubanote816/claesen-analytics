@@ -1,7 +1,15 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-272 Done** (commit `4934f9f`, terrenos en mapas de Complex/Structure/ElectricalBoard ya usan el pin de deporte correcto); CLA-271/270/269/266 permanecen Done.
+> Última actualización: 2026-07-22 — **CLA-273 Done** (commit `02650f8`, fix `[object Object]` en Access/Structure/Safety/ElectricalBoardType); CLA-272/271/270/269/266 permanecen Done.
+
+### Sesión 2026-07-22 — CLA-273: fix bug [object Object] en 4 catálogos más (Done, commit `02650f8`)
+
+**Contexto:** tras cerrar CLA-269 (fix del mismo bug en Terrain Types), quedó documentado en `CLAUDE.md` que "el mismo bug sigue presente sin fix en los otros 7 catálogos" — el usuario pidió solucionarlo.
+
+- **Corrección de alcance:** al revisar los modelos, solo 4 de esos 7 catálogos tienen el bug real: `AccessType`, `StructureType`, `SafetyType`, `ElectricalBoardType` (los 4 con `public array $translatable = ['name']` + `HasTranslations`). Los otros 3 (`LuminaireFrameType`, `LuminaireSubgroup`, `LuminaireType`) usan columnas string planas, no JSON traducible — nunca tuvieron este bug, se descartó tocarlos.
+- **Fix:** mismo `mutateFormDataBeforeFill()` ya usado en `EditTerrain.php`/`EditTerrainType.php`, aplicado en los 4 `EditXxxType.php` correspondientes.
+- **Tests:** 4 tests nuevos (uno por catálogo) — **4/4 verde** en corrida limpia (10/11 del archivo completo; el único fallo fue un test preexistente no relacionado, por contención de DB con otra sesión concurrente).
 
 ### Sesión 2026-07-22 — CLA-272: fix pines de terreno en mapas de Complex/Structure/ElectricalBoard (Done, commit `4934f9f`)
 
@@ -1396,6 +1404,14 @@ Próximo paso: definir el próximo ticket Linear antes de iniciar cualquier trab
 ---
 
 ## Cómo reanudar una sesión
+
+### FieldOps CLA-268 — solicitudes de cliente (en progreso)
+
+- Se creó `fo_maintenance_requests` como dominio separado del histórico validado.
+- La API deriva `client_id` desde el usuario autenticado y captura snapshot de la posición.
+- La conversión a orden de trabajo es idempotente mediante `work_order_id`.
+- El cierre de una orden actualiza la solicitud a `resolved` y guarda una respuesta pública.
+- Pendiente: UI de triage, adjuntos/respuestas completas, notificaciones de cliente, pruebas con MySQL y revisión técnica.
 
 ```
 Lee CLAUDE.md, handoff.md y docs/ai/README.md.
