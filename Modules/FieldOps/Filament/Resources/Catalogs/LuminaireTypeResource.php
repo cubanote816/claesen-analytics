@@ -6,6 +6,7 @@ use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -16,6 +17,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
 use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireTypes\Pages\CreateLuminaireType;
 use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireTypes\Pages\EditLuminaireType;
 use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireTypes\Pages\ListLuminaireTypes;
@@ -58,7 +60,7 @@ class LuminaireTypeResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make()->schema([
+            Section::make()->columnSpanFull()->schema([
                 TextInput::make('name')
                     ->label(__('fieldops::resource.catalogs.fields.name'))
                     ->required()
@@ -76,12 +78,30 @@ class LuminaireTypeResource extends Resource
                     )
                     ->searchable()
                     ->nullable(),
-                TextInput::make('image')
+                FileUpload::make('image')
                     ->label(__('fieldops::resource.catalogs.fields.image'))
-                    ->maxLength(255),
+                    ->disk('public')
+                    ->directory('luminaire-types')
+                    ->image()
+                    ->imageEditor()
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->maxSize(10240)
+                    // Legacy seed data stores either a bundled asset path (public/assets/...,
+                    // outside any Laravel disk) or a bare external URL — neither exists on the
+                    // 'public' disk, so the default fetchFileInformation()->exists() check would
+                    // silently drop them from state on hydrate (and erase them on save).
+                    ->fetchFileInformation(false)
+                    ->getUploadedFileUsing(fn (string $file): array => [
+                        'name' => basename($file),
+                        'size' => 0,
+                        'type' => null,
+                        'url' => static::resolveImageUrl($file),
+                    ])
+                    ->columnSpanFull(),
                 TextInput::make('image_source_url')
                     ->label(__('fieldops::resource.catalogs.fields.image_source_url'))
-                    ->url(),
+                    ->url()
+                    ->columnSpanFull(),
                 Textarea::make('typical_application')
                     ->label(__('fieldops::resource.catalogs.fields.typical_application'))
                     ->rows(3)
@@ -157,6 +177,10 @@ class LuminaireTypeResource extends Resource
 
         if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://') || str_starts_with($image, 'data:')) {
             return $image;
+        }
+
+        if (Storage::disk('public')->exists($image)) {
+            return Storage::disk('public')->url($image);
         }
 
         return asset(ltrim($image, '/'));
