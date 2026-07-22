@@ -1,7 +1,16 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-269 Done** (commit `1fa1faa`) y **CLA-266 aprobado para cierre**. El aislamiento tenant, la identidad cliente y el hardening OAuth recibieron GO técnico.
+> Última actualización: 2026-07-22 — **CLA-270 Done** (commit `e37a1b9`, fix visual de los pines de Terrain Types), **CLA-269 Done** (commit `1fa1faa`) y **CLA-266 aprobado para cierre**. El aislamiento tenant, la identidad cliente y el hardening OAuth recibieron GO técnico.
+
+### Sesión 2026-07-22 — CLA-270: fix visual de los pines de Terrain Types (Done, commit `e37a1b9`)
+
+**Contexto:** el usuario reportó (con capturas) que los pines de CLA-269 no se veían bien en los mapas ni en el selector de create/edit/view — incluidos soccer y tenis, que deberían haber sido de los más simples.
+
+- **Causa real:** CLA-269 mantuvo los 19 íconos con el diseño de "badge cuadrado" (heredado de CLA-256) y los intentó encajar en el contorno de gota tradicional escalándolos (`scale(0.72)` + reposición) en vez de redibujarlos para el espacio más angosto de la cabeza de la gota. El resultado era técnicamente correcto (el código se ejecutaba bien, los tests pasaban) pero visualmente ilegible: líneas demasiado finas, formas que se veían como una cruz genérica en vez del ícono real.
+- **Fix:** en vez de seguir escalando, se portaron 1:1 los 19 fragmentos de ícono ya diseñados nativamente para la gota en el artifact de revisión `ccf2310c` (coordenadas centradas en origen, pensadas para un bulbo de radio ~9-10) — mismo archivo (`TerrainPinCatalog.php`), mismos 19 códigos, misma API pública (`definitions()`/`find()`/`codes()`), solo cambia el contenido de cada SVG.
+- **Verificación:** `php -l` limpio, inspección manual vía `tinker` confirmando que el SVG resuelto para soccer/tenis coincide con el diseño real del artifact (balón con parche pentagonal + líneas de portería; raqueta con cuerdas + mango). Tests `CatalogFilamentTest`/`TerrainFilamentTest` **12/12** en corrida aislada antes de que otra sesión concurrente (CLA-266/CLA-267 corriendo `MaintenanceWorkOrder*Test`) volviera a generar contención de DB compartida — mismo patrón ya documentado en `feedback_sail_docker` (memoria).
+- **Artifact actualizado** con la nota corregida ("ahora coincide pixel a pixel con producción").
 
 ### Sesión 2026-07-22 — CLA-269: fix locale Terrain Types + selector visual de marcador + catálogo ampliado (Done, commit `1fa1faa`)
 
