@@ -6,8 +6,12 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Models\AccessType;
+use Modules\FieldOps\Models\ElectricalBoardType;
 use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\LuminaireType;
+use Modules\FieldOps\Models\SafetyType;
+use Modules\FieldOps\Models\StructureType;
 use Modules\FieldOps\Models\TerrainType;
 use Modules\FieldOps\Support\TerrainPinCatalog;
 use Spatie\Permission\Models\Role;
@@ -140,5 +144,51 @@ class CatalogFilamentTest extends TestCase
 
         $this->assertCount(19, $codes);
         $this->assertCount(19, array_unique($codes));
+    }
+
+    /**
+     * @param class-string<AccessType|StructureType|SafetyType|ElectricalBoardType> $modelClass
+     */
+    private function assertCatalogEditResolvesTranslatedLabel(string $modelClass, string $urlSegment): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        app()->setLocale('en');
+
+        $record = $modelClass::factory()->create([
+            'name' => ['nl' => 'Testwaarde', 'en' => 'Test value', 'fr' => 'Valeur de test', 'de' => 'Testwert'],
+        ]);
+
+        $this->get("/catalogs/{$urlSegment}/{$record->id}/edit")
+            ->assertOk()
+            ->assertSee('Test value', false)
+            ->assertDontSee('[object Object]', false);
+    }
+
+    // CLA-273 — same [object Object] bug as CLA-269's Terrain Types, for the
+    // other 4 single-field-translatable catalogs (LuminaireFrameType,
+    // LuminaireSubgroup, LuminaireType are plain strings, not translatable —
+    // they never had this bug, confirmed by reading their models).
+
+    public function test_access_type_edit_resolves_translated_label_instead_of_raw_json(): void
+    {
+        $this->assertCatalogEditResolvesTranslatedLabel(AccessType::class, 'access-types');
+    }
+
+    public function test_structure_type_edit_resolves_translated_label_instead_of_raw_json(): void
+    {
+        $this->assertCatalogEditResolvesTranslatedLabel(StructureType::class, 'structure-types');
+    }
+
+    public function test_safety_type_edit_resolves_translated_label_instead_of_raw_json(): void
+    {
+        $this->assertCatalogEditResolvesTranslatedLabel(SafetyType::class, 'safety-types');
+    }
+
+    public function test_electrical_board_type_edit_resolves_translated_label_instead_of_raw_json(): void
+    {
+        $this->assertCatalogEditResolvesTranslatedLabel(ElectricalBoardType::class, 'electrical-board-types');
     }
 }
