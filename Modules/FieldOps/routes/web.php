@@ -22,4 +22,6 @@ Route::middleware(['auth', \Modules\Core\Http\Middleware\BrowserLocaleMiddleware
             ->name('show');
         Route::patch('/{luminaire}', [LuminaireController::class, 'updateFromBackoffice'])
             ->name('update');
+        Route::post('/{luminaire}/replacement', [LuminaireController::class, 'replaceFromBackoffice'])
+            ->name('replace');
     });

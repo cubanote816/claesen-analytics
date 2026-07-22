@@ -1,9 +1,25 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-21 — **CLA-264 implementado y en revisión técnica**; CLA-262 y CLA-263 permanecen completados. La experiencia de luminaria ahora prioriza estado operativo, producto, ubicación y mantenimiento, con navegación contextual entre Frame → Luminaire → Maintenance y edición visual del catálogo. El contexto previo de FieldOps (CLA-230 a CLA-263) se mantiene sin cambios; CLA-248 sigue en backlog.
+> Última actualización: 2026-07-22 — **CLA-265 completado con GO técnico**; CLA-264 quedó cerrado en `3c0ecf2`. FieldOps ahora separa la posición física estable del frame de cada luminaria instalada y permite reemplazar el equipo sin perder nunca sus coordenadas ni escala. Siguientes slices: CLA-266 (ownership/autorización), CLA-267 (planes y órdenes) y CLA-268 (solicitudes de cliente).
 
-### Sesión 2026-07-21 — CLA-264: detalle, edición y navegación de luminarias (In Progress)
+### Sesión 2026-07-21/22 — CLA-265: posición estable y reemplazo atómico de luminarias (Done)
+
+**Contexto:** el dominio anterior trataba la luminaria y su ubicación como una sola fila. Reemplazar el equipo podía borrar o reinterpretar el punto físico del frame, impidiendo un historial confiable y haciendo difícil relacionar mantenimiento anterior y actual.
+
+- **Posición física estable:** nueva entidad `fo_luminaire_positions`, única por `(luminaire_frame_id, frame_position)`, que es la fuente canónica de X/Y, escala, versión, origen y verificación. Las columnas espaciales de `fo_luminaires` se mantienen como espejo compatible para los consumidores actuales.
+- **Ciclo de instalación:** cada fila de `fo_luminaires` representa un equipo instalado. `luminaire_position_id` conserva su posición histórica; `active_position_id` único identifica la instalación vigente; `installed_at`, `removed_at`, `removal_reason` y `replaced_by_luminaire_id` forman la cadena de reemplazo.
+- **Reemplazo transaccional:** `LuminaireReplacementService` bloquea luminaria y posición, exige la versión espacial vigente, retira la instalación anterior, crea la nueva con exactamente la misma posición y genera el mantenimiento de tipo `replacement`, todo en una transacción. Serial duplicado, versión obsoleta o segundo reemplazo revierten el ciclo completo.
+- **Historial por posición:** mantenimiento e historial de instalaciones se consultan por `luminaire_position_id`, por lo que el detalle actual y el retirado comparten el ciclo completo. La vista de mantenimiento compara explícitamente luminaria retirada e instalada con enlaces a ambas.
+- **Follow-up — historial unificado desde el frame:** el contador, las incidencias y `View history` de Luminaire Frame ahora se resuelven sobre la posición estable, no sobre la luminaria vigente. El enlace permanece visible aunque todavía no existan eventos y lleva `luminaire + position`; si una URL antigua solo trae la luminaria, la página deriva automáticamente su posición antes de filtrar.
+- **Contrato temporal validado:** una misma vista de historial muestra mantenimiento preventivo de la luminaria anterior, el evento de reemplazo y mantenimiento correctivo de la nueva. Cada registro conserva la luminaria instalada cuando ocurrió, mientras la posición funciona como agregado común.
+- **Follow-up — serial duplicado sin error 500:** el modal de reemplazo fuerza `ignoreRecord: false` porque crea una instalación nueva, aunque se abra desde el detalle de la anterior. El servicio vuelve a verificar el serial incluyendo soft-deleted y convierte una colisión concurrente del índice MySQL en `ValidationException`; API y modal muestran un mensaje EN/NL en `serial_number`. Se verificó en la BD que el intento real con `000` se revirtió por completo antes del fix: luminaria anterior activa, sin reemplazo y sin mantenimiento parcial.
+- **Backoffice y API:** endpoint Sanctum y endpoint web interno para reemplazo; el web mantiene el gate `super_admin`/`admin`. El detalle de luminaria incorpora la acción `Replace luminaire`, selector visual de producto, serial, fecha, técnico, motivo, causa, solución y notas.
+- **Backfill local validado:** migración aplicada sobre las 2 luminarias existentes. Se generaron 2 posiciones y se conservaron exactamente frame/slot/X/Y/escala/versión: `0.0851/0.4802/1.75/v8` y `0.8987/0.2570/2.0/v3`; no quedó mantenimiento de luminarias sin posición.
+- **Tests/checks:** slice inicial → **70 passed, 346 assertions**. Follow-up de historial por posición → **33 passed, 214 assertions**. Guard de serial: modal Filament → **1 passed, 10 assertions**; API/servicio/rollback → **2 passed, 13 assertions**. Sintaxis PHP, Pint, Blade cache, ruta registrada, `git diff --check` y `npm run build` pasan; Vite mantiene el warning CSS preexistente. Suite FieldOps amplia: **228 passed** antes de que 72 tests se abortaran por la contaminación preexistente `RoleAlreadyExists` entre clases; no hubo fallos de aserción del reemplazo.
+- **Estado:** GO técnico recibido; implementación, migración local, commit dedicado y cierre de Linear autorizados.
+
+### Sesión 2026-07-21 — CLA-264: detalle, edición y navegación de luminarias (Done)
 
 **Contexto:** la vista `/luminaires/{id}` mostraba el serial como título dominante, datos técnicos sin jerarquía, un canvas pequeño y mantenimiento sin acciones. El usuario pidió una UI más profesional y una navegación correcta desde Luminaire Frame hacia Luminaire y Maintenance.
 
@@ -18,7 +34,7 @@
 - **Prueba real:** Chromium a `1917×971` validó imagen cargada, dos tarjetas operativas, URL `layout=technical&luminaire=20`, historial filtrado, galería de edición con un único tipo seleccionado y las 10 imágenes cargadas, además de la acción de mantenimiento visible en el frame. Usuario/credencial temporal eliminados.
 - **Prueba real del drag:** Chromium confirmó `draggable=false`, `pointer-events:none`, `user-select:none`, `-webkit-user-drag:none` y **0 eventos `dragstart`**. El marcador recorrió cinco muestras progresivas y la posición final persistió después de recargar. `LuminaireFrameFilamentTest` + `LuminaireCrudTest` → **34 passed, 184 assertions**; marcador/usuario/credencial temporales eliminados.
 - **Prueba real de navegación:** Chromium confirmó que la imagen de Overview navega al detalle manteniendo un sentinel en `window` (sin document reload), que su icono está oculto, que el clic técnico permanece en el frame y que el icono técnico abre el detalle conservando el mismo sentinel SPA. Regresión del frame → **4 passed, 67 assertions**; usuario/credencial temporales eliminados.
-- **Estado:** implementación lista para revisión. Linear `CLA-264` permanece `In Progress`; no hay commit ni cierre hasta recibir GO técnico.
+- **Estado:** GO técnico recibido; commit dedicado `3c0ecf2` (`CLA-264: redesign luminaire operations and navigation`) y Linear `CLA-264` marcado `Done`.
 
 ### Sesión 2026-07-21 — CLA-263: reconstrucción limpia del catálogo de luminarias (Done)
 

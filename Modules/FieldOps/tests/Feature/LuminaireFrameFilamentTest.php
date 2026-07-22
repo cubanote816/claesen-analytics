@@ -96,10 +96,15 @@ class LuminaireFrameFilamentTest extends TestCase
             ->assertSee(__('fieldops::resource.luminaire_frames.view.selected_position_label'))
             ->assertSee(__('fieldops::resource.luminaire_frames.view.open_position_details'))
             ->assertSee(__('fieldops::resource.luminaires.actions.add_maintenance'))
+            ->assertSee(__('fieldops::resource.luminaires.actions.view_history'))
             ->assertSee(FoMaintenanceRecordResource::getUrl('create', [
                 'maintainable_type' => Luminaire::class,
                 'maintainable_id' => $l1->id,
                 'return_luminaire' => $l1->id,
+            ]))
+            ->assertSee(FoMaintenanceRecordResource::getUrl('index', [
+                'luminaire' => $l1->id,
+                'position' => $l1->luminaire_position_id,
             ]))
             ->assertDontSee('fieldops::resource.luminaire_frames.view.canvas_label')
             ->assertDontSee('Resolved')

@@ -243,7 +243,16 @@ class LuminaireFrameResource extends Resource
     protected static function buildSpatialLayoutState(LuminaireFrame $record): array
     {
         $luminaires = $record->luminaires()
-            ->with(['luminaireType', 'subgroup'])
+            ->with([
+                'luminaireType',
+                'subgroup',
+                'position' => fn ($query) => $query->withCount([
+                    'maintenanceRecords',
+                    'maintenanceRecords as open_issues_count' => fn (Builder $query) => $query
+                        ->whereNotNull('problem_reported_at')
+                        ->whereNull('problem_solved_at'),
+                ]),
+            ])
             ->withCount([
                 'maintenanceRecords',
                 'maintenanceRecords as open_issues_count' => fn ($query) => $query
@@ -256,7 +265,9 @@ class LuminaireFrameResource extends Resource
         $placeholderImage = static::resolveMarkerPlaceholderUrl();
 
         $items = $luminaires->map(function (Luminaire $luminaire) use ($placeholderImage): array {
-            $hasOpenIssue = (int) $luminaire->open_issues_count > 0;
+            $maintenanceCount = (int) ($luminaire->position?->maintenance_records_count ?? $luminaire->maintenance_records_count);
+            $openIssuesCount = (int) ($luminaire->position?->open_issues_count ?? $luminaire->open_issues_count);
+            $hasOpenIssue = $openIssuesCount > 0;
             $imageUrl = static::resolveMarkerImageUrl($luminaire->luminaireType?->image) ?? static::resolveMarkerPlaceholderUrl();
 
             return [
@@ -286,8 +297,11 @@ class LuminaireFrameResource extends Resource
                     'maintainable_id' => $luminaire->id,
                     'return_luminaire' => $luminaire->id,
                 ]),
-                'maintenanceIndexUrl' => \Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource::getUrl('index', ['luminaire' => $luminaire->id]),
-                'maintenanceCount' => (int) $luminaire->maintenance_records_count,
+                'maintenanceIndexUrl' => \Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource::getUrl('index', [
+                    'luminaire' => $luminaire->id,
+                    'position' => $luminaire->luminaire_position_id,
+                ]),
+                'maintenanceCount' => $maintenanceCount,
                 'updateUrl' => route('fieldops.luminaire-frame-editor.luminaires.update', ['luminaire' => $luminaire]),
                 'hasCoordinates' => self::normalizeFrameCoordinate($luminaire->frame_x) !== null && self::normalizeFrameCoordinate($luminaire->frame_y) !== null,
             ];

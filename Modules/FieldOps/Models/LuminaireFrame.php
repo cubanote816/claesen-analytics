@@ -32,7 +32,14 @@ class LuminaireFrame extends Model
 
     public function luminaires()
     {
-        return $this->hasMany(Luminaire::class, 'luminaire_frame_id');
+        return $this->hasMany(Luminaire::class, 'luminaire_frame_id')
+            ->whereNull('removed_at')
+            ->whereNotNull('active_position_id');
+    }
+
+    public function luminairePositions()
+    {
+        return $this->hasMany(LuminairePosition::class, 'luminaire_frame_id');
     }
 
     public function structures()

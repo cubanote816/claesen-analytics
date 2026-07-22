@@ -43,4 +43,12 @@ class FoMaintenanceTypeFactory extends Factory
             'code' => FoMaintenanceType::CODE_EMERGENCY,
         ]);
     }
+
+    public function replacement(): static
+    {
+        return $this->state(fn () => [
+            'name' => ['nl' => 'Vervanging', 'en' => 'Replacement'],
+            'code' => FoMaintenanceType::CODE_REPLACEMENT,
+        ]);
+    }
 }

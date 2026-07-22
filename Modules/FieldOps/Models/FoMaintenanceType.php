@@ -17,6 +17,7 @@ class FoMaintenanceType extends Model
     public const CODE_PREVENTIVE = 'preventive';
     public const CODE_CORRECTIVE = 'corrective';
     public const CODE_EMERGENCY = 'emergency';
+    public const CODE_REPLACEMENT = 'replacement';
 
     protected $table = 'fo_maintenance_types';
 

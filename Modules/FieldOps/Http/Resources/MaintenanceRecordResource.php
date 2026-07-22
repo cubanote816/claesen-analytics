@@ -12,6 +12,7 @@ class MaintenanceRecordResource extends JsonResource
             'id'                   => $this->id,
             'maintainable_type'    => $this->maintainable_type,
             'maintainable_id'      => $this->maintainable_id,
+            'luminaire_position_id' => $this->luminaire_position_id,
             'maintenance_type'     => $this->whenLoaded('maintenanceType', fn () => [
                 'id'   => $this->maintenanceType->id,
                 'name' => $this->maintenanceType->getTranslations('name'),
@@ -46,6 +47,11 @@ class MaintenanceRecordResource extends JsonResource
             'contact_person'       => $this->contact_person,
             'contact_phone'        => $this->contact_phone,
             'location_details'     => $this->location_details,
+            'replacement'          => $this->replacement_from_luminaire_id ? [
+                'from_luminaire_id' => $this->replacement_from_luminaire_id,
+                'to_luminaire_id' => $this->replacement_to_luminaire_id,
+                'reason' => $this->replacement_reason,
+            ] : null,
             'created_at'           => $this->created_at?->toIso8601String(),
             'updated_at'           => $this->updated_at?->toIso8601String(),
         ];

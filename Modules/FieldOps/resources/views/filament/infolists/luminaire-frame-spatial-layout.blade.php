@@ -2552,7 +2552,7 @@
                             <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceCreateUrl">
                                 {{ __('fieldops::resource.luminaires.actions.add_maintenance') }}
                             </a>
-                            <a x-show="selectedMarker()?.maintenanceCount > 0" class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceIndexUrl">
+                            <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceIndexUrl">
                                 {{ __('fieldops::resource.luminaires.actions.view_history') }}
                             </a>
                         </div>
@@ -2705,7 +2705,7 @@
                             <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceCreateUrl">
                                 {{ __('fieldops::resource.luminaires.actions.add_maintenance') }}
                             </a>
-                            <a x-show="selectedMarker()?.maintenanceCount > 0" class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceIndexUrl">
+                            <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceIndexUrl">
                                 {{ __('fieldops::resource.luminaires.actions.view_history') }}
                             </a>
                         </div>
@@ -2792,11 +2792,9 @@
                             <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceCreateUrl'] }}">
                                 {{ __('fieldops::resource.luminaires.actions.add_maintenance') }}
                             </a>
-                            @if (($selected['maintenanceCount'] ?? 0) > 0)
-                                <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceIndexUrl'] }}">
-                                    {{ __('fieldops::resource.luminaires.actions.view_history') }}
-                                </a>
-                            @endif
+                            <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceIndexUrl'] }}">
+                                {{ __('fieldops::resource.luminaires.actions.view_history') }}
+                            </a>
                         </div>
                     </div>
                 @else

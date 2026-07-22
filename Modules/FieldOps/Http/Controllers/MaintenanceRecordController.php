@@ -37,6 +37,19 @@ class MaintenanceRecordController extends Controller
 
     public function indexForLuminaire(Luminaire $luminaire): \Illuminate\Http\JsonResponse
     {
+        if ($luminaire->luminaire_position_id !== null) {
+            $records = FoMaintenanceRecord::query()
+                ->where('luminaire_position_id', $luminaire->luminaire_position_id)
+                ->with(self::RELATIONS)
+                ->orderByDesc('maintenance_at')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => MaintenanceRecordResource::collection($records),
+            ]);
+        }
+
         return $this->indexForMaintainable($luminaire);
     }
 

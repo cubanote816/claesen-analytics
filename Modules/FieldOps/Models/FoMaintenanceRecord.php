@@ -20,6 +20,10 @@ class FoMaintenanceRecord extends Model
         'fo_maintenance_type_id',
         'maintainable_id',
         'maintainable_type',
+        'luminaire_position_id',
+        'replacement_from_luminaire_id',
+        'replacement_to_luminaire_id',
+        'replacement_reason',
         'employee_id',
         'client_id',
         'maintenance_at',
@@ -54,6 +58,19 @@ class FoMaintenanceRecord extends Model
         return FoMaintenanceRecordFactory::new();
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $record): void {
+            if ($record->luminaire_position_id !== null || $record->maintainable_type !== Luminaire::class) {
+                return;
+            }
+
+            $record->luminaire_position_id = Luminaire::query()
+                ->whereKey($record->maintainable_id)
+                ->value('luminaire_position_id');
+        });
+    }
+
     public function maintainable()
     {
         return $this->morphTo();
@@ -62,6 +79,21 @@ class FoMaintenanceRecord extends Model
     public function maintenanceType()
     {
         return $this->belongsTo(FoMaintenanceType::class, 'fo_maintenance_type_id');
+    }
+
+    public function luminairePosition()
+    {
+        return $this->belongsTo(LuminairePosition::class, 'luminaire_position_id');
+    }
+
+    public function replacementFrom()
+    {
+        return $this->belongsTo(Luminaire::class, 'replacement_from_luminaire_id');
+    }
+
+    public function replacementTo()
+    {
+        return $this->belongsTo(Luminaire::class, 'replacement_to_luminaire_id');
     }
 
     public function employee()

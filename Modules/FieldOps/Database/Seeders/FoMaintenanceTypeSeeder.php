@@ -19,6 +19,9 @@ class FoMaintenanceTypeSeeder extends Seeder
             FoMaintenanceType::CODE_EMERGENCY => [
                 'nl' => 'Noodgeval', 'en' => 'Emergency', 'fr' => 'Urgence', 'de' => 'Notfall',
             ],
+            FoMaintenanceType::CODE_REPLACEMENT => [
+                'nl' => 'Vervanging', 'en' => 'Replacement', 'fr' => 'Remplacement', 'de' => 'Austausch',
+            ],
         ];
 
         foreach ($types as $code => $name) {

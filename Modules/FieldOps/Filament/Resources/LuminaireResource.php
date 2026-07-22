@@ -172,7 +172,7 @@ class LuminaireResource extends Resource
     /**
      * @return array<int, array<string, mixed>>
      */
-    protected static function buildLuminaireTypeChoices(): array
+    public static function buildLuminaireTypeChoices(): array
     {
         return LuminaireType::query()
             ->with('subgroup')
@@ -195,8 +195,11 @@ class LuminaireResource extends Resource
      */
     public static function buildOperationalOverview(Luminaire $record): array
     {
-        $record->loadMissing(['luminaireType', 'subgroup', 'luminaireFrame.frameType']);
-        $maintenance = $record->maintenanceRecords()
+        $record->loadMissing(['luminaireType', 'subgroup', 'luminaireFrame.frameType', 'position.installations.luminaireType']);
+        $maintenanceQuery = $record->position
+            ? $record->position->maintenanceRecords()
+            : $record->maintenanceRecords();
+        $maintenance = (clone $maintenanceQuery)
             ->with('maintenanceType')
             ->latest('maintenance_at')
             ->limit(6)
@@ -213,7 +216,7 @@ class LuminaireResource extends Resource
             ])
             ->all();
 
-        $allMaintenance = $record->maintenanceRecords();
+        $allMaintenance = clone $maintenanceQuery;
         $openIssues = (clone $allMaintenance)
             ->whereNotNull('problem_reported_at')
             ->whereNull('problem_solved_at')
@@ -240,6 +243,21 @@ class LuminaireResource extends Resource
             'scaleY' => $record->scale_y,
             'positionSource' => $record->position_source ? __('fieldops::resource.luminaires.position_sources.'.$record->position_source) : '—',
             'positionVerifiedAt' => $record->position_verified_at?->locale(app()->getLocale())->translatedFormat('d M Y · H:i'),
+            'isCurrent' => $record->removed_at === null && $record->active_position_id !== null,
+            'installedAt' => $record->installed_at?->locale(app()->getLocale())->translatedFormat('d M Y · H:i'),
+            'removedAt' => $record->removed_at?->locale(app()->getLocale())->translatedFormat('d M Y · H:i'),
+            'installations' => $record->position?->installations
+                ->sortByDesc('installed_at')
+                ->map(fn (Luminaire $installation): array => [
+                    'id' => $installation->id,
+                    'serial' => $installation->serial_number,
+                    'product' => $installation->luminaireType?->product_family ?: $installation->luminaireType?->name,
+                    'installedAt' => $installation->installed_at?->locale(app()->getLocale())->translatedFormat('d M Y'),
+                    'removedAt' => $installation->removed_at?->locale(app()->getLocale())->translatedFormat('d M Y'),
+                    'current' => $installation->removed_at === null && $installation->active_position_id !== null,
+                ])
+                ->values()
+                ->all() ?? [],
             'info' => $record->getTranslation('info', app()->getLocale(), false) ?: null,
             'openIssues' => $openIssues,
             'maintenanceTotal' => $totalMaintenance,
@@ -251,7 +269,10 @@ class LuminaireResource extends Resource
                 'maintainable_id' => $record->id,
                 'return_luminaire' => $record->id,
             ]),
-            'maintenanceIndexUrl' => FoMaintenanceRecordResource::getUrl('index', ['luminaire' => $record->id]),
+            'maintenanceIndexUrl' => FoMaintenanceRecordResource::getUrl('index', [
+                'luminaire' => $record->id,
+                'position' => $record->luminaire_position_id,
+            ]),
         ];
     }
 

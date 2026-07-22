@@ -6,10 +6,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
+use Modules\FieldOps\Http\Requests\ReplaceLuminaireRequest;
 use Modules\FieldOps\Http\Requests\StoreLuminaireRequest;
 use Modules\FieldOps\Http\Requests\UpdateLuminaireRequest;
+use Modules\FieldOps\Http\Resources\MaintenanceRecordResource;
 use Modules\FieldOps\Http\Resources\LuminaireResource;
 use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Models\LuminairePosition;
+use Modules\FieldOps\Services\LuminaireReplacementService;
 
 class LuminaireController extends Controller
 {
@@ -34,9 +38,19 @@ class LuminaireController extends Controller
         return $this->update($request, $luminaire);
     }
 
+    public function replaceFromBackoffice(
+        ReplaceLuminaireRequest $request,
+        Luminaire $luminaire,
+        LuminaireReplacementService $replacementService,
+    ): JsonResponse {
+        $this->authorizeBackofficeEditor($request);
+
+        return $this->replace($request, $luminaire, $replacementService);
+    }
+
     public function show(Luminaire $luminaire): \Illuminate\Http\JsonResponse
     {
-        $luminaire->load('luminaireType', 'subgroup', 'createdBy');
+        $luminaire->load('luminaireType', 'subgroup', 'createdBy', 'position');
 
         return response()->json([
             'success' => true,
@@ -54,7 +68,7 @@ class LuminaireController extends Controller
             $data,
             ['created_by_user_id' => $request->user()->id],
         ));
-        $luminaire->load('luminaireType', 'subgroup', 'createdBy');
+        $luminaire->load('luminaireType', 'subgroup', 'createdBy', 'position');
 
         return response()->json([
             'success' => true,
@@ -67,7 +81,9 @@ class LuminaireController extends Controller
         $data = $request->validated();
         $touchesPosition = array_key_exists('frame_x', $data) || array_key_exists('frame_y', $data);
         $editorSource = $request->header('X-FieldOps-Editor', 'backoffice');
-        $currentPositionVersion = $this->normalizePositionVersion($luminaire->position_version);
+        $currentPositionVersion = $this->normalizePositionVersion(
+            $luminaire->position?->position_version ?? $luminaire->position_version,
+        );
 
         // Merge info translations locale-by-locale to avoid overwriting untouched locales
         if (isset($data['info'])) {
@@ -100,17 +116,38 @@ class LuminaireController extends Controller
             && (int) $data['luminaire_frame_id'] !== (int) $luminaire->luminaire_frame_id
             && !array_key_exists('frame_position', $data)
         ) {
-            $max = Luminaire::where('luminaire_frame_id', $data['luminaire_frame_id'])->max('frame_position');
+            $max = LuminairePosition::where('luminaire_frame_id', $data['luminaire_frame_id'])->max('frame_position');
             $data['frame_position'] = $max ? $max + 1 : 1;
         }
 
         $luminaire->update($data);
-        $luminaire->load('luminaireType', 'subgroup', 'createdBy');
+        $luminaire->load('luminaireType', 'subgroup', 'createdBy', 'position');
 
         return response()->json([
             'success' => true,
             'data'    => new LuminaireResource($luminaire),
         ]);
+    }
+
+    public function replace(
+        ReplaceLuminaireRequest $request,
+        Luminaire $luminaire,
+        LuminaireReplacementService $replacementService,
+    ): JsonResponse {
+        $result = $replacementService->replace(
+            $luminaire,
+            $request->validated(),
+            $request->user()?->id,
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'previous_luminaire' => new LuminaireResource($result['previous']),
+                'current_luminaire' => new LuminaireResource($result['current']),
+                'maintenance_record' => new MaintenanceRecordResource($result['maintenance']),
+            ],
+        ], 201);
     }
 
     /**

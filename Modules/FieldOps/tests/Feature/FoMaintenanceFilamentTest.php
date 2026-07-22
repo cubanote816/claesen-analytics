@@ -6,10 +6,13 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Models\LuminaireType;
+use Modules\FieldOps\Services\LuminaireReplacementService;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -107,5 +110,36 @@ class FoMaintenanceFilamentTest extends TestCase
         $this->withHeader('Accept-Language', 'en-US')->get($createUrl)
             ->assertOk()
             ->assertSee($target->serial_number);
+    }
+
+    public function test_replacement_record_shows_old_and_new_luminaires_at_same_position(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $previous = Luminaire::factory()->create(['serial_number' => 'OLD-SERIAL-001']);
+        $previous->luminaireType()->update(['product_family' => 'Old ArenaVision']);
+        $replacementType = LuminaireType::factory()->create(['product_family' => 'New OptiVision']);
+
+        $result = app(LuminaireReplacementService::class)->replace($previous, [
+            'luminaire_type_id' => $replacementType->id,
+            'luminaire_subgroup_id' => $replacementType->luminaire_subgroup_id,
+            'serial_number' => 'NEW-SERIAL-002',
+            'replacement_reason' => 'Optical unit damaged beyond repair',
+            'position_version' => $previous->position->position_version,
+        ], $user->id);
+
+        $this->withHeader('Accept-Language', 'en-US')
+            ->get("/fo-maintenance-records/{$result['maintenance']->id}")
+            ->assertOk()
+            ->assertSee('Luminaire replacement')
+            ->assertSee('Old ArenaVision')
+            ->assertSee('OLD-SERIAL-001')
+            ->assertSee('New OptiVision')
+            ->assertSee('NEW-SERIAL-002')
+            ->assertSee('Optical unit damaged beyond repair')
+            ->assertSee(LuminaireResource::getUrl('view', ['record' => $result['previous']]), false)
+            ->assertSee(LuminaireResource::getUrl('view', ['record' => $result['current']]), false);
     }
 }

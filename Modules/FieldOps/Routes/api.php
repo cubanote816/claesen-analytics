@@ -64,6 +64,7 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
     Route::get('/luminaires/{luminaire}', [LuminaireController::class, 'show']);
     Route::put('/luminaires/{luminaire}', [LuminaireController::class, 'update']);
     Route::patch('/luminaires/{luminaire}', [LuminaireController::class, 'update']);
+    Route::post('/luminaires/{luminaire}/replacement', [LuminaireController::class, 'replace']);
     Route::delete('/luminaires/{luminaire}', [LuminaireController::class, 'destroy']);
 
     // Electrical Boards

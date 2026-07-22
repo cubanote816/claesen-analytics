@@ -2,6 +2,7 @@
     /** @var array<string, mixed> $overview */
     $overview = $getState();
     $hasOpenIssues = ($overview['openIssues'] ?? 0) > 0;
+    $isCurrentInstallation = (bool) ($overview['isCurrent'] ?? true);
 @endphp
 
 @once
@@ -25,6 +26,7 @@
         .fieldops-luminaire-overview__status { display:inline-flex; align-items:center; gap:.5rem; width:max-content; padding:.48rem .75rem; border:1px solid rgba(34,197,94,.24); border-radius:999px; background:rgba(34,197,94,.1); color:#15803d; font-size:.82rem; font-weight:800; }
         .dark .fieldops-luminaire-overview__status { color:#86efac; }
         .fieldops-luminaire-overview__status--warning { border-color:rgba(245,158,11,.3); background:rgba(245,158,11,.12); color:#b45309; }
+        .fieldops-luminaire-overview__status--retired { border-color:rgba(100,116,139,.3); background:rgba(100,116,139,.12); color:#475569; }
         .dark .fieldops-luminaire-overview__status--warning { color:#fcd34d; }
         .fieldops-luminaire-overview__status-dot { width:.5rem; height:.5rem; border-radius:999px; background:currentColor; box-shadow:0 0 0 4px color-mix(in srgb,currentColor 15%,transparent); }
         .fieldops-luminaire-overview__metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.65rem; }
@@ -77,6 +79,9 @@
         .dark .fieldops-luminaire-overview__detail-value { color:#e2e8f0; }
         .fieldops-luminaire-overview__technical summary { cursor:pointer; list-style:none; }
         .fieldops-luminaire-overview__technical summary::-webkit-details-marker { display:none; }
+        .fieldops-luminaire-overview__timeline { display:grid; gap:.7rem; padding:1rem 1.2rem; }
+        .fieldops-luminaire-overview__installation { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.8rem; padding:.75rem .85rem; border:1px solid rgba(148,163,184,.14); border-radius:.8rem; }
+        .fieldops-luminaire-overview__installation-index { display:grid; place-items:center; width:2rem; height:2rem; border-radius:.65rem; color:#0369a1; background:rgba(14,165,233,.1); font-size:.75rem; font-weight:900; }
         @media (max-width:1024px) { .fieldops-luminaire-overview__grid { grid-template-columns:1fr; } }
         @media (max-width:720px) { .fieldops-luminaire-overview__hero { grid-template-columns:1fr; } .fieldops-luminaire-overview__media { min-height:11rem; border-right:0; border-bottom:1px solid rgba(148,163,184,.14); } .fieldops-luminaire-overview__media img { height:9rem; } .fieldops-luminaire-overview__metrics,.fieldops-luminaire-overview__details { grid-template-columns:1fr; } }
     </style>
@@ -96,11 +101,13 @@
                 </div>
             </div>
 
-            <div class="fieldops-luminaire-overview__status {{ $hasOpenIssues ? 'fieldops-luminaire-overview__status--warning' : '' }}">
+            <div class="fieldops-luminaire-overview__status {{ ! $isCurrentInstallation ? 'fieldops-luminaire-overview__status--retired' : ($hasOpenIssues ? 'fieldops-luminaire-overview__status--warning' : '') }}">
                 <span class="fieldops-luminaire-overview__status-dot"></span>
-                {{ $hasOpenIssues
+                {{ ! $isCurrentInstallation
+                    ? __('fieldops::resource.luminaires.replacement.retired')
+                    : ($hasOpenIssues
                     ? trans_choice('fieldops::resource.luminaires.detail.open_issues', $overview['openIssues'], ['count' => $overview['openIssues']])
-                    : __('fieldops::resource.luminaire_frames.view.no_open_issues') }}
+                    : __('fieldops::resource.luminaire_frames.view.no_open_issues')) }}
             </div>
 
             <div class="fieldops-luminaire-overview__metrics">
@@ -193,6 +200,33 @@
             </div>
         </section>
     </div>
+
+    @if (count($overview['installations'] ?? []) > 0)
+        <section class="fieldops-luminaire-overview__card">
+            <div class="fieldops-luminaire-overview__card-header">
+                <div>
+                    <div class="fieldops-luminaire-overview__card-title">{{ __('fieldops::resource.luminaires.replacement.history_title') }}</div>
+                    <div class="fieldops-luminaire-overview__card-copy">{{ __('fieldops::resource.luminaires.replacement.history_copy') }}</div>
+                </div>
+            </div>
+            <div class="fieldops-luminaire-overview__timeline">
+                @foreach ($overview['installations'] as $index => $installation)
+                    <div class="fieldops-luminaire-overview__installation">
+                        <span class="fieldops-luminaire-overview__installation-index">{{ $index + 1 }}</span>
+                        <span class="min-w-0">
+                            <span class="fieldops-luminaire-overview__maintenance-name block">{{ collect([$installation['product'], $installation['serial']])->filter()->join(' · ') }}</span>
+                            <span class="fieldops-luminaire-overview__maintenance-meta block">
+                                {{ $installation['installedAt'] ?: '—' }} → {{ $installation['removedAt'] ?: __('fieldops::resource.luminaires.replacement.present') }}
+                            </span>
+                        </span>
+                        <span class="fieldops-luminaire-overview__pill {{ $installation['current'] ? '' : 'fieldops-luminaire-overview__pill--open' }}">
+                            {{ $installation['current'] ? __('fieldops::resource.luminaires.replacement.current') : __('fieldops::resource.luminaires.replacement.retired') }}
+                        </span>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
 
     <section class="fieldops-luminaire-overview__card">
         <div class="fieldops-luminaire-overview__card-header">

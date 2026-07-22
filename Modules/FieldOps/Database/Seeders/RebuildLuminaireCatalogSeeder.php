@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Models\LuminairePosition;
 use Modules\FieldOps\Models\LuminaireSubgroup;
 use Modules\FieldOps\Models\LuminaireType;
 
@@ -23,6 +24,7 @@ class RebuildLuminaireCatalogSeeder extends Seeder
                 ->forceDelete();
 
             Luminaire::withTrashed()->forceDelete();
+            LuminairePosition::query()->delete();
             LuminaireType::query()->delete();
             LuminaireSubgroup::query()->delete();
 

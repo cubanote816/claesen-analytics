@@ -17,18 +17,29 @@ class ListFoMaintenanceRecords extends ListRecords
 
     public ?int $luminaireId = null;
 
+    public ?int $luminairePositionId = null;
+
     public function mount(): void
     {
         $this->luminaireId = request()->integer('luminaire') ?: null;
+        $this->luminairePositionId = request()->integer('position') ?: null;
+
+        if ($this->luminairePositionId === null && $this->luminaireId !== null) {
+            $this->luminairePositionId = Luminaire::query()
+                ->whereKey($this->luminaireId)
+                ->value('luminaire_position_id');
+        }
 
         parent::mount();
     }
 
     protected function getTableQuery(): Builder|Relation|null
     {
-        return parent::getTableQuery()?->when($this->luminaireId, fn (Builder $query, int $luminaireId) => $query
-            ->where('maintainable_type', Luminaire::class)
-            ->where('maintainable_id', $luminaireId));
+        return parent::getTableQuery()?->when($this->luminairePositionId, fn (Builder $query, int $positionId) => $query
+                ->where('luminaire_position_id', $positionId))
+            ->when(! $this->luminairePositionId && $this->luminaireId, fn (Builder $query) => $query
+                ->where('maintainable_type', Luminaire::class)
+                ->where('maintainable_id', $this->luminaireId));
     }
 
     protected function getHeaderActions(): array

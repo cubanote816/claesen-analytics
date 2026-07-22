@@ -230,6 +230,20 @@ class FoMaintenanceRecordResource extends Resource
         };
     }
 
+    private static function luminaireSummary(?Luminaire $luminaire): string
+    {
+        if (! $luminaire) {
+            return '—';
+        }
+
+        $product = $luminaire->luminaireType?->product_family
+            ?: $luminaire->luminaireType?->model_reference
+            ?: $luminaire->luminaireType?->name
+            ?: __('fieldops::resource.luminaires.model_label');
+
+        return collect([$product, $luminaire->serial_number])->filter()->join(' · ');
+    }
+
     public static function infolist(Schema $schema): Schema
     {
         return $schema->components([
@@ -268,6 +282,34 @@ class FoMaintenanceRecordResource extends Resource
                     ->placeholder('—')
                     ->columnSpanFull(),
             ])->columns(2),
+
+            Section::make(__('fieldops::resource.maintenance_records.replacement_section'))
+                ->description(__('fieldops::resource.maintenance_records.replacement_copy'))
+                ->schema([
+                    TextEntry::make('replacement_from_luminaire_id')
+                        ->label(__('fieldops::resource.maintenance_records.fields.replacement_from'))
+                        ->state(fn (FoMaintenanceRecord $record): string => static::luminaireSummary($record->replacementFrom))
+                        ->url(fn (FoMaintenanceRecord $record): ?string => $record->replacement_from_luminaire_id
+                            ? LuminaireResource::getUrl('view', ['record' => $record->replacement_from_luminaire_id])
+                            : null)
+                        ->icon('heroicon-m-arrow-up-right'),
+                    TextEntry::make('replacement_to_luminaire_id')
+                        ->label(__('fieldops::resource.maintenance_records.fields.replacement_to'))
+                        ->state(fn (FoMaintenanceRecord $record): string => static::luminaireSummary($record->replacementTo))
+                        ->url(fn (FoMaintenanceRecord $record): ?string => $record->replacement_to_luminaire_id
+                            ? LuminaireResource::getUrl('view', ['record' => $record->replacement_to_luminaire_id])
+                            : null)
+                        ->icon('heroicon-m-arrow-up-right')
+                        ->color('success'),
+                    TextEntry::make('luminairePosition.frame_position')
+                        ->label(__('fieldops::resource.maintenance_records.fields.position'))
+                        ->formatStateUsing(fn ($state): string => '#'.$state),
+                    TextEntry::make('replacement_reason')
+                        ->label(__('fieldops::resource.maintenance_records.fields.replacement_reason'))
+                        ->columnSpanFull(),
+                ])
+                ->columns(2)
+                ->visible(fn (FoMaintenanceRecord $record): bool => $record->replacement_from_luminaire_id !== null),
 
             Section::make(__('fieldops::resource.maintenance_records.incident_section'))
                 ->schema([

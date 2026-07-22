@@ -205,7 +205,10 @@ class MaintenanceRecordCrudTest extends TestCase
 
         $response = $this->withToken($token)->getJson('/api/v1/fieldops/maintenance-types')->assertOk();
 
-        $this->assertCount(2, $response->json('data'));
+        $this->assertEqualsCanonicalizing(
+            ['preventive', 'corrective', 'replacement'],
+            collect($response->json('data'))->pluck('code')->all(),
+        );
     }
 
     // ── stats ─────────────────────────────────────────────────────────────────

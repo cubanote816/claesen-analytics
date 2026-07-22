@@ -10,6 +10,7 @@ use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\EditLuminaire;
+use Modules\FieldOps\Filament\Resources\Luminaires\Pages\ViewLuminaire;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireType;
@@ -59,6 +60,7 @@ class LuminaireFilamentTest extends TestCase
             ->assertSee('Indoor arenas and competition venues')
             ->assertSee('1 open issue')
             ->assertSee('Maintenance history')
+            ->assertSee('Replace luminaire')
             ->assertSee(FoMaintenanceRecordResource::getUrl('view', ['record' => $resolved]), false)
             ->assertSee(FoMaintenanceRecordResource::getUrl('view', ['record' => $open]), false)
             ->assertSee(LuminaireFrameResource::getUrl('view', [
@@ -114,5 +116,33 @@ class LuminaireFilamentTest extends TestCase
             'luminaire_type_id' => $newType->id,
             'luminaire_subgroup_id' => $newType->luminaire_subgroup_id,
         ]);
+    }
+
+    public function test_replacement_modal_rejects_an_existing_serial_without_server_error(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $luminaire = Luminaire::factory()->create(['serial_number' => '000']);
+        $newType = LuminaireType::factory()->create();
+
+        Livewire::test(ViewLuminaire::class, ['record' => $luminaire->id])
+            ->callAction('replaceLuminaire', [
+                'luminaire_type_id' => $newType->id,
+                'luminaire_subgroup_id' => $newType->luminaire_subgroup_id,
+                'serial_number' => '000',
+                'maintenance_at' => now(),
+                'replacement_reason' => 'Test replacement',
+                'position_version' => $luminaire->position->position_version,
+            ])
+            ->assertHasActionErrors([
+                'serial_number' => __('fieldops::resource.luminaires.replacement.serial_taken'),
+            ]);
+
+        $luminaire->refresh();
+        $this->assertNull($luminaire->removed_at);
+        $this->assertNull($luminaire->replaced_by_luminaire_id);
+        $this->assertSame($luminaire->luminaire_position_id, $luminaire->active_position_id);
     }
 }
