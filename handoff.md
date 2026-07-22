@@ -3,7 +3,16 @@
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
 > Última actualización: 2026-07-22 — **CLA-274 Done** (commit `479810c`, fix `[object Object]` en Maintenance Types/Structure/Luminaire/ElectricalBoard + helper text de code corregido); CLA-273/272/271/270/269/266 permanecen Done.
 
-> **Programa activo de mantenimiento:** CLA-268 está técnicamente completado en `d0436df` y pendiente de cierre en Linear. Fuente canónica de fases, evidencia, bloqueos y siguiente paso: `docs/ai/fieldops-maintenance-roadmap.md`.
+> **Programa activo de mantenimiento:** CLA-268 está Done. CLA-275 inició el mockup de Claesen-Client en su repositorio independiente; la integración API espera aprobación visual. Fuente canónica: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-22 — CLA-275: arranque de Claesen-Client
+
+- CLA-268 se movió a **Done** en Linear con la evidencia de `d0436df` y `545b42e`.
+- Se creó CLA-275: “Fase 4 — Claesen-Client: portal PWA de mantenimiento”.
+- Repositorio: `/home/totti/Claesen-Client`; commit raíz `9f2414b`.
+- Incluye React/TypeScript/Vite, Tailwind, PWA, React Query, base i18n NL/EN/FR/DE, adaptador `mock`/`api`, memoria enlazada al roadmap y mockup dark-first responsive.
+- Verificación: `npm run build`, `npm run lint` y Playwright desktop/móvil, incluido el flujo del asistente de reporte, pasan.
+- Próximo paso exacto: revisión y aprobación visual del mockup. No conectar todavía API, Sanctum ni adjuntos reales.
 
 ### Sesión 2026-07-22 — CLA-268: implementación completa y validada
 
@@ -1434,14 +1443,12 @@ Próximo paso: definir el próximo ticket Linear antes de iniciar cualquier trab
 
 ## Cómo reanudar una sesión
 
-### FieldOps CLA-268 — solicitudes de cliente (cierre Linear pendiente)
+### FieldOps — CLA-268 Done / CLA-275 mockup en revisión visual
 
 - Roadmap maestro: `docs/ai/fieldops-maintenance-roadmap.md`.
-- Commit de aplicación: `d0436df`.
-- `FoMaintenanceRequest` está separado del histórico validado y deriva `client_id`, activo y posición desde el backend.
-- Conversación pública, notas internas, adjuntos privados, cuadros eléctricos, confirmación, reapertura, múltiples órdenes, invitación/activación e intake IA están implementados y probados.
-- La conversión es idempotente mientras existe orden vigente; una reapertura conserva órdenes previas en el pivot histórico y permite crear la siguiente.
-- Próximo paso exacto: cerrar CLA-268 en Linear y mostrar el plan completo de Claesen-Client para aprobación. No crear todavía el ticket del portal.
+- CLA-268: Done en Linear; commits `d0436df` y `545b42e`.
+- CLA-275: repositorio `/home/totti/Claesen-Client`, commit `9f2414b`, mockup interactivo en modo `mock`.
+- Próximo paso exacto: obtener aprobación visual del usuario. La API real, Sanctum, preferencias y almacenamiento privado continúan bloqueados hasta ese gate.
 
 ```
 Lee CLAUDE.md, handoff.md y docs/ai/README.md.

@@ -103,7 +103,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint completado** | ✅ ~100% |
 | **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance, automatización — **Fase 0+1+2 completadas** | ✅ ~98% |
 | **Website** | Sitio público, formulario de consulta, galería proyectos — **sprint en curso** | 🚧 ~85% |
-| **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias y mantenimiento — **CLA-268 completado técnicamente en `d0436df`; pendiente únicamente el cierre documental en Linear antes del portal** | 🚧 ~88% |
+| **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias y mantenimiento — **CLA-268 Done; CLA-275 inició el mockup PWA de Claesen-Client en repositorio independiente** | 🚧 ~89% |
 | **Analytics** | Instrumentación de eventos de producto (`app_events`) para medir adopción/fricción en apps internas (Backoffice, Safety PWA, Claesen-Sport/FieldOps) — **CLA-229: base de ingesta lista, sin integración real en ningún frontend todavía** | 🚧 ~30% |
 
 ---
@@ -336,7 +336,8 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | CLA-265 | Posición física estable + reemplazo atómico de luminarias | ✅ Done |
 | CLA-266 | Ownership de cliente y autorización tenant-aware | ✅ Done — aislamiento tenant y hardening OAuth aprobados |
 | CLA-267 | Planes de mantenimiento y órdenes de trabajo | ✅ Done — hardening del histórico y cutover de Claesen-Sport aprobados tras auditoría (`d7606bc` en la app de terreno) |
-| CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | 🟡 Implementación y validación completas en `d0436df`; memoria actualizada, pendiente cerrar el ticket en Linear |
+| CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | ✅ Done — `d0436df` (aplicación), `545b42e` (memoria), cierre Linear registrado |
+| CLA-275 | Fase 4 — Claesen-Client: portal PWA de mantenimiento | 🚧 En progreso — mockup interactivo en `/home/totti/Claesen-Client`, commit `9f2414b`; API real bloqueada hasta aprobación visual |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
 **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.

@@ -231,7 +231,7 @@ Roadmap maestro del programa de mantenimiento y Claesen-Client: `docs/ai/fieldop
 - Una reapertura libera únicamente la orden vigente; `fo_maintenance_request_work_order` conserva todas las órdenes anteriores. No borrar esa historia al reconvertir.
 - El intake IA solo puede sugerir categoría, impacto, resumen y preguntas. Si falla, degrada a valores seguros; nunca decide cliente, activo, autorización ni creación de orden.
 - Las invitaciones de contacto normalizan el email, rechazan cuentas internas, almacenan solo el hash SHA-256 del código one-time y aplican capacidades en `fo_client_user`.
-- Claesen-Client es la Fase 4 del roadmap maestro y no puede iniciarse antes del cierre técnico y documental de CLA-268.
+- Claesen-Client es la Fase 4 del roadmap maestro. CLA-275 puede avanzar en modo `mock`, pero ninguna integración API se inicia antes de la aprobación visual del mockup y debe usar contratos tenant-safe del backend.
 
 ### Archivos clave
 

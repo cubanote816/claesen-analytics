@@ -1,7 +1,7 @@
 # Roadmap maestro de mantenimiento FieldOps
 
 > Fuente canónica de continuidad para el programa de mantenimiento y el futuro portal Claesen-Client.
-> Última actualización: 2026-07-22 — CLA-268 técnicamente completado en `d0436df`; cierre Linear pendiente.
+> Última actualización: 2026-07-22 — CLA-268 Done; CLA-275 inició el mockup de Claesen-Client.
 
 ## Cómo usar este documento
 
@@ -62,8 +62,8 @@ La conversión `Solicitud → Orden` es idempotente mediante `work_order_id`. Ce
 | Fase 0 — Hardening del mantenimiento | CLA-267 | ✅ Done | Plan, orden, ejecución validada e histórico separados; cutover de Claesen-Sport |
 | Fase 1 — Identidad y aislamiento | CLA-266 | ✅ Done | Membresías cliente, autorización fail-closed, BOLA y OAuth endurecidos |
 | Fase 2 — Asignaciones y notificaciones | CLA-271 | ✅ Done | Asignación ejecutable, timeline append-only y notificaciones operacionales |
-| Fase 3 — Solicitudes de clientes | CLA-268 | 🟡 Cierre Linear pendiente | Implementación y validación completas en `d0436df` |
-| Fase 4 — Portal React Claesen-Client | Ticket/épica por crear | ⏸ Plan pendiente de aprobación | PWA cliente completa en repositorio independiente |
+| Fase 3 — Solicitudes de clientes | CLA-268 | ✅ Done | Implementación `d0436df`, memoria `545b42e`, cierre Linear registrado |
+| Fase 4 — Portal React Claesen-Client | CLA-275 | 🚧 Mockup en revisión visual | Repositorio `/home/totti/Claesen-Client`, commit `9f2414b` |
 | Fase 5 — E2E y producción | Ticket por crear | ⬜ Pendiente | Validación integral, infraestructura y observabilidad de producción |
 
 ## Fases cerradas y evidencia
@@ -159,15 +159,14 @@ Commit de aplicación: `d0436df` (`CLA-268: complete client maintenance requests
 
 La suite amplia debe ejecutarse en un único proceso o de forma serial. No lanzar varios paths contra la misma base MySQL `testing`, porque compiten durante `RefreshDatabase`.
 
-### Pendiente administrativo
+### Cierre
 
-- Registrar esta evidencia y el commit en Linear.
-- Mover CLA-268 a Done.
-- Presentar el plan de Fase 4 al usuario y esperar aprobación antes de crear el ticket/épica.
+- CLA-268 se movió a Done en Linear.
+- La evidencia de commits y pruebas se registró al cierre.
 
 ## Fase 4 — Portal Claesen-Client
 
-Esta fase empieza únicamente después de cerrar CLA-268 y aprobar explícitamente el plan siguiente. La aprobación previa registrada para el roadmap general no autoriza crear todavía el ticket: el usuario pidió revisar el plan de implementación justo antes de ese paso.
+CLA-275 se creó después del cierre de CLA-268 y la aprobación del plan. El mockup interactivo existe en `/home/totti/Claesen-Client` con commit `9f2414b`; la integración con API queda detenida hasta recibir aprobación visual explícita.
 
 ### Arranque y repositorio
 
@@ -221,8 +220,7 @@ El hostname objetivo del plan es `client.claesen-verlichting.be`. Antes de deplo
 
 | Riesgo o bloqueo | Estado / mitigación |
 |---|---|
-| CLA-268 pendiente de cierre en Linear | Registrar `d0436df` y la evidencia; no crear aún el ticket de Fase 4 |
-| Plan de Claesen-Client pendiente de aprobación | Presentarlo al usuario y detenerse antes de crear ticket/repositorio |
+| Mockup de Claesen-Client pendiente de aprobación visual | Revisar el build `9f2414b`; no conectar todavía la API real |
 | Suite FieldOps contaminada por `RoleAlreadyExists` | Ejecutar focales en limpio y suite amplia serial; no mezclar el arreglo del harness con CLA-268 |
 | Worktree compartido con cambios concurrentes | No stagear por glob; revisar `git diff --name-only` y usar paths explícitos |
 | Infraestructura del hostname no provisionada | Verificar `client.claesen-verlichting.be` durante Fase 5 |
@@ -231,18 +229,13 @@ El hostname objetivo del plan es `client.claesen-verlichting.be`. Antes de deplo
 ## Orden de ejecución obligatorio
 
 1. Mantener este roadmap y sus enlaces canónicos actualizados.
-2. Cerrar CLA-268 en Linear con commit y evidencia.
-3. Presentar el plan completo de Fase 4 al usuario.
-4. Esperar aprobación explícita del plan.
-5. Crear el ticket/épica del portal solo después de esa aprobación.
-6. Crear el repositorio Claesen-Client y su memoria enlazada.
-7. Construir el mockup completo y solicitar aprobación visual.
-8. Integrar el portal aprobado con la API.
-9. Ejecutar Fase 5 y preparar producción.
+2. Revisar y aprobar visualmente el mockup de CLA-275.
+3. Integrar el portal aprobado con la API tenant-safe, Sanctum y streaming privado.
+4. Ejecutar pruebas React/accesibilidad, E2E e infraestructura de Fase 5.
 
 ## Próximo paso exacto
 
-Cerrar CLA-268 en Linear usando `d0436df` y la evidencia registrada. Inmediatamente después, presentar al usuario el plan de implementación de Claesen-Client y detenerse. No crear el ticket/épica, el repositorio ni archivos del portal hasta recibir aprobación explícita de ese plan.
+Revisar el mockup de CLA-275 en `/home/totti/Claesen-Client` y recibir aprobación visual explícita. Tras ese gate, integrar las pantallas aprobadas con la API real; no adelantar ese paso.
 
 ## Registro de continuidad
 
@@ -252,4 +245,5 @@ Cerrar CLA-268 en Linear usando `d0436df` y la evidencia registrada. Inmediatame
 | 2026-07-22 | CLA-266 | Fase 1 cerrada | `2f093b3` |
 | 2026-07-22 | CLA-271 | Fase 2 cerrada | Backend `91380dd`; Claesen-Sport `2ce9dcf` |
 | 2026-07-22 | CLA-268 | Memoria maestra creada | `49fde29` |
-| 2026-07-22 | CLA-268 | Dominio completo implementado y validado; cierre Linear pendiente | `d0436df` |
+| 2026-07-22 | CLA-268 | Dominio completo implementado y validado | `d0436df`, `545b42e` |
+| 2026-07-22 | CLA-275 | Ticket creado; repositorio y mockup interactivo iniciados | `9f2414b` |
