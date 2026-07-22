@@ -7,12 +7,18 @@ namespace Modules\FieldOps\Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\CreateMaintenanceWorkOrder;
+use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenancePlan;
 use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Models\LuminaireFrame;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -32,8 +38,10 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
     {
         $user = User::factory()->create();
         $user->assignRole('super_admin');
-        $luminaire = Luminaire::factory()->create();
-        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create();
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'status' => MaintenanceWorkOrderStatus::AWAITING_VALIDATION,
+        ]);
         $this->actingAs($user);
 
         $this->withHeader('Accept-Language', 'en-US')
@@ -48,7 +56,11 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
                 'maintainable_id' => $luminaire->id,
             ]))->assertOk()->assertSee($luminaire->serial_number);
 
-        $this->get(FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $order]))->assertOk();
+        $this->withHeader('Accept-Language', 'en-US')
+            ->get(FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $order]))
+            ->assertOk()
+            ->assertSee('Return for correction')
+            ->assertSee('Operational timeline');
         $this->get('/fo-maintenance-plans')->assertOk();
     }
 
@@ -56,7 +68,7 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
     {
         $user = User::factory()->create();
         $user->assignRole('super_admin');
-        $luminaire = Luminaire::factory()->create();
+        $luminaire = $this->luminaireWithClientContext();
         $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create();
         $this->actingAs($user);
 
@@ -78,7 +90,7 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
     {
         $user = User::factory()->create();
         $user->assignRole('super_admin');
-        $luminaire = Luminaire::factory()->create();
+        $luminaire = $this->luminaireWithClientContext();
         $type = FoMaintenanceType::factory()->preventive()->create();
         $this->actingAs($user);
 
@@ -101,5 +113,18 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
         self::assertSame(1, FoMaintenancePlan::count());
         self::assertSame(FoMaintenancePlan::firstOrFail()->id, $order->maintenance_plan_id);
         $this->get('/fo-maintenance-plans')->assertOk()->assertSee('6 month(s)');
+    }
+
+    private function luminaireWithClientContext(): Luminaire
+    {
+        $client = FoClient::factory()->create();
+        $complex = Complex::factory()->create(['client_id' => $client->id]);
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain);
+        $frame = LuminaireFrame::factory()->create();
+        $frame->structures()->attach($structure);
+
+        return Luminaire::factory()->create(['luminaire_frame_id' => $frame->id]);
     }
 }

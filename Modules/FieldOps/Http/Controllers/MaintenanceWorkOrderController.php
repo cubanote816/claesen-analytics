@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Http\Requests\CloseMaintenanceWorkOrderRequest;
+use Modules\FieldOps\Http\Requests\ReturnMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\StoreMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\SubmitMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\TransitionMaintenanceWorkOrderRequest;
@@ -20,7 +21,10 @@ use Modules\FieldOps\Services\MaintenanceWorkOrderService;
 
 class MaintenanceWorkOrderController extends Controller
 {
-    private const RELATIONS = ['maintainable', 'maintenanceType', 'client', 'assignedEmployee', 'maintenanceRecord'];
+    private const RELATIONS = [
+        'maintainable', 'maintenanceType', 'client', 'assignedEmployee', 'assignedBy',
+        'returnedBy', 'events.actor', 'maintenanceRecord',
+    ];
 
     public function __construct(private readonly MaintenanceWorkOrderService $service) {}
 
@@ -70,6 +74,15 @@ class MaintenanceWorkOrderController extends Controller
     public function submit(SubmitMaintenanceWorkOrderRequest $request, FoMaintenanceWorkOrder $workOrder): JsonResponse
     {
         return $this->response($this->service->submit($workOrder, $request->validated(), $request->user()->id));
+    }
+
+    public function returnForCorrection(ReturnMaintenanceWorkOrderRequest $request, FoMaintenanceWorkOrder $workOrder): JsonResponse
+    {
+        return $this->response($this->service->returnForCorrection(
+            $workOrder,
+            $request->user()->id,
+            $request->validated('return_reason'),
+        ));
     }
 
     public function validateAndClose(CloseMaintenanceWorkOrderRequest $request, FoMaintenanceWorkOrder $workOrder): JsonResponse

@@ -217,6 +217,10 @@ Modules/Website/Routes/api.php
 - Para luminarias, `luminaire_position_id` es el agregado estable. Reemplazar la instalación no debe mover la orden ni fragmentar el historial de esa posición.
 - `FoMaintenanceRecord` solo se crea cuando una orden se valida/cierra, excepto eventos de reemplazo atómico cubiertos por `LuminaireReplacementService`.
 - El histórico es inmutable en las superficies públicas: API y Filament son solo lectura. No registrar endpoints, formularios o acciones directas para crear, editar, eliminar o restaurar `FoMaintenanceRecord`.
+- Una asignación operacional solo puede apuntar a un empleado CAFCA vinculado a un `User` activo. `assigned_by_user_id` y `assigned_at` identifican la asignación vigente; no inferir al asignador desde `created_by_user_id`.
+- Toda transición y reasignación se registra en `fo_maintenance_work_order_events`. Este log es append-only: no se actualiza ni elimina mediante Eloquent.
+- Una ejecución en `awaiting_validation` puede volver a `in_progress` únicamente mediante `returnForCorrection`, con motivo obligatorio y actor/fecha auditados.
+- Las notificaciones operacionales FieldOps usan canales `database` y `mail`, se encolan después del commit y respetan `preferences_data.notifications.fieldopsDatabase|fieldopsEmail`. La API de notificaciones siempre filtra por usuario autenticado y `viewData.module=fieldops`.
 - Las incidencias del cliente pertenecen al dominio `MaintenanceRequest` pendiente de CLA-268; nunca deben volver a escribirse como registros históricos abiertos.
 
 ### Archivos clave
@@ -228,6 +232,8 @@ Modules/FieldOps/Models/FoMaintenanceRecord.php
 Modules/FieldOps/Services/MaintenanceWorkOrderService.php
 Modules/FieldOps/Services/MaintenanceEquipmentContextService.php
 Modules/FieldOps/Services/FieldOpsTenantService.php
+Modules/FieldOps/Services/WorkOrderNotificationService.php
+Modules/FieldOps/Models/FoMaintenanceWorkOrderEvent.php
 ```
 
 ---

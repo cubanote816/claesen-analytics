@@ -12,6 +12,7 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -23,6 +24,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Cafca\Models\Employee;
+use Modules\Core\Models\User;
 use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\CreateMaintenanceWorkOrder;
 use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\EditMaintenanceWorkOrder;
@@ -132,7 +134,12 @@ class FoMaintenanceWorkOrderResource extends Resource
                     ])->default('medium')->required(),
                 Select::make('assigned_employee_id')
                     ->label(__('fieldops::resource.work_orders.fields.assignee'))
-                    ->options(fn (): array => Employee::query()->where('fl_active', true)->orderBy('name')->pluck('name', 'id')->all())
+                    ->options(fn (): array => Employee::query()
+                        ->where('fl_active', true)
+                        ->whereIn('id', User::query()->where('is_active', true)->whereNotNull('employee_id')->select('employee_id'))
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
                     ->searchable()
                     ->nullable(),
                 DateTimePicker::make('scheduled_for')
@@ -192,6 +199,32 @@ class FoMaintenanceWorkOrderResource extends Resource
                 TextEntry::make('completion_notes')->label(__('fieldops::resource.work_orders.fields.completion_notes'))->placeholder('—')->columnSpanFull(),
                 TextEntry::make('override_reason')->label(__('fieldops::resource.work_orders.fields.override_reason'))->placeholder('—')->columnSpanFull(),
             ])->columns(2)->collapsible(),
+            Section::make(__('fieldops::resource.work_orders.sections.assignment'))->schema([
+                TextEntry::make('assignedBy.name')->label(__('fieldops::resource.work_orders.fields.assigned_by'))->placeholder('—'),
+                TextEntry::make('assigned_at')->label(__('fieldops::resource.work_orders.fields.assigned_at'))->dateTime()->placeholder('—'),
+                TextEntry::make('returnedBy.name')->label(__('fieldops::resource.work_orders.fields.returned_by'))->placeholder('—'),
+                TextEntry::make('returned_at')->label(__('fieldops::resource.work_orders.fields.returned_at'))->dateTime()->placeholder('—'),
+                TextEntry::make('return_reason')->label(__('fieldops::resource.work_orders.fields.return_reason'))->placeholder('—')->columnSpanFull(),
+            ])->columns(2)->collapsible(),
+            Section::make(__('fieldops::resource.work_orders.sections.timeline'))->schema([
+                RepeatableEntry::make('events')
+                    ->hiddenLabel()
+                    ->schema([
+                        TextEntry::make('event_type')
+                            ->label(__('fieldops::resource.work_orders.fields.event'))
+                            ->badge()
+                            ->formatStateUsing(fn ($state): string => __(sprintf(
+                                'fieldops::resource.work_orders.events.%s',
+                                $state instanceof BackedEnum ? $state->value : $state,
+                            ))),
+                        TextEntry::make('actor.name')->label(__('fieldops::resource.work_orders.fields.actor'))->placeholder('—'),
+                        TextEntry::make('occurred_at')->label(__('fieldops::resource.work_orders.fields.occurred_at'))->dateTime(),
+                        TextEntry::make('from_status')->label(__('fieldops::resource.work_orders.fields.from_status'))->placeholder('—'),
+                        TextEntry::make('to_status')->label(__('fieldops::resource.work_orders.fields.to_status'))->placeholder('—'),
+                        TextEntry::make('data.reason')->label(__('fieldops::resource.work_orders.fields.reason'))->placeholder('—')->columnSpanFull(),
+                    ])
+                    ->columns(3),
+            ])->collapsible(),
         ]);
     }
 
@@ -255,6 +288,9 @@ class FoMaintenanceWorkOrderResource extends Resource
             'maintenanceType',
             'client',
             'assignedEmployee',
+            'assignedBy',
+            'returnedBy',
+            'events.actor',
         ]);
     }
 }

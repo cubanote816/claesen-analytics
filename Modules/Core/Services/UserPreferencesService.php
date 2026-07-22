@@ -17,8 +17,8 @@ final class UserPreferencesService
         $user = Auth::user();
 
         return [
-            'language'         => $user->language ?? 'nl',
-            'theme'            => $user->theme ?? 'light',
+            'language' => $user->language ?? 'nl',
+            'theme' => $user->theme ?? 'light',
             'preferences_data' => $user->preferences_data ?? $this->getDefaultPreferences(),
         ];
     }
@@ -29,8 +29,8 @@ final class UserPreferencesService
         $user = Auth::user();
 
         $oldPreferences = [
-            'language'         => $user->language,
-            'theme'            => $user->theme,
+            'language' => $user->language,
+            'theme' => $user->theme,
             'preferences_data' => $user->preferences_data,
         ];
 
@@ -66,15 +66,15 @@ final class UserPreferencesService
             }
         }
 
-        if (!empty($updateData)) {
+        if (! empty($updateData)) {
             $user->update($updateData);
 
             $this->logPreferencesChange(
                 user: $user,
                 oldPreferences: $oldPreferences,
                 newPreferences: [
-                    'language'         => $user->fresh()->language,
-                    'theme'            => $user->fresh()->theme,
+                    'language' => $user->fresh()->language,
+                    'theme' => $user->fresh()->theme,
                     'preferences_data' => $user->fresh()->preferences_data,
                 ],
                 changedFields: $changedFields,
@@ -89,26 +89,30 @@ final class UserPreferencesService
     {
         return [
             'cache' => [
-                'clientsAutoRefresh'    => true,
-                'clientsCacheDuration'  => 24,
-                'complexesAutoRefresh'  => true,
+                'clientsAutoRefresh' => true,
+                'clientsCacheDuration' => 24,
+                'complexesAutoRefresh' => true,
                 'complexesCacheDuration' => 12,
-                'terrainsAutoRefresh'   => true,
+                'terrainsAutoRefresh' => true,
                 'terrainsCacheDuration' => 6,
-                'autoRefreshOnLogin'    => true,
-                'backgroundSync'        => true,
-                'compressionEnabled'    => true,
-                'maxCacheSize'          => 100,
+                'autoRefreshOnLogin' => true,
+                'backgroundSync' => true,
+                'compressionEnabled' => true,
+                'maxCacheSize' => 100,
             ],
             'server' => [
-                'autoSync'              => true,
-                'syncInterval'          => 30,
-                'offlineMode'           => false,
-                'dataPreloading'        => true,
-                'notificationsEnabled'  => true,
-                'debugMode'             => false,
-                'apiTimeout'            => 30,
-                'retryAttempts'         => 3,
+                'autoSync' => true,
+                'syncInterval' => 30,
+                'offlineMode' => false,
+                'dataPreloading' => true,
+                'notificationsEnabled' => true,
+                'debugMode' => false,
+                'apiTimeout' => 30,
+                'retryAttempts' => 3,
+            ],
+            'notifications' => [
+                'fieldopsDatabase' => true,
+                'fieldopsEmail' => true,
             ],
         ];
     }
@@ -118,8 +122,8 @@ final class UserPreferencesService
         if (empty($user->preferences_data)) {
             $user->update([
                 'preferences_data' => $this->getDefaultPreferences(),
-                'language'         => $user->language ?? 'nl',
-                'theme'            => $user->theme ?? 'light',
+                'language' => $user->language ?? 'nl',
+                'theme' => $user->theme ?? 'light',
             ]);
         }
 
@@ -134,13 +138,13 @@ final class UserPreferencesService
         Request $request
     ): void {
         UserPreferencesLog::create([
-            'user_id'         => $user->id,
+            'user_id' => $user->id,
             'old_preferences' => $oldPreferences,
             'new_preferences' => $newPreferences,
-            'changed_fields'  => $changedFields,
-            'changed_at'      => now(),
-            'ip_address'      => $request->ip(),
-            'user_agent'      => $request->userAgent(),
+            'changed_fields' => $changedFields,
+            'changed_at' => now(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
     }
 
@@ -181,12 +185,12 @@ final class UserPreferencesService
         ];
 
         foreach ($requiredStructure as $section => $fields) {
-            if (!isset($preferences[$section])) {
+            if (! isset($preferences[$section])) {
                 return false;
             }
 
             foreach ($fields as $field) {
-                if (!array_key_exists($field, $preferences[$section])) {
+                if (! array_key_exists($field, $preferences[$section])) {
                     return false;
                 }
             }

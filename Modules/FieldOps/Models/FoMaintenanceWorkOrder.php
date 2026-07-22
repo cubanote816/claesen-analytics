@@ -21,8 +21,10 @@ class FoMaintenanceWorkOrder extends Model
     protected $fillable = [
         'created_by_user_id', 'maintenance_plan_id', 'fo_maintenance_type_id', 'maintainable_id',
         'maintainable_type', 'luminaire_position_id', 'client_id', 'assigned_employee_id',
+        'assigned_by_user_id', 'assigned_at',
         'status', 'priority', 'source', 'scheduled_for', 'due_at', 'problem_description',
-        'instructions', 'started_at', 'started_by_user_id', 'submitted_at', 'completed_at',
+        'instructions', 'started_at', 'started_by_user_id', 'submitted_at', 'returned_at',
+        'returned_by_user_id', 'return_reason', 'completed_at',
         'completed_by_user_id', 'completion_details', 'root_cause', 'solution_applied',
         'completion_notes', 'validated_at', 'validated_by_user_id', 'override_reason',
         'cancelled_at', 'cancelled_by_user_id', 'cancellation_reason', 'maintenance_record_id',
@@ -34,6 +36,8 @@ class FoMaintenanceWorkOrder extends Model
         'due_at' => 'datetime',
         'started_at' => 'datetime',
         'submitted_at' => 'datetime',
+        'assigned_at' => 'datetime',
+        'returned_at' => 'datetime',
         'completed_at' => 'datetime',
         'validated_at' => 'datetime',
         'cancelled_at' => 'datetime',
@@ -75,6 +79,11 @@ class FoMaintenanceWorkOrder extends Model
         return $this->belongsTo(Employee::class, 'assigned_employee_id');
     }
 
+    public function assignedBy()
+    {
+        return $this->belongsTo(User::class, 'assigned_by_user_id');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
@@ -90,6 +99,11 @@ class FoMaintenanceWorkOrder extends Model
         return $this->belongsTo(User::class, 'completed_by_user_id');
     }
 
+    public function returnedBy()
+    {
+        return $this->belongsTo(User::class, 'returned_by_user_id');
+    }
+
     public function validatedBy()
     {
         return $this->belongsTo(User::class, 'validated_by_user_id');
@@ -98,5 +112,12 @@ class FoMaintenanceWorkOrder extends Model
     public function maintenanceRecord()
     {
         return $this->belongsTo(FoMaintenanceRecord::class, 'maintenance_record_id');
+    }
+
+    public function events()
+    {
+        return $this->hasMany(FoMaintenanceWorkOrderEvent::class, 'work_order_id')
+            ->orderBy('occurred_at')
+            ->orderBy('id');
     }
 }

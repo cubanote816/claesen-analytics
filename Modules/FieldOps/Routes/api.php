@@ -5,6 +5,7 @@ use Modules\FieldOps\Http\Controllers\CatalogController;
 use Modules\FieldOps\Http\Controllers\ComplexController;
 use Modules\FieldOps\Http\Controllers\ElectricalBoardController;
 use Modules\FieldOps\Http\Controllers\FieldOpsMediaController;
+use Modules\FieldOps\Http\Controllers\FieldOpsNotificationController;
 use Modules\FieldOps\Http\Controllers\FoClientController;
 use Modules\FieldOps\Http\Controllers\LuminaireController;
 use Modules\FieldOps\Http\Controllers\LuminaireFrameController;
@@ -75,6 +76,12 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         // Maintenance catalog
         Route::get('/maintenance-types', [MaintenanceRecordController::class, 'types']);
 
+        // Operational notifications are scoped to FieldOps and the authenticated user.
+        Route::get('/notifications', [FieldOpsNotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [FieldOpsNotificationController::class, 'unreadCount']);
+        Route::post('/notifications/read-all', [FieldOpsNotificationController::class, 'markAllAsRead']);
+        Route::post('/notifications/{notification}/read', [FieldOpsNotificationController::class, 'markAsRead']);
+
         // Maintenance records (per equipment)
         Route::get('/luminaires/{luminaire}/maintenance-records', [MaintenanceRecordController::class, 'indexForLuminaire']);
         Route::get('/electrical-boards/{electricalBoard}/maintenance-records', [MaintenanceRecordController::class, 'indexForElectricalBoard']);
@@ -87,6 +94,8 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/maintenance-work-orders/{workOrder}', [MaintenanceWorkOrderController::class, 'show']);
         Route::post('/maintenance-work-orders/{workOrder}/start', [MaintenanceWorkOrderController::class, 'start']);
         Route::post('/maintenance-work-orders/{workOrder}/submit', [MaintenanceWorkOrderController::class, 'submit']);
+        Route::post('/maintenance-work-orders/{workOrder}/return', [MaintenanceWorkOrderController::class, 'returnForCorrection'])
+            ->name('fieldops.work-orders.return');
         Route::post('/maintenance-work-orders/{workOrder}/validate', [MaintenanceWorkOrderController::class, 'validateAndClose'])
             ->name('fieldops.work-orders.validate');
         Route::post('/maintenance-work-orders/{workOrder}/override', [MaintenanceWorkOrderController::class, 'overrideAndClose'])

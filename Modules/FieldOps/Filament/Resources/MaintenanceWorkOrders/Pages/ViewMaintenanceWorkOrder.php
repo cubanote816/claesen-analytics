@@ -47,6 +47,27 @@ class ViewMaintenanceWorkOrder extends ViewRecord
                     Notification::make()->title(__('fieldops::resource.work_orders.notifications.closed'))->success()->send();
                     $this->refreshFormData(['status', 'validated_at', 'maintenance_record_id']);
                 }),
+            Action::make('returnForCorrection')
+                ->label(__('fieldops::resource.work_orders.actions.return_for_correction'))
+                ->icon('heroicon-m-arrow-uturn-left')
+                ->color('warning')
+                ->visible(fn (): bool => $this->record->status === MaintenanceWorkOrderStatus::AWAITING_VALIDATION)
+                ->schema([
+                    Textarea::make('return_reason')
+                        ->label(__('fieldops::resource.work_orders.fields.return_reason'))
+                        ->required()
+                        ->maxLength(4000)
+                        ->rows(4),
+                ])
+                ->action(function (array $data): void {
+                    app(MaintenanceWorkOrderService::class)->returnForCorrection(
+                        $this->record,
+                        auth()->id(),
+                        $data['return_reason'],
+                    );
+                    Notification::make()->title(__('fieldops::resource.work_orders.notifications.returned'))->warning()->send();
+                    $this->refreshFormData(['status', 'returned_at', 'returned_by_user_id', 'return_reason']);
+                }),
             Action::make('overrideAndClose')
                 ->label(__('fieldops::resource.work_orders.actions.override'))
                 ->icon('heroicon-m-shield-exclamation')

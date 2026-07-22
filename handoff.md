@@ -1,7 +1,20 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-270 Done** (commit `e37a1b9`, fix visual de los pines de Terrain Types), **CLA-269 Done** (commit `1fa1faa`) y **CLA-266 aprobado para cierre**. El aislamiento tenant, la identidad cliente y el hardening OAuth recibieron GO técnico.
+> Última actualización: 2026-07-22 — **CLA-271 Done** (backend `305c988`, Claesen-Sport `2ce9dcf`); CLA-270/269/266 permanecen Done.
+
+### Sesión 2026-07-22 — CLA-271: auditoría de asignaciones y notificaciones operacionales (Done)
+
+**Contexto:** CLA-267 creó el workflow de órdenes, pero no identificaba al asignador real, no conservaba una línea temporal append-only ni notificaba asignaciones, entregas, devoluciones y cierres.
+
+- **Asignación ejecutable:** `assigned_by_user_id`/`assigned_at` identifican la asignación vigente. Filament y el servicio solo admiten empleados CAFCA que tengan un `User` activo; reasignar notifica tanto al trabajador anterior como al nuevo.
+- **Audit trail:** nueva tabla `fo_maintenance_work_order_events` y enum de eventos. Creación, asignación, reasignación, desasignación, inicio, envío, devolución, validación, cierre excepcional y cancelación pasan por `MaintenanceWorkOrderService` con lock transaccional. El modelo impide update/delete.
+- **Ciclo de corrección:** backoffice puede retornar exclusivamente una orden `awaiting_validation` con motivo obligatorio. La orden vuelve a `in_progress`, conserva actor/fecha/motivo y Claesen-Sport lo destaca antes del nuevo envío.
+- **Notificaciones:** `WorkOrderOperationalNotification` usa database+mail, cola after-commit, tres intentos con backoff y locale EN/NL. Preferencias `fieldopsDatabase`/`fieldopsEmail`; API FieldOps filtra estrictamente por usuario y módulo y `read-all` no toca Safety u otros módulos.
+- **UX:** Filament muestra auditoría de asignación, timeline y acción de devolución. Claesen-Sport conecta el centro existente a endpoints reales, muestra iconografía por evento, marca lecturas, abre `/work-orders/{id}` mediante navegación SPA y permite configurar ambos canales.
+- **Migración local:** `2026_07_22_000006_add_work_order_assignment_audit` completó up, rollback y reaplicación.
+- **Tests/checks:** backend focal **19 passed / 100 assertions** (workflow existente + auditoría/notificaciones + Filament); frontend **4 passed**, build de producción y ESLint focal pasan. Pint, sintaxis, rutas y `git diff --check` limpios. El lint global mantiene errores preexistentes ya documentados.
+- **Estado:** GO técnico recibido; commits dedicados creados: backend `305c988`, Claesen-Sport `2ce9dcf`. Linear debe reflejar `Done` con esta evidencia.
 
 ### Sesión 2026-07-22 — CLA-270: fix visual de los pines de Terrain Types (Done, commit `e37a1b9`)
 
