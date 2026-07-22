@@ -3,7 +3,6 @@
 namespace Modules\FieldOps\Filament\Resources\MaintenanceRecords\Pages;
 
 use Filament\Actions\Action;
-use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
@@ -29,7 +28,6 @@ class ViewFoMaintenanceRecord extends ViewRecord
                 ->color('gray')
                 ->visible(fn (): bool => $this->record->maintainable_type === Luminaire::class)
                 ->url(fn (): string => LuminaireResource::getUrl('view', ['record' => $this->record->maintainable_id])),
-            EditAction::make(),
         ];
     }
 }

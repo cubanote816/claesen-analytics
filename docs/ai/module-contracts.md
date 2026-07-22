@@ -205,7 +205,9 @@ Modules/Website/Routes/api.php
 - La app de terreno inicia y envía la ejecución; el backoffice valida/cierra. Un override de backoffice requiere `override_reason` persistido en la orden y en el registro resultante.
 - Cliente y contexto físico se derivan de FieldOps. No aceptar `client_id` ni `luminaire_position_id` del formulario/payload de creación de una orden.
 - Para luminarias, `luminaire_position_id` es el agregado estable. Reemplazar la instalación no debe mover la orden ni fragmentar el historial de esa posición.
-- `FoMaintenanceRecord` solo se crea cuando una orden se valida/cierra, excepto eventos de reemplazo atómico ya cubiertos por `LuminaireReplacementService` y el flujo legado de incidencias de cliente pendiente de CLA-268.
+- `FoMaintenanceRecord` solo se crea cuando una orden se valida/cierra, excepto eventos de reemplazo atómico cubiertos por `LuminaireReplacementService`.
+- El histórico es inmutable en las superficies públicas: API y Filament son solo lectura. No registrar endpoints, formularios o acciones directas para crear, editar, eliminar o restaurar `FoMaintenanceRecord`.
+- Las incidencias del cliente pertenecen al dominio `MaintenanceRequest` pendiente de CLA-268; nunca deben volver a escribirse como registros históricos abiertos.
 
 ### Archivos clave
 

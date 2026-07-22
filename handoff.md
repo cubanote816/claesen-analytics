@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-267 completado con GO técnico**. FieldOps separa ahora planes recurrentes, órdenes operacionales y registros históricos; el alta parte del equipo y la ejecución física se envía desde terreno para validación del backoffice.
+> Última actualización: 2026-07-22 — **CLA-267 cerrado tras segunda revisión técnica**. El bypass CRUD del histórico fue retirado, Claesen-Sport migrado a órdenes asignadas y el hardening recibió GO técnico.
 
 ### Sesión 2026-07-22 — CLA-267: planes de mantenimiento y órdenes de trabajo (Done)
 
@@ -13,9 +13,11 @@
 - **UX backoffice:** `Work orders` reemplaza al historial genérico en el menú y funciona como cola con producto/imagen, sitio, cliente, estado, fecha y responsable. `Maintenance plans` permite administrar recurrencias. Luminaire, Luminaire Frame y Electrical Board exponen `Schedule maintenance`; Luminaire muestra además sus órdenes abiertas. El historial no ofrece ya creación directa desde su tabla.
 - **Recurrencia:** `fieldops:generate-maintenance-work-orders` genera órdenes vencidas de forma transaccional, admite `--dry-run` y quedó programado cada hora con `withoutOverlapping()`.
 - **API:** creación contextual para luminaria/cuadro, lista de asignadas, detalle, inicio, envío de ejecución, validación y override. La ejecución enviada todavía no crea historial: espera validación del backoffice.
+- **Hardening tras auditoría:** eliminadas las rutas de creación/edición/eliminación directa de históricos y las escrituras legacy `client-reported`. Filament solo conserva lista/detalle del histórico. Las únicas creaciones internas autorizadas son el cierre validado de una orden y el reemplazo atómico de luminaria.
+- **Cutover de terreno:** Claesen-Sport retiró `MaintenanceFormModal` y todas las llamadas CRUD de históricos. Añadió `Mijn werk`/`My work`, lista de órdenes asignadas, contexto visual del equipo/sitio, inicio de trabajo y envío de causa/solución/notas a validación.
 - **Migración local:** `2026_07_22_000004_create_maintenance_plans_and_work_orders` aplicada; rollback y reaplicación verificados con tablas vacías.
-- **Tests/checks:** slice crítico **31 passed / 250 assertions** antes del último refinamiento; cierre focal final **22 passed / 182 assertions** y todos los nuevos tests pasan dentro de la suite amplia. Suite FieldOps amplia: **217 passed / 646 assertions**, 93 abortos por dos problemas preexistentes de harness (`RoleAlreadyExists` entre clases y permisos en `storage/framework/testing/disks`), sin fallos funcionales de CLA-267. Pint, sintaxis PHP, Blade cache, rutas, scheduler, paridad EN/NL (**414 claves por idioma**), `git diff --check` y build Vite pasan; Vite conserva el warning CSS preexistente.
-- **Estado:** GO técnico recibido; commit dedicado y cierre de Linear autorizados.
+- **Tests/checks del hardening:** focal **22 passed / 102 assertions**; regresión integrada **42 passed / 301 assertions**. Suite FieldOps amplia: **209 passed / 649 assertions**, 93 fallos por los dos problemas preexistentes del harness (`RoleAlreadyExists` y permisos de `storage/framework/testing/disks`); los tests nuevos pasan dentro de la corrida amplia. Pint, sintaxis PHP, Blade cache y rutas pasan. Claesen-Sport: build y **2 tests Vitest** pasan; lint de archivos modificados pasa, mientras el lint global mantiene 20 errores preexistentes fuera del alcance.
+- **Estado:** GO técnico aprobado. Claesen-Sport quedó registrado en `d7606bc`; el hardening backend queda en el commit dedicado de esta sesión y CLA-267 puede pasar a `Done` en Linear.
 
 ### Sesión 2026-07-21/22 — CLA-265: posición estable y reemplazo atómico de luminarias (Done)
 

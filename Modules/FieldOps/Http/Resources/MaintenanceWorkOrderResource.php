@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\FieldOps\Models\ElectricalBoard;
+use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Services\MaintenanceEquipmentContextService;
 
 class MaintenanceWorkOrderResource extends JsonResource
 {
     public function toArray($request): array
     {
+        $equipment = $this->relationLoaded('maintainable') ? $this->maintainable : null;
+        $context = app(MaintenanceEquipmentContextService::class);
+
         return [
             'id' => $this->id,
             'status' => $this->status->value,
@@ -17,6 +23,19 @@ class MaintenanceWorkOrderResource extends JsonResource
             'source' => $this->source,
             'maintainable_type' => $this->maintainable_type,
             'maintainable_id' => $this->maintainable_id,
+            'equipment' => $equipment ? [
+                'kind' => match (true) {
+                    $equipment instanceof Luminaire => 'luminaire',
+                    $equipment instanceof ElectricalBoard => 'electrical_board',
+                    default => 'equipment',
+                },
+                'id' => (string) $equipment->getKey(),
+                'label' => $context->equipmentLabel($equipment),
+                'site_label' => $context->siteLabel($equipment),
+                'image_url' => $this->equipmentImageUrl($equipment),
+                'serial_number' => $equipment instanceof Luminaire ? $equipment->serial_number : null,
+                'frame_position' => $equipment instanceof Luminaire ? $equipment->frame_position : null,
+            ] : null,
             'luminaire_position_id' => $this->luminaire_position_id,
             'maintenance_plan_id' => $this->maintenance_plan_id,
             'maintenance_record_id' => $this->maintenance_record_id,
@@ -48,5 +67,20 @@ class MaintenanceWorkOrderResource extends JsonResource
             'override_reason' => $this->override_reason,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    private function equipmentImageUrl(object $equipment): ?string
+    {
+        if (! $equipment instanceof Luminaire) {
+            return null;
+        }
+
+        $image = $equipment->luminaireType?->image;
+
+        if (! $image) {
+            return asset('assets/luminaire-subgroups/image_placeholder.png');
+        }
+
+        return str_starts_with($image, 'http') ? $image : asset(ltrim($image, '/'));
     }
 }

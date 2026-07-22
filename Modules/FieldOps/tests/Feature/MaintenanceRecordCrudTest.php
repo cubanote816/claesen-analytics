@@ -6,7 +6,6 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Cafca\Models\Employee;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceType;
@@ -21,210 +20,130 @@ class MaintenanceRecordCrudTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
+        $this->mock(GeminiService::class, fn ($mock) => $mock->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
     }
 
-    private function user(): array
-    {
-        $user  = UserFactory::new()->create();
-        $token = $user->createToken('test')->plainTextToken;
-
-        return [$user, $token];
-    }
-
-    // ── store for luminaire ──────────────────────────────────────────────────
-
-    public function test_store_for_luminaire_creates_record_and_returns_201(): void
-    {
-        [, $token] = $this->user();
-        $luminaire = Luminaire::factory()->create();
-        $type      = FoMaintenanceType::factory()->preventive()->create();
-
-        $response = $this->withToken($token)->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-records", [
-            'fo_maintenance_type_id' => $type->id,
-            'maintenance_at'         => '2026-07-01 10:00:00',
-            'details'                => ['inspection' => true, 'cleaning' => true],
-            'notes'                  => 'Routine check',
-        ]);
-
-        $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.maintainable_type', Luminaire::class)
-            ->assertJsonPath('data.maintainable_id', $luminaire->id);
-
-        $this->assertDatabaseHas('fo_maintenance_records', [
-            'maintainable_id'   => $luminaire->id,
-            'maintainable_type' => Luminaire::class,
-            'notes'             => 'Routine check',
-        ]);
-    }
-
-    public function test_store_for_luminaire_injects_created_by_user_id(): void
-    {
-        [$user, $token] = $this->user();
-        $luminaire = Luminaire::factory()->create();
-        $type      = FoMaintenanceType::factory()->preventive()->create();
-
-        $this->withToken($token)->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-records", [
-            'fo_maintenance_type_id' => $type->id,
-            'maintenance_at'         => '2026-07-01 10:00:00',
-        ]);
-
-        $this->assertDatabaseHas('fo_maintenance_records', ['created_by_user_id' => $user->id]);
-    }
-
-    public function test_store_for_luminaire_requires_maintenance_type(): void
-    {
-        [, $token] = $this->user();
-        $luminaire = Luminaire::factory()->create();
-
-        $this->withToken($token)->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-records", [
-            'maintenance_at' => '2026-07-01 10:00:00',
-        ])->assertStatus(422)->assertJsonValidationErrors('fo_maintenance_type_id');
-    }
-
-    public function test_store_for_luminaire_rejects_nonexistent_employee_id(): void
-    {
-        [, $token] = $this->user();
-        $luminaire = Luminaire::factory()->create();
-        $type      = FoMaintenanceType::factory()->preventive()->create();
-
-        $this->withToken($token)->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-records", [
-            'fo_maintenance_type_id' => $type->id,
-            'maintenance_at'         => '2026-07-01 10:00:00',
-            'employee_id'            => 'DOES-NOT-EXIST',
-        ])->assertStatus(422)->assertJsonValidationErrors('employee_id');
-    }
-
-    public function test_store_for_luminaire_accepts_existing_employee_id(): void
-    {
-        [, $token] = $this->user();
-        $luminaire = Luminaire::factory()->create();
-        $type      = FoMaintenanceType::factory()->preventive()->create();
-        $employee  = Employee::create(['id' => 'EMP-001', 'name' => 'Jan Jansen']);
-
-        $this->withToken($token)->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-records", [
-            'fo_maintenance_type_id' => $type->id,
-            'maintenance_at'         => '2026-07-01 10:00:00',
-            'employee_id'            => $employee->id,
-        ])->assertStatus(201)
-            ->assertJsonPath('data.employee.id', 'EMP-001');
-    }
-
-    public function test_store_for_luminaire_requires_authentication(): void
+    public function test_history_endpoints_require_authentication(): void
     {
         $luminaire = Luminaire::factory()->create();
-        $type      = FoMaintenanceType::factory()->preventive()->create();
 
-        $this->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-records", [
-            'fo_maintenance_type_id' => $type->id,
-            'maintenance_at'         => '2026-07-01 10:00:00',
-        ])->assertStatus(401);
+        $this->getJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-records")
+            ->assertUnauthorized();
     }
 
-    // ── store for electrical board ───────────────────────────────────────────
-
-    public function test_store_for_electrical_board_creates_record(): void
+    public function test_history_can_be_read_for_luminaire_and_electrical_board(): void
     {
-        [, $token] = $this->user();
+        $token = $this->token();
+        $luminaire = Luminaire::factory()->create();
         $board = ElectricalBoard::factory()->create();
-        $type  = FoMaintenanceType::factory()->corrective()->create();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        $luminaireRecord = FoMaintenanceRecord::factory()->forMaintainable($luminaire)->create(['fo_maintenance_type_id' => $type->id]);
+        $boardRecord = FoMaintenanceRecord::factory()->forMaintainable($board)->create(['fo_maintenance_type_id' => $type->id]);
 
-        $response = $this->withToken($token)->postJson("/api/v1/fieldops/electrical-boards/{$board->id}/maintenance-records", [
+        $this->withToken($token)
+            ->getJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-records")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $luminaireRecord->id);
+
+        $this->withToken($token)
+            ->getJson("/api/v1/fieldops/electrical-boards/{$board->id}/maintenance-records")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $boardRecord->id);
+    }
+
+    public function test_history_detail_remains_read_only(): void
+    {
+        $token = $this->token();
+        $luminaire = Luminaire::factory()->create();
+        $record = FoMaintenanceRecord::factory()->forMaintainable($luminaire)->create(['notes' => 'Validated evidence']);
+
+        $this->withToken($token)
+            ->getJson("/api/v1/fieldops/maintenance-records/{$record->id}")
+            ->assertOk()
+            ->assertJsonPath('data.notes', 'Validated evidence');
+    }
+
+    public function test_direct_history_creation_is_not_routable(): void
+    {
+        $token = $this->token();
+        $luminaire = Luminaire::factory()->create();
+        $board = ElectricalBoard::factory()->create();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        $payload = [
             'fo_maintenance_type_id' => $type->id,
-            'maintenance_at'         => '2026-07-01 10:00:00',
-        ]);
+            'maintenance_at' => '2026-07-22 10:00:00',
+        ];
 
-        $response->assertStatus(201)
-            ->assertJsonPath('data.maintainable_type', ElectricalBoard::class)
-            ->assertJsonPath('data.maintainable_id', $board->id);
+        $this->withToken($token)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-records", $payload)
+            ->assertMethodNotAllowed();
+        $this->withToken($token)
+            ->postJson("/api/v1/fieldops/electrical-boards/{$board->id}/maintenance-records", $payload)
+            ->assertMethodNotAllowed();
+
+        $this->assertDatabaseCount('fo_maintenance_records', 0);
     }
 
-    // ── index ─────────────────────────────────────────────────────────────────
-
-    public function test_index_for_luminaire_returns_only_its_own_records(): void
+    public function test_validated_history_cannot_be_updated_or_deleted_through_api(): void
     {
-        [, $token] = $this->user();
-        $luminaireA = Luminaire::factory()->create();
-        $luminaireB = Luminaire::factory()->create();
-        $type       = FoMaintenanceType::factory()->preventive()->create();
-
-        FoMaintenanceRecord::factory()->forMaintainable($luminaireA)->create(['fo_maintenance_type_id' => $type->id]);
-        FoMaintenanceRecord::factory()->forMaintainable($luminaireB)->create(['fo_maintenance_type_id' => $type->id]);
-
-        $response = $this->withToken($token)->getJson("/api/v1/fieldops/luminaires/{$luminaireA->id}/maintenance-records")->assertOk();
-
-        $this->assertCount(1, $response->json('data'));
-    }
-
-    // ── show / update / destroy ──────────────────────────────────────────────
-
-    public function test_show_returns_record_with_relations(): void
-    {
-        [, $token] = $this->user();
+        $token = $this->token();
         $luminaire = Luminaire::factory()->create();
-        $record    = FoMaintenanceRecord::factory()->forMaintainable($luminaire)->create();
+        $record = FoMaintenanceRecord::factory()->forMaintainable($luminaire)->create(['notes' => 'Original evidence']);
 
-        $response = $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-records/{$record->id}")->assertOk();
+        $this->withToken($token)
+            ->patchJson("/api/v1/fieldops/maintenance-records/{$record->id}", ['notes' => 'Tampered'])
+            ->assertMethodNotAllowed();
+        $this->withToken($token)
+            ->deleteJson("/api/v1/fieldops/maintenance-records/{$record->id}")
+            ->assertMethodNotAllowed();
 
-        $response->assertJsonPath('data.id', $record->id);
+        $record->refresh();
+        self::assertSame('Original evidence', $record->notes);
+        self::assertNull($record->deleted_at);
     }
 
-    public function test_update_patches_only_sent_fields(): void
+    public function test_legacy_client_reported_writes_cannot_create_or_resolve_history(): void
     {
-        [, $token] = $this->user();
+        $token = $this->token();
         $luminaire = Luminaire::factory()->create();
-        $record    = FoMaintenanceRecord::factory()->forMaintainable($luminaire)->create(['notes' => 'Old note']);
+        $record = FoMaintenanceRecord::factory()->forMaintainable($luminaire)->clientReported()->create();
 
-        $this->withToken($token)->patchJson("/api/v1/fieldops/maintenance-records/{$record->id}", [
-            'notes' => 'Updated note',
-        ])->assertStatus(200)->assertJsonPath('data.notes', 'Updated note');
+        $this->withToken($token)
+            ->postJson('/api/v1/fieldops/maintenance-records/client-reported', [
+                'maintainable_type' => Luminaire::class,
+                'maintainable_id' => $luminaire->id,
+                'problem_description' => 'Direct history write',
+            ])->assertMethodNotAllowed();
+        $this->withToken($token)
+            ->patchJson("/api/v1/fieldops/maintenance-records/client-reported/{$record->id}/resolve", [
+                'solution_applied' => 'Bypassed validation',
+            ])->assertNotFound();
 
-        $this->assertDatabaseHas('fo_maintenance_records', ['id' => $record->id, 'notes' => 'Updated note']);
+        self::assertNull($record->fresh()->problem_solved_at);
+        $this->assertDatabaseCount('fo_maintenance_records', 1);
     }
 
-    public function test_destroy_soft_deletes_record(): void
+    public function test_maintenance_catalog_and_corrective_stats_remain_available(): void
     {
-        [, $token] = $this->user();
+        $token = $this->token();
         $luminaire = Luminaire::factory()->create();
-        $record    = FoMaintenanceRecord::factory()->forMaintainable($luminaire)->create();
-
-        $this->withToken($token)->deleteJson("/api/v1/fieldops/maintenance-records/{$record->id}")
-            ->assertStatus(204);
-
-        $this->assertSoftDeleted('fo_maintenance_records', ['id' => $record->id]);
-    }
-
-    // ── maintenance types catalog ────────────────────────────────────────────
-
-    public function test_maintenance_types_endpoint_lists_catalog(): void
-    {
-        [, $token] = $this->user();
-        FoMaintenanceType::factory()->preventive()->create();
-        FoMaintenanceType::factory()->corrective()->create();
-
-        $response = $this->withToken($token)->getJson('/api/v1/fieldops/maintenance-types')->assertOk();
-
-        $this->assertEqualsCanonicalizing(
-            ['preventive', 'corrective', 'replacement'],
-            collect($response->json('data'))->pluck('code')->all(),
-        );
-    }
-
-    // ── stats ─────────────────────────────────────────────────────────────────
-
-    public function test_corrective_stats_counts_only_corrective_records(): void
-    {
-        [, $token] = $this->user();
-        $luminaire  = Luminaire::factory()->create();
         $corrective = FoMaintenanceType::factory()->corrective()->create();
-        $preventive = FoMaintenanceType::factory()->preventive()->create();
-
+        FoMaintenanceType::factory()->preventive()->create();
         FoMaintenanceRecord::factory()->forMaintainable($luminaire)->create(['fo_maintenance_type_id' => $corrective->id]);
-        FoMaintenanceRecord::factory()->forMaintainable($luminaire)->create(['fo_maintenance_type_id' => $preventive->id]);
 
-        $response = $this->withToken($token)->getJson('/api/v1/fieldops/maintenance-records/stats/corrective')->assertOk();
+        $this->withToken($token)
+            ->getJson('/api/v1/fieldops/maintenance-types')
+            ->assertOk();
+        $this->withToken($token)
+            ->getJson('/api/v1/fieldops/maintenance-records/stats/corrective')
+            ->assertOk()
+            ->assertJsonPath('data.total_corrective', 1);
+    }
 
-        $response->assertJsonPath('data.total_corrective', 1);
+    private function token(): string
+    {
+        return UserFactory::new()->create()->createToken('test')->plainTextToken;
     }
 }

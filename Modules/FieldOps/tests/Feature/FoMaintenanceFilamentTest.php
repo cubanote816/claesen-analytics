@@ -28,7 +28,7 @@ class FoMaintenanceFilamentTest extends TestCase
         Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
     }
 
-    public function test_maintenance_record_pages_render(): void
+    public function test_maintenance_history_only_exposes_list_and_view_pages(): void
     {
         $user = User::factory()->create();
         $user->assignRole('super_admin');
@@ -42,10 +42,14 @@ class FoMaintenanceFilamentTest extends TestCase
         $this->actingAs($user);
 
         $this->get('/fo-maintenance-records')->assertOk();
-        $this->get('/fo-maintenance-records/create')->assertOk();
+        $this->get('/fo-maintenance-records/create')->assertNotFound();
         $record = FoMaintenanceRecord::first();
         $this->get("/fo-maintenance-records/{$record->id}")->assertOk();
-        $this->get("/fo-maintenance-records/{$record->id}/edit")->assertOk();
+        $this->get("/fo-maintenance-records/{$record->id}/edit")->assertNotFound();
+
+        self::assertFalse(\Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource::canCreate());
+        self::assertFalse(\Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource::canEdit($record));
+        self::assertFalse(\Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource::canDelete($record));
 
         $this->get('/catalogs/fo-maintenance-types')->assertOk();
         $this->get('/catalogs/fo-maintenance-types/create')->assertOk();

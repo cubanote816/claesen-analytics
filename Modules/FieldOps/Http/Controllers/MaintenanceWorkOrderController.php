@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\FieldOps\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
@@ -35,14 +36,20 @@ class MaintenanceWorkOrderController extends Controller
             $query->where('assigned_employee_id', $user->employee_id ?: '__unlinked__');
         }
 
-        return response()->json(['success' => true, 'data' => MaintenanceWorkOrderResource::collection($query->get())]);
+        $orders = $query->get();
+        $this->loadEquipmentContext($orders);
+
+        return response()->json(['success' => true, 'data' => MaintenanceWorkOrderResource::collection($orders)]);
     }
 
     public function show(FoMaintenanceWorkOrder $workOrder): JsonResponse
     {
         $this->authorizeWorkerOrPlanner($workOrder);
 
-        return response()->json(['success' => true, 'data' => new MaintenanceWorkOrderResource($workOrder->load(self::RELATIONS))]);
+        $workOrder->load(self::RELATIONS);
+        $this->loadEquipmentContext(new EloquentCollection([$workOrder]));
+
+        return response()->json(['success' => true, 'data' => new MaintenanceWorkOrderResource($workOrder)]);
     }
 
     public function storeForLuminaire(StoreMaintenanceWorkOrderRequest $request, Luminaire $luminaire): JsonResponse
@@ -87,10 +94,29 @@ class MaintenanceWorkOrderController extends Controller
 
     private function response(FoMaintenanceWorkOrder $order, int $status = 200): JsonResponse
     {
+        $order->load(self::RELATIONS);
+        $this->loadEquipmentContext(new EloquentCollection([$order]));
+
         return response()->json([
             'success' => true,
-            'data' => new MaintenanceWorkOrderResource($order->load(self::RELATIONS)),
+            'data' => new MaintenanceWorkOrderResource($order),
         ], $status);
+    }
+
+    private function loadEquipmentContext(EloquentCollection $orders): void
+    {
+        $orders->loadMorph('maintainable', [
+            Luminaire::class => [
+                'luminaireType',
+                'luminaireFrame.structures.terrains.complex.client',
+            ],
+            ElectricalBoard::class => [
+                'electricalBoardType',
+                'complexes.client',
+                'terrains.complex.client',
+                'structures.terrains.complex.client',
+            ],
+        ]);
     }
 
     private function authorizeWorkerOrPlanner(FoMaintenanceWorkOrder $order): void

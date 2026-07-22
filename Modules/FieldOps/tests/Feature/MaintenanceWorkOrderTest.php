@@ -149,6 +149,58 @@ class MaintenanceWorkOrderTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_assigned_queue_only_returns_the_workers_orders_with_equipment_context(): void
+    {
+        [$luminaire, $client] = $this->luminaireWithClientContext();
+        $luminaire->luminaireType()->update(['product_family' => 'OptiVision LED']);
+        $assigned = Employee::create(['id' => 'FIELD-QUEUE', 'name' => 'Assigned worker', 'fl_active' => true]);
+        $other = Employee::create(['id' => 'FIELD-OTHER-QUEUE', 'name' => 'Other worker', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $assigned->id]);
+        $user->assignRole('project_manager');
+        $type = FoMaintenanceType::factory()->corrective()->create();
+
+        $ownOrder = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'fo_maintenance_type_id' => $type->id,
+            'client_id' => $client->id,
+            'assigned_employee_id' => $assigned->id,
+            'status' => MaintenanceWorkOrderStatus::ASSIGNED,
+        ]);
+        FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'fo_maintenance_type_id' => $type->id,
+            'assigned_employee_id' => $other->id,
+            'status' => MaintenanceWorkOrderStatus::ASSIGNED,
+        ]);
+
+        $this->withToken($user->createToken('field')->plainTextToken)
+            ->getJson('/api/v1/fieldops/maintenance-work-orders/assigned')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $ownOrder->id)
+            ->assertJsonPath('data.0.equipment.kind', 'luminaire')
+            ->assertJsonPath('data.0.equipment.serial_number', $luminaire->serial_number)
+            ->assertJsonPath('data.0.client.id', $client->id);
+    }
+
+    public function test_work_order_queue_requires_authentication_and_submission_requires_solution(): void
+    {
+        $this->getJson('/api/v1/fieldops/maintenance-work-orders/assigned')->assertUnauthorized();
+
+        $luminaire = Luminaire::factory()->create();
+        $employee = Employee::create(['id' => 'FIELD-VALIDATION', 'name' => 'Field worker', 'fl_active' => true]);
+        $worker = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $worker->assignRole('project_manager');
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'assigned_employee_id' => $employee->id,
+            'status' => MaintenanceWorkOrderStatus::IN_PROGRESS,
+            'started_at' => now()->subHour(),
+        ]);
+
+        $this->withToken($worker->createToken('field')->plainTextToken)
+            ->postJson("/api/v1/fieldops/maintenance-work-orders/{$order->id}/submit", [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('solution_applied');
+    }
+
     public function test_exceptional_backoffice_closure_requires_and_stores_reason(): void
     {
         $admin = UserFactory::new()->create();
