@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-271 Done** (backend `305c988`, Claesen-Sport `2ce9dcf`); CLA-270/269/266 permanecen Done.
+> Última actualización: 2026-07-22 — **CLA-271 Done** (backend `91380dd`, Claesen-Sport `2ce9dcf`); CLA-270/269/266 permanecen Done.
 
 ### Sesión 2026-07-22 — CLA-271: auditoría de asignaciones y notificaciones operacionales (Done)
 
@@ -14,7 +14,7 @@
 - **UX:** Filament muestra auditoría de asignación, timeline y acción de devolución. Claesen-Sport conecta el centro existente a endpoints reales, muestra iconografía por evento, marca lecturas, abre `/work-orders/{id}` mediante navegación SPA y permite configurar ambos canales.
 - **Migración local:** `2026_07_22_000006_add_work_order_assignment_audit` completó up, rollback y reaplicación.
 - **Tests/checks:** backend focal **19 passed / 100 assertions** (workflow existente + auditoría/notificaciones + Filament); frontend **4 passed**, build de producción y ESLint focal pasan. Pint, sintaxis, rutas y `git diff --check` limpios. El lint global mantiene errores preexistentes ya documentados.
-- **Estado:** GO técnico recibido; commits dedicados creados: backend `305c988`, Claesen-Sport `2ce9dcf`. Linear debe reflejar `Done` con esta evidencia.
+- **Estado:** GO técnico recibido; commits dedicados creados: backend `91380dd`, Claesen-Sport `2ce9dcf`. Linear debe reflejar `Done` con esta evidencia.
 
 ### Sesión 2026-07-22 — CLA-270: fix visual de los pines de Terrain Types (Done, commit `e37a1b9`)
 

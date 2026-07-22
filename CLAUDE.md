@@ -390,7 +390,7 @@ Auditoría del satélite viejo (`api-claesen-sport-app`) confirmó que tanto `Cl
 - Notificaciones EN/NL por database+mail se encolan after-commit, tienen backoff y respetan preferencias por canal. Endpoints `/api/v1/fieldops/notifications*` aíslan usuario y módulo; Claesen-Sport ofrece badge, centro, marcado de lectura y deep links SPA.
 - Filament muestra auditoría de asignación y timeline, limita el selector a empleados ejecutables y añade `Return for correction`.
 - Validación: backend focal **19 tests / 100 assertions**; Claesen-Sport **4 tests**, build y lint focal limpios. Migración `000006` validada con **up → rollback → up**. Lint global de Claesen-Sport conserva errores preexistentes fuera del alcance.
-- Commits dedicados: backend `305c988`; Claesen-Sport `2ce9dcf`. Linear queda listo para marcar `Done` tras registrar esta validación.
+- Commits dedicados: backend `91380dd`; Claesen-Sport `2ce9dcf`. Linear queda listo para marcar `Done` tras registrar esta validación.
 
 ### CLA-266 — ownership CAFCA y autorización tenant-aware (2026-07-22, Done)
 
