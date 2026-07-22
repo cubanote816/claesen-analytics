@@ -10,6 +10,7 @@ use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
+use Modules\FieldOps\Models\TerrainType;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -69,5 +70,30 @@ class ElectricalBoardFilamentTest extends TestCase
         $this->get("/electrical-boards/{$board->id}")
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false);
+    }
+
+    public function test_board_map_passes_terrain_type_code_and_color_for_sport_pin(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $board = ElectricalBoard::factory()->create();
+        $terrainType = TerrainType::factory()->create(['code' => 'padel', 'pin_color' => '#2e9e8f']);
+        $terrain = Terrain::factory()->create([
+            'terrain_type_id' => $terrainType->id,
+            'lat' => 51.163912,
+            'lng' => 5.163982,
+        ]);
+        $board->terrains()->attach($terrain->id);
+
+        // @js() (Illuminate\Support\Js) escapes every literal double quote in the
+        // JSON payload to a 6-character backslash-u-0022 sequence so it survives
+        // sitting inside the double-quoted x-data HTML attribute.
+        $q = chr(92).'u0022';
+        $this->get("/electrical-boards/{$board->id}")
+            ->assertOk()
+            ->assertSee("terrainTypeCode{$q}:{$q}padel", false)
+            ->assertSee("terrainTypeColor{$q}:{$q}#2e9e8f", false);
     }
 }

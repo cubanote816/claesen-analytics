@@ -10,6 +10,7 @@ use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\Terrain;
+use Modules\FieldOps\Models\TerrainType;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -51,6 +52,31 @@ class ComplexFilamentTest extends TestCase
             ->assertSee('Unmapped')
             ->assertSee('No coordinates yet');
         $this->get("/complexes/{$complex->id}/edit")->assertOk();
+    }
+
+    public function test_complex_map_passes_terrain_type_code_and_color_for_sport_pin(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create(['client_id' => FoClient::factory()->create()->id]);
+        $terrainType = TerrainType::factory()->create(['code' => 'soccer', 'pin_color' => '#4c8c4a']);
+        Terrain::factory()->create([
+            'complex_id' => $complex->id,
+            'terrain_type_id' => $terrainType->id,
+            'lat' => 51.163912,
+            'lng' => 5.163982,
+        ]);
+
+        // @js() (Illuminate\Support\Js) escapes every literal double quote in the
+        // JSON payload to a 6-character backslash-u-0022 sequence so it survives
+        // sitting inside the double-quoted x-data HTML attribute.
+        $q = chr(92).'u0022';
+        $this->get("/complexes/{$complex->id}")
+            ->assertOk()
+            ->assertSee("terrainTypeCode{$q}:{$q}soccer", false)
+            ->assertSee("terrainTypeColor{$q}:{$q}#4c8c4a", false);
     }
 
     public function test_complex_without_client_or_coordinates_renders(): void

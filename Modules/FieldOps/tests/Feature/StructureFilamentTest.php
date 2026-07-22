@@ -181,4 +181,29 @@ class StructureFilamentTest extends TestCase
             ->assertSee(__('fieldops::resource.terrains.actions.attach'))
             ->assertDontSee(__('fieldops::resource.terrains.actions.detach'));
     }
+
+    public function test_structure_map_passes_terrain_type_code_and_color_for_sport_pin(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = Structure::factory()->create();
+        $terrainType = TerrainType::factory()->create(['code' => 'tennis', 'pin_color' => '#a7b23c']);
+        $terrain = Terrain::factory()->create([
+            'terrain_type_id' => $terrainType->id,
+            'lat' => 51.163912,
+            'lng' => 5.163982,
+        ]);
+        $structure->terrains()->attach($terrain->id);
+
+        // @js() (Illuminate\Support\Js) escapes every literal double quote in the
+        // JSON payload to a 6-character backslash-u-0022 sequence so it survives
+        // sitting inside the double-quoted x-data HTML attribute.
+        $q = chr(92).'u0022';
+        $this->get("/structures/{$structure->id}")
+            ->assertOk()
+            ->assertSee("terrainTypeCode{$q}:{$q}tennis", false)
+            ->assertSee("terrainTypeColor{$q}:{$q}#a7b23c", false);
+    }
 }

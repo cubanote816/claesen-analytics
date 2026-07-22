@@ -375,6 +375,8 @@ class StructureResource extends Resource
                     ?: '#'.$terrain->id,
                 'description' => $terrain->terrainType?->getTranslation('type', app()->getLocale(), false)
                     ?: $terrain->terrainType?->getTranslation('type', 'nl', false),
+                'terrainTypeCode' => $terrain->terrainType?->code,
+                'terrainTypeColor' => $terrain->terrainType?->pin_color,
                 'lat' => $terrain->lat,
                 'lng' => $terrain->lng,
                 'hasCoordinates' => static::hasCoordinates($terrain),
