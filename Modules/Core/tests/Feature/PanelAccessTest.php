@@ -17,7 +17,7 @@ class PanelAccessTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        foreach (['project_manager', 'super_admin', 'admin'] as $role) {
+        foreach (['project_manager', 'super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer', 'client'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
     }
@@ -25,9 +25,9 @@ class PanelAccessTest extends TestCase
     private function activeUser(): User
     {
         return UserFactory::new()->create([
-            'password'        => bcrypt('Secret1234!'),
+            'password' => bcrypt('Secret1234!'),
             'password_set_at' => now()->subDay(),
-            'is_active'       => true,
+            'is_active' => true,
         ]);
     }
 
@@ -39,21 +39,42 @@ class PanelAccessTest extends TestCase
         $this->assertFalse($user->hasPanelAccess());
     }
 
-    public function test_admin_and_super_admin_have_panel_access(): void
+    public function test_client_and_roleless_users_have_no_panel_access(): void
     {
-        $admin = $this->activeUser();
-        $admin->assignRole('admin');
-        $this->assertTrue($admin->hasPanelAccess());
+        $client = $this->activeUser();
+        $client->assignRole('client');
 
-        $superAdmin = $this->activeUser();
-        $superAdmin->assignRole('super_admin');
-        $this->assertTrue($superAdmin->hasPanelAccess());
+        $mixedRoleClient = $this->activeUser();
+        $mixedRoleClient->assignRole(['client', 'admin']);
+
+        $this->assertFalse($client->hasPanelAccess());
+        $this->assertFalse($mixedRoleClient->hasPanelAccess());
+        $this->assertFalse($this->activeUser()->hasPanelAccess());
+    }
+
+    public function test_explicit_internal_roles_have_panel_access(): void
+    {
+        foreach (['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer'] as $role) {
+            $user = $this->activeUser();
+            $user->assignRole($role);
+            $this->assertTrue($user->hasPanelAccess(), "{$role} should have panel access.");
+        }
     }
 
     public function test_project_manager_is_redirected_away_from_the_panel(): void
     {
         $user = $this->activeUser();
         $user->assignRole('project_manager');
+
+        $this->actingAs($user)
+            ->get('/')
+            ->assertRedirect(route('auth.no-access'));
+    }
+
+    public function test_client_user_is_redirected_away_from_the_panel(): void
+    {
+        $user = $this->activeUser();
+        $user->assignRole('client');
 
         $this->actingAs($user)
             ->get('/')

@@ -4,16 +4,18 @@ namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Modules\FieldOps\Http\Requests\StoreComplexRequest;
 use Modules\FieldOps\Http\Requests\UpdateComplexRequest;
 use Modules\FieldOps\Http\Resources\ComplexResource;
 use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Services\FieldOpsTenantService;
 
 class ComplexController extends Controller
 {
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $complexes = Complex::with('client', 'createdBy', 'media')
+        $complexes = app(FieldOpsTenantService::class)
+            ->scopeForUser(Complex::query(), $request->user(), Complex::class)
+            ->with('client', 'createdBy', 'media')
             ->when($request->filled('client_id'), fn ($q) => $q->where('client_id', $request->integer('client_id')))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = trim((string) $request->string('search'));
@@ -31,7 +33,7 @@ class ComplexController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => ComplexResource::collection($complexes),
+            'data' => ComplexResource::collection($complexes),
         ]);
     }
 
@@ -41,23 +43,8 @@ class ComplexController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new ComplexResource($complex),
+            'data' => new ComplexResource($complex),
         ]);
-    }
-
-    public function store(StoreComplexRequest $request): \Illuminate\Http\JsonResponse
-    {
-        $complex = Complex::create(array_merge(
-            $request->validated(),
-            ['created_by_user_id' => $request->user()->id],
-        ));
-
-        $complex->load('client', 'createdBy', 'media');
-
-        return response()->json([
-            'success' => true,
-            'data'    => new ComplexResource($complex),
-        ], 201);
     }
 
     public function update(UpdateComplexRequest $request, Complex $complex): \Illuminate\Http\JsonResponse
@@ -68,7 +55,7 @@ class ComplexController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new ComplexResource($complex),
+            'data' => new ComplexResource($complex),
         ]);
     }
 

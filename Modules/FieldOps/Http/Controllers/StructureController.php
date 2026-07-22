@@ -8,20 +8,22 @@ use Modules\FieldOps\Http\Requests\StoreStructureRequest;
 use Modules\FieldOps\Http\Requests\UpdateStructureRequest;
 use Modules\FieldOps\Http\Resources\StructureResource;
 use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Services\FieldOpsTenantService;
 
 class StructureController extends Controller
 {
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $structures = Structure::with('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy', 'media')
-            ->when($request->filled('terrain_id'), fn ($q) =>
-                $q->whereHas('terrains', fn ($t) => $t->where('fo_terrains.id', $request->integer('terrain_id')))
+        $structures = app(FieldOpsTenantService::class)
+            ->scopeForUser(Structure::query(), $request->user(), Structure::class)
+            ->with('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy', 'media')
+            ->when($request->filled('terrain_id'), fn ($q) => $q->whereHas('terrains', fn ($t) => $t->where('fo_terrains.id', $request->integer('terrain_id')))
             )
             ->paginate(50);
 
         return response()->json([
             'success' => true,
-            'data'    => StructureResource::collection($structures),
+            'data' => StructureResource::collection($structures),
         ]);
     }
 
@@ -31,14 +33,14 @@ class StructureController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new StructureResource($structure),
+            'data' => new StructureResource($structure),
         ]);
     }
 
     public function store(StoreStructureRequest $request): \Illuminate\Http\JsonResponse
     {
-        $validated   = $request->validated();
-        $terrainIds  = $validated['terrain_ids'] ?? null;
+        $validated = $request->validated();
+        $terrainIds = $validated['terrain_ids'] ?? null;
         $structureData = array_merge(
             collect($validated)->except('terrain_ids')->all(),
             ['created_by_user_id' => $request->user()->id],
@@ -54,13 +56,13 @@ class StructureController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new StructureResource($structure),
+            'data' => new StructureResource($structure),
         ], 201);
     }
 
     public function update(UpdateStructureRequest $request, Structure $structure): \Illuminate\Http\JsonResponse
     {
-        $validated  = $request->validated();
+        $validated = $request->validated();
         $structureData = collect($validated)->except('terrain_ids')->all();
 
         if (isset($structureData['info'])) {
@@ -84,7 +86,7 @@ class StructureController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new StructureResource($structure),
+            'data' => new StructureResource($structure),
         ]);
     }
 

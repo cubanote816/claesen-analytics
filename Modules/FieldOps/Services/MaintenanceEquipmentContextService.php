@@ -71,7 +71,7 @@ class MaintenanceEquipmentContextService
         return '#'.$equipment->getKey();
     }
 
-    private function resolveClientId(Model $equipment): ?int
+    private function resolveClientId(Model $equipment): int
     {
         $clientIds = $equipment instanceof Luminaire
             ? $equipment->luminaireFrame?->structures
@@ -82,6 +82,18 @@ class MaintenanceEquipmentContextService
 
         $unique = collect($clientIds)->filter()->unique()->values();
 
-        return $unique->count() === 1 ? (int) $unique->first() : null;
+        if ($unique->isEmpty()) {
+            throw ValidationException::withMessages([
+                'maintainable_id' => __('fieldops::resource.work_orders.validation.missing_client'),
+            ]);
+        }
+
+        if ($unique->count() > 1) {
+            throw ValidationException::withMessages([
+                'maintainable_id' => __('fieldops::resource.work_orders.validation.multiple_clients'),
+            ]);
+        }
+
+        return (int) $unique->first();
     }
 }

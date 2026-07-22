@@ -3,9 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Modules\Core\Models\User;
+use Spatie\Permission\Models\Role;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
@@ -22,8 +21,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'financial_manager' => 4,
             'hr_manager' => 5,
             'viewer' => 6,
+            'client' => 7,
         ];
- 
+
         foreach ($roles as $roleName => $sort) {
             Role::updateOrCreate(
                 ['name' => $roleName, 'guard_name' => 'web'],

@@ -10,12 +10,16 @@ use Modules\FieldOps\Http\Resources\TerrainResource;
 use Modules\FieldOps\Http\Resources\TerrainTypeResource;
 use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Models\TerrainType;
+use Modules\FieldOps\Services\FieldOpsTenantService;
 
 class TerrainController extends Controller
 {
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $query = Terrain::with('terrainType', 'createdBy', 'media')->orderBy('id');
+        $query = app(FieldOpsTenantService::class)
+            ->scopeForUser(Terrain::query(), $request->user(), Terrain::class)
+            ->with('terrainType', 'createdBy', 'media')
+            ->orderBy('id');
 
         if ($request->filled('complex_id')) {
             $query->where('complex_id', $request->integer('complex_id'));
@@ -23,15 +27,18 @@ class TerrainController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => TerrainResource::collection($query->paginate(50)),
+            'data' => TerrainResource::collection($query->paginate(50)),
         ]);
     }
 
-    public function count(): \Illuminate\Http\JsonResponse
+    public function count(Request $request): \Illuminate\Http\JsonResponse
     {
+        $query = app(FieldOpsTenantService::class)
+            ->scopeForUser(Terrain::query(), $request->user(), Terrain::class);
+
         return response()->json([
             'success' => true,
-            'data'    => ['total' => Terrain::count()],
+            'data' => ['total' => $query->count()],
             'message' => '',
         ]);
     }
@@ -42,7 +49,7 @@ class TerrainController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new TerrainResource($terrain),
+            'data' => new TerrainResource($terrain),
         ]);
     }
 
@@ -57,7 +64,7 @@ class TerrainController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new TerrainResource($terrain),
+            'data' => new TerrainResource($terrain),
         ], 201);
     }
 
@@ -78,7 +85,7 @@ class TerrainController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new TerrainResource($terrain),
+            'data' => new TerrainResource($terrain),
         ]);
     }
 
@@ -97,7 +104,7 @@ class TerrainController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => TerrainTypeResource::collection($types),
+            'data' => TerrainTypeResource::collection($types),
         ]);
     }
 }

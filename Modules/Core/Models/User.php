@@ -9,13 +9,15 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Modules\Cafca\Models\Employee;
+use Modules\FieldOps\Models\FoClient;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use \Laravel\Sanctum\HasApiTokens, HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles;
+    use HasFactory, \Laravel\Sanctum\HasApiTokens, Notifiable, \Spatie\Permission\Traits\HasRoles;
 
     protected static function newFactory(): Factory
     {
@@ -48,13 +50,13 @@ class User extends Authenticatable implements FilamentUser
     protected function casts(): array
     {
         return [
-            'email_verified_at'          => 'datetime',
-            'password'                   => 'hashed',
-            'password_set_at'            => 'datetime',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'password_set_at' => 'datetime',
             'activation_code_expires_at' => 'datetime',
-            'last_active_at'             => 'datetime',
-            'is_active'                  => 'boolean',
-            'preferences_data'           => 'array',
+            'last_active_at' => 'datetime',
+            'is_active' => 'boolean',
+            'preferences_data' => 'array',
         ];
     }
 
@@ -62,6 +64,13 @@ class User extends Authenticatable implements FilamentUser
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
+    public function fieldOpsClients(): BelongsToMany
+    {
+        return $this->belongsToMany(FoClient::class, 'fo_client_user', 'user_id', 'fo_client_id')
+            ->withPivot(['is_active', 'can_view', 'can_report', 'can_manage_contacts'])
+            ->withTimestamps();
     }
 
     // Single source of truth for "account fully activated".
@@ -73,19 +82,31 @@ class User extends Authenticatable implements FilamentUser
     }
 
     // Single source of truth for "can use the Filament backoffice".
-    // project_manager users work through the Safety/FieldOps PWAs, not this panel.
+    // Field workers and external client contacts use dedicated applications.
     public function hasPanelAccess(): bool
     {
-        return ! $this->hasRole('project_manager');
+        if ($this->hasRole('client')) {
+            return false;
+        }
+
+        return $this->hasAnyRole([
+            'super_admin',
+            'admin',
+            'financial_manager',
+            'hr_manager',
+            'viewer',
+        ]);
     }
 
     public function canAccessPanel(Panel $panel): bool
     {
+        // Keep Filament authentication available so EnsurePanelAccess can send
+        // non-panel users to the dedicated no-access page and still allow logout.
         return (bool) $this->is_active;
     }
 
     public function isOnline(): bool
     {
-        return \Illuminate\Support\Facades\Cache::has('user-is-online-' . $this->id);
+        return \Illuminate\Support\Facades\Cache::has('user-is-online-'.$this->id);
     }
 }

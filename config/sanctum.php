@@ -2,6 +2,17 @@
 
 use Laravel\Sanctum\Sanctum;
 
+$statefulDomains = explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
+    '%s%s',
+    'localhost,localhost:3000,localhost:5173,127.0.0.1,127.0.0.1:8000,::1',
+    Sanctum::currentApplicationUrlWithPort(),
+)));
+
+$clientPortal = parse_url((string) env('CLIENT_PORTAL_URL', ''));
+if (is_array($clientPortal) && isset($clientPortal['host'])) {
+    $statefulDomains[] = $clientPortal['host'].(isset($clientPortal['port']) ? ':'.$clientPortal['port'] : '');
+}
+
 return [
 
     /*
@@ -15,11 +26,7 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,localhost:5173,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort(),
-    ))),
+    'stateful' => array_values(array_unique(array_filter(array_map('trim', $statefulDomains)))),
 
     /*
     |--------------------------------------------------------------------------

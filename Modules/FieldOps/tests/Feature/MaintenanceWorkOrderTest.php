@@ -132,9 +132,53 @@ class MaintenanceWorkOrderTest extends TestCase
         self::assertNull($order->luminaire_position_id);
     }
 
-    public function test_other_field_worker_cannot_execute_an_assigned_order(): void
+    public function test_order_rejects_equipment_without_client_topology(): void
     {
         $luminaire = Luminaire::factory()->create();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        $admin = UserFactory::new()->create();
+        $admin->assignRole('admin');
+
+        $this->withToken($admin->createToken('backoffice')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders", [
+                'fo_maintenance_type_id' => $type->id,
+                'scheduled_for' => now(),
+                'priority' => 'medium',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('maintainable_id');
+
+        self::assertSame(0, FoMaintenanceWorkOrder::count());
+    }
+
+    public function test_order_rejects_equipment_connected_to_multiple_clients(): void
+    {
+        $clientA = FoClient::factory()->create();
+        $clientB = FoClient::factory()->create();
+        $board = ElectricalBoard::factory()->create();
+        $board->complexes()->attach([
+            Complex::factory()->create(['client_id' => $clientA->id])->id,
+            Complex::factory()->create(['client_id' => $clientB->id])->id,
+        ]);
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        $admin = UserFactory::new()->create();
+        $admin->assignRole('admin');
+
+        $this->withToken($admin->createToken('backoffice')->plainTextToken)
+            ->postJson("/api/v1/fieldops/electrical-boards/{$board->id}/maintenance-work-orders", [
+                'fo_maintenance_type_id' => $type->id,
+                'scheduled_for' => now(),
+                'priority' => 'medium',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('maintainable_id');
+
+        self::assertSame(0, FoMaintenanceWorkOrder::count());
+    }
+
+    public function test_other_field_worker_cannot_execute_an_assigned_order(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
         $assigned = Employee::create(['id' => 'FIELD-ASSIGNED', 'name' => 'Assigned', 'fl_active' => true]);
         $other = Employee::create(['id' => 'FIELD-OTHER', 'name' => 'Other', 'fl_active' => true]);
         $user = UserFactory::new()->create(['employee_id' => $other->id]);
@@ -226,7 +270,7 @@ class MaintenanceWorkOrderTest extends TestCase
 
     public function test_recurring_order_creates_plan_and_due_generator_is_idempotent_per_cycle(): void
     {
-        $luminaire = Luminaire::factory()->create();
+        [$luminaire] = $this->luminaireWithClientContext();
         $type = FoMaintenanceType::factory()->preventive()->create();
         $order = app(MaintenanceWorkOrderService::class)->create([
             'maintainable_type' => Luminaire::class,

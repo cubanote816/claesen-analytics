@@ -3,6 +3,7 @@
 namespace Modules\Core\Filament\Resources\Users\Schemas;
 
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
@@ -40,6 +41,13 @@ class UserForm
                             ->getOptionLabelFromRecordUsing(fn ($record) => \Illuminate\Support\Str::headline($record->name))
                             ->columns(2)
                             ->gridDirection('row'),
+                        Select::make('fieldOpsClients')
+                            ->label(__('users/resource.fields.clients'))
+                            ->helperText(__('users/resource.fields.clients_hint'))
+                            ->relationship('fieldOpsClients', 'name', fn ($query) => $query->orderBy('name'))
+                            ->multiple()
+                            ->searchable()
+                            ->preload(),
                     ]),
             ]);
     }

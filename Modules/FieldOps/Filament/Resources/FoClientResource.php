@@ -3,14 +3,10 @@
 namespace Modules\FieldOps\Filament\Resources;
 
 use BackedEnum;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\RestoreAction;
-use Filament\Actions\RestoreBulkAction;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
@@ -42,6 +38,26 @@ class FoClientResource extends Resource
     }
 
     public static function canEdit($record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
+    }
+
+    public static function canRestore($record): bool
+    {
+        return false;
+    }
+
+    public static function canRestoreAny(): bool
     {
         return false;
     }
@@ -159,13 +175,6 @@ class FoClientResource extends Resource
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                RestoreAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
-                ]),
             ]);
     }
 
@@ -179,7 +188,7 @@ class FoClientResource extends Resource
     {
         return [
             'index' => ListFoClients::route('/'),
-            'view'  => ViewFoClient::route('/{record}'),
+            'view' => ViewFoClient::route('/{record}'),
         ];
     }
 }

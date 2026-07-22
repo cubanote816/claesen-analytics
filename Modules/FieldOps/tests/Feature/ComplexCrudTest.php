@@ -23,122 +23,10 @@ class ComplexCrudTest extends TestCase
 
     private function user(): array
     {
-        $user  = UserFactory::new()->create();
+        $user = UserFactory::new()->create();
         $token = $user->createToken('test')->plainTextToken;
 
         return [$user, $token];
-    }
-
-    // ── store ─────────────────────────────────────────────────────────────────
-
-    public function test_store_creates_complex_and_returns_201(): void
-    {
-        [, $token] = $this->user();
-
-        $response = $this->withToken($token)->postJson('/api/v1/fieldops/complexes', [
-            'name'    => 'Sportpark Leuven',
-            'city'    => 'Leuven',
-            'street'  => 'Tiensesteenweg 145',
-            'zipcode' => '3000',
-            'lat'     => 50.8798,
-            'lng'     => 4.7005,
-        ]);
-
-        $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.name', 'Sportpark Leuven')
-            ->assertJsonPath('data.city', 'Leuven');
-
-        $this->assertDatabaseHas('fo_complexes', ['name' => 'Sportpark Leuven']);
-    }
-
-    public function test_store_injects_created_by_user_id(): void
-    {
-        [$user, $token] = $this->user();
-
-        $this->withToken($token)->postJson('/api/v1/fieldops/complexes', [
-            'name' => 'Test Complex',
-        ]);
-
-        $this->assertDatabaseHas('fo_complexes', [
-            'name'               => 'Test Complex',
-            'created_by_user_id' => $user->id,
-        ]);
-    }
-
-    public function test_store_requires_authentication(): void
-    {
-        $this->postJson('/api/v1/fieldops/complexes', ['name' => 'X'])
-            ->assertStatus(401);
-    }
-
-    public function test_store_requires_name(): void
-    {
-        [, $token] = $this->user();
-
-        $this->withToken($token)->postJson('/api/v1/fieldops/complexes', [])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('name');
-    }
-
-    public function test_store_rejects_nonexistent_client_id(): void
-    {
-        [, $token] = $this->user();
-
-        $this->withToken($token)->postJson('/api/v1/fieldops/complexes', [
-            'name'      => 'Test',
-            'client_id' => 99999,
-        ])->assertStatus(422)
-            ->assertJsonValidationErrors('client_id');
-    }
-
-    public function test_store_accepts_null_client_id(): void
-    {
-        [, $token] = $this->user();
-
-        $this->withToken($token)->postJson('/api/v1/fieldops/complexes', [
-            'name'      => 'Zonder klant',
-            'client_id' => null,
-        ])->assertStatus(201)
-            ->assertJsonPath('data.client', null);
-    }
-
-    public function test_store_with_valid_client_id(): void
-    {
-        [, $token] = $this->user();
-        $client = FoClient::factory()->create();
-
-        $response = $this->withToken($token)->postJson('/api/v1/fieldops/complexes', [
-            'name'      => 'Met klant',
-            'client_id' => $client->id,
-        ]);
-
-        $response->assertStatus(201)
-            ->assertJsonPath('data.client.id', $client->id);
-    }
-
-    public function test_store_response_shape_matches_show(): void
-    {
-        [$user, $token] = $this->user();
-        $client = FoClient::factory()->create();
-
-        $storeResponse = $this->withToken($token)->postJson('/api/v1/fieldops/complexes', [
-            'name'      => 'Shape Test',
-            'client_id' => $client->id,
-        ]);
-
-        $storeResponse->assertStatus(201);
-        $id = $storeResponse->json('data.id');
-
-        $showResponse = $this->withToken($token)->getJson("/api/v1/fieldops/complexes/{$id}");
-        $showResponse->assertStatus(200);
-
-        $storeKeys = array_keys($storeResponse->json('data'));
-        $showKeys  = array_keys($showResponse->json('data'));
-
-        foreach ($storeKeys as $key) {
-            $this->assertContains($key, $showKeys, "Key '{$key}' present in store but missing in show");
-        }
     }
 
     // ── update ────────────────────────────────────────────────────────────────
@@ -177,7 +65,7 @@ class ComplexCrudTest extends TestCase
         ])->assertStatus(200);
 
         $this->assertDatabaseHas('fo_complexes', [
-            'id'                 => $complex->id,
+            'id' => $complex->id,
             'created_by_user_id' => $user->id,
         ]);
     }
@@ -194,7 +82,7 @@ class ComplexCrudTest extends TestCase
     public function test_update_ignores_client_id_the_client_complex_link_is_immutable_here(): void
     {
         [, $token] = $this->user();
-        $client  = FoClient::factory()->create();
+        $client = FoClient::factory()->create();
         $complex = Complex::factory()->create(['client_id' => $client->id]);
 
         $this->withToken($token)->patchJson("/api/v1/fieldops/complexes/{$complex->id}", [
@@ -272,7 +160,7 @@ class ComplexCrudTest extends TestCase
         $this->withToken($token)->deleteJson("/api/v1/fieldops/complexes/{$complex->id}");
 
         $response = $this->withToken($token)->getJson('/api/v1/fieldops/complexes');
-        $names    = collect($response->json('data'))->pluck('name')->all();
+        $names = collect($response->json('data'))->pluck('name')->all();
 
         $this->assertNotContains('Te verwijderen', $names);
     }

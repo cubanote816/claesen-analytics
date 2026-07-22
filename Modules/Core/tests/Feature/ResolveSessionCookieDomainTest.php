@@ -69,4 +69,12 @@ class ResolveSessionCookieDomainTest extends TestCase
 
         $this->assertNull(config('session.domain'));
     }
+
+    public function test_lookalike_domain_gets_no_fixed_domain(): void
+    {
+        $this->withHeaders(['Origin' => 'https://notclaesen-verlichting.be'])
+            ->get('http://backoffice.claesen.local/up');
+
+        $this->assertNull(config('session.domain'));
+    }
 }

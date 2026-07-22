@@ -8,6 +8,7 @@ use Modules\FieldOps\Http\Requests\StoreElectricalBoardRequest;
 use Modules\FieldOps\Http\Requests\UpdateElectricalBoardRequest;
 use Modules\FieldOps\Http\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Models\ElectricalBoard;
+use Modules\FieldOps\Services\FieldOpsTenantService;
 
 class ElectricalBoardController extends Controller
 {
@@ -15,11 +16,14 @@ class ElectricalBoardController extends Controller
 
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
-        $boards = ElectricalBoard::with(self::RELATIONS)->paginate(50);
+        $boards = app(FieldOpsTenantService::class)
+            ->scopeForUser(ElectricalBoard::query(), $request->user(), ElectricalBoard::class)
+            ->with(self::RELATIONS)
+            ->paginate(50);
 
         return response()->json([
             'success' => true,
-            'data'    => ElectricalBoardResource::collection($boards),
+            'data' => ElectricalBoardResource::collection($boards),
         ]);
     }
 
@@ -29,14 +33,14 @@ class ElectricalBoardController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new ElectricalBoardResource($electricalBoard),
+            'data' => new ElectricalBoardResource($electricalBoard),
         ]);
     }
 
     public function store(StoreElectricalBoardRequest $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validated();
-        $pivotIds  = collect($validated)->only(['complex_ids', 'terrain_ids', 'structure_ids']);
+        $pivotIds = collect($validated)->only(['complex_ids', 'terrain_ids', 'structure_ids']);
         $boardData = array_merge(
             collect($validated)->except(['complex_ids', 'terrain_ids', 'structure_ids'])->all(),
             ['created_by_user_id' => $request->user()->id],
@@ -58,7 +62,7 @@ class ElectricalBoardController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new ElectricalBoardResource($board),
+            'data' => new ElectricalBoardResource($board),
         ], 201);
     }
 
@@ -92,7 +96,7 @@ class ElectricalBoardController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new ElectricalBoardResource($electricalBoard),
+            'data' => new ElectricalBoardResource($electricalBoard),
         ]);
     }
 

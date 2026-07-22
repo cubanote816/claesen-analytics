@@ -198,6 +198,16 @@ Modules/Website/Routes/api.php
 
 ## Módulo FieldOps
 
+### Contrato de cliente y tenant
+
+- `FoClient` y `Complex.client_id` derivan de CAFCA. No crear, reasignar, eliminar ni restaurar clientes/sitios manualmente desde API o Filament.
+- Una cuenta externa debe tener rol `client`; sus clientes autorizados provienen exclusivamente de membresías activas `fo_client_user`. El backend nunca acepta un `client_id` del frontend como autoridad.
+- Todo listado y acceso directo de cliente, complejo, terreno, estructura, frame, luminaria, cuadro eléctrico, media e histórico debe pasar por `FieldOpsTenantService` y la policy tenant.
+- La autorización es fail-closed: activos sin cliente o conectados a más de un cliente no son visibles para cuentas externas. Corregir primero la topología; no elegir un propietario arbitrario.
+- Las cuentas `client` son read-only y no pueden consultar órdenes de trabajo internas. `can_report` se aplicará al dominio `MaintenanceRequest` de CLA-268, no concede escritura sobre infraestructura o históricos.
+- Filament acepta únicamente roles internos explícitos. `client`, `project_manager` y usuarios sin rol no tienen acceso al panel.
+- `CLIENT_PORTAL_URL` debe configurar un origen `http(s)` confirmado y debe quedar cubierto por redirects OAuth, CORS y Sanctum stateful domains.
+
 ### Contrato de mantenimiento
 
 - `FoMaintenancePlan`, `FoMaintenanceWorkOrder` y `FoMaintenanceRecord` no son intercambiables: representan recurrencia, coordinación operativa y evidencia histórica validada, respectivamente.
@@ -217,6 +227,7 @@ Modules/FieldOps/Models/FoMaintenanceWorkOrder.php
 Modules/FieldOps/Models/FoMaintenanceRecord.php
 Modules/FieldOps/Services/MaintenanceWorkOrderService.php
 Modules/FieldOps/Services/MaintenanceEquipmentContextService.php
+Modules/FieldOps/Services/FieldOpsTenantService.php
 ```
 
 ---

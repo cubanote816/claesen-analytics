@@ -1,7 +1,7 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-269 Done** (commit `1fa1faa`, fix locale + selector visual de marcador + catálogo ampliado en Terrain Types). **CLA-266 implementado y en revisión técnica**. El aislamiento tenant, la identidad cliente y el hardening OAuth están listos; aún no hay commit ni cierre en Linear.
+> Última actualización: 2026-07-22 — **CLA-269 Done** (commit `1fa1faa`) y **CLA-266 aprobado para cierre**. El aislamiento tenant, la identidad cliente y el hardening OAuth recibieron GO técnico.
 
 ### Sesión 2026-07-22 — CLA-269: fix locale Terrain Types + selector visual de marcador + catálogo ampliado (Done, commit `1fa1faa`)
 
@@ -15,7 +15,7 @@
 - **Tests/checks:** `CatalogFilamentTest.php` +3 tests (fix de locale, render del selector, conteo de 19 códigos únicos) — **7/7 en corrida aislada**. La verificación de la suite FieldOps completa quedó bloqueada por contención real de la DB compartida `testing` con la sesión concurrente de CLA-266 (ver abajo) — mismo patrón de contaminación preexistente ya documentado en sesiones anteriores (`RoleAlreadyExists`), no una regresión de este cambio. `php -l` limpio en los 4 archivos PHP tocados.
 - **Alcance del commit:** limitado a los 10 archivos de esta sección (2 nuevos, 8 modificados) — no se mezcló con el trabajo de CLA-266 en curso en la misma working tree.
 
-### Sesión 2026-07-22 — CLA-266: ownership CAFCA y autorización tenant-aware (In Progress)
+### Sesión 2026-07-22 — CLA-266: ownership CAFCA y autorización tenant-aware (Done)
 
 **Contexto:** CLA-267 dejó completo el flujo operacional interno, pero todavía no existía identidad externa ni aislamiento por cliente para construir el portal de incidencias sin riesgo BOLA.
 
@@ -26,7 +26,7 @@
 - **Backoffice y OAuth:** acceso Filament por allowlist explícita de roles internos. Redirect OAuth validado contra orígenes configurados, errores externos sanitizados y `CLIENT_PORTAL_URL` integrado en redirects, CORS y Sanctum sin asumir todavía el hostname productivo.
 - **Migración:** `2026_07_22_000005_create_fo_client_user_table` aplicada, rollback verificado y reaplicada en local.
 - **Tests/checks:** aislamiento tenant **5/5, 40 assertions**; FieldOps relacionado **38/38, 117 assertions**; Core/Auth/provisioning **28/28, 55 assertions**. Total focal **71 passed / 212 assertions**. Pint limpio. La colisión inicial de migraciones fue causada por invocar varios archivos como procesos concurrentes contra la misma DB `testing`; la repetición en un solo proceso quedó limpia.
-- **Estado:** implementación lista para GO técnico. No hacer commit ni mover CLA-266 a Done antes de recibirlo. Después del cierre, continuar con asignación/auditoría/notificaciones y luego CLA-268.
+- **Estado:** GO técnico recibido. Cierre mediante commit dedicado y Linear; después continuar con asignación/auditoría/notificaciones y luego CLA-268.
 
 ### Sesión 2026-07-22 — CLA-267: planes de mantenimiento y órdenes de trabajo (Done)
 

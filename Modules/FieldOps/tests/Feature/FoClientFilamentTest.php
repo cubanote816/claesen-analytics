@@ -6,6 +6,7 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\FoClientResource;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\FoClient;
 use Spatie\Permission\Models\Role;
@@ -45,5 +46,11 @@ class FoClientFilamentTest extends TestCase
         $client = FoClient::factory()->create();
 
         $this->get("/fo-clients/{$client->id}/edit")->assertNotFound();
+        $this->assertFalse(FoClientResource::canCreate());
+        $this->assertFalse(FoClientResource::canEdit($client));
+        $this->assertFalse(FoClientResource::canDelete($client));
+        $this->assertFalse(FoClientResource::canDeleteAny());
+        $this->assertFalse(FoClientResource::canRestore($client));
+        $this->assertFalse(FoClientResource::canRestoreAny());
     }
 }

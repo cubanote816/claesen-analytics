@@ -329,7 +329,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | FO-012 / CLA-226 | Bridge `MirrorRelation` → `FoClient`, deshabilitar creación manual | ✅ Done |
 | FO-013 / CLA-227 | Bridge `MirrorRelationDelivery` → `Complex` + geocoding, deshabilitar creación manual | ✅ Done |
 | CLA-265 | Posición física estable + reemplazo atómico de luminarias | ✅ Done |
-| CLA-266 | Ownership de cliente y autorización tenant-aware | 🚧 In Progress — implementación y tests listos para GO técnico |
+| CLA-266 | Ownership de cliente y autorización tenant-aware | ✅ Done — aislamiento tenant y hardening OAuth aprobados |
 | CLA-267 | Planes de mantenimiento y órdenes de trabajo | ✅ Done — hardening del histórico y cutover de Claesen-Sport aprobados tras auditoría (`d7606bc` en la app de terreno) |
 | CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | ⬜ Backlog |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
@@ -381,14 +381,14 @@ Auditoría del satélite viejo (`api-claesen-sport-app`) confirmó que tanto `Cl
 - **Test Gate del hardening:** focal **22 passed / 102 assertions**; regresión integrada **42 passed / 301 assertions**. Suite FieldOps amplia **209 passed / 649 assertions** y conserva 93 fallos del harness preexistente (`RoleAlreadyExists` y permisos de `storage/framework/testing/disks`); los tests del hardening y de órdenes pasan dentro de esa corrida. PWA: build y **2 tests Vitest** pasan; lint de archivos modificados pasa, mientras el lint global conserva 20 errores preexistentes fuera del alcance.
 - **Cierre:** GO técnico aprobado el 2026-07-22. Cutover de Claesen-Sport en `d7606bc`; el hardening backend y esta memoria forman el commit dedicado de cierre de CLA-267.
 
-### CLA-266 — ownership CAFCA y autorización tenant-aware (2026-07-22, en revisión)
+### CLA-266 — ownership CAFCA y autorización tenant-aware (2026-07-22, Done)
 
 - `fo_client_user` relaciona contactos externos con uno o varios clientes e incluye estado y capacidades (`can_view`, `can_report`, `can_manage_contacts`). El alta desde User Management fuerza el rol `client`, valida los clientes server-side y nunca permite elegir roles internos en ese flujo.
 - `FieldOpsTenantService`, la policy compartida y `EnforceFieldOpsTenantAccess` filtran listados y bloquean accesos directos BOLA, media privada e históricos de otro cliente. Topologías ausentes o ambiguas se ocultan; el rol cliente es read-only y no ve órdenes de trabajo internas.
 - El backoffice quedó limitado a una allowlist explícita (`super_admin`, `admin`, `financial_manager`, `hr_manager`, `viewer`). `project_manager`, `client` y usuarios sin rol continúan fuera de Filament.
 - Los redirects OAuth se aceptan solo para orígenes configurados. `CLIENT_PORTAL_URL` se integra en redirect, CORS y dominios stateful de Sanctum; el hostname productivo sigue sin fijarse hasta confirmar el dominio definitivo.
 - Se retiraron las rutas de escritura manual de `FoClient` y el POST de `Complex`; Filament tampoco puede borrar/restaurar clientes CAFCA. El contexto de mantenimiento exige exactamente un cliente.
-- Validación focal limpia: **71 tests / 212 assertions**. Migración `2026_07_22_000005_create_fo_client_user_table` verificada con migrate, rollback y reaplicación. Pendiente GO técnico, commit dedicado y cierre en Linear.
+- Validación focal limpia: **71 tests / 212 assertions**. Migración `2026_07_22_000005_create_fo_client_user_table` verificada con migrate, rollback y reaplicación. GO técnico recibido; cierre en commit dedicado y Linear.
 
 **Backfill pendiente en producción:** `fo_maintenance_types` queda vacía tras la migración y las órdenes necesitan los 3 tipos base. Correr una vez:
 

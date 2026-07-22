@@ -3,15 +3,16 @@
 namespace Modules\Core\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Exception;
+use Filament\Facades\Filament;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Modules\Core\Models\User;
 use Modules\Core\Services\Auth\AzureRoleService;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
-use Filament\Facades\Filament;
-use Exception;
+use Modules\Core\Services\Auth\FrontendRedirectService;
 
 class MicrosoftAuthController extends Controller
 {
@@ -34,8 +35,6 @@ class MicrosoftAuthController extends Controller
 
     /**
      * Redirect the user to the Microsoft authentication page.
-     *
-     * @return RedirectResponse
      */
     public function redirect(Request $request): RedirectResponse
     {
@@ -44,14 +43,11 @@ class MicrosoftAuthController extends Controller
         }
 
         if ($request->has('custom_redirect_url')) {
-            session(['custom_redirect_url' => $request->get('custom_redirect_url')]);
+            $redirect = app(FrontendRedirectService::class)->resolve($request->string('custom_redirect_url')->toString());
+            $redirect ? session(['custom_redirect_url' => $redirect]) : session()->forget('custom_redirect_url');
         } elseif ($referer = $request->headers->get('referer')) {
-            $urlParts = parse_url($referer);
-            if (isset($urlParts['scheme'], $urlParts['host'])) {
-                $port = isset($urlParts['port']) ? ':' . $urlParts['port'] : '';
-                $baseUrl = $urlParts['scheme'] . '://' . $urlParts['host'] . $port . ($urlParts['path'] ?? '/');
-                session(['custom_redirect_url' => $baseUrl]);
-            }
+            $redirect = app(FrontendRedirectService::class)->resolve($referer);
+            $redirect ? session(['custom_redirect_url' => $redirect]) : session()->forget('custom_redirect_url');
         }
 
         return Socialite::driver('azure')
@@ -62,9 +58,6 @@ class MicrosoftAuthController extends Controller
 
     /**
      * Obtain the user information from Microsoft.
-     *
-     * @param AzureRoleService $roleService
-     * @return RedirectResponse
      */
     public function callback(Request $request, AzureRoleService $roleService): RedirectResponse
     {
@@ -77,7 +70,7 @@ class MicrosoftAuthController extends Controller
             $user = User::where('email', $azureUser->getEmail())->first();
 
             // SECURITY: If user does not exist locally, deny access
-            if (!$user) {
+            if (! $user) {
                 return redirect('/login')
                     ->withErrors(['microsoft' => "Toegang Geweigerd: Uw Microsoft-account ({$azureUser->getEmail()}) is niet geautoriseerd voor deze applicatie. Neem contact op met de beheerder."]);
             }
@@ -98,6 +91,7 @@ class MicrosoftAuthController extends Controller
             // Suspended accounts are blocked regardless of flow.
             if (! $user->is_active) {
                 Auth::logout();
+
                 return redirect('/login')->withErrors(['email' => 'This account has been deactivated.']);
             }
 
@@ -116,33 +110,8 @@ class MicrosoftAuthController extends Controller
             }
 
             // 2. PWA / Frontend — resolve redirect URL first.
-            $frontendUrl = session()->pull('custom_redirect_url');
-
-            if (! $frontendUrl) {
-                if (env('FRONTEND_URL')) {
-                    $frontendUrl = env('FRONTEND_URL');
-                } elseif (str_contains($request->headers->get('referer', ''), 'hostingersite.com')) {
-                    $frontendUrl = 'https://lightcoral-whale-907350.hostingersite.com/safety/';
-                } else {
-                    $frontendUrl = app()->environment('production')
-                        ? 'https://service.claesen-verlichting.be/'
-                        : 'http://localhost:5173/';
-                }
-            }
-
-            // Normalize to origin-root: the PWA service worker intercepts sub-path navigations
-            // before nginx can redirect them, causing React Router to see an unmatched route.
-            // Always redirect to the origin root so the SW serves index.html at the correct path.
-            $parts = parse_url($frontendUrl);
-            if (isset($parts['scheme'], $parts['host']) && ! str_contains($frontendUrl, 'hostingersite.com')) {
-                $port = isset($parts['port']) ? ':' . $parts['port'] : '';
-                $frontendUrl = $parts['scheme'] . '://' . $parts['host'] . $port . '/';
-            } else {
-                if (str_contains($frontendUrl, 'hostingersite.com') && ! str_contains($frontendUrl, '/safety')) {
-                    $frontendUrl = rtrim($frontendUrl, '/') . '/safety/';
-                }
-                $frontendUrl = rtrim($frontendUrl, '/') . '/';
-            }
+            $redirects = app(FrontendRedirectService::class);
+            $frontendUrl = $redirects->resolve(session()->pull('custom_redirect_url')) ?? $redirects->fallback();
 
             // Accounts pending setup: issue a one-time activation code (never a bearer token in URL).
             if (! $user->hasCompletedPasswordSetup()) {
@@ -150,7 +119,7 @@ class MicrosoftAuthController extends Controller
 
                 $code = Str::random(64);
                 $user->forceFill([
-                    'activation_code_hash'       => hash('sha256', $code),
+                    'activation_code_hash' => hash('sha256', $code),
                     'activation_code_expires_at' => now()->addMinutes(10),
                 ])->saveQuietly();
 
@@ -160,8 +129,10 @@ class MicrosoftAuthController extends Controller
             // Fully activated accounts: keep the session cookie flow only.
             return redirect()->to($frontendUrl);
         } catch (Exception $e) {
+            report($e);
+
             return redirect('/login')
-                ->withErrors(['microsoft' => 'Inloggen via Microsoft is mislukt: ' . $e->getMessage()]);
+                ->withErrors(['microsoft' => 'Inloggen via Microsoft is mislukt. Probeer het opnieuw of neem contact op met de beheerder.']);
         }
     }
 }

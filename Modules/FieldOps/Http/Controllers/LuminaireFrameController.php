@@ -2,23 +2,28 @@
 
 namespace Modules\FieldOps\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\FieldOps\Http\Requests\StoreLuminaireFrameRequest;
 use Modules\FieldOps\Http\Requests\UpdateLuminaireFrameRequest;
 use Modules\FieldOps\Http\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Http\Resources\LuminaireResource;
 use Modules\FieldOps\Models\LuminaireFrame;
+use Modules\FieldOps\Services\FieldOpsTenantService;
 
 class LuminaireFrameController extends Controller
 {
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         // luminaires intentionally not loaded here — too heavy for list responses
-        $frames = LuminaireFrame::with('frameType', 'structures', 'createdBy')->paginate(50);
+        $frames = app(FieldOpsTenantService::class)
+            ->scopeForUser(LuminaireFrame::query(), $request->user(), LuminaireFrame::class)
+            ->with('frameType', 'structures', 'createdBy')
+            ->paginate(50);
 
         return response()->json([
             'success' => true,
-            'data'    => LuminaireFrameResource::collection($frames),
+            'data' => LuminaireFrameResource::collection($frames),
         ]);
     }
 
@@ -28,15 +33,15 @@ class LuminaireFrameController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new LuminaireFrameResource($frame),
+            'data' => new LuminaireFrameResource($frame),
         ]);
     }
 
     public function store(StoreLuminaireFrameRequest $request): \Illuminate\Http\JsonResponse
     {
-        $validated    = $request->validated();
+        $validated = $request->validated();
         $structureIds = $validated['structure_ids'] ?? null;
-        $frameData    = array_merge(
+        $frameData = array_merge(
             collect($validated)->except('structure_ids')->all(),
             ['created_by_user_id' => $request->user()->id],
         );
@@ -51,7 +56,7 @@ class LuminaireFrameController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new LuminaireFrameResource($frame),
+            'data' => new LuminaireFrameResource($frame),
         ], 201);
     }
 
@@ -69,7 +74,7 @@ class LuminaireFrameController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new LuminaireFrameResource($frame),
+            'data' => new LuminaireFrameResource($frame),
         ]);
     }
 
@@ -90,7 +95,7 @@ class LuminaireFrameController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => LuminaireResource::collection($frame->luminaires),
+            'data' => LuminaireResource::collection($frame->luminaires),
         ]);
     }
 }

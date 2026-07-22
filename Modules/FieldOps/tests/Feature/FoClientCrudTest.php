@@ -14,132 +14,51 @@ class FoClientCrudTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function user(): array
+    private function token(): string
     {
-        $user  = UserFactory::new()->create();
-        $token = $user->createToken('test')->plainTextToken;
-
-        return [$user, $token];
+        return UserFactory::new()->create()->createToken('test')->plainTextToken;
     }
 
-    // ── store ─────────────────────────────────────────────────────────────────
-
-    public function test_store_creates_client_and_returns_201(): void
+    public function test_index_and_show_remain_available_to_authenticated_internal_users(): void
     {
-        [, $token] = $this->user();
-
-        $response = $this->withToken($token)->postJson('/api/v1/fieldops/clients', [
-            'name'  => 'Sportclub Merksem',
-            'city'  => 'Antwerpen',
-            'email' => 'info@sportclub.be',
-        ]);
-
-        $response->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.name', 'Sportclub Merksem')
-            ->assertJsonPath('data.city', 'Antwerpen');
-
-        $this->assertDatabaseHas('fo_clients', ['name' => 'Sportclub Merksem']);
-    }
-
-    public function test_store_requires_name(): void
-    {
-        [, $token] = $this->user();
-
-        $this->withToken($token)->postJson('/api/v1/fieldops/clients', [
-            'city' => 'Antwerpen',
-        ])->assertStatus(422)->assertJsonValidationErrors('name');
-    }
-
-    public function test_store_rejects_invalid_email(): void
-    {
-        [, $token] = $this->user();
-
-        $this->withToken($token)->postJson('/api/v1/fieldops/clients', [
-            'name'  => 'Test Client',
-            'email' => 'not-an-email',
-        ])->assertStatus(422)->assertJsonValidationErrors('email');
-    }
-
-    public function test_store_rejects_invalid_language(): void
-    {
-        [, $token] = $this->user();
-
-        $this->withToken($token)->postJson('/api/v1/fieldops/clients', [
-            'name'     => 'Test Client',
-            'language' => 'es',
-        ])->assertStatus(422)->assertJsonValidationErrors('language');
-    }
-
-    public function test_store_requires_authentication(): void
-    {
-        $this->postJson('/api/v1/fieldops/clients', ['name' => 'Test Client'])
-            ->assertStatus(401);
-    }
-
-    // ── index / show ──────────────────────────────────────────────────────────
-
-    public function test_index_returns_all_clients_with_complexes_count(): void
-    {
-        [, $token] = $this->user();
         $client = FoClient::factory()->create();
         Complex::factory()->count(2)->create(['client_id' => $client->id]);
 
-        $response = $this->withToken($token)->getJson('/api/v1/fieldops/clients')->assertOk();
+        $this->withToken($this->token())
+            ->getJson('/api/v1/fieldops/clients')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.complexes_count', 2);
 
-        $this->assertCount(1, $response->json('data'));
-        $response->assertJsonPath('data.0.complexes_count', 2);
-    }
-
-    public function test_show_returns_client(): void
-    {
-        [, $token] = $this->user();
-        $client = FoClient::factory()->create();
-
-        $this->withToken($token)->getJson("/api/v1/fieldops/clients/{$client->id}")
+        $this->withToken($this->token())
+            ->getJson("/api/v1/fieldops/clients/{$client->id}")
             ->assertOk()
             ->assertJsonPath('data.id', $client->id);
     }
 
-    // ── update ────────────────────────────────────────────────────────────────
-
-    public function test_update_patches_only_sent_fields(): void
+    public function test_client_catalog_requires_authentication(): void
     {
-        [, $token] = $this->user();
+        $this->getJson('/api/v1/fieldops/clients')->assertUnauthorized();
+    }
+
+    public function test_cafca_clients_cannot_be_created_updated_or_deleted_through_api(): void
+    {
         $client = FoClient::factory()->create(['city' => 'Gent']);
+        $token = $this->token();
 
-        $this->withToken($token)->patchJson("/api/v1/fieldops/clients/{$client->id}", [
-            'city' => 'Brugge',
-        ])->assertStatus(200)->assertJsonPath('data.city', 'Brugge');
+        $this->withToken($token)->postJson('/api/v1/fieldops/clients', ['name' => 'Manual'])->assertMethodNotAllowed();
+        $this->withToken($token)->patchJson("/api/v1/fieldops/clients/{$client->id}", ['city' => 'Brugge'])->assertMethodNotAllowed();
+        $this->withToken($token)->deleteJson("/api/v1/fieldops/clients/{$client->id}")->assertMethodNotAllowed();
 
-        $this->assertDatabaseHas('fo_clients', ['id' => $client->id, 'city' => 'Brugge']);
+        $this->assertDatabaseHas('fo_clients', ['id' => $client->id, 'city' => 'Gent', 'deleted_at' => null]);
     }
 
-    public function test_update_returns_404_for_missing_client(): void
+    public function test_cafca_complexes_cannot_be_created_through_api(): void
     {
-        [, $token] = $this->user();
+        $this->withToken($this->token())
+            ->postJson('/api/v1/fieldops/complexes', ['name' => 'Manual site'])
+            ->assertMethodNotAllowed();
 
-        $this->withToken($token)->patchJson('/api/v1/fieldops/clients/99999', ['city' => 'Gent'])
-            ->assertStatus(404);
-    }
-
-    // ── destroy ───────────────────────────────────────────────────────────────
-
-    public function test_destroy_soft_deletes_client(): void
-    {
-        [, $token] = $this->user();
-        $client = FoClient::factory()->create();
-
-        $this->withToken($token)->deleteJson("/api/v1/fieldops/clients/{$client->id}")
-            ->assertStatus(204);
-
-        $this->assertSoftDeleted('fo_clients', ['id' => $client->id]);
-    }
-
-    public function test_destroy_requires_authentication(): void
-    {
-        $client = FoClient::factory()->create();
-
-        $this->deleteJson("/api/v1/fieldops/clients/{$client->id}")->assertStatus(401);
+        $this->assertDatabaseMissing('fo_complexes', ['name' => 'Manual site']);
     }
 }

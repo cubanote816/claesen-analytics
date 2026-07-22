@@ -12,20 +12,16 @@ use Modules\FieldOps\Http\Controllers\MaintenanceRecordController;
 use Modules\FieldOps\Http\Controllers\MaintenanceWorkOrderController;
 use Modules\FieldOps\Http\Controllers\StructureController;
 use Modules\FieldOps\Http\Controllers\TerrainController;
+use Modules\FieldOps\Http\Middleware\EnforceFieldOpsTenantAccess;
 
-Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHeader::class])
+Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHeader::class, EnforceFieldOpsTenantAccess::class])
     ->prefix('v1/fieldops')->group(function () {
         // Clients
         Route::get('/clients', [FoClientController::class, 'index']);
-        Route::post('/clients', [FoClientController::class, 'store']);
         Route::get('/clients/{foClient}', [FoClientController::class, 'show']);
-        Route::put('/clients/{foClient}', [FoClientController::class, 'update']);
-        Route::patch('/clients/{foClient}', [FoClientController::class, 'update']);
-        Route::delete('/clients/{foClient}', [FoClientController::class, 'destroy']);
 
         // Complexes
         Route::get('/complexes', [ComplexController::class, 'index']);
-        Route::post('/complexes', [ComplexController::class, 'store']);
         Route::get('/complexes/{complex}', [ComplexController::class, 'show']);
         Route::put('/complexes/{complex}', [ComplexController::class, 'update']);
         Route::patch('/complexes/{complex}', [ComplexController::class, 'update']);

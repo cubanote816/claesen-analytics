@@ -3,7 +3,18 @@
 namespace Modules\FieldOps\Providers;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\ElectricalBoard;
+use Modules\FieldOps\Models\FoClient;
+use Modules\FieldOps\Models\FoMaintenanceRecord;
+use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
+use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Models\LuminaireFrame;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
+use Modules\FieldOps\Policies\FieldOpsTenantPolicy;
 use Nwidart\Modules\Traits\PathNamespace;
 
 class FieldOpsServiceProvider extends ServiceProvider
@@ -22,6 +33,24 @@ class FieldOpsServiceProvider extends ServiceProvider
         $this->registerTranslations();
         $this->registerCommands();
         $this->registerCommandSchedules();
+        $this->registerPolicies();
+    }
+
+    protected function registerPolicies(): void
+    {
+        foreach ([
+            FoClient::class,
+            Complex::class,
+            Terrain::class,
+            Structure::class,
+            LuminaireFrame::class,
+            Luminaire::class,
+            ElectricalBoard::class,
+            FoMaintenanceRecord::class,
+            FoMaintenanceWorkOrder::class,
+        ] as $model) {
+            Gate::policy($model, FieldOpsTenantPolicy::class);
+        }
     }
 
     public function register(): void

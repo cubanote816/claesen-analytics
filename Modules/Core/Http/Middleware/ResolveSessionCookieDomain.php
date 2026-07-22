@@ -37,10 +37,12 @@ class ResolveSessionCookieDomain
     public function handle(Request $request, Closure $next): Response
     {
         $frontendHost = $this->resolveFrontendHost($request);
+        $isProductionFrontend = $frontendHost === self::PRODUCTION_DOMAIN_SUFFIX
+            || ($frontendHost !== null && str_ends_with($frontendHost, '.'.self::PRODUCTION_DOMAIN_SUFFIX));
 
         config([
-            'session.domain' => ($frontendHost !== null && str_ends_with($frontendHost, self::PRODUCTION_DOMAIN_SUFFIX))
-                ? '.' . self::PRODUCTION_DOMAIN_SUFFIX
+            'session.domain' => $isProductionFrontend
+                ? '.'.self::PRODUCTION_DOMAIN_SUFFIX
                 : null,
         ]);
 

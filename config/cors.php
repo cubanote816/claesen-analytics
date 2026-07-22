@@ -21,6 +21,7 @@ return [
 
     'allowed_origins' => array_values(array_filter([
         env('FRONTEND_URL'),
+        env('CLIENT_PORTAL_URL'),
         'https://www.claesen-verlichting.be',
         'https://claesen-verlichting.be',
         'https://lightcoral-whale-907350.hostingersite.com',

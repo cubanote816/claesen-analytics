@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Core\Tests\Feature;
 
 use Illuminate\Support\Facades\Config;
+use Modules\Core\Services\Auth\FrontendRedirectService;
 use Tests\TestCase;
 
 class MicrosoftAuthRedirectTest extends TestCase
@@ -24,5 +25,24 @@ class MicrosoftAuthRedirectTest extends TestCase
         $response = $this->get('/api/v1/auth/microsoft/redirect');
 
         $response->assertStatus(302);
+    }
+
+    public function test_frontend_redirects_are_limited_to_configured_origins(): void
+    {
+        Config::set('core.frontend_redirect_urls', [
+            'https://service.claesen-verlichting.be/',
+            'http://localhost:5173/',
+        ]);
+
+        $redirects = app(FrontendRedirectService::class);
+
+        $this->assertSame(
+            'https://service.claesen-verlichting.be/',
+            $redirects->resolve('https://service.claesen-verlichting.be/work-orders/12'),
+        );
+        $this->assertSame('http://localhost:5173/', $redirects->resolve('http://localhost:5173/anything'));
+        $this->assertNull($redirects->resolve('https://evil.example/steal-session'));
+        $this->assertNull($redirects->resolve('javascript:alert(1)'));
+        $this->assertNull($redirects->resolve('https://user:password@service.claesen-verlichting.be/'));
     }
 }
