@@ -13,6 +13,7 @@ use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Models\FoMaintenancePlan;
 use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
+use Modules\FieldOps\Notifications\ClientRequestNotification;
 
 class MaintenanceWorkOrderService
 {
@@ -257,6 +258,7 @@ class MaintenanceWorkOrderService
                 'started_by_user_id' => $userId,
             ]);
             $this->recordEvent($order, MaintenanceWorkOrderEventType::STARTED, $userId, $fromStatus, MaintenanceWorkOrderStatus::IN_PROGRESS);
+            app(MaintenanceRequestService::class)->markInProgress($order);
 
             return $order->fresh();
         });
@@ -378,6 +380,10 @@ class MaintenanceWorkOrderService
                 'override_reason' => $override ? $overrideReason : null,
                 'maintenance_record_id' => $record->id,
             ]);
+            app(MaintenanceRequestService::class)->resolveFromWorkOrder(
+                $order,
+                $order->solution_applied ?: $order->completion_notes ?: 'The maintenance work has been completed.',
+            );
             $this->recordEvent(
                 $order,
                 $override ? MaintenanceWorkOrderEventType::OVERRIDDEN : MaintenanceWorkOrderEventType::VALIDATED,
@@ -387,10 +393,13 @@ class MaintenanceWorkOrderService
                 data: $override ? ['reason' => $overrideReason] : null,
             );
 
-            return $order->fresh(['maintenanceRecord', 'assignedBy']);
+            return $order->fresh(['maintenanceRecord', 'assignedBy', 'serviceRequest.reporter']);
         });
 
         $this->notifications->completed($closed);
+        if ($closed->serviceRequest?->reporter) {
+            $closed->serviceRequest->reporter->notify(new ClientRequestNotification($closed->serviceRequest, 'resolved'));
+        }
 
         return $closed;
     }
@@ -410,6 +419,7 @@ class MaintenanceWorkOrderService
                 'cancelled_by_user_id' => $userId,
                 'cancellation_reason' => $reason,
             ]);
+            app(MaintenanceRequestService::class)->rejectFromWorkOrder($order, $reason);
             $this->recordEvent(
                 $order,
                 MaintenanceWorkOrderEventType::CANCELLED,
@@ -419,10 +429,13 @@ class MaintenanceWorkOrderService
                 data: ['reason' => $reason],
             );
 
-            return $order->fresh(['assignedBy']);
+            return $order->fresh(['assignedBy', 'serviceRequest.reporter']);
         });
 
         $this->notifications->cancelled($order, $reason);
+        if ($order->serviceRequest?->reporter) {
+            $order->serviceRequest->reporter->notify(new ClientRequestNotification($order->serviceRequest, 'updated'));
+        }
 
         return $order;
     }

@@ -12,6 +12,7 @@ use Modules\FieldOps\Models\Complex as FieldOpsComplex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
+use Modules\FieldOps\Models\FoMaintenanceRequest;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
@@ -33,6 +34,7 @@ class EnforceFieldOpsTenantAccess
         ElectricalBoard::class,
         FoMaintenanceRecord::class,
         FoMaintenanceWorkOrder::class,
+        FoMaintenanceRequest::class,
     ];
 
     public function __construct(private readonly FieldOpsTenantService $tenants) {}
@@ -45,7 +47,7 @@ class EnforceFieldOpsTenantAccess
             return $next($request);
         }
 
-        abort_unless($request->isMethodSafe(), 403);
+        abort_unless($request->isMethodSafe() || $this->isAllowedClientMutation($request), 403);
         abort_if($request->is('api/v1/fieldops/maintenance-work-orders*'), 403);
         abort_if($request->is('api/v1/fieldops/maintenance-records/stats/*'), 403);
         abort_if($request->is('api/v1/fieldops/maintenance-records/client-reported/*'), 403);
@@ -64,5 +66,20 @@ class EnforceFieldOpsTenantAccess
         }
 
         return $next($request);
+    }
+
+    private function isAllowedClientMutation(Request $request): bool
+    {
+        if (! $request->isMethod('post')) {
+            return false;
+        }
+
+        return $request->is('api/v1/fieldops/maintenance-requests')
+            || $request->is('api/v1/fieldops/maintenance-requests/intake/suggest')
+            || $request->is('api/v1/fieldops/maintenance-requests/*/messages')
+            || $request->is('api/v1/fieldops/maintenance-requests/*/attachments')
+            || $request->is('api/v1/fieldops/maintenance-requests/*/confirm')
+            || $request->is('api/v1/fieldops/maintenance-requests/*/reopen')
+            || $request->is('api/v1/fieldops/clients/*/contacts/invitations');
     }
 }

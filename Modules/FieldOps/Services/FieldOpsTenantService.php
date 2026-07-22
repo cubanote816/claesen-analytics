@@ -12,6 +12,7 @@ use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
+use Modules\FieldOps\Models\FoMaintenanceRequest;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
@@ -61,6 +62,7 @@ class FieldOpsTenantService
             Luminaire::class => $this->scopeLuminaires($query, $clientIds),
             ElectricalBoard::class => $this->scopeElectricalBoards($query, $clientIds),
             FoMaintenanceRecord::class => $query->whereIn('client_id', $clientIds),
+            FoMaintenanceRequest::class => $query->whereIn('client_id', $clientIds),
             default => $query->whereRaw('1 = 0'),
         };
     }
@@ -73,6 +75,10 @@ class FieldOpsTenantService
 
         if ($model instanceof FoMaintenanceWorkOrder) {
             return false;
+        }
+
+        if ($model instanceof FoMaintenanceRequest) {
+            return $this->allowedClientIds($user)->contains((int) $model->client_id);
         }
 
         $allowed = $this->allowedClientIds($user);
@@ -100,6 +106,7 @@ class FieldOpsTenantService
                 ->merge($model->structures()->with('terrains.complex:id,client_id')->get()
                     ->flatMap(fn (Structure $structure) => $structure->terrains->pluck('complex.client_id'))),
             $model instanceof FoMaintenanceRecord => collect([$model->client_id]),
+            $model instanceof FoMaintenanceRequest => collect([$model->client_id]),
             default => collect(),
         };
 

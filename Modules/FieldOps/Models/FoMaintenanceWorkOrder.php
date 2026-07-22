@@ -114,6 +114,21 @@ class FoMaintenanceWorkOrder extends Model
         return $this->belongsTo(FoMaintenanceRecord::class, 'maintenance_record_id');
     }
 
+    public function serviceRequest()
+    {
+        return $this->hasOne(FoMaintenanceRequest::class, 'work_order_id');
+    }
+
+    public function serviceRequests()
+    {
+        return $this->belongsToMany(
+            FoMaintenanceRequest::class,
+            'fo_maintenance_request_work_order',
+            'work_order_id',
+            'maintenance_request_id',
+        )->withPivot('created_at');
+    }
+
     public function events()
     {
         return $this->hasMany(FoMaintenanceWorkOrderEvent::class, 'work_order_id')

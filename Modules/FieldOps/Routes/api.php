@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\FieldOps\Http\Controllers\CatalogController;
+use Modules\FieldOps\Http\Controllers\ClientContactController;
 use Modules\FieldOps\Http\Controllers\ComplexController;
 use Modules\FieldOps\Http\Controllers\ElectricalBoardController;
 use Modules\FieldOps\Http\Controllers\FieldOpsMediaController;
@@ -10,6 +11,7 @@ use Modules\FieldOps\Http\Controllers\FoClientController;
 use Modules\FieldOps\Http\Controllers\LuminaireController;
 use Modules\FieldOps\Http\Controllers\LuminaireFrameController;
 use Modules\FieldOps\Http\Controllers\MaintenanceRecordController;
+use Modules\FieldOps\Http\Controllers\MaintenanceRequestController;
 use Modules\FieldOps\Http\Controllers\MaintenanceWorkOrderController;
 use Modules\FieldOps\Http\Controllers\StructureController;
 use Modules\FieldOps\Http\Controllers\TerrainController;
@@ -20,6 +22,7 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         // Clients
         Route::get('/clients', [FoClientController::class, 'index']);
         Route::get('/clients/{foClient}', [FoClientController::class, 'show']);
+        Route::post('/clients/{foClient}/contacts/invitations', [ClientContactController::class, 'invite']);
 
         // Complexes
         Route::get('/complexes', [ComplexController::class, 'index']);
@@ -75,6 +78,17 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
 
         // Maintenance catalog
         Route::get('/maintenance-types', [MaintenanceRecordController::class, 'types']);
+        Route::get('/maintenance-requests', [MaintenanceRequestController::class, 'index']);
+        Route::post('/maintenance-requests/intake/suggest', [MaintenanceRequestController::class, 'suggestIntake']);
+        Route::post('/maintenance-requests', [MaintenanceRequestController::class, 'store']);
+        Route::get('/maintenance-requests/{maintenanceRequest}', [MaintenanceRequestController::class, 'show']);
+        Route::post('/maintenance-requests/{maintenanceRequest}/convert', [MaintenanceRequestController::class, 'convert']);
+        Route::patch('/maintenance-requests/{maintenanceRequest}/respond', [MaintenanceRequestController::class, 'respond']);
+        Route::post('/maintenance-requests/{maintenanceRequest}/messages', [MaintenanceRequestController::class, 'message']);
+        Route::post('/maintenance-requests/{maintenanceRequest}/attachments', [MaintenanceRequestController::class, 'attachment']);
+        Route::post('/maintenance-requests/{maintenanceRequest}/confirm', [MaintenanceRequestController::class, 'confirm']);
+        Route::post('/maintenance-requests/{maintenanceRequest}/reopen', [MaintenanceRequestController::class, 'reopen']);
+        Route::get('/maintenance-request-attachments/{media}', [MaintenanceRequestController::class, 'showAttachment']);
 
         // Operational notifications are scoped to FieldOps and the authenticated user.
         Route::get('/notifications', [FieldOpsNotificationController::class, 'index']);

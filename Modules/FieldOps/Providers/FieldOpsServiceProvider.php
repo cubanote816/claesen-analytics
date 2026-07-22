@@ -9,6 +9,7 @@ use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
+use Modules\FieldOps\Models\FoMaintenanceRequest;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
@@ -47,6 +48,7 @@ class FieldOpsServiceProvider extends ServiceProvider
             Luminaire::class,
             ElectricalBoard::class,
             FoMaintenanceRecord::class,
+            FoMaintenanceRequest::class,
             FoMaintenanceWorkOrder::class,
         ] as $model) {
             Gate::policy($model, FieldOpsTenantPolicy::class);
