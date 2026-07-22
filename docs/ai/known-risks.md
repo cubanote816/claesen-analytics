@@ -89,6 +89,10 @@ php artisan website:regenerate-media
 
 ## Deuda técnica
 
+### Suite FieldOps amplia contaminada entre clases
+
+La ejecución conjunta de toda la suite FieldOps mantiene dos fallos de harness preexistentes: varios `setUp()` usan `Role::create('super_admin')` y chocan con estado compartido (`RoleAlreadyExists`), y los tests de media pueden encontrar directorios de `storage/framework/testing/disks` creados con permisos incompatibles. Los archivos focalizados pasan de forma aislada y los tests CLA-267 también pasan dentro de la ejecución amplia. Pendiente normalizar roles con `firstOrCreate`/limpieza del PermissionRegistrar y los permisos del storage de testing en un ticket de infraestructura de pruebas; no mezclar ese refactor con tickets funcionales.
+
 ### Tests de módulo Website inexistentes
 
 Los módulos Safety y Mailing tienen suites de tests completas. El módulo Website no tiene tests Feature documentados en `Modules/Website/tests/`. Cualquier cambio en Website se valida solo manualmente.

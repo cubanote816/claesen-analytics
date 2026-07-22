@@ -1,7 +1,21 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-265 completado con GO técnico**; CLA-264 quedó cerrado en `3c0ecf2`. FieldOps ahora separa la posición física estable del frame de cada luminaria instalada y permite reemplazar el equipo sin perder nunca sus coordenadas ni escala. Siguientes slices: CLA-266 (ownership/autorización), CLA-267 (planes y órdenes) y CLA-268 (solicitudes de cliente).
+> Última actualización: 2026-07-22 — **CLA-267 completado con GO técnico**. FieldOps separa ahora planes recurrentes, órdenes operacionales y registros históricos; el alta parte del equipo y la ejecución física se envía desde terreno para validación del backoffice.
+
+### Sesión 2026-07-22 — CLA-267: planes de mantenimiento y órdenes de trabajo (Done)
+
+**Contexto:** la página global de mantenimiento mezclaba selección de equipo, planificación, incidencias abiertas y trabajo histórico. El usuario aprobó iniciar siempre desde la luminaria/cuadro y conservar la página global como cola operacional.
+
+- **Dominio separado:** nuevas tablas/modelos `FoMaintenancePlan` y `FoMaintenanceWorkOrder`; `FoMaintenanceRecord` permanece como evidencia histórica. La validación de una orden crea el registro en la misma transacción y lo enlaza mediante `maintenance_record_id`.
+- **Workflow:** `planned → assigned → in_progress → awaiting_validation → completed`, además de `cancelled`. La app de terreno inicia y envía; solo el empleado asignado o un administrador puede hacerlo. El backoffice valida y cierra. El cierre excepcional exige una razón que queda en la orden y en `details` del registro.
+- **Contexto inmutable:** las órdenes nacen desde Luminaire o Electrical Board. Cliente, equipo y posición estable se derivan de relaciones FieldOps y no se aceptan del payload/formulario. Una luminaria conserva su `luminaire_position_id`, incluso a través de reemplazos.
+- **UX backoffice:** `Work orders` reemplaza al historial genérico en el menú y funciona como cola con producto/imagen, sitio, cliente, estado, fecha y responsable. `Maintenance plans` permite administrar recurrencias. Luminaire, Luminaire Frame y Electrical Board exponen `Schedule maintenance`; Luminaire muestra además sus órdenes abiertas. El historial no ofrece ya creación directa desde su tabla.
+- **Recurrencia:** `fieldops:generate-maintenance-work-orders` genera órdenes vencidas de forma transaccional, admite `--dry-run` y quedó programado cada hora con `withoutOverlapping()`.
+- **API:** creación contextual para luminaria/cuadro, lista de asignadas, detalle, inicio, envío de ejecución, validación y override. La ejecución enviada todavía no crea historial: espera validación del backoffice.
+- **Migración local:** `2026_07_22_000004_create_maintenance_plans_and_work_orders` aplicada; rollback y reaplicación verificados con tablas vacías.
+- **Tests/checks:** slice crítico **31 passed / 250 assertions** antes del último refinamiento; cierre focal final **22 passed / 182 assertions** y todos los nuevos tests pasan dentro de la suite amplia. Suite FieldOps amplia: **217 passed / 646 assertions**, 93 abortos por dos problemas preexistentes de harness (`RoleAlreadyExists` entre clases y permisos en `storage/framework/testing/disks`), sin fallos funcionales de CLA-267. Pint, sintaxis PHP, Blade cache, rutas, scheduler, paridad EN/NL (**414 claves por idioma**), `git diff --check` y build Vite pasan; Vite conserva el warning CSS preexistente.
+- **Estado:** GO técnico recibido; commit dedicado y cierre de Linear autorizados.
 
 ### Sesión 2026-07-21/22 — CLA-265: posición estable y reemplazo atómico de luminarias (Done)
 

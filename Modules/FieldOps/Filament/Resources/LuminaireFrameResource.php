@@ -292,10 +292,9 @@ class LuminaireFrameResource extends Resource
                 'hasImage' => $imageUrl !== $placeholderImage,
                 'flagged' => $hasOpenIssue,
                 'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('view', ['record' => $luminaire]),
-                'maintenanceCreateUrl' => \Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource::getUrl('create', [
+                'maintenanceCreateUrl' => \Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource::getUrl('create', [
                     'maintainable_type' => Luminaire::class,
                     'maintainable_id' => $luminaire->id,
-                    'return_luminaire' => $luminaire->id,
                 ]),
                 'maintenanceIndexUrl' => \Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource::getUrl('index', [
                     'luminaire' => $luminaire->id,

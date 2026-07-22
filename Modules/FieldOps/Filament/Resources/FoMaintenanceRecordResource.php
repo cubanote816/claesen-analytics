@@ -4,7 +4,6 @@ namespace Modules\FieldOps\Filament\Resources;
 
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
@@ -20,6 +19,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -29,7 +29,6 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Grouping\Group as TableGroup;
 use Filament\Tables\Table;
-use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Modules\Cafca\Models\Employee;
@@ -45,6 +44,8 @@ use Modules\FieldOps\Models\Luminaire;
 
 class FoMaintenanceRecordResource extends Resource
 {
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $model = FoMaintenanceRecord::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWrenchScrewdriver;
@@ -445,10 +446,10 @@ class FoMaintenanceRecordResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListFoMaintenanceRecords::route('/'),
+            'index' => ListFoMaintenanceRecords::route('/'),
             'create' => CreateFoMaintenanceRecord::route('/create'),
-            'view'   => ViewFoMaintenanceRecord::route('/{record}'),
-            'edit'   => EditFoMaintenanceRecord::route('/{record}/edit'),
+            'view' => ViewFoMaintenanceRecord::route('/{record}'),
+            'edit' => EditFoMaintenanceRecord::route('/{record}/edit'),
         ];
     }
 }

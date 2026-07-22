@@ -310,8 +310,9 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 - `Access`/`Safety` de estructura están denormalizados como columnas planas en `fo_structures` (`access_type_id`, `access_active`, `safety_type_id`, `safety_certified`) en vez de tablas de instancia separadas — mismo precedente que `LuminaireGroup` (relación 1:1 por estructura, nunca reutilizada). Catálogos `AccessType`/`SafetyType` sí son tablas propias (`super_admin` only).
 - `ElectricalBoard` (`fo_electrical_boards`) SÍ usa 3 tablas pivot reales (`fo_complex_electrical_board`, `fo_electrical_board_terrain`, `fo_electrical_board_structure`, todas con FK `cascadeOnDelete`) porque un cuadro eléctrico puede compartirse entre múltiples complejos/terrenos/estructuras — no es 1:1 como Access/Safety, así que aquí sí aplica tabla de instancia (pivot) en vez de denormalizar.
 - Adjuntos (fotos/PDFs) de `Complex`/`Terrain`/`Structure`/`ElectricalBoard` usan `spatie/laravel-medialibrary` con **disco privado `local`** (mismo `storage_path('app/private')` que `Modules/Safety`, no el disco `public` por defecto de la librería). Colecciones `photos`/`documents` vía trait compartido `HasFieldOpsMedia` — al añadir el trait a un modelo nuevo, resolver el conflicto de métodos con `InteractsWithMedia` usando `insteadof` (ver cualquiera de los 4 modelos existentes como ejemplo). Servir/subir siempre vía `FieldOpsMediaController` (genérico, no crear controllers de media por entidad).
-- **El dominio de Mantenimiento de luminarias (`TypeMaintenance`/`MaintenanceServicesHistory`) SÍ está en uso real en producción** (confirmado directamente por el usuario, 2026-07-04) — no era código muerto del sistema anterior. Implementado en FO-009 como `FoMaintenanceType`/`FoMaintenanceRecord` (ver detalle en la sección FieldOps más abajo). `ScheduledMaintenanceService`/`Task` quedaron fuera de alcance a propósito (sin evidencia de uso real).
+- **El dominio de Mantenimiento de luminarias (`TypeMaintenance`/`MaintenanceServicesHistory`) SÍ está en uso real en producción** (confirmado directamente por el usuario, 2026-07-04) — no era código muerto del sistema anterior. FO-009 creó el historial polimórfico; CLA-267 agregó después la planificación y las órdenes de trabajo sin reutilizar el CRUD genérico del satélite.
 - **La posición física de una luminaria es estable y no pertenece al equipo reemplazable** (CLA-265, 2026-07-21): `fo_luminaire_positions` es la fuente canónica de frame/slot/X/Y/escala/versión; cada fila de `fo_luminaires` es una instalación. Un reemplazo siempre crea una nueva luminaria, retira la anterior y registra mantenimiento dentro de una sola transacción, manteniendo el mismo `luminaire_position_id`. Nunca implementar un reemplazo sobrescribiendo tipo/serial sobre la fila anterior ni recalculando las coordenadas.
+- **Plan, orden y registro son entidades distintas** (CLA-267, 2026-07-22): `FoMaintenancePlan` define recurrencia, `FoMaintenanceWorkOrder` coordina planificación/asignación/ejecución/validación y `FoMaintenanceRecord` conserva el trabajo ya validado. La app de terreno inicia y envía la ejecución; el backoffice valida y cierra. Un cierre excepcional desde backoffice exige `override_reason` y lo replica en el registro histórico. Equipo, cliente y `luminaire_position_id` se derivan del contexto FieldOps y no son editables desde la orden.
 
 ### Gaps abiertos (tickets Linear, equipo Claesen)
 
@@ -327,7 +328,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | FO-013 / CLA-227 | Bridge `MirrorRelationDelivery` → `Complex` + geocoding, deshabilitar creación manual | ✅ Done |
 | CLA-265 | Posición física estable + reemplazo atómico de luminarias | ✅ Done |
 | CLA-266 | Ownership de cliente y autorización tenant-aware | ⬜ Backlog |
-| CLA-267 | Planes de mantenimiento y órdenes de trabajo | ⬜ Backlog |
+| CLA-267 | Planes de mantenimiento y órdenes de trabajo | ✅ Done — implementación y tests aprobados; commit dedicado |
 | CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | ⬜ Backlog |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
@@ -366,6 +367,14 @@ Auditoría del satélite viejo (`api-claesen-sport-app`) confirmó que tanto `Cl
 - `employee_id` es `string`, referencia blanda a `employees.id` (tabla MySQL local de `Cafca\Employee`, PK no incremental) — mismo patrón exacto que `Safety\Inspection::incident_worker_id`, sin FK de BD (cruce de módulos), validado con `exists:employees,id` en los FormRequests.
 - Subdominio "reportado por cliente" con columnas reales (`client_id` FK a `fo_clients`, `priority`, `contact_person`, `contact_phone`, `location_details`, `reported_by_client`) en vez de enterrados en el JSON `details` como hacía el sistema viejo (que por eso agrupaba estadísticas en PHP, no en SQL).
 - `ScheduledMaintenanceService`/`Task` del sistema viejo quedaron fuera: CRUD genérico sin evolución real en 12+ meses de historial (a diferencia de `MaintenanceServicesHistory`, que sí tuvo 6+ commits de desarrollo sustancial) — si se confirma uso real más adelante, es un ticket nuevo.
+
+### CLA-267 — planes y órdenes de trabajo (2026-07-22)
+
+- `fo_maintenance_plans` guarda recurrencia, siguiente vencimiento, asignación e instrucciones. `fieldops:generate-maintenance-work-orders` genera los ciclos vencidos cada hora y ofrece `--dry-run`.
+- `fo_maintenance_work_orders` usa estados `planned → assigned → in_progress → awaiting_validation → completed` y `cancelled`. El mantenimiento histórico solo se crea al validar/cerrar la orden.
+- El alta es contextual desde Luminaire o Electrical Board. El cliente se deriva de los complejos del equipo y la luminaria conserva el `luminaire_position_id` estable; ambos valores quedan fuera del formulario editable.
+- La app FieldOps consume los endpoints Sanctum de órdenes asignadas, inicio y envío. Solo el empleado asignado (por `users.employee_id`) o un `admin`/`super_admin` puede ejecutar la orden. El backoffice valida/cierra; el override exige motivo auditado.
+- El menú lateral ya no expone el CRUD ambiguo de registros históricos. Expone `Work orders` como cola operacional y `Maintenance plans` como planificación recurrente; el historial sigue navegable desde el equipo.
 
 **Backfill pendiente en producción:** `fo_maintenance_types` queda vacía tras la migración — sin los 3 tipos base, `storeClientReported()` devuelve 422 ("no hay tipo de emergencia configurado"). Correr una vez:
 

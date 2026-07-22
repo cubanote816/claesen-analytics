@@ -135,10 +135,35 @@
                     <div class="fieldops-luminaire-overview__card-title">{{ __('fieldops::resource.luminaires.detail.maintenance_title') }}</div>
                     <div class="fieldops-luminaire-overview__card-copy">{{ __('fieldops::resource.luminaires.detail.maintenance_copy') }}</div>
                 </div>
-                <a href="{{ $overview['maintenanceIndexUrl'] }}" class="fieldops-luminaire-overview__button">
-                    {{ __('fieldops::resource.luminaires.actions.view_history') }}
-                </a>
+                <div class="fieldops-luminaire-overview__actions">
+                    @if ($isCurrentInstallation)
+                        <a href="{{ $overview['maintenanceCreateUrl'] }}" class="fieldops-luminaire-overview__button fieldops-luminaire-overview__button--primary">
+                            {{ __('fieldops::resource.luminaires.actions.schedule_maintenance') }}
+                        </a>
+                    @endif
+                    <a href="{{ $overview['maintenanceIndexUrl'] }}" class="fieldops-luminaire-overview__button">
+                        {{ __('fieldops::resource.luminaires.actions.view_history') }}
+                    </a>
+                </div>
             </div>
+
+            @if (count($overview['workOrders'] ?? []) > 0)
+                <div class="px-5 pt-4 text-xs font-extrabold uppercase tracking-widest text-sky-600 dark:text-sky-300">
+                    {{ __('fieldops::resource.luminaires.detail.open_work_orders') }}
+                </div>
+                <div class="fieldops-luminaire-overview__maintenance">
+                    @foreach ($overview['workOrders'] as $order)
+                        <a href="{{ $order['url'] }}" class="fieldops-luminaire-overview__maintenance-row">
+                            <span class="fieldops-luminaire-overview__maintenance-icon fieldops-luminaire-overview__maintenance-icon--open">#{{ $order['id'] }}</span>
+                            <span class="min-w-0">
+                                <span class="fieldops-luminaire-overview__maintenance-name">{{ $order['type'] ?: __('fieldops::resource.work_orders.model_label') }}</span>
+                                <span class="fieldops-luminaire-overview__maintenance-meta block">{{ collect([$order['scheduledFor'], $order['assignee']])->filter()->join(' · ') }}</span>
+                            </span>
+                            <span class="fieldops-luminaire-overview__pill fieldops-luminaire-overview__pill--open">{{ $order['status'] }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
 
             @if (count($overview['maintenance']) > 0)
                 <div class="fieldops-luminaire-overview__maintenance">
@@ -160,9 +185,6 @@
             @else
                 <div class="fieldops-luminaire-overview__empty">
                     <p>{{ __('fieldops::resource.luminaires.no_maintenance') }}</p>
-                    <a href="{{ $overview['maintenanceCreateUrl'] }}" class="fieldops-luminaire-overview__button mt-4">
-                        {{ __('fieldops::resource.luminaires.actions.add_first_maintenance') }}
-                    </a>
                 </div>
             @endif
         </section>

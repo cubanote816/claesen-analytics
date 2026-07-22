@@ -16,7 +16,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Contracts\Support\Htmlable;
 use Modules\Cafca\Models\Employee;
-use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
+use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\FieldOps\Models\Luminaire;
@@ -51,14 +51,14 @@ class ViewLuminaire extends ViewRecord
                     'layout' => 'technical',
                     'luminaire' => $this->record->id,
                 ])),
-            Action::make('addMaintenance')
-                ->label(__('fieldops::resource.luminaires.actions.add_maintenance'))
-                ->icon('heroicon-m-wrench-screwdriver')
+            Action::make('scheduleMaintenance')
+                ->label(__('fieldops::resource.luminaires.actions.schedule_maintenance'))
+                ->icon('heroicon-m-clipboard-document-check')
                 ->color('primary')
-                ->url(fn (): string => FoMaintenanceRecordResource::getUrl('create', [
+                ->visible(fn (): bool => $this->record->removed_at === null && $this->record->active_position_id !== null)
+                ->url(fn (): string => FoMaintenanceWorkOrderResource::getUrl('create', [
                     'maintainable_type' => Luminaire::class,
                     'maintainable_id' => $this->record->id,
-                    'return_luminaire' => $this->record->id,
                 ])),
             Action::make('replaceLuminaire')
                 ->label(__('fieldops::resource.luminaires.actions.replace'))

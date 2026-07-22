@@ -2550,7 +2550,7 @@
                                 {{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}
                             </a>
                             <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceCreateUrl">
-                                {{ __('fieldops::resource.luminaires.actions.add_maintenance') }}
+                                {{ __('fieldops::resource.luminaires.actions.schedule_maintenance') }}
                             </a>
                             <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceIndexUrl">
                                 {{ __('fieldops::resource.luminaires.actions.view_history') }}
@@ -2703,7 +2703,7 @@
                                 {{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}
                             </a>
                             <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceCreateUrl">
-                                {{ __('fieldops::resource.luminaires.actions.add_maintenance') }}
+                                {{ __('fieldops::resource.luminaires.actions.schedule_maintenance') }}
                             </a>
                             <a class="fieldops-luminaire-frame-spatial__link" :href="selectedMarker()?.maintenanceIndexUrl">
                                 {{ __('fieldops::resource.luminaires.actions.view_history') }}
@@ -2790,7 +2790,7 @@
                                 {{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}
                             </a>
                             <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceCreateUrl'] }}">
-                                {{ __('fieldops::resource.luminaires.actions.add_maintenance') }}
+                                {{ __('fieldops::resource.luminaires.actions.schedule_maintenance') }}
                             </a>
                             <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceIndexUrl'] }}">
                                 {{ __('fieldops::resource.luminaires.actions.view_history') }}

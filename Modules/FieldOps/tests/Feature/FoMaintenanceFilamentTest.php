@@ -79,7 +79,7 @@ class FoMaintenanceFilamentTest extends TestCase
         $this->get("/fo-maintenance-records/{$record->id}")->assertOk();
     }
 
-    public function test_luminaire_scoped_history_and_create_navigation_render(): void
+    public function test_luminaire_scoped_history_and_return_navigation_render(): void
     {
         $user = User::factory()->create();
         $user->assignRole('super_admin');
@@ -101,15 +101,9 @@ class FoMaintenanceFilamentTest extends TestCase
             ->assertDontSee('Other inspection')
             ->assertSee('Back to luminaire');
 
-        $createUrl = '/fo-maintenance-records/create?'.http_build_query([
-            'maintainable_type' => Luminaire::class,
-            'maintainable_id' => $target->id,
-            'return_luminaire' => $target->id,
-        ]);
-
-        $this->withHeader('Accept-Language', 'en-US')->get($createUrl)
+        $this->withHeader('Accept-Language', 'en-US')->get("/luminaires/{$target->id}")
             ->assertOk()
-            ->assertSee($target->serial_number);
+            ->assertSee('Schedule maintenance');
     }
 
     public function test_replacement_record_shows_old_and_new_luminaires_at_same_position(): void

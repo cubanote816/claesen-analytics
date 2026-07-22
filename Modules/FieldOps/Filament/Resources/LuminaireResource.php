@@ -4,7 +4,6 @@ namespace Modules\FieldOps\Filament\Resources;
 
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
@@ -30,6 +29,7 @@ use Modules\FieldOps\Filament\Resources\Luminaires\Pages\CreateLuminaire;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\EditLuminaire;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\ListLuminaires;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\ViewLuminaire;
+use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireSubgroup;
@@ -79,76 +79,76 @@ class LuminaireResource extends Resource
             Section::make(__('fieldops::resource.luminaires.sections.identity'))
                 ->description(__('fieldops::resource.luminaires.sections.identity_description'))
                 ->schema([
-                ViewField::make('luminaire_type_id')
-                    ->label(__('fieldops::resource.luminaires.fields.luminaire_type'))
-                    ->view('fieldops::filament.forms.luminaire-type-gallery-selector')
-                    ->viewData(['types' => static::buildLuminaireTypeChoices()])
-                    ->columnSpanFull()
-                    ->live()
-                    ->afterStateUpdated(function ($state, Set $set): void {
-                        $set('luminaire_subgroup_id', $state ? LuminaireType::find($state)?->luminaire_subgroup_id : null);
-                    })
-                    ->required(),
-                Select::make('luminaire_subgroup_id')
-                    ->label(__('fieldops::resource.luminaires.fields.subgroup'))
-                    ->options(LuminaireSubgroup::orderBy('group_name')->get()
-                        ->mapWithKeys(fn ($s) => [$s->id => "{$s->group_name} — {$s->brand}"])
-                    )
-                    ->searchable()
-                    ->disabled()
-                    ->dehydrated()
-                    ->nullable(),
-                TextInput::make('serial_number')
-                    ->label(__('fieldops::resource.luminaires.fields.serial_number'))
-                    ->nullable()
-                    ->maxLength(100),
-                Textarea::make('info')
-                    ->label(__('fieldops::resource.luminaires.fields.info'))
-                    ->rows(3)
-                    ->columnSpanFull(),
-            ])->columns(2)->columnSpanFull(),
+                    ViewField::make('luminaire_type_id')
+                        ->label(__('fieldops::resource.luminaires.fields.luminaire_type'))
+                        ->view('fieldops::filament.forms.luminaire-type-gallery-selector')
+                        ->viewData(['types' => static::buildLuminaireTypeChoices()])
+                        ->columnSpanFull()
+                        ->live()
+                        ->afterStateUpdated(function ($state, Set $set): void {
+                            $set('luminaire_subgroup_id', $state ? LuminaireType::find($state)?->luminaire_subgroup_id : null);
+                        })
+                        ->required(),
+                    Select::make('luminaire_subgroup_id')
+                        ->label(__('fieldops::resource.luminaires.fields.subgroup'))
+                        ->options(LuminaireSubgroup::orderBy('group_name')->get()
+                            ->mapWithKeys(fn ($s) => [$s->id => "{$s->group_name} — {$s->brand}"])
+                        )
+                        ->searchable()
+                        ->disabled()
+                        ->dehydrated()
+                        ->nullable(),
+                    TextInput::make('serial_number')
+                        ->label(__('fieldops::resource.luminaires.fields.serial_number'))
+                        ->nullable()
+                        ->maxLength(100),
+                    Textarea::make('info')
+                        ->label(__('fieldops::resource.luminaires.fields.info'))
+                        ->rows(3)
+                        ->columnSpanFull(),
+                ])->columns(2)->columnSpanFull(),
 
             Section::make(__('fieldops::resource.luminaires.sections.frame_assignment'))
                 ->description(__('fieldops::resource.luminaires.sections.frame_assignment_description'))
                 ->schema([
-                Select::make('luminaire_frame_id')
-                    ->label(__('fieldops::resource.luminaires.fields.frame'))
-                    ->options(LuminaireFrame::with('frameType')
-                        ->get()
-                        ->mapWithKeys(fn ($f) => [
-                            $f->id => "#{$f->id} — {$f->frameType?->name}",
-                        ])
-                    )
-                    ->searchable()
-                    ->required(),
-                TextInput::make('frame_position')
-                    ->label(__('fieldops::resource.luminaires.fields.frame_position'))
-                    ->numeric()
-                    ->nullable(),
-            ])->columns(2)->columnSpanFull(),
+                    Select::make('luminaire_frame_id')
+                        ->label(__('fieldops::resource.luminaires.fields.frame'))
+                        ->options(LuminaireFrame::with('frameType')
+                            ->get()
+                            ->mapWithKeys(fn ($f) => [
+                                $f->id => "#{$f->id} — {$f->frameType?->name}",
+                            ])
+                        )
+                        ->searchable()
+                        ->required(),
+                    TextInput::make('frame_position')
+                        ->label(__('fieldops::resource.luminaires.fields.frame_position'))
+                        ->numeric()
+                        ->nullable(),
+                ])->columns(2)->columnSpanFull(),
 
             Section::make(__('fieldops::resource.luminaires.sections.technical_placement'))
                 ->description(__('fieldops::resource.luminaires.sections.technical_placement_description'))
                 ->schema([
-                TextInput::make('frame_x')
-                    ->label(__('fieldops::resource.luminaires.fields.frame_x'))
-                    ->numeric()
-                    ->nullable(),
-                TextInput::make('frame_y')
-                    ->label(__('fieldops::resource.luminaires.fields.frame_y'))
-                    ->numeric()
-                    ->nullable(),
-                TextInput::make('scale_x')
-                    ->label(__('fieldops::resource.luminaires.fields.scale_x'))
-                    ->numeric()
-                    ->step(0.01)
-                    ->nullable(),
-                TextInput::make('scale_y')
-                    ->label(__('fieldops::resource.luminaires.fields.scale_y'))
-                    ->numeric()
-                    ->step(0.01)
-                    ->nullable(),
-            ])->columns(2)->collapsible()->collapsed(),
+                    TextInput::make('frame_x')
+                        ->label(__('fieldops::resource.luminaires.fields.frame_x'))
+                        ->numeric()
+                        ->nullable(),
+                    TextInput::make('frame_y')
+                        ->label(__('fieldops::resource.luminaires.fields.frame_y'))
+                        ->numeric()
+                        ->nullable(),
+                    TextInput::make('scale_x')
+                        ->label(__('fieldops::resource.luminaires.fields.scale_x'))
+                        ->numeric()
+                        ->step(0.01)
+                        ->nullable(),
+                    TextInput::make('scale_y')
+                        ->label(__('fieldops::resource.luminaires.fields.scale_y'))
+                        ->numeric()
+                        ->step(0.01)
+                        ->nullable(),
+                ])->columns(2)->collapsible()->collapsed(),
 
             Section::make(__('fieldops::resource.luminaires.sections.system_reference'))->schema([
                 TextInput::make('cafca_material_id')
@@ -215,6 +215,27 @@ class LuminaireResource extends Resource
                 'url' => FoMaintenanceRecordResource::getUrl('view', ['record' => $maintenanceRecord]),
             ])
             ->all();
+        $workOrderQuery = FoMaintenanceWorkOrder::query()
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->when($record->luminaire_position_id,
+                fn (Builder $query, int $positionId) => $query->where('luminaire_position_id', $positionId),
+                fn (Builder $query) => $query->where('maintainable_type', Luminaire::class)->where('maintainable_id', $record->id),
+            );
+        $workOrders = $workOrderQuery
+            ->with(['maintenanceType', 'assignedEmployee'])
+            ->orderBy('scheduled_for')
+            ->limit(5)
+            ->get()
+            ->map(fn (FoMaintenanceWorkOrder $order): array => [
+                'id' => $order->id,
+                'status' => $order->status->getLabel(),
+                'statusColor' => $order->status->getColor(),
+                'type' => $order->maintenanceType?->getTranslation('name', app()->getLocale(), false)
+                    ?: $order->maintenanceType?->getTranslation('name', 'nl', false),
+                'scheduledFor' => $order->scheduled_for?->locale(app()->getLocale())->translatedFormat('d M Y · H:i'),
+                'assignee' => $order->assignedEmployee?->name,
+                'url' => FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $order]),
+            ])->all();
 
         $allMaintenance = clone $maintenanceQuery;
         $openIssues = (clone $allMaintenance)
@@ -262,17 +283,18 @@ class LuminaireResource extends Resource
             'openIssues' => $openIssues,
             'maintenanceTotal' => $totalMaintenance,
             'maintenance' => $maintenance,
+            'workOrders' => $workOrders,
             'markers' => $frame ? LuminaireFrameResource::buildCanvasMarkers($frame, $record->id) : [],
             'frameUrl' => $frame ? LuminaireFrameResource::getUrl('view', ['record' => $frame, 'layout' => 'technical', 'luminaire' => $record->id]) : null,
-            'maintenanceCreateUrl' => FoMaintenanceRecordResource::getUrl('create', [
+            'maintenanceCreateUrl' => FoMaintenanceWorkOrderResource::getUrl('create', [
                 'maintainable_type' => Luminaire::class,
                 'maintainable_id' => $record->id,
-                'return_luminaire' => $record->id,
             ]),
             'maintenanceIndexUrl' => FoMaintenanceRecordResource::getUrl('index', [
                 'luminaire' => $record->id,
                 'position' => $record->luminaire_position_id,
             ]),
+            'workOrderIndexUrl' => FoMaintenanceWorkOrderResource::getUrl('index'),
         ];
     }
 
@@ -341,10 +363,10 @@ class LuminaireResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListLuminaires::route('/'),
+            'index' => ListLuminaires::route('/'),
             'create' => CreateLuminaire::route('/create'),
-            'view'   => ViewLuminaire::route('/{record}'),
-            'edit'   => EditLuminaire::route('/{record}/edit'),
+            'view' => ViewLuminaire::route('/{record}'),
+            'edit' => EditLuminaire::route('/{record}/edit'),
         ];
     }
 }

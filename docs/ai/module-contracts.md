@@ -196,6 +196,29 @@ Modules/Website/Routes/api.php
 
 ---
 
+## Módulo FieldOps
+
+### Contrato de mantenimiento
+
+- `FoMaintenancePlan`, `FoMaintenanceWorkOrder` y `FoMaintenanceRecord` no son intercambiables: representan recurrencia, coordinación operativa y evidencia histórica validada, respectivamente.
+- Crear planificación siempre desde un equipo (`Luminaire` o `ElectricalBoard`). No ofrecer un selector global ambiguo de equipo en la cola operacional.
+- La app de terreno inicia y envía la ejecución; el backoffice valida/cierra. Un override de backoffice requiere `override_reason` persistido en la orden y en el registro resultante.
+- Cliente y contexto físico se derivan de FieldOps. No aceptar `client_id` ni `luminaire_position_id` del formulario/payload de creación de una orden.
+- Para luminarias, `luminaire_position_id` es el agregado estable. Reemplazar la instalación no debe mover la orden ni fragmentar el historial de esa posición.
+- `FoMaintenanceRecord` solo se crea cuando una orden se valida/cierra, excepto eventos de reemplazo atómico ya cubiertos por `LuminaireReplacementService` y el flujo legado de incidencias de cliente pendiente de CLA-268.
+
+### Archivos clave
+
+```
+Modules/FieldOps/Models/FoMaintenancePlan.php
+Modules/FieldOps/Models/FoMaintenanceWorkOrder.php
+Modules/FieldOps/Models/FoMaintenanceRecord.php
+Modules/FieldOps/Services/MaintenanceWorkOrderService.php
+Modules/FieldOps/Services/MaintenanceEquipmentContextService.php
+```
+
+---
+
 ## Módulo Intelligence
 
 ### Reglas

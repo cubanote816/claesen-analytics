@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
+use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\EditLuminaire;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\ViewLuminaire;
@@ -94,7 +95,11 @@ class LuminaireFilamentTest extends TestCase
         $this->withHeader('Accept-Language', 'en-US')->get("/luminaires/{$luminaire->id}")
             ->assertOk()
             ->assertSee('No maintenance recorded yet.')
-            ->assertSee('Record first maintenance');
+            ->assertSee('Schedule maintenance')
+            ->assertSee(FoMaintenanceWorkOrderResource::getUrl('create', [
+                'maintainable_type' => Luminaire::class,
+                'maintainable_id' => $luminaire->id,
+            ]), false);
     }
 
     public function test_editing_type_keeps_subgroup_consistent(): void

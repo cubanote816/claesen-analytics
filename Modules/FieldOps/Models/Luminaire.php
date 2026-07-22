@@ -12,7 +12,7 @@ use Spatie\Translatable\HasTranslations;
 
 class Luminaire extends Model
 {
-    use HasFactory, SoftDeletes, HasTranslations, HasAiTranslations;
+    use HasAiTranslations, HasFactory, HasTranslations, SoftDeletes;
 
     protected static function newFactory()
     {
@@ -55,10 +55,10 @@ class Luminaire extends Model
     ];
 
     protected $casts = [
-        'frame_x'        => 'float',
-        'frame_y'        => 'float',
-        'scale_x'        => 'float',
-        'scale_y'        => 'float',
+        'frame_x' => 'float',
+        'frame_y' => 'float',
+        'scale_x' => 'float',
+        'scale_y' => 'float',
         'position_version' => 'integer',
         'frame_position' => 'integer',
         'position_verified_at' => 'datetime',
@@ -198,5 +198,15 @@ class Luminaire extends Model
     public function maintenanceRecords()
     {
         return $this->morphMany(FoMaintenanceRecord::class, 'maintainable');
+    }
+
+    public function maintenanceWorkOrders()
+    {
+        return $this->morphMany(FoMaintenanceWorkOrder::class, 'maintainable');
+    }
+
+    public function maintenancePlans()
+    {
+        return $this->morphMany(FoMaintenancePlan::class, 'maintainable');
     }
 }

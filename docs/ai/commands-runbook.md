@@ -329,6 +329,25 @@ php artisan prospects:sync-val            # VAL
 
 ---
 
+## Módulo FieldOps
+
+### `fieldops:generate-maintenance-work-orders`
+
+**Función:** Genera una orden de trabajo para cada plan de mantenimiento recurrente cuyo `next_due_at` ya venció y adelanta el plan al siguiente ciclo.
+
+```bash
+php artisan fieldops:generate-maintenance-work-orders --dry-run
+php artisan fieldops:generate-maintenance-work-orders
+```
+
+**Notas:**
+- `--dry-run` cuenta planes vencidos sin escribir.
+- Cada plan se bloquea dentro de una transacción para evitar duplicados por ejecuciones concurrentes.
+- Programado cada hora con `withoutOverlapping()` desde `FieldOpsServiceProvider`.
+- No crea `FoMaintenanceRecord`; ese historial nace únicamente al validar/cerrar una orden ejecutada.
+
+---
+
 ## App (raíz)
 
 ### `sync:employees`

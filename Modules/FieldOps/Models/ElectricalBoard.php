@@ -15,7 +15,7 @@ use Spatie\Translatable\HasTranslations;
 
 class ElectricalBoard extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, HasTranslations, HasAiTranslations, InteractsWithMedia, HasFieldOpsMedia {
+    use HasAiTranslations, HasFactory, HasFieldOpsMedia, HasTranslations, InteractsWithMedia, SoftDeletes {
         HasFieldOpsMedia::registerMediaCollections insteadof InteractsWithMedia;
         HasFieldOpsMedia::registerMediaConversions insteadof InteractsWithMedia;
     }
@@ -76,5 +76,15 @@ class ElectricalBoard extends Model implements HasMedia
     public function maintenanceRecords()
     {
         return $this->morphMany(FoMaintenanceRecord::class, 'maintainable');
+    }
+
+    public function maintenanceWorkOrders()
+    {
+        return $this->morphMany(FoMaintenanceWorkOrder::class, 'maintainable');
+    }
+
+    public function maintenancePlans()
+    {
+        return $this->morphMany(FoMaintenancePlan::class, 'maintainable');
     }
 }
