@@ -1,7 +1,7 @@
 # Roadmap maestro de mantenimiento FieldOps
 
 > Fuente canónica de continuidad para el programa de mantenimiento y el futuro portal Claesen-Client.
-> Última actualización: 2026-07-22 — CLA-268 Done; CLA-275 inició el mockup de Claesen-Client.
+> Última actualización: 2026-07-23 — CLA-268 Done; CLA-275 tiene una segunda revisión visual de infraestructura pendiente de aprobación.
 
 ## Cómo usar este documento
 
@@ -63,7 +63,7 @@ La conversión `Solicitud → Orden` es idempotente mediante `work_order_id`. Ce
 | Fase 1 — Identidad y aislamiento | CLA-266 | ✅ Done | Membresías cliente, autorización fail-closed, BOLA y OAuth endurecidos |
 | Fase 2 — Asignaciones y notificaciones | CLA-271 | ✅ Done | Asignación ejecutable, timeline append-only y notificaciones operacionales |
 | Fase 3 — Solicitudes de clientes | CLA-268 | ✅ Done | Implementación `d0436df`, memoria `545b42e`, cierre Linear registrado |
-| Fase 4 — Portal React Claesen-Client | CLA-275 | 🚧 Mockup en revisión visual | Repositorio `/home/totti/Claesen-Client`, commit `9f2414b` |
+| Fase 4 — Portal React Claesen-Client | CLA-275 | 🚧 Revisión visual 2 | Repositorio `/home/totti/Claesen-Client`; explorador de infraestructura y reporte contextual pendientes de aprobación |
 | Fase 5 — E2E y producción | Ticket por crear | ⬜ Pendiente | Validación integral, infraestructura y observabilidad de producción |
 
 ## Fases cerradas y evidencia
@@ -166,7 +166,7 @@ La suite amplia debe ejecutarse en un único proceso o de forma serial. No lanza
 
 ## Fase 4 — Portal Claesen-Client
 
-CLA-275 se creó después del cierre de CLA-268 y la aprobación del plan. El mockup interactivo existe en `/home/totti/Claesen-Client` con commit `9f2414b`; la integración con API queda detenida hasta recibir aprobación visual explícita.
+CLA-275 se creó después del cierre de CLA-268 y la aprobación del plan. El primer mockup interactivo existe en `/home/totti/Claesen-Client` con commit `9f2414b`. Tras la revisión funcional de Claesen-Sport y del backoffice, el segundo mockup evoluciona a un explorador de infraestructura de solo lectura: `cliente autorizado → complejo → terreno → estructura → marco → posición/luminaria`, con cuadros eléctricos en su contexto físico real y reporte contextual. La integración con API queda detenida hasta recibir la segunda aprobación visual explícita.
 
 ### Arranque y repositorio
 
