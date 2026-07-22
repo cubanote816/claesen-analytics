@@ -20,6 +20,7 @@ Al iniciar cada sesión, leer en este orden:
 | Archivo | Propósito |
 |---------|-----------|
 | `README.md` | Índice completo y guía de lectura por tipo de tarea |
+| `fieldops-maintenance-roadmap.md` | Roadmap maestro de mantenimiento: fases CLA-267/266/271/268, Claesen-Client y producción |
 | `project-protocol.md` | Flujo obligatorio: ticket → plan → aprobación → implementar → commit → GO |
 | `context-map.md` | Mapa real del proyecto: stack, módulos, rutas, jobs, dependencias |
 | `module-contracts.md` | Reglas no negociables por módulo (Mailing, Safety, Website, Cafca…) |
@@ -102,7 +103,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint completado** | ✅ ~100% |
 | **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance, automatización — **Fase 0+1+2 completadas** | ✅ ~98% |
 | **Website** | Sitio público, formulario de consulta, galería proyectos — **sprint en curso** | 🚧 ~85% |
-| **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias y mantenimiento — **menú marcado "(Demo)"; órdenes de terreno conectadas y portal cliente aún pendiente** | 🚧 ~78% |
+| **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias y mantenimiento — **CLA-268 en progreso: dominio inicial de solicitudes cliente implementado; conversación, adjuntos y ciclo cliente pendientes antes del portal** | 🚧 ~82% |
 | **Analytics** | Instrumentación de eventos de producto (`app_events`) para medir adopción/fricción en apps internas (Backoffice, Safety PWA, Claesen-Sport/FieldOps) — **CLA-229: base de ingesta lista, sin integración real en ningún frontend todavía** | 🚧 ~30% |
 
 ---
@@ -303,6 +304,8 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 
 ### Reglas FieldOps (no negociables)
 
+**Roadmap maestro:** `docs/ai/fieldops-maintenance-roadmap.md`. Claesen-Client es la Fase 4 de este programa y nunca debe planificarse como iniciativa independiente.
+
 - Tablas con prefijo `fo_`. `created_by_user_id` siempre `nullOnDelete` (no `cascadeOnDelete`) — borrar un usuario de Core no debe borrar datos operacionales.
 - Traducciones: `spatie/laravel-translatable` (columnas json) + `HasAiTranslations` propio (`Modules/Intelligence`) para autotraducir con Gemini. Locales canónicos: **`nl, en, fr, de`** — no usar `es` (bug corregido en FO-008).
 - `LuminaireGroup` está intencionalmente denormalizado como `group_name` string en `fo_luminaire_subgroups` — no crear una tabla catálogo separada sin discutirlo primero (decisión de Slice C).
@@ -332,7 +335,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | CLA-265 | Posición física estable + reemplazo atómico de luminarias | ✅ Done |
 | CLA-266 | Ownership de cliente y autorización tenant-aware | ✅ Done — aislamiento tenant y hardening OAuth aprobados |
 | CLA-267 | Planes de mantenimiento y órdenes de trabajo | ✅ Done — hardening del histórico y cutover de Claesen-Sport aprobados tras auditoría (`d7606bc` en la app de terreno) |
-| CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | ⬜ Backlog |
+| CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | 🚧 En progreso — dominio inicial, snapshot tenant-safe, conversión idempotente y notificaciones iniciales implementados sin commit dedicado; faltan conversación, adjuntos, notas internas, confirmación/reapertura, contactos, intake IA y pruebas específicas |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
 **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.

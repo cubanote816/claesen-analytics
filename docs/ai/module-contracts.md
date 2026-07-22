@@ -198,13 +198,15 @@ Modules/Website/Routes/api.php
 
 ## Módulo FieldOps
 
+Roadmap maestro del programa de mantenimiento y Claesen-Client: `docs/ai/fieldops-maintenance-roadmap.md`.
+
 ### Contrato de cliente y tenant
 
 - `FoClient` y `Complex.client_id` derivan de CAFCA. No crear, reasignar, eliminar ni restaurar clientes/sitios manualmente desde API o Filament.
 - Una cuenta externa debe tener rol `client`; sus clientes autorizados provienen exclusivamente de membresías activas `fo_client_user`. El backend nunca acepta un `client_id` del frontend como autoridad.
 - Todo listado y acceso directo de cliente, complejo, terreno, estructura, frame, luminaria, cuadro eléctrico, media e histórico debe pasar por `FieldOpsTenantService` y la policy tenant.
 - La autorización es fail-closed: activos sin cliente o conectados a más de un cliente no son visibles para cuentas externas. Corregir primero la topología; no elegir un propietario arbitrario.
-- Las cuentas `client` son read-only y no pueden consultar órdenes de trabajo internas. `can_report` se aplicará al dominio `MaintenanceRequest` de CLA-268, no concede escritura sobre infraestructura o históricos.
+- Las cuentas `client` son read-only y no pueden consultar órdenes de trabajo internas. `can_report` se aplica al dominio `MaintenanceRequest` de CLA-268, no concede escritura sobre infraestructura o históricos.
 - Filament acepta únicamente roles internos explícitos. `client`, `project_manager` y usuarios sin rol no tienen acceso al panel.
 - `CLIENT_PORTAL_URL` debe configurar un origen `http(s)` confirmado y debe quedar cubierto por redirects OAuth, CORS y Sanctum stateful domains.
 
@@ -221,7 +223,11 @@ Modules/Website/Routes/api.php
 - Toda transición y reasignación se registra en `fo_maintenance_work_order_events`. Este log es append-only: no se actualiza ni elimina mediante Eloquent.
 - Una ejecución en `awaiting_validation` puede volver a `in_progress` únicamente mediante `returnForCorrection`, con motivo obligatorio y actor/fecha auditados.
 - Las notificaciones operacionales FieldOps usan canales `database` y `mail`, se encolan después del commit y respetan `preferences_data.notifications.fieldopsDatabase|fieldopsEmail`. La API de notificaciones siempre filtra por usuario autenticado y `viewData.module=fieldops`.
-- Las incidencias del cliente pertenecen al dominio `MaintenanceRequest` pendiente de CLA-268; nunca deben volver a escribirse como registros históricos abiertos.
+- Las incidencias del cliente pertenecen al dominio separado `MaintenanceRequest` de CLA-268; nunca deben volver a escribirse como registros históricos abiertos.
+- La conversión de solicitud a orden es idempotente mediante `work_order_id`; resolución y cancelación se sincronizan desde la orden sin exponer el workflow interno al cliente.
+- Conversación pública, notas internas y adjuntos privados son superficies distintas. Ninguna nota interna puede aparecer en recursos o notificaciones de cliente.
+- Confirmación y reapertura deben ser transiciones auditadas del dominio; no se permite editar el estado de la solicitud arbitrariamente.
+- Claesen-Client es la Fase 4 del roadmap maestro y no puede iniciarse antes del cierre técnico y documental de CLA-268.
 
 ### Archivos clave
 
@@ -229,7 +235,9 @@ Modules/Website/Routes/api.php
 Modules/FieldOps/Models/FoMaintenancePlan.php
 Modules/FieldOps/Models/FoMaintenanceWorkOrder.php
 Modules/FieldOps/Models/FoMaintenanceRecord.php
+Modules/FieldOps/Models/FoMaintenanceRequest.php
 Modules/FieldOps/Services/MaintenanceWorkOrderService.php
+Modules/FieldOps/Services/MaintenanceRequestService.php
 Modules/FieldOps/Services/MaintenanceEquipmentContextService.php
 Modules/FieldOps/Services/FieldOpsTenantService.php
 Modules/FieldOps/Services/WorkOrderNotificationService.php

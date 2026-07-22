@@ -1,7 +1,9 @@
 # Mapa de contexto — CAFCA Intelligence Hub
 
 > Generado desde exploración real del código. Actualizar cuando cambie la arquitectura.
-> Última actualización: 2026-06-02 (DOCS-AI-001 / CLA-105)
+> Última actualización: 2026-07-22 (CLA-268 — roadmap maestro de mantenimiento)
+
+> Roadmap canónico de mantenimiento y Claesen-Client: `docs/ai/fieldops-maintenance-roadmap.md`.
 
 ---
 
@@ -289,6 +291,33 @@ Admin edita proyecto en Filament
 
 ---
 
+### FieldOps — `Modules/FieldOps/`
+
+**Propósito:** Gestión tenant-safe de clientes CAFCA, instalaciones, activos de iluminación y el ciclo completo de mantenimiento.
+
+**Arquitectura de mantenimiento:**
+
+```text
+FoMaintenanceRequest
+  → FoMaintenanceWorkOrder
+  → ejecución y validación + FoMaintenanceWorkOrderEvent
+  → FoMaintenanceRecord inmutable
+```
+
+**Estado del programa:** Fases 0–2 cerradas mediante CLA-267, CLA-266 y CLA-271. CLA-268 está en progreso. Claesen-Client es la Fase 4 y no se inicia hasta cerrar el dominio de solicitudes. Estado, commits, tests y siguiente paso: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+**Componentes clave:**
+
+- `FieldOpsTenantService` — resolución fail-closed del tenant y alcance de activos.
+- `MaintenanceRequestService` — intake, conversión idempotente y sincronización pública de solicitudes.
+- `MaintenanceWorkOrderService` — asignación y transiciones transaccionales de órdenes.
+- `FoMaintenanceWorkOrderEvent` — auditoría append-only.
+- `FoMaintenanceRecord` — histórico validado de solo lectura.
+
+**Invariantes:** el cliente y la posición se derivan del contexto FieldOps; `can_report` no da escritura sobre infraestructura; órdenes internas no se exponen al cliente; SQL Server/Cafca permanece ReadOnly.
+
+---
+
 ## Providers registrados
 
 | Módulo | Provider |
@@ -301,6 +330,7 @@ Admin edita proyecto en Filament
 | Safety | `Modules\Safety\Providers\SafetyServiceProvider` |
 | Mailing | `Modules\Mailing\Providers\MailingServiceProvider` |
 | Website | `Modules\Website\Providers\WebsiteServiceProvider` |
+| FieldOps | `Modules\FieldOps\Providers\FieldOpsServiceProvider` |
 | App | `app/Providers/AppServiceProvider.php` |
 | Filament | `app/Providers/Filament/AdminPanelProvider.php` |
 
@@ -314,6 +344,8 @@ Performance  ──────────→  Cafca      (sync mirror desde SQ
 Intelligence  ─────────→  Cafca      (sync mirror desde SQL Server)
 Cafca  ────────────────→  SQL Server (ReadOnly, nunca mutar)
 Website  ──────────────→  GitHub     (repository_dispatch via job)
+FieldOps ──────────────→  Cafca      (clientes, complejos y empleados derivados del mirror)
+Claesen-Client ────────→  FieldOps   (Fase 4; API tenant-safe, todavía no iniciada)
 App\Contracts\MarketingCampaignInterface  ←  MicrosoftGraphMailer
                                           ←  SaaSMailer (stub futuro)
 ```

@@ -95,9 +95,9 @@ La ejecución conjunta de toda la suite FieldOps mantiene dos fallos de harness 
 
 Además, no pasar varios paths de test a `sail artisan test` en este harness: pueden ejecutarse como procesos separados contra la misma base MySQL `testing` y competir durante `RefreshDatabase`. Usar un único proceso con `--filter='(ClaseA|ClaseB)'` o ejecutar cada archivo de forma serial.
 
-### Hostname del portal cliente pendiente de confirmación
+### Infraestructura del portal cliente pendiente
 
-CLA-266 incorpora `CLIENT_PORTAL_URL`, pero no fija un dominio de producción porque el nombre propuesto `clent.claesen-verlichting.be` podría contener un error tipográfico. Antes del despliegue del portal se debe confirmar el hostname y configurar exactamente ese origen en entorno/proxy. Sin este valor confirmado, el portal no debe considerarse desplegable aunque el aislamiento backend esté listo.
+El roadmap maestro fija `client.claesen-verlichting.be` como hostname objetivo y descarta el typo previo `clent.claesen-verlichting.be`. El dominio todavía no está provisionado: antes del despliegue se deben verificar DNS, TLS, reverse proxy, redirects OAuth, CORS, cookies y `SANCTUM_STATEFUL_DOMAINS`. Ver `docs/ai/fieldops-maintenance-roadmap.md`; el portal no debe considerarse desplegable solo porque el aislamiento backend esté listo.
 
 ### Tests de módulo Website inexistentes
 

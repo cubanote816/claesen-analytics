@@ -3,6 +3,17 @@
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
 > Última actualización: 2026-07-22 — **CLA-274 Done** (commit `479810c`, fix `[object Object]` en Maintenance Types/Structure/Luminaire/ElectricalBoard + helper text de code corregido); CLA-273/272/271/270/269/266 permanecen Done.
 
+> **Programa activo de mantenimiento:** CLA-268 está en progreso. Fuente canónica de fases, evidencia, bloqueos y siguiente paso: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-22 — CLA-268: roadmap maestro persistente (GO técnico aprobado)
+
+- Se consolidó la arquitectura `Solicitud → Orden de trabajo → Ejecución y validación → Histórico inmutable` en un documento canónico.
+- El roadmap registra CLA-267, CLA-266 y CLA-271 como cerrados, CLA-268 en progreso y Claesen-Client como Fase 4 todavía no iniciada.
+- Los cambios de aplicación de CLA-268 siguen sin commit dedicado y conviven con modificaciones concurrentes; el cierre debe usar paths explícitos y excluir `.gitignore`, `tmp/*` y trabajo ajeno.
+- Verificación documental: enlaces canónicos presentes, archivos referenciados existentes, UTF-8 limpio y `git diff --check` sin errores.
+- Test Gate: waiver aprobado por el usuario en el GO técnico por ser un cambio exclusivamente documental; cobertura alternativa mediante revisión de enlaces, estados, commits y formato.
+- Este bloque documental no cambia el estado de CLA-268 en Linear, que permanece En progreso hasta completar la Fase 3.
+
 ### Sesión 2026-07-22 — CLA-274: fix bug [object Object] en Maintenance Types/Structure/Luminaire/ElectricalBoard (Done, commit `479810c`)
 
 **Contexto:** el usuario, revisando el formulario de creación de Maintenance Types, preguntó si el helper text del campo `code` ("preventive | corrective | emergency — leave empty for a custom type") tenía sentido y reportó el mismo bug `[object Object]` en el campo `name` al editar.
@@ -1416,15 +1427,18 @@ Próximo paso: definir el próximo ticket Linear antes de iniciar cualquier trab
 
 ### FieldOps CLA-268 — solicitudes de cliente (en progreso)
 
+- Roadmap maestro: `docs/ai/fieldops-maintenance-roadmap.md`.
 - Se creó `fo_maintenance_requests` como dominio separado del histórico validado.
 - La API deriva `client_id` desde el usuario autenticado y captura snapshot de la posición.
 - La conversión a orden de trabajo es idempotente mediante `work_order_id`.
 - El cierre de una orden actualiza la solicitud a `resolved` y guarda una respuesta pública.
-- Pendiente: UI de triage, adjuntos/respuestas completas, notificaciones de cliente, pruebas con MySQL y revisión técnica.
+- Ya existen permiso `can_report`, recurso Filament y notificaciones iniciales al reportante.
+- Pendiente: conversación pública, adjuntos privados, notas internas, cuadros eléctricos, confirmación/reapertura, invitación/activación de contactos, intake IA, pruebas específicas y revisión técnica.
+- Próximo paso exacto: aislar los paths de CLA-268 y completar primero conversación pública + notas internas + adjuntos autorizados con pruebas tenant/BOLA seriales. No crear todavía Claesen-Client.
 
 ```
 Lee CLAUDE.md, handoff.md y docs/ai/README.md.
-Luego lee el documento específico del módulo activo.
+Luego lee docs/ai/fieldops-maintenance-roadmap.md y docs/ai/module-contracts.md.
 
 Para Mailing: docs/Mailing/mailing-platform-master.md
 Para Website: docs/website-sprint-handoff.md
