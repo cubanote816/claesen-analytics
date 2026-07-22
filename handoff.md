@@ -1,7 +1,16 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-273 Done** (commit `02650f8`, fix `[object Object]` en Access/Structure/Safety/ElectricalBoardType); CLA-272/271/270/269/266 permanecen Done.
+> Última actualización: 2026-07-22 — **CLA-274 Done** (commit `479810c`, fix `[object Object]` en Maintenance Types/Structure/Luminaire/ElectricalBoard + helper text de code corregido); CLA-273/272/271/270/269/266 permanecen Done.
+
+### Sesión 2026-07-22 — CLA-274: fix bug [object Object] en Maintenance Types/Structure/Luminaire/ElectricalBoard (Done, commit `479810c`)
+
+**Contexto:** el usuario, revisando el formulario de creación de Maintenance Types, preguntó si el helper text del campo `code` ("preventive | corrective | emergency — leave empty for a custom type") tenía sentido y reportó el mismo bug `[object Object]` en el campo `name` al editar.
+
+- **Helper text confirmado como diseño correcto, pero desactualizado:** los 3 códigos reservados existen porque la lógica de negocio los busca por código exacto (ej. `storeClientReported()` exige un tipo `code=emergency`); dejar `code` vacío para un tipo custom es correcto (columna `nullable unique`). Pero faltaba un 4to código real y en uso, `replacement` (usado por `LuminaireReplacementService` para reemplazos atómicos, CLA-265) — el texto no lo mencionaba. Corregido + convertido a clave de traducción (antes hardcodeado en inglés plano).
+- **Bug `[object Object]` — barrido exhaustivo:** en vez de auditar catálogo por catálogo, se corrió `grep -rl "HasTranslations" Modules/FieldOps/Models/` para obtener la lista definitiva de los 10 modelos afectados. 6 ya tenían el fix (Terrain, TerrainType desde CLA-269; AccessType/StructureType/SafetyType/ElectricalBoardType desde CLA-273); quedaban 4 sin corregir: `FoMaintenanceType` (name, catálogo Maintenance Types — el que encontró el usuario), `Structure` (info), `Luminaire` (info), `ElectricalBoard` (location_description). Mismo fix `mutateFormDataBeforeFill()` aplicado a los 4.
+- **Tests:** 5 nuevos (uno por modelo + uno para el helper text) — **5/5 verde**.
+- **Lección para próximas auditorías de este bug:** `grep -rl "HasTranslations" Modules/<módulo>/Models/` es la forma correcta de obtener la lista completa — auditar por lista de nombres recordados de memoria (como se hizo en CLA-273) deja huecos.
 
 ### Sesión 2026-07-22 — CLA-273: fix bug [object Object] en 4 catálogos más (Done, commit `02650f8`)
 
