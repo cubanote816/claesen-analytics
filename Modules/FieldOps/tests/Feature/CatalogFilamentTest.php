@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\LuminaireType;
+use Modules\FieldOps\Models\TerrainType;
+use Modules\FieldOps\Support\TerrainPinCatalog;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -90,5 +92,53 @@ class CatalogFilamentTest extends TestCase
             ->assertSee(__('fieldops::resource.catalogs.fields.typical_application'), false)
             ->assertSee('OptiVision LED gen3.5', false)
             ->assertSee('BVP518', false);
+    }
+
+    public function test_terrain_type_edit_resolves_translated_label_instead_of_raw_json(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        app()->setLocale('en');
+
+        $record = TerrainType::factory()->create([
+            'type' => ['nl' => 'Voetbal', 'en' => 'Soccer', 'fr' => 'Football', 'de' => 'Fußball'],
+            'code' => 'soccer',
+            'pin_color' => '#4c8c4a',
+        ]);
+
+        $this->get("/catalogs/terrain-types/{$record->id}/edit")
+            ->assertOk()
+            ->assertSee('Soccer', false)
+            ->assertDontSee('[object Object]', false);
+    }
+
+    public function test_terrain_type_create_and_edit_render_pin_selector_with_search_and_generic_option(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $record = TerrainType::factory()->create(['code' => 'korfball']);
+
+        $this->get('/catalogs/terrain-types/create')
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.catalogs.pin_selector.search_placeholder'), false)
+            ->assertSee(__('fieldops::resource.catalogs.pin_selector.generic_label'), false)
+            ->assertSee(__('fieldops::resource.catalogs.pin_catalog.korfball'), false);
+
+        $this->get("/catalogs/terrain-types/{$record->id}/edit")
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.catalogs.pin_selector.generic_label'), false)
+            ->assertSee(__('fieldops::resource.catalogs.pin_catalog.korfball'), false);
+    }
+
+    public function test_terrain_pin_catalog_has_nineteen_unique_codes(): void
+    {
+        $codes = TerrainPinCatalog::codes();
+
+        $this->assertCount(19, $codes);
+        $this->assertCount(19, array_unique($codes));
     }
 }

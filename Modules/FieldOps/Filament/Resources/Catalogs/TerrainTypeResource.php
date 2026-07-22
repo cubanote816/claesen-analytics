@@ -9,10 +9,13 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
@@ -23,6 +26,7 @@ use Modules\FieldOps\Filament\Resources\Catalogs\TerrainTypes\Pages\CreateTerrai
 use Modules\FieldOps\Filament\Resources\Catalogs\TerrainTypes\Pages\EditTerrainType;
 use Modules\FieldOps\Filament\Resources\Catalogs\TerrainTypes\Pages\ListTerrainTypes;
 use Modules\FieldOps\Models\TerrainType;
+use Modules\FieldOps\Support\TerrainPinCatalog;
 
 class TerrainTypeResource extends Resource
 {
@@ -67,6 +71,23 @@ class TerrainTypeResource extends Resource
                 TextInput::make('type')
                     ->label(__('fieldops::resource.catalogs.fields.type'))
                     ->required(),
+                ColorPicker::make('pin_color')
+                    ->label(__('fieldops::resource.catalogs.fields.pin_color'))
+                    ->nullable(),
+            ]),
+            Section::make(__('fieldops::resource.catalogs.pin_selector.label'))->schema([
+                ViewField::make('code')
+                    ->label(__('fieldops::resource.catalogs.pin_selector.label'))
+                    ->helperText(__('fieldops::resource.catalogs.pin_selector.helper'))
+                    ->view('fieldops::filament.forms.terrain-type-pin-selector')
+                    ->viewData([
+                        'pins' => TerrainPinCatalog::definitions(),
+                    ])
+                    // The "Generic" card binds to '' (HTML radio values can't be null);
+                    // `code` is nullable+unique in fo_terrain_types, so this must
+                    // normalize back to null before save — otherwise a second row left
+                    // on "Generic" would violate the unique index on an empty string.
+                    ->dehydrateStateUsing(fn (?string $state) => $state === '' ? null : $state),
             ]),
         ]);
     }
@@ -83,6 +104,13 @@ class TerrainTypeResource extends Resource
                     )
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('code')
+                    ->label(__('fieldops::resource.catalogs.pin_selector.label'))
+                    ->badge()
+                    ->getStateUsing(fn ($record) => $record->code
+                        ? (TerrainPinCatalog::find($record->code) ? __(TerrainPinCatalog::find($record->code)['labelKey']) : $record->code)
+                        : __('fieldops::resource.catalogs.pin_selector.generic_label'))
+                    ->color(fn ($record) => Color::hex($record->pin_color ?: '#e6007e')),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

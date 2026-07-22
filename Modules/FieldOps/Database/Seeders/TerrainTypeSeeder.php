@@ -30,6 +30,19 @@ class TerrainTypeSeeder extends Seeder
             ['code' => 'volleyball', 'pin_color' => '#d4a943', 'en' => 'Volleyball', 'nl' => 'Volleybal', 'fr' => 'Volleyball', 'de' => 'Volleyball'],
             ['code' => 'petanque', 'pin_color' => '#8a7458', 'en' => 'Pétanque', 'nl' => 'Petanque', 'fr' => 'Pétanque', 'de' => 'Pétanque'],
             ['code' => 'multi_sport', 'pin_color' => '#6c5ba6', 'en' => 'Multi-sport court', 'nl' => 'Multifunctioneel terrein', 'fr' => 'Terrain multisport', 'de' => 'Mehrzweckplatz'],
+            // CLA-269 — catalog expanded from 9 to 19 codes, covering realistic
+            // outdoor sports facilities across Belgium/Netherlands/Germany
+            // (Claesen's service region), approved 2026-07-22.
+            ['code' => 'korfball', 'pin_color' => '#c9971f', 'en' => 'Korfball', 'nl' => 'Korfbal', 'fr' => 'Korfball', 'de' => 'Korbball'],
+            ['code' => 'rugby', 'pin_color' => '#7a5230', 'en' => 'Rugby', 'nl' => 'Rugby', 'fr' => 'Rugby', 'de' => 'Rugby'],
+            ['code' => 'american_football', 'pin_color' => '#5c3a21', 'en' => 'American football', 'nl' => 'American football', 'fr' => 'Football américain', 'de' => 'American Football'],
+            ['code' => 'baseball', 'pin_color' => '#8d6e4b', 'en' => 'Baseball', 'nl' => 'Honkbal', 'fr' => 'Baseball', 'de' => 'Baseball'],
+            ['code' => 'beach_volleyball', 'pin_color' => '#e0b96d', 'en' => 'Beach volleyball', 'nl' => 'Beachvolleybal', 'fr' => 'Beach-volley', 'de' => 'Beachvolleyball'],
+            ['code' => 'golf', 'pin_color' => '#1e5631', 'en' => 'Golf (driving range)', 'nl' => 'Golf (driving range)', 'fr' => 'Golf (practice)', 'de' => 'Golf (Übungsanlage)'],
+            ['code' => 'cycling_track', 'pin_color' => '#b5502f', 'en' => 'Cycling track (velodrome)', 'nl' => 'Wielerbaan', 'fr' => 'Vélodrome', 'de' => 'Radrennbahn'],
+            ['code' => 'skatepark', 'pin_color' => '#7f8c8d', 'en' => 'Skatepark', 'nl' => 'Skatepark', 'fr' => 'Skatepark', 'de' => 'Skatepark'],
+            ['code' => 'equestrian', 'pin_color' => '#c2a878', 'en' => 'Equestrian arena', 'nl' => 'Buitenrijbaan', 'fr' => 'Manège extérieur', 'de' => 'Reitplatz'],
+            ['code' => 'minigolf', 'pin_color' => '#16a085', 'en' => 'Minigolf', 'nl' => 'Minigolf', 'fr' => 'Minigolf', 'de' => 'Minigolf'],
         ];
 
         foreach ($types as $type) {
