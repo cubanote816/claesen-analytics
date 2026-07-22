@@ -103,7 +103,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint completado** | ✅ ~100% |
 | **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance, automatización — **Fase 0+1+2 completadas** | ✅ ~98% |
 | **Website** | Sitio público, formulario de consulta, galería proyectos — **sprint en curso** | 🚧 ~85% |
-| **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias y mantenimiento — **CLA-268 en progreso: dominio inicial de solicitudes cliente implementado; conversación, adjuntos y ciclo cliente pendientes antes del portal** | 🚧 ~82% |
+| **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias y mantenimiento — **CLA-268 completado técnicamente en `d0436df`; pendiente únicamente el cierre documental en Linear antes del portal** | 🚧 ~88% |
 | **Analytics** | Instrumentación de eventos de producto (`app_events`) para medir adopción/fricción en apps internas (Backoffice, Safety PWA, Claesen-Sport/FieldOps) — **CLA-229: base de ingesta lista, sin integración real en ningún frontend todavía** | 🚧 ~30% |
 
 ---
@@ -319,6 +319,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 - **El aislamiento de clientes es fail-closed** (CLA-266, 2026-07-22): una cuenta externa siempre lleva rol `client` y obtiene visibilidad únicamente mediante `fo_client_user` activo con `can_view=true`. Toda consulta y acceso directo a cliente, complejo, terreno, estructura, frame, luminaria, cuadro, media e histórico debe resolverse con `FieldOpsTenantService`; un activo sin cliente o conectado a varios clientes no es visible. Las cuentas cliente son read-only y no acceden a órdenes internas. No confiar en un `client_id` enviado por el frontend.
 - **`FoClient` y la creación de `Complex` pertenecen al bridge CAFCA**: sus escrituras manuales están retiradas de API y Filament. El vínculo `Complex.client_id` sigue siendo inmutable. Una orden de mantenimiento solo puede crearse cuando el equipo resuelve exactamente un cliente.
 - **Asignación y lifecycle son auditables** (CLA-271, 2026-07-22): solo se asigna a empleados CAFCA con `User` activo; `assigned_by_user_id`/`assigned_at` identifican la asignación vigente. Toda transición se ejecuta en `MaintenanceWorkOrderService` y añade un `FoMaintenanceWorkOrderEvent` append-only. Una devolución requiere motivo y vuelve `awaiting_validation → in_progress`. Las notificaciones FieldOps database/mail van en cola after-commit, respetan preferencias por canal y nunca mezclan módulos en sus endpoints.
+- **Las solicitudes de cliente son un dominio propio** (CLA-268, commit `d0436df`, 2026-07-22): `FoMaintenanceRequest` conserva snapshot de instalación/posición, conversación pública append-only, notas internas separadas, adjuntos privados, cuadros eléctricos, intake IA no autoritativo, confirmación y reapertura. La conversión puede generar sucesivas órdenes conservando la historia; el cliente nunca recibe notas internas ni accede al workflow de órdenes. Invitaciones de contactos usan código opaco one-time almacenado como hash y capacidades `can_view`/`can_report`/`can_manage_contacts`.
 
 ### Gaps abiertos (tickets Linear, equipo Claesen)
 
@@ -335,7 +336,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | CLA-265 | Posición física estable + reemplazo atómico de luminarias | ✅ Done |
 | CLA-266 | Ownership de cliente y autorización tenant-aware | ✅ Done — aislamiento tenant y hardening OAuth aprobados |
 | CLA-267 | Planes de mantenimiento y órdenes de trabajo | ✅ Done — hardening del histórico y cutover de Claesen-Sport aprobados tras auditoría (`d7606bc` en la app de terreno) |
-| CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | 🚧 En progreso — dominio inicial, snapshot tenant-safe, conversión idempotente y notificaciones iniciales implementados sin commit dedicado; faltan conversación, adjuntos, notas internas, confirmación/reapertura, contactos, intake IA y pruebas específicas |
+| CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | 🟡 Implementación y validación completas en `d0436df`; memoria actualizada, pendiente cerrar el ticket en Linear |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
 **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.

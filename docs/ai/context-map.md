@@ -1,7 +1,7 @@
 # Mapa de contexto — CAFCA Intelligence Hub
 
 > Generado desde exploración real del código. Actualizar cuando cambie la arquitectura.
-> Última actualización: 2026-07-22 (CLA-268 — roadmap maestro de mantenimiento)
+> Última actualización: 2026-07-22 (CLA-268 — implementación completa, cierre Linear pendiente)
 
 > Roadmap canónico de mantenimiento y Claesen-Client: `docs/ai/fieldops-maintenance-roadmap.md`.
 
@@ -304,7 +304,7 @@ FoMaintenanceRequest
   → FoMaintenanceRecord inmutable
 ```
 
-**Estado del programa:** Fases 0–2 cerradas mediante CLA-267, CLA-266 y CLA-271. CLA-268 está en progreso. Claesen-Client es la Fase 4 y no se inicia hasta cerrar el dominio de solicitudes. Estado, commits, tests y siguiente paso: `docs/ai/fieldops-maintenance-roadmap.md`.
+**Estado del programa:** Fases 0–2 cerradas mediante CLA-267, CLA-266 y CLA-271. CLA-268 está implementado y validado en `d0436df`, pendiente de cierre en Linear. Claesen-Client es la Fase 4 y su ticket no se crea hasta aprobar el plan. Estado, commits, tests y siguiente paso: `docs/ai/fieldops-maintenance-roadmap.md`.
 
 **Componentes clave:**
 

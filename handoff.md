@@ -3,7 +3,16 @@
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
 > Última actualización: 2026-07-22 — **CLA-274 Done** (commit `479810c`, fix `[object Object]` en Maintenance Types/Structure/Luminaire/ElectricalBoard + helper text de code corregido); CLA-273/272/271/270/269/266 permanecen Done.
 
-> **Programa activo de mantenimiento:** CLA-268 está en progreso. Fuente canónica de fases, evidencia, bloqueos y siguiente paso: `docs/ai/fieldops-maintenance-roadmap.md`.
+> **Programa activo de mantenimiento:** CLA-268 está técnicamente completado en `d0436df` y pendiente de cierre en Linear. Fuente canónica de fases, evidencia, bloqueos y siguiente paso: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-22 — CLA-268: implementación completa y validada
+
+- Commit de aplicación: `d0436df` (`CLA-268: complete client maintenance requests`).
+- Entregado: conversación pública append-only, notas internas aisladas, adjuntos privados con streaming autorizado y BOLA, cuadros eléctricos, confirmación, reapertura con múltiples órdenes históricas, invitación/activación de contactos e intake IA fail-safe sin autoridad tenant.
+- API, recurso Filament, notificaciones database/mail y sincronización solicitud↔orden quedan integrados; `can_report` exige membresía activa y visible.
+- Validación focal: **8 passed / 69 assertions**. Regresión relacionada FieldOps/Core: **53 passed / 243 assertions**. Regresión FieldOps completa: **237 passed / 815 assertions** y **81 fallos preexistentes**, todos por contaminación `RoleAlreadyExists`; la suite nueva pasa dentro de esa misma corrida. Pint, sintaxis, rutas y `git diff --check` pasan.
+- El commit excluye explícitamente `.gitignore` y `tmp/*`, que siguen siendo cambios concurrentes ajenos.
+- Próximo paso exacto: cerrar CLA-268 en Linear y presentar el plan de Fase 4 al usuario. No crear el ticket ni el repositorio Claesen-Client hasta recibir aprobación explícita del plan.
 
 ### Sesión 2026-07-22 — CLA-268: roadmap maestro persistente (GO técnico aprobado)
 
@@ -1425,16 +1434,14 @@ Próximo paso: definir el próximo ticket Linear antes de iniciar cualquier trab
 
 ## Cómo reanudar una sesión
 
-### FieldOps CLA-268 — solicitudes de cliente (en progreso)
+### FieldOps CLA-268 — solicitudes de cliente (cierre Linear pendiente)
 
 - Roadmap maestro: `docs/ai/fieldops-maintenance-roadmap.md`.
-- Se creó `fo_maintenance_requests` como dominio separado del histórico validado.
-- La API deriva `client_id` desde el usuario autenticado y captura snapshot de la posición.
-- La conversión a orden de trabajo es idempotente mediante `work_order_id`.
-- El cierre de una orden actualiza la solicitud a `resolved` y guarda una respuesta pública.
-- Ya existen permiso `can_report`, recurso Filament y notificaciones iniciales al reportante.
-- Pendiente: conversación pública, adjuntos privados, notas internas, cuadros eléctricos, confirmación/reapertura, invitación/activación de contactos, intake IA, pruebas específicas y revisión técnica.
-- Próximo paso exacto: aislar los paths de CLA-268 y completar primero conversación pública + notas internas + adjuntos autorizados con pruebas tenant/BOLA seriales. No crear todavía Claesen-Client.
+- Commit de aplicación: `d0436df`.
+- `FoMaintenanceRequest` está separado del histórico validado y deriva `client_id`, activo y posición desde el backend.
+- Conversación pública, notas internas, adjuntos privados, cuadros eléctricos, confirmación, reapertura, múltiples órdenes, invitación/activación e intake IA están implementados y probados.
+- La conversión es idempotente mientras existe orden vigente; una reapertura conserva órdenes previas en el pivot histórico y permite crear la siguiente.
+- Próximo paso exacto: cerrar CLA-268 en Linear y mostrar el plan completo de Claesen-Client para aprobación. No crear todavía el ticket del portal.
 
 ```
 Lee CLAUDE.md, handoff.md y docs/ai/README.md.

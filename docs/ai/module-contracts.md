@@ -227,6 +227,10 @@ Roadmap maestro del programa de mantenimiento y Claesen-Client: `docs/ai/fieldop
 - La conversión de solicitud a orden es idempotente mediante `work_order_id`; resolución y cancelación se sincronizan desde la orden sin exponer el workflow interno al cliente.
 - Conversación pública, notas internas y adjuntos privados son superficies distintas. Ninguna nota interna puede aparecer en recursos o notificaciones de cliente.
 - Confirmación y reapertura deben ser transiciones auditadas del dominio; no se permite editar el estado de la solicitud arbitrariamente.
+- Los mensajes de solicitud son append-only. Los adjuntos se guardan en `local` privado y solo se sirven mediante autorización tenant y visibilidad pública/interna.
+- Una reapertura libera únicamente la orden vigente; `fo_maintenance_request_work_order` conserva todas las órdenes anteriores. No borrar esa historia al reconvertir.
+- El intake IA solo puede sugerir categoría, impacto, resumen y preguntas. Si falla, degrada a valores seguros; nunca decide cliente, activo, autorización ni creación de orden.
+- Las invitaciones de contacto normalizan el email, rechazan cuentas internas, almacenan solo el hash SHA-256 del código one-time y aplican capacidades en `fo_client_user`.
 - Claesen-Client es la Fase 4 del roadmap maestro y no puede iniciarse antes del cierre técnico y documental de CLA-268.
 
 ### Archivos clave

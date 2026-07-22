@@ -1,7 +1,7 @@
 # Roadmap maestro de mantenimiento FieldOps
 
 > Fuente canónica de continuidad para el programa de mantenimiento y el futuro portal Claesen-Client.
-> Última actualización: 2026-07-22 — CLA-268 en progreso.
+> Última actualización: 2026-07-22 — CLA-268 técnicamente completado en `d0436df`; cierre Linear pendiente.
 
 ## Cómo usar este documento
 
@@ -62,8 +62,8 @@ La conversión `Solicitud → Orden` es idempotente mediante `work_order_id`. Ce
 | Fase 0 — Hardening del mantenimiento | CLA-267 | ✅ Done | Plan, orden, ejecución validada e histórico separados; cutover de Claesen-Sport |
 | Fase 1 — Identidad y aislamiento | CLA-266 | ✅ Done | Membresías cliente, autorización fail-closed, BOLA y OAuth endurecidos |
 | Fase 2 — Asignaciones y notificaciones | CLA-271 | ✅ Done | Asignación ejecutable, timeline append-only y notificaciones operacionales |
-| Fase 3 — Solicitudes de clientes | CLA-268 | 🚧 En progreso | Dominio inicial implementado; conversación y ciclo cliente aún incompletos |
-| Fase 4 — Portal React Claesen-Client | Ticket/épica por crear | ⬜ Plan aprobado, no iniciado | PWA cliente completa en repositorio independiente |
+| Fase 3 — Solicitudes de clientes | CLA-268 | 🟡 Cierre Linear pendiente | Implementación y validación completas en `d0436df` |
+| Fase 4 — Portal React Claesen-Client | Ticket/épica por crear | ⏸ Plan pendiente de aprobación | PWA cliente completa en repositorio independiente |
 | Fase 5 — E2E y producción | Ticket por crear | ⬜ Pendiente | Validación integral, infraestructura y observabilidad de producción |
 
 ## Fases cerradas y evidencia
@@ -128,50 +128,46 @@ Validación registrada:
 - órdenes de trabajo: 10 pruebas, 50 aserciones;
 - build, Vitest y lint focal de Claesen-Sport en verde.
 
-## Fase 3 — CLA-268 en progreso
+## Fase 3 — CLA-268 técnicamente completado
 
-### Implementado actualmente, todavía sin commit dedicado
+### Entregado
 
-- Modelo `FoMaintenanceRequest`.
-- Migración `2026_07_22_000007_create_maintenance_requests_table.php`.
-- Estados de solicitud.
-- Snapshot de instalación y posición estable.
-- API inicial tenant-safe.
-- Capacidad `can_report`.
-- Recurso Filament inicial.
-- Conversión idempotente a orden.
-- Sincronización de resolución y cancelación desde la orden.
-- Notificaciones iniciales al reportante.
+- `FoMaintenanceRequest`, estados y migración `2026_07_22_000007`.
+- Snapshot inmutable de instalación y posición física estable para luminarias, además de contexto de cuadros eléctricos.
+- API tenant-safe y BOLA fail-closed; `can_report` exige membresía activa con `can_view`.
+- Conversación pública append-only, notas internas aisladas y adjuntos privados con streaming autorizado.
+- Recurso Filament de triage con conversación, notas, adjuntos y conversión a orden.
+- Conversión idempotente mientras existe orden vigente; pivot histórico para conservar múltiples órdenes tras reapertura.
+- Sincronización de inicio, resolución y cancelación desde la orden.
+- Confirmación de resolución y reapertura auditada por el cliente.
+- Invitación de contactos con capacidades, activación one-time y código almacenado únicamente como hash.
+- Intake guiado con IA, salida acotada, fallback seguro y sin autoridad sobre tenant, activo o workflow.
+- Notificaciones database/mail encoladas after-commit para backoffice y reportante.
 
-Los cambios viven en un worktree compartido con modificaciones concurrentes. Para cerrar CLA-268 se debe revisar, testear y preparar el commit usando paths explícitos; no incluir `.gitignore`, `tmp/*` ni cambios ajenos al ticket.
+Commit de aplicación: `d0436df` (`CLA-268: complete client maintenance requests`). Se preparó con paths explícitos y excluyó `.gitignore`, `tmp/*` y cambios concurrentes ajenos.
 
 ### Validación ya realizada
 
 | Suite focal | Resultado |
 |---|---|
+| `MaintenanceRequest` | 8 pruebas, 69 aserciones |
 | `ClientReportedMaintenance` | 2 pruebas, 11 aserciones |
 | `MaintenanceWorkOrderAuditNotification` | 6 pruebas, 27 aserciones |
 | `MaintenanceWorkOrder` | 10 pruebas, 50 aserciones |
-| Regresión FieldOps | 227 pruebas pasan; 78 fallos preexistentes por contaminación `RoleAlreadyExists` |
+| Regresión relacionada FieldOps/Core | 53 pruebas, 243 aserciones |
+| Regresión FieldOps completa | 237 pruebas pasan, 815 aserciones; 81 fallos preexistentes por contaminación `RoleAlreadyExists` |
 
 La suite amplia debe ejecutarse en un único proceso o de forma serial. No lanzar varios paths contra la misma base MySQL `testing`, porque compiten durante `RefreshDatabase`.
 
-### Pendiente para cerrar CLA-268
+### Pendiente administrativo
 
-- Conversación tipo ticket entre cliente y backoffice.
-- Adjuntos reales con almacenamiento privado y streaming autorizado.
-- Notas internas separadas de la conversación pública.
-- Selección y contexto de cuadros eléctricos además de luminarias.
-- Confirmación de resolución por el cliente.
-- Reapertura controlada con auditoría.
-- Invitación y activación de contactos cliente.
-- Intake guiado con IA, siempre mockeado en tests y sin autoridad sobre tenancy.
-- Pruebas específicas de mensajes, adjuntos, notas, estados, autorización y BOLA.
-- Revisión técnica, commit dedicado y cierre de CLA-268 en Linear.
+- Registrar esta evidencia y el commit en Linear.
+- Mover CLA-268 a Done.
+- Presentar el plan de Fase 4 al usuario y esperar aprobación antes de crear el ticket/épica.
 
 ## Fase 4 — Portal Claesen-Client
 
-Esta fase empieza únicamente después de cerrar CLA-268.
+Esta fase empieza únicamente después de cerrar CLA-268 y aprobar explícitamente el plan siguiente. La aprobación previa registrada para el roadmap general no autoriza crear todavía el ticket: el usuario pidió revisar el plan de implementación justo antes de ese paso.
 
 ### Arranque y repositorio
 
@@ -225,8 +221,8 @@ El hostname objetivo del plan es `client.claesen-verlichting.be`. Antes de deplo
 
 | Riesgo o bloqueo | Estado / mitigación |
 |---|---|
-| CLA-268 no tiene commit dedicado | No iniciar Fase 4; aislar paths y cerrar el ticket primero |
-| Conversación, adjuntos y reapertura incompletos | Completar en Fase 3 con pruebas de dominio y BOLA |
+| CLA-268 pendiente de cierre en Linear | Registrar `d0436df` y la evidencia; no crear aún el ticket de Fase 4 |
+| Plan de Claesen-Client pendiente de aprobación | Presentarlo al usuario y detenerse antes de crear ticket/repositorio |
 | Suite FieldOps contaminada por `RoleAlreadyExists` | Ejecutar focales en limpio y suite amplia serial; no mezclar el arreglo del harness con CLA-268 |
 | Worktree compartido con cambios concurrentes | No stagear por glob; revisar `git diff --name-only` y usar paths explícitos |
 | Infraestructura del hostname no provisionada | Verificar `client.claesen-verlichting.be` durante Fase 5 |
@@ -235,19 +231,18 @@ El hostname objetivo del plan es `client.claesen-verlichting.be`. Antes de deplo
 ## Orden de ejecución obligatorio
 
 1. Mantener este roadmap y sus enlaces canónicos actualizados.
-2. Separar los cambios de CLA-268 de modificaciones concurrentes.
-3. Completar conversación, adjuntos, notas internas, cuadros, confirmación, reapertura, contactos e intake IA.
-4. Añadir y ejecutar las pruebas específicas de CLA-268.
-5. Obtener GO técnico, crear el commit dedicado y cerrar CLA-268 en Linear.
-6. Crear el ticket/épica del portal.
-7. Crear el repositorio Claesen-Client y su memoria enlazada.
-8. Construir el mockup completo y solicitar aprobación visual.
-9. Integrar el portal aprobado con la API.
-10. Ejecutar Fase 5 y preparar producción.
+2. Cerrar CLA-268 en Linear con commit y evidencia.
+3. Presentar el plan completo de Fase 4 al usuario.
+4. Esperar aprobación explícita del plan.
+5. Crear el ticket/épica del portal solo después de esa aprobación.
+6. Crear el repositorio Claesen-Client y su memoria enlazada.
+7. Construir el mockup completo y solicitar aprobación visual.
+8. Integrar el portal aprobado con la API.
+9. Ejecutar Fase 5 y preparar producción.
 
 ## Próximo paso exacto
 
-Continuar exclusivamente con CLA-268 en este backend. Antes de editar más código, inventariar los paths del ticket frente al worktree compartido; después implementar el primer bloque pendiente como una unidad testeable: conversación pública + notas internas separadas + adjuntos privados y autorizados. Añadir pruebas tenant/BOLA y de visibilidad interna/pública, ejecutarlas de forma serial y actualizar este roadmap con el resultado. No crear todavía el ticket ni el repositorio Claesen-Client.
+Cerrar CLA-268 en Linear usando `d0436df` y la evidencia registrada. Inmediatamente después, presentar al usuario el plan de implementación de Claesen-Client y detenerse. No crear el ticket/épica, el repositorio ni archivos del portal hasta recibir aprobación explícita de ese plan.
 
 ## Registro de continuidad
 
@@ -256,4 +251,5 @@ Continuar exclusivamente con CLA-268 en este backend. Antes de editar más códi
 | 2026-07-22 | CLA-267 | Fase 0 cerrada | Backend `7758583`; Claesen-Sport `d7606bc` |
 | 2026-07-22 | CLA-266 | Fase 1 cerrada | `2f093b3` |
 | 2026-07-22 | CLA-271 | Fase 2 cerrada | Backend `91380dd`; Claesen-Sport `2ce9dcf` |
-| 2026-07-22 | CLA-268 | Dominio inicial en progreso; memoria maestra creada | Pendiente |
+| 2026-07-22 | CLA-268 | Memoria maestra creada | `49fde29` |
+| 2026-07-22 | CLA-268 | Dominio completo implementado y validado; cierre Linear pendiente | `d0436df` |
