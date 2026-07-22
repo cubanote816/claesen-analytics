@@ -1,7 +1,15 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-271 Done** (backend `91380dd`, Claesen-Sport `2ce9dcf`); CLA-270/269/266 permanecen Done.
+> Última actualización: 2026-07-22 — **CLA-272 Done** (commit `4934f9f`, terrenos en mapas de Complex/Structure/ElectricalBoard ya usan el pin de deporte correcto); CLA-271/270/269/266 permanecen Done.
+
+### Sesión 2026-07-22 — CLA-272: fix pines de terreno en mapas de Complex/Structure/ElectricalBoard (Done, commit `4934f9f`)
+
+**Contexto:** el usuario reportó (captura de `/complexes/465`) que los terrenos en el mapa del complejo se veían como círculos genéricos con letra en vez del pin de deporte de CLA-269/270, aunque el mismo terreno visto individualmente (`/terrains/{id}`) sí mostraba el pin correcto.
+
+- **Causa:** `map-panel.blade.php` (línea ~668) solo llama `buildTerrainMarkerSvg()` cuando `marker.terrainTypeCode` es truthy; si no, cae al `L.divIcon()` genérico de círculo+letra. `ComplexResource::buildMapPanelState()`, `StructureResource::buildMapPanelState()` y `ElectricalBoardResource::buildMapPanelState()` arman sus marcadores `type: 'terrain'` sin incluir `terrainTypeCode`/`terrainTypeColor` — el mismo patrón estaba copy-pasteado en los 3 archivos, mientras que `TerrainResource.php` (la vista de un terreno individual) sí lo hacía bien.
+- **Fix:** agregar `'terrainTypeCode' => $terrain->terrainType?->code` y `'terrainTypeColor' => $terrain->terrainType?->pin_color` en los 3 archivos, mismo patrón que `TerrainResource.php`. Sin cambios de N+1 — los 3 ya cargaban `terrains.terrainType` en su `loadMissing()`.
+- **Tests:** 3 tests nuevos (uno por resource), verificando que el payload JSON embebido vía `@js()` (que escapa cada `"` a la secuencia de 6 caracteres backslash-u-0022 para sobrevivir dentro del atributo `x-data`) contiene `terrainTypeCode`/`terrainTypeColor` del tipo de terreno correcto — **3/3 verde**.
 
 ### Sesión 2026-07-22 — CLA-271: auditoría de asignaciones y notificaciones operacionales (Done)
 

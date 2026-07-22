@@ -420,6 +420,10 @@ Idempotente (`firstOrCreate` por `code`) — seguro de re-correr.
 
 El primer diseño de CLA-269 mantuvo la forma interna de los 19 íconos tal como estaba en el badge cuadrado de CLA-256 y los encajó en el contorno de gota escalándolos (`scale(0.72)` + reposición) — se ejecutaba bien y pasaba los tests, pero se veía mal en la práctica (líneas demasiado finas, ilegibles a tamaño de marcador; el usuario reportó que hasta soccer/tenis se veían como una cruz genérica). **Lección: pasar los tests no es lo mismo que verse bien — para SVGs/UI visual, la verificación real es mirar el resultado renderizado, no solo `php -l` o aserciones HTML.** Fix: en vez de escalar los íconos del badge, se portaron 1:1 los fragmentos ya diseñados nativamente para la gota en el artifact de revisión `ccf2310c` (coordenadas centradas en origen, pensadas para el bulbo angosto de la gota) — mismo archivo `TerrainPinCatalog.php`, mismos 19 códigos, misma API pública, solo cambia el contenido de cada SVG. No se pudo verificar en navegador real en esta sesión (sin herramienta de browser); la verificación fue inspección manual del SVG resuelto vía `tinker` comparado contra el artifact.
 
+### CLA-272 — fix pines de terreno en mapas de Complex/Structure/ElectricalBoard (2026-07-22, commit `4934f9f`)
+
+`ComplexResource`, `StructureResource` y `ElectricalBoardResource` arman sus marcadores `type: 'terrain'` para `map-panel.blade.php` sin `terrainTypeCode`/`terrainTypeColor` — el JS (`buildTerrainMarkerSvg`) solo dibuja el pin de deporte cuando `terrainTypeCode` está presente, si no cae al círculo genérico con letra. `TerrainResource.php` (vista de un terreno individual) ya lo hacía bien, por eso `/terrains/{id}` mostraba el pin correcto pero `/complexes/{id}` no. Si se agrega un cuarto lugar que construya marcadores `type: 'terrain'` para `map-panel.blade.php`, replicar `'terrainTypeCode' => $terrain->terrainType?->code` + `'terrainTypeColor' => $terrain->terrainType?->pin_color`.
+
 ### Cómo reanudar
 
 ```
