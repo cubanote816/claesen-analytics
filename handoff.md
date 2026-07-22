@@ -1,7 +1,32 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-267 cerrado tras segunda revisión técnica**. El bypass CRUD del histórico fue retirado, Claesen-Sport migrado a órdenes asignadas y el hardening recibió GO técnico.
+> Última actualización: 2026-07-22 — **CLA-269 Done** (commit `1fa1faa`, fix locale + selector visual de marcador + catálogo ampliado en Terrain Types). **CLA-266 implementado y en revisión técnica**. El aislamiento tenant, la identidad cliente y el hardening OAuth están listos; aún no hay commit ni cierre en Linear.
+
+### Sesión 2026-07-22 — CLA-269: fix locale Terrain Types + selector visual de marcador + catálogo ampliado (Done, commit `1fa1faa`)
+
+**Contexto:** el usuario reportó que Terrain Types (Filament Catalogs) no ofrecía forma de asignar el marcador del mapa (creía que faltaba un upload de SVG) y que el formulario de Edit mostraba `[object Object]` en el campo `type`.
+
+- **Bug de locale:** `EditRecord::fillForm()` llena el formulario con `$record->attributesToArray()`, que no pasa por el accessor de traducción de Spatie (`HasTranslations::getAttributeValue()`) — por eso el campo traía el JSON crudo de las 4 locales en vez del string del locale actual. Fix con `mutateFormDataBeforeFill()` en `EditTerrainType.php`, mismo patrón ya usado en `EditTerrain.php`.
+- **Gap real (no era upload de SVG):** el marcador Leaflet por tipo de terreno ya era 100% data-driven desde CLA-256 (`code` + `pin_color` en `fo_terrain_types`), pero el formulario Filament nunca exponía esos dos campos — el admin no tenía forma de asignarlos. Se descartó agregar upload de SVG por fila (contradecía el catálogo fijo ya aprobado) a favor de un selector visual searchable (`ColorPicker` para `pin_color` + grid con preview/búsqueda para `code`, con "Generic" como opción explícita, no solo fallback invisible).
+- **Centralización:** el switch de JS que dibuja cada pin estaba duplicado en `terrain-location-picker.blade.php` y `map-panel.blade.php`. Se extrajo a `Modules/FieldOps/Support/TerrainPinCatalog.php` (única fuente de verdad), consumido por ambos blades vía `@foreach` y por el nuevo selector del admin.
+- **Catálogo ampliado de 9 a 19 códigos:** se agregaron korfball, rugby, american_football, baseball, beach_volleyball, golf, cycling_track, skatepark, equestrian, minigolf — deportes reales de Bélgica/Países Bajos/Alemania, aprobados explícitamente por el usuario antes de implementar. `TerrainTypeSeeder` actualizado (idempotente).
+- **Artifact de revisión** (`ccf2310c-4cc1-4d0a-9bdb-ba2e445c86de`, pines estilo teardrop, distinto del diseño real en producción que usa badges cuadrados) actualizado con los 10 pines nuevos, sin tocar los 10 originales.
+- **Tests/checks:** `CatalogFilamentTest.php` +3 tests (fix de locale, render del selector, conteo de 19 códigos únicos) — **7/7 en corrida aislada**. La verificación de la suite FieldOps completa quedó bloqueada por contención real de la DB compartida `testing` con la sesión concurrente de CLA-266 (ver abajo) — mismo patrón de contaminación preexistente ya documentado en sesiones anteriores (`RoleAlreadyExists`), no una regresión de este cambio. `php -l` limpio en los 4 archivos PHP tocados.
+- **Alcance del commit:** limitado a los 10 archivos de esta sección (2 nuevos, 8 modificados) — no se mezcló con el trabajo de CLA-266 en curso en la misma working tree.
+
+### Sesión 2026-07-22 — CLA-266: ownership CAFCA y autorización tenant-aware (In Progress)
+
+**Contexto:** CLA-267 dejó completo el flujo operacional interno, pero todavía no existía identidad externa ni aislamiento por cliente para construir el portal de incidencias sin riesgo BOLA.
+
+- **Identidad externa:** nueva relación `fo_client_user` con estado y capacidades. User Management distingue empleado interno de contacto cliente; el flujo externo exige nombre, email y al menos un cliente existente, fuerza el rol `client` y crea membresías activas en la misma transacción.
+- **Aislamiento fail-closed:** `FieldOpsTenantService`, una policy común y middleware del grupo API limitan clientes, complejos, terrenos, estructuras, frames, luminarias, cuadros, media e históricos. Un objeto sin un único cliente propietario no se muestra a contactos externos.
+- **Superficies cliente:** el rol `client` es read-only, no puede abrir órdenes de trabajo internas ni endpoints agregados del histórico. Los listados se filtran y el acceso por ID ajeno devuelve 403.
+- **CAFCA canónico:** API de clientes queda solo lectura, se retira el POST manual de complejos y Filament no permite editar, eliminar ni restaurar clientes. Las órdenes rechazan equipos sin cliente o con topología multi-cliente.
+- **Backoffice y OAuth:** acceso Filament por allowlist explícita de roles internos. Redirect OAuth validado contra orígenes configurados, errores externos sanitizados y `CLIENT_PORTAL_URL` integrado en redirects, CORS y Sanctum sin asumir todavía el hostname productivo.
+- **Migración:** `2026_07_22_000005_create_fo_client_user_table` aplicada, rollback verificado y reaplicada en local.
+- **Tests/checks:** aislamiento tenant **5/5, 40 assertions**; FieldOps relacionado **38/38, 117 assertions**; Core/Auth/provisioning **28/28, 55 assertions**. Total focal **71 passed / 212 assertions**. Pint limpio. La colisión inicial de migraciones fue causada por invocar varios archivos como procesos concurrentes contra la misma DB `testing`; la repetición en un solo proceso quedó limpia.
+- **Estado:** implementación lista para GO técnico. No hacer commit ni mover CLA-266 a Done antes de recibirlo. Después del cierre, continuar con asignación/auditoría/notificaciones y luego CLA-268.
 
 ### Sesión 2026-07-22 — CLA-267: planes de mantenimiento y órdenes de trabajo (Done)
 

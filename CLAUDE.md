@@ -102,7 +102,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint completado** | ✅ ~100% |
 | **Mailing** | Plataforma de campañas: templates, eventos, supresión, tracking, compliance, automatización — **Fase 0+1+2 completadas** | ✅ ~98% |
 | **Website** | Sitio público, formulario de consulta, galería proyectos — **sprint en curso** | 🚧 ~85% |
-| **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias (reemplazo del satélite `api-claesen-sport-app`) — **menú marcado "(Demo)", gaps abiertos, sin consumidor conectado** | 🚧 ~70% |
+| **FieldOps** | Gestión de complejos deportivos, terrenos, estructuras, luminarias y mantenimiento — **menú marcado "(Demo)"; órdenes de terreno conectadas y portal cliente aún pendiente** | 🚧 ~78% |
 | **Analytics** | Instrumentación de eventos de producto (`app_events`) para medir adopción/fricción en apps internas (Backoffice, Safety PWA, Claesen-Sport/FieldOps) — **CLA-229: base de ingesta lista, sin integración real en ningún frontend todavía** | 🚧 ~30% |
 
 ---
@@ -313,6 +313,8 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 - **El dominio de Mantenimiento de luminarias (`TypeMaintenance`/`MaintenanceServicesHistory`) SÍ está en uso real en producción** (confirmado directamente por el usuario, 2026-07-04) — no era código muerto del sistema anterior. FO-009 creó el historial polimórfico; CLA-267 agregó después la planificación y las órdenes de trabajo sin reutilizar el CRUD genérico del satélite.
 - **La posición física de una luminaria es estable y no pertenece al equipo reemplazable** (CLA-265, 2026-07-21): `fo_luminaire_positions` es la fuente canónica de frame/slot/X/Y/escala/versión; cada fila de `fo_luminaires` es una instalación. Un reemplazo siempre crea una nueva luminaria, retira la anterior y registra mantenimiento dentro de una sola transacción, manteniendo el mismo `luminaire_position_id`. Nunca implementar un reemplazo sobrescribiendo tipo/serial sobre la fila anterior ni recalculando las coordenadas.
 - **Plan, orden y registro son entidades distintas** (CLA-267, 2026-07-22): `FoMaintenancePlan` define recurrencia, `FoMaintenanceWorkOrder` coordina planificación/asignación/ejecución/validación y `FoMaintenanceRecord` conserva el trabajo ya validado. La app de terreno inicia y envía la ejecución; el backoffice valida y cierra. Un cierre excepcional desde backoffice exige `override_reason` y lo replica en el registro histórico. Equipo, cliente y `luminaire_position_id` se derivan del contexto FieldOps y no son editables desde la orden. El histórico es **solo lectura** tanto en API como en Filament; no volver a registrar rutas o acciones CRUD directas. La sustitución atómica mediante `LuminaireReplacementService` es la única excepción interna.
+- **El aislamiento de clientes es fail-closed** (CLA-266, 2026-07-22): una cuenta externa siempre lleva rol `client` y obtiene visibilidad únicamente mediante `fo_client_user` activo con `can_view=true`. Toda consulta y acceso directo a cliente, complejo, terreno, estructura, frame, luminaria, cuadro, media e histórico debe resolverse con `FieldOpsTenantService`; un activo sin cliente o conectado a varios clientes no es visible. Las cuentas cliente son read-only y no acceden a órdenes internas. No confiar en un `client_id` enviado por el frontend.
+- **`FoClient` y la creación de `Complex` pertenecen al bridge CAFCA**: sus escrituras manuales están retiradas de API y Filament. El vínculo `Complex.client_id` sigue siendo inmutable. Una orden de mantenimiento solo puede crearse cuando el equipo resuelve exactamente un cliente.
 
 ### Gaps abiertos (tickets Linear, equipo Claesen)
 
@@ -327,7 +329,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | FO-012 / CLA-226 | Bridge `MirrorRelation` → `FoClient`, deshabilitar creación manual | ✅ Done |
 | FO-013 / CLA-227 | Bridge `MirrorRelationDelivery` → `Complex` + geocoding, deshabilitar creación manual | ✅ Done |
 | CLA-265 | Posición física estable + reemplazo atómico de luminarias | ✅ Done |
-| CLA-266 | Ownership de cliente y autorización tenant-aware | ⬜ Backlog |
+| CLA-266 | Ownership de cliente y autorización tenant-aware | 🚧 In Progress — implementación y tests listos para GO técnico |
 | CLA-267 | Planes de mantenimiento y órdenes de trabajo | ✅ Done — hardening del histórico y cutover de Claesen-Sport aprobados tras auditoría (`d7606bc` en la app de terreno) |
 | CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | ⬜ Backlog |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
@@ -379,6 +381,15 @@ Auditoría del satélite viejo (`api-claesen-sport-app`) confirmó que tanto `Cl
 - **Test Gate del hardening:** focal **22 passed / 102 assertions**; regresión integrada **42 passed / 301 assertions**. Suite FieldOps amplia **209 passed / 649 assertions** y conserva 93 fallos del harness preexistente (`RoleAlreadyExists` y permisos de `storage/framework/testing/disks`); los tests del hardening y de órdenes pasan dentro de esa corrida. PWA: build y **2 tests Vitest** pasan; lint de archivos modificados pasa, mientras el lint global conserva 20 errores preexistentes fuera del alcance.
 - **Cierre:** GO técnico aprobado el 2026-07-22. Cutover de Claesen-Sport en `d7606bc`; el hardening backend y esta memoria forman el commit dedicado de cierre de CLA-267.
 
+### CLA-266 — ownership CAFCA y autorización tenant-aware (2026-07-22, en revisión)
+
+- `fo_client_user` relaciona contactos externos con uno o varios clientes e incluye estado y capacidades (`can_view`, `can_report`, `can_manage_contacts`). El alta desde User Management fuerza el rol `client`, valida los clientes server-side y nunca permite elegir roles internos en ese flujo.
+- `FieldOpsTenantService`, la policy compartida y `EnforceFieldOpsTenantAccess` filtran listados y bloquean accesos directos BOLA, media privada e históricos de otro cliente. Topologías ausentes o ambiguas se ocultan; el rol cliente es read-only y no ve órdenes de trabajo internas.
+- El backoffice quedó limitado a una allowlist explícita (`super_admin`, `admin`, `financial_manager`, `hr_manager`, `viewer`). `project_manager`, `client` y usuarios sin rol continúan fuera de Filament.
+- Los redirects OAuth se aceptan solo para orígenes configurados. `CLIENT_PORTAL_URL` se integra en redirect, CORS y dominios stateful de Sanctum; el hostname productivo sigue sin fijarse hasta confirmar el dominio definitivo.
+- Se retiraron las rutas de escritura manual de `FoClient` y el POST de `Complex`; Filament tampoco puede borrar/restaurar clientes CAFCA. El contexto de mantenimiento exige exactamente un cliente.
+- Validación focal limpia: **71 tests / 212 assertions**. Migración `2026_07_22_000005_create_fo_client_user_table` verificada con migrate, rollback y reaplicación. Pendiente GO técnico, commit dedicado y cierre en Linear.
+
 **Backfill pendiente en producción:** `fo_maintenance_types` queda vacía tras la migración y las órdenes necesitan los 3 tipos base. Correr una vez:
 
 ```bash
@@ -386,6 +397,13 @@ php artisan db:seed --class="Modules\FieldOps\Database\Seeders\FoMaintenanceType
 ```
 
 Idempotente (`firstOrCreate` por `code`) — seguro de re-correr.
+
+### CLA-269 — Terrain Types: fix locale + selector visual de marcador + catálogo ampliado (2026-07-22)
+
+- El marcador Leaflet por tipo de terreno es 100% data-driven desde CLA-256 (`code` + `pin_color` en `fo_terrain_types`), pero el formulario Filament de `TerrainTypeResource` (Catalogs) nunca exponía esos dos campos. Se agregó un `ColorPicker` para `pin_color` y un selector visual searchable (grid con preview + búsqueda) para `code`, con "Generic" como opción explícita — **no un upload de SVG por fila**, que se descartó por contradecir el catálogo fijo ya aprobado.
+- **`Modules/FieldOps/Support/TerrainPinCatalog.php`** es la única fuente de verdad del catálogo de íconos (19 códigos + fallback genérico) — consumida por `terrain-location-picker.blade.php`, `map-panel.blade.php` (ambos vía `@foreach`, antes tenían el switch de JS duplicado a mano) y el selector del admin. Agregar un código nuevo es un solo `case` acá + una fila en `TerrainTypeSeeder`, nunca duplicar el switch en los blades.
+- Catálogo ampliado de 9 a 19 códigos con deportes reales de Bélgica/Países Bajos/Alemania (korfball, rugby, american_football, baseball, beach_volleyball, golf, cycling_track, skatepark, equestrian, minigolf), aprobados explícitamente por el usuario antes de implementar — no es una lista exhaustiva de "todos los deportes posibles", es acotada a lo realista para el negocio de Claesen.
+- Fix del bug `[object Object]` en el Edit de Terrain Types: mismo patrón que `EditTerrain.php` (`mutateFormDataBeforeFill()` resolviendo el locale actual), porque `EditRecord::fillForm()` usa `attributesToArray()`, que bypassa el accessor de traducción de Spatie. **El mismo bug sigue presente sin fix en los otros 7 catálogos de un solo campo traducible** (AccessType, StructureType, SafetyType, ElectricalBoardType, LuminaireFrameType, LuminaireSubgroup, LuminaireType) — quedó fuera de alcance a pedido explícito del usuario (commit acotado solo a Terrain Types), no resuelto todavía.
 
 ### Cómo reanudar
 
