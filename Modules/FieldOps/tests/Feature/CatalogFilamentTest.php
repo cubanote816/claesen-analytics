@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Models\AccessType;
 use Modules\FieldOps\Models\ElectricalBoardType;
+use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\FieldOps\Models\SafetyType;
@@ -147,7 +148,7 @@ class CatalogFilamentTest extends TestCase
     }
 
     /**
-     * @param class-string<AccessType|StructureType|SafetyType|ElectricalBoardType> $modelClass
+     * @param class-string<AccessType|StructureType|SafetyType|ElectricalBoardType|FoMaintenanceType> $modelClass
      */
     private function assertCatalogEditResolvesTranslatedLabel(string $modelClass, string $urlSegment): void
     {
@@ -190,5 +191,24 @@ class CatalogFilamentTest extends TestCase
     public function test_electrical_board_type_edit_resolves_translated_label_instead_of_raw_json(): void
     {
         $this->assertCatalogEditResolvesTranslatedLabel(ElectricalBoardType::class, 'electrical-board-types');
+    }
+
+    public function test_maintenance_type_edit_resolves_translated_label_instead_of_raw_json(): void
+    {
+        $this->assertCatalogEditResolvesTranslatedLabel(FoMaintenanceType::class, 'fo-maintenance-types');
+    }
+
+    public function test_maintenance_type_code_helper_text_mentions_all_four_reserved_codes(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $this->get('/catalogs/fo-maintenance-types/create')
+            ->assertOk()
+            ->assertSee('preventive', false)
+            ->assertSee('corrective', false)
+            ->assertSee('emergency', false)
+            ->assertSee('replacement', false);
     }
 }

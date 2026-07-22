@@ -206,4 +206,22 @@ class StructureFilamentTest extends TestCase
             ->assertSee("terrainTypeCode{$q}:{$q}tennis", false)
             ->assertSee("terrainTypeColor{$q}:{$q}#a7b23c", false);
     }
+
+    public function test_structure_edit_resolves_translated_info_instead_of_raw_json(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        app()->setLocale('en');
+
+        $structure = Structure::factory()->create([
+            'info' => ['nl' => 'Testwaarde', 'en' => 'Test value', 'fr' => 'Valeur de test', 'de' => 'Testwert'],
+        ]);
+
+        $this->get("/structures/{$structure->id}/edit")
+            ->assertOk()
+            ->assertSee('Test value', false)
+            ->assertDontSee('[object Object]', false);
+    }
 }

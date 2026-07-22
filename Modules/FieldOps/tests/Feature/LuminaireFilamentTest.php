@@ -102,6 +102,24 @@ class LuminaireFilamentTest extends TestCase
             ]), false);
     }
 
+    public function test_luminaire_edit_resolves_translated_info_instead_of_raw_json(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        app()->setLocale('en');
+
+        $luminaire = Luminaire::factory()->create([
+            'info' => ['nl' => 'Testwaarde', 'en' => 'Test value', 'fr' => 'Valeur de test', 'de' => 'Testwert'],
+        ]);
+
+        $this->get("/luminaires/{$luminaire->id}/edit")
+            ->assertOk()
+            ->assertSee('Test value', false)
+            ->assertDontSee('[object Object]', false);
+    }
+
     public function test_editing_type_keeps_subgroup_consistent(): void
     {
         $user = User::factory()->create();

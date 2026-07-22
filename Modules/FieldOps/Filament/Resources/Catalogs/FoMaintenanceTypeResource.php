@@ -69,7 +69,7 @@ class FoMaintenanceTypeResource extends Resource
                     ->required(),
                 TextInput::make('code')
                     ->label(__('fieldops::resource.catalogs.fields.code'))
-                    ->helperText('preventive | corrective | emergency — leave empty for a custom type')
+                    ->helperText(__('fieldops::resource.catalogs.maintenance_type_code_helper'))
                     ->maxLength(20),
             ]),
         ]);

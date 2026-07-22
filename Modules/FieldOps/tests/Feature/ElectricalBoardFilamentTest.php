@@ -72,6 +72,24 @@ class ElectricalBoardFilamentTest extends TestCase
             ->assertSee('data-fieldops-map-panel', false);
     }
 
+    public function test_board_edit_resolves_translated_location_description_instead_of_raw_json(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        app()->setLocale('en');
+
+        $board = ElectricalBoard::factory()->create([
+            'location_description' => ['nl' => 'Testwaarde', 'en' => 'Test value', 'fr' => 'Valeur de test', 'de' => 'Testwert'],
+        ]);
+
+        $this->get("/electrical-boards/{$board->id}/edit")
+            ->assertOk()
+            ->assertSee('Test value', false)
+            ->assertDontSee('[object Object]', false);
+    }
+
     public function test_board_map_passes_terrain_type_code_and_color_for_sport_pin(): void
     {
         $user = User::factory()->create();

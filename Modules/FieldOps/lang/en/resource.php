@@ -512,6 +512,7 @@ return [
         'luminaire_subgroups' => 'Luminaire subgroups',
         'luminaire_types' => 'Luminaire types',
         'maintenance_types' => 'Maintenance types',
+        'maintenance_type_code_helper' => 'preventive | corrective | emergency | replacement — leave empty for a custom type',
         'fields' => [
             'type' => 'Type',
             'name' => 'Name',

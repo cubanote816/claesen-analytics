@@ -512,6 +512,7 @@ return [
         'luminaire_subgroups' => 'Armatuur subgroepen',
         'luminaire_types' => 'Armatuurtypen',
         'maintenance_types' => 'Onderhoudstypen',
+        'maintenance_type_code_helper' => 'preventive | corrective | emergency | replacement — laat leeg voor een aangepast type',
         'fields' => [
             'type' => 'Type',
             'name' => 'Naam',
