@@ -3,7 +3,7 @@
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
 > Última actualización: 2026-07-22 — **CLA-274 Done** (commit `479810c`, fix `[object Object]` en Maintenance Types/Structure/Luminaire/ElectricalBoard + helper text de code corregido); CLA-273/272/271/270/269/266 permanecen Done.
 
-> **Programa activo de mantenimiento:** CLA-268 está Done. CLA-275 inició el mockup de Claesen-Client en su repositorio independiente; la integración API espera aprobación visual. Fuente canónica: `docs/ai/fieldops-maintenance-roadmap.md`.
+> **Programa activo de mantenimiento:** CLA-268 y CLA-275 están Done. La Fase 5 de validación integral y producción queda pendiente. Fuente canónica: `docs/ai/fieldops-maintenance-roadmap.md`.
 
 ### Sesión 2026-07-22 — CLA-275: arranque de Claesen-Client
 

@@ -63,7 +63,7 @@ La conversión `Solicitud → Orden` es idempotente mediante `work_order_id`. Ce
 | Fase 1 — Identidad y aislamiento | CLA-266 | ✅ Done | Membresías cliente, autorización fail-closed, BOLA y OAuth endurecidos |
 | Fase 2 — Asignaciones y notificaciones | CLA-271 | ✅ Done | Asignación ejecutable, timeline append-only y notificaciones operacionales |
 | Fase 3 — Solicitudes de clientes | CLA-268 | ✅ Done | Implementación `d0436df`, memoria `545b42e`, cierre Linear registrado |
-| Fase 4 — Portal React Claesen-Client | CLA-275 | 🚧 Integración y cierre técnico | Portal read-only, traducciones NL/EN/FR/DE y validación final en curso |
+| Fase 4 — Portal React Claesen-Client | CLA-275 | ✅ Done | Portal read-only, traducciones NL/EN/FR/DE y aislamiento validado |
 | Fase 5 — E2E y producción | Ticket por crear | ⬜ Pendiente | Validación integral, infraestructura y observabilidad de producción |
 
 ## Fases cerradas y evidencia
