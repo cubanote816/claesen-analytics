@@ -5,6 +5,16 @@
 
 > **Programa activo de mantenimiento:** CLA-268 y CLA-275 están Done. La Fase 5 de validación integral y producción queda pendiente. Fuente canónica: `docs/ai/fieldops-maintenance-roadmap.md`.
 
+### Sesión 2026-07-23 — CLA-276: validación integral en curso
+
+- Ticket Linear: **CLA-276** — Fase 5: Validación integral y producción de Claesen-Client.
+- Backend CLA-275 ya cerrado: `f92872b`; portal: `a9b9934`; memoria: `e0dffb3`.
+- Prueba focal de la API portal pasa en Sail: `ClientPortalInfrastructureTest` — **3 pruebas, 13 aserciones**.
+- Claesen-Client: build y lint pasan después de formatear `src/App.tsx` y enlazar `selectedPosition.luminaireId` al contexto del modal de reporte.
+- Cambios de CLA-276 todavía sin commit: `Claesen-Client/src/App.tsx`, `src/mock/data.ts`, `src/services/portal-data.ts`; backend `ClientPortalInfrastructureController.php` añade `luminaire_id` a cada posición del portal.
+- Próximo paso exacto: probar en modo API `POST /api/v1/fieldops/maintenance-requests` desde el modal con una luminaria autorizada; verificar refresco de lista y BOLA con cliente B. Después automatizar el E2E cliente → backoffice → técnico → validación → cliente.
+- No cerrar CLA-276 ni preparar producción todavía.
+
 ### Sesión 2026-07-22 — CLA-275: arranque de Claesen-Client
 
 - CLA-268 se movió a **Done** en Linear con la evidencia de `d0436df` y `545b42e`.
