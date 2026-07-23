@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\FieldOps\Http\Controllers\CatalogController;
 use Modules\FieldOps\Http\Controllers\ClientContactController;
+use Modules\FieldOps\Http\Controllers\ClientPortalInfrastructureController;
 use Modules\FieldOps\Http\Controllers\ComplexController;
 use Modules\FieldOps\Http\Controllers\ElectricalBoardController;
 use Modules\FieldOps\Http\Controllers\FieldOpsMediaController;
@@ -19,6 +20,9 @@ use Modules\FieldOps\Http\Middleware\EnforceFieldOpsTenantAccess;
 
 Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHeader::class, EnforceFieldOpsTenantAccess::class])
     ->prefix('v1/fieldops')->group(function () {
+        // External client portal: a deliberately read-only, reduced topology projection.
+        Route::get('/client-portal/infrastructure', [ClientPortalInfrastructureController::class, 'index']);
+
         // Clients
         Route::get('/clients', [FoClientController::class, 'index']);
         Route::get('/clients/{foClient}', [FoClientController::class, 'show']);

@@ -63,7 +63,7 @@ La conversión `Solicitud → Orden` es idempotente mediante `work_order_id`. Ce
 | Fase 1 — Identidad y aislamiento | CLA-266 | ✅ Done | Membresías cliente, autorización fail-closed, BOLA y OAuth endurecidos |
 | Fase 2 — Asignaciones y notificaciones | CLA-271 | ✅ Done | Asignación ejecutable, timeline append-only y notificaciones operacionales |
 | Fase 3 — Solicitudes de clientes | CLA-268 | ✅ Done | Implementación `d0436df`, memoria `545b42e`, cierre Linear registrado |
-| Fase 4 — Portal React Claesen-Client | CLA-275 | 🚧 Revisión visual 2 | Repositorio `/home/totti/Claesen-Client`; explorador de infraestructura y reporte contextual pendientes de aprobación |
+| Fase 4 — Portal React Claesen-Client | CLA-275 | 🚧 Integración y cierre técnico | Portal read-only, traducciones NL/EN/FR/DE y validación final en curso |
 | Fase 5 — E2E y producción | Ticket por crear | ⬜ Pendiente | Validación integral, infraestructura y observabilidad de producción |
 
 ## Fases cerradas y evidencia
@@ -166,7 +166,7 @@ La suite amplia debe ejecutarse en un único proceso o de forma serial. No lanza
 
 ## Fase 4 — Portal Claesen-Client
 
-CLA-275 se creó después del cierre de CLA-268 y la aprobación del plan. El primer mockup interactivo existe en `/home/totti/Claesen-Client` con commit `9f2414b`. Tras la revisión funcional de Claesen-Sport y del backoffice, el segundo mockup evoluciona a un explorador de infraestructura de solo lectura: `cliente autorizado → complejo → terreno → estructura → marco → posición/luminaria`, con cuadros eléctricos en su contexto físico real y reporte contextual. La integración con API queda detenida hasta recibir la segunda aprobación visual explícita.
+CLA-275 se creó después del cierre de CLA-268 y la aprobación del plan. El primer mockup interactivo existe en `/home/totti/Claesen-Client` con commit `9f2414b`. Tras la revisión funcional de Claesen-Sport y del backoffice, el segundo mockup evoluciona a un explorador de infraestructura de solo lectura: `cliente autorizado → complejo → terreno → estructura → marco → posición/luminaria`, con cuadros eléctricos en su contexto físico real y reporte contextual. La integración ya usa una proyección API exclusiva, sin campos internos ni mutaciones, y se valida con aislamiento BOLA. El portal soporta NL, EN, FR y DE; React Query separa caché por perfil autenticado.
 
 ### Arranque y repositorio
 
