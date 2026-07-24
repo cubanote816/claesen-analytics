@@ -92,6 +92,7 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::post('/maintenance-requests/{maintenanceRequest}/attachments', [MaintenanceRequestController::class, 'attachment']);
         Route::post('/maintenance-requests/{maintenanceRequest}/confirm', [MaintenanceRequestController::class, 'confirm']);
         Route::post('/maintenance-requests/{maintenanceRequest}/reopen', [MaintenanceRequestController::class, 'reopen']);
+        Route::post('/maintenance-requests/{maintenanceRequest}/cancel', [MaintenanceRequestController::class, 'cancel']);
         Route::get('/maintenance-request-attachments/{media}', [MaintenanceRequestController::class, 'showAttachment']);
 
         // Operational notifications are scoped to FieldOps and the authenticated user.

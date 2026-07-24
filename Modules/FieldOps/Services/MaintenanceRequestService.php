@@ -254,6 +254,41 @@ class MaintenanceRequestService
         return $reopened;
     }
 
+    public function cancel(FoMaintenanceRequest $request, User $user, string $reason): FoMaintenanceRequest
+    {
+        $this->assertCanContribute($user, $request);
+        $isClient = $this->tenants->isClientUser($user);
+
+        $cancelled = DB::transaction(function () use ($request, $user, $reason): FoMaintenanceRequest {
+            $locked = FoMaintenanceRequest::query()->lockForUpdate()->findOrFail($request->id);
+            if (! in_array($locked->status, [
+                MaintenanceRequestStatus::RECEIVED,
+                MaintenanceRequestStatus::IN_REVIEW,
+                MaintenanceRequestStatus::REOPENED,
+            ], true)) {
+                throw ValidationException::withMessages(['status' => 'This request can no longer be cancelled.']);
+            }
+
+            $locked->update([
+                'status' => MaintenanceRequestStatus::CANCELLED,
+                'cancelled_at' => now(),
+                'cancelled_by_user_id' => $user->id,
+                'cancellation_reason' => $reason,
+            ]);
+            $this->appendSystemMessage($locked, $reason, $user->id);
+
+            return $locked->fresh(['messages.user', 'media']);
+        });
+
+        if ($isClient) {
+            $this->notifyBackoffice($cancelled, 'cancelled');
+        } else {
+            $this->notifyReporter($cancelled, 'cancelled');
+        }
+
+        return $cancelled;
+    }
+
     public function suggestIntake(User $user, Model $equipment, string $description): array
     {
         $this->assertCanReportEquipment($user, $equipment);

@@ -24,6 +24,7 @@ class FoMaintenanceRequest extends Model implements HasMedia
         'maintainable_id', 'luminaire_position_id', 'work_order_id',
         'installation_snapshot', 'intake_data', 'acknowledged_at', 'resolved_at',
         'confirmed_at', 'reopened_at', 'closed_at', 'closed_by_user_id',
+        'cancelled_at', 'cancelled_by_user_id', 'cancellation_reason',
     ];
 
     protected $casts = [
@@ -35,6 +36,7 @@ class FoMaintenanceRequest extends Model implements HasMedia
         'confirmed_at' => 'datetime',
         'reopened_at' => 'datetime',
         'closed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     public function registerMediaCollections(): void
@@ -89,5 +91,10 @@ class FoMaintenanceRequest extends Model implements HasMedia
     public function closedBy()
     {
         return $this->belongsTo(User::class, 'closed_by_user_id');
+    }
+
+    public function cancelledBy()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by_user_id');
     }
 }

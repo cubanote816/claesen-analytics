@@ -9,6 +9,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Modules\FieldOps\Enums\MaintenanceRequestStatus;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRequestResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Services\MaintenanceRequestService;
@@ -53,6 +54,26 @@ class ViewMaintenanceRequest extends ViewRecord
                 ->icon('heroicon-m-arrow-top-right-on-square')
                 ->visible(fn (): bool => $this->record->work_order_id !== null)
                 ->url(fn (): string => FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $this->record->work_order_id])),
+            Action::make('cancel')
+                ->label('Cancel request')
+                ->icon('heroicon-m-x-circle')
+                ->color('danger')
+                ->visible(fn (): bool => in_array($this->record->status, [
+                    MaintenanceRequestStatus::RECEIVED,
+                    MaintenanceRequestStatus::IN_REVIEW,
+                    MaintenanceRequestStatus::REOPENED,
+                ], true))
+                ->schema([
+                    Textarea::make('cancellation_reason')
+                        ->label('Cancellation reason')
+                        ->required()
+                        ->rows(3),
+                ])
+                ->action(function (array $data): void {
+                    app(MaintenanceRequestService::class)->cancel($this->record, auth()->user(), $data['cancellation_reason']);
+                    Notification::make()->title('Service request cancelled')->danger()->send();
+                    $this->redirect(FoMaintenanceRequestResource::getUrl('view', ['record' => $this->record]));
+                }),
         ];
     }
 }

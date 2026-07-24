@@ -195,4 +195,16 @@ class MaintenanceRequestController extends Controller
             ),
         ]);
     }
+
+    public function cancel(Request $request, FoMaintenanceRequest $maintenanceRequest): JsonResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'max:5000']]);
+
+        return response()->json([
+            'success' => true,
+            'data' => new MaintenanceRequestResource(
+                $this->requests->cancel($maintenanceRequest, $request->user(), $data['reason']),
+            ),
+        ]);
+    }
 }

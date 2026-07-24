@@ -15,4 +15,5 @@ enum MaintenanceRequestStatus: string
     case CLOSED = 'closed';
     case REJECTED = 'rejected';
     case DUPLICATE = 'duplicate';
+    case CANCELLED = 'cancelled';
 }

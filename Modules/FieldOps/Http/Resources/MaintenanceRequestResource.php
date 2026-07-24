@@ -57,6 +57,8 @@ class MaintenanceRequestResource extends JsonResource
             'confirmed_at' => $this->confirmed_at?->toIso8601String(),
             'reopened_at' => $this->reopened_at?->toIso8601String(),
             'closed_at' => $this->closed_at?->toIso8601String(),
+            'cancelled_at' => $this->cancelled_at?->toIso8601String(),
+            'cancellation_reason' => $this->cancellation_reason,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

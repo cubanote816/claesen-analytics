@@ -72,12 +72,17 @@ class ClientRequestNotification extends Notification implements ShouldQueue
             'message_received' => 'New client message',
             'resolved' => 'Maintenance request resolved',
             'reopened' => 'Maintenance request reopened',
+            'cancelled' => 'Maintenance request cancelled',
             default => 'Maintenance request updated',
         };
     }
 
     private function body(): string
     {
+        if ($this->event === 'cancelled') {
+            return $this->requestModel->cancellation_reason ?: 'The maintenance request has been cancelled.';
+        }
+
         return $this->requestModel->public_response ?: match ($this->event) {
             'created' => 'A client submitted a new maintenance request.',
             'message_received' => 'A client added a message to a maintenance request.',

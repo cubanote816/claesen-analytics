@@ -27,6 +27,8 @@ use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Notifications\ClientContactInvitationNotification;
+use Modules\FieldOps\Notifications\ClientRequestNotification;
+use Modules\FieldOps\Services\MaintenanceRequestService;
 use Modules\FieldOps\Services\MaintenanceWorkOrderService;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
@@ -374,6 +376,107 @@ class MaintenanceRequestTest extends TestCase
             'name' => 'Blocked Contact',
             'email' => 'blocked@example.com',
         ])->assertForbidden();
+    }
+
+    public function test_client_can_cancel_their_own_request_before_it_is_converted(): void
+    {
+        $topology = $this->topology('Cancel Client');
+        [$clientUser, $clientToken] = $this->clientUser($topology['client']);
+        [$admin] = $this->adminUser();
+        $requestId = $this->createRequest($clientToken, $topology['luminaire']);
+
+        Auth::forgetGuards();
+        $this->withToken($clientToken)
+            ->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/cancel", [
+                'reason' => 'No longer needed, resolved on its own.',
+            ])->assertOk()
+            ->assertJsonPath('data.status', 'cancelled')
+            ->assertJsonPath('data.cancellation_reason', 'No longer needed, resolved on its own.');
+
+        $this->assertDatabaseHas('fo_maintenance_requests', [
+            'id' => $requestId,
+            'status' => 'cancelled',
+            'cancelled_by_user_id' => $clientUser->id,
+        ]);
+        Notification::assertSentTo($admin, ClientRequestNotification::class);
+    }
+
+    public function test_backoffice_can_also_cancel_a_pre_conversion_request_and_the_client_is_notified(): void
+    {
+        $topology = $this->topology('Backoffice Cancel Client');
+        [$clientUser, $clientToken] = $this->clientUser($topology['client']);
+        [, $adminToken] = $this->adminUser();
+        $requestId = $this->createRequest($clientToken, $topology['luminaire']);
+
+        Auth::forgetGuards();
+        $this->withToken($adminToken)
+            ->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/cancel", [
+                'reason' => 'Duplicate of another open request.',
+            ])->assertOk()->assertJsonPath('data.status', 'cancelled');
+
+        Notification::assertSentTo($clientUser, ClientRequestNotification::class);
+    }
+
+    public function test_cancellation_is_rejected_once_the_request_has_a_work_order_and_for_terminal_states(): void
+    {
+        $topology = $this->topology('No Cancel Client');
+        [, $clientToken] = $this->clientUser($topology['client']);
+        [, $adminToken] = $this->adminUser();
+        FoMaintenanceType::factory()->corrective()->create();
+        $requestId = $this->createRequest($clientToken, $topology['luminaire']);
+
+        Auth::forgetGuards();
+        $this->withToken($adminToken)
+            ->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/convert")
+            ->assertOk();
+
+        Auth::forgetGuards();
+        $this->withToken($clientToken)
+            ->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/cancel", ['reason' => 'Too late.'])
+            ->assertUnprocessable();
+
+        $this->assertDatabaseHas('fo_maintenance_requests', ['id' => $requestId, 'status' => 'planned']);
+    }
+
+    public function test_cancellation_is_tenant_safe_a_client_cannot_cancel_another_clients_request(): void
+    {
+        $a = $this->topology('Cancel Owner');
+        $b = $this->topology('Cancel Intruder');
+        [, $ownerToken] = $this->clientUser($a['client']);
+        [, $intruderToken] = $this->clientUser($b['client']);
+        $requestId = $this->createRequest($ownerToken, $a['luminaire']);
+
+        Auth::forgetGuards();
+        $this->withToken($intruderToken)
+            ->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/cancel", ['reason' => 'Not mine.'])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('fo_maintenance_requests', ['id' => $requestId, 'status' => 'received']);
+    }
+
+    public function test_filament_cancel_action_calls_the_service_and_cancels_a_cancellable_request(): void
+    {
+        $client = FoClient::factory()->create();
+        [$admin] = $this->adminUser();
+        $board = ElectricalBoard::factory()->create();
+        $request = FoMaintenanceRequest::query()->create([
+            'client_id' => $client->id,
+            'status' => MaintenanceRequestStatus::RECEIVED,
+            'description' => 'Cancellable request',
+            'maintainable_type' => ElectricalBoard::class,
+            'maintainable_id' => $board->id,
+        ]);
+
+        $this->actingAs($admin);
+        app(MaintenanceRequestService::class)->cancel($request, $admin, 'Filament reason.');
+
+        $this->assertDatabaseHas('fo_maintenance_requests', [
+            'id' => $request->id,
+            'status' => 'cancelled',
+            'cancellation_reason' => 'Filament reason.',
+            'cancelled_by_user_id' => $admin->id,
+        ]);
+        $this->get(FoMaintenanceRequestResource::getUrl('view', ['record' => $request]))->assertOk();
     }
 
     public function test_filament_request_page_renders(): void
