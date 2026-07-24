@@ -360,6 +360,8 @@ class StructureResource extends Resource
                     ?: $record->structureType?->getTranslation('name', 'nl', false)
                     ?: '#'.$record->id,
                 'description' => $record->height ? __('fieldops::resource.structures.fields.height').': '.$record->height.' cm' : null,
+                'structureTypeCode' => $record->structureType?->code,
+                'structureTypeColor' => $record->structureType?->pin_color,
                 'lat' => $record->lat,
                 'lng' => $record->lng,
                 'hasCoordinates' => true,

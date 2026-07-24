@@ -13,14 +13,22 @@ class StructureTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            ['en' => 'Conical', 'nl' => 'Conische mast', 'fr' => 'Conique', 'de' => 'Konischer Mast'],
-            ['en' => 'Hinged', 'nl' => 'Vakwerk mast', 'fr' => 'À charnière', 'de' => 'Gittermast'],
-            ['en' => 'Roof', 'nl' => 'Dakconstructie', 'fr' => 'Toit', 'de' => 'Dachkonstruktion'],
-            ['en' => 'Other', 'nl' => 'Andere', 'fr' => 'Autre', 'de' => 'Andere'],
+            ['en' => 'Conical', 'nl' => 'Conische mast', 'fr' => 'Conique', 'de' => 'Konischer Mast', 'code' => 'conical', 'pin_color' => '#f5a524'],
+            ['en' => 'Hinged', 'nl' => 'Vakwerk mast', 'fr' => 'À charnière', 'de' => 'Gittermast', 'code' => 'hinged', 'pin_color' => '#f5a524'],
+            ['en' => 'Roof', 'nl' => 'Dakconstructie', 'fr' => 'Toit', 'de' => 'Dachkonstruktion', 'code' => 'roof', 'pin_color' => '#f5a524'],
+            ['en' => 'Other', 'nl' => 'Andere', 'fr' => 'Autre', 'de' => 'Andere', 'code' => null, 'pin_color' => null],
         ];
 
-        foreach ($types as $name) {
-            StructureType::firstOrCreate(['name->en' => $name['en']], ['name' => $name]);
+        // updateOrCreate (not firstOrCreate) so re-running this seeder backfills
+        // code/pin_color on rows created before CLA-277, not just brand-new ones.
+        foreach ($types as $type) {
+            ['code' => $code, 'pin_color' => $pinColor] = $type;
+            $name = collect($type)->only(['en', 'nl', 'fr', 'de'])->all();
+
+            StructureType::updateOrCreate(
+                ['name->en' => $name['en']],
+                ['name' => $name, 'code' => $code, 'pin_color' => $pinColor],
+            );
         }
     }
 }

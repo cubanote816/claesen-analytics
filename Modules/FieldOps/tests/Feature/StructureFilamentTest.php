@@ -207,6 +207,29 @@ class StructureFilamentTest extends TestCase
             ->assertSee("terrainTypeColor{$q}:{$q}#a7b23c", false);
     }
 
+    public function test_structure_map_passes_structure_type_code_and_color_for_mast_pin(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structureType = StructureType::factory()->create(['code' => 'conical', 'pin_color' => '#f5a524']);
+        $structure = Structure::factory()->create([
+            'structure_type_id' => $structureType->id,
+            'lat' => 51.163145,
+            'lng' => 5.163746,
+        ]);
+
+        // @js() (Illuminate\Support\Js) escapes every literal double quote in the
+        // JSON payload to a 6-character backslash-u-0022 sequence so it survives
+        // sitting inside the double-quoted x-data HTML attribute.
+        $q = chr(92).'u0022';
+        $this->get("/structures/{$structure->id}")
+            ->assertOk()
+            ->assertSee("structureTypeCode{$q}:{$q}conical", false)
+            ->assertSee("structureTypeColor{$q}:{$q}#f5a524", false);
+    }
+
     public function test_structure_edit_resolves_translated_info_instead_of_raw_json(): void
     {
         $user = User::factory()->create();

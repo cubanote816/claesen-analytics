@@ -565,6 +565,19 @@ return [
             'equestrian' => 'Equestrian arena',
             'minigolf' => 'Minigolf',
         ],
+        'structure_pin_selector' => [
+            'label' => 'Map marker',
+            'helper' => 'Pick the icon shown for this structure type on the map. Pick "Generic" if none of the mast icons apply.',
+            'search_placeholder' => 'Search structure icons...',
+            'generic_label' => 'Generic',
+            'generic_helper' => 'Neutral fallback pin, used for any type without a dedicated icon.',
+            'selected' => 'Selected',
+        ],
+        'structure_pin_catalog' => [
+            'conical' => 'Conical mast',
+            'hinged' => 'Hinged mast',
+            'roof' => 'Roof mount',
+        ],
         'frame_type_editor' => [
             'helper' => 'Upload a preview image or sketch the frame directly in the browser. The saved result is stored as the catalog image.',
             'title' => 'Frame image editor',

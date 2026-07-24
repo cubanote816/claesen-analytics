@@ -23,7 +23,7 @@ class StructureType extends Model
         return ['name'];
     }
 
-    protected $fillable = ['created_by_user_id', 'name', 'ai_translation_status'];
+    protected $fillable = ['created_by_user_id', 'name', 'code', 'pin_color', 'ai_translation_status'];
 
     protected static function newFactory(): StructureTypeFactory
     {

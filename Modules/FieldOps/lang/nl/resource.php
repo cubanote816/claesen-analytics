@@ -565,6 +565,19 @@ return [
             'equestrian' => 'Buitenrijbaan',
             'minigolf' => 'Minigolf',
         ],
+        'structure_pin_selector' => [
+            'label' => 'Kaartmarkering',
+            'helper' => 'Kies het icoon dat voor dit structuurtype op de kaart wordt getoond. Kies "Algemeen" als geen van de masticonen van toepassing is.',
+            'search_placeholder' => 'Zoek structuuriconen...',
+            'generic_label' => 'Algemeen',
+            'generic_helper' => 'Neutrale standaardmarkering, gebruikt voor elk type zonder eigen icoon.',
+            'selected' => 'Geselecteerd',
+        ],
+        'structure_pin_catalog' => [
+            'conical' => 'Conische mast',
+            'hinged' => 'Vakwerkmast',
+            'roof' => 'Dakmontage',
+        ],
         'frame_type_editor' => [
             'helper' => 'Upload een voorbeeldafbeelding of teken het frame rechtstreeks in de browser. Het opgeslagen resultaat wordt als catalogusafbeelding bewaard.',
             'title' => 'Frame-afbeeldingseditor',

@@ -9,10 +9,13 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ViewField;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
@@ -23,6 +26,7 @@ use Modules\FieldOps\Filament\Resources\Catalogs\StructureTypes\Pages\CreateStru
 use Modules\FieldOps\Filament\Resources\Catalogs\StructureTypes\Pages\EditStructureType;
 use Modules\FieldOps\Filament\Resources\Catalogs\StructureTypes\Pages\ListStructureTypes;
 use Modules\FieldOps\Models\StructureType;
+use Modules\FieldOps\Support\StructurePinCatalog;
 
 class StructureTypeResource extends Resource
 {
@@ -67,6 +71,23 @@ class StructureTypeResource extends Resource
                 TextInput::make('name')
                     ->label(__('fieldops::resource.catalogs.fields.name'))
                     ->required(),
+                ColorPicker::make('pin_color')
+                    ->label(__('fieldops::resource.catalogs.fields.pin_color'))
+                    ->nullable(),
+            ]),
+            Section::make(__('fieldops::resource.catalogs.structure_pin_selector.label'))->schema([
+                ViewField::make('code')
+                    ->label(__('fieldops::resource.catalogs.structure_pin_selector.label'))
+                    ->helperText(__('fieldops::resource.catalogs.structure_pin_selector.helper'))
+                    ->view('fieldops::filament.forms.structure-type-pin-selector')
+                    ->viewData([
+                        'pins' => StructurePinCatalog::definitions(),
+                    ])
+                    // The "Generic" card binds to '' (HTML radio values can't be null);
+                    // `code` is nullable+unique in fo_structure_types, so this must
+                    // normalize back to null before save — otherwise a second row left
+                    // on "Generic" would violate the unique index on an empty string.
+                    ->dehydrateStateUsing(fn (?string $state) => $state === '' ? null : $state),
             ]),
         ]);
     }
@@ -83,6 +104,13 @@ class StructureTypeResource extends Resource
                     )
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('code')
+                    ->label(__('fieldops::resource.catalogs.structure_pin_selector.label'))
+                    ->badge()
+                    ->getStateUsing(fn ($record) => $record->code
+                        ? (StructurePinCatalog::find($record->code) ? __(StructurePinCatalog::find($record->code)['labelKey']) : $record->code)
+                        : __('fieldops::resource.catalogs.structure_pin_selector.generic_label'))
+                    ->color(fn ($record) => Color::hex($record->pin_color ?: '#f5a524')),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

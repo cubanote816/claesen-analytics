@@ -6,7 +6,7 @@
      *     emptyTitle?: string,
      *     emptyDescription?: string,
      *     items?: array<int, array{type: string, label: string, description?: ?string, lat: float|int|string|null, lng: float|int|string|null, hasCoordinates?: bool, url?: ?string}>,
-     *     markers: array<int, array{type: string, label: string, description?: ?string, terrainTypeCode?: ?string, terrainTypeColor?: ?string, lat: float|int|string|null, lng: float|int|string|null, url?: ?string}>,
+     *     markers: array<int, array{type: string, label: string, description?: ?string, terrainTypeCode?: ?string, terrainTypeColor?: ?string, structureTypeCode?: ?string, structureTypeColor?: ?string, lat: float|int|string|null, lng: float|int|string|null, url?: ?string}>,
      *     summary?: array<int, array{label: string, value: int|string}>,
      * } $data
     */
@@ -568,6 +568,17 @@
                 }
             };
 
+            const buildStructureMarkerSvg = (code) => {
+                switch (code) {
+@foreach (\Modules\FieldOps\Support\StructurePinCatalog::definitions() as $pin)
+                    case '{{ $pin['code'] }}':
+                        return `{!! trim($pin['svg']) !!}`;
+@endforeach
+                    default:
+                        return `{!! trim(\Modules\FieldOps\Support\StructurePinCatalog::fallbackSvg()) !!}`;
+                }
+            };
+
             window.fieldopsLoadLeaflet = function () {
                 if (window.L) {
                     return Promise.resolve(window.L);
@@ -671,6 +682,13 @@
                                     iconSize: [40, 40],
                                     iconAnchor: [20, 40],
                                     popupAnchor: [0, -12],
+                                })
+                                : marker.type === 'structure'
+                                ? L.icon({
+                                    iconUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildStructureMarkerSvg(marker.structureTypeCode))}`,
+                                    iconSize: [40, 57],
+                                    iconAnchor: [20, 56],
+                                    popupAnchor: [0, -30],
                                 })
                                 : L.divIcon({
                                     className: 'fieldops-map-pin',
