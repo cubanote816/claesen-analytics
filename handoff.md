@@ -1,9 +1,20 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-24 — CLA-277 Done (backend `bd747ba`, pines de Structure Types); CLA-276 avanzó con el E2E de luminaire_id (backend `3680602`) y el refactor de Claesen-Client en componentes testeables (frontend `79b11f7` + `c60e06b`).
+> Última actualización: 2026-07-24 — CLA-277 Done (backend `bd747ba`, pines de Structure Types); CLA-276 sumó cancelación de solicitudes (backend `cb33822`, frontend `3e9893e`) además del E2E de luminaire_id y el refactor de Claesen-Client en componentes testeables.
 
 > **Programa activo de mantenimiento:** CLA-268 y CLA-275 están Done. La Fase 5 de validación integral y producción queda pendiente. Fuente canónica: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-24 — CLA-276: cancelación de solicitudes (backend `cb33822`, frontend `3e9893e`)
+
+**Contexto:** al revisar el checklist de Fase 5, `FoMaintenanceRequest` no tenía ningún estado `cancelled` ni forma de cancelar — un gap de producto real, no solo de tests. El usuario decidió explícitamente traerlo al alcance de CLA-276, con tres decisiones de diseño: (1) actor cliente O backoffice, solo en estados pre-conversión (`received`/`in_review`/`reopened`, sin cascada a `FoMaintenanceWorkOrder` porque esos estados nunca tienen una orden vinculada); (2) frontend limitado a un botón en la lista existente de Requests, sin construir vista de detalle/conversación; (3) sí agregar acción de cancelar en Filament, mismo patrón que `ViewMaintenanceWorkOrder`.
+
+- **Backend:** `MaintenanceRequestStatus::CANCELLED`; migración agrega `cancelled_at`/`cancelled_by_user_id`/`cancellation_reason` a `fo_maintenance_requests` (mismo patrón que `closed_by_user_id`). `MaintenanceRequestService::cancel()` reusa `assertCanContribute` (mismo guard que `confirm`/`reopen`) y notifica al lado contrario (cliente cancela → notifica backoffice, y viceversa) vía un nuevo caso `cancelled` en `ClientRequestNotification`. Ruta `POST /maintenance-requests/{id}/cancel`, acción Filament `Cancel request` en `ViewMaintenanceRequest` (visible solo en estados cancelables).
+- **Bug real encontrado y corregido:** `EnforceFieldOpsTenantAccess::isAllowedClientMutation()` es un allowlist fail-closed de rutas POST que un cliente puede tocar — ya incluía `.../confirm` y `.../reopen` pero no una ruta de cancelación, así que la cancelación iniciada por el cliente quedaba bloqueada por el middleware antes de llegar siquiera al controller/servicio. Se agregó el patrón faltante.
+- **Frontend:** `portalData.cancelRequest(id, reason)` (no-op en mock, mismo patrón que `createRequest`); `CANCELLABLE_REQUEST_STATUSES` espeja el enum backend; nuevo `CancelRequestModal` (mismo estilo que `ReportModal`); botón de cancelar por fila en `Requests.tsx`, gateado por estado, reusando una 5ª columna de grid/`icon-button` que ya estaba reservada en el CSS pero sin usar.
+- **Tests:** backend 5 casos nuevos en `MaintenanceRequestTest` (cliente cancela + notifica backoffice, backoffice cancela + notifica cliente, rechazado con orden ya creada, BOLA tenant-safe, acción Filament) — **14/14, 109 aserciones**; regresión focal con `ClientPortalInfrastructureTest` — **17/17, 123 aserciones**. Pint limpio. Frontend: 59/59 Vitest, Playwright 6 passed/4 skipped (mismo criterio de skip mobile-nav ya establecido), verificado visualmente en Chromium real.
+- **Próximo paso exacto:** con cancelación cerrada, retomar el checklist de Fase 5 — accesibilidad WCAG 2.2 AA e infraestructura de producción (DNS/TLS/CSP/CORS/Sanctum) siguen sin empezar.
+- No cerrar CLA-276 ni preparar producción todavía.
 
 ### Sesión 2026-07-24 — CLA-277: pines de Structure Types (Done, backend `bd747ba`)
 
