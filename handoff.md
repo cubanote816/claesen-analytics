@@ -1,9 +1,21 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-24 — CLA-277 Done (backend `bd747ba`, pines de Structure Types); CLA-276 sumó cancelación de solicitudes (backend `cb33822`, frontend `3e9893e`) además del E2E de luminaire_id y el refactor de Claesen-Client en componentes testeables.
+> Última actualización: 2026-07-24 — CLA-277 Done (backend `bd747ba`, pines de Structure Types); CLA-276 sumó cancelación de solicitudes (backend `cb33822`, frontend `3e9893e`) y auditoría WCAG 2.2 AA (frontend `5fde0c0`), además del E2E de luminaire_id y el refactor de Claesen-Client en componentes testeables.
 
 > **Programa activo de mantenimiento:** CLA-268 y CLA-275 están Done. La Fase 5 de validación integral y producción queda pendiente. Fuente canónica: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-24 — CLA-276: auditoría y fixes WCAG 2.2 AA en Claesen-Client (frontend `5fde0c0`)
+
+**Contexto:** siguiente ítem del checklist de Fase 5 tras cerrar cancelación. Se instaló `@axe-core/playwright` y se escaneó cada página/estado real (dashboard, requests, infraestructura, complex/terrain view con el canvas de luminarias, notificaciones, ambos modales en cada paso, menú móvil) contra `wcag2a/wcag2aa/wcag21a/wcag21aa/wcag22aa`. La línea base tenía violaciones reales en 9 de los 9 escaneos.
+
+- **Contraste de color (serio, 1.4.3):** 4 colores de texto apagado (footer del sidebar, progress labels, timestamps de actividad, subtexto de tree-node) quedaban justo por debajo de 4.5:1 — se aclararon al mínimo necesario, cambio visualmente imperceptible.
+- **`button-name` (crítico, 4.1.2):** el botón de flecha atrás del breadcrumb no tenía ningún nombre accesible — se agregó `aria-label="Back"`.
+- **`<html lang>` nunca se actualizaba al cambiar de idioma** (3.1.1 — hallazgo por inspección manual, axe no lo detecta): `i18n.ts` ahora sincroniza `document.documentElement.lang` en el init y en cada evento `languageChanged`.
+- **Gestión de foco en diálogos (patrón ARIA dialog; axe no puede verificar esto automáticamente):** `ReportModal`/`CancelRequestModal` no tenían ningún manejo de foco — al abrir uno, el foco quedaba en el botón disparador detrás del overlay, Tab podía escapar hacia la página, y no existía cierre con Escape. Se agregó un hook compartido `useDialogFocus`: enfoca el primer elemento enfocable al montar, atrapa Tab/Shift+Tab dentro del diálogo, cierra con Escape y devuelve el foco al disparador al desmontar. Verificado con test real de Playwright de interacción por teclado (no solo axe), más 4 tests unitarios del hook y 2 tests nuevos por modal.
+- **Verificación:** axe reporta cero violaciones en los 10 escaneos (antes 9 fallaban). Suite completa en verde: 65/65 Vitest, Playwright 17 passed/13 skipped (mismo criterio de skip mobile-nav ya establecido), build y lint limpios.
+- **Próximo paso exacto:** infraestructura de producción (DNS/TLS/CSP/CORS/Sanctum, hostname `client.claesen-verlichting.be` sin provisionar) y monitorización/métricas siguen sin empezar — son los últimos ítems del checklist de Fase 5.
+- No cerrar CLA-276 ni preparar producción todavía.
 
 ### Sesión 2026-07-24 — CLA-276: cancelación de solicitudes (backend `cb33822`, frontend `3e9893e`)
 
