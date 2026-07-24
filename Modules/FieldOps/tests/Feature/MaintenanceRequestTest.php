@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use LogicException;
 use Mockery;
+use Modules\Cafca\Models\Employee;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Enums\MaintenanceRequestStatus;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRequestResource;
@@ -40,7 +41,7 @@ class MaintenanceRequestTest extends TestCase
         parent::setUp();
         config(['filesystems.disks.local.root' => sys_get_temp_dir().'/cla268-media-'.Str::uuid()]);
         Notification::fake();
-        foreach (['client', 'admin', 'super_admin'] as $role) {
+        foreach (['client', 'admin', 'super_admin', 'project_manager'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
         $this->mock(GeminiService::class, function ($mock): void {
@@ -95,6 +96,83 @@ class MaintenanceRequestTest extends TestCase
             'reported_by_user_id' => $user->id,
         ]);
         $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-requests/{$requestId}")->assertOk();
+    }
+
+    public function test_client_portal_modal_payload_refreshes_only_the_reporting_tenant_through_completion(): void
+    {
+        $a = $this->topology('Client A');
+        $b = $this->topology('Client B');
+        [$clientA, $tokenA] = $this->clientUser($a['client']);
+        [, $tokenB] = $this->clientUser($b['client']);
+        [$admin, $adminToken] = $this->adminUser();
+        FoMaintenanceType::factory()->corrective()->create();
+        $employee = Employee::create(['id' => 'CLA-276-WORKER', 'name' => 'CLA-276 Worker', 'fl_active' => true]);
+        $worker = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $worker->assignRole('project_manager');
+
+        // Mirrors Claesen-Client's actual flow: the portal never has the luminaire ID
+        // ahead of time, it reads it off the infrastructure explorer response
+        // (`position.luminaire_id` in portal-data.ts) before opening the report modal.
+        $infrastructure = $this->withToken($tokenA)
+            ->getJson('/api/v1/fieldops/client-portal/infrastructure')
+            ->assertOk()
+            ->json('data.0.terrains.0.structures.0.frames.0.positions.0');
+        $this->assertSame($a['luminaire']->id, $infrastructure['luminaire_id']);
+
+        $created = $this->withToken($tokenA)
+            ->postJson('/api/v1/fieldops/maintenance-requests', [
+                'maintainable_type' => Luminaire::class,
+                'maintainable_id' => $infrastructure['luminaire_id'],
+                'description' => 'CLA-276 portal report: luminaire is dark.',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'received');
+        $requestId = $created->json('data.id');
+
+        // The reporting portal sees the new request after its query refresh; client B sees neither list nor detail.
+        $this->withToken($tokenA)->getJson('/api/v1/fieldops/maintenance-requests')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $requestId]);
+        Auth::forgetGuards();
+        $this->withToken($tokenB)->getJson('/api/v1/fieldops/maintenance-requests')
+            ->assertOk()
+            ->assertJsonMissing(['id' => $requestId]);
+        Auth::forgetGuards();
+        $this->withToken($tokenB)->getJson("/api/v1/fieldops/maintenance-requests/{$requestId}")
+            ->assertForbidden();
+
+        Auth::forgetGuards();
+        $workOrderId = $this->withToken($adminToken)
+            ->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/convert", [
+                'assigned_employee_id' => $employee->id,
+            ])
+            ->assertOk()
+            ->json('work_order_id');
+
+        Auth::forgetGuards();
+        $workerToken = $worker->createToken('cla-276-worker')->plainTextToken;
+        $this->withToken($workerToken)->postJson("/api/v1/fieldops/maintenance-work-orders/{$workOrderId}/start")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'in_progress');
+        $this->withToken($workerToken)->postJson("/api/v1/fieldops/maintenance-work-orders/{$workOrderId}/submit", [
+            'solution_applied' => 'CLA-276 replacement and output verification.',
+        ])->assertOk()->assertJsonPath('data.status', 'awaiting_validation');
+
+        Auth::forgetGuards();
+        $this->withToken($adminToken)->postJson("/api/v1/fieldops/maintenance-work-orders/{$workOrderId}/validate")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed');
+
+        Auth::forgetGuards();
+        $this->withToken($tokenA)->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/confirm")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'closed');
+        $this->assertDatabaseHas('fo_maintenance_requests', [
+            'id' => $requestId,
+            'client_id' => $a['client']->id,
+            'reported_by_user_id' => $clientA->id,
+            'status' => 'closed',
+        ]);
     }
 
     public function test_electrical_board_and_guided_ai_intake_are_supported_without_ai_tenancy_authority(): void

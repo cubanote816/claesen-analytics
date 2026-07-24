@@ -95,6 +95,7 @@ class ClientPortalInfrastructureController extends Controller
                 'id' => $frame->id,
                 'type' => $frame->frameType?->name,
                 'positions' => $frame->luminaires->map(fn (Luminaire $luminaire): array => [
+                    'luminaire_id' => $luminaire->id,
                     'id' => $luminaire->luminaire_position_id,
                     'position' => $luminaire->frame_position,
                     'x' => $luminaire->position?->frame_x ?? $luminaire->frame_x,

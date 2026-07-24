@@ -38,6 +38,7 @@ class ClientPortalInfrastructureTest extends TestCase
             ->assertJsonPath('data.0.id', $allowed['complex']->id)
             ->assertJsonPath('data.0.terrains.0.id', $allowed['terrain']->id)
             ->assertJsonPath('data.0.terrains.0.structures.0.frames.0.positions.0.id', $allowed['luminaire']->luminaire_position_id)
+            ->assertJsonPath('data.0.terrains.0.structures.0.frames.0.positions.0.luminaire_id', $allowed['luminaire']->id)
             ->assertJsonMissing(['id' => $hidden['complex']->id])
             ->assertJsonMissingPath('data.0.client_id')
             ->assertJsonMissingPath('data.0.created_by')
