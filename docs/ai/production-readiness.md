@@ -277,10 +277,30 @@ curl -sI -H "Origin: https://client.claesen-verlichting.be" \
 - [ ] Login OAuth desde `https://client.claesen-verlichting.be` completa el flujo y la cookie de sesión persiste entre navegaciones (confirma `ResolveSessionCookieDomain` + `SANCTUM_STATEFUL_DOMAINS` en conjunto).
 - [ ] `VITE_DATA_MODE=api` y `VITE_API_BASE_URL=https://backend.claesen-verlichting.be` configurados en el build de producción de Claesen-Client (no el mock mode usado en dev/demos).
 
+### 6. Monitorización y alertas operacionales (`fieldops:check-request-alerts`)
+
+- [ ] Confirmar que el comando está en el scheduler: `php artisan schedule:list | grep check-request-alerts` (registrado hourly en `FieldOpsServiceProvider`, junto a `fieldops:generate-maintenance-work-orders`).
+- [ ] Confirmar que el scheduler de Laravel corre en el crontab del servidor (mismo requisito que cualquier otro módulo, ver "Checklist general de deploy" arriba) — sin esto, el comando nunca se ejecuta aunque esté registrado.
+
+**Qué vigila y qué hacer cuando salta una alerta** (notificación database-only a `admin`/`super_admin`, visible en la campanita de Filament):
+
+| Alerta | Condición | Acción esperada del backoffice |
+|---|---|---|
+| `no_first_response` | Solicitud en `received`/`in_review` sin `acknowledged_at`, más vieja que `FIELDOPS_REQUEST_ALERT_FIRST_RESPONSE_HOURS` (default 24h) | Revisar y responder la solicitud (o convertirla en orden) — el cliente lleva más de un día sin ninguna señal de que alguien la vio |
+| `awaiting_confirmation` | Solicitud `resolved` sin `confirmed_at`, más vieja que `FIELDOPS_REQUEST_ALERT_CONFIRMATION_WAIT_DAYS` (default 7 días) | Contactar al cliente para confirmar que el trabajo quedó resuelto, o investigar si el cliente no vio la notificación de resolución |
+
+- Ambas alertas se auto-resuelven solas en la siguiente corrida horaria una vez que la condición deja de cumplirse (primera respuesta registrada, o cliente confirma) — no requieren limpieza manual.
+- Una misma solicitud puede volver a alertar en un ciclo posterior (reapertura → nueva resolución → nueva espera de confirmación); la fila de `fo_maintenance_request_alerts` se reutiliza, no se acumula historial.
+- Verificación manual sin esperar al cron: `php artisan fieldops:check-request-alerts --dry-run` (no crea ni notifica, solo reporta cuántas alertarían).
+
+### Dashboard de métricas de ciclo de vida
+
+`MaintenanceRequestLifecycleWidget` (Filament, cabecera de **Service requests**) muestra en vivo, ventana móvil de 30 días: solicitudes recibidas, tiempo promedio a primera respuesta/asignación/resolución/confirmación, tasa de reapertura, y alertas abiertas. Sin tabla de rollup diario — el volumen de solicitudes de mantenimiento no lo justifica todavía (a diferencia de Safety, que sí purga eventos crudos). Si el volumen crece significativamente, revisar si conviene migrar a un patrón de agregación diaria como el de Safety.
+
 ### Pendiente de decisión (no bloquea este runbook, pero sí producción real)
 
 - Pipeline de CI/CD de Claesen-Client (mismo patrón que Website: build + sync automático en vez de `rsync` manual).
-- Monitorización/alertas y métricas de adopción (ítems finales del checklist de Fase 5, todavía sin empezar).
+- Métricas de adopción de producto vía `Modules/Analytics` (`app_events`) — Claesen-Client todavía no emite ningún evento, a diferencia del backoffice (ver regla de Analytics en `CLAUDE.md`); esto es un dominio distinto de las alertas operacionales de este runbook.
 
 ---
 

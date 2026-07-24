@@ -66,6 +66,7 @@ class FieldOpsServiceProvider extends ServiceProvider
             \Modules\FieldOps\Console\Commands\SyncClientsFromRelationsCommand::class,
             \Modules\FieldOps\Console\Commands\SyncComplexesFromRelationDeliveriesCommand::class,
             \Modules\FieldOps\Console\Commands\GenerateMaintenanceWorkOrdersCommand::class,
+            \Modules\FieldOps\Console\Commands\CheckMaintenanceRequestAlertsCommand::class,
         ]);
     }
 
@@ -74,6 +75,11 @@ class FieldOpsServiceProvider extends ServiceProvider
         $this->app->booted(function (): void {
             $this->app->make(Schedule::class)
                 ->command('fieldops:generate-maintenance-work-orders')
+                ->hourly()
+                ->withoutOverlapping();
+
+            $this->app->make(Schedule::class)
+                ->command('fieldops:check-request-alerts')
                 ->hourly()
                 ->withoutOverlapping();
         });

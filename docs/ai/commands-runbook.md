@@ -346,6 +346,22 @@ php artisan fieldops:generate-maintenance-work-orders
 - Programado cada hora con `withoutOverlapping()` desde `FieldOpsServiceProvider`.
 - No crea `FoMaintenanceRecord`; ese historial nace únicamente al validar/cerrar una orden ejecutada.
 
+### `fieldops:check-request-alerts`
+
+**Función:** Revisa solicitudes de mantenimiento de cliente contra los umbrales operacionales de Fase 5 — sin primera respuesta del backoffice (`no_first_response`) y resueltas sin confirmación del cliente (`awaiting_confirmation`) — y notifica a `admin`/`super_admin` vía notificación de base de datos.
+
+```bash
+php artisan fieldops:check-request-alerts --dry-run
+php artisan fieldops:check-request-alerts
+```
+
+**Notas:**
+- Umbrales en `config('fieldops.request_alerts')`: `FIELDOPS_REQUEST_ALERT_FIRST_RESPONSE_HOURS` (default 24h), `FIELDOPS_REQUEST_ALERT_CONFIRMATION_WAIT_DAYS` (default 7 días).
+- Idempotente vía `updateOrCreate` en la clave única `(maintenance_request_id, alert_type)` de `fo_maintenance_request_alerts` — no duplica ni renotifica mientras la alerta siga abierta.
+- Se auto-resuelve solo (marca `resolved_at`) en la corrida siguiente una vez que la condición deja de cumplirse; la misma fila se reutiliza si la solicitud vuelve a incumplir en un ciclo posterior (reapertura), por lo que sí puede volver a notificar.
+- Programado cada hora con `withoutOverlapping()` desde `FieldOpsServiceProvider`, junto a `fieldops:generate-maintenance-work-orders`.
+- Ver el runbook operacional completo (qué hacer con cada tipo de alerta) en `docs/ai/production-readiness.md`, sección "Claesen-Client".
+
 ---
 
 ## App (raíz)

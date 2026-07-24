@@ -97,4 +97,9 @@ class FoMaintenanceRequest extends Model implements HasMedia
     {
         return $this->belongsTo(User::class, 'cancelled_by_user_id');
     }
+
+    public function alerts()
+    {
+        return $this->hasMany(FoMaintenanceRequestAlert::class, 'maintenance_request_id');
+    }
 }
