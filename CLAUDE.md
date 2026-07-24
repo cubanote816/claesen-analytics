@@ -338,6 +338,8 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | CLA-267 | Planes de mantenimiento y órdenes de trabajo | ✅ Done — hardening del histórico y cutover de Claesen-Sport aprobados tras auditoría (`d7606bc` en la app de terreno) |
 | CLA-268 | Solicitudes de incidencia del cliente y respuesta backoffice | ✅ Done — `d0436df` (aplicación), `545b42e` (memoria), cierre Linear registrado |
 | CLA-275 | Fase 4 — Claesen-Client: portal PWA de mantenimiento | 🚧 En progreso — mockup interactivo en `/home/totti/Claesen-Client`, commit `9f2414b`; API real bloqueada hasta aprobación visual |
+| CLA-276 | Fase 5 — Validación integral y producción de Claesen-Client | 🚧 En progreso — E2E de `luminaire_id` (backend `3680602`), refactor de Claesen-Client en componentes testeables + 52 tests nuevos (frontend `79b11f7`/`c60e06b`). Pendiente: decisión de negocio sobre cancelación (no implementada), accesibilidad WCAG 2.2 AA, infraestructura de producción |
+| CLA-277 | Pines de marcador para Structure Types (portado de CLA-269/270) | ✅ Done (`bd747ba`) — `StructurePinCatalog`, selector visual en Catalogs, marcador real en mapa de `StructureResource` |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
 **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.

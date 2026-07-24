@@ -1,9 +1,27 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-22 — **CLA-274 Done** (commit `479810c`, fix `[object Object]` en Maintenance Types/Structure/Luminaire/ElectricalBoard + helper text de code corregido); CLA-273/272/271/270/269/266 permanecen Done.
+> Última actualización: 2026-07-24 — CLA-277 Done (backend `bd747ba`, pines de Structure Types); CLA-276 avanzó con el E2E de luminaire_id (backend `3680602`) y el refactor de Claesen-Client en componentes testeables (frontend `79b11f7` + `c60e06b`).
 
 > **Programa activo de mantenimiento:** CLA-268 y CLA-275 están Done. La Fase 5 de validación integral y producción queda pendiente. Fuente canónica: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-24 — CLA-277: pines de Structure Types (Done, backend `bd747ba`)
+
+- Portó el patrón de pines de terreno (CLA-269/270) a `fo_structure_types`: columnas `code`/`pin_color`, `StructurePinCatalog` (fuente única de verdad, mismo patrón que `TerrainPinCatalog`), selector visual en `StructureTypeResource` (Catalogs) con normalización `''` → `null` para "Generic" (evita violar el unique index), y renderizado del marcador real en el mapa de `StructureResource` (mismo bug de CLA-272: el map-panel solo dibuja el ícono si `structureTypeCode`/`structureTypeColor` llegan en el payload).
+- `StructureTypeSeeder` pasó de `firstOrCreate` a `updateOrCreate` para poder backfillear `code`/`pin_color` en filas preexistentes al re-correrlo.
+- Tests: `StructureTypeFilamentTest` (6), `StructurePinCatalogTest` (4 unit), `StructureFilamentTest` (+2 casos de mapa) — **17/17, 66 aserciones**.
+- Se commiteó por separado del trabajo de CLA-276 que convivía en el mismo working tree (regla de no mezclar cambios de tickets distintos).
+
+### Sesión 2026-07-24 — CLA-276: E2E de luminaire_id + refactor Claesen-Client (avanza, no cierra Fase 5)
+
+- **Backend E2E** (`3680602`): `ClientPortalInfrastructureTest` ahora afirma que `GET /client-portal/infrastructure` expone `luminaire_id` por posición; `MaintenanceRequestTest` extrae ese `luminaire_id` real de la respuesta del endpoint (en vez de asumir el id del fixture) antes de crear la solicitud — replica exactamente lo que hace `portal-data.ts` en el frontend. **12/12, 104 aserciones.**
+- **Frontend — wiring pendiente cerrado** (`79b11f7`): `Position.luminaireId`/`AssetContext.maintainableId` conectados de punta a punta; `portalData.createRequest` implementado (POST real en modo `api`).
+- **Frontend — refactor en componentes testeables** (`c60e06b`, con luz verde explícita del usuario para refactorizar todo y agregar todo el tooling necesario): `App.tsx` (1018 líneas, sin descomponer) se partió en un componente por archivo bajo `src/components/{layout,dashboard,infrastructure,requests,notifications,report}/`, hooks compartidos en `src/hooks/usePortalQueries.ts`, tipos de navegación en `src/navigation.ts`. Se instaló el toolchain completo (no existía ninguno): Vitest + Testing Library + jsdom. **52 tests nuevos en 17 archivos** (mapeo API/mock de `portal-data.ts`, caché por usuario de los hooks, un archivo por componente, integración completa de `App.tsx` con el flujo de reporte real). Build, lint y suite completa en verde.
+- **Bug real encontrado y corregido durante el refactor:** `Notifications` consultaba `['portal', portalMode, 'requests']` sin `cacheScope` — a diferencia de todo el resto de consumidores de `requests`, que sí escopan por sesión — es decir, su entrada de caché podía compartirse entre usuarios en vez de aislarse por sesión. Se corrigió reusando el mismo `useScopedRequests(cacheScope)` que ya usa el resto de la app.
+- **No verificado en navegador real esta sesión** (sin herramienta de browser disponible) — la validación fue build + lint + 52 tests automatizados, no inspección visual manual.
+- Checklist de Fase 5 revisado contra el roadmap (`docs/ai/fieldops-maintenance-roadmap.md:207-218`): BOLA, tests backend de mensajes/adjuntos/notas/transiciones, E2E completo y confirmación/reapertura ya cubiertos; **cancelación no existe como feature** (gap de producto, no solo de tests — pendiente de decisión de negocio); accesibilidad WCAG 2.2 AA, infraestructura de producción (DNS/TLS/CSP/CORS/Sanctum) y monitorización/métricas siguen sin empezar.
+- Próximo paso exacto: decidir con el usuario si cancelación entra en alcance de Fase 5 antes de seguir con accesibilidad o infraestructura de producción.
+- No cerrar CLA-276 ni preparar producción todavía.
 
 ### Sesión 2026-07-23 — CLA-276: validación integral en curso
 
