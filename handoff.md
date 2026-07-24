@@ -1,9 +1,18 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-24 — CLA-277 Done (backend `bd747ba`, pines de Structure Types); CLA-276 sumó cancelación de solicitudes (backend `cb33822`, frontend `3e9893e`) y auditoría WCAG 2.2 AA (frontend `5fde0c0`), además del E2E de luminaire_id y el refactor de Claesen-Client en componentes testeables.
+> Última actualización: 2026-07-24 — CLA-277 Done (backend `bd747ba`, pines de Structure Types); CLA-276 sumó cancelación de solicitudes (backend `cb33822`, frontend `3e9893e`), auditoría WCAG 2.2 AA (frontend `5fde0c0`) y artefactos/runbook de infraestructura de producción (backend `03660ae`), además del E2E de luminaire_id y el refactor de Claesen-Client en componentes testeables.
 
 > **Programa activo de mantenimiento:** CLA-268 y CLA-275 están Done. La Fase 5 de validación integral y producción queda pendiente. Fuente canónica: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-24 — CLA-276: artefactos e infraestructura de producción para Claesen-Client (backend `03660ae`)
+
+**Contexto:** último ítem tocable del checklist de Fase 5 antes de monitorización/métricas. A diferencia de las sesiones anteriores, esto es infraestructura real (DNS, TLS, nginx en `sbapu03`, `.env` en `prod-priv-01`) — sin acceso SSH ni de DNS desde este checkout. El usuario decidió el alcance: preparar artefactos + runbook, sin ejecutar nada en vivo.
+
+- **Hallazgo de exploración:** el hostname objetivo `client.claesen-verlichting.be` ya estaba decidido en `docs/ai/known-risks.md`/roadmap pero sin provisionar. El backend ya está listo sin cambios de código: `CLIENT_PORTAL_URL` es env-driven en `config/cors.php`/`config/sanctum.php`, y `ResolveSessionCookieDomain` ya es agnóstico de subdominio (`*.claesen-verlichting.be` vía Origin/Referer). Solo faltaba: DNS, TLS, el vhost nginx, la entrada CORS, y setear la env var.
+- **Artefactos preparados:** `infrastructure/nginx/sbapu03/client.claesen-verlichting.be.conf` (vhost SPA estático, sin proxy de API — el SPA llama a `backend.claesen-verlichting.be` directo cross-origin), entrada nueva en `cors-map.conf`, sección nueva en `docs/ai/production-readiness.md` con el runbook exacto (registro DNS, `certbot`, aplicar nginx, `.env` + `reload-config.sh`, verificación funcional vía `curl` + login OAuth real), y comentario actualizado en `.env.example`.
+- **Pendiente de decisión, fuera de este runbook:** pipeline de CI/CD para Claesen-Client (hoy no existe ninguno, a diferencia de Website) y monitorización/métricas — últimos ítems del checklist de Fase 5.
+- **Próximo paso exacto:** alguien con acceso a `sbapu03`/`prod-priv-01`/DNS debe ejecutar el runbook de `docs/ai/production-readiness.md`. No cerrar CLA-276 hasta confirmar esa ejecución y decidir el pipeline de CI/CD + monitorización.
 
 ### Sesión 2026-07-24 — CLA-276: auditoría y fixes WCAG 2.2 AA en Claesen-Client (frontend `5fde0c0`)
 
