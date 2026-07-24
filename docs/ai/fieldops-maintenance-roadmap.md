@@ -1,7 +1,7 @@
 # Roadmap maestro de mantenimiento FieldOps
 
 > Fuente canónica de continuidad para el programa de mantenimiento y el futuro portal Claesen-Client.
-> Última actualización: 2026-07-23 — CLA-268 Done; CLA-275 tiene una segunda revisión visual de infraestructura pendiente de aprobación.
+> Última actualización: 2026-07-24 — CLA-276 Done (Fase 5 cerrada en Linear); todo el programa de mantenimiento (Fases 0-5) tiene su código implementado y verificado. Queda como trabajo futuro, fuera de este programa: aplicar el runbook de infraestructura de producción en servidores reales y decidir el pipeline de CI/CD de Claesen-Client (ver `docs/ai/production-readiness.md`).
 
 ## Cómo usar este documento
 
@@ -64,7 +64,7 @@ La conversión `Solicitud → Orden` es idempotente mediante `work_order_id`. Ce
 | Fase 2 — Asignaciones y notificaciones | CLA-271 | ✅ Done | Asignación ejecutable, timeline append-only y notificaciones operacionales |
 | Fase 3 — Solicitudes de clientes | CLA-268 | ✅ Done | Implementación `d0436df`, memoria `545b42e`, cierre Linear registrado |
 | Fase 4 — Portal React Claesen-Client | CLA-275 | ✅ Done | Portal read-only, traducciones NL/EN/FR/DE y aislamiento validado |
-| Fase 5 — E2E y producción | CLA-276 | 🚧 En progreso | Validación BOLA/E2E, hardening de producción y observabilidad |
+| Fase 5 — E2E y producción | CLA-276 | ✅ Done | Validación BOLA/E2E, cancelación, WCAG 2.2 AA, alertas/métricas; infraestructura real de producción preparada pero sin aplicar (ver Cierre abajo) |
 
 ## Fases cerradas y evidencia
 
@@ -216,26 +216,42 @@ El hostname objetivo del plan es `client.claesen-verlichting.be`. Antes de deplo
 - Monitorización, alertas y runbooks operacionales.
 - Métricas de recepción, asignación, primera respuesta, resolución, confirmación y reapertura.
 
+### Entregado
+
+- BOLA cruzando ≥2 clientes y usuario sin membresía, mensajes/adjuntos/notas/transiciones — cubierto por `MaintenanceRequestTest`/`ClientPortalInfrastructureTest` (backend, ya existente desde CLA-268 + extendido este ciclo).
+- Cancelación de solicitudes (cliente o backoffice, pre-conversión), con `EnforceFieldOpsTenantAccess` corregido (le faltaba la ruta de cancelación en su allowlist fail-closed) — backend `cb33822`, UI `3e9893e`.
+- Refactor de Claesen-Client en componentes aislados y testeables + toolchain Vitest/Testing Library/Playwright (no existía ninguno) — `c60e06b`/`f75aa80`, 52+ tests, caché por usuario verificada.
+- E2E cliente → backoffice → validación → cliente: `luminaire_id` real extraído del endpoint de infraestructura (no asumido de un fixture) en el flujo completo de reporte — backend `3680602`, frontend `79b11f7`. Nota: es un E2E de integración a nivel backend/Playwright sobre el portal, no una prueba cruzando literalmente los tres repos (Claesen-Client + backoffice + Claesen-Sport) en un solo test de navegador.
+- Auditoría WCAG 2.2 AA con `@axe-core/playwright`: contraste, `aria-label` faltante, `<html lang>` sin sincronizar y foco de diálogos sin gestionar (hallazgo manual, no detectable por axe) — `5fde0c0`.
+- Alertas operacionales (`no_first_response`, `awaiting_confirmation`) + widget de métricas de ciclo de vida (recepción, primera respuesta, asignación, resolución, confirmación, tasa de reapertura) — `26110b5`.
+- Artefactos de infraestructura de producción para `client.claesen-verlichting.be` (vhost nginx, `cors-map.conf`, runbook completo en `docs/ai/production-readiness.md`) — `03660ae`.
+
+### Cierre
+
+- CLA-276 se movió a Done en Linear el 2026-07-24, por decisión explícita del usuario, con comentario listando los 9 commits (backend + frontend).
+- **Pendiente real, fuera de este ticket:** el runbook de infraestructura está preparado pero no aplicado — requiere acceso SSH a `sbapu03`/`prod-priv-01` y al proveedor de DNS, no disponibles durante el desarrollo. El pipeline de CI/CD de Claesen-Client tampoco existe todavía (a diferencia de Website). Ninguno de los dos bloquea el cierre de CLA-276 porque son ejecución operativa, no código; quedan documentados en `docs/ai/production-readiness.md` para cuando alguien con el acceso correspondiente los resuelva.
+
 ## Bloqueos y riesgos vigentes
 
 | Riesgo o bloqueo | Estado / mitigación |
 |---|---|
-| Mockup de Claesen-Client pendiente de aprobación visual | Revisar el build `9f2414b`; no conectar todavía la API real |
-| Suite FieldOps contaminada por `RoleAlreadyExists` | Ejecutar focales en limpio y suite amplia serial; no mezclar el arreglo del harness con CLA-268 |
+| Suite FieldOps contaminada por `RoleAlreadyExists` | Ejecutar focales en limpio y suite amplia serial; no mezclar el arreglo del harness con ningún ticket de dominio |
 | Worktree compartido con cambios concurrentes | No stagear por glob; revisar `git diff --name-only` y usar paths explícitos |
-| Infraestructura del hostname no provisionada | Verificar `client.claesen-verlichting.be` durante Fase 5 |
+| Infraestructura de `client.claesen-verlichting.be` preparada pero no aplicada | Requiere acceso SSH real a `sbapu03`/`prod-priv-01` y al DNS; runbook completo en `docs/ai/production-readiness.md`, artefactos en `infrastructure/nginx/sbapu03/` |
+| Sin pipeline de CI/CD para Claesen-Client | Hoy el build se sincroniza a mano (`rsync`); decidir si se construye uno equivalente al de Website (GitHub Actions + webhook) |
 | IA de intake puede producir datos incorrectos | Tratarla como asistencia; validar entradas y nunca usarla como autoridad de tenancy |
 
 ## Orden de ejecución obligatorio
 
 1. Mantener este roadmap y sus enlaces canónicos actualizados.
-2. Revisar y aprobar visualmente el mockup de CLA-275.
-3. Integrar el portal aprobado con la API tenant-safe, Sanctum y streaming privado.
-4. Ejecutar pruebas React/accesibilidad, E2E e infraestructura de Fase 5.
+2. ~~Revisar y aprobar visualmente el mockup de CLA-275~~ — hecho.
+3. ~~Integrar el portal aprobado con la API tenant-safe, Sanctum y streaming privado~~ — hecho.
+4. ~~Ejecutar pruebas React/accesibilidad, E2E e infraestructura de Fase 5~~ — hecho (código); infraestructura real sin aplicar, ver paso 5.
+5. Aplicar el runbook de producción (`docs/ai/production-readiness.md`) en `sbapu03`/`prod-priv-01` y decidir el pipeline de CI/CD de Claesen-Client — el programa de mantenimiento (Fases 0-5) ya no bloquea esto; es trabajo operativo independiente.
 
 ## Próximo paso exacto
 
-Revisar el mockup de CLA-275 en `/home/totti/Claesen-Client` y recibir aprobación visual explícita. Tras ese gate, integrar las pantallas aprobadas con la API real; no adelantar ese paso.
+Todo el código del programa de mantenimiento (Fases 0-5, CLA-267/266/271/268/275/276) está implementado, testeado y cerrado en Linear. El único trabajo pendiente es operativo, no de desarrollo: alguien con acceso SSH a `sbapu03`/`prod-priv-01` y al DNS debe ejecutar el runbook de `docs/ai/production-readiness.md` (sección Claesen-Client) para provisionar `client.claesen-verlichting.be`, y decidir separadamente si Claesen-Client necesita un pipeline de CI/CD propio.
 
 ## Registro de continuidad
 
@@ -246,4 +262,10 @@ Revisar el mockup de CLA-275 en `/home/totti/Claesen-Client` y recibir aprobaci�
 | 2026-07-22 | CLA-271 | Fase 2 cerrada | Backend `91380dd`; Claesen-Sport `2ce9dcf` |
 | 2026-07-22 | CLA-268 | Memoria maestra creada | `49fde29` |
 | 2026-07-22 | CLA-268 | Dominio completo implementado y validado | `d0436df`, `545b42e` |
+| 2026-07-24 | CLA-276 | E2E de `luminaire_id` + refactor de Claesen-Client en componentes testeables | Backend `3680602`; frontend `79b11f7`, `c60e06b`, `f75aa80` |
+| 2026-07-24 | CLA-276 | Cancelación de solicitudes cliente/backoffice | Backend `cb33822`; frontend `3e9893e` |
+| 2026-07-24 | CLA-276 | Auditoría y fixes WCAG 2.2 AA | Frontend `5fde0c0` |
+| 2026-07-24 | CLA-276 | Artefactos + runbook de infraestructura de producción (sin aplicar) | Backend `03660ae` |
+| 2026-07-24 | CLA-276 | Alertas operacionales + widget de métricas de ciclo de vida | Backend `26110b5` |
+| 2026-07-24 | CLA-276 | Fase 5 cerrada en Linear (Done) | — |
 | 2026-07-22 | CLA-275 | Ticket creado; repositorio y mockup interactivo iniciados | `9f2414b` |
