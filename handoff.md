@@ -1,9 +1,9 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-24 — CLA-277 Done (backend `bd747ba`, pines de Structure Types); CLA-276 cerró el último ítem tocable del checklist de Fase 5 con alertas operacionales + métricas de ciclo de vida (backend `26110b5`), sumado a cancelación de solicitudes (`cb33822`/`3e9893e`), auditoría WCAG 2.2 AA (`5fde0c0`), artefactos/runbook de infraestructura de producción (`03660ae`), el E2E de luminaire_id y el refactor de Claesen-Client en componentes testeables.
+> Última actualización: 2026-07-24 — CLA-277 Done (backend `bd747ba`, pines de Structure Types); **CLA-276 Done en Linear** (decisión explícita del usuario) con todo su código implementado y verificado: alertas operacionales + métricas de ciclo de vida (`26110b5`), cancelación de solicitudes (`cb33822`/`3e9893e`), auditoría WCAG 2.2 AA (`5fde0c0`), artefactos/runbook de infraestructura de producción (`03660ae`), el E2E de luminaire_id y el refactor de Claesen-Client en componentes testeables.
 
-> **Programa activo de mantenimiento:** CLA-268 y CLA-275 están Done. CLA-276 tiene todo su código implementado y verificado; queda pendiente aplicar el runbook de infraestructura en servidores reales y decidir CI/CD antes de cerrar el ticket en Linear. Fuente canónica: `docs/ai/fieldops-maintenance-roadmap.md`.
+> **Programa activo de mantenimiento:** CLA-268, CLA-275 y CLA-276 están Done. Aplicar el runbook de infraestructura de producción en servidores reales (`sbapu03`/`prod-priv-01`) y decidir el pipeline de CI/CD de Claesen-Client quedan como trabajo futuro, fuera de CLA-276 — ver `docs/ai/production-readiness.md`. Fuente canónica del roadmap: `docs/ai/fieldops-maintenance-roadmap.md`.
 
 ### Sesión 2026-07-24 — CLA-276: alertas operacionales + métricas de ciclo de vida (backend `26110b5`)
 
