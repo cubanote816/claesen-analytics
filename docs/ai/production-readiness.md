@@ -208,6 +208,82 @@ php artisan performance:populate-project-insights --limit=1
 
 ---
 
+## Checklist específico — Claesen-Client (portal cliente, FieldOps Fase 5)
+
+> Hostname objetivo: `client.claesen-verlichting.be` (documentado en `docs/ai/known-risks.md` y `docs/ai/fieldops-maintenance-roadmap.md`, todavía sin provisionar). Este checklist requiere acceso SSH a `sbapu03` (nginx edge) y `prod-priv-01` (backend), y acceso al proveedor de DNS — ninguno disponible desde un checkout de este repo. Los artefactos de `infrastructure/nginx/sbapu03/client.claesen-verlichting.be.conf` y `cors-map.conf` ya están preparados en el repo; este runbook es la guía para aplicarlos.
+
+### 1. DNS
+
+- [ ] Crear registro `A`/`AAAA` (o `CNAME`) para `client.claesen-verlichting.be` apuntando a la IP pública de `sbapu03`, igual que `service.`/`safety.`/`fieldops.claesen-verlichting.be`.
+- [ ] Confirmar propagación: `dig +short client.claesen-verlichting.be`.
+
+### 2. TLS (Let's Encrypt, en `sbapu03`)
+
+```bash
+# Requiere que el DNS ya resuelva y el vhost HTTP (puerto 80) del paso 3 exista
+# para servir el ACME challenge en /.well-known/acme-challenge/.
+sudo certbot certonly --nginx -d client.claesen-verlichting.be
+```
+
+### 3. Nginx (en `sbapu03`)
+
+```bash
+# Copiar el vhost preparado en este repo:
+sudo cp infrastructure/nginx/sbapu03/client.claesen-verlichting.be.conf /etc/nginx/sites-available/
+sudo ln -s /etc/nginx/sites-available/client.claesen-verlichting.be.conf /etc/nginx/sites-enabled/
+
+# Aplicar la entrada nueva de cors-map.conf (agrega client.claesen-verlichting.be
+# al allowlist compartido con service./safety./fieldops.claesen-verlichting.be):
+sudo cp infrastructure/nginx/sbapu03/cors-map.conf /etc/nginx/conf.d/  # o la ruta real del include existente
+
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+- [ ] Crear el directorio de destino del build estático: `sudo mkdir -p /var/www/client.claesen-verlichting.be/public`.
+- [ ] **No existe todavía pipeline de CI/CD para Claesen-Client** (a diferencia del módulo Website, que sí tiene GitHub Actions + webhook). Hasta que se decida uno, desplegar el build manualmente:
+  ```bash
+  # Desde /home/totti/Claesen-Client
+  npm run build
+  rsync -avz --delete dist/ usuario@sbapu03:/var/www/client.claesen-verlichting.be/public/
+  ```
+
+### 4. Backend (`.env` en `prod-priv-01`, vía `shared/.env`)
+
+```bash
+CLIENT_PORTAL_URL=https://client.claesen-verlichting.be
+# CLIENT_PORTAL_URL se agrega automáticamente a SANCTUM_STATEFUL_DOMAINS y a
+# config/cors.php — no hace falta listarlo también a mano en SANCTUM_STATEFUL_DOMAINS.
+```
+
+Aplicar sin un deploy completo (regla de `CLAUDE.md`, nunca solo `config:cache` a mano):
+
+```bash
+infrastructure/scripts/reload-config.sh
+```
+
+- [ ] **No se necesita tocar** `Modules/Core/Http/Middleware/ResolveSessionCookieDomain.php` — ya es agnóstico de subdominio (`*.claesen-verlichting.be`, resuelve por Origin/Referer, no por Host).
+
+### 5. Verificación funcional
+
+```bash
+# TLS y vhost sirven el SPA:
+curl -sI https://client.claesen-verlichting.be/ | head -5
+
+# CORS: el origin del portal debe reflejarse (no la lista default vacía):
+curl -sI -H "Origin: https://client.claesen-verlichting.be" \
+  https://backend.claesen-verlichting.be/api/v1/me | grep -i access-control-allow-origin
+```
+
+- [ ] Login OAuth desde `https://client.claesen-verlichting.be` completa el flujo y la cookie de sesión persiste entre navegaciones (confirma `ResolveSessionCookieDomain` + `SANCTUM_STATEFUL_DOMAINS` en conjunto).
+- [ ] `VITE_DATA_MODE=api` y `VITE_API_BASE_URL=https://backend.claesen-verlichting.be` configurados en el build de producción de Claesen-Client (no el mock mode usado en dev/demos).
+
+### Pendiente de decisión (no bloquea este runbook, pero sí producción real)
+
+- Pipeline de CI/CD de Claesen-Client (mismo patrón que Website: build + sync automático en vez de `rsync` manual).
+- Monitorización/alertas y métricas de adopción (ítems finales del checklist de Fase 5, todavía sin empezar).
+
+---
+
 ## Rollback
 
 Si el deploy falla después de migrar:
