@@ -7,12 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Schema;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Traits\HasFieldOpsMedia;
 use Modules\Intelligence\Traits\HasAiTranslations;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\Translatable\HasTranslations;
 
-class Luminaire extends Model
+class Luminaire extends Model implements HasMedia
 {
-    use HasAiTranslations, HasFactory, HasTranslations, SoftDeletes;
+    use HasAiTranslations, HasFactory, HasTranslations, InteractsWithMedia, HasFieldOpsMedia, SoftDeletes {
+        HasFieldOpsMedia::registerMediaCollections insteadof InteractsWithMedia;
+        HasFieldOpsMedia::registerMediaConversions insteadof InteractsWithMedia;
+    }
 
     protected static function newFactory()
     {

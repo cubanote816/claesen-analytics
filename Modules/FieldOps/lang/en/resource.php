@@ -229,6 +229,13 @@ return [
             'view_history' => 'View history',
             'back_to_luminaire' => 'Back to luminaire',
             'replace' => 'Replace luminaire',
+            'change_type' => 'Change product',
+        ],
+        'type_picker' => [
+            'search_placeholder' => 'Search by name, model or subgroup…',
+            'filter_all' => 'All',
+            'no_results' => 'No products match your search.',
+            'locked_hint' => 'To replace this product, use "Replace luminaire" on the detail page.',
         ],
         'replacement' => [
             'title' => 'Replace installed luminaire',
@@ -264,8 +271,14 @@ return [
         'fields' => [
             'luminaire_type' => 'Luminaire type',
             'subgroup' => 'Subgroup',
+            'complex' => 'Complex',
+            'terrain' => 'Terrain',
+            'structure' => 'Structure',
             'frame' => 'Frame',
             'frame_position' => 'Position in frame',
+            'frame_position_free' => 'No positions are taken on this frame yet.',
+            'frame_position_occupied' => 'Positions already in use on this frame: :positions.',
+            'frame_position_conflict' => 'This position is already in use on this frame. To replace the installed luminaire, use "Replace luminaire" instead.',
             'serial_number' => 'Serial number',
             'frame_x' => 'X position',
             'frame_y' => 'Y position',
@@ -607,9 +620,12 @@ return [
     ],
 
     'media' => [
-        'section_label' => 'Photos & documents',
+        'section_label' => 'Photos, videos & documents',
         'photos' => 'Photos',
+        'videos' => 'Videos',
         'documents' => 'Documents (PDF)',
         'no_photos' => 'No photos uploaded yet.',
+        'no_videos' => 'No videos uploaded yet.',
+        'no_documents' => 'No documents uploaded yet.',
     ],
 ];

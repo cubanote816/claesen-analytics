@@ -24,4 +24,14 @@ trait HasMediaPayload
             'url'  => url("/api/v1/fieldops/media/{$m->id}"),
         ]);
     }
+
+    protected function videosPayload(): \Illuminate\Support\Collection
+    {
+        return $this->getMedia('videos')->map(fn ($m) => [
+            'id'        => $m->id,
+            'name'      => $m->file_name,
+            'mime_type' => $m->mime_type,
+            'url'       => url("/api/v1/fieldops/media/{$m->id}"),
+        ]);
+    }
 }

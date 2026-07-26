@@ -229,6 +229,13 @@ return [
             'view_history' => 'Geschiedenis bekijken',
             'back_to_luminaire' => 'Terug naar armatuur',
             'replace' => 'Armatuur vervangen',
+            'change_type' => 'Product wijzigen',
+        ],
+        'type_picker' => [
+            'search_placeholder' => 'Zoek op naam, model of subgroep…',
+            'filter_all' => 'Alle',
+            'no_results' => 'Geen producten komen overeen met je zoekopdracht.',
+            'locked_hint' => 'Gebruik "Armatuur vervangen" op de detailpagina om dit product te wijzigen.',
         ],
         'replacement' => [
             'title' => 'Geïnstalleerd armatuur vervangen',
@@ -264,8 +271,14 @@ return [
         'fields' => [
             'luminaire_type' => 'Armatuurtype',
             'subgroup' => 'Subgroep',
+            'complex' => 'Complex',
+            'terrain' => 'Terrein',
+            'structure' => 'Structuur',
             'frame' => 'Frame',
             'frame_position' => 'Positie in frame',
+            'frame_position_free' => 'Er zijn nog geen posities bezet op dit frame.',
+            'frame_position_occupied' => 'Posities die al bezet zijn op dit frame: :positions.',
+            'frame_position_conflict' => 'Deze positie is al bezet op dit frame. Gebruik "Armatuur vervangen" om het geïnstalleerde armatuur te vervangen.',
             'serial_number' => 'Serienummer',
             'frame_x' => 'X-positie',
             'frame_y' => 'Y-positie',
@@ -607,9 +620,12 @@ return [
     ],
 
     'media' => [
-        'section_label' => "Foto's & documenten",
+        'section_label' => "Foto's, video's & documenten",
         'photos' => "Foto's",
+        'videos' => "Video's",
         'documents' => 'Documenten (PDF)',
         'no_photos' => "Nog geen foto's geüpload.",
+        'no_videos' => "Nog geen video's geüpload.",
+        'no_documents' => 'Nog geen documenten geüpload.',
     ],
 ];

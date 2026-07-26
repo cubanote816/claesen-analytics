@@ -137,9 +137,9 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/luminaire-types', [CatalogController::class, 'luminaireTypes']);
         Route::get('/luminaire-subgroups', [CatalogController::class, 'luminaireSubgroups']);
 
-        // Media (photos/documents attached to complexes, terrains, structures, electrical boards)
+        // Media (photos/videos/documents attached to complexes, terrains, structures, electrical boards, luminaires)
         Route::post('/{modelType}/{modelId}/media', [FieldOpsMediaController::class, 'store'])
-            ->where('modelType', 'complexes|terrains|structures|electrical-boards')
+            ->where('modelType', 'complexes|terrains|structures|electrical-boards|luminaires')
             ->where('modelId', '[0-9]+');
         Route::get('/media/{media}', [FieldOpsMediaController::class, 'show']);
         Route::delete('/media/{media}', [FieldOpsMediaController::class, 'destroy']);

@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\Complexes\Pages\ViewComplex;
+use Modules\FieldOps\Filament\Resources\Complexes\RelationManagers\TerrainsRelationManager;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
@@ -79,6 +84,33 @@ class ComplexFilamentTest extends TestCase
             ->assertSee("terrainTypeColor{$q}:{$q}#4c8c4a", false);
     }
 
+    // Reproduces a real gap from manual QA: the documents section only ever showed a
+    // count, never an actual link — fixed to render a download list (shared partial,
+    // Modules/FieldOps/resources/views/filament/infolists/document-list.blade.php)
+    // routed through the same session-authenticated fieldops.admin.media.show route
+    // used by the photo/video galleries.
+    public function test_complex_view_renders_a_document_download_link(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+        // UploadedFile::fake()->create() produces dummy bytes, not real PDF content —
+        // Media Library's acceptsMimeTypes() sniffs actual content and rejects it.
+        $path = tempnam(sys_get_temp_dir(), 'pdf');
+        file_put_contents($path, "%PDF-1.4\n%%EOF");
+        $complex->addMedia(new UploadedFile($path, 'plan.pdf', 'application/pdf', null, true))
+            ->toMediaCollection('documents');
+        $media = $complex->fresh()->getMedia('documents')->first();
+
+        $this->get("/complexes/{$complex->id}")
+            ->assertOk()
+            ->assertSee('plan.pdf')
+            ->assertSee(route('fieldops.admin.media.show', $media), false);
+    }
+
     public function test_complex_without_client_or_coordinates_renders(): void
     {
         $user = User::factory()->create();
@@ -94,7 +126,17 @@ class ComplexFilamentTest extends TestCase
         $this->get("/complexes/{$complex->id}")
             ->assertOk()
             ->assertSee('data-fieldops-map-panel', false)
-            ->assertSee(__('fieldops::resource.complexes.no_coordinates'))
-            ->assertSee(__('fieldops::resource.terrains.actions.create'));
+            ->assertSee(__('fieldops::resource.complexes.no_coordinates'));
+
+        // TerrainsRelationManager is a genuinely lazy-loaded Livewire component
+        // (x-intersect) on the ViewComplex page — its table/header actions never
+        // appear in the initial GET response at all, only after a follow-up AJAX
+        // call the browser's IntersectionObserver triggers. This assertion never
+        // could have passed via $this->get(...); testing the component directly
+        // (Filament's own supported pattern for relation managers) is the fix.
+        Livewire::test(TerrainsRelationManager::class, [
+            'ownerRecord' => $complex,
+            'pageClass' => ViewComplex::class,
+        ])->assertSee(__('fieldops::resource.terrains.actions.create'));
     }
 }

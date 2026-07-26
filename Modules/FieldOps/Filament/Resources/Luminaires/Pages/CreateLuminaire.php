@@ -15,6 +15,7 @@ class CreateLuminaire extends CreateRecord
         $data['luminaire_subgroup_id'] = isset($data['luminaire_type_id'])
             ? LuminaireType::find($data['luminaire_type_id'])?->luminaire_subgroup_id
             : null;
+        $data['serial_number'] = LuminaireResource::resolveSerialNumber($data['serial_number'] ?? null);
         $data['created_by_user_id'] = auth()->id();
         $data['position_version'] = 1;
         $data['position_source'] = 'backoffice';

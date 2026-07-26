@@ -13,6 +13,7 @@ use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class FieldOpsMediaTest extends TestCase
@@ -209,6 +210,53 @@ class FieldOpsMediaTest extends TestCase
         [, $token] = $this->user();
 
         $this->withToken($token)->getJson('/api/v1/fieldops/media/99999')->assertStatus(404);
+    }
+
+    // ── admin web route (Filament backoffice galleries) ─────────────────────────
+    // Reproduces a real bug found via manual QA: the infolist gallery blades used
+    // to call $media->getUrl() directly, which 404s for the private 'local' disk
+    // (no public URL mapping). These assert the session-authenticated route the
+    // blades were fixed to use instead.
+
+    public function test_admin_media_route_streams_the_file_for_panel_users(): void
+    {
+        $user = UserFactory::new()->create();
+        Role::findOrCreate('super_admin', 'web');
+        $user->assignRole('super_admin');
+
+        $complex = Complex::factory()->create();
+        $complex->addMedia(UploadedFile::fake()->image('photo.jpg'))->toMediaCollection('photos');
+        $media = $complex->fresh()->getMedia('photos')->first();
+
+        $this->actingAs($user)->get("/fieldops/media/{$media->id}")
+            ->assertStatus(200)
+            ->assertHeader('content-type', 'image/jpeg');
+    }
+
+    public function test_admin_media_route_requires_authentication(): void
+    {
+        $complex = Complex::factory()->create();
+        $complex->addMedia(UploadedFile::fake()->image('photo.jpg'))->toMediaCollection('photos');
+        $media = $complex->fresh()->getMedia('photos')->first();
+
+        $this->get("/fieldops/media/{$media->id}")->assertRedirect();
+    }
+
+    // Guards against reintroducing the project_manager/client panel bypass from
+    // CLA-205: `auth` alone isn't enough here, since it doesn't know about
+    // hasPanelAccess() — only EnsurePanelAccess does.
+    public function test_admin_media_route_blocks_users_without_panel_access(): void
+    {
+        $user = UserFactory::new()->create();
+        Role::findOrCreate('client', 'web');
+        $user->assignRole('client');
+
+        $complex = Complex::factory()->create();
+        $complex->addMedia(UploadedFile::fake()->image('photo.jpg'))->toMediaCollection('photos');
+        $media = $complex->fresh()->getMedia('photos')->first();
+
+        $this->actingAs($user)->get("/fieldops/media/{$media->id}")
+            ->assertRedirect(route('auth.no-access'));
     }
 
     // ── destroy ───────────────────────────────────────────────────────────────

@@ -13,6 +13,10 @@ trait HasFieldOpsMedia
         $this->addMediaCollection('documents')
             ->useDisk('local')
             ->acceptsMimeTypes(['application/pdf']);
+
+        $this->addMediaCollection('videos')
+            ->useDisk('local')
+            ->acceptsMimeTypes(['video/mp4', 'video/webm', 'video/quicktime']);
     }
 
     public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void

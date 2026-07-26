@@ -3,9 +3,12 @@
 namespace Modules\FieldOps\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\FieldOps\Http\Resources\Concerns\HasMediaPayload;
 
 class LuminaireResource extends JsonResource
 {
+    use HasMediaPayload;
+
     public function toArray($request): array
     {
         $position = $this->relationLoaded('position') ? $this->position : null;
@@ -29,6 +32,9 @@ class LuminaireResource extends JsonResource
             'replaced_by_luminaire_id' => $this->replaced_by_luminaire_id,
             'info'               => $this->getTranslations('info'),
             'cafca_material_id'  => $this->cafca_material_id,
+            'photos'             => $this->photosPayload(),
+            'videos'             => $this->videosPayload(),
+            'documents'          => $this->documentsPayload(),
             'luminaire_type'     => $this->whenLoaded('luminaireType', fn () => [
                 'id'    => $this->luminaireType->id,
                 'name'  => $this->luminaireType->name,

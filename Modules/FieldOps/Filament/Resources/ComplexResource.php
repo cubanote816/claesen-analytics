@@ -15,7 +15,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ViewField;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -224,9 +223,11 @@ class ComplexResource extends Resource
                         ->state(fn ($record) => $record->getMedia('photos'))
                         ->default(fn () => collect())
                         ->view('fieldops::filament.infolists.media-gallery'),
-                    TextEntry::make('documents_count')
+                    ViewEntry::make('documents')
                         ->label(__('fieldops::resource.media.documents'))
-                        ->state(fn ($record) => (string) $record->getMedia('documents')->count()),
+                        ->state(fn ($record) => $record->getMedia('documents'))
+                        ->default(fn () => collect())
+                        ->view('fieldops::filament.infolists.document-list'),
                 ])
                 ->collapsible()
                 ->collapsed(fn ($record) => $record->getMedia('photos')->isEmpty() && $record->getMedia('documents')->isEmpty()),

@@ -17,12 +17,14 @@ class StoreFieldOpsMediaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'collection' => ['required', Rule::in(['photos', 'documents'])],
+            'collection' => ['required', Rule::in(['photos', 'documents', 'videos'])],
             'file'       => array_merge(
                 ['required', 'file'],
-                $this->input('collection') === 'documents'
-                    ? ['mimes:pdf', 'max:20480']
-                    : ['mimes:jpeg,jpg,png,webp', 'max:10240'],
+                match ($this->input('collection')) {
+                    'documents' => ['mimes:pdf', 'max:20480'],
+                    'videos' => ['mimes:mp4,webm,mov,qt', 'max:102400'],
+                    default => ['mimes:jpeg,jpg,png,webp', 'max:10240'],
+                },
             ),
         ];
     }

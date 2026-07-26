@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
+use Modules\FieldOps\Filament\Resources\Luminaires\Pages\CreateLuminaire;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\EditLuminaire;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\ViewLuminaire;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
@@ -74,8 +78,11 @@ class LuminaireFilamentTest extends TestCase
             ->assertOk()
             ->assertSee('Product and identification')
             ->assertSee('Technical placement')
-            ->assertSee('data-fieldops-luminaire-type-picker', false)
-            ->assertSee('/assets/luminaire-types/bvp418.png', false);
+            ->assertSee('/assets/luminaire-types/bvp418.png', false)
+            // The product picker is locked on Edit — changing the installed product must
+            // go through "Replace luminaire" instead (see CLA-278 design notes).
+            ->assertDontSee('data-fieldops-luminaire-type-picker', false)
+            ->assertDontSee('Change product');
 
         $this->withHeader('Accept-Language', 'nl-BE')->get("/luminaires/{$luminaire->id}")
             ->assertOk()
@@ -102,6 +109,49 @@ class LuminaireFilamentTest extends TestCase
             ]), false);
     }
 
+    // Reproduces a real bug from manual QA: the photo/video gallery used $media->getUrl(),
+    // which 404s for the private 'local' disk — fixed to route through the
+    // session-authenticated fieldops.admin.media.show route (Modules/FieldOps/routes/web.php)
+    // instead of Spatie MediaLibrary's own (broken, for this disk) URL generation.
+    public function test_luminaire_view_renders_photo_through_the_admin_media_route(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $luminaire = Luminaire::factory()->create();
+        $luminaire->addMedia(UploadedFile::fake()->image('photo.jpg'))->toMediaCollection('photos');
+        $media = $luminaire->fresh()->getMedia('photos')->first();
+
+        $this->get("/luminaires/{$luminaire->id}")
+            ->assertOk()
+            ->assertSee(route('fieldops.admin.media.show', $media), false)
+            ->assertDontSee('/storage/'.$media->id.'/', false);
+    }
+
+    // Same pre-existing gap fixed across all FieldOps resources: the documents section
+    // only ever showed a count, never an actual download link.
+    public function test_luminaire_view_renders_a_document_download_link(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $luminaire = Luminaire::factory()->create();
+        $path = tempnam(sys_get_temp_dir(), 'pdf');
+        file_put_contents($path, "%PDF-1.4\n%%EOF");
+        $luminaire->addMedia(new UploadedFile($path, 'manual.pdf', 'application/pdf', null, true))
+            ->toMediaCollection('documents');
+        $media = $luminaire->fresh()->getMedia('documents')->first();
+
+        $this->get("/luminaires/{$luminaire->id}")
+            ->assertOk()
+            ->assertSee('manual.pdf')
+            ->assertSee(route('fieldops.admin.media.show', $media), false);
+    }
+
     public function test_luminaire_edit_resolves_translated_info_instead_of_raw_json(): void
     {
         $user = User::factory()->create();
@@ -120,13 +170,20 @@ class LuminaireFilamentTest extends TestCase
             ->assertDontSee('[object Object]', false);
     }
 
-    public function test_editing_type_keeps_subgroup_consistent(): void
+    // The product/type field is locked on the Edit page (CLA-278) — changing the
+    // installed product must go through "Replace luminaire" instead. fillForm()
+    // bypasses the Blade lock directly against Livewire state, which is exactly
+    // why the server-side guard in EditLuminaire::mutateFormDataBeforeSave() must
+    // hold even when the UI control isn't there to prevent it.
+    public function test_editing_type_via_edit_page_is_ignored(): void
     {
         $user = User::factory()->create();
         $user->assignRole('super_admin');
         $this->actingAs($user);
 
         $luminaire = Luminaire::factory()->create();
+        $originalTypeId = $luminaire->luminaire_type_id;
+        $originalSubgroupId = $luminaire->luminaire_subgroup_id;
         $newType = LuminaireType::factory()->create();
 
         Livewire::test(EditLuminaire::class, ['record' => $luminaire->id])
@@ -136,9 +193,55 @@ class LuminaireFilamentTest extends TestCase
 
         $this->assertDatabaseHas('fo_luminaires', [
             'id' => $luminaire->id,
-            'luminaire_type_id' => $newType->id,
-            'luminaire_subgroup_id' => $newType->luminaire_subgroup_id,
+            'luminaire_type_id' => $originalTypeId,
+            'luminaire_subgroup_id' => $originalSubgroupId,
         ]);
+    }
+
+    // Reproduces a real crash from manual QA: submitting a frame_position already held by
+    // another current luminaire on the same frame used to hit the
+    // fo_luminaires_one_active_per_position DB unique constraint as a raw
+    // UniqueConstraintViolationException 500 instead of a clean form error.
+    public function test_create_luminaire_rejects_a_frame_position_already_in_use(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $existing = Luminaire::factory()->create(['frame_position' => 3]);
+
+        Livewire::test(CreateLuminaire::class)
+            ->fillForm([
+                'luminaire_type_id' => $existing->luminaire_type_id,
+                'luminaire_frame_id' => $existing->luminaire_frame_id,
+                'frame_position' => 3,
+            ])
+            ->call('create')
+            ->assertHasFormErrors([
+                'frame_position' => __('fieldops::resource.luminaires.fields.frame_position_conflict'),
+            ]);
+
+        $this->assertDatabaseCount('fo_luminaires', 1);
+    }
+
+    public function test_edit_luminaire_rejects_moving_into_a_frame_position_already_in_use(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $frame = LuminaireFrame::factory()->create();
+        Luminaire::factory()->create(['luminaire_frame_id' => $frame->id, 'frame_position' => 3]);
+        $movable = Luminaire::factory()->create(['luminaire_frame_id' => $frame->id, 'frame_position' => 5]);
+
+        Livewire::test(EditLuminaire::class, ['record' => $movable->id])
+            ->fillForm(['frame_position' => 3])
+            ->call('save')
+            ->assertHasFormErrors([
+                'frame_position' => __('fieldops::resource.luminaires.fields.frame_position_conflict'),
+            ]);
+
+        $this->assertSame(5, $movable->refresh()->frame_position);
     }
 
     public function test_replacement_modal_rejects_an_existing_serial_without_server_error(): void

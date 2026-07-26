@@ -8,6 +8,7 @@ use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Validation\ValidationException;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
+use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireType;
 
 class EditLuminaire extends EditRecord
@@ -41,15 +42,42 @@ class EditLuminaire extends EditRecord
                 ?? null;
         }
 
+        // Pre-fill the Complex/Terrain/Structure cascade from the frame's current location
+        // so editing an existing luminaire shows its real context instead of empty selects
+        // (these three fields are dehydrated(false) — pure UI scaffolding, not DB columns).
+        if (! empty($data['luminaire_frame_id'])) {
+            $frame = LuminaireFrame::with('structures.terrains')->find($data['luminaire_frame_id']);
+            $structure = $frame?->structures->first();
+            $terrain = $structure?->terrains->first();
+
+            $data['structure_id'] = $structure?->id;
+            $data['terrain_id'] = $terrain?->id;
+            $data['complex_id'] = $terrain?->complex_id;
+        }
+
         return $data;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        // The installed product can only change via the "Replace luminaire" action
+        // (ViewLuminaire), which correctly creates a new Luminaire row, retires this
+        // one and records maintenance atomically (CLA-265). The Edit form UI locks
+        // this field (see luminaire-type-gallery-selector.blade.php), but guard here
+        // too against a direct/tampered submission bypassing the UI.
+        if (array_key_exists('luminaire_type_id', $data)
+            && (int) $data['luminaire_type_id'] !== (int) $this->record->luminaire_type_id) {
+            $data['luminaire_type_id'] = $this->record->luminaire_type_id;
+        }
+
         if (array_key_exists('luminaire_type_id', $data)) {
             $data['luminaire_subgroup_id'] = $data['luminaire_type_id']
                 ? LuminaireType::find($data['luminaire_type_id'])?->luminaire_subgroup_id
                 : null;
+        }
+
+        if (array_key_exists('serial_number', $data)) {
+            $data['serial_number'] = LuminaireResource::resolveSerialNumber($data['serial_number']);
         }
 
         $touchesPosition = array_key_exists('frame_x', $data) || array_key_exists('frame_y', $data);

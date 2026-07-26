@@ -6,6 +6,7 @@ use Illuminate\Routing\Controller;
 use Modules\FieldOps\Http\Requests\StoreFieldOpsMediaRequest;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
+use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -18,6 +19,7 @@ class FieldOpsMediaController extends Controller
         'terrains'          => Terrain::class,
         'structures'        => Structure::class,
         'electrical-boards' => ElectricalBoard::class,
+        'luminaires'        => Luminaire::class,
     ];
 
     public function store(StoreFieldOpsMediaRequest $request, string $modelType, int $modelId): \Illuminate\Http\JsonResponse
