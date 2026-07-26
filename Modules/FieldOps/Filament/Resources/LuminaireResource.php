@@ -359,6 +359,7 @@ class LuminaireResource extends Resource
                 ->columnSpanFull(),
 
             Section::make(__('fieldops::resource.media.section_label'))
+                ->columnSpanFull()
                 ->schema([
                     ViewEntry::make('photos')
                         ->label(__('fieldops::resource.media.photos'))
