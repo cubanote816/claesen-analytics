@@ -87,6 +87,17 @@ php artisan website:regenerate-media
 
 ---
 
+## Riesgos abiertos — Módulo FieldOps
+
+### Alpine.data() + alpine:init muerto en 4 location-pickers bajo wire:navigate
+
+**Riesgo:** `complex-location-picker.blade.php`, `terrain-location-picker.blade.php`, `structure-location-picker.blade.php` y `electrical-board-location-picker.blade.php` registran su componente Alpine vía `@push('scripts')`/`@once` + `document.addEventListener('alpine:init', ...)`. Confirmado en `luminaire-frame-type-image-editor.blade.php` (CLA-278, commit `a935834`) que este patrón deja el componente completamente inerte (sin datos, sin listeners) cuando la página se alcanza navegando por click dentro del panel (`wire:navigate`, default de Filament) — solo funcionaba con una carga dura de la URL. Muy probable que estos 4 pickers tengan el mismo bug (no confirmado en vivo todavía).
+**Estado:** Documentado, sin corregir — decisión explícita del usuario de acotar el fix de CLA-278 solo al editor de Frame Types. `luminaire-type-gallery-selector.blade.php` se auditó y confirmó que NO tiene este problema (usa `x-data="{...}"` inline, no depende de `alpine:init`).
+**Fix de referencia:** migrar `@push('scripts')`/`@once` a `@script`/`@endscript` (Livewire) y registrar `Alpine.data(...)` directo, sin envolver en `addEventListener('alpine:init', ...)` — ver diff del commit `a935834` sobre `luminaire-frame-type-image-editor.blade.php`.
+**Acción requerida:** ticket nuevo para auditar y corregir los 4 archivos.
+
+---
+
 ## Deuda técnica
 
 ### Suite FieldOps amplia contaminada entre clases
