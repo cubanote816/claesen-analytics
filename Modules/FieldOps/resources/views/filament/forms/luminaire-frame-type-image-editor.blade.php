@@ -12,8 +12,17 @@
     $currentImageEmptyLabel = __('fieldops::resource.catalogs.frame_type_editor.preview_empty');
 @endphp
 
-@once
-    @push('styles')
+{{--
+    @script/@assets (Livewire), not @push('scripts')/@once (plain Blade): Filament's
+    panel navigation uses wire:navigate by default, which swaps the <body> via DOM
+    morphing — a <script> tag inserted that way never executes (browsers only run
+    <script> elements that are part of the initial parse), so Alpine.data(...) below
+    would never (re-)register on a soft navigation, leaving x-data="fieldopsLuminaireFrameTypeImageEditor(...)"
+    unresolved and this whole component silently inert (found in QA: works on a hard
+    reload, breaks when reached by clicking through the panel). @script is Livewire's
+    supported mechanism for JS that must run on every render regardless of morph/navigate.
+--}}
+    @assets
         <style>
             .fieldops-luminaire-frame-type-image-editor {
                 overflow: hidden;
@@ -331,12 +340,15 @@
                 display: none;
             }
         </style>
-    @endpush
+    @endassets
 
-    @push('scripts')
+    @script
         <script>
-            document.addEventListener('alpine:init', () => {
-                Alpine.data('fieldopsLuminaireFrameTypeImageEditor', (config) => ({
+            {{-- Alpine has already started by the time @script runs (it fires on every
+                 component mount, not just the first page load), so 'alpine:init' — which
+                 Alpine dispatches exactly once per browser session — would never fire again
+                 here. Register directly; Alpine.data() re-registration is idempotent. --}}
+            Alpine.data('fieldopsLuminaireFrameTypeImageEditor', (config) => ({
                 uploadUrl: config.uploadUrl,
                 currentImage: config.currentImage || '',
                 isUploading: false,
@@ -626,10 +638,8 @@
                         });
                     },
                 }));
-            });
         </script>
-    @endpush
-@endonce
+    @endscript
 
 <div
     class="fieldops-luminaire-frame-type-image-editor"

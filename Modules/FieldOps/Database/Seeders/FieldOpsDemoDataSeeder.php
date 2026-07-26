@@ -13,6 +13,7 @@ use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
+use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 
@@ -87,8 +88,13 @@ class FieldOpsDemoDataSeeder extends Seeder
         );
         $lichtmastZuid->terrains()->syncWithoutDetaching([$hoofdveld->id]);
 
+        // Any catalog entry works here — the demo frame doesn't depend on a specific
+        // headframe type. Resolved by query instead of a hardcoded id: LuminaireFrameTypeSeeder
+        // (CLA-278) force-deletes and recreates its rows, so ids aren't stable across seeds.
+        $frameType = LuminaireFrameType::query()->value('id');
+
         $frame = LuminaireFrame::firstOrCreate(
-            ['luminaire_frame_type_id' => 3],
+            ['luminaire_frame_type_id' => $frameType],
             []
         );
         $frame->structures()->syncWithoutDetaching([$lichtmastNoord->id]);

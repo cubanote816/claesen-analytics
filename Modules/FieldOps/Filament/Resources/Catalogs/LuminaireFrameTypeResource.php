@@ -21,6 +21,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Storage;
 use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireFrameTypes\Pages\CreateLuminaireFrameType;
 use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireFrameTypes\Pages\EditLuminaireFrameType;
 use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireFrameTypes\Pages\ListLuminaireFrameTypes;
@@ -90,6 +91,7 @@ class LuminaireFrameTypeResource extends Resource
             ->columns([
                 ImageColumn::make('image')
                     ->label(__('fieldops::resource.catalogs.fields.image'))
+                    ->getStateUsing(fn (LuminaireFrameType $record): ?string => static::resolveImageUrl($record->image))
                     ->size(64)
                     ->extraImgAttributes(['class' => 'rounded-lg object-cover']),
                 TextColumn::make('name')
@@ -129,5 +131,27 @@ class LuminaireFrameTypeResource extends Resource
             'create' => CreateLuminaireFrameType::route('/create'),
             'edit'   => EditLuminaireFrameType::route('/{record}/edit'),
         ];
+    }
+
+    // Same treatment as LuminaireTypeResource: 'image' can be a seeded /assets/...
+    // path (served straight from public/, not the storage disk) or a real upload
+    // stored on the 'public' disk (frame_type_editor's upload/draw flow). Filament's
+    // ImageColumn resolves bare state through Storage::disk('public')->exists(),
+    // which is always false for the seeded path, so it renders nothing without this.
+    protected static function resolveImageUrl(?string $image): ?string
+    {
+        if (! $image) {
+            return null;
+        }
+
+        if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://') || str_starts_with($image, 'data:')) {
+            return $image;
+        }
+
+        if (Storage::disk('public')->exists($image)) {
+            return Storage::disk('public')->url($image);
+        }
+
+        return asset(ltrim($image, '/'));
     }
 }
