@@ -9,10 +9,13 @@ use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\ViewField;
 use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -25,10 +28,13 @@ use Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\EditLuminaireFrame
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\ListLuminaireFrames;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\ViewLuminaireFrame;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\RelationManagers\LuminairesRelationManager;
+use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\LuminaireType;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 
 class LuminaireFrameResource extends Resource
 {
@@ -111,7 +117,98 @@ class LuminaireFrameResource extends Resource
                         ->columnSpanFull()
                         ->required(),
                 ]),
+
+            Section::make(__('fieldops::resource.luminaire_frames.sections.location'))
+                ->description(__('fieldops::resource.luminaire_frames.sections.location_description'))
+                ->schema([
+                    // A luminaire frame can never be orphaned: it must resolve to at least
+                    // one real Structure. complex_id/terrain_id are pure UI scaffolding
+                    // (dehydrated(false), no DB column) that narrow the `structures`
+                    // options — same pattern as LuminaireResource's frame_assignment
+                    // section. Required only on create: frames that were already
+                    // orphaned before this rule existed must stay editable.
+                    Select::make('complex_id')
+                        ->label(__('fieldops::resource.luminaire_frames.fields.complex'))
+                        ->options(fn () => Complex::orderBy('name')->pluck('name', 'id'))
+                        ->searchable()
+                        ->live()
+                        ->dehydrated(false)
+                        // Derived from the contextual structure_ids query param (below) so the
+                        // cascade doesn't start disabled — a disabled field is NOT dehydrated
+                        // by Filament, so without this the prefilled `structures` value would
+                        // silently fail to save on create.
+                        ->default(fn () => static::contextualTerrain()?->complex_id)
+                        ->afterStateUpdated(fn (Set $set) => $set('terrain_id', null))
+                        ->required(fn (string $operation): bool => $operation === 'create'),
+                    Select::make('terrain_id')
+                        ->label(__('fieldops::resource.luminaire_frames.fields.terrain'))
+                        ->options(fn (Get $get) => $get('complex_id')
+                            ? Terrain::where('complex_id', $get('complex_id'))->get()->mapWithKeys(fn ($t) => [$t->id => $t->name])
+                            : [])
+                        ->searchable()
+                        ->live()
+                        ->dehydrated(false)
+                        ->default(fn () => static::contextualTerrain()?->id)
+                        ->disabled(fn (Get $get) => blank($get('complex_id')))
+                        ->required(fn (string $operation): bool => $operation === 'create'),
+                    Select::make('structures')
+                        ->label(__('fieldops::resource.luminaire_frames.fields.structures'))
+                        ->relationship(
+                            name: 'structures',
+                            titleAttribute: 'id',
+                            modifyQueryUsing: fn (Builder $query, Get $get) => $get('terrain_id')
+                                ? $query->whereHas('terrains', fn (Builder $q) => $q->where('fo_terrains.id', $get('terrain_id')))
+                                : $query->whereRaw('1 = 0'),
+                        )
+                        ->getOptionLabelFromRecordUsing(fn (Structure $record) => "#{$record->id} — {$record->structureType?->name}")
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        // Prefills when reached from Structure -> Luminaire frames -> Create
+                        // (LuminaireFramesRelationManager passes ?structure_ids[]=...).
+                        ->default(fn () => static::contextualStructureIds())
+                        ->disabled(fn (Get $get) => blank($get('terrain_id')))
+                        ->required(fn (string $operation): bool => $operation === 'create')
+                        // ->rule() on a multiple() select validates the whole array as one
+                        // value, not per-item — loop here instead of reusing the API's
+                        // per-item StructureHasFrameCapacity Rule (which expects a single id).
+                        ->rule(function (?LuminaireFrame $record): \Closure {
+                            return function (string $attribute, mixed $value, \Closure $fail) use ($record): void {
+                                foreach ((array) $value as $structureId) {
+                                    $structure = Structure::find($structureId);
+
+                                    if ($structure && ! $structure->hasLuminaireFrameCapacity($record?->id)) {
+                                        $fail(__('fieldops::resource.luminaire_frames.validation.structure_capacity_exceeded'));
+
+                                        return;
+                                    }
+                                }
+                            };
+                        }),
+                ])->columns(3)->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected static function contextualStructureIds(): array
+    {
+        return array_values(array_filter(
+            (array) request()->query('structure_ids'),
+            fn ($value) => $value !== null && $value !== '',
+        ));
+    }
+
+    protected static function contextualTerrain(): ?Terrain
+    {
+        $structureIds = static::contextualStructureIds();
+
+        if ($structureIds === []) {
+            return null;
+        }
+
+        return Structure::find($structureIds[0])?->terrains()->first();
     }
 
     /**

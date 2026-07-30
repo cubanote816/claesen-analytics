@@ -232,20 +232,7 @@ class LuminaireResource extends Resource
                         // (CLA-265: replacement must go through LuminaireReplacementService).
                         ->rule(function (Get $get, ?Luminaire $record): Closure {
                             return function (string $attribute, mixed $value, Closure $fail) use ($get, $record): void {
-                                $frameId = $get('luminaire_frame_id');
-
-                                if (blank($value) || blank($frameId)) {
-                                    return;
-                                }
-
-                                $conflict = Luminaire::query()
-                                    ->current()
-                                    ->where('luminaire_frame_id', $frameId)
-                                    ->where('frame_position', $value)
-                                    ->when($record, fn (Builder $query) => $query->whereKeyNot($record->id))
-                                    ->exists();
-
-                                if ($conflict) {
+                                if (static::hasFramePositionConflict($get('luminaire_frame_id'), $value, $record)) {
                                     $fail(__('fieldops::resource.luminaires.fields.frame_position_conflict'));
                                 }
                             };
@@ -524,6 +511,27 @@ class LuminaireResource extends Resource
         }
 
         return 'AUTO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(6));
+    }
+
+    // Mirrors the fo_luminaires_one_active_per_position DB unique constraint (one
+    // active Luminaire per LuminairePosition) as a clean validation error instead of
+    // a raw UniqueConstraintViolationException — a duplicate frame position always
+    // means "replace", never "create another one here" (CLA-265: replacement must go
+    // through LuminaireReplacementService). Shared by this form's own rule() closure
+    // and LuminaireFrames/RelationManagers/LuminairesRelationManager's create form —
+    // the second creation surface for a Luminaire, scoped to an already-known frame.
+    public static function hasFramePositionConflict(mixed $frameId, mixed $value, ?Luminaire $excluding = null): bool
+    {
+        if (blank($value) || blank($frameId)) {
+            return false;
+        }
+
+        return Luminaire::query()
+            ->current()
+            ->where('luminaire_frame_id', $frameId)
+            ->where('frame_position', $value)
+            ->when($excluding, fn (Builder $query) => $query->whereKeyNot($excluding->id))
+            ->exists();
     }
 
     protected static function resolveAssetUrl(?string $path): ?string

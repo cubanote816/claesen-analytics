@@ -5,14 +5,23 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
+use Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\CreateLuminaireFrame;
+use Modules\FieldOps\Filament\Resources\LuminaireFrames\RelationManagers\LuminairesRelationManager;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
+use Modules\FieldOps\Filament\Resources\Structures\Pages\ViewStructure;
+use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\LuminaireFramesRelationManager;
+use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
+use Modules\FieldOps\Models\LuminaireType;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -194,5 +203,186 @@ class LuminaireFrameFilamentTest extends TestCase
         $this->get("/luminaire-frames/{$frame->id}/edit")
             ->assertOk()
             ->assertSee(__('fieldops::resource.luminaire_frames.gallery.selected'));
+    }
+
+    // ── CLA-278: no orphan frames / max 2 frames per structure ─────────────
+
+    private function buildComplexTerrainStructure(): Structure
+    {
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+
+        return $structure;
+    }
+
+    public function test_create_luminaire_frame_requires_at_least_one_structure(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $frameType = LuminaireFrameType::factory()->create();
+
+        Livewire::test(CreateLuminaireFrame::class)
+            ->fillForm(['luminaire_frame_type_id' => $frameType->id])
+            ->call('create')
+            ->assertHasFormErrors(['structures']);
+
+        $this->assertDatabaseCount('fo_luminaire_frames', 0);
+    }
+
+    public function test_create_luminaire_frame_rejects_structure_already_at_capacity(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = $this->buildComplexTerrainStructure();
+        $terrainId = $structure->terrains()->first()->id;
+        $complexId = $structure->terrains()->first()->complex_id;
+        LuminaireFrame::factory()->count(2)->create()->each(
+            fn (LuminaireFrame $other) => $other->structures()->attach($structure->id)
+        );
+
+        $frameType = LuminaireFrameType::factory()->create();
+
+        Livewire::test(CreateLuminaireFrame::class)
+            ->fillForm([
+                'complex_id' => $complexId,
+                'terrain_id' => $terrainId,
+                'structures' => [$structure->id],
+                'luminaire_frame_type_id' => $frameType->id,
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['structures']);
+    }
+
+    public function test_create_luminaire_frame_from_structure_context_prefills_and_saves_structure(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = $this->buildComplexTerrainStructure();
+        $frameType = LuminaireFrameType::factory()->create();
+
+        // Simulates the real "Create" shortcut link from LuminaireFramesRelationManager
+        // (?structure_ids[]=...) — complex_id/terrain_id must auto-derive from it so the
+        // `structures` field isn't left disabled (a disabled field doesn't dehydrate).
+        $this->get('/luminaire-frames/create?structure_ids[0]='.$structure->id)
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.luminaire_frames.sections.location'));
+
+        Livewire::test(CreateLuminaireFrame::class)
+            ->fillForm([
+                'complex_id' => $structure->terrains()->first()->complex_id,
+                'terrain_id' => $structure->terrains()->first()->id,
+                'structures' => [$structure->id],
+                'luminaire_frame_type_id' => $frameType->id,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('fo_luminaire_frame_structure', [
+            'structure_id' => $structure->id,
+        ]);
+    }
+
+    public function test_luminaire_frames_relation_manager_hides_create_and_attach_at_capacity(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = Structure::factory()->create();
+        LuminaireFrame::factory()->count(2)->create()->each(
+            fn (LuminaireFrame $other) => $other->structures()->attach($structure->id)
+        );
+
+        Livewire::test(LuminaireFramesRelationManager::class, [
+            'ownerRecord' => $structure,
+            'pageClass' => ViewStructure::class,
+        ])
+            ->assertTableActionHidden('createLuminaireFrame')
+            ->assertTableActionHidden('attach');
+    }
+
+    public function test_luminaire_frames_relation_manager_shows_create_and_attach_under_capacity(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = Structure::factory()->create();
+        LuminaireFrame::factory()->create()->structures()->attach($structure->id);
+
+        // EditStructure, not ViewStructure: Filament hides CreateAction/AttachAction by
+        // default on ViewRecord pages (RelationManager::isReadOnly()) — confirmed empirically
+        // that 'attach' only shows on the Edit page context, matching the real reachable path.
+        Livewire::test(LuminaireFramesRelationManager::class, [
+            'ownerRecord' => $structure,
+            'pageClass' => \Modules\FieldOps\Filament\Resources\Structures\Pages\EditStructure::class,
+        ])
+            ->assertTableActionVisible('createLuminaireFrame')
+            ->assertTableActionVisible('attach');
+    }
+
+    // ── CLA-278: second Luminaire creation surface (frame -> Luminaires tab) safety ──
+
+    public function test_luminaires_relation_manager_create_requires_type_and_rejects_occupied_position(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $frame = LuminaireFrame::factory()->create();
+        Luminaire::factory()->create([
+            'luminaire_frame_id' => $frame->id,
+            'frame_position' => 1,
+        ]);
+
+        Livewire::test(LuminairesRelationManager::class, [
+            'ownerRecord' => $frame,
+            'pageClass' => \Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\EditLuminaireFrame::class,
+        ])
+            ->callTableAction('create', data: ['luminaire_type_id' => null])
+            ->assertHasTableActionErrors(['luminaire_type_id']);
+
+        $type = LuminaireType::factory()->create();
+        Livewire::test(LuminairesRelationManager::class, [
+            'ownerRecord' => $frame,
+            'pageClass' => \Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\EditLuminaireFrame::class,
+        ])
+            ->callTableAction('create', data: [
+                'luminaire_type_id' => $type->id,
+                'frame_position' => 1,
+            ])
+            ->assertHasTableActionErrors(['frame_position']);
+    }
+
+    public function test_luminaires_relation_manager_create_auto_generates_serial_number(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $frame = LuminaireFrame::factory()->create();
+        $type = LuminaireType::factory()->create();
+
+        Livewire::test(LuminairesRelationManager::class, [
+            'ownerRecord' => $frame,
+            'pageClass' => \Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\EditLuminaireFrame::class,
+        ])
+            ->callTableAction('create', data: [
+                'luminaire_type_id' => $type->id,
+                'frame_position' => 2,
+            ])
+            ->assertHasNoTableActionErrors();
+
+        $luminaire = Luminaire::where('luminaire_frame_id', $frame->id)->firstOrFail();
+        $this->assertNotEmpty($luminaire->serial_number);
+        $this->assertStringStartsWith('AUTO-', $luminaire->serial_number);
     }
 }

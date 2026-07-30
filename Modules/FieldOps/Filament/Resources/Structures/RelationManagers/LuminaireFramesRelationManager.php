@@ -58,12 +58,23 @@ class LuminaireFramesRelationManager extends RelationManager
                     ->button()
                     ->icon('heroicon-m-plus')
                     ->color('primary')
+                    ->visible(fn () => $this->getOwnerRecord()->hasLuminaireFrameCapacity())
                     ->url(LuminaireFrameResource::getUrl('create', [
                         'structure_ids' => [$this->getOwnerRecord()->getKey()],
                     ])),
                 AttachAction::make()
+                    ->visible(fn () => $this->getOwnerRecord()->hasLuminaireFrameCapacity())
                     ->recordSelect(fn (Select $select) => $select
                         ->searchable()
+                        // Hiding the button above is UI-only — re-check here too, in case
+                        // the action is somehow reached with a stale page state.
+                        ->rule(function (): \Closure {
+                            return function (string $attribute, mixed $value, \Closure $fail): void {
+                                if (! $this->getOwnerRecord()->hasLuminaireFrameCapacity()) {
+                                    $fail(__('fieldops::resource.luminaire_frames.validation.structure_capacity_exceeded'));
+                                }
+                            };
+                        })
                         ->getSearchResultsUsing(fn (string $search) => LuminaireFrame::query()
                             ->whereHas('frameType', fn ($q) => $q->where('name', 'like', "%{$search}%"))
                             ->orWhere('id', 'like', "%{$search}%")

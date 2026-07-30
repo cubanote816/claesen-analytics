@@ -92,6 +92,18 @@ class Structure extends Model implements HasMedia
         return $this->belongsToMany(LuminaireFrame::class, 'fo_luminaire_frame_structure');
     }
 
+    // Physical cap: a structure (pole/mast) never has more than 2 luminaire frame
+    // mount points. Single source of truth — API validation, the Filament form,
+    // and the Structure's own relation manager all defer to this.
+    public const MAX_LUMINAIRE_FRAMES = 2;
+
+    public function hasLuminaireFrameCapacity(?int $excludingFrameId = null): bool
+    {
+        return $this->luminaireFrames()
+            ->when($excludingFrameId, fn ($query) => $query->whereKeyNot($excludingFrameId))
+            ->count() < self::MAX_LUMINAIRE_FRAMES;
+    }
+
     public function electricalBoards()
     {
         return $this->belongsToMany(ElectricalBoard::class, 'fo_electrical_board_structure');

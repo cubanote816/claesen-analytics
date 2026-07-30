@@ -120,10 +120,19 @@ class StructureFilamentTest extends TestCase
         ]);
         $structure->terrains()->attach($terrain->id);
 
+        // CLA-278: a LuminaireFrame can no longer be created without at least one
+        // Structure — complex_id/terrain_id are pure UI scaffolding that narrow the
+        // `structures` relationship field's options, filled explicitly here the same
+        // way the real "create from this structure" shortcut auto-derives them from
+        // the structure_ids query param (LuminaireFrameResource::contextualTerrain()).
         $frameType = LuminaireFrameType::factory()->create();
         Livewire::test(CreateLuminaireFrame::class)
-            ->set('structureIds', [$structure->id])
-            ->set('data.luminaire_frame_type_id', $frameType->id)
+            ->fillForm([
+                'complex_id' => $complex->id,
+                'terrain_id' => $terrain->id,
+                'structures' => [$structure->id],
+                'luminaire_frame_type_id' => $frameType->id,
+            ])
             ->call('create')
             ->assertHasNoFormErrors();
 

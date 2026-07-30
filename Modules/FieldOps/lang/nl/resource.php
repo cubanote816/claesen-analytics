@@ -137,6 +137,16 @@ return [
             'frame_type' => 'Frametype',
             'luminaires_count' => 'Verlichtingsarmaturen',
             'structures_count' => 'Structuren',
+            'complex' => 'Complex',
+            'terrain' => 'Terrein',
+            'structures' => 'Structuren',
+        ],
+        'sections' => [
+            'location' => 'Locatie',
+            'location_description' => 'Een verlichtingsframe moet aan een echte fysieke structuur gekoppeld zijn — kies het complex en terrein om te bepalen op welke structuren het gemonteerd kan worden.',
+        ],
+        'validation' => [
+            'structure_capacity_exceeded' => 'Deze structuur heeft al het maximum van 2 verlichtingsframes.',
         ],
         'view' => [
             'eyebrow' => 'Ruimtelijke framelay-out',

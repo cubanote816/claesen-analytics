@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\FieldOps\Rules\StructureHasFrameCapacity;
 
 class StoreLuminaireFrameRequest extends FormRequest
 {
@@ -17,8 +18,11 @@ class StoreLuminaireFrameRequest extends FormRequest
     {
         return [
             'luminaire_frame_type_id' => ['required', 'integer', 'exists:fo_luminaire_frame_types,id'],
-            'structure_ids'           => ['nullable', 'array'],
-            'structure_ids.*'         => ['integer', 'distinct', 'exists:fo_structures,id'],
+            // A brand new frame must resolve to at least one real structure — a
+            // frame with 0 structures is an orphan (CLA-278: field app / backoffice
+            // parity, same rule the Filament form now enforces on create).
+            'structure_ids'           => ['required', 'array', 'min:1'],
+            'structure_ids.*'         => ['integer', 'distinct', 'exists:fo_structures,id', new StructureHasFrameCapacity],
         ];
     }
 }

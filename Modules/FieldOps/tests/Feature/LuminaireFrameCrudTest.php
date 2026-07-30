@@ -63,10 +63,12 @@ class LuminaireFrameCrudTest extends TestCase
     public function test_store_creates_frame_201(): void
     {
         $frameType = LuminaireFrameType::factory()->create();
+        $structure = Structure::factory()->create();
 
         $this->actingAs($this->user)
             ->postJson('/api/v1/fieldops/luminaire-frames', [
                 'luminaire_frame_type_id' => $frameType->id,
+                'structure_ids'           => [$structure->id],
             ])
             ->assertCreated()
             ->assertJsonPath('success', true)
@@ -76,6 +78,35 @@ class LuminaireFrameCrudTest extends TestCase
             'luminaire_frame_type_id' => $frameType->id,
             'created_by_user_id'      => $this->user->id,
         ]);
+    }
+
+    public function test_store_fails_without_structure_ids(): void
+    {
+        $frameType = LuminaireFrameType::factory()->create();
+
+        $this->actingAs($this->user)
+            ->postJson('/api/v1/fieldops/luminaire-frames', [
+                'luminaire_frame_type_id' => $frameType->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['structure_ids']);
+    }
+
+    public function test_store_fails_when_structure_already_has_two_frames(): void
+    {
+        $frameType = LuminaireFrameType::factory()->create();
+        $structure = Structure::factory()->create();
+        LuminaireFrame::factory()->count(2)->create()->each(
+            fn (LuminaireFrame $frame) => $frame->structures()->attach($structure->id)
+        );
+
+        $this->actingAs($this->user)
+            ->postJson('/api/v1/fieldops/luminaire-frames', [
+                'luminaire_frame_type_id' => $frameType->id,
+                'structure_ids'           => [$structure->id],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['structure_ids.0']);
     }
 
     public function test_store_attaches_structure_ids(): void
@@ -200,6 +231,41 @@ class LuminaireFrameCrudTest extends TestCase
         $ids = $frame->fresh()->structures->pluck('id')->all();
         $this->assertContains($newStruct->id, $ids);
         $this->assertNotContains($oldStruct->id, $ids);
+    }
+
+    public function test_update_fails_when_structure_already_has_two_frames(): void
+    {
+        $frame     = LuminaireFrame::factory()->create();
+        $structure = Structure::factory()->create();
+        LuminaireFrame::factory()->count(2)->create()->each(
+            fn (LuminaireFrame $other) => $other->structures()->attach($structure->id)
+        );
+
+        $this->actingAs($this->user)
+            ->patchJson("/api/v1/fieldops/luminaire-frames/{$frame->id}", [
+                'structure_ids' => [$structure->id],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['structure_ids.0']);
+    }
+
+    public function test_update_keeps_own_existing_structure_without_counting_against_capacity(): void
+    {
+        $frame     = LuminaireFrame::factory()->create();
+        $structure = Structure::factory()->create();
+        $otherFrame = LuminaireFrame::factory()->create();
+        $otherFrame->structures()->attach($structure->id);
+        $frame->structures()->attach($structure->id);
+
+        // Structure is at capacity (frame + otherFrame = 2), but re-syncing this
+        // frame's OWN existing attachment must not count itself against its own cap.
+        $this->actingAs($this->user)
+            ->patchJson("/api/v1/fieldops/luminaire-frames/{$frame->id}", [
+                'structure_ids' => [$structure->id],
+            ])
+            ->assertOk();
+
+        $this->assertCount(1, $frame->fresh()->structures);
     }
 
     // ── DESTROY ───────────────────────────────────────────────────────────

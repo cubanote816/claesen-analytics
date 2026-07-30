@@ -137,6 +137,16 @@ return [
             'frame_type' => 'Frame type',
             'luminaires_count' => 'Luminaires',
             'structures_count' => 'Structures',
+            'complex' => 'Complex',
+            'terrain' => 'Terrain',
+            'structures' => 'Structures',
+        ],
+        'sections' => [
+            'location' => 'Location',
+            'location_description' => 'A luminaire frame must resolve to a real physical structure — choose the complex and terrain to narrow down which structures it can be mounted on.',
+        ],
+        'validation' => [
+            'structure_capacity_exceeded' => 'This structure already has the maximum of 2 luminaire frames.',
         ],
         'view' => [
             'eyebrow' => 'Luminaire frame layout',
