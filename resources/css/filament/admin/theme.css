@@ -102,116 +102,6 @@
     }
 }
 
-/* ── Breadcrumbs: collapsed ancestor line + vertical stack for deep chains ───
-   See resources/views/vendor/filament/components/breadcrumbs.blade.php — the
-   override that emits these classes once a breadcrumb passes 6 entries
-   (only FieldOps hierarchy pages do; everything else keeps Filament's
-   default .fi-breadcrumbs-list markup untouched). */
-.claesen-breadcrumbs-collapsed {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    margin-bottom: 0.5rem;
-}
-
-.claesen-breadcrumbs-collapsed-item {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-}
-
-.claesen-breadcrumbs-collapsed-link {
-    color: #64748b;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    transition: color 75ms;
-}
-
-.claesen-breadcrumbs-collapsed-link:hover {
-    color: #0f172a;
-}
-
-.dark .claesen-breadcrumbs-collapsed-link {
-    color: #94a3b8;
-}
-
-.dark .claesen-breadcrumbs-collapsed-link:hover {
-    color: #f1f5f9;
-}
-
-.claesen-breadcrumbs-collapsed-separator {
-    width: 0.75rem;
-    height: 0.75rem;
-    color: #cbd5e1;
-}
-
-.dark .claesen-breadcrumbs-collapsed-separator {
-    color: #475569;
-}
-
-.claesen-breadcrumbs-collapsed-ellipsis {
-    color: #94a3b8;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-}
-
-.claesen-breadcrumbs-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-}
-
-.claesen-breadcrumbs-stack-item {
-    line-height: 1.35;
-}
-
-.claesen-breadcrumbs-stack-label {
-    display: inline-block;
-    transition: color 75ms;
-}
-
-/* Type segments (e.g. "Luminaire Frames") — subdued, matches the collapsed line */
-.claesen-breadcrumbs-stack-item--type .claesen-breadcrumbs-stack-label {
-    color: #94a3b8;
-    font-size: 0.6875rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-
-.dark .claesen-breadcrumbs-stack-item--type .claesen-breadcrumbs-stack-label {
-    color: #64748b;
-}
-
-/* Record segments (e.g. "#7 — Oval stadium headframe") — the actual path, emphasized */
-.claesen-breadcrumbs-stack-item--record .claesen-breadcrumbs-stack-label {
-    color: #334155;
-    font-size: 0.875rem;
-    font-weight: 700;
-}
-
-.claesen-breadcrumbs-stack-item--record a.claesen-breadcrumbs-stack-label:hover {
-    color: #009bd6;
-}
-
-.dark .claesen-breadcrumbs-stack-item--record .claesen-breadcrumbs-stack-label {
-    color: #e2e8f0;
-}
-
-/* Current page (e.g. "View") — final entry, not a link, most prominent */
-.claesen-breadcrumbs-stack-item--current .claesen-breadcrumbs-stack-label {
-    color: #0f172a;
-    font-size: 0.9375rem;
-    font-weight: 800;
-}
-
-.dark .claesen-breadcrumbs-stack-item--current .claesen-breadcrumbs-stack-label {
-    color: #f8fafc;
-}
-
 /* ── Page header: reduce top dead space ─────────────────────────────────── */
 .fi-page-header {
     padding-block-start: 1rem;
@@ -220,6 +110,30 @@
 
 .dark .fi-page-header {
     padding-block-start: 1.15rem;
+}
+
+/* ── Breadcrumb: own full-width row above the heading/actions row ────────────
+   See resources/views/vendor/filament/components/header/index.blade.php — the
+   breadcrumb used to live inside .fi-header's flex row, sharing width with the
+   header action buttons (squeezed it on pages with several buttons). Pulled out
+   to its own row here; replicates Filament's original .fi-breadcrumbs
+   "hidden below sm, block from sm up" responsive rule, which only applied via
+   a `.fi-header .fi-breadcrumbs` descendant selector that no longer matches
+   now that the breadcrumb isn't nested inside .fi-header. */
+.claesen-page-header-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.claesen-page-header-breadcrumbs {
+    display: none;
+    margin-bottom: 0.75rem;
+}
+
+@media (min-width: 640px) {
+    .claesen-page-header-breadcrumbs {
+        display: block;
+    }
 }
 
 /* ── Edit form: force schema components to fill available width ──────────── */
