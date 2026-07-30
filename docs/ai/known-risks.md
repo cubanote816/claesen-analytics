@@ -89,12 +89,12 @@ php artisan website:regenerate-media
 
 ## Riesgos abiertos — Módulo FieldOps
 
-### Alpine.data() + alpine:init muerto en 4 location-pickers bajo wire:navigate
+### Alpine registrado vía @push('scripts')/@once muerto bajo wire:navigate en 4 location-pickers
 
-**Riesgo:** `complex-location-picker.blade.php`, `terrain-location-picker.blade.php`, `structure-location-picker.blade.php` y `electrical-board-location-picker.blade.php` registran su componente Alpine vía `@push('scripts')`/`@once` + `document.addEventListener('alpine:init', ...)`. Confirmado en `luminaire-frame-type-image-editor.blade.php` (CLA-278, commit `a935834`) que este patrón deja el componente completamente inerte (sin datos, sin listeners) cuando la página se alcanza navegando por click dentro del panel (`wire:navigate`, default de Filament) — solo funcionaba con una carga dura de la URL. Muy probable que estos 4 pickers tengan el mismo bug (no confirmado en vivo todavía).
-**Estado:** Documentado, sin corregir — decisión explícita del usuario de acotar el fix de CLA-278 solo al editor de Frame Types. `luminaire-type-gallery-selector.blade.php` se auditó y confirmó que NO tiene este problema (usa `x-data="{...}"` inline, no depende de `alpine:init`).
-**Fix de referencia:** migrar `@push('scripts')`/`@once` a `@script`/`@endscript` (Livewire) y registrar `Alpine.data(...)` directo, sin envolver en `addEventListener('alpine:init', ...)` — ver diff del commit `a935834` sobre `luminaire-frame-type-image-editor.blade.php`.
-**Acción requerida:** ticket nuevo para auditar y corregir los 4 archivos.
+**Riesgo:** `complex-location-picker.blade.php`, `terrain-location-picker.blade.php`, `structure-location-picker.blade.php` y `electrical-board-location-picker.blade.php` registran su componente Alpine vía `@push('scripts')`/`@once` + `document.addEventListener('alpine:init', ...)`. **Confirmado en vivo (Selenium, no solo por lectura de código) en 2/2 archivos con este mismo anti-patrón auditados hasta ahora**: `luminaire-frame-type-image-editor.blade.php` (CLA-278, commit `a935834`) y `luminaire-frame-spatial-layout.blade.php` (CLA-278, commit `9f2ef37`, este último sin el wrapper `alpine:init` pero con el mismo `@push('scripts')`/`@once` roto). Ambos quedaban completamente inertes (sin datos reactivos, sin listeners, botones/drag/zoom sin responder) al llegar por click dentro del panel (`wire:navigate`, default de Filament) — solo funcionaban con una carga dura de la URL. Con 2/2 confirmados rotos, es razonable asumir que los 4 pickers restantes tienen el mismo problema.
+**Estado:** Documentado, sin corregir — decisión explícita del usuario de acotar el alcance de CLA-278 a los archivos que fue encontrando en su propio testing, no a una auditoría preventiva completa. `luminaire-type-gallery-selector.blade.php` se auditó y confirmó que NO tiene este problema (usa `x-data="{...}"` inline, no depende de `alpine:init` ni de un script empujado).
+**Fix de referencia:** migrar `@push('scripts')`/`@once` a `@script`/`@endscript` (Livewire) y registrar `Alpine.data(...)` directo (sin envolver en `addEventListener('alpine:init', ...)` si lo tuviera) — ver diffs de los commits `a935834` y `9f2ef37`.
+**Acción requerida:** ticket nuevo para auditar y corregir los 4 archivos — dada la tasa de confirmación (2/2), tratar como "muy probablemente roto", no como riesgo especulativo.
 
 ---
 
