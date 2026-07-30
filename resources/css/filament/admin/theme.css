@@ -102,6 +102,38 @@
     }
 }
 
+/* ── Breadcrumbs: single line + horizontal scroll instead of wrapping ────────
+   Deep FieldOps hierarchies (Complexes > ... > Luminaires > View) produce long
+   breadcrumbs. Filament's default `flex-wrap` breaks them across several lines
+   with the "›" separator awkwardly hanging at the start of each wrapped line.
+   Kept scrollable + no-wrap instead — see filament/sidebar-scroll-restore for
+   the matching script that scrolls this to the current (rightmost) segment. */
+.fi-breadcrumbs {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.fi-breadcrumbs-list {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-block: 0.1875rem;
+    padding-inline-end: 0.5rem;
+}
+
+.fi-breadcrumbs-list::-webkit-scrollbar {
+    height: 4px;
+}
+
+.fi-breadcrumbs-list::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 999px;
+}
+
+.fi-breadcrumbs-item {
+    flex-shrink: 0;
+}
+
 /* ── Page header: reduce top dead space ─────────────────────────────────── */
 .fi-page-header {
     padding-block-start: 1rem;
