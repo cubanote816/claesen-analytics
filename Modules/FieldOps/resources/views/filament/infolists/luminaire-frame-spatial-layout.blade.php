@@ -79,8 +79,18 @@
     $placeholderImage = asset('assets/luminaire-subgroups/image_placeholder.png');
 @endphp
 
-@once
-    @push('styles')
+{{--
+    @script/@assets (Livewire), not @push('scripts')/@once (plain Blade): Filament's
+    panel navigation uses wire:navigate by default, which swaps the <body> via DOM
+    morphing — a <script> tag inserted that way never executes (browsers only run
+    <script> elements that are part of the initial parse). window.fieldopsLuminaireFrameLayout
+    would never (re-)register on a soft navigation, leaving x-data="fieldopsLuminaireFrameLayout(...)"
+    unresolved and this whole component silently inert (found in QA: works on a hard
+    reload, breaks when reached by clicking through the panel — same bug already fixed
+    in luminaire-frame-type-image-editor.blade.php, CLA-278). @script is Livewire's
+    supported mechanism for JS that must run on every render regardless of morph/navigate.
+--}}
+    @assets
         <style>
             .fieldops-luminaire-frame-spatial {
                 overflow: hidden;
@@ -1384,11 +1394,11 @@
                 }
             }
         </style>
-    @endpush
+    @endassets
 
-    @push('scripts')
+    @script
         <script>
-            window.fieldopsLuminaireFrameLayout = function (payload) {
+            Alpine.data('fieldopsLuminaireFrameLayout', function (payload) {
                 return {
                     viewMode: 'overview',
                     overviewDetailsVisible: true,
@@ -2134,14 +2144,13 @@
                         return `left: ${marker.left}%; top: ${marker.top}%; width: ${dimensions.width}px; height: ${dimensions.height}px;`;
                     },
                 };
-            };
+            });
         </script>
-    @endpush
-@endonce
+    @endscript
 
 <div
     class="fieldops-luminaire-frame-spatial"
-    x-data="window.fieldopsLuminaireFrameLayout(@js($payload))"
+    x-data="fieldopsLuminaireFrameLayout(@js($payload))"
     x-init="init()"
 >
     <div class="fieldops-luminaire-frame-spatial__header">
@@ -2284,7 +2293,12 @@
                 </div>
 
                 <div class="fieldops-luminaire-frame-spatial__viewport">
-                    @if (count($markers) > 0)
+                    {{-- Show the canvas (frame background image + grid) whenever the frame type
+                         has a reference image, even with zero luminaires placed yet — otherwise
+                         a brand-new frame with no luminaires ever shows the generic text-only
+                         empty state below, with no way to see the frame you're about to place
+                         luminaires on. The @foreach below is simply empty when $markers is []. --}}
+                    @if ($payload['frameImage'] || count($markers) > 0)
                         <div
                             class="fieldops-luminaire-frame-spatial__surface"
                             x-ref="stage"

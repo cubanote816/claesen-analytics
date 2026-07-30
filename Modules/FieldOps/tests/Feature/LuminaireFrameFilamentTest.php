@@ -79,12 +79,17 @@ class LuminaireFrameFilamentTest extends TestCase
             ->assertSee('data-fieldops-marker-scale-control', false)
             ->assertSee('draggable="false"', false)
             ->assertSee('@dragstart.prevent', false)
-            ->assertSee("this.viewMode === 'overview'", false)
-            ->assertSee('window.Livewire.navigate(marker.url)', false)
+            // These three live inside the @script block (CLA-278 wire:navigate fix):
+            // Livewire transports it as a JSON effect embedded in a wire:snapshot
+            // HTML attribute, so it reaches the response HTML-entity-escaped rather
+            // than as literal inline <script> text — assert with escaping enabled
+            // (default) instead of raw.
+            ->assertSee("this.viewMode === 'overview'")
+            ->assertSee('window.Livewire.navigate(marker.url)')
             ->assertSee('wire:navigate', false)
             ->assertSee('x-show="viewMode === \'technical\'"', false)
             ->assertSee("setViewMode('technical')", false)
-            ->assertSee("destination.searchParams.set('layout', 'technical')", false)
+            ->assertSee("destination.searchParams.set('layout', 'technical')")
             ->assertSee('https://example.test/bvp525.jpg', false)
             ->assertSee('OptiVision LED gen3.5')
             ->assertSee('BVP518')
