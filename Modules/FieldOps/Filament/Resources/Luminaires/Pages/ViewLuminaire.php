@@ -19,6 +19,7 @@ use Modules\Cafca\Models\Employee;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\FieldOps\Services\LuminaireReplacementService;
@@ -26,6 +27,16 @@ use Modules\FieldOps\Services\LuminaireReplacementService;
 class ViewLuminaire extends ViewRecord
 {
     protected static string $resource = LuminaireResource::class;
+
+    // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    public function getResourceBreadcrumbs(): array
+    {
+        return FieldOpsBreadcrumbs::luminaireAncestors(
+            $this->getRecord(),
+            request()->integer('via_structure') ?: null,
+            request()->integer('via_terrain') ?: null,
+        );
+    }
 
     // See ViewFoClient::getTitle() for why this skips Filament's "View :label" wrapper.
     public function getTitle(): string|Htmlable
@@ -46,11 +57,13 @@ class ViewLuminaire extends ViewRecord
                 ->icon('heroicon-m-map')
                 ->color('gray')
                 ->visible(fn (): bool => $this->record->luminaire_frame_id !== null)
-                ->url(fn (): string => LuminaireFrameResource::getUrl('view', [
+                ->url(fn (): string => LuminaireFrameResource::getUrl('view', array_filter([
                     'record' => $this->record->luminaire_frame_id,
                     'layout' => 'technical',
                     'luminaire' => $this->record->id,
-                ])),
+                    'via_structure' => request()->integer('via_structure') ?: null,
+                    'via_terrain' => request()->integer('via_terrain') ?: null,
+                ]))),
             Action::make('scheduleMaintenance')
                 ->label(__('fieldops::resource.luminaires.actions.schedule_maintenance'))
                 ->icon('heroicon-m-clipboard-document-check')

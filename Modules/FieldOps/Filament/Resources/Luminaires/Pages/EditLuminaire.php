@@ -8,12 +8,23 @@ use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Validation\ValidationException;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireType;
 
 class EditLuminaire extends EditRecord
 {
     protected static string $resource = LuminaireResource::class;
+
+    // See ViewLuminaire::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    public function getResourceBreadcrumbs(): array
+    {
+        return FieldOpsBreadcrumbs::luminaireAncestors(
+            $this->getRecord(),
+            request()->integer('via_structure') ?: null,
+            request()->integer('via_terrain') ?: null,
+        );
+    }
 
     protected function getHeaderActions(): array
     {

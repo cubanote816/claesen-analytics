@@ -6,10 +6,20 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
 use Modules\FieldOps\Filament\Resources\StructureResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 
 class EditStructure extends EditRecord
 {
     protected static string $resource = StructureResource::class;
+
+    // See ViewStructure::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    public function getResourceBreadcrumbs(): array
+    {
+        return FieldOpsBreadcrumbs::structureAncestors(
+            $this->getRecord(),
+            request()->integer('via_terrain') ?: null,
+        );
+    }
 
     // EditRecord::fillForm() fills the form from $record->attributesToArray(),
     // which bypasses Spatie HasTranslations::getAttributeValue() and returns

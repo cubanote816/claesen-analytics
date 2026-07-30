@@ -48,6 +48,11 @@ class TerrainResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    // Terrain never exists without a Complex (fo_terrains.complex_id is NOT NULL) —
+    // only reachable navigating from a Complex's Terrains tab, never as a flat sidebar
+    // entry. Routes/pages stay registered; this only hides the sidebar item.
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;

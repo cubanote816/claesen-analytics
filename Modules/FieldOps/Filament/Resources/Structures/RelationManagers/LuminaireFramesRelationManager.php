@@ -42,6 +42,13 @@ class LuminaireFramesRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
+            // via_structure: completes the browse-down navigation flow (this tab had no
+            // row link before — CLA-278) and lets the Frame page's breadcrumb reflect the
+            // structure the user actually navigated through (a real M:N relation).
+            ->recordUrl(fn ($record) => LuminaireFrameResource::getUrl('view', [
+                'record' => $record,
+                'via_structure' => $this->getOwnerRecord()->getKey(),
+            ]))
             ->columns([
                 TextColumn::make('frameType.name')
                     ->label(__('fieldops::resource.luminaire_frames.fields.frame_type'))

@@ -54,6 +54,11 @@ class LuminaireResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
+    // Luminaire never exists without a LuminaireFrame (fo_luminaires.luminaire_frame_id
+    // is NOT NULL) — only reachable navigating from a Frame's Luminaires/canvas,
+    // never as a flat sidebar entry.
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
@@ -487,7 +492,15 @@ class LuminaireResource extends Resource
             'maintenance' => $maintenance,
             'workOrders' => $workOrders,
             'markers' => $frame ? LuminaireFrameResource::buildCanvasMarkers($frame, $record->id) : [],
-            'frameUrl' => $frame ? LuminaireFrameResource::getUrl('view', ['record' => $frame, 'layout' => 'technical', 'luminaire' => $record->id]) : null,
+            // via_structure/via_terrain: carries this page's own breadcrumb context back
+            // up to the frame, so the same structure/terrain path stays consistent.
+            'frameUrl' => $frame ? LuminaireFrameResource::getUrl('view', array_filter([
+                'record' => $frame,
+                'layout' => 'technical',
+                'luminaire' => $record->id,
+                'via_structure' => request()->integer('via_structure') ?: null,
+                'via_terrain' => request()->integer('via_terrain') ?: null,
+            ])) : null,
             'maintenanceCreateUrl' => FoMaintenanceWorkOrderResource::getUrl('create', [
                 'maintainable_type' => Luminaire::class,
                 'maintainable_id' => $record->id,

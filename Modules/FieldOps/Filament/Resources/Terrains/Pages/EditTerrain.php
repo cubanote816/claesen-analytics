@@ -7,6 +7,7 @@ use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Contracts\Support\Htmlable;
 use Modules\FieldOps\Filament\Resources\TerrainResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 
 class EditTerrain extends EditRecord
 {
@@ -15,6 +16,12 @@ class EditTerrain extends EditRecord
     public function getRelationManagers(): array
     {
         return [];
+    }
+
+    // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    public function getResourceBreadcrumbs(): array
+    {
+        return FieldOpsBreadcrumbs::terrainAncestors($this->getRecord());
     }
 
     protected function mutateFormDataBeforeFill(array $data): array

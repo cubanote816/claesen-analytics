@@ -60,6 +60,10 @@ class LuminaireFrameResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
+    // LuminaireFrame<->Structure is M:N (max 2 per structure) — only reachable
+    // navigating from a Structure's Luminaire frames tab, never as a flat sidebar entry.
+    protected static bool $shouldRegisterNavigation = false;
+
     /**
      * frame_x / frame_y are stored as normalized coordinates between 0 and 1.
      * Older records may still contain percentage-style values, so we accept both
@@ -361,7 +365,14 @@ class LuminaireFrameResource extends Resource
         $frameImage = static::resolveFrameTypePreviewUrl($record->frameType?->image);
         $placeholderImage = static::resolveMarkerPlaceholderUrl();
 
-        $items = $luminaires->map(function (Luminaire $luminaire) use ($placeholderImage): array {
+        // Forwards this page's own via_structure/via_terrain context onward so a
+        // Luminaire reached by clicking a marker shows the same breadcrumb path.
+        $context = array_filter([
+            'via_structure' => request()->integer('via_structure') ?: null,
+            'via_terrain' => request()->integer('via_terrain') ?: null,
+        ]);
+
+        $items = $luminaires->map(function (Luminaire $luminaire) use ($placeholderImage, $context): array {
             $maintenanceCount = (int) ($luminaire->position?->maintenance_records_count ?? $luminaire->maintenance_records_count);
             $openIssuesCount = (int) ($luminaire->position?->open_issues_count ?? $luminaire->open_issues_count);
             $hasOpenIssue = $openIssuesCount > 0;
@@ -388,7 +399,10 @@ class LuminaireFrameResource extends Resource
                 'imageUrl' => $imageUrl,
                 'hasImage' => $imageUrl !== $placeholderImage,
                 'flagged' => $hasOpenIssue,
-                'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('view', ['record' => $luminaire]),
+                'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('view', [
+                    'record' => $luminaire,
+                    ...$context,
+                ]),
                 'maintenanceCreateUrl' => \Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource::getUrl('create', [
                     'maintainable_type' => Luminaire::class,
                     'maintainable_id' => $luminaire->id,
@@ -536,7 +550,14 @@ class LuminaireFrameResource extends Resource
             return [];
         }
 
-        return $luminaires->map(function (Luminaire $luminaire) use ($selectedLuminaireId, $placeholderImage) {
+        // Forwards this page's own via_structure/via_terrain context onward so a
+        // Luminaire reached by clicking a marker shows the same breadcrumb path.
+        $context = array_filter([
+            'via_structure' => request()->integer('via_structure') ?: null,
+            'via_terrain' => request()->integer('via_terrain') ?: null,
+        ]);
+
+        return $luminaires->map(function (Luminaire $luminaire) use ($selectedLuminaireId, $placeholderImage, $context) {
             $hasOpenIssue = $luminaire->maintenanceRecords()
                 ->whereNotNull('problem_reported_at')
                 ->whereNull('problem_solved_at')
@@ -559,7 +580,10 @@ class LuminaireFrameResource extends Resource
                 'hasImage' => $imageUrl !== $placeholderImage,
                 'flagged' => $hasOpenIssue,
                 'selected' => $selectedLuminaireId !== null && $luminaire->id === $selectedLuminaireId,
-                'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('edit', ['record' => $luminaire]),
+                'url' => \Modules\FieldOps\Filament\Resources\LuminaireResource::getUrl('edit', [
+                    'record' => $luminaire,
+                    ...$context,
+                ]),
             ];
         })->values()->all();
     }

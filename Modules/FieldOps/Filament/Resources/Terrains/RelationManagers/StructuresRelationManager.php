@@ -40,7 +40,12 @@ class StructuresRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
-            ->recordUrl(fn ($record) => StructureResource::getUrl('view', ['record' => $record]))
+            // via_terrain: so the Structure page's breadcrumb reflects the terrain the
+            // user actually navigated through (Structure<->Terrain is a real M:N).
+            ->recordUrl(fn ($record) => StructureResource::getUrl('view', [
+                'record' => $record,
+                'via_terrain' => $this->getOwnerRecord()->getKey(),
+            ]))
             ->columns([
                 TextColumn::make('structureType.name')
                     ->label(__('fieldops::resource.structures.fields.structure_type'))

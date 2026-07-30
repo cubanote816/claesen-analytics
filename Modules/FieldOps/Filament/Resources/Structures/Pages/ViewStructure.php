@@ -9,11 +9,23 @@ use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Modules\FieldOps\Filament\Resources\StructureResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 use Modules\FieldOps\Models\Terrain;
 
 class ViewStructure extends ViewRecord
 {
     protected static string $resource = StructureResource::class;
+
+    // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    // ?via_terrain= carries which terrain the user actually navigated through
+    // (Structure<->Terrain is a real M:N) — see Structure::resolveTerrain().
+    public function getResourceBreadcrumbs(): array
+    {
+        return FieldOpsBreadcrumbs::structureAncestors(
+            $this->getRecord(),
+            request()->integer('via_terrain') ?: null,
+        );
+    }
 
     // See ViewFoClient::getTitle() for why this skips Filament's "View :label" wrapper.
     public function getTitle(): string|Htmlable

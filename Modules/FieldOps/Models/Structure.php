@@ -87,6 +87,24 @@ class Structure extends Model implements HasMedia
         return $this->terrains()->value('complex_id');
     }
 
+    // Structure<->Terrain is a real M:N in the data, not just the schema (confirmed:
+    // structures with 2+ terrains exist in production data) — there is no single
+    // "correct" parent terrain. $viaTerrainId lets a caller that knows which terrain
+    // the user actually navigated through (breadcrumbs) prefer that one; otherwise
+    // falls back to the lowest-id terrain, a deterministic (not "correct") default.
+    public function resolveTerrain(?int $viaTerrainId = null): ?Terrain
+    {
+        if ($viaTerrainId) {
+            $terrain = $this->terrains()->find($viaTerrainId);
+
+            if ($terrain) {
+                return $terrain;
+            }
+        }
+
+        return $this->terrains()->orderBy('fo_terrains.id')->first();
+    }
+
     public function luminaireFrames()
     {
         return $this->belongsToMany(LuminaireFrame::class, 'fo_luminaire_frame_structure');

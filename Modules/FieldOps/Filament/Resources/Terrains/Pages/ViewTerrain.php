@@ -8,6 +8,7 @@ use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 use Modules\FieldOps\Filament\Resources\StructureResource;
 use Modules\FieldOps\Filament\Resources\TerrainResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 
 class ViewTerrain extends ViewRecord
 {
@@ -17,6 +18,15 @@ class ViewTerrain extends ViewRecord
     public function getTitle(): string|Htmlable
     {
         return $this->getRecordTitle();
+    }
+
+    // CLA-278: Complexes > {complex} > Terrains > {this terrain} — Filament's default
+    // getBreadcrumbs() already appends this record's own entry after this, see
+    // FieldOpsBreadcrumbs' docblock for why the native nested-resource mechanism
+    // doesn't fit this module's M:N-below-Terrain hierarchy.
+    public function getResourceBreadcrumbs(): array
+    {
+        return FieldOpsBreadcrumbs::terrainAncestors($this->getRecord());
     }
 
     public function getHeading(): string|Htmlable|null

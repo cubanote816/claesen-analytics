@@ -71,6 +71,10 @@ class StructureResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    // Structure<->Terrain is M:N without a required minimum — only reachable
+    // navigating from a Terrain's Structures tab, never as a flat sidebar entry.
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
