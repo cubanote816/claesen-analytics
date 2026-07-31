@@ -1,9 +1,18 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-30 — CLA-278: breadcrumbs jerárquicos reales (`Complexes > {complex} > Terrains > {terrain} > Structures > {structure} > Luminaire frames > {frame} > Luminaires > {luminaire}`) + `Terrains`/`Structures`/`Luminaire frames`/`Luminaires` fuera del menú lateral plano (solo alcanzables navegando desde Complexes). URLs se quedan planas a propósito — decisión de diseño, no de costo, ver `CLAUDE.md` sección "CLA-278 (cont. 6)". Commit `ae4e211`, sigue a `f572bb7` (cierre de huecos de creación huérfana). Tres iteraciones visuales del breadcrumb largo con el usuario (scroll horizontal rechazado → stack vertical corregido a horizontal colapsado → separado a su propia fila arriba de los botones de acción) — diseño final en "CLA-278 (cont. 7)". CLA-278 sigue In Progress.
+> Última actualización: 2026-07-31 — CLA-278: los segmentos "tipo" del breadcrumb (Terrains/Structures/Luminaire Frames/Luminaires) ya no son links — coherente con que esos 4 índices planos ya estaban ocultos del sidebar (CLA-278 cont. 6), el breadcrumb era la última puerta abierta hacia ellos. Sentinel string como key de array (`FieldOpsBreadcrumbs::UNLINKED`) en vez de `null` (PHP coacciona `null` a `''` como key). Verificado además que la navegación real del breadcrumb sigue siendo SPA (`wire:navigate`, sin recarga completa) — no hizo falta cambiar nada, ya lo hacía `generate_href_html()` de Filament, solo se confirmó y se fijó con un test. Commit `f051149`, sigue a `48a7345`. Detalle en `CLAUDE.md` sección "CLA-278 (cont. 8)". CLA-278 sigue In Progress.
 
 > **Programa activo de mantenimiento:** CLA-268, CLA-275 y CLA-276 están Done. Aplicar el runbook de infraestructura de producción en servidores reales (`sbapu03`/`prod-priv-01`) y decidir el pipeline de CI/CD de Claesen-Client quedan como trabajo futuro, fuera de CLA-276 — ver `docs/ai/production-readiness.md`. Fuente canónica del roadmap: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-31 — CLA-278: deshabilitar link de los segmentos "tipo" del breadcrumb + verificación SPA (commit `f051149`)
+
+**Contexto:** el usuario reportó que `http://localhost:8000/luminaire-frames` (el índice plano, ya oculto del sidebar) seguía siendo alcanzable haciendo click en el segmento "Luminaire Frames" del breadcrumb, y pidió el mismo tratamiento para Structures/Terrain; también pidió confirmar que la navegación del breadcrumb no recarga la página completa (panel es SPA vía `wire:navigate`).
+
+- `FieldOpsBreadcrumbs::{terrain,structure,luminaireFrame,luminaire}Ancestors()` clavan ahora esos 4 entries con el sentinel `'fieldops-breadcrumb-unlinked:{slug}'` como key en vez de `XxxResource::getUrl()`. `breadcrumbs.blade.php` (override local de `<x-filament::breadcrumbs>`) trata cualquier key con ese prefijo como texto plano, igual que ya hacía con `null`/`is_int($url)`.
+- Verificación SPA: sin cambios de código — `generate_href_html()` (helper de Filament) ya decide `wire:navigate` automáticamente por tener el panel `->spa()`. Confirmado empíricamente en Chrome real (Selenium, cada `<a>` del breadcrumb trae `wire:navigate`) y fijado con un test nuevo.
+- **Tests/checks:** `FieldOpsHierarchyNavigationTest` 16/16 (54 assertions, 3 tests ajustados + 3 nuevos). Regresión: `LuminaireFrameFilamentTest` 11/11 + `StructureFilamentTest` 7/7 — sin regresiones.
+- Detalle completo en `CLAUDE.md`, sección "CLA-278 (cont. 8)".
 
 ### Sesión 2026-07-25 — CLA-278: Create Luminaire — buscador, UX progresiva y media (código listo, pendiente GO)
 
