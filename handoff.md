@@ -1,9 +1,19 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-31 — CLA-278: los segmentos "tipo" del breadcrumb (Terrains/Structures/Luminaire Frames/Luminaires) ya no son links — coherente con que esos 4 índices planos ya estaban ocultos del sidebar (CLA-278 cont. 6), el breadcrumb era la última puerta abierta hacia ellos. Sentinel string como key de array (`FieldOpsBreadcrumbs::UNLINKED`) en vez de `null` (PHP coacciona `null` a `''` como key). Verificado además que la navegación real del breadcrumb sigue siendo SPA (`wire:navigate`, sin recarga completa) — no hizo falta cambiar nada, ya lo hacía `generate_href_html()` de Filament, solo se confirmó y se fijó con un test. Commit `f051149`, sigue a `48a7345`. Detalle en `CLAUDE.md` sección "CLA-278 (cont. 8)". CLA-278 sigue In Progress.
+> Última actualización: 2026-07-31 — CLA-278: los segmentos sin link del breadcrumb (labels "tipo" + "…" + "página actual") ahora se ven dimeados (`opacity: 0.55`) para distinguirse a simple vista de los links reales, y el colapso dejó de ser un umbral fijo por cantidad de entries — un componente Alpine mide si la fila realmente envolvió (overflow real, `offsetTop`) y solo entonces colapsa, primero los labels tipo, luego entries reales uno por uno si aún no alcanza. Dos race conditions reales encontradas y corregidas verificando en vivo con Selenium (ResizeObserver reaccionando a su propio cambio de alto; `$nextTick` midiendo antes de que el navegador terminara el layout). Commit `a9ecdd8`, sigue a `f051149`. Detalle en `CLAUDE.md` sección "CLA-278 (cont. 9)". CLA-278 sigue In Progress.
 
 > **Programa activo de mantenimiento:** CLA-268, CLA-275 y CLA-276 están Done. Aplicar el runbook de infraestructura de producción en servidores reales (`sbapu03`/`prod-priv-01`) y decidir el pipeline de CI/CD de Claesen-Client quedan como trabajo futuro, fuera de CLA-276 — ver `docs/ai/production-readiness.md`. Fuente canónica del roadmap: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-31 (cont.) — CLA-278: dimming de segmentos sin link + colapso dinámico por overflow real (commit `a9ecdd8`)
+
+**Contexto:** con captura, el usuario pidió que se notara visualmente cuáles segmentos del breadcrumb no tienen link, y que el "…" fuera dinámico — detectar cuándo la fila realmente rompe/necesita más espacio, colapsando primero los niveles sin link y, si aún no alcanza, empezando a colapsar desde el 2do nivel.
+
+- Dimming: una regla CSS (`opacity: 0.55` en cualquier `<span class="fi-breadcrumbs-item-label">`) — sin tocar los `<a>`, que quedan a opacidad plena.
+- Colapso dinámico: `breadcrumbs.blade.php` renderiza siempre todos los entries; un componente Alpine mide overflow real (`offsetTop`) y colapsa en dos pasadas (labels tipo primero, entries reales después) solo si hace falta, fusionando cada tramo contiguo oculto en un solo "…".
+- Dos race conditions reales encontradas verificando en vivo con Selenium contra dev data real: `ResizeObserver` reaccionando a su propio cambio de alto (fix: solo reacciona a cambios de ancho + mutex `recalculating`/`recalcQueued`), y `$nextTick` de Alpine midiendo antes de que el navegador terminara layout/paint (fix: doble `requestAnimationFrame`).
+- **Tests/checks:** `FieldOpsHierarchyNavigationTest` 16/16 + `LuminaireFrameFilamentTest`/`StructureFilamentTest`/`TerrainFilamentTest`/`ComplexFilamentTest`/`ElectricalBoardFilamentTest`/`LuminaireFilamentTest` 56/56 (324 assertions), `Modules/Safety` 126/126 — sin regresiones.
+- Detalle completo en `CLAUDE.md`, sección "CLA-278 (cont. 9)".
 
 ### Sesión 2026-07-31 — CLA-278: deshabilitar link de los segmentos "tipo" del breadcrumb + verificación SPA (commit `f051149`)
 
