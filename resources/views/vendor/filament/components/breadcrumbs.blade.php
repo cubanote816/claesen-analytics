@@ -61,7 +61,7 @@
                     }}
                 @endif
 
-                @if ($entry['url'] === null || is_int($entry['url']))
+                @if ($entry['url'] === null || is_int($entry['url']) || str_starts_with((string) $entry['url'], 'fieldops-breadcrumb-unlinked:'))
                     <span class="fi-breadcrumbs-item-label">
                         {{ $entry['label'] }}
                     </span>

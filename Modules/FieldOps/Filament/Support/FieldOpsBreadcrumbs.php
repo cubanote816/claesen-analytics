@@ -37,12 +37,26 @@ use Modules\FieldOps\Models\Terrain;
  *   Mixing these up produces a duplicated last-but-one breadcrumb entry.
  *
  * TerrainResource/StructureResource/LuminaireFrameResource/LuminaireResource are
- * all hidden from the sidebar (shouldRegisterNavigation = false) — the "type"
- * segment (e.g. "Terrains") still links to that resource's own index route, which
- * still exists, just isn't linked from the sidebar.
+ * all hidden from the sidebar (shouldRegisterNavigation = false) *and* their
+ * "type" breadcrumb segment (e.g. "Terrains") is intentionally not a link either —
+ * a flat, unscoped index of every Terrain/Structure/Frame/Luminaire in the system
+ * isn't a page this app wants reachable at all, sidebar or breadcrumb. Only
+ * Complexes (still in the sidebar, a real browsable index) and the specific
+ * record segments (e.g. "#6 — Hinged") stay clickable.
  */
 class FieldOpsBreadcrumbs
 {
+    // Non-URL sentinel key for a breadcrumb "type" label that must render as
+    // plain text, not a link — array keys can't be null (PHP coerces null to
+    // '', which the blade can't tell apart from a real empty href), and every
+    // link entry in this class is keyed by a real URL string, so a key that
+    // can never look like one is enough to disambiguate. See
+    // resources/views/vendor/filament/components/breadcrumbs.blade.php,
+    // which treats any key starting with this prefix as non-clickable exactly
+    // like Filament's own is_int($url) convention for its own "current page"
+    // entry.
+    private const UNLINKED = 'fieldops-breadcrumb-unlinked:';
+
     /** @return array<string, string> */
     public static function complexTrail(Complex $complex): array
     {
@@ -57,7 +71,7 @@ class FieldOpsBreadcrumbs
     {
         return [
             ...($terrain->complex ? static::complexTrail($terrain->complex) : []),
-            TerrainResource::getUrl() => TerrainResource::getBreadcrumb(),
+            self::UNLINKED.'terrains' => TerrainResource::getBreadcrumb(),
         ];
     }
 
@@ -77,7 +91,7 @@ class FieldOpsBreadcrumbs
 
         return [
             ...($terrain ? static::terrainTrail($terrain) : []),
-            StructureResource::getUrl() => StructureResource::getBreadcrumb(),
+            self::UNLINKED.'structures' => StructureResource::getBreadcrumb(),
         ];
     }
 
@@ -102,7 +116,7 @@ class FieldOpsBreadcrumbs
 
         return [
             ...($structure ? static::structureTrail($structure, $viaTerrainId) : []),
-            LuminaireFrameResource::getUrl() => LuminaireFrameResource::getBreadcrumb(),
+            self::UNLINKED.'luminaire-frames' => LuminaireFrameResource::getBreadcrumb(),
         ];
     }
 
@@ -129,7 +143,7 @@ class FieldOpsBreadcrumbs
 
         return [
             ...($frame ? static::luminaireFrameTrail($frame, $viaStructureId, $viaTerrainId) : []),
-            LuminaireResource::getUrl() => LuminaireResource::getBreadcrumb(),
+            self::UNLINKED.'luminaires' => LuminaireResource::getBreadcrumb(),
         ];
     }
 }

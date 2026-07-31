@@ -131,11 +131,41 @@ class FieldOpsHierarchyNavigationTest extends TestCase
 
         $breadcrumbs = FieldOpsBreadcrumbs::terrainAncestors($terrain);
 
-        $this->assertSame(
-            [ComplexResource::getUrl(), ComplexResource::getUrl('view', ['record' => $complex]), TerrainResource::getUrl()],
-            array_keys($breadcrumbs),
-        );
+        $keys = array_keys($breadcrumbs);
+        // Complexes stays a real, clickable index (still in the sidebar). "Terrains"
+        // is a type-label segment, never a link — a flat, unscoped list of every
+        // Terrain in the system isn't a page this app wants reachable at all.
+        $this->assertSame([ComplexResource::getUrl(), ComplexResource::getUrl('view', ['record' => $complex])], array_slice($keys, 0, 2));
+        $this->assertNotSame(TerrainResource::getUrl(), $keys[2]);
+        $this->assertSame(TerrainResource::getBreadcrumb(), array_values($breadcrumbs)[2]);
         $this->assertSame('Stadion Bleukens', array_values($breadcrumbs)[1]);
+    }
+
+    public function test_type_label_segments_are_never_urls_across_the_whole_chain(): void
+    {
+        $complex = Complex::factory()->create(['name' => 'Stadion Bleukens']);
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id, 'name' => ['nl' => 'Terrain Main']]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+        $frame = LuminaireFrame::factory()->create();
+        $frame->structures()->attach($structure->id);
+        $luminaire = Luminaire::factory()->create(['luminaire_frame_id' => $frame->id, 'frame_position' => 1]);
+
+        $breadcrumbs = FieldOpsBreadcrumbs::luminaireAncestors($luminaire, $structure->id, $terrain->id);
+
+        foreach ([TerrainResource::getUrl(), StructureResource::getUrl(), LuminaireFrameResource::getUrl(), LuminaireResource::getUrl()] as $flatIndexUrl) {
+            $this->assertArrayNotHasKey($flatIndexUrl, $breadcrumbs);
+        }
+
+        // Every key really is either the Complexes index, a specific record's own
+        // URL, or the non-clickable sentinel — nothing silently fell through blank.
+        foreach (array_keys($breadcrumbs) as $key) {
+            $this->assertTrue(
+                $key === ComplexResource::getUrl()
+                    || str_starts_with($key, 'http')
+                    || str_starts_with($key, 'fieldops-breadcrumb-unlinked:'),
+            );
+        }
     }
 
     public function test_structure_ancestors_use_via_terrain_over_deterministic_fallback(): void
@@ -169,7 +199,10 @@ class FieldOpsHierarchyNavigationTest extends TestCase
         $this->assertContains('Stadion Bleukens', array_values($breadcrumbs));
         $this->assertContains('Terrain Main', array_values($breadcrumbs));
         $this->assertContains(StructureResource::getRecordTitle($structure), array_values($breadcrumbs));
-        $this->assertArrayHasKey(LuminaireFrameResource::getUrl(), $breadcrumbs);
+        // "Luminaire Frames" is a type-label segment, not a link: no key in this
+        // array should ever equal LuminaireFrameResource's flat index URL.
+        $this->assertContains(LuminaireFrameResource::getBreadcrumb(), array_values($breadcrumbs));
+        $this->assertArrayNotHasKey(LuminaireFrameResource::getUrl(), $breadcrumbs);
     }
 
     public function test_luminaire_ancestors_full_chain(): void
@@ -187,7 +220,10 @@ class FieldOpsHierarchyNavigationTest extends TestCase
 
         $this->assertContains('Stadion Bleukens', array_values($breadcrumbs));
         $this->assertContains('Terrain Main', array_values($breadcrumbs));
-        $this->assertArrayHasKey(LuminaireResource::getUrl(), $breadcrumbs);
+        // "Luminaires" is a type-label segment, not a link — same reasoning as
+        // luminaireFrameAncestors above.
+        $this->assertContains(LuminaireResource::getBreadcrumb(), array_values($breadcrumbs));
+        $this->assertArrayNotHasKey(LuminaireResource::getUrl(), $breadcrumbs);
     }
 
     // ── End-to-end: breadcrumb actually renders on the page ──
@@ -209,6 +245,60 @@ class FieldOpsHierarchyNavigationTest extends TestCase
             ->assertOk()
             ->assertSee('Complex B')
             ->assertDontSee('Complex A');
+    }
+
+    public function test_breadcrumb_type_segments_render_as_plain_text_not_links(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create(['name' => 'Stadion Bleukens']);
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id, 'name' => ['nl' => 'Terrain Main']]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+        $frame = LuminaireFrame::factory()->create();
+        $frame->structures()->attach($structure->id);
+        $luminaire = Luminaire::factory()->create(['luminaire_frame_id' => $frame->id, 'frame_position' => 1]);
+
+        $html = $this->get("/luminaires/{$luminaire->id}?via_structure={$structure->id}&via_terrain={$terrain->id}")
+            ->assertOk()
+            ->getContent();
+
+        // The flat index routes must never appear as an href anywhere in the
+        // breadcrumb — "Terrains"/"Structures"/"Luminaire frames"/"Luminaires"
+        // are plain text now, Complexes stays a real link.
+        foreach ([
+            TerrainResource::getUrl(),
+            StructureResource::getUrl(),
+            LuminaireFrameResource::getUrl(),
+            LuminaireResource::getUrl(),
+        ] as $flatIndexUrl) {
+            $this->assertStringNotContainsString('href="'.$flatIndexUrl.'"', $html);
+        }
+
+        $this->assertStringContainsString('href="'.ComplexResource::getUrl().'"', $html);
+    }
+
+    public function test_breadcrumb_record_links_use_spa_navigation_not_full_page_reload(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create(['name' => 'Stadion Bleukens']);
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+
+        $html = $this->get("/terrains/{$terrain->id}")->assertOk()->getContent();
+
+        // The panel has ->spa() enabled (AdminPanelProvider) — Filament's own
+        // generate_href_html() (reused as-is in the breadcrumbs override) adds
+        // wire:navigate automatically for in-panel links. Regression guard: if a
+        // future edit swaps back to a raw href="{{ $url }}", this fails instead
+        // of silently causing full page reloads on every breadcrumb click.
+        $complexLinkPos = strpos($html, 'href="'.ComplexResource::getUrl().'"');
+        $this->assertNotFalse($complexLinkPos);
+        $this->assertStringContainsString('wire:navigate', substr($html, $complexLinkPos, 400));
     }
 
     public function test_luminaire_frames_relation_manager_record_url_carries_via_structure(): void
