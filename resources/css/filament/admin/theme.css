@@ -136,6 +136,17 @@
     }
 }
 
+/* ── Breadcrumb: visually distinguish plain-text segments from links ────────
+   Filament's compiled breadcrumbs CSS colors <a> and <span> segments
+   identically at rest (a link only changes color on :hover) — a plain label
+   (the "current page" entry, or FieldOps's deliberately unlinked "type"
+   segments — Terrains/Structures/etc., see breadcrumbs.blade.php) was
+   indistinguishable from a real link until you tried clicking it. Dimming
+   non-link segments makes "this one doesn't go anywhere" visible at rest. */
+.fi-breadcrumbs-item span.fi-breadcrumbs-item-label {
+    opacity: 0.55;
+}
+
 /* ── Edit form: force schema components to fill available width ──────────── */
 .fi-resource-edit-record-page .fi-sc-form,
 .fi-resource-edit-record-page .fi-sc-form > div,
