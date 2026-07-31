@@ -1,9 +1,19 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-07-31 — CLA-278: dos bugs reportados tras validar el trabajo de breadcrumbs, ninguno causado por él. (1) Navegar a Terrain/Structure/Luminaire recargaba la página completa — causa real: varios partials Blade de FieldOps (`map-panel`, `profile-header`, `associated-complexes`, `used-by`, `luminaire-operational-overview`, y links sueltos en otros dos) construían `<a href>` en crudo para navegación interna sin pasar por `generate_href_html()`, nunca llevaban `wire:navigate`. Confirmado con Selenium (marcador JS destruido = recarga real) y corregido en los 8 archivos afectados. (2) El breadcrumb no cubría "Schedule maintenance" — se agregó `FieldOpsBreadcrumbs::maintenanceWorkOrderAncestors()` (reutiliza la cadena de Luminaire, ancla en el índice propio para ElectricalBoard). Commit `39899a0`, sigue a `a9ecdd8`. Detalle en `CLAUDE.md` sección "CLA-278 (cont. 10)". CLA-278 sigue In Progress.
+> Última actualización: 2026-07-31 — CLA-278: el usuario reprodujo el mismo síntoma de recarga completa en `/luminaires/21?via_structure=4` — el fix anterior (cont. 10) solo corrigió el bloque server-rendered del canvas de Luminaire Frame (`luminaire-frame-spatial-layout.blade.php`), pero los dos bloques Alpine-driven (`:href="selectedMarker()?.url"`, Overview + Technical) — los que en la práctica se renderizan una vez Alpine hidrata — seguían sin `wire:navigate`. Corregido agregándolo como atributo estático junto al binding reactivo. También se agregó breadcrumb a `ListFoMaintenanceRecords` ("View history" desde un Luminaire), mismo gap que los work orders pero con query params `luminaire`/`position` en vez de `maintainable_type`/`id`. Commit `3afd81a`, sigue a `39899a0`. Detalle en `CLAUDE.md` sección "CLA-278 (cont. 11)". CLA-278 sigue In Progress.
 
 > **Programa activo de mantenimiento:** CLA-268, CLA-275 y CLA-276 están Done. Aplicar el runbook de infraestructura de producción en servidores reales (`sbapu03`/`prod-priv-01`) y decidir el pipeline de CI/CD de Claesen-Client quedan como trabajo futuro, fuera de CLA-276 — ver `docs/ai/production-readiness.md`. Fuente canónica del roadmap: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-07-31 (cont. 3) — CLA-278: fix recarga completa en el canvas de Luminaire Frame (bloques Alpine, no solo el fallback) + breadcrumb de Maintenance Records (commit `3afd81a`)
+
+**Contexto:** el usuario reprodujo el mismo bug de recarga de cont. 2 en la URL exacta `/luminaires/21?via_structure=4`, y reportó que la página de Maintenance Records también perdía el breadcrumb anidado.
+
+- `luminaire-frame-spatial-layout.blade.php` tiene el panel de "marcador seleccionado" triplicado: un bloque server-rendered (ya corregido en cont. 2, `x-show="!selectedMarker()"`, casi nunca visible) y **dos bloques Alpine-driven** (`:href="selectedMarker()?.url"`, uno por modo Overview/Technical) que sí son los que se ven en la práctica una vez Alpine hidrata — no se habían tocado. Fix: `wire:navigate` como atributo estático junto al `:href` reactivo (no hace falta que forme parte del binding).
+- De paso, `maintenanceCreateUrl`/`maintenanceIndexUrl` en `LuminaireResource`/`LuminaireFrameResource` ahora reenvían `via_structure`/`via_terrain`, igual que `frameUrl` al lado.
+- `ListFoMaintenanceRecords` ("View history" desde un Luminaire) ganó `getResourceBreadcrumbs()` — mismo patrón que los work orders (cont. 2), pero lee `luminaire`/`position` en vez de `maintainable_type`/`id`.
+- **Tests/checks:** `LuminaireFrameFilamentTest` +1, `FoMaintenanceFilamentTest` +1 — regresión completa 72/72 (405 assertions). Verificado en Chrome real (Selenium) contra la URL exacta reportada por el usuario.
+- Detalle completo en `CLAUDE.md`, sección "CLA-278 (cont. 11)".
 
 ### Sesión 2026-07-31 (cont. 2) — CLA-278: fix recarga completa en links internos de FieldOps + breadcrumb de Maintenance work orders (commit `39899a0`)
 
