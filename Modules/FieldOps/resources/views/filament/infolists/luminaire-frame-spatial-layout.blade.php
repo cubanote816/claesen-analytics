@@ -2800,13 +2800,13 @@
                         </div>
 
                         <div class="fieldops-luminaire-frame-spatial__selected-actions">
-                            <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['url'] }}">
+                            <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['url'] }}" wire:navigate>
                                 {{ __('fieldops::resource.luminaire_frames.view.open_position_details') }}
                             </a>
-                            <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceCreateUrl'] }}">
+                            <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceCreateUrl'] }}" wire:navigate>
                                 {{ __('fieldops::resource.luminaires.actions.schedule_maintenance') }}
                             </a>
-                            <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceIndexUrl'] }}">
+                            <a class="fieldops-luminaire-frame-spatial__link" href="{{ $selected['maintenanceIndexUrl'] }}" wire:navigate>
                                 {{ __('fieldops::resource.luminaires.actions.view_history') }}
                             </a>
                         </div>

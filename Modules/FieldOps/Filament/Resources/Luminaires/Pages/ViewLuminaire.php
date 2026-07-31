@@ -69,10 +69,12 @@ class ViewLuminaire extends ViewRecord
                 ->icon('heroicon-m-clipboard-document-check')
                 ->color('primary')
                 ->visible(fn (): bool => $this->record->removed_at === null && $this->record->active_position_id !== null)
-                ->url(fn (): string => FoMaintenanceWorkOrderResource::getUrl('create', [
+                ->url(fn (): string => FoMaintenanceWorkOrderResource::getUrl('create', array_filter([
                     'maintainable_type' => Luminaire::class,
                     'maintainable_id' => $this->record->id,
-                ])),
+                    'via_structure' => request()->integer('via_structure') ?: null,
+                    'via_terrain' => request()->integer('via_terrain') ?: null,
+                ]))),
             Action::make('replaceLuminaire')
                 ->label(__('fieldops::resource.luminaires.actions.replace'))
                 ->icon('heroicon-m-arrow-path')

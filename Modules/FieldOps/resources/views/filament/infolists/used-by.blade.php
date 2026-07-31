@@ -9,7 +9,7 @@
             <span class="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ $group['label'] }}</span>
             @forelse ($group['items'] as $item)
                 <a
-                    href="{{ $item['url'] }}"
+                    {{ \Filament\Support\generate_href_html($item['url']) }}
                     class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-sm text-gray-700 hover:border-primary-400 dark:border-white/10 dark:bg-white/5 dark:text-gray-200"
                 >{{ $item['label'] }}</a>
             @empty

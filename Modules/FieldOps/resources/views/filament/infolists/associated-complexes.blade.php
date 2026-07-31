@@ -24,11 +24,11 @@
                 @php $complexUrl = \Modules\FieldOps\Filament\Resources\ComplexResource::getUrl('view', ['record' => $complex]); @endphp
                 <tr
                     class="cursor-pointer divide-x divide-gray-200 transition-colors hover:bg-gray-50 dark:divide-white/10 dark:hover:bg-gray-950/50"
-                    onclick="window.location='{{ $complexUrl }}'"
+                    x-on:click="if (! ($event.altKey || $event.ctrlKey || $event.metaKey || $event.shiftKey)) { $event.preventDefault(); Alpine.navigate('{{ $complexUrl }}') }"
                 >
                     <td class="px-4 py-3 text-sm">
                         <a
-                            href="{{ $complexUrl }}"
+                            {{ \Filament\Support\generate_href_html($complexUrl) }}
                             class="font-medium text-primary-600 hover:underline dark:text-primary-400"
                         >
                             {{ $complex->name }}

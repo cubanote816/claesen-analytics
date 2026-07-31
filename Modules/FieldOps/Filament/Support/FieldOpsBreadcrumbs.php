@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Filament\Support;
 
 use Modules\FieldOps\Filament\Resources\ComplexResource;
+use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
+use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\FieldOps\Filament\Resources\StructureResource;
 use Modules\FieldOps\Filament\Resources\TerrainResource;
 use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\Structure;
@@ -144,6 +147,51 @@ class FieldOpsBreadcrumbs
         return [
             ...($frame ? static::luminaireFrameTrail($frame, $viaStructureId, $viaTerrainId) : []),
             self::UNLINKED.'luminaires' => LuminaireResource::getBreadcrumb(),
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function luminaireTrail(Luminaire $luminaire, ?int $viaStructureId = null, ?int $viaTerrainId = null): array
+    {
+        return [
+            ...static::luminaireAncestors($luminaire, $viaStructureId, $viaTerrainId),
+            LuminaireResource::getUrl('view', array_filter([
+                'record' => $luminaire,
+                'via_structure' => $viaStructureId,
+                'via_terrain' => $viaTerrainId,
+            ])) => LuminaireResource::getRecordTitle($luminaire),
+        ];
+    }
+
+    /**
+     * Maintenance work orders aren't part of the Complex→Terrain→Structure→Frame
+     * hierarchy — they hang off a Luminaire or an ElectricalBoard directly (see
+     * MaintenanceEquipmentContextService). ElectricalBoard isn't hidden from the
+     * sidebar like the other 4 leaf resources (it can belong to several
+     * complexes/terrains/structures via its own pivots, so it doesn't have "a"
+     * place in that chain either) — its own index stays a real link here, same
+     * as Complexes.
+     *
+     * @return array<string, string>
+     */
+    public static function maintenanceWorkOrderAncestors(string $maintainableType, int|string $maintainableId, ?int $viaStructureId = null, ?int $viaTerrainId = null): array
+    {
+        $trail = match ($maintainableType) {
+            Luminaire::class => ($luminaire = Luminaire::find($maintainableId))
+                ? static::luminaireTrail($luminaire, $viaStructureId, $viaTerrainId)
+                : [],
+            ElectricalBoard::class => ($board = ElectricalBoard::find($maintainableId))
+                ? [
+                    ElectricalBoardResource::getUrl() => ElectricalBoardResource::getBreadcrumb(),
+                    ElectricalBoardResource::getUrl('view', ['record' => $board]) => ElectricalBoardResource::getRecordTitle($board),
+                ]
+                : [],
+            default => [],
+        };
+
+        return [
+            ...$trail,
+            FoMaintenanceWorkOrderResource::getUrl() => FoMaintenanceWorkOrderResource::getBreadcrumb(),
         ];
     }
 }

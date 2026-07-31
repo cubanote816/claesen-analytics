@@ -59,6 +59,37 @@ class ComplexFilamentTest extends TestCase
         $this->get("/complexes/{$complex->id}/edit")->assertOk();
     }
 
+    public function test_complex_map_panel_and_profile_chip_links_use_spa_navigation(): void
+    {
+        // Regression guard: map-panel.blade.php and profile-header.blade.php built
+        // raw <a href="{{ $url }}"> for internal FieldOps navigation (no
+        // generate_href_html()) — confirmed via a real browser click (Selenium)
+        // that this caused a genuine full page reload, unrelated to the
+        // breadcrumb's own SPA links (already covered by
+        // FieldOpsHierarchyNavigationTest::test_breadcrumb_record_links_use_spa_navigation_not_full_page_reload).
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $client = FoClient::factory()->create();
+        $complex = Complex::factory()->create(['client_id' => $client->id]);
+        $terrain = Terrain::factory()->create([
+            'complex_id' => $complex->id,
+            'lat' => 51.163912,
+            'lng' => 5.163982,
+        ]);
+
+        $html = $this->get("/complexes/{$complex->id}")->assertOk()->getContent();
+
+        $terrainLinkPos = strpos($html, 'href="'.\Modules\FieldOps\Filament\Resources\TerrainResource::getUrl('view', ['record' => $terrain]).'"');
+        $this->assertNotFalse($terrainLinkPos, 'Map panel rail item for the terrain should be present.');
+        $this->assertStringContainsString('wire:navigate', substr($html, $terrainLinkPos, 200));
+
+        $clientChipLinkPos = strpos($html, 'href="'.\Modules\FieldOps\Filament\Resources\FoClientResource::getUrl('view', ['record' => $client]).'"');
+        $this->assertNotFalse($clientChipLinkPos, 'Profile header client chip should be present.');
+        $this->assertStringContainsString('wire:navigate', substr($html, $clientChipLinkPos, 200));
+    }
+
     public function test_complex_map_passes_terrain_type_code_and_color_for_sport_pin(): void
     {
         $user = User::factory()->create();

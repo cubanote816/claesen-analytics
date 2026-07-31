@@ -137,11 +137,11 @@
                 </div>
                 <div class="fieldops-luminaire-overview__actions">
                     @if ($isCurrentInstallation)
-                        <a href="{{ $overview['maintenanceCreateUrl'] }}" class="fieldops-luminaire-overview__button fieldops-luminaire-overview__button--primary">
+                        <a {{ \Filament\Support\generate_href_html($overview['maintenanceCreateUrl']) }} class="fieldops-luminaire-overview__button fieldops-luminaire-overview__button--primary">
                             {{ __('fieldops::resource.luminaires.actions.schedule_maintenance') }}
                         </a>
                     @endif
-                    <a href="{{ $overview['maintenanceIndexUrl'] }}" class="fieldops-luminaire-overview__button">
+                    <a {{ \Filament\Support\generate_href_html($overview['maintenanceIndexUrl']) }} class="fieldops-luminaire-overview__button">
                         {{ __('fieldops::resource.luminaires.actions.view_history') }}
                     </a>
                 </div>
@@ -153,7 +153,7 @@
                 </div>
                 <div class="fieldops-luminaire-overview__maintenance">
                     @foreach ($overview['workOrders'] as $order)
-                        <a href="{{ $order['url'] }}" class="fieldops-luminaire-overview__maintenance-row">
+                        <a {{ \Filament\Support\generate_href_html($order['url']) }} class="fieldops-luminaire-overview__maintenance-row">
                             <span class="fieldops-luminaire-overview__maintenance-icon fieldops-luminaire-overview__maintenance-icon--open">#{{ $order['id'] }}</span>
                             <span class="min-w-0">
                                 <span class="fieldops-luminaire-overview__maintenance-name">{{ $order['type'] ?: __('fieldops::resource.work_orders.model_label') }}</span>
@@ -168,7 +168,7 @@
             @if (count($overview['maintenance']) > 0)
                 <div class="fieldops-luminaire-overview__maintenance">
                     @foreach ($overview['maintenance'] as $maintenance)
-                        <a href="{{ $maintenance['url'] }}" class="fieldops-luminaire-overview__maintenance-row">
+                        <a {{ \Filament\Support\generate_href_html($maintenance['url']) }} class="fieldops-luminaire-overview__maintenance-row">
                             <span class="fieldops-luminaire-overview__maintenance-icon {{ $maintenance['status'] === 'open' ? 'fieldops-luminaire-overview__maintenance-icon--open' : '' }}">
                                 {{ $maintenance['status'] === 'open' ? '!' : '✓' }}
                             </span>
@@ -201,7 +201,7 @@
                     <div class="fieldops-luminaire-overview__stage" @if($overview['frameImageUrl']) style="background-image:url('{{ $overview['frameImageUrl'] }}')" @endif>
                         @foreach ($overview['markers'] as $marker)
                             <a
-                                href="{{ $marker['url'] }}"
+                                {{ \Filament\Support\generate_href_html($marker['url']) }}
                                 class="fieldops-luminaire-overview__marker {{ $marker['selected'] ? 'fieldops-luminaire-overview__marker--selected' : '' }}"
                                 style="left:{{ $marker['left'] }}%;top:{{ $marker['top'] }}%;width:{{ $marker['size'] }}px;height:{{ $marker['size'] }}px"
                                 title="{{ $marker['serial'] ?: $marker['label'] }}"
@@ -215,7 +215,7 @@
                     <div class="fieldops-luminaire-overview__empty">{{ __('fieldops::resource.luminaire_frames.no_luminaires') }}</div>
                 @endif
                 @if ($overview['frameUrl'])
-                    <a href="{{ $overview['frameUrl'] }}" class="fieldops-luminaire-overview__button mt-4 w-full">
+                    <a {{ \Filament\Support\generate_href_html($overview['frameUrl']) }} class="fieldops-luminaire-overview__button mt-4 w-full">
                         {{ __('fieldops::resource.luminaires.actions.open_technical_layout') }}
                     </a>
                 @endif

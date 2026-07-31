@@ -295,7 +295,7 @@
                     @foreach ($data['chips'] as $chip)
                         @php $chipTag = ($chip['url'] ?? null) ? 'a' : 'span'; @endphp
                         <{{ $chipTag }}
-                            @if ($chip['url'] ?? null) href="{{ $chip['url'] }}" @endif
+                            @if ($chip['url'] ?? null) {{ \Filament\Support\generate_href_html($chip['url']) }} @endif
                             class="fieldops-profile-hero__chip {{ ($chip['url'] ?? null) ? 'fieldops-profile-hero__chip--link' : '' }}"
                         >
                             <span class="fieldops-profile-hero__chip-dot {{ $chipDot($chip['color'] ?? 'info') }}"></span>
@@ -324,7 +324,7 @@
                         <div class="mt-2">
                             @if ($item['url'] ?? null)
                                 <a
-                                    href="{{ $item['url'] }}" @if($item['newTab'] ?? false) target="_blank" rel="noopener" @endif
+                                    {{ \Filament\Support\generate_href_html($item['url'], (bool) ($item['newTab'] ?? false)) }} @if($item['newTab'] ?? false) rel="noopener" @endif
                                     class="fieldops-profile-hero__map-thumb"
                                 >
                                     <span class="fieldops-profile-hero__map-pin"></span>
@@ -340,7 +340,7 @@
                             @endif
                             @if (filled($item['value'] ?? null))
                                 @if ($item['url'] ?? null)
-                                    <a href="{{ $item['url'] }}" @if($item['newTab'] ?? false) target="_blank" rel="noopener" @endif class="hover:underline">{{ $item['value'] }}</a>
+                                    <a {{ \Filament\Support\generate_href_html($item['url'], (bool) ($item['newTab'] ?? false)) }} @if($item['newTab'] ?? false) rel="noopener" @endif class="hover:underline">{{ $item['value'] }}</a>
                                 @else
                                     <span>{{ $item['value'] }}</span>
                                 @endif

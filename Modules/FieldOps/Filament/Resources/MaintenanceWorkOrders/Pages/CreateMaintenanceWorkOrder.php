@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Services\MaintenanceWorkOrderService;
@@ -17,6 +18,28 @@ use Modules\FieldOps\Services\MaintenanceWorkOrderService;
 class CreateMaintenanceWorkOrder extends CreateRecord
 {
     protected static string $resource = FoMaintenanceWorkOrderResource::class;
+
+    // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    // Reached before a record exists, so context comes from the query string
+    // the "Schedule maintenance" action sends (maintainable_type/_id), same
+    // params FoMaintenanceWorkOrderResource::form() already reads to prefill
+    // the hidden fields.
+    public function getResourceBreadcrumbs(): array
+    {
+        $type = request('maintainable_type');
+        $id = request()->integer('maintainable_id') ?: null;
+
+        if (blank($type) || $id === null) {
+            return [];
+        }
+
+        return FieldOpsBreadcrumbs::maintenanceWorkOrderAncestors(
+            $type,
+            $id,
+            request()->integer('via_structure') ?: null,
+            request()->integer('via_terrain') ?: null,
+        );
+    }
 
     protected function handleRecordCreation(array $data): Model
     {

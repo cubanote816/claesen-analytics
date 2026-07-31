@@ -496,7 +496,7 @@
                     @endphp
                     @if (! empty($item['url']))
                         <a
-                            href="{{ $item['url'] }}"
+                            {{ \Filament\Support\generate_href_html($item['url']) }}
                             class="fieldops-map-panel__item"
                         >
                     @else
@@ -710,7 +710,7 @@
 
                             if (marker.url) {
                                 leafletMarker.on('click', () => {
-                                    window.location.href = marker.url;
+                                    window.Alpine.navigate(marker.url);
                                 });
                             }
                         });

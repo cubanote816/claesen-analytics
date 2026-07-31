@@ -75,7 +75,7 @@
                 @if ($lockedType['subgroup'] ?? null)<span class="fieldops-luminaire-type-picker__meta">{{ $lockedType['subgroup'] }}</span>@endif
             </span>
             @if ($replaceUrl)
-                <a href="{{ $replaceUrl }}" class="fieldops-luminaire-type-picker__locked-hint">
+                <a {{ \Filament\Support\generate_href_html($replaceUrl) }} class="fieldops-luminaire-type-picker__locked-hint">
                     {{ __('fieldops::resource.luminaires.type_picker.locked_hint') }}
                 </a>
             @endif

@@ -14,12 +14,22 @@ use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Services\MaintenanceWorkOrderService;
 
 class ViewMaintenanceWorkOrder extends ViewRecord
 {
     protected static string $resource = FoMaintenanceWorkOrderResource::class;
+
+    // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    public function getResourceBreadcrumbs(): array
+    {
+        return FieldOpsBreadcrumbs::maintenanceWorkOrderAncestors(
+            $this->record->maintainable_type,
+            $this->record->maintainable_id,
+        );
+    }
 
     protected function getHeaderActions(): array
     {

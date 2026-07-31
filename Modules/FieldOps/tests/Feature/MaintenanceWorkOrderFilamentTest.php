@@ -8,9 +8,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
+use Modules\FieldOps\Filament\Resources\ComplexResource;
+use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\CreateMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenancePlan;
 use Modules\FieldOps\Models\FoMaintenanceType;
@@ -113,6 +116,62 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
         self::assertSame(1, FoMaintenancePlan::count());
         self::assertSame(FoMaintenancePlan::firstOrFail()->id, $order->maintenance_plan_id);
         $this->get('/fo-maintenance-plans')->assertOk()->assertSee('6 month(s)');
+    }
+
+    public function test_create_work_order_breadcrumb_reflects_luminaire_hierarchy(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $this->actingAs($user);
+
+        $this->get(FoMaintenanceWorkOrderResource::getUrl('create', [
+            'maintainable_type' => Luminaire::class,
+            'maintainable_id' => $luminaire->id,
+        ]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl().'"', false)
+            ->assertSee((string) $luminaire->serial_number)
+            ->assertSee('Work order');
+    }
+
+    public function test_view_work_order_breadcrumb_reflects_luminaire_hierarchy(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create();
+        $this->actingAs($user);
+
+        $this->get(FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $order]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl().'"', false)
+            ->assertSee((string) $luminaire->serial_number);
+    }
+
+    public function test_electrical_board_work_order_breadcrumb_shows_board_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $board = ElectricalBoard::factory()->create();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($board)->create();
+        $this->actingAs($user);
+
+        $html = $this->get(FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $order]))
+            ->assertOk()
+            ->assertSee('href="'.ElectricalBoardResource::getUrl('view', ['record' => $board]).'"', false)
+            ->getContent();
+
+        // The M:N Complex/Terrain/Structure chain doesn't apply to ElectricalBoard
+        // (it can belong to several of each) — its own index stays the anchor,
+        // not a hierarchy trail like Luminaire gets. Scoped to the breadcrumb nav
+        // itself (marked by the fi-breadcrumbs class), not the whole page —
+        // "Complexes" is also a normal sidebar item present on every panel page
+        // regardless of this resource's breadcrumb.
+        $breadcrumbsPos = strpos($html, 'fi-breadcrumbs');
+        $this->assertNotFalse($breadcrumbsPos);
+        $breadcrumbNav = substr($html, $breadcrumbsPos, 4000);
+        $this->assertStringNotContainsString('href="'.ComplexResource::getUrl().'"', $breadcrumbNav);
     }
 
     private function luminaireWithClientContext(): Luminaire
