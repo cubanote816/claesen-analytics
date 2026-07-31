@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 use Modules\FieldOps\Models\Luminaire;
 
 class ListFoMaintenanceRecords extends ListRecords
@@ -17,6 +18,34 @@ class ListFoMaintenanceRecords extends ListRecords
     public ?int $luminaireId = null;
 
     public ?int $luminairePositionId = null;
+
+    // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    // "View history" only ever links here scoped to a Luminaire (luminaire/
+    // position query params — LuminaireResource/LuminaireFrameResource build
+    // maintenanceIndexUrl this way, never for an ElectricalBoard) — falls
+    // back to Filament's default breadcrumb when reached without that
+    // context (direct URL, or the global "Maintenance Records" sidebar-less
+    // entry point).
+    public function getResourceBreadcrumbs(): array
+    {
+        $luminaireId = request()->integer('luminaire') ?: null;
+
+        if ($luminaireId === null) {
+            return [];
+        }
+
+        $luminaire = Luminaire::find($luminaireId);
+
+        if (! $luminaire) {
+            return [];
+        }
+
+        return FieldOpsBreadcrumbs::luminaireTrail(
+            $luminaire,
+            request()->integer('via_structure') ?: null,
+            request()->integer('via_terrain') ?: null,
+        );
+    }
 
     public function mount(): void
     {

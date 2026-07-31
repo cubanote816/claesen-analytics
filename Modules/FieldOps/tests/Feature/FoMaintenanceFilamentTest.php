@@ -6,12 +6,17 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\ComplexResource;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
+use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireType;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Services\LuminaireReplacementService;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
@@ -108,6 +113,27 @@ class FoMaintenanceFilamentTest extends TestCase
         $this->withHeader('Accept-Language', 'en-US')->get("/luminaires/{$target->id}")
             ->assertOk()
             ->assertSee('Schedule maintenance');
+    }
+
+    public function test_luminaire_scoped_history_breadcrumb_reflects_full_hierarchy(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create(['name' => 'Stadion Bleukens']);
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+        $frame = LuminaireFrame::factory()->create();
+        $frame->structures()->attach($structure->id);
+        $luminaire = Luminaire::factory()->create(['luminaire_frame_id' => $frame->id, 'frame_position' => 1]);
+
+        $html = $this->get("/fo-maintenance-records?luminaire={$luminaire->id}&position={$luminaire->luminaire_position_id}")
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('href="'.ComplexResource::getUrl().'"', $html);
     }
 
     public function test_replacement_record_shows_old_and_new_luminaires_at_same_position(): void

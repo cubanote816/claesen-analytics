@@ -144,6 +144,35 @@ class LuminaireFrameFilamentTest extends TestCase
         $this->get("/luminaire-frames/{$frame->id}/edit")->assertOk();
     }
 
+    public function test_selected_marker_panel_links_use_spa_navigation(): void
+    {
+        // Regression guard: the Alpine-driven ":href" links in the selected-marker
+        // panel (Overview AND Technical layout, both templates share identical
+        // markup) never carried wire:navigate — only the rarely-visible
+        // server-rendered fallback (shown briefly before Alpine hydrates) did.
+        // Since Alpine hydrates almost immediately, this is what a real click
+        // actually hits, and it was causing a genuine full page reload
+        // (confirmed with Selenium: a window marker set before the click didn't
+        // survive it). wire:navigate only needs to be present as a static
+        // attribute — it doesn't need to be part of the reactive :href binding.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $frame = LuminaireFrame::factory()->create();
+        Luminaire::factory()->create(['luminaire_frame_id' => $frame->id, 'frame_position' => 1]);
+
+        $html = $this->get("/luminaire-frames/{$frame->id}")->assertOk()->getContent();
+
+        $this->assertSame(
+            2,
+            substr_count($html, ':href="selectedMarker()?.url" wire:navigate'),
+            'Expected the selected-marker "open position details" link to carry wire:navigate in both the Overview and Technical panels.'
+        );
+        $this->assertSame(2, substr_count($html, ':href="selectedMarker()?.maintenanceCreateUrl" wire:navigate'));
+        $this->assertSame(2, substr_count($html, ':href="selectedMarker()?.maintenanceIndexUrl" wire:navigate'));
+    }
+
     public function test_frame_without_luminaires_renders_empty_state(): void
     {
         $user = User::factory()->create();

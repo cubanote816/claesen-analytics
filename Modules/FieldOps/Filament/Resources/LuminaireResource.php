@@ -501,14 +501,18 @@ class LuminaireResource extends Resource
                 'via_structure' => request()->integer('via_structure') ?: null,
                 'via_terrain' => request()->integer('via_terrain') ?: null,
             ])) : null,
-            'maintenanceCreateUrl' => FoMaintenanceWorkOrderResource::getUrl('create', [
+            'maintenanceCreateUrl' => FoMaintenanceWorkOrderResource::getUrl('create', array_filter([
                 'maintainable_type' => Luminaire::class,
                 'maintainable_id' => $record->id,
-            ]),
-            'maintenanceIndexUrl' => FoMaintenanceRecordResource::getUrl('index', [
+                'via_structure' => request()->integer('via_structure') ?: null,
+                'via_terrain' => request()->integer('via_terrain') ?: null,
+            ])),
+            'maintenanceIndexUrl' => FoMaintenanceRecordResource::getUrl('index', array_filter([
                 'luminaire' => $record->id,
                 'position' => $record->luminaire_position_id,
-            ]),
+                'via_structure' => request()->integer('via_structure') ?: null,
+                'via_terrain' => request()->integer('via_terrain') ?: null,
+            ])),
             'workOrderIndexUrl' => FoMaintenanceWorkOrderResource::getUrl('index'),
         ];
     }

@@ -406,10 +406,12 @@ class LuminaireFrameResource extends Resource
                 'maintenanceCreateUrl' => \Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource::getUrl('create', [
                     'maintainable_type' => Luminaire::class,
                     'maintainable_id' => $luminaire->id,
+                    ...$context,
                 ]),
                 'maintenanceIndexUrl' => \Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource::getUrl('index', [
                     'luminaire' => $luminaire->id,
                     'position' => $luminaire->luminaire_position_id,
+                    ...$context,
                 ]),
                 'maintenanceCount' => $maintenanceCount,
                 'updateUrl' => route('fieldops.luminaire-frame-editor.luminaires.update', ['luminaire' => $luminaire]),
