@@ -7,6 +7,7 @@ namespace Modules\FieldOps\Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\ComplexResource;
+use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\FieldOps\Filament\Resources\StructureResource;
@@ -318,5 +319,124 @@ class FieldOpsHierarchyNavigationTest extends TestCase
                 'pageClass' => \Modules\FieldOps\Filament\Resources\Structures\Pages\EditStructure::class,
             ]
         )->assertSee("via_structure={$structure->id}", false);
+    }
+
+    public function test_terrain_ancestors_for_complex_matches_the_record_based_variant(): void
+    {
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+
+        $this->assertSame(
+            FieldOpsBreadcrumbs::terrainAncestors($terrain),
+            FieldOpsBreadcrumbs::terrainAncestorsForComplex($complex),
+        );
+    }
+
+    public function test_create_terrain_page_renders_breadcrumb_reflecting_complex_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+
+        $this->get(TerrainResource::getUrl('create', ['complex_id' => $complex->id]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false);
+    }
+
+    public function test_structure_ancestors_for_terrain_matches_the_record_based_variant(): void
+    {
+        $terrain = Terrain::factory()->create();
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+
+        $this->assertSame(
+            FieldOpsBreadcrumbs::structureAncestors($structure, $terrain->id),
+            FieldOpsBreadcrumbs::structureAncestorsForTerrain($terrain),
+        );
+    }
+
+    public function test_create_structure_page_renders_breadcrumb_reflecting_terrain_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+
+        $this->get(StructureResource::getUrl('create', ['terrain_ids' => [$terrain->id]]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false)
+            ->assertSee('href="'.TerrainResource::getUrl('view', ['record' => $terrain]).'"', false);
+    }
+
+    public function test_electrical_board_create_ancestors_prefers_deepest_available_context(): void
+    {
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+
+        // Structure present -> full chain through the structure, terrain/complex args ignored.
+        $viaStructure = FieldOpsBreadcrumbs::electricalBoardCreateAncestors($structure, null, null, $terrain->id);
+        $this->assertArrayHasKey(StructureResource::getUrl('view', ['record' => $structure, 'via_terrain' => $terrain->id]), $viaStructure);
+
+        // No structure, terrain present -> chain through the terrain only.
+        $viaTerrain = FieldOpsBreadcrumbs::electricalBoardCreateAncestors(null, $terrain, null);
+        $this->assertArrayHasKey(TerrainResource::getUrl('view', ['record' => $terrain]), $viaTerrain);
+        $this->assertArrayNotHasKey(StructureResource::getUrl('view', ['record' => $structure, 'via_terrain' => $terrain->id]), $viaTerrain);
+
+        // Only the complex present -> chain stops at the complex.
+        $viaComplex = FieldOpsBreadcrumbs::electricalBoardCreateAncestors(null, null, $complex);
+        $this->assertArrayHasKey(ComplexResource::getUrl('view', ['record' => $complex]), $viaComplex);
+        $this->assertArrayNotHasKey(TerrainResource::getUrl('view', ['record' => $terrain]), $viaComplex);
+
+        // Electrical Boards' own index always stays a real link (unlike the hidden leaves).
+        $this->assertSame(ElectricalBoardResource::getBreadcrumb(), $viaComplex[ElectricalBoardResource::getUrl()]);
+    }
+
+    public function test_create_electrical_board_page_renders_breadcrumb_reflecting_structure_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+
+        $this->get(ElectricalBoardResource::getUrl('create', [
+            'structure_ids' => [$structure->id],
+            'terrain_ids' => [$terrain->id],
+        ]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false)
+            ->assertSee('href="'.ElectricalBoardResource::getUrl().'"', false);
+    }
+
+    public function test_create_luminaire_breadcrumb_uses_via_structure_when_present(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+
+        $this->get(LuminaireResource::getUrl('create', [
+            'via_structure' => $structure->id,
+            'via_terrain' => $terrain->id,
+        ]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false);
+
+        // Without via_structure, falls back to no ancestor context at all —
+        // no established caller sends it today, this must never error.
+        $this->get(LuminaireResource::getUrl('create'))->assertOk();
     }
 }

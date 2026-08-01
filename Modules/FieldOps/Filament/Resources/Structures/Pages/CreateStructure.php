@@ -6,7 +6,9 @@ use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Arr;
 use Modules\FieldOps\Filament\Resources\StructureResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Services\StructureProximityService;
 use Livewire\Attributes\On;
 
@@ -15,6 +17,21 @@ class CreateStructure extends CreateRecord
     protected static string $resource = StructureResource::class;
 
     public ?array $terrainIds = null;
+
+    // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    // terrain_ids can carry more than one (Structure<->Terrain is M:N), same
+    // query param mount() already reads to attach on create — the first one
+    // is enough for the breadcrumb, same "deterministic first/lowest wins"
+    // spirit as Structure::resolveTerrain()'s fallback.
+    public function getResourceBreadcrumbs(): array
+    {
+        $terrainIds = request()->input('terrain_ids');
+        $terrainId = is_array($terrainIds) ? (int) Arr::first(array_filter($terrainIds)) : null;
+
+        return FieldOpsBreadcrumbs::structureAncestorsForTerrain(
+            $terrainId ? Terrain::find($terrainId) : null,
+        );
+    }
     public ?array $lastSelectedLocation = null;
     public ?array $pendingFormData = null;
     public ?array $proximityMatch = null;

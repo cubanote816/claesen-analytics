@@ -4,12 +4,27 @@ namespace Modules\FieldOps\Filament\Resources\Terrains\Pages;
 
 use Filament\Resources\Pages\CreateRecord;
 use Modules\FieldOps\Filament\Resources\TerrainResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
+use Modules\FieldOps\Models\Complex;
 
 class CreateTerrain extends CreateRecord
 {
     protected static string $resource = TerrainResource::class;
 
     public ?array $structureIds = null;
+
+    // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
+    // complex_id is the same query param TerrainsRelationManager's "Create
+    // terrain" action already sends (required — a Terrain always belongs to
+    // exactly one Complex, unlike the M:N levels below it).
+    public function getResourceBreadcrumbs(): array
+    {
+        $complexId = request()->integer('complex_id') ?: null;
+
+        return FieldOpsBreadcrumbs::terrainAncestorsForComplex(
+            $complexId ? Complex::find($complexId) : null,
+        );
+    }
 
     public function mount(): void
     {

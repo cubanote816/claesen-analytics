@@ -5,6 +5,10 @@ namespace Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages;
 use Illuminate\Support\Arr;
 use Filament\Resources\Pages\CreateRecord;
 use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
+use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 
 class CreateElectricalBoard extends CreateRecord
 {
@@ -13,6 +17,27 @@ class CreateElectricalBoard extends CreateRecord
     public ?int $complexId = null;
     public ?array $structureIds = null;
     public ?array $terrainIds = null;
+
+    // See FieldOpsBreadcrumbs::electricalBoardCreateAncestors() docblock —
+    // exactly one of these 3 query params is present depending on which of
+    // Complex/Terrain/Structure's "Create electrical board" action was used.
+    public function getResourceBreadcrumbs(): array
+    {
+        $structureIds = request()->input('structure_ids');
+        $structureId = is_array($structureIds) ? (int) Arr::first(array_filter($structureIds)) : null;
+
+        $terrainIds = request()->input('terrain_ids');
+        $terrainId = is_array($terrainIds) ? (int) Arr::first(array_filter($terrainIds)) : null;
+
+        $complexId = request()->integer('complex_id') ?: null;
+
+        return FieldOpsBreadcrumbs::electricalBoardCreateAncestors(
+            $structureId ? Structure::find($structureId) : null,
+            $terrainId ? Terrain::find($terrainId) : null,
+            $complexId ? Complex::find($complexId) : null,
+            $terrainId,
+        );
+    }
 
     public function mount(): void
     {

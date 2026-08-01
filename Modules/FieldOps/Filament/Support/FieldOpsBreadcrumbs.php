@@ -72,8 +72,17 @@ class FieldOpsBreadcrumbs
     /** @return array<string, string> */
     public static function terrainAncestors(Terrain $terrain): array
     {
+        return static::terrainAncestorsForComplex($terrain->complex);
+    }
+
+    // Same chain as terrainAncestors(), but for a Create page — there's no
+    // Terrain record yet, only the Complex it's being created under (query
+    // param the "Create terrain" action already passes).
+    /** @return array<string, string> */
+    public static function terrainAncestorsForComplex(?Complex $complex): array
+    {
         return [
-            ...($terrain->complex ? static::complexTrail($terrain->complex) : []),
+            ...($complex ? static::complexTrail($complex) : []),
             self::UNLINKED.'terrains' => TerrainResource::getBreadcrumb(),
         ];
     }
@@ -90,8 +99,14 @@ class FieldOpsBreadcrumbs
     /** @return array<string, string> */
     public static function structureAncestors(Structure $structure, ?int $viaTerrainId = null): array
     {
-        $terrain = $structure->resolveTerrain($viaTerrainId);
+        return static::structureAncestorsForTerrain($structure->resolveTerrain($viaTerrainId));
+    }
 
+    // Same chain as structureAncestors(), but for a Create page — no Structure
+    // record yet, only the Terrain it's being created under.
+    /** @return array<string, string> */
+    public static function structureAncestorsForTerrain(?Terrain $terrain): array
+    {
         return [
             ...($terrain ? static::terrainTrail($terrain) : []),
             self::UNLINKED.'structures' => StructureResource::getBreadcrumb(),
@@ -150,6 +165,22 @@ class FieldOpsBreadcrumbs
         ];
     }
 
+    // Same shape as luminaireAncestors(), but for a Create page — no Luminaire
+    // (and usually no Frame either, that's picked inside the form itself) yet.
+    // Only useful if the Create action is ever reached with via_structure/
+    // via_terrain context; no caller does today (Create Luminaire's only
+    // wired entry point is a modal reusing this same form, not this page),
+    // kept for whenever one does — falls back to a bare "Luminaires" label
+    // otherwise, same as every other case where context is unavailable.
+    /** @return array<string, string> */
+    public static function luminaireAncestorsForStructure(?Structure $structure, ?int $viaTerrainId = null): array
+    {
+        return [
+            ...($structure ? static::structureTrail($structure, $viaTerrainId) : []),
+            self::UNLINKED.'luminaires' => LuminaireResource::getBreadcrumb(),
+        ];
+    }
+
     /** @return array<string, string> */
     public static function luminaireTrail(Luminaire $luminaire, ?int $viaStructureId = null, ?int $viaTerrainId = null): array
     {
@@ -160,6 +191,33 @@ class FieldOpsBreadcrumbs
                 'via_structure' => $viaStructureId,
                 'via_terrain' => $viaTerrainId,
             ])) => LuminaireResource::getRecordTitle($luminaire),
+        ];
+    }
+
+    /**
+     * ElectricalBoardResource's own View/Edit pages anchor on the board's own
+     * index (see maintenanceWorkOrderAncestors() below and CLA-278 cont. 10) —
+     * a board can belong to several complexes/terrains/structures, so it has
+     * no single canonical parent to show once it exists. But its Create page
+     * always IS reached from exactly one specific complex/terrain/structure
+     * (the 3 "Create electrical board" actions on Complex/Terrain/Structure's
+     * own ElectricalBoards tab each pass exactly one), so that specific chain
+     * is real and worth showing — deepest known context wins.
+     *
+     * @return array<string, string>
+     */
+    public static function electricalBoardCreateAncestors(?Structure $structure, ?Terrain $terrain, ?Complex $complex, ?int $viaTerrainId = null): array
+    {
+        $trail = match (true) {
+            $structure !== null => static::structureTrail($structure, $viaTerrainId),
+            $terrain !== null => static::terrainTrail($terrain),
+            $complex !== null => static::complexTrail($complex),
+            default => [],
+        };
+
+        return [
+            ...$trail,
+            ElectricalBoardResource::getUrl() => ElectricalBoardResource::getBreadcrumb(),
         ];
     }
 
