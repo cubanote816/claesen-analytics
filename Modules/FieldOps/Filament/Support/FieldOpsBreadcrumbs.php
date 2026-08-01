@@ -130,8 +130,16 @@ class FieldOpsBreadcrumbs
     /** @return array<string, string> */
     public static function luminaireFrameAncestors(LuminaireFrame $frame, ?int $viaStructureId = null, ?int $viaTerrainId = null): array
     {
-        $structure = $frame->resolveStructure($viaStructureId);
+        return static::luminaireFrameAncestorsForStructure($frame->resolveStructure($viaStructureId), $viaTerrainId);
+    }
 
+    // Same chain as luminaireFrameAncestors(), but for a Create page — no
+    // LuminaireFrame record yet, only the Structure it's being created under
+    // (structure_ids query param LuminaireFramesRelationManager's "Create"
+    // action already sends).
+    /** @return array<string, string> */
+    public static function luminaireFrameAncestorsForStructure(?Structure $structure, ?int $viaTerrainId = null): array
+    {
         return [
             ...($structure ? static::structureTrail($structure, $viaTerrainId) : []),
             self::UNLINKED.'luminaire-frames' => LuminaireFrameResource::getBreadcrumb(),

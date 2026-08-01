@@ -439,4 +439,33 @@ class FieldOpsHierarchyNavigationTest extends TestCase
         // no established caller sends it today, this must never error.
         $this->get(LuminaireResource::getUrl('create'))->assertOk();
     }
+
+    public function test_luminaire_frame_ancestors_for_structure_matches_the_record_based_variant(): void
+    {
+        $structure = Structure::factory()->create();
+        $frame = LuminaireFrame::factory()->create();
+        $frame->structures()->attach($structure->id);
+
+        $this->assertSame(
+            FieldOpsBreadcrumbs::luminaireFrameAncestors($frame, $structure->id),
+            FieldOpsBreadcrumbs::luminaireFrameAncestorsForStructure($structure),
+        );
+    }
+
+    public function test_create_luminaire_frame_page_renders_breadcrumb_reflecting_structure_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+
+        $this->get(LuminaireFrameResource::getUrl('create', ['structure_ids' => [$structure->id]]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false)
+            ->assertSee('href="'.StructureResource::getUrl('view', ['record' => $structure, 'via_terrain' => $terrain->id]).'"', false);
+    }
 }
