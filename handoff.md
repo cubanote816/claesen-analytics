@@ -1,9 +1,18 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-08-01 — **CLA-278 cerrado en Linear** (Done, confirmado por el usuario en navegador real). Como continuación sin ticket formal (Linear bloqueado por `usage limit exceeded`, usuario aprobó proceder igual), se extendió el sistema de breadcrumbs jerárquicos: páginas **Create** de Terrain/Structure/Electrical Board/Luminaire (`e868110`) + Luminaire Frame, olvidado en la primera pasada (`2dc5936`) + **todas las páginas de Electrical Board** (View/Edit, no solo Create — el usuario aclaró que el punto de entrada puede ser distinto cada vez y todas las páginas relacionadas debían reflejarlo), con propagación de contexto `via_complex`/`via_terrain`/`via_structure` de punta a punta desde los 3 `ElectricalBoardsRelationManager` hasta el work order de mantenimiento (`efcb586`, incluye fix de un bug SQL preexistente encontrado de paso). Detalle en `CLAUDE.md` sección "FieldOps: breadcrumbs jerárquicos en páginas Create...".
+> Última actualización: 2026-08-01 — **CLA-278 cerrado en Linear** (Done, confirmado por el usuario en navegador real). Como continuación sin ticket formal (Linear bloqueado por `usage limit exceeded`, usuario aprobó proceder igual), se extendió el sistema de breadcrumbs jerárquicos: páginas **Create** de Terrain/Structure/Electrical Board/Luminaire (`e868110`) + Luminaire Frame, olvidado en la primera pasada (`2dc5936`) + **todas las páginas de Electrical Board** con propagación de contexto de punta a punta (`efcb586`) + **ocultarlo del sidebar/breadcrumb + fix de un título de breadcrumb vacío real** (`b36807f`, `ElectricalBoardResource` nunca tuvo `getRecordTitle()` propio — `location_description` es opcional y sin fallback). Detalle en `CLAUDE.md` sección "FieldOps: breadcrumbs jerárquicos en páginas Create...".
 
 > **Programa activo de mantenimiento:** CLA-268, CLA-275 y CLA-276 están Done. Aplicar el runbook de infraestructura de producción en servidores reales (`sbapu03`/`prod-priv-01`) y decidir el pipeline de CI/CD de Claesen-Client quedan como trabajo futuro, fuera de CLA-276 — ver `docs/ai/production-readiness.md`. Fuente canónica del roadmap: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-08-01 (cont. 4) — FieldOps: ocultar Electrical Board del sidebar + fix de título de breadcrumb vacío (commit `b36807f`, sin ticket formal)
+
+**Contexto:** probando en el navegador lo recién arreglado, el usuario reportó dos cosas: un board real mostraba el nivel siguiente a "Electrical Boards" completamente vacío en el breadcrumb, y pidió explícitamente ocultar Electrical Board del sidebar/deshabilitar su segmento de breadcrumb — igual que los otros 4 leaves.
+
+- **Causa del título vacío:** `ElectricalBoardResource` nunca tuvo `getRecordTitle()` propio, dependía del default `$recordTitleAttribute = 'location_description'` (texto libre opcional, sin fallback). `Structure`/`LuminaireFrame` sí tienen su propio `"#id — TypeName"` que nunca queda vacío — se agregó el mismo patrón a Electrical Board.
+- `ElectricalBoardResource::$shouldRegisterNavigation = false` + el segmento "Electrical boards" del breadcrumb pasó a usar el sentinel `UNLINKED`, mismo tratamiento que Terrain/Structure/LuminaireFrame/Luminaire. El resto de la propagación de contexto (`efcb586`) no cambió.
+- **Tests/checks:** 3 asserts existentes invertidos + 1 test nuevo (`getRecordTitle()` nunca vacío) — regresión completa 66/66 (351 assertions). Verificado en Chrome real reproduciendo el escenario exacto: `#5 — Cabinet` en vez de segmento en blanco, sidebar sin "Electrical boards".
+- Detalle completo en `CLAUDE.md`, misma sección que las entradas anteriores de hoy.
 
 ### Sesión 2026-08-01 (cont. 3) — FieldOps: breadcrumbs en TODAS las páginas de Electrical Board, no solo Create (commit `efcb586`, sin ticket formal)
 
