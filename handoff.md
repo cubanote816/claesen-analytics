@@ -1,9 +1,27 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-08-01 — **CLA-278 cerrado en Linear** (Done, comentario de cierre con el resumen completo de commits, confirmado por el usuario en navegador real). Como continuación directa (sin ticket formal — Linear devolvió `usage limit exceeded` al crear uno nuevo, el usuario aprobó proceder igual), se aplicó el mismo sistema de breadcrumbs jerárquicos a las páginas **Create** de Terrain/Structure/Electrical Board/Luminaire (hasta ahora solo View/Edit lo tenían) — commit `e868110`. 4 métodos nuevos en `FieldOpsBreadcrumbs` (variantes "solo con el padre", sin registro hijo aún), contexto derivado de los query params que las acciones "Create X" ya mandaban. Detalle en `CLAUDE.md` sección "FieldOps: breadcrumbs jerárquicos en páginas Create...".
+> Última actualización: 2026-08-01 — **CLA-278 cerrado en Linear** (Done, confirmado por el usuario en navegador real). Como continuación sin ticket formal (Linear bloqueado por `usage limit exceeded`, usuario aprobó proceder igual), se extendió el sistema de breadcrumbs jerárquicos: páginas **Create** de Terrain/Structure/Electrical Board/Luminaire (`e868110`) + Luminaire Frame, olvidado en la primera pasada (`2dc5936`) + **todas las páginas de Electrical Board** (View/Edit, no solo Create — el usuario aclaró que el punto de entrada puede ser distinto cada vez y todas las páginas relacionadas debían reflejarlo), con propagación de contexto `via_complex`/`via_terrain`/`via_structure` de punta a punta desde los 3 `ElectricalBoardsRelationManager` hasta el work order de mantenimiento (`efcb586`, incluye fix de un bug SQL preexistente encontrado de paso). Detalle en `CLAUDE.md` sección "FieldOps: breadcrumbs jerárquicos en páginas Create...".
 
 > **Programa activo de mantenimiento:** CLA-268, CLA-275 y CLA-276 están Done. Aplicar el runbook de infraestructura de producción en servidores reales (`sbapu03`/`prod-priv-01`) y decidir el pipeline de CI/CD de Claesen-Client quedan como trabajo futuro, fuera de CLA-276 — ver `docs/ai/production-readiness.md`. Fuente canónica del roadmap: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-08-01 (cont. 3) — FieldOps: breadcrumbs en TODAS las páginas de Electrical Board, no solo Create (commit `efcb586`, sin ticket formal)
+
+**Contexto:** el usuario aclaró tras ver el resultado de la sesión anterior: "Electrical Boards debe tener también el sys de breadcrumb, ten en cuenta que el punto de entrada puede ser diferente, todas las páginas relacionadas con Electrical Boards deberían tenerlo" — no solo Create. A diferencia de los otros 4 recursos, Electrical Board sigue visible en el sidebar y nunca tuvo `getResourceBreadcrumbs()` en View/Edit.
+
+- Renombrado `electricalBoardCreateAncestors()` → `electricalBoardAncestors()` (nunca fue realmente específico de Create) + nuevo `electricalBoardTrail()` (incluye la entrada propia del board) para el branch de ElectricalBoard en `maintenanceWorkOrderAncestors()`, que antes siempre mostraba la cadena plana.
+- Nuevo query param `via_complex` (no existía antes) + `via_terrain`/`via_structure` propagados end-to-end: los 3 `ElectricalBoardsRelationManager` (Complex/Terrain/Structure) los mandan en `recordUrl()`, `ViewElectricalBoard`/`EditElectricalBoard` los leen, y `scheduleMaintenance` los reenvía hacia el work order.
+- **Bug real preexistente encontrado de paso:** `Structures/RelationManagers/ElectricalBoardsRelationManager.php` construía `terrain_ids` con `->terrains()->pluck('id')` — columna ambigua entre `fo_terrains.id` y el join del pivot, tiraba SQL crudo apenas algo renderizaba los `headerActions` de verdad (nunca había pasado hasta este test). Corregido a `->pluck('fo_terrains.id')`.
+- **Tests/checks:** +5 tests entre `FieldOpsHierarchyNavigationTest`/`ElectricalBoardFilamentTest`/`MaintenanceWorkOrderFilamentTest` — regresión completa 98/98 (452 assertions). Verificado en Chrome real navegando por click real desde la pestaña "Electrical boards" de una Structure.
+- Detalle completo en `CLAUDE.md`, sección "FieldOps: breadcrumbs jerárquicos en páginas Create... y en TODAS las páginas de Electrical Board".
+
+### Sesión 2026-08-01 (cont. 2) — FieldOps: breadcrumb en Luminaire Frame's Create page, olvidado en la primera pasada (commit `2dc5936`)
+
+**Contexto:** el usuario señaló "olvidamos Luminaire Frames create de tener el mismo sistema se aplica" — quinto recurso con `shouldRegisterNavigation = false` que se quedó fuera del barrido inicial de Create pages.
+
+- Nuevo `FieldOpsBreadcrumbs::luminaireFrameAncestorsForStructure()`, mismo patrón "solo con el padre" que los otros 4. `luminaireFrameAncestors()` refactorizado para delegar en él.
+- **Tests/checks:** `FieldOpsHierarchyNavigationTest` +2 — regresión ampliada 62/62 (328 assertions). Verificado en Chrome real: `/luminaire-frames/create?structure_ids[0]=1` renderiza la cadena completa.
+- Detalle en `CLAUDE.md`, misma sección que arriba.
 
 ### Sesión 2026-08-01 — FieldOps: breadcrumbs jerárquicos en páginas Create (commit `e868110`, sin ticket formal)
 
@@ -11,7 +29,7 @@
 
 - Sin override, el breadcrumb por defecto de Filament en un recurso oculto del sidebar sigue enlazando al índice plano — la misma fuga que CLA-278 cerró en View/Edit reaparecía en Create.
 - Contexto tomado de query params que las acciones "Create X" de cada RelationManager ya mandaban (`complex_id`, `terrain_ids[]`, `structure_ids[]`, `via_structure`/`via_terrain`) — nada nuevo que introducir.
-- 4 métodos nuevos en `FieldOpsBreadcrumbs`: `terrainAncestorsForComplex()`, `structureAncestorsForTerrain()`, `luminaireAncestorsForStructure()`, `electricalBoardCreateAncestors()` (nuevo, prioriza el contexto más profundo disponible: Structure > Terrain > Complex).
+- 4 métodos nuevos en `FieldOpsBreadcrumbs`: `terrainAncestorsForComplex()`, `structureAncestorsForTerrain()`, `luminaireAncestorsForStructure()`, `electricalBoardCreateAncestors()` (renombrado luego a `electricalBoardAncestors()`, ver sesión más reciente arriba).
 - **Tests/checks:** `FieldOpsHierarchyNavigationTest` +7 — 23/23. Regresión: 6 archivos de tests FieldOps, 42/42 (279 assertions). Verificado visualmente en Chrome real (Selenium) en las 4 páginas Create con contexto real.
 - Detalle completo en `CLAUDE.md`, sección "FieldOps: breadcrumbs jerárquicos en páginas Create de Terrain/Structure/Electrical Board/Luminaire".
 
