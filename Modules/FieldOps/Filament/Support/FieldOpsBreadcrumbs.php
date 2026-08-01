@@ -206,19 +206,21 @@ class FieldOpsBreadcrumbs
      * ElectricalBoard has no single canonical parent once it exists — it can
      * belong to several complexes/terrains/structures at once via its 3
      * pivots, so unlike Terrain/Structure/LuminaireFrame/Luminaire it never
-     * gets a fixed place in the Complex→Terrain→Structure chain (its own
-     * index stays the permanent anchor: see the ElectricalBoards::getUrl()
-     * fallback below, and maintenanceWorkOrderAncestors()). But at any GIVEN
-     * moment — creating one, or viewing/editing one reached by clicking a row
-     * on a specific Complex/Terrain/Structure's "Electrical boards" tab —
-     * there IS exactly one concrete entry point, and that specific chain is
-     * real and worth showing. Used by Create (structure_ids/terrain_ids/
-     * complex_id query params) and View/Edit (via_structure/via_terrain/
-     * via_complex, forwarded by each of the 3 ElectricalBoardsRelationManager
-     * variants' recordUrl()) alike — deepest known context wins, and it's
-     * fine for this to resolve to nothing at all when reached from the flat
-     * "Electrical boards" sidebar index, where there genuinely is no parent
-     * context to show.
+     * gets a fixed place in the Complex→Terrain→Structure chain. Its "type"
+     * segment ("Electrical boards") is hidden from the sidebar and unlinked
+     * here too now (ElectricalBoardResource::$shouldRegisterNavigation),
+     * same treatment as the other 4 leaves — its flat index isn't a page
+     * this app wants reachable at all. But at any GIVEN moment — creating
+     * one, or viewing/editing one reached by clicking a row on a specific
+     * Complex/Terrain/Structure's "Electrical boards" tab — there IS exactly
+     * one concrete entry point, and that specific chain is real and worth
+     * showing. Used by Create (structure_ids/terrain_ids/complex_id query
+     * params) and View/Edit (via_structure/via_terrain/via_complex,
+     * forwarded by each of the 3 ElectricalBoardsRelationManager variants'
+     * recordUrl()) alike — deepest known context wins, and it's fine for
+     * this to resolve to nothing but the bare unlinked label when reached
+     * without any of that context (e.g. a map-panel marker click), where
+     * there genuinely is no parent to show.
      *
      * @return array<string, string>
      */
@@ -233,7 +235,7 @@ class FieldOpsBreadcrumbs
 
         return [
             ...$trail,
-            ElectricalBoardResource::getUrl() => ElectricalBoardResource::getBreadcrumb(),
+            self::UNLINKED.'electrical-boards' => ElectricalBoardResource::getBreadcrumb(),
         ];
     }
 
@@ -258,11 +260,7 @@ class FieldOpsBreadcrumbs
     /**
      * Maintenance work orders aren't part of the Complex→Terrain→Structure→Frame
      * hierarchy — they hang off a Luminaire or an ElectricalBoard directly (see
-     * MaintenanceEquipmentContextService). ElectricalBoard isn't hidden from the
-     * sidebar like the other 4 leaf resources (it can belong to several
-     * complexes/terrains/structures via its own pivots, so it doesn't have "a"
-     * place in that chain either) — its own index stays a real link here, same
-     * as Complexes.
+     * MaintenanceEquipmentContextService).
      *
      * @return array<string, string>
      */

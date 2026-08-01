@@ -44,6 +44,31 @@ class ElectricalBoardResource extends Resource
 
     protected static ?int $navigationSort = 7;
 
+    // Hidden from the sidebar like Terrain/Structure/LuminaireFrame/Luminaire
+    // — its own flat index isn't a page this app wants reachable at all,
+    // same reasoning as the other 4 hidden leaves. Its breadcrumb "type"
+    // segment ("Electrical boards") is unlinked to match (see
+    // FieldOpsBreadcrumbs::electricalBoardAncestors()); the specific record
+    // segment (e.g. "#4 — Cabinet") stays clickable, same as everywhere else.
+    protected static bool $shouldRegisterNavigation = false;
+
+    // $recordTitleAttribute above falls back to the raw location_description
+    // column, which is optional free text — blank for plenty of real boards,
+    // producing an empty breadcrumb/title segment with no fallback (unlike
+    // Structure/LuminaireFrame, which both always show "#id — TypeName").
+    // Same fallback shape as those two, using ElectricalBoardType instead.
+    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        if (! $record instanceof ElectricalBoard) {
+            return static::getModelLabel();
+        }
+
+        $typeName = $record->electricalBoardType?->getTranslation('name', app()->getLocale(), false)
+            ?: $record->electricalBoardType?->getTranslation('name', 'nl', false);
+
+        return '#'.$record->id.($typeName ? " — {$typeName}" : '');
+    }
+
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;

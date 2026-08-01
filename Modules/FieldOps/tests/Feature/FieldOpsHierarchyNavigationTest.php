@@ -43,6 +43,7 @@ class FieldOpsHierarchyNavigationTest extends TestCase
         $this->assertFalse(StructureResource::shouldRegisterNavigation());
         $this->assertFalse(LuminaireFrameResource::shouldRegisterNavigation());
         $this->assertFalse(LuminaireResource::shouldRegisterNavigation());
+        $this->assertFalse(ElectricalBoardResource::shouldRegisterNavigation());
     }
 
     public function test_hierarchy_leaf_resource_routes_still_work_despite_being_hidden(): void
@@ -56,10 +57,13 @@ class FieldOpsHierarchyNavigationTest extends TestCase
         $frame = LuminaireFrame::factory()->create();
         $luminaire = Luminaire::factory()->create(['luminaire_frame_id' => $frame->id, 'frame_position' => 1]);
 
+        $board = ElectricalBoard::factory()->create();
+
         $this->get("/terrains/{$terrain->id}")->assertOk();
         $this->get("/structures/{$structure->id}")->assertOk();
         $this->get("/luminaire-frames/{$frame->id}")->assertOk();
         $this->get("/luminaires/{$luminaire->id}")->assertOk();
+        $this->get("/electrical-boards/{$board->id}")->assertOk();
     }
 
     // ── Resolve helpers: deterministic fallback + "via" context preference ──
@@ -394,8 +398,10 @@ class FieldOpsHierarchyNavigationTest extends TestCase
         $this->assertArrayHasKey(ComplexResource::getUrl('view', ['record' => $complex]), $viaComplex);
         $this->assertArrayNotHasKey(TerrainResource::getUrl('view', ['record' => $terrain]), $viaComplex);
 
-        // Electrical Boards' own index always stays a real link (unlike the hidden leaves).
-        $this->assertSame(ElectricalBoardResource::getBreadcrumb(), $viaComplex[ElectricalBoardResource::getUrl()]);
+        // Electrical Boards is hidden from the sidebar like the other 4 leaves —
+        // its "type" segment is unlinked, never a key equal to its own index URL.
+        $this->assertArrayNotHasKey(ElectricalBoardResource::getUrl(), $viaComplex);
+        $this->assertContains(ElectricalBoardResource::getBreadcrumb(), $viaComplex);
     }
 
     public function test_create_electrical_board_page_renders_breadcrumb_reflecting_structure_context(): void
@@ -409,13 +415,16 @@ class FieldOpsHierarchyNavigationTest extends TestCase
         $structure = Structure::factory()->create();
         $structure->terrains()->attach($terrain->id);
 
-        $this->get(ElectricalBoardResource::getUrl('create', [
+        $html = $this->get(ElectricalBoardResource::getUrl('create', [
             'structure_ids' => [$structure->id],
             'terrain_ids' => [$terrain->id],
         ]))
             ->assertOk()
             ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false)
-            ->assertSee('href="'.ElectricalBoardResource::getUrl().'"', false);
+            ->assertSee(ElectricalBoardResource::getBreadcrumb())
+            ->getContent();
+
+        $this->assertStringNotContainsString('href="'.ElectricalBoardResource::getUrl().'"', $html);
     }
 
     public function test_create_luminaire_breadcrumb_uses_via_structure_when_present(): void
@@ -491,8 +500,10 @@ class FieldOpsHierarchyNavigationTest extends TestCase
         $this->assertSame(ElectricalBoardResource::getRecordTitle($board), $trail[$boardUrl]);
 
         // Without any context at all, degrades to just the board's own entry
-        // off the flat "Electrical boards" index — must never error.
+        // off the unlinked "Electrical boards" label — must never error, and
+        // must never key on the (hidden) flat index URL.
         $bare = FieldOpsBreadcrumbs::electricalBoardTrail($board, null, null, null);
-        $this->assertArrayHasKey(ElectricalBoardResource::getUrl(), $bare);
+        $this->assertArrayNotHasKey(ElectricalBoardResource::getUrl(), $bare);
+        $this->assertContains(ElectricalBoardResource::getBreadcrumb(), $bare);
     }
 }

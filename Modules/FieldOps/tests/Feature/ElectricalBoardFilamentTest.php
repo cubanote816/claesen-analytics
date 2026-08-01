@@ -13,6 +13,7 @@ use Modules\FieldOps\Filament\Resources\Structures\Pages\ViewStructure;
 use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\ElectricalBoardsRelationManager as StructureElectricalBoardsRelationManager;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
+use Modules\FieldOps\Models\ElectricalBoardType;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Models\TerrainType;
@@ -118,6 +119,25 @@ class ElectricalBoardFilamentTest extends TestCase
             ->assertOk()
             ->assertSee("terrainTypeCode{$q}:{$q}padel", false)
             ->assertSee("terrainTypeColor{$q}:{$q}#2e9e8f", false);
+    }
+
+    public function test_get_record_title_falls_back_to_id_and_type_when_location_description_is_blank(): void
+    {
+        // Regression guard for the real bug reported by the user: the default
+        // $recordTitleAttribute = 'location_description' is optional free text,
+        // blank for plenty of real boards — with no fallback, that produced an
+        // empty breadcrumb/title segment ("Electrical Boards > <blank> > View"),
+        // unlike Structure/LuminaireFrame which always show "#id — TypeName".
+        $type = ElectricalBoardType::factory()->create();
+        $type->setTranslation('name', app()->getLocale(), 'Cabinet');
+        $type->save();
+        $board = ElectricalBoard::factory()->create([
+            'electrical_board_type_id' => $type->id,
+            'location_description' => null,
+        ]);
+
+        $this->assertSame('#'.$board->id.' — Cabinet', ElectricalBoardResource::getRecordTitle($board));
+        $this->assertNotSame('', ElectricalBoardResource::getRecordTitle($board));
     }
 
     public function test_board_view_and_edit_render_breadcrumb_reflecting_via_context(): void
