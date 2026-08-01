@@ -18,7 +18,7 @@ class CreateElectricalBoard extends CreateRecord
     public ?array $structureIds = null;
     public ?array $terrainIds = null;
 
-    // See FieldOpsBreadcrumbs::electricalBoardCreateAncestors() docblock —
+    // See FieldOpsBreadcrumbs::electricalBoardAncestors() docblock —
     // exactly one of these 3 query params is present depending on which of
     // Complex/Terrain/Structure's "Create electrical board" action was used.
     public function getResourceBreadcrumbs(): array
@@ -31,7 +31,7 @@ class CreateElectricalBoard extends CreateRecord
 
         $complexId = request()->integer('complex_id') ?: null;
 
-        return FieldOpsBreadcrumbs::electricalBoardCreateAncestors(
+        return FieldOpsBreadcrumbs::electricalBoardAncestors(
             $structureId ? Structure::find($structureId) : null,
             $terrainId ? Terrain::find($terrainId) : null,
             $complexId ? Complex::find($complexId) : null,

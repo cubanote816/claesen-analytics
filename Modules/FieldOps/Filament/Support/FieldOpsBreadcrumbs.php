@@ -203,18 +203,26 @@ class FieldOpsBreadcrumbs
     }
 
     /**
-     * ElectricalBoardResource's own View/Edit pages anchor on the board's own
-     * index (see maintenanceWorkOrderAncestors() below and CLA-278 cont. 10) —
-     * a board can belong to several complexes/terrains/structures, so it has
-     * no single canonical parent to show once it exists. But its Create page
-     * always IS reached from exactly one specific complex/terrain/structure
-     * (the 3 "Create electrical board" actions on Complex/Terrain/Structure's
-     * own ElectricalBoards tab each pass exactly one), so that specific chain
-     * is real and worth showing — deepest known context wins.
+     * ElectricalBoard has no single canonical parent once it exists — it can
+     * belong to several complexes/terrains/structures at once via its 3
+     * pivots, so unlike Terrain/Structure/LuminaireFrame/Luminaire it never
+     * gets a fixed place in the Complex→Terrain→Structure chain (its own
+     * index stays the permanent anchor: see the ElectricalBoards::getUrl()
+     * fallback below, and maintenanceWorkOrderAncestors()). But at any GIVEN
+     * moment — creating one, or viewing/editing one reached by clicking a row
+     * on a specific Complex/Terrain/Structure's "Electrical boards" tab —
+     * there IS exactly one concrete entry point, and that specific chain is
+     * real and worth showing. Used by Create (structure_ids/terrain_ids/
+     * complex_id query params) and View/Edit (via_structure/via_terrain/
+     * via_complex, forwarded by each of the 3 ElectricalBoardsRelationManager
+     * variants' recordUrl()) alike — deepest known context wins, and it's
+     * fine for this to resolve to nothing at all when reached from the flat
+     * "Electrical boards" sidebar index, where there genuinely is no parent
+     * context to show.
      *
      * @return array<string, string>
      */
-    public static function electricalBoardCreateAncestors(?Structure $structure, ?Terrain $terrain, ?Complex $complex, ?int $viaTerrainId = null): array
+    public static function electricalBoardAncestors(?Structure $structure, ?Terrain $terrain, ?Complex $complex, ?int $viaTerrainId = null): array
     {
         $trail = match (true) {
             $structure !== null => static::structureTrail($structure, $viaTerrainId),
@@ -229,6 +237,24 @@ class FieldOpsBreadcrumbs
         ];
     }
 
+    // Same chain as electricalBoardAncestors(), plus the board's own linked
+    // entry — used wherever an ElectricalBoard is an ancestor of a *deeper*
+    // current page (maintenanceWorkOrderAncestors() below), same xTrail()
+    // vs xAncestors() split as every other level in this class.
+    /** @return array<string, string> */
+    public static function electricalBoardTrail(ElectricalBoard $board, ?Structure $structure, ?Terrain $terrain, ?Complex $complex, ?int $viaTerrainId = null): array
+    {
+        return [
+            ...static::electricalBoardAncestors($structure, $terrain, $complex, $viaTerrainId),
+            ElectricalBoardResource::getUrl('view', array_filter([
+                'record' => $board,
+                'via_structure' => $structure?->id,
+                'via_terrain' => $terrain?->id ?? $viaTerrainId,
+                'via_complex' => $complex?->id,
+            ])) => ElectricalBoardResource::getRecordTitle($board),
+        ];
+    }
+
     /**
      * Maintenance work orders aren't part of the Complex→Terrain→Structure→Frame
      * hierarchy — they hang off a Luminaire or an ElectricalBoard directly (see
@@ -240,17 +266,20 @@ class FieldOpsBreadcrumbs
      *
      * @return array<string, string>
      */
-    public static function maintenanceWorkOrderAncestors(string $maintainableType, int|string $maintainableId, ?int $viaStructureId = null, ?int $viaTerrainId = null): array
+    public static function maintenanceWorkOrderAncestors(string $maintainableType, int|string $maintainableId, ?int $viaStructureId = null, ?int $viaTerrainId = null, ?int $viaComplexId = null): array
     {
         $trail = match ($maintainableType) {
             Luminaire::class => ($luminaire = Luminaire::find($maintainableId))
                 ? static::luminaireTrail($luminaire, $viaStructureId, $viaTerrainId)
                 : [],
             ElectricalBoard::class => ($board = ElectricalBoard::find($maintainableId))
-                ? [
-                    ElectricalBoardResource::getUrl() => ElectricalBoardResource::getBreadcrumb(),
-                    ElectricalBoardResource::getUrl('view', ['record' => $board]) => ElectricalBoardResource::getRecordTitle($board),
-                ]
+                ? static::electricalBoardTrail(
+                    $board,
+                    $viaStructureId ? Structure::find($viaStructureId) : null,
+                    $viaTerrainId ? Terrain::find($viaTerrainId) : null,
+                    $viaComplexId ? Complex::find($viaComplexId) : null,
+                    $viaTerrainId,
+                )
                 : [],
             default => [],
         };

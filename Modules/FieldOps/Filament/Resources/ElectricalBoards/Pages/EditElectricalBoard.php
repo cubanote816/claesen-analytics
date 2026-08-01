@@ -6,10 +6,29 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
 use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
+use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
+use Modules\FieldOps\Models\Complex;
 
 class EditElectricalBoard extends EditRecord
 {
     protected static string $resource = ElectricalBoardResource::class;
+
+    // See ViewElectricalBoard::getResourceBreadcrumbs().
+    public function getResourceBreadcrumbs(): array
+    {
+        $structureId = request()->integer('via_structure') ?: null;
+        $terrainId = request()->integer('via_terrain') ?: null;
+        $complexId = request()->integer('via_complex') ?: null;
+
+        return FieldOpsBreadcrumbs::electricalBoardAncestors(
+            $structureId ? Structure::find($structureId) : null,
+            $terrainId ? Terrain::find($terrainId) : null,
+            $complexId ? Complex::find($complexId) : null,
+            $terrainId,
+        );
+    }
 
     // EditRecord::fillForm() fills the form from $record->attributesToArray(),
     // which bypasses Spatie HasTranslations::getAttributeValue() and returns

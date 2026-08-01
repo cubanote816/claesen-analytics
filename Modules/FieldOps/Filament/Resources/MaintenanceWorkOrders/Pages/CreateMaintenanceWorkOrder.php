@@ -38,6 +38,7 @@ class CreateMaintenanceWorkOrder extends CreateRecord
             $id,
             request()->integer('via_structure') ?: null,
             request()->integer('via_terrain') ?: null,
+            request()->integer('via_complex') ?: null,
         );
     }
 

@@ -174,6 +174,24 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
         $this->assertStringNotContainsString('href="'.ComplexResource::getUrl().'"', $breadcrumbNav);
     }
 
+    public function test_create_work_order_breadcrumb_reflects_electrical_board_via_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $complex = Complex::factory()->create(['client_id' => FoClient::factory()->create()->id]);
+        $board = ElectricalBoard::factory()->create();
+        $board->complexes()->attach($complex->id);
+        $this->actingAs($user);
+
+        $this->get(FoMaintenanceWorkOrderResource::getUrl('create', [
+            'maintainable_type' => ElectricalBoard::class,
+            'maintainable_id' => $board->id,
+            'via_complex' => $complex->id,
+        ]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false);
+    }
+
     private function luminaireWithClientContext(): Luminaire
     {
         $client = FoClient::factory()->create();

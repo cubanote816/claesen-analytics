@@ -43,7 +43,10 @@ class ElectricalBoardsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
-            ->recordUrl(fn ($record) => ElectricalBoardResource::getUrl('view', ['record' => $record]))
+            ->recordUrl(fn ($record) => ElectricalBoardResource::getUrl('view', [
+                'record' => $record,
+                'via_structure' => $this->getOwnerRecord()->getKey(),
+            ]))
             ->columns([
                 TextColumn::make('electricalBoardType.name')
                     ->label(__('fieldops::resource.electrical_boards.fields.electrical_board_type'))
@@ -64,7 +67,7 @@ class ElectricalBoardsRelationManager extends RelationManager
                     ->color('primary')
                     ->url(ElectricalBoardResource::getUrl('create', [
                         'structure_ids' => [$this->getOwnerRecord()->getKey()],
-                        'terrain_ids' => $this->getOwnerRecord()->terrains()->pluck('id')->all(),
+                        'terrain_ids' => $this->getOwnerRecord()->terrains()->pluck('fo_terrains.id')->all(),
                     ])),
                 AttachAction::make()
                     ->recordSelect(fn (Select $select) => $select

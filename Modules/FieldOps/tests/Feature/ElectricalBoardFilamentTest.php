@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\ComplexResource;
+use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
+use Modules\FieldOps\Filament\Resources\Structures\Pages\ViewStructure;
+use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\ElectricalBoardsRelationManager as StructureElectricalBoardsRelationManager;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\Structure;
@@ -113,5 +118,72 @@ class ElectricalBoardFilamentTest extends TestCase
             ->assertOk()
             ->assertSee("terrainTypeCode{$q}:{$q}padel", false)
             ->assertSee("terrainTypeColor{$q}:{$q}#2e9e8f", false);
+    }
+
+    public function test_board_view_and_edit_render_breadcrumb_reflecting_via_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+        $board = ElectricalBoard::factory()->create();
+        $board->structures()->attach($structure->id);
+
+        $this->get(ElectricalBoardResource::getUrl('view', [
+            'record' => $board,
+            'via_structure' => $structure->id,
+            'via_terrain' => $terrain->id,
+        ]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false);
+
+        $this->get(ElectricalBoardResource::getUrl('edit', [
+            'record' => $board,
+            'via_structure' => $structure->id,
+            'via_terrain' => $terrain->id,
+        ]))
+            ->assertOk()
+            ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false);
+
+        // Reached without any via context (the flat "Electrical boards" sidebar
+        // index) — no parent to show, must never error.
+        $this->get(ElectricalBoardResource::getUrl('view', ['record' => $board]))->assertOk();
+    }
+
+    public function test_board_schedule_maintenance_action_forwards_via_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+        $board = ElectricalBoard::factory()->create();
+
+        $this->get(ElectricalBoardResource::getUrl('view', [
+            'record' => $board,
+            'via_complex' => $complex->id,
+        ]))
+            ->assertOk()
+            ->assertSee("via_complex={$complex->id}", false);
+    }
+
+    public function test_board_relation_manager_row_links_carry_via_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = Structure::factory()->create();
+        $board = ElectricalBoard::factory()->create();
+        $board->structures()->attach($structure->id);
+
+        Livewire::test(StructureElectricalBoardsRelationManager::class, [
+            'ownerRecord' => $structure,
+            'pageClass' => ViewStructure::class,
+        ])->assertSee("via_structure={$structure->id}", false);
     }
 }

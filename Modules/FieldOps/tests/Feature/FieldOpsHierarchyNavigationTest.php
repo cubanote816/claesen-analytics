@@ -14,6 +14,7 @@ use Modules\FieldOps\Filament\Resources\StructureResource;
 use Modules\FieldOps\Filament\Resources\TerrainResource;
 use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
@@ -380,16 +381,16 @@ class FieldOpsHierarchyNavigationTest extends TestCase
         $structure->terrains()->attach($terrain->id);
 
         // Structure present -> full chain through the structure, terrain/complex args ignored.
-        $viaStructure = FieldOpsBreadcrumbs::electricalBoardCreateAncestors($structure, null, null, $terrain->id);
+        $viaStructure = FieldOpsBreadcrumbs::electricalBoardAncestors($structure, null, null, $terrain->id);
         $this->assertArrayHasKey(StructureResource::getUrl('view', ['record' => $structure, 'via_terrain' => $terrain->id]), $viaStructure);
 
         // No structure, terrain present -> chain through the terrain only.
-        $viaTerrain = FieldOpsBreadcrumbs::electricalBoardCreateAncestors(null, $terrain, null);
+        $viaTerrain = FieldOpsBreadcrumbs::electricalBoardAncestors(null, $terrain, null);
         $this->assertArrayHasKey(TerrainResource::getUrl('view', ['record' => $terrain]), $viaTerrain);
         $this->assertArrayNotHasKey(StructureResource::getUrl('view', ['record' => $structure, 'via_terrain' => $terrain->id]), $viaTerrain);
 
         // Only the complex present -> chain stops at the complex.
-        $viaComplex = FieldOpsBreadcrumbs::electricalBoardCreateAncestors(null, null, $complex);
+        $viaComplex = FieldOpsBreadcrumbs::electricalBoardAncestors(null, null, $complex);
         $this->assertArrayHasKey(ComplexResource::getUrl('view', ['record' => $complex]), $viaComplex);
         $this->assertArrayNotHasKey(TerrainResource::getUrl('view', ['record' => $terrain]), $viaComplex);
 
@@ -467,5 +468,31 @@ class FieldOpsHierarchyNavigationTest extends TestCase
             ->assertOk()
             ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false)
             ->assertSee('href="'.StructureResource::getUrl('view', ['record' => $structure, 'via_terrain' => $terrain->id]).'"', false);
+    }
+
+    public function test_electrical_board_trail_includes_its_own_linked_entry_with_via_context(): void
+    {
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+        $board = ElectricalBoard::factory()->create();
+        $board->structures()->attach($structure->id);
+
+        $trail = FieldOpsBreadcrumbs::electricalBoardTrail($board, $structure, $terrain, $complex);
+
+        $boardUrl = ElectricalBoardResource::getUrl('view', [
+            'record' => $board,
+            'via_structure' => $structure->id,
+            'via_terrain' => $terrain->id,
+            'via_complex' => $complex->id,
+        ]);
+        $this->assertArrayHasKey($boardUrl, $trail);
+        $this->assertSame(ElectricalBoardResource::getRecordTitle($board), $trail[$boardUrl]);
+
+        // Without any context at all, degrades to just the board's own entry
+        // off the flat "Electrical boards" index — must never error.
+        $bare = FieldOpsBreadcrumbs::electricalBoardTrail($board, null, null, null);
+        $this->assertArrayHasKey(ElectricalBoardResource::getUrl(), $bare);
     }
 }
