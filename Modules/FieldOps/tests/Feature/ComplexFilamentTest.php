@@ -9,6 +9,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\Complexes\Pages\ViewComplex;
 use Modules\FieldOps\Filament\Resources\Complexes\RelationManagers\TerrainsRelationManager;
 use Modules\FieldOps\Models\Complex;
@@ -55,7 +56,11 @@ class ComplexFilamentTest extends TestCase
             ->assertSee('data-fieldops-map-panel', false)
             ->assertSee('Desktop map overview')
             ->assertSee('Unmapped')
-            ->assertSee('No coordinates yet');
+            ->assertSee('No coordinates yet')
+            ->assertSee(ElectricalBoardResource::getUrl('view', [
+                'record' => $board,
+                'via_complex' => $complex->id,
+            ]), false);
         $this->get("/complexes/{$complex->id}/edit")->assertOk();
     }
 

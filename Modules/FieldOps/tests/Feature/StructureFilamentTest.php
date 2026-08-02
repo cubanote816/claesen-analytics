@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalBoard;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\CreateLuminaireFrame;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
@@ -76,7 +77,11 @@ class StructureFilamentTest extends TestCase
             ->assertSee(__('fieldops::resource.terrains.actions.attach'))
             ->assertDontSee('Create terrain')
             ->assertSee('Unmapped')
-            ->assertSee('No coordinates yet');
+            ->assertSee('No coordinates yet')
+            ->assertSee(ElectricalBoardResource::getUrl('view', [
+                'record' => $board,
+                'via_structure' => $structure->id,
+            ]), false);
         $this->get("/structures/{$structure->id}/edit")->assertOk();
     }
 

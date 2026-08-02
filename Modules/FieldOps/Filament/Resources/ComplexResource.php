@@ -301,7 +301,10 @@ class ComplexResource extends Resource
                 'lat' => $board->lat,
                 'lng' => $board->lng,
                 'hasCoordinates' => static::hasCoordinates($board),
-                'url' => ElectricalBoardResource::getUrl('view', ['record' => $board]),
+                'url' => ElectricalBoardResource::getUrl('view', [
+                    'record' => $board,
+                    'via_complex' => $record->id,
+                ]),
             ]);
 
         $complexMarker = static::hasCoordinates($record)
