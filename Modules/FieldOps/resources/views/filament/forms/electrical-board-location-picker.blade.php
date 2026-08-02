@@ -25,7 +25,6 @@
 
 <div
     class="fieldops-electrical-board-location-picker"
-    data-theme="light"
     wire:ignore
     x-data="fieldopsElectricalBoardLocationPicker({
         latInputId: @js($data['latInputId']),
@@ -52,6 +51,14 @@
             box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
         }
 
+        .dark .fieldops-electrical-board-location-picker {
+            border-color: rgba(255, 255, 255, 0.08);
+            background:
+                radial-gradient(circle at top left, rgba(0, 174, 239, 0.14), transparent 30%),
+                linear-gradient(180deg, #171725 0%, #11111a 100%);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 60px -18px rgba(0, 0, 0, 0.62);
+        }
+
         .fieldops-electrical-board-location-picker__header {
             display: flex;
             align-items: flex-start;
@@ -59,6 +66,10 @@
             gap: 1rem;
             padding: 1.25rem 1.35rem 1rem;
             border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        }
+
+        .dark .fieldops-electrical-board-location-picker__header {
+            border-bottom-color: rgba(255, 255, 255, 0.08);
         }
 
         .fieldops-electrical-board-location-picker__eyebrow {
@@ -77,11 +88,19 @@
             letter-spacing: -0.02em;
         }
 
+        .dark .fieldops-electrical-board-location-picker__title {
+            color: #f8fafc;
+        }
+
         .fieldops-electrical-board-location-picker__description {
             margin-top: 0.3rem;
             color: #64748b;
             font-size: 0.9rem;
             line-height: 1.45;
+        }
+
+        .dark .fieldops-electrical-board-location-picker__description {
+            color: #94a3b8;
         }
 
         .fieldops-electrical-board-location-picker__coords {
@@ -108,10 +127,20 @@
             font-weight: 800;
         }
 
+        .dark .fieldops-electrical-board-location-picker__coords-pill {
+            border-color: rgba(0, 174, 239, 0.24);
+            background: rgba(0, 174, 239, 0.12);
+            color: #7dd3fc;
+        }
+
         .fieldops-electrical-board-location-picker__hint {
             color: #64748b;
             font-size: 0.78rem;
             line-height: 1.4;
+        }
+
+        .dark .fieldops-electrical-board-location-picker__hint {
+            color: #94a3b8;
         }
 
         .fieldops-electrical-board-location-picker__map {
@@ -134,6 +163,11 @@
             font-size: 0.86rem;
         }
 
+        .dark .fieldops-electrical-board-location-picker__footer {
+            border-top-color: rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+        }
+
         .fieldops-electrical-board-location-picker .leaflet-container {
             background: transparent;
         }
@@ -152,6 +186,27 @@
         .fieldops-electrical-board-location-picker .leaflet-control-attribution {
             background: rgba(255, 255, 255, 0.9);
             color: #64748b;
+        }
+
+        .fieldops-electrical-board-location-picker[data-theme="dark"] .leaflet-control-zoom a {
+            background: #1d2030;
+            color: #e2e8f0;
+        }
+
+        .fieldops-electrical-board-location-picker[data-theme="dark"] .leaflet-control-zoom,
+        .fieldops-electrical-board-location-picker[data-theme="dark"] .leaflet-control-attribution {
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+        }
+
+        .fieldops-electrical-board-location-picker[data-theme="dark"] .leaflet-control-attribution {
+            background: rgba(15, 23, 42, 0.9);
+            color: #94a3b8;
+        }
+
+        .fieldops-electrical-board-location-picker[data-theme="dark"] .fieldops-electrical-board-location-picker__leaflet-corners--dark .leaflet-control-zoom a {
+            background: #1d2030;
+            color: #e2e8f0;
         }
 
         .fieldops-electrical-board-location-picker__pin {
