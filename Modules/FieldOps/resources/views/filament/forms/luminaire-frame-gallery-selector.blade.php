@@ -14,6 +14,9 @@
     $selectedFrameId = (string) ($getState() ?? '');
     $statePath = $getStatePath();
     $fieldId = $getId();
+    $createFrameTypeUrl = url('/catalogs/luminaire-frame-types/create').'?'.http_build_query([
+        'return_to' => url()->full(),
+    ]);
 @endphp
 
 @once
@@ -460,9 +463,7 @@
         </div>
 
         <a
-            href="{{ url('/catalogs/luminaire-frame-types/create') }}"
-            target="_blank"
-            rel="noopener noreferrer"
+            {{ \Filament\Support\generate_href_html($createFrameTypeUrl) }}
             class="fieldops-luminaire-frame-gallery__create-link"
         >
             <x-heroicon-m-plus class="h-4 w-4" />

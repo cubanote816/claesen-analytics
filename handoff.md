@@ -5,6 +5,16 @@
 
 > **Programa activo de mantenimiento:** CLA-268, CLA-275 y CLA-276 están Done. Aplicar el runbook de infraestructura de producción en servidores reales (`sbapu03`/`prod-priv-01`) y decidir el pipeline de CI/CD de Claesen-Client quedan como trabajo futuro, fuera de CLA-276 — ver `docs/ai/production-readiness.md`. Fuente canónica del roadmap: `docs/ai/fieldops-maintenance-roadmap.md`.
 
+### Sesión 2026-08-02 — FieldOps: crear Frame Type y volver al selector (commit dedicado, sin ticket formal)
+
+**Contexto:** el enlace “Add new frame type” de la galería de Create Luminaire Frame abría una pestaña nueva. Al terminar de crear el tipo, Filament llevaba al índice o registro del catálogo y no existía una forma de recuperar el formulario de origen ni seleccionar el nuevo tipo.
+
+- El enlace ahora usa `generate_href_html()` para conservar SPA y transporta `return_to` con la URL completa de Create Luminaire Frame, incluidos los query params como `structure_ids[]`.
+- `CreateLuminaireFrameType` captura ese retorno solo durante `mount()` (nunca en la acción Livewire) y lo bloquea con `#[Locked]`. Antes de redirigir, acepta únicamente el mismo scheme/host/puerto y ruta local; devuelve al origen añadiendo `new_frame_type_id`.
+- `CreateLuminaireFrame` lee ese id en su `mount()`, comprueba que el tipo existe y lo carga como `luminaire_frame_type_id` del form. La galería ya deriva el radio marcado de ese estado Livewire, sin estado Alpine adicional.
+- Se añadieron tres regresiones a `LuminaireFrameFilamentTest`: preselección, redirect que conserva `structure_ids[]`, y enlace SPA sin `target="_blank"`.
+- **Validación real:** Playwright/Chromium hizo login con un usuario temporal, abrió `/luminaire-frames/create?structure_ids[0]=8`, pulsó el enlace y confirmó una sola pestaña; creó un tipo y volvió a `/luminaire-frames/create?structure_ids[0]=8&new_frame_type_id=14`, con su radio marcado. Se eliminaron el usuario y el tipo temporales. Sintaxis PHP y `git diff --check` en verde. PHPUnit focal fue invocado, pero el harness local `testing` terminó antes de informar aserciones (riesgo conocido de esta sesión); la cobertura alternativa es el flujo Playwright exacto más los tests de regresión añadidos. Waiver aprobado por GO técnico del usuario.
+
 ### Sesión 2026-08-02 — FieldOps: picker de Electrical Board light/dark (sin ticket formal)
 
 **Contexto:** `electrical-board-location-picker.blade.php` fijaba `data-theme="light"` y no tenía reglas dark para el contenedor, header, título, descripción, pill de coordenadas, hint, footer y controles Leaflet.

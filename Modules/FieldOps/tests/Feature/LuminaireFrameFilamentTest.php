@@ -9,6 +9,7 @@ use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
+use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireFrameTypes\Pages\CreateLuminaireFrameType;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\CreateLuminaireFrame;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\RelationManagers\LuminairesRelationManager;
@@ -351,6 +352,59 @@ class LuminaireFrameFilamentTest extends TestCase
             'record' => $frame,
             'via_structure' => $structure->id,
         ]));
+    }
+
+    public function test_create_luminaire_frame_preselects_new_frame_type_from_return_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $frameType = LuminaireFrameType::factory()->create();
+
+        Livewire::withQueryParams(['new_frame_type_id' => $frameType->id])
+            ->test(CreateLuminaireFrame::class)
+            ->assertFormSet(['luminaire_frame_type_id' => $frameType->id]);
+    }
+
+    public function test_new_frame_type_returns_to_frame_create_with_new_type_selected(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = $this->buildComplexTerrainStructure();
+        $returnTo = LuminaireFrameResource::getUrl('create', ['structure_ids' => [$structure->id]]);
+
+        $component = Livewire::withQueryParams(['return_to' => $returnTo])
+            ->test(CreateLuminaireFrameType::class)
+            ->fillForm(['name' => 'Return journey frame'])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $frameType = LuminaireFrameType::query()->where('name', 'Return journey frame')->firstOrFail();
+
+        $component->assertRedirect(LuminaireFrameResource::getUrl('create', [
+            'structure_ids' => [$structure->id],
+            'new_frame_type_id' => $frameType->id,
+        ]));
+    }
+
+    public function test_frame_gallery_create_type_link_uses_spa_navigation_and_preserves_return_context(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = $this->buildComplexTerrainStructure();
+        $origin = LuminaireFrameResource::getUrl('create', ['structure_ids' => [$structure->id]]);
+
+        $this->get($origin)
+            ->assertOk()
+            ->assertSee('wire:navigate', false)
+            ->assertSee('return_to', false)
+            ->assertSee(urlencode($origin), false)
+            ->assertDontSee('target="_blank"', false);
     }
 
     public function test_luminaire_frames_relation_manager_hides_create_and_attach_at_capacity(): void

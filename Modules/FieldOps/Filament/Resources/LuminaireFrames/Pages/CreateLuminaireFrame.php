@@ -6,6 +6,7 @@ use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Arr;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
+use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\Structure;
 
 class CreateLuminaireFrame extends CreateRecord
@@ -13,6 +14,8 @@ class CreateLuminaireFrame extends CreateRecord
     protected static string $resource = LuminaireFrameResource::class;
 
     public ?int $contextStructureId = null;
+
+    public ?int $newFrameTypeId = null;
 
     public function mount(): void
     {
@@ -29,6 +32,17 @@ class CreateLuminaireFrame extends CreateRecord
         $structureIds = request()->input('structure_ids');
         $ids = is_array($structureIds) ? array_values(array_filter($structureIds, fn ($value) => $value !== null && $value !== '')) : [];
         $this->contextStructureId = $ids !== [] ? (int) Arr::first($ids) : null;
+
+        $newFrameTypeId = (int) request()->query('new_frame_type_id');
+
+        if ($newFrameTypeId > 0 && LuminaireFrameType::query()->whereKey($newFrameTypeId)->exists()) {
+            $this->newFrameTypeId = $newFrameTypeId;
+            $this->data = [
+                ...$this->data,
+                'luminaire_frame_type_id' => $newFrameTypeId,
+            ];
+            $this->form->fill($this->data);
+        }
     }
 
     // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
