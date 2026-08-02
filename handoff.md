@@ -1,9 +1,18 @@
 # Handoff — CAFCA Intelligence Hub
 
 > Estado global vivo del proyecto. Actualizar en cada cierre de ticket.
-> Última actualización: 2026-08-01 — **CLA-278 cerrado en Linear** (Done, confirmado por el usuario en navegador real). Como continuación sin ticket formal (Linear bloqueado por `usage limit exceeded`, usuario aprobó proceder igual), se extendió el sistema de breadcrumbs jerárquicos: páginas **Create** de Terrain/Structure/Electrical Board/Luminaire (`e868110`) + Luminaire Frame, olvidado en la primera pasada (`2dc5936`) + **todas las páginas de Electrical Board** con propagación de contexto de punta a punta (`efcb586`) + **ocultarlo del sidebar/breadcrumb + fix de un título de breadcrumb vacío real** (`b36807f`, `ElectricalBoardResource` nunca tuvo `getRecordTitle()` propio — `location_description` es opcional y sin fallback). Detalle en `CLAUDE.md` sección "FieldOps: breadcrumbs jerárquicos en páginas Create...".
+> Última actualización: 2026-08-02 — **CLA-278 cerrado en Linear** (Done, confirmado por el usuario en navegador real). Como continuación sin ticket formal (Linear bloqueado por `usage limit exceeded`, usuario aprobó proceder igual), se extendió el sistema de breadcrumbs jerárquicos: páginas **Create** de Terrain/Structure/Electrical Board/Luminaire (`e868110`) + Luminaire Frame, olvidado en la primera pasada (`2dc5936`) + **todas las páginas de Electrical Board** con propagación de contexto de punta a punta (`efcb586`) + **ocultarlo del sidebar/breadcrumb + fix de un título de breadcrumb vacío real** (`b36807f`) + **fix del redirect post-create que perdía el contexto `via_*` en las 4 páginas Create** (`e2f71a5`, causa real: `request()` no es confiable dentro de una invocación `->call()` de Livewire, hay que capturar el contexto en una propiedad durante `mount()`). Detalle en `CLAUDE.md` sección "FieldOps: breadcrumbs jerárquicos en páginas Create...".
 
 > **Programa activo de mantenimiento:** CLA-268, CLA-275 y CLA-276 están Done. Aplicar el runbook de infraestructura de producción en servidores reales (`sbapu03`/`prod-priv-01`) y decidir el pipeline de CI/CD de Claesen-Client quedan como trabajo futuro, fuera de CLA-276 — ver `docs/ai/production-readiness.md`. Fuente canónica del roadmap: `docs/ai/fieldops-maintenance-roadmap.md`.
+
+### Sesión 2026-08-02 — FieldOps: fix del redirect post-create que perdía el contexto via_* (commit `e2f71a5`, sin ticket formal)
+
+**Contexto:** tercer reporte del usuario ("el sistema de electrical board no se está aplicando correctamente", sin captura). Causa real: el redirect post-create por defecto de Filament manda a la página View del registro recién creado sin ningún query param extra — para Electrical Board (sin FK propia a Complex/Terrain/Structure) esto borra de inmediato la jerarquía recién usada para crearlo.
+
+- Se agregó `getRedirectUrlParameters()` (o se actualizó el `getRedirectUrl()` de `CreateStructure`) en las 4 páginas Create, reenviando el mismo contexto `via_*` que ya usa el breadcrumb.
+- **Bug real encontrado implementando el fix:** leer `request()->input()` DENTRO de `getRedirectUrlParameters()` no funciona de forma confiable — las invocaciones `->call()` de Livewire no ven el query string de la carga original. Fix: capturar el contexto en una propiedad durante `mount()` (mismo patrón que `CreateStructure`/`CreateElectricalBoard` ya usaban, por eso "sí funcionaban" desde el principio).
+- **Tests/checks:** 4 tests nuevos con `Livewire::withQueryParams()->assertRedirect()` — regresión completa 112/112 (517 assertions).
+- Detalle completo en `CLAUDE.md`, misma sección que las entradas anteriores de FieldOps breadcrumbs.
 
 ### Sesión 2026-08-01 (cont. 4) — FieldOps: ocultar Electrical Board del sidebar + fix de título de breadcrumb vacío (commit `b36807f`, sin ticket formal)
 
