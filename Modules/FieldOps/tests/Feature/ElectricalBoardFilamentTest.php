@@ -206,4 +206,26 @@ class ElectricalBoardFilamentTest extends TestCase
             'pageClass' => ViewStructure::class,
         ])->assertSee("via_structure={$structure->id}", false);
     }
+
+    public function test_structure_electrical_boards_relation_manager_attaches_an_existing_board(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = Structure::factory()->create();
+        $board = ElectricalBoard::factory()->create([
+            'location_description' => ['nl' => 'Bestaand bord', 'en' => 'Existing board'],
+        ]);
+
+        Livewire::test(StructureElectricalBoardsRelationManager::class, [
+            'ownerRecord' => $structure,
+            'pageClass' => ViewStructure::class,
+        ])
+            ->assertTableActionVisible('attach')
+            ->callTableAction('attach', data: ['recordId' => $board->id])
+            ->assertHasNoTableActionErrors();
+
+        $this->assertTrue($structure->electricalBoards()->whereKey($board)->exists());
+    }
 }
