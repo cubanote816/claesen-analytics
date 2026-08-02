@@ -9,6 +9,7 @@ use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalBoard;
+use Modules\FieldOps\Filament\Resources\StructureResource;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoardType;
@@ -111,6 +112,35 @@ class TerrainFilamentTest extends TestCase
         $this->assertDatabaseHas('fo_structure_terrain', [
             'terrain_id' => $terrain->id,
         ]);
+    }
+
+    public function test_create_structure_redirect_forwards_via_terrain(): void
+    {
+        // Regression guard: CreateStructure's custom getRedirectUrl() used to
+        // redirect to the new record's View page with no via_terrain — the
+        // breadcrumb would then fall back to Structure::resolveTerrain()'s
+        // deterministic "lowest id" instead of the terrain just created under.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $terrain = Terrain::factory()->create();
+        $type = StructureType::factory()->create();
+
+        $component = Livewire::test(CreateStructure::class)
+            ->set('terrainIds', [$terrain->id])
+            ->set('data.structure_type_id', $type->id)
+            ->set('data.height', 900)
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $structure = Structure::firstOrFail();
+
+        $component->assertRedirect(StructureResource::getUrl('view', [
+            'record' => $structure,
+            'via_terrain' => $terrain->id,
+        ]));
     }
 
     public function test_electrical_board_creation_from_terrain_attaches_the_current_terrain(): void

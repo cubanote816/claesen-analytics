@@ -61,6 +61,24 @@ class CreateElectricalBoard extends CreateRecord
         return $data;
     }
 
+    // Filament's default post-create redirect goes to the new record's View
+    // page with NO extra query params — for ElectricalBoard specifically
+    // that's not a minor nuance, it's a full context loss: unlike Structure/
+    // LuminaireFrame (which have a deterministic "lowest id" fallback to at
+    // least show SOMETHING), ElectricalBoard has no stored FK to any of
+    // Complex/Terrain/Structure at all, purely M:N pivots — without these
+    // params the breadcrumb collapses to a bare "Electrical Boards > #new >
+    // View", losing the exact hierarchy the user just built the record
+    // under. Forward the same via context getResourceBreadcrumbs() uses.
+    protected function getRedirectUrlParameters(): array
+    {
+        return array_filter([
+            'via_structure' => $this->structureIds[0] ?? null,
+            'via_terrain' => $this->terrainIds[0] ?? null,
+            'via_complex' => $this->complexId,
+        ]);
+    }
+
     protected function afterCreate(): void
     {
         if ($this->complexId) {

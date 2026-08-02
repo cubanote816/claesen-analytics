@@ -7,9 +7,13 @@ namespace Modules\FieldOps\Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalBoard;
 use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoardType;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -50,5 +54,42 @@ class ElectricalBoardCreateComplexAttachmentTest extends TestCase
         $this->assertDatabaseHas('fo_complex_electrical_board', [
             'complex_id' => $complex->id,
         ]);
+    }
+
+    public function test_create_page_redirect_forwards_via_context_so_the_new_boards_breadcrumb_survives(): void
+    {
+        // Regression guard for the real bug reported by the user: Filament's
+        // default post-create redirect goes to the new record's View page with
+        // NO extra query params. Unlike Structure/LuminaireFrame (which have a
+        // deterministic "lowest id" fallback), ElectricalBoard has no stored FK
+        // to any of Complex/Terrain/Structure — without via context forwarded
+        // through the redirect, the breadcrumb on the page you land on right
+        // after creating collapses to a bare "Electrical Boards > #new > View",
+        // losing the exact hierarchy just built under.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+        $type = ElectricalBoardType::factory()->create();
+
+        $component = Livewire::withQueryParams([
+            'structure_ids' => [$structure->id],
+            'terrain_ids' => [$terrain->id],
+        ])->test(CreateElectricalBoard::class)
+            ->set('data.electrical_board_type_id', $type->id)
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $board = ElectricalBoard::firstOrFail();
+
+        $component->assertRedirect(ElectricalBoardResource::getUrl('view', [
+            'record' => $board,
+            'via_structure' => $structure->id,
+            'via_terrain' => $terrain->id,
+        ]));
     }
 }

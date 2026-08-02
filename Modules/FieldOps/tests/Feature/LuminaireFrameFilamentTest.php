@@ -9,6 +9,7 @@ use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
+use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\CreateLuminaireFrame;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\RelationManagers\LuminairesRelationManager;
 use Modules\FieldOps\Filament\Resources\LuminaireResource;
@@ -317,6 +318,39 @@ class LuminaireFrameFilamentTest extends TestCase
         $this->assertDatabaseHas('fo_luminaire_frame_structure', [
             'structure_id' => $structure->id,
         ]);
+    }
+
+    public function test_create_luminaire_frame_redirect_forwards_via_structure(): void
+    {
+        // Regression guard: Filament's default post-create redirect goes to
+        // the new record's View page with no extra query params — without
+        // via_structure, the frame's breadcrumb falls back to
+        // LuminaireFrame::resolveStructure()'s deterministic "lowest id",
+        // which can silently diverge from the structure just created under.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = $this->buildComplexTerrainStructure();
+        $frameType = LuminaireFrameType::factory()->create();
+
+        $component = Livewire::withQueryParams(['structure_ids' => [$structure->id]])
+            ->test(CreateLuminaireFrame::class)
+            ->fillForm([
+                'complex_id' => $structure->terrains()->first()->complex_id,
+                'terrain_id' => $structure->terrains()->first()->id,
+                'structures' => [$structure->id],
+                'luminaire_frame_type_id' => $frameType->id,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $frame = LuminaireFrame::firstOrFail();
+
+        $component->assertRedirect(LuminaireFrameResource::getUrl('view', [
+            'record' => $frame,
+            'via_structure' => $structure->id,
+        ]));
     }
 
     public function test_luminaire_frames_relation_manager_hides_create_and_attach_at_capacity(): void

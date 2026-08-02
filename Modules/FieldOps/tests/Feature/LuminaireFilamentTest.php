@@ -12,13 +12,17 @@ use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
+use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\CreateLuminaire;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\EditLuminaire;
 use Modules\FieldOps\Filament\Resources\Luminaires\Pages\ViewLuminaire;
+use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireType;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -222,6 +226,48 @@ class LuminaireFilamentTest extends TestCase
             ]);
 
         $this->assertDatabaseCount('fo_luminaires', 1);
+    }
+
+    public function test_create_luminaire_redirect_forwards_via_context_when_present(): void
+    {
+        // Regression guard: getRedirectUrlParameters() must read via_structure/
+        // via_terrain from a property captured once during mount(), not by
+        // re-reading request() at redirect time — Livewire's ->call() action
+        // invocations don't reliably see the original page load's query string
+        // the way a fresh read during mount()/initial render does. Confirmed
+        // empirically on CreateLuminaireFrame's equivalent redirect.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id]);
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach($terrain->id);
+        $frame = LuminaireFrame::factory()->create();
+        $frame->structures()->attach($structure->id);
+        $existing = Luminaire::factory()->create(['luminaire_frame_id' => $frame->id, 'frame_position' => 1]);
+
+        $component = Livewire::withQueryParams(['via_structure' => $structure->id, 'via_terrain' => $terrain->id])
+            ->test(CreateLuminaire::class)
+            ->fillForm([
+                'complex_id' => $complex->id,
+                'terrain_id' => $terrain->id,
+                'structure_id' => $structure->id,
+                'luminaire_type_id' => $existing->luminaire_type_id,
+                'luminaire_frame_id' => $frame->id,
+                'frame_position' => 2,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $luminaire = Luminaire::where('frame_position', 2)->firstOrFail();
+
+        $component->assertRedirect(LuminaireResource::getUrl('view', [
+            'record' => $luminaire,
+            'via_structure' => $structure->id,
+            'via_terrain' => $terrain->id,
+        ]));
     }
 
     public function test_edit_luminaire_rejects_moving_into_a_frame_position_already_in_use(): void

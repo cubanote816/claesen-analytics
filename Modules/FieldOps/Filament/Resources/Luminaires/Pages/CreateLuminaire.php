@@ -12,6 +12,22 @@ class CreateLuminaire extends CreateRecord
 {
     protected static string $resource = LuminaireResource::class;
 
+    public ?int $contextStructureId = null;
+
+    public ?int $contextTerrainId = null;
+
+    public function mount(): void
+    {
+        parent::mount();
+
+        // Captured once here, not re-read from request() later — see
+        // CreateLuminaireFrame::mount() for why (Livewire's ->call() action
+        // invocations don't reliably see the original page load's query
+        // string the way a fresh read during mount()/initial render does).
+        $this->contextStructureId = request()->integer('via_structure') ?: null;
+        $this->contextTerrainId = request()->integer('via_terrain') ?: null;
+    }
+
     // See FieldOpsBreadcrumbs::luminaireAncestorsForStructure() docblock — no
     // current caller sends via_structure/via_terrain here (Create Luminaire's
     // only wired entry point today is a modal reusing this same form, not
@@ -20,11 +36,9 @@ class CreateLuminaire extends CreateRecord
     // case in this class.
     public function getResourceBreadcrumbs(): array
     {
-        $structureId = request()->integer('via_structure') ?: null;
-
         return FieldOpsBreadcrumbs::luminaireAncestorsForStructure(
-            $structureId ? Structure::find($structureId) : null,
-            request()->integer('via_terrain') ?: null,
+            $this->contextStructureId ? Structure::find($this->contextStructureId) : null,
+            $this->contextTerrainId,
         );
     }
 
@@ -41,5 +55,16 @@ class CreateLuminaire extends CreateRecord
         $data['position_verified_by_user_id'] = null;
 
         return $data;
+    }
+
+    // See CreateLuminaireFrame::getRedirectUrlParameters() — same reasoning,
+    // forwards whatever via context was actually present (today, none is —
+    // kept for whenever a real caller sends one).
+    protected function getRedirectUrlParameters(): array
+    {
+        return array_filter([
+            'via_structure' => $this->contextStructureId,
+            'via_terrain' => $this->contextTerrainId,
+        ]);
     }
 }

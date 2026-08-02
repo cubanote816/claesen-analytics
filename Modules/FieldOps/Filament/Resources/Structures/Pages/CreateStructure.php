@@ -180,9 +180,17 @@ class CreateStructure extends CreateRecord
         }
     }
 
+    // Forwards via_terrain so the freshly-created structure's own breadcrumb
+    // reflects the terrain it was actually created under, instead of falling
+    // back to Structure::resolveTerrain()'s deterministic "lowest id" — same
+    // reasoning as CreateLuminaireFrame/CreateElectricalBoard's
+    // getRedirectUrlParameters().
     protected function getRedirectUrl(): string
     {
-        return StructureResource::getUrl('view', ['record' => $this->record]);
+        return StructureResource::getUrl('view', array_filter([
+            'record' => $this->record,
+            'via_terrain' => $this->terrainIds[0] ?? null,
+        ]));
     }
 
     protected function detectNearbyStructure(array $data): ?array
