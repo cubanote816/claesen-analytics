@@ -6,6 +6,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Modules\FieldOps\Http\Requests\ReplaceLuminaireRequest;
 use Modules\FieldOps\Http\Requests\StoreLuminaireRequest;
 use Modules\FieldOps\Http\Requests\UpdateLuminaireRequest;
@@ -64,10 +66,26 @@ class LuminaireController extends Controller
         $data['serial_number'] = $this->resolveSerialNumber($data['serial_number'] ?? null);
         $data = $this->applyPositionAuditMetadata($data, $request->header('X-FieldOps-Editor', 'backoffice'), null, $request->user()?->id);
 
-        $luminaire = Luminaire::create(array_merge(
-            $data,
-            ['created_by_user_id' => $request->user()->id],
-        ));
+        $create = function () use ($data, $request): Luminaire {
+            return Luminaire::create(array_merge(
+                $data,
+                ['created_by_user_id' => $request->user()->id],
+            ));
+        };
+
+        $luminaire = isset($data['luminaire_position_id'])
+            ? DB::transaction(function () use ($data, $create): Luminaire {
+                $position = LuminairePosition::query()->lockForUpdate()->findOrFail($data['luminaire_position_id']);
+
+                if ($position->currentInstallation()->exists()) {
+                    throw ValidationException::withMessages([
+                        'luminaire_position_id' => __('fieldops::resource.luminaires.position_not_vacant'),
+                    ]);
+                }
+
+                return $create();
+            })
+            : $create();
         $luminaire->load('luminaireType', 'subgroup', 'createdBy', 'position');
 
         return response()->json([

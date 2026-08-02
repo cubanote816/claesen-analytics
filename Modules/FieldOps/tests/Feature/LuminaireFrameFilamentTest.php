@@ -186,6 +186,39 @@ class LuminaireFrameFilamentTest extends TestCase
         $this->get("/luminaire-frames/{$frame->id}")->assertOk();
     }
 
+    public function test_technical_layout_renders_a_vacant_position_with_a_spa_history_link(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $frame = LuminaireFrame::factory()->create();
+        $retired = Luminaire::factory()->create([
+            'luminaire_frame_id' => $frame->id,
+            'frame_position' => 7,
+            'frame_x' => 0.2713,
+            'frame_y' => 0.6842,
+        ]);
+        $retired->forceFill([
+            'removed_at' => now(),
+            'active_position_id' => null,
+        ])->save();
+
+        $historyUrl = FoMaintenanceRecordResource::getUrl('index', [
+            'luminaire' => $retired->id,
+            'position' => $retired->luminaire_position_id,
+        ]);
+
+        $this->withHeader('Accept-Language', 'en-US')
+            ->get("/luminaire-frames/{$frame->id}?layout=technical&vacant_position={$retired->luminaire_position_id}")
+            ->assertOk()
+            ->assertSee('Vacant position #7')
+            ->assertSee($historyUrl, false)
+            ->assertSee('data-fieldops-vacant-position="'.$retired->luminaire_position_id.'"', false)
+            ->assertSee('fieldops-luminaire-frame-spatial__vacant-position--highlighted', false)
+            ->assertSee('wire:navigate', false);
+    }
+
     public function test_frame_with_single_luminaire_does_not_divide_by_zero(): void
     {
         $user = User::factory()->create();

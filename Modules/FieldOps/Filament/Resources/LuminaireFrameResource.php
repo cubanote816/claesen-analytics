@@ -32,6 +32,7 @@ use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
+use Modules\FieldOps\Models\LuminairePosition;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
@@ -372,6 +373,55 @@ class LuminaireFrameResource extends Resource
             'via_terrain' => request()->integer('via_terrain') ?: null,
         ]);
 
+        // A position is the stable physical anchor. Keep vacant positions outside
+        // of $items: that collection is intentionally editable by the technical
+        // layout and contains only active luminaires.
+        $vacantPositions = $record->luminairePositions()
+            ->doesntHave('currentInstallation')
+            ->withCount('maintenanceRecords')
+            ->with([
+                'installations' => fn ($query) => $query
+                    ->with('luminaireType')
+                    ->orderByDesc('removed_at')
+                    ->orderByDesc('id'),
+            ])
+            ->orderBy('frame_position')
+            ->get()
+            ->map(function (LuminairePosition $position) use ($context): array {
+                /** @var Luminaire|null $lastInstallation */
+                $lastInstallation = $position->installations->first();
+                $frameX = self::normalizeFrameCoordinate($position->frame_x);
+                $frameY = self::normalizeFrameCoordinate($position->frame_y);
+                $label = (string) ($position->frame_position ?? '?');
+                $historySummary = trans_choice(
+                    'fieldops::resource.luminaire_frames.view.vacant_history',
+                    (int) $position->maintenance_records_count,
+                    ['count' => (int) $position->maintenance_records_count],
+                );
+
+                return [
+                    'id' => (int) $position->getKey(),
+                    'label' => $label,
+                    'title' => collect([
+                        __('fieldops::resource.luminaire_frames.view.vacant_position', ['position' => $label]),
+                        $lastInstallation?->luminaireType?->name,
+                        $lastInstallation?->serial_number,
+                        $historySummary,
+                    ])->filter()->join(' — '),
+                    'serial' => $lastInstallation?->serial_number,
+                    'maintenanceCount' => (int) $position->maintenance_records_count,
+                    'left' => round(max(0.0, min(100.0, ($frameX ?? 0.5) * 100)), 1),
+                    'top' => round(max(0.0, min(100.0, ($frameY ?? 0.5) * 100)), 1),
+                    'highlighted' => request()->integer('vacant_position') === (int) $position->getKey(),
+                    'historyUrl' => \Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource::getUrl('index', [
+                        'luminaire' => $lastInstallation?->id,
+                        'position' => $position->getKey(),
+                        ...$context,
+                    ]),
+                ];
+            })
+            ->values();
+
         $items = $luminaires->map(function (Luminaire $luminaire) use ($placeholderImage, $context): array {
             $maintenanceCount = (int) ($luminaire->position?->maintenance_records_count ?? $luminaire->maintenance_records_count);
             $openIssuesCount = (int) ($luminaire->position?->open_issues_count ?? $luminaire->open_issues_count);
@@ -498,12 +548,14 @@ class LuminaireFrameResource extends Resource
             'frameImage' => $frameImage,
             'summary' => [
                 ['label' => __('fieldops::resource.luminaire_frames.view.summary_total'), 'value' => $items->count()],
+                ['label' => __('fieldops::resource.luminaire_frames.view.summary_vacant'), 'value' => $vacantPositions->count()],
                 ['label' => __('fieldops::resource.luminaire_frames.view.summary_unpositioned'), 'value' => $unpositioned->count()],
                 ['label' => __('fieldops::resource.luminaire_frames.view.summary_open_issues'), 'value' => $openIssues],
                 ['label' => __('fieldops::resource.luminaire_frames.view.summary_last_verified'), 'value' => $latestVerifiedLabel],
             ],
             'bounds' => $bounds,
             'markers' => $positioned->values()->all(),
+            'vacantPositions' => $vacantPositions->all(),
             'unpositioned' => $unpositioned->values()->all(),
             'selectedId' => $selectedId,
             'selectedMarker' => $selectedMarker,

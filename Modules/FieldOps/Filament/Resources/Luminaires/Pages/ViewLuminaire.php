@@ -23,18 +23,36 @@ use Modules\FieldOps\Filament\Support\FieldOpsBreadcrumbs;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\FieldOps\Services\LuminaireReplacementService;
+use Modules\FieldOps\Services\LuminaireRemovalService;
+use Livewire\Attributes\Locked;
 
 class ViewLuminaire extends ViewRecord
 {
     protected static string $resource = LuminaireResource::class;
+
+    #[Locked]
+    public ?int $contextStructureId = null;
+
+    #[Locked]
+    public ?int $contextTerrainId = null;
+
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        // Livewire action requests do not reliably retain the original query
+        // string, so preserve the breadcrumb context while the page mounts.
+        $this->contextStructureId = request()->integer('via_structure') ?: null;
+        $this->contextTerrainId = request()->integer('via_terrain') ?: null;
+    }
 
     // See ViewTerrain::getResourceBreadcrumbs() / FieldOpsBreadcrumbs docblock.
     public function getResourceBreadcrumbs(): array
     {
         return FieldOpsBreadcrumbs::luminaireAncestors(
             $this->getRecord(),
-            request()->integer('via_structure') ?: null,
-            request()->integer('via_terrain') ?: null,
+            $this->contextStructureId,
+            $this->contextTerrainId,
         );
     }
 
@@ -148,6 +166,46 @@ class ViewLuminaire extends ViewRecord
                         ->send();
 
                     $this->redirect(LuminaireResource::getUrl('view', ['record' => $result['current']]), navigate: true);
+                }),
+            Action::make('removeLuminaire')
+                ->label(__('fieldops::resource.luminaires.actions.remove'))
+                ->icon('heroicon-m-archive-box-x-mark')
+                ->color('danger')
+                ->visible(fn (): bool => $this->record->removed_at === null && $this->record->active_position_id !== null)
+                ->modalHeading(__('fieldops::resource.luminaires.removal.title'))
+                ->modalDescription(__('fieldops::resource.luminaires.removal.description'))
+                ->modalSubmitActionLabel(__('fieldops::resource.luminaires.removal.confirm'))
+                ->fillForm(fn (): array => [
+                    'maintenance_at' => now(),
+                    'position_version' => (int) ($this->record->position?->position_version ?? $this->record->position_version ?? 1),
+                ])
+                ->schema([
+                    DateTimePicker::make('maintenance_at')
+                        ->label(__('fieldops::resource.maintenance_records.fields.maintenance_at'))
+                        ->required(),
+                    Hidden::make('position_version')->required(),
+                    Textarea::make('removal_reason')
+                        ->label(__('fieldops::resource.luminaires.removal.reason'))
+                        ->required()
+                        ->rows(3)
+                        ->columnSpanFull(),
+                    Textarea::make('root_cause')
+                        ->label(__('fieldops::resource.maintenance_records.fields.root_cause'))
+                        ->rows(2),
+                    Textarea::make('notes')
+                        ->label(__('fieldops::resource.maintenance_records.fields.notes'))
+                        ->rows(2),
+                ])
+                ->action(function (array $data): void {
+                    $result = app(LuminaireRemovalService::class)->remove($this->record, $data, auth()->id());
+
+                    $this->redirect(LuminaireFrameResource::getUrl('view', [
+                        'record' => $result['luminaire']->luminaire_frame_id,
+                        'layout' => 'technical',
+                        'vacant_position' => $result['luminaire']->luminaire_position_id,
+                        'via_structure' => $this->contextStructureId,
+                        'via_terrain' => $this->contextTerrainId,
+                    ]), navigate: true);
                 }),
             EditAction::make(),
         ];

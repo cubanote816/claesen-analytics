@@ -22,6 +22,9 @@ class FoMaintenanceTypeSeeder extends Seeder
             FoMaintenanceType::CODE_REPLACEMENT => [
                 'nl' => 'Vervanging', 'en' => 'Replacement', 'fr' => 'Remplacement', 'de' => 'Austausch',
             ],
+            FoMaintenanceType::CODE_REMOVAL => [
+                'nl' => 'Verwijdering', 'en' => 'Removal', 'fr' => 'Retrait', 'de' => 'Entfernung',
+            ],
         ];
 
         foreach ($types as $code => $name) {

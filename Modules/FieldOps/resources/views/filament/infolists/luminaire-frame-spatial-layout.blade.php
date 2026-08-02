@@ -28,6 +28,7 @@
      *         selected: bool,
      *         url: string,
      *     }>,
+     *     vacantPositions: array<int, array{id: int, label: string, title: string, serial: ?string, maintenanceCount: int, left: float, top: float, highlighted: bool, historyUrl: string}>,
      *     unpositioned: array<int, array{
      *         id: int,
      *         label: string,
@@ -56,6 +57,7 @@
     $data = $getState();
     $payload = [
         'markers' => $data['markers'] ?? [],
+        'vacantPositions' => $data['vacantPositions'] ?? [],
         'unpositioned' => $data['unpositioned'] ?? [],
         'summary' => $data['summary'] ?? [],
         'bounds' => $data['bounds'] ?? null,
@@ -72,6 +74,7 @@
     ];
 
     $markers = $payload['markers'];
+    $vacantPositions = $payload['vacantPositions'];
     $unpositioned = $payload['unpositioned'];
     $summary = $payload['summary'];
     $bounds = $payload['bounds'];
@@ -870,6 +873,94 @@
                 will-change: left, top;
             }
 
+            .fieldops-luminaire-frame-spatial__vacant-position-shell {
+                position: absolute;
+                z-index: 2;
+                transform: translate(-50%, -50%);
+            }
+
+            .fieldops-luminaire-frame-spatial__vacant-position {
+                display: grid;
+                place-items: center;
+                width: 3.2rem;
+                height: 3.2rem;
+                border: 2px dashed rgba(71, 85, 105, 0.78);
+                border-radius: 999px;
+                background: rgba(248, 250, 252, 0.82);
+                color: #475569;
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+                transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+            }
+
+            .fieldops-luminaire-frame-spatial__vacant-position:hover,
+            .fieldops-luminaire-frame-spatial__vacant-position:focus-visible {
+                border-color: rgba(14, 165, 233, 0.95);
+                box-shadow: 0 0 0 0.22rem rgba(56, 189, 248, 0.2), 0 10px 22px rgba(2, 132, 199, 0.2);
+                outline: none;
+                transform: scale(1.06);
+            }
+
+            .fieldops-luminaire-frame-spatial__vacant-position--highlighted {
+                border-color: rgba(14, 165, 233, 0.95);
+                box-shadow: 0 0 0 0.3rem rgba(56, 189, 248, 0.26), 0 12px 26px rgba(2, 132, 199, 0.24);
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__vacant-position {
+                border-color: rgba(148, 163, 184, 0.82);
+                background: rgba(30, 41, 59, 0.88);
+                color: #e2e8f0;
+            }
+
+            .fieldops-luminaire-frame-spatial__vacant-position-label {
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 0.78rem;
+                font-weight: 900;
+            }
+
+            .fieldops-luminaire-frame-spatial__vacant-position-state {
+                position: absolute;
+                top: calc(100% + 0.28rem);
+                left: 50%;
+                padding: 0.15rem 0.32rem;
+                border-radius: 0.3rem;
+                background: rgba(15, 23, 42, 0.88);
+                color: #f8fafc;
+                font-size: 0.55rem;
+                font-weight: 800;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                transform: translateX(-50%);
+                white-space: nowrap;
+            }
+
+            .fieldops-luminaire-frame-spatial__vacant-position-history {
+                position: absolute;
+                z-index: 3;
+                right: -0.45rem;
+                top: -0.45rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 1.15rem;
+                height: 1.15rem;
+                border: 1px solid rgba(148, 163, 184, 0.36);
+                border-radius: 999px;
+                background: #0f172a;
+                color: #f8fafc;
+                box-shadow: 0 5px 12px rgba(15, 23, 42, 0.28);
+            }
+
+            .fieldops-luminaire-frame-spatial__vacant-position-history:hover,
+            .fieldops-luminaire-frame-spatial__vacant-position-history:focus-visible {
+                background: #0284c7;
+                outline: none;
+            }
+
+            .fieldops-luminaire-frame-spatial__vacant-position-history svg {
+                width: 0.7rem;
+                height: 0.7rem;
+            }
+
             .dark .fieldops-luminaire-frame-spatial__marker {
                 border-color: rgba(15, 23, 42, 0.95);
                 box-shadow: 0 18px 30px rgba(0, 174, 239, 0.32);
@@ -1418,6 +1509,7 @@
                         persistedScaleX: Number(item.scaleX ?? 1),
                         persistedScaleY: Number(item.scaleY ?? 1),
                     })),
+                    vacantPositions: payload.vacantPositions ?? [],
                     unpositioned: payload.unpositioned ?? [],
                     summary: payload.summary ?? [],
                     bounds: payload.bounds ?? null,
@@ -1431,6 +1523,7 @@
                     createError: null,
                     newLuminaireTypeId: '',
                     newLuminaireSerial: '',
+                    newLuminairePositionId: null,
                     draggingId: null,
                     dragPointerId: null,
                     dragStartX: 0,
@@ -1507,7 +1600,7 @@
                         window.history.replaceState({}, '', destination.toString());
                         this.$nextTick(() => this.refreshMarkerSizes());
                     },
-                    openCreateModal() {
+                    openCreateModal(positionId = null) {
                         if (this.luminaireTypes.length === 0) {
                             this.statusMessage = @js(__('fieldops::resource.luminaire_frames.view.no_luminaire_types'));
                             return;
@@ -1516,6 +1609,9 @@
                         this.createError = null;
                         this.newLuminaireSerial = '';
                         this.newLuminaireTypeId = String(this.luminaireTypes[0].id);
+                        this.newLuminairePositionId = this.vacantPositions.some((position) => Number(position.id) === Number(positionId))
+                            ? Number(positionId)
+                            : null;
                         this.createModalOpen = true;
                         this.$nextTick(() => document.getElementById('fieldops-new-luminaire-type')?.focus());
                     },
@@ -1529,6 +1625,9 @@
                     },
                     selectedCreateType() {
                         return this.luminaireTypes.find((type) => Number(type.id) === Number(this.newLuminaireTypeId)) ?? null;
+                    },
+                    selectedVacantPosition() {
+                        return this.vacantPositions.find((position) => Number(position.id) === Number(this.newLuminairePositionId)) ?? null;
                     },
                     async createLuminaire() {
                         const type = this.selectedCreateType();
@@ -1554,6 +1653,9 @@
                         if (serial !== '') {
                             requestBody.serial_number = serial;
                         }
+                        if (this.newLuminairePositionId !== null) {
+                            requestBody.luminaire_position_id = Number(this.newLuminairePositionId);
+                        }
 
                         try {
                             const response = await fetch(this.createUrl, {
@@ -1576,6 +1678,7 @@
 
                             const destination = new URL(window.location.href);
                             destination.searchParams.delete('selected');
+                            destination.searchParams.delete('vacant_position');
                             destination.searchParams.set('luminaire', String(createdId));
                             destination.searchParams.set('layout', 'technical');
                             window.location.assign(destination.toString());
@@ -2298,7 +2401,7 @@
                          a brand-new frame with no luminaires ever shows the generic text-only
                          empty state below, with no way to see the frame you're about to place
                          luminaires on. The @foreach below is simply empty when $markers is []. --}}
-                    @if ($payload['frameImage'] || count($markers) > 0)
+                    @if ($payload['frameImage'] || count($markers) > 0 || count($vacantPositions) > 0)
                         <div
                             class="fieldops-luminaire-frame-spatial__surface"
                             x-ref="stage"
@@ -2331,6 +2434,40 @@
                                 @endif
 
                                 <div x-show="viewMode === 'technical'" x-cloak class="fieldops-luminaire-frame-spatial__surface-grid" aria-hidden="true"></div>
+
+                                @foreach ($vacantPositions as $position)
+                                    <div
+                                        x-show="viewMode === 'technical'"
+                                        x-cloak
+                                        class="fieldops-luminaire-frame-spatial__vacant-position-shell"
+                                        style="left: {{ $position['left'] }}%; top: {{ $position['top'] }}%;"
+                                        data-fieldops-vacant-position="{{ $position['id'] }}"
+                                    >
+                                        <button
+                                            type="button"
+                                            class="fieldops-luminaire-frame-spatial__vacant-position {{ $position['highlighted'] ? 'fieldops-luminaire-frame-spatial__vacant-position--highlighted' : '' }}"
+                                            @click="openCreateModal({{ $position['id'] }})"
+                                            aria-label="{{ __('fieldops::resource.luminaire_frames.view.install_at_vacant_position', ['position' => $position['label']]) }}"
+                                            title="{{ $position['title'] }}"
+                                        >
+                                            <span class="fieldops-luminaire-frame-spatial__vacant-position-label">#{{ $position['label'] }}</span>
+                                            <span class="fieldops-luminaire-frame-spatial__vacant-position-state">{{ __('fieldops::resource.luminaire_frames.view.vacant') }}</span>
+                                        </button>
+                                        <a
+                                            href="{{ $position['historyUrl'] }}"
+                                            wire:navigate
+                                            class="fieldops-luminaire-frame-spatial__vacant-position-history"
+                                            aria-label="{{ $position['title'] }} — {{ __('fieldops::resource.luminaires.actions.view_history') }}"
+                                            title="{{ __('fieldops::resource.luminaires.actions.view_history') }}"
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                <path d="M12 8v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path d="M20 12a8 8 0 1 1-2.35-5.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                                <path d="M20 4v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </div>
+                                @endforeach
 
                                 @foreach ($markers as $marker)
                                     <div
@@ -2846,6 +2983,12 @@
                         <div class="fieldops-luminaire-frame-spatial__modal-copy">
                             {{ __('fieldops::resource.luminaire_frames.view.add_luminaire_copy') }}
                         </div>
+                        <div
+                            x-show="selectedVacantPosition()"
+                            x-cloak
+                            class="fieldops-luminaire-frame-spatial__field-hint"
+                            x-text="selectedVacantPosition()?.title"
+                        ></div>
                     </div>
 
                     <button

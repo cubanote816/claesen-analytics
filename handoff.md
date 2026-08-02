@@ -5,6 +5,16 @@
 
 > **Programa activo de mantenimiento:** CLA-268, CLA-275 y CLA-276 están Done. Aplicar el runbook de infraestructura de producción en servidores reales (`sbapu03`/`prod-priv-01`) y decidir el pipeline de CI/CD de Claesen-Client quedan como trabajo futuro, fuera de CLA-276 — ver `docs/ai/production-readiness.md`. Fuente canónica del roadmap: `docs/ai/fieldops-maintenance-roadmap.md`.
 
+### Sesión 2026-08-02 — FieldOps: retiro lógico y reutilización de posiciones de luminarias (sin ticket formal)
+
+**Contexto:** `DeleteAction` de una luminaria hacía soft-delete y ocultaba su historial. Se sustituyó por un retiro lógico que conserva tanto la instalación como la posición física estable; después se añadió la navegación natural para llegar al historial y volver a ocupar una vacante.
+
+- `LuminaireRemovalService` deja la instalación retirada (`removed_at`, motivo y sin `active_position_id`), crea un `FoMaintenanceRecord` de tipo `removal` y nunca hace soft-delete. La migración/seed agrega el tipo con NL/EN.
+- El Frame técnico muestra `Vacant position #N` como marcador independiente, no arrastrable ni seleccionable como luminaria activa. Su icono abre el historial SPA filtrado por instalación histórica y posición; el marcador abre el formulario para instalar una nueva luminaria reutilizando exactamente `luminaire_position_id`.
+- El alta valida que la posición pertenezca al Frame y, dentro de una transacción con lock, rechaza una posición que ya tenga instalación activa. Las regresiones cubren retiro, historial de vacante, reapertura de la posición y rechazo de doble ocupación.
+- El redirect de retiro vuelve a la vista técnica con la vacante resaltada y conserva `via_structure`/`via_terrain` desde la ficha individual.
+- **Checks:** `git diff --check` y lint PHP de archivos modificados en verde. PHPUnit focal se intentó en host pero no ejecutó aserciones: `mysql` no resuelve fuera de Sail; Sail/QA real quedaron bloqueados porque Docker no está iniciado. **WAIVER aprobado por GO técnico del usuario:** cobertura alternativa = tests de regresión añadidos + revisión estática; queda recomendable repetir PHPUnit y Playwright cuando Docker esté disponible. No mezclar el arranque/reparación del harness con este commit funcional.
+
 ### Sesión 2026-08-02 — FieldOps: crear Frame Type y volver al selector (commit dedicado, sin ticket formal)
 
 **Contexto:** el enlace “Add new frame type” de la galería de Create Luminaire Frame abría una pestaña nueva. Al terminar de crear el tipo, Filament llevaba al índice o registro del catálogo y no existía una forma de recuperar el formulario de origen ni seleccionar el nuevo tipo.

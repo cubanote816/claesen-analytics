@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\FieldOps\Models\LuminairePosition;
 use Modules\FieldOps\Models\LuminaireType;
 
 class StoreLuminaireRequest extends FormRequest
@@ -18,6 +19,7 @@ class StoreLuminaireRequest extends FormRequest
     {
         return [
             'luminaire_frame_id'    => ['required', 'integer', 'exists:fo_luminaire_frames,id'],
+            'luminaire_position_id' => ['sometimes', 'nullable', 'integer', 'exists:fo_luminaire_positions,id'],
             'luminaire_type_id'     => ['required', 'integer', 'exists:fo_luminaire_types,id'],
             'luminaire_subgroup_id' => ['required', 'integer', 'exists:fo_luminaire_subgroups,id'],
             'serial_number'         => ['sometimes', 'nullable', 'string', 'max:50', 'unique:fo_luminaires,serial_number'],
@@ -49,6 +51,15 @@ class StoreLuminaireRequest extends FormRequest
                 $type = LuminaireType::find($typeId);
                 if ($type && (int) $type->luminaire_subgroup_id !== $subgroupId) {
                     $v->errors()->add('luminaire_type_id', 'The luminaire type does not belong to the selected subgroup.');
+                }
+            }
+
+            $positionId = $this->integer('luminaire_position_id');
+            if ($positionId && ! $v->errors()->has('luminaire_position_id')) {
+                $position = LuminairePosition::find($positionId);
+
+                if ($position && (int) $position->luminaire_frame_id !== $this->integer('luminaire_frame_id')) {
+                    $v->errors()->add('luminaire_position_id', __('fieldops::resource.luminaires.position_frame_mismatch'));
                 }
             }
         });

@@ -4,8 +4,9 @@ namespace Modules\FieldOps\Filament\Resources\LuminaireFrames\RelationManagers;
 
 use Closure;
 use Filament\Actions\CreateAction;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -18,6 +19,7 @@ use Modules\FieldOps\Filament\Resources\LuminaireResource;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireSubgroup;
 use Modules\FieldOps\Models\LuminaireType;
+use Modules\FieldOps\Services\LuminaireRemovalService;
 
 class LuminairesRelationManager extends RelationManager
 {
@@ -145,7 +147,44 @@ class LuminairesRelationManager extends RelationManager
 
                         return $data;
                     }),
-                DeleteAction::make(),
+                Action::make('removeLuminaire')
+                    ->label(__('fieldops::resource.luminaires.actions.remove'))
+                    ->icon('heroicon-m-archive-box-x-mark')
+                    ->color('danger')
+                    ->modalHeading(__('fieldops::resource.luminaires.removal.title'))
+                    ->modalDescription(__('fieldops::resource.luminaires.removal.description'))
+                    ->modalSubmitActionLabel(__('fieldops::resource.luminaires.removal.confirm'))
+                    ->fillForm(fn (Luminaire $record): array => [
+                        'maintenance_at' => now(),
+                        'position_version' => (int) ($record->position?->position_version ?? $record->position_version ?? 1),
+                    ])
+                    ->schema([
+                        DateTimePicker::make('maintenance_at')
+                            ->label(__('fieldops::resource.maintenance_records.fields.maintenance_at'))
+                            ->required(),
+                        TextInput::make('position_version')->hidden()->required(),
+                        Textarea::make('removal_reason')
+                            ->label(__('fieldops::resource.luminaires.removal.reason'))
+                            ->required()
+                            ->rows(3)
+                            ->columnSpanFull(),
+                        Textarea::make('root_cause')
+                            ->label(__('fieldops::resource.maintenance_records.fields.root_cause'))
+                            ->rows(2),
+                        Textarea::make('notes')
+                            ->label(__('fieldops::resource.maintenance_records.fields.notes'))
+                            ->rows(2),
+                    ])
+                    ->visible(fn (Luminaire $record): bool => $record->removed_at === null && $record->active_position_id !== null)
+                    ->action(function (Luminaire $record, array $data): void {
+                        $result = app(LuminaireRemovalService::class)->remove($record, $data, auth()->id());
+
+                        $this->redirect(\Modules\FieldOps\Filament\Resources\LuminaireFrameResource::getUrl('view', [
+                            'record' => $result['luminaire']->luminaire_frame_id,
+                            'layout' => 'technical',
+                            'vacant_position' => $result['luminaire']->luminaire_position_id,
+                        ]), navigate: true);
+                    }),
             ]);
     }
 }

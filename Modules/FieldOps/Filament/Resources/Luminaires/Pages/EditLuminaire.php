@@ -2,7 +2,6 @@
 
 namespace Modules\FieldOps\Filament\Resources\Luminaires\Pages;
 
-use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
@@ -31,7 +30,6 @@ class EditLuminaire extends EditRecord
         return [
             ViewAction::make(),
             RestoreAction::make(),
-            DeleteAction::make(),
         ];
     }
 

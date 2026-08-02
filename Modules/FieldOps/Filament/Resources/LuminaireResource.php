@@ -6,7 +6,6 @@ use BackedEnum;
 use Closure;
 use Livewire\Component as LivewireComponent;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
@@ -600,7 +599,6 @@ class LuminaireResource extends Resource
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
                     RestoreBulkAction::make(),
                 ]),
             ]);

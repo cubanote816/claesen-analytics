@@ -16,6 +16,7 @@ use Modules\FieldOps\Models\LuminairePosition;
 use Modules\FieldOps\Models\LuminaireSubgroup;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\FieldOps\Services\LuminaireReplacementService;
+use Modules\FieldOps\Services\LuminaireRemovalService;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -60,6 +61,10 @@ class LuminaireReplacementTest extends TestCase
         FoMaintenanceType::query()->updateOrCreate(
             ['code' => FoMaintenanceType::CODE_REPLACEMENT],
             ['name' => ['nl' => 'Vervanging', 'en' => 'Replacement']],
+        );
+        FoMaintenanceType::query()->updateOrCreate(
+            ['code' => FoMaintenanceType::CODE_REMOVAL],
+            ['name' => ['nl' => 'Verwijdering', 'en' => 'Removal']],
         );
     }
 
@@ -287,6 +292,73 @@ class LuminaireReplacementTest extends TestCase
             ->assertOk()
             ->assertSee(__('fieldops::resource.luminaires.actions.view_history'))
             ->assertSee($positionHistoryUrl);
+    }
+
+    public function test_removal_preserves_the_installation_and_records_vacant_position_history(): void
+    {
+        $luminaire = $this->originalLuminaire();
+
+        $result = app(LuminaireRemovalService::class)->remove($luminaire, [
+            'removal_reason' => 'Frame is being decommissioned.',
+            'maintenance_at' => now()->toIso8601String(),
+            'position_version' => 7,
+            'notes' => 'No replacement is planned.',
+        ], $this->user->id);
+
+        $luminaire->refresh();
+
+        $this->assertNull($luminaire->deleted_at);
+        $this->assertNotNull($luminaire->removed_at);
+        $this->assertNull($luminaire->active_position_id);
+        $this->assertSame('Frame is being decommissioned.', $luminaire->removal_reason);
+        $this->assertSame($luminaire->luminaire_position_id, $result['maintenance']->luminaire_position_id);
+        $this->assertSame(FoMaintenanceType::CODE_REMOVAL, $result['maintenance']->maintenanceType->code);
+        $this->assertTrue($result['maintenance']->details['removal']);
+        $this->assertSame(1, $luminaire->position->maintenanceRecords()->count());
+        $this->assertSame(0, $this->frame->fresh()->luminaires()->count());
+    }
+
+    public function test_new_installation_reuses_a_vacant_position_without_losing_history(): void
+    {
+        $retired = $this->originalLuminaire();
+        $positionId = $retired->luminaire_position_id;
+
+        app(LuminaireRemovalService::class)->remove($retired, [
+            'removal_reason' => 'Replacement will be installed later.',
+            'maintenance_at' => now()->toIso8601String(),
+            'position_version' => 7,
+        ], $this->user->id);
+
+        $response = $this->actingAs($this->user)->postJson('/fieldops/luminaire-frame-editor/luminaires', [
+            'luminaire_frame_id' => $this->frame->id,
+            'luminaire_position_id' => $positionId,
+            'luminaire_type_id' => $this->replacementType->id,
+            'luminaire_subgroup_id' => $this->replacementSubgroup->id,
+            'serial_number' => 'SN-REINSTALLED-001',
+        ])->assertCreated();
+
+        $installed = Luminaire::findOrFail((int) $response->json('data.id'));
+
+        $this->assertSame($positionId, $installed->luminaire_position_id);
+        $this->assertSame($positionId, $installed->active_position_id);
+        $this->assertSame(1, LuminairePosition::count());
+        $this->assertSame([$installed->id], $this->frame->fresh()->luminaires()->pluck('id')->all());
+        $this->assertSame(1, $installed->position->maintenanceRecords()->count());
+    }
+
+    public function test_new_installation_cannot_reuse_an_occupied_position(): void
+    {
+        $current = $this->originalLuminaire();
+
+        $this->actingAs($this->user)->postJson('/fieldops/luminaire-frame-editor/luminaires', [
+            'luminaire_frame_id' => $this->frame->id,
+            'luminaire_position_id' => $current->luminaire_position_id,
+            'luminaire_type_id' => $this->replacementType->id,
+            'luminaire_subgroup_id' => $this->replacementSubgroup->id,
+            'serial_number' => 'SN-DUPLICATE-POSITION-001',
+        ])->assertUnprocessable()->assertJsonValidationErrors('luminaire_position_id');
+
+        $this->assertSame(1, Luminaire::count());
     }
 
     /** @param array<string, mixed> $overrides */
