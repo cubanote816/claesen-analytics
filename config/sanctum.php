@@ -2,11 +2,23 @@
 
 use Laravel\Sanctum\Sanctum;
 
-$statefulDomains = explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-    '%s%s',
-    'localhost,localhost:3000,localhost:5173,127.0.0.1,127.0.0.1:8000,::1',
+$localStatefulDomains = [
+    'localhost',
+    'localhost:3000',
+    'localhost:5173',
+    'localhost:5174',
+    'localhost:5186',
+    '127.0.0.1',
+    '127.0.0.1:8000',
+    '::1',
     Sanctum::currentApplicationUrlWithPort(),
-)));
+];
+
+// Environment domains extend the local development defaults instead of replacing
+// them. Replacing the list made a local SPA on :5186 stateless when an existing
+// SANCTUM_STATEFUL_DOMAINS value was present.
+$configuredStatefulDomains = explode(',', (string) env('SANCTUM_STATEFUL_DOMAINS', ''));
+$statefulDomains = array_merge($localStatefulDomains, $configuredStatefulDomains);
 
 $clientPortal = parse_url((string) env('CLIENT_PORTAL_URL', ''));
 if (is_array($clientPortal) && isset($clientPortal['host'])) {
