@@ -12,6 +12,8 @@ use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalBoard;
 use Modules\FieldOps\Filament\Resources\StructureResource;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
+use Modules\FieldOps\Filament\Resources\Terrains\Pages\CreateTerrain;
+use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoardType;
 use Modules\FieldOps\Models\Structure;
@@ -89,6 +91,27 @@ class TerrainFilamentTest extends TestCase
         $this->get("/terrains/{$terrain->id}/edit")
             ->assertOk()
             ->assertDontSee('[object Object]', false);
+    }
+
+    public function test_create_terrain_uses_the_selected_complex_coordinates_as_its_initial_pin_location(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $complex = Complex::factory()->create([
+            'lat' => 51.164145,
+            'lng' => 5.163746,
+        ]);
+
+        Livewire::withQueryParams(['complex_id' => $complex->id])
+            ->test(CreateTerrain::class)
+            ->assertSet('data.complex_id', $complex->id)
+            ->assertSet('data.lat', 51.164145)
+            ->assertSet('data.lng', 5.163746)
+            ->assertSet('data.map_center_lat', 51.164145)
+            ->assertSet('data.map_center_lng', 5.163746);
     }
 
     public function test_structure_creation_from_terrain_attaches_the_current_terrain(): void

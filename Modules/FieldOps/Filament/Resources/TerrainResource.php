@@ -80,7 +80,7 @@ class TerrainResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        $locationDefaults = static::resolveLocationDefaults();
+        $locationDefaults = static::resolveLocationDefaults(request()->integer('complex_id') ?: null);
         $terrainPinVariants = static::resolveTerrainPinVariants();
 
         return $schema
