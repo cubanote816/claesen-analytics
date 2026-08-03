@@ -18,7 +18,7 @@ After reading context, respond briefly with:
 
 Workflow:
 
-1. Confirm or create a Linear ticket before any file edit.
+1. For an authorized request that requires changes and has no active ticket, create the Linear ticket automatically; do not ask separately for permission to create it. Do not create tickets for questions, inspections, reviews, or diagnoses that do not require changes.
 2. Move the ticket to `In Progress`.
 3. Present a plan before editing.
 4. Wait for explicit user approval.

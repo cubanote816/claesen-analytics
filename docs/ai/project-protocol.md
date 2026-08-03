@@ -13,10 +13,18 @@ Este es el principio invariable. Cualquier cambio — por pequeño que parezca �
 
 ---
 
+## Gestión automática de tickets Linear
+
+Cuando una solicitud autorizada requiere cambios y no existe un ticket activo, el agente debe crear el ticket en Linear y moverlo a `In Progress` automáticamente. No debe pedir una aprobación separada para crear, comentar o actualizar el estado inicial del ticket.
+
+No se crean tickets para preguntas, inspecciones, revisiones o diagnósticos que no impliquen cambios. La automatización de Linear no sustituye los gates de implementación: el plan y la aprobación explícita antes de editar continúan siendo obligatorios, igual que el GO técnico antes de marcar el ticket como `Done`.
+
+---
+
 ## Flujo por ticket (10 pasos)
 
 ```
-1. MOVER issue Linear → In Progress
+1. CREAR issue Linear si hace falta y MOVERLO → In Progress
 2. PRESENTAR plan: alcance, archivos, tests previstos
 3. ESPERAR aprobación explícita (nunca asumir)
 4. IMPLEMENTAR solo el ticket activo

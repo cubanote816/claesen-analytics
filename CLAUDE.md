@@ -36,7 +36,7 @@ Al iniciar cada sesión, leer en este orden:
 
 ## Regla operativa clave
 
-Todo cambio debe pasar por Linear.
+Todo cambio debe pasar por Linear. Para una solicitud autorizada que requiera cambios y no tenga ticket activo, el agente crea el ticket y lo mueve a `In Progress` automáticamente; no pide una aprobación separada para esa gestión. Las consultas, revisiones y diagnósticos sin cambios no requieren ticket.
 No se edita código sin ticket activo, plan presentado y aprobación explícita.
 Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y `handoff.md`, commit Git dedicado y GO técnico del usuario.
 
@@ -192,7 +192,7 @@ php artisan core:link-users-to-employees --apply     # solo después de revisar 
 
 Flujo obligatorio por ticket — no saltarse pasos:
 
-1. Mover issue Linear a **In Progress**.
+1. Crear el issue Linear si hace falta y moverlo a **In Progress** automáticamente.
 2. Presentar plan del ticket: alcance, archivos previstos, tests/checks.
 3. **Esperar aprobación** antes de editar cualquier archivo.
 4. Implementar solo el ticket activo.

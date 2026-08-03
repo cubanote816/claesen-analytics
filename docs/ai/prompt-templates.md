@@ -93,7 +93,8 @@ Antes de crear el ticket:
 2. Lee docs/ai/module-contracts.md para el módulo afectado.
 3. Lee docs/ai/test-gate-harness.md — identifica qué tipo de cambio es y qué tests requerirá.
 4. Propón título, descripción, criterios de aceptación y tests previstos.
-5. Espera aprobación antes de crear el ticket o editar código.
+5. Crea el ticket y muévelo a `In Progress` automáticamente; no pidas aprobación separada para esa gestión de Linear.
+6. Presenta el plan y espera aprobación antes de editar código.
 ```
 
 ---
