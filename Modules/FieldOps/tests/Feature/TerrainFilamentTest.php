@@ -13,12 +13,14 @@ use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalB
 use Modules\FieldOps\Filament\Resources\StructureResource;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
 use Modules\FieldOps\Filament\Resources\Terrains\Pages\CreateTerrain;
+use Modules\FieldOps\Filament\Resources\Terrains\Pages\EditTerrain;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoardType;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\StructureType;
 use Modules\FieldOps\Models\Terrain;
+use Modules\FieldOps\Models\TerrainType;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -112,6 +114,45 @@ class TerrainFilamentTest extends TestCase
             ->assertSet('data.lng', 5.163746)
             ->assertSet('data.map_center_lat', 51.164145)
             ->assertSet('data.map_center_lng', 5.163746);
+    }
+
+    public function test_edit_terrain_uses_the_recorded_coordinates_as_its_initial_pin_location(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $terrainType = TerrainType::factory()->create();
+        $terrain = Terrain::factory()->create([
+            'lat' => 51.164145,
+            'lng' => 5.163746,
+            'terrain_type_id' => $terrainType->id,
+        ]);
+
+        $component = Livewire::test(EditTerrain::class, ['record' => $terrain->getRouteKey()])
+            ->assertSet('data.lat', 51.164145)
+            ->assertSet('data.lng', 5.163746)
+            ->assertSet('data.map_center_lat', 51.164145)
+            ->assertSet('data.map_center_lng', 5.163746)
+            ->assertSet('data.terrain_pin_variant', (string) $terrainType->id);
+
+        $component
+            ->set('data.lat', 51.162345)
+            ->set('data.lng', 5.162345)
+            ->call('save')
+            ->assertSet('data.lat', 51.162345)
+            ->assertSet('data.lng', 5.162345)
+            ->assertSet('data.map_center_lat', 51.162345)
+            ->assertSet('data.map_center_lng', 5.162345);
+
+        $this->get("/terrains/{$terrain->id}/edit")
+            ->assertOk()
+            ->assertSee('defaultPinVariant: "'.$terrainType->id.'"', false)
+            ->assertSee("this.marker.on('dragend', () => this.syncFromLatLng(this.marker.getLatLng(), false, true));", false)
+            ->assertSee("this.map.on('click', (event) => this.syncFromLatLng(event.latlng, true, true));", false)
+            ->assertSee("this.centerLatInput.dispatchEvent(new Event('input', { bubbles: true }));", false)
+            ->assertSee("this.centerLngInput.dispatchEvent(new Event('input', { bubbles: true }));", false);
     }
 
     public function test_structure_creation_from_terrain_attaches_the_current_terrain(): void

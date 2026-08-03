@@ -80,8 +80,9 @@ class TerrainResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        $locationDefaults = static::resolveLocationDefaults(request()->integer('complex_id') ?: null);
+        $locationDefaults = static::resolveLocationDefaultsForRequest();
         $terrainPinVariants = static::resolveTerrainPinVariants();
+        $defaultPinVariant = static::resolveTerrainPinVariantForRequest();
 
         return $schema
             ->columns(1)
@@ -143,7 +144,7 @@ class TerrainResource extends Resource
                     ->default($locationDefaults['lng']),
                 Hidden::make('terrain_pin_variant')
                     ->dehydrated(false)
-                    ->default(static::resolveTerrainPinVariant(null)),
+                    ->default($defaultPinVariant),
                 ViewField::make('location_map')
                     ->hiddenLabel()
                     ->dehydrated(false)
@@ -159,7 +160,7 @@ class TerrainResource extends Resource
                         'centerLngInputId' => 'form.map_center_lng',
                         'variantInputId' => 'form.terrain_pin_variant',
                         'pinVariants' => $terrainPinVariants,
-                        'defaultPinVariant' => static::resolveTerrainPinVariant(null),
+                        'defaultPinVariant' => $defaultPinVariant,
                     ])
                     ->columnSpanFull(),
             ])->columns(1),
@@ -318,6 +319,36 @@ class TerrainResource extends Resource
     /**
      * @return array{lat: float, lng: float, zoom: int, complex_label: ?string}
      */
+    protected static function resolveLocationDefaultsForRequest(): array
+    {
+        $terrain = static::resolveTerrainForRequest();
+
+        if ($terrain && static::hasCoordinates($terrain)) {
+            return [
+                'lat' => (float) $terrain->lat,
+                'lng' => (float) $terrain->lng,
+                'zoom' => 17,
+                'complex_label' => $terrain->complex?->name,
+            ];
+        }
+
+        return static::resolveLocationDefaults(
+            request()->integer('complex_id') ?: $terrain?->complex_id,
+        );
+    }
+
+    protected static function resolveTerrainForRequest(): ?Terrain
+    {
+        $record = request()->route('record');
+
+        return $record instanceof Terrain
+            ? $record
+            : (is_numeric($record) ? Terrain::query()->find((int) $record) : null);
+    }
+
+    /**
+     * @return array{lat: float, lng: float, zoom: int, complex_label: ?string}
+     */
     protected static function resolveLocationDefaults(?int $complexId = null): array
     {
         $fallbackLat = 51.1635;
@@ -393,6 +424,11 @@ class TerrainResource extends Resource
         $exists = TerrainType::query()->whereKey($terrainTypeId)->exists();
 
         return $exists ? (string) $terrainTypeId : 'generic';
+    }
+
+    protected static function resolveTerrainPinVariantForRequest(): string
+    {
+        return static::resolveTerrainPinVariant(static::resolveTerrainForRequest()?->terrain_type_id);
     }
 
     public static function table(Table $table): Table
