@@ -31,7 +31,7 @@
     ], $getViewData());
 @endphp
 
-@once
+@assets
     <style>
         .fieldops-terrain-location-picker {
             overflow: hidden;
@@ -178,23 +178,23 @@
             color: #64748b;
         }
 
-        .fieldops-terrain-location-picker[data-theme="dark"] .leaflet-control-zoom a {
+        .dark .fieldops-terrain-location-picker .leaflet-control-zoom a {
             background: #1d2030;
             color: #e2e8f0;
         }
 
-        .fieldops-terrain-location-picker[data-theme="dark"] .leaflet-control-zoom,
-        .fieldops-terrain-location-picker[data-theme="dark"] .leaflet-control-attribution {
+        .dark .fieldops-terrain-location-picker .leaflet-control-zoom,
+        .dark .fieldops-terrain-location-picker .leaflet-control-attribution {
             border-color: rgba(255, 255, 255, 0.08);
             box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
         }
 
-        .fieldops-terrain-location-picker[data-theme="dark"] .leaflet-control-attribution {
+        .dark .fieldops-terrain-location-picker .leaflet-control-attribution {
             background: rgba(15, 23, 42, 0.9);
             color: #94a3b8;
         }
 
-        .fieldops-terrain-location-picker[data-theme="dark"] .fieldops-terrain-location-picker__leaflet-corners--dark .leaflet-control-zoom a {
+        .dark .fieldops-terrain-location-picker .fieldops-terrain-location-picker__leaflet-corners--dark .leaflet-control-zoom a {
             background: #1d2030;
             color: #e2e8f0;
         }
@@ -239,11 +239,10 @@
             }
         }
     </style>
-@endonce
+@endassets
 
 <div
     class="fieldops-terrain-location-picker"
-    data-theme="light"
     wire:ignore
     x-data="fieldopsTerrainLocationPicker({
         latInputId: @js($data['latInputId']),
@@ -290,7 +289,7 @@
     </div>
 </div>
 
-@once
+@script
     <script>
         window.fieldopsLoadLeaflet = window.fieldopsLoadLeaflet || function () {
             if (window.L) {
@@ -345,12 +344,7 @@
             }
         };
 
-        const registerTerrainLocationPicker = () => {
-            if (! window.Alpine) {
-                return;
-            }
-
-            window.Alpine.data('fieldopsTerrainLocationPicker', (config) => ({
+        window.Alpine.data('fieldopsTerrainLocationPicker', (config) => ({
                 config,
                 map: null,
                 marker: null,
@@ -365,7 +359,6 @@
                 currentCenterCoords: null,
                 currentVariant: null,
                 lastCenterKey: null,
-                stateObserver: null,
                 statePoller: null,
 
                 async init() {
@@ -410,8 +403,6 @@
                     this.syncMarkerVariant(variant, true);
                     this.bindStateObservers();
                     this.syncExternalState(true);
-                    this.syncTheme();
-                    this.observeTheme();
 
                     setTimeout(() => this.map.invalidateSize(), 0);
                 },
@@ -586,36 +577,6 @@
                     });
                 },
 
-                syncTheme() {
-                    if (! this.map || ! this.map._controlCorners) {
-                        return;
-                    }
-
-                    const isDark = document.documentElement.classList.contains('dark');
-                    this.$el.dataset.theme = isDark ? 'dark' : 'light';
-
-                    Object.values(this.map._controlCorners).forEach((corner) => {
-                        if (corner && corner.classList) {
-                            corner.classList.toggle('fieldops-terrain-location-picker__leaflet-corners--dark', isDark);
-                        }
-                    });
-                },
-
-                observeTheme() {
-                    const observer = new MutationObserver(() => this.syncTheme());
-                    observer.observe(document.documentElement, {
-                        attributes: true,
-                        attributeFilter: ['class'],
-                    });
-                    this.stateObserver = observer;
-                },
-            }));
-        };
-
-        if (window.Alpine) {
-            registerTerrainLocationPicker();
-        } else {
-            document.addEventListener('alpine:init', registerTerrainLocationPicker);
-        }
+        }));
     </script>
-@endonce
+@endscript

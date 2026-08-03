@@ -38,8 +38,7 @@
     })"
     x-init="init()"
 >
-    @once
-        @push('styles')
+    @assets
             <style>
         .fieldops-electrical-board-location-picker {
             overflow: hidden;
@@ -188,23 +187,23 @@
             color: #64748b;
         }
 
-        .fieldops-electrical-board-location-picker[data-theme="dark"] .leaflet-control-zoom a {
+        .dark .fieldops-electrical-board-location-picker .leaflet-control-zoom a {
             background: #1d2030;
             color: #e2e8f0;
         }
 
-        .fieldops-electrical-board-location-picker[data-theme="dark"] .leaflet-control-zoom,
-        .fieldops-electrical-board-location-picker[data-theme="dark"] .leaflet-control-attribution {
+        .dark .fieldops-electrical-board-location-picker .leaflet-control-zoom,
+        .dark .fieldops-electrical-board-location-picker .leaflet-control-attribution {
             border-color: rgba(255, 255, 255, 0.08);
             box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
         }
 
-        .fieldops-electrical-board-location-picker[data-theme="dark"] .leaflet-control-attribution {
+        .dark .fieldops-electrical-board-location-picker .leaflet-control-attribution {
             background: rgba(15, 23, 42, 0.9);
             color: #94a3b8;
         }
 
-        .fieldops-electrical-board-location-picker[data-theme="dark"] .fieldops-electrical-board-location-picker__leaflet-corners--dark .leaflet-control-zoom a {
+        .dark .fieldops-electrical-board-location-picker .fieldops-electrical-board-location-picker__leaflet-corners--dark .leaflet-control-zoom a {
             background: #1d2030;
             color: #e2e8f0;
         }
@@ -247,8 +246,7 @@
             }
         }
             </style>
-        @endpush
-    @endonce
+    @endassets
 
     <div class="fieldops-electrical-board-location-picker__header">
         <div>
@@ -279,8 +277,7 @@
         <span>{{ __('fieldops::resource.electrical_boards.map.footer_move') }}</span>
     </div>
 
-    @once
-        @push('scripts')
+    @script
             <script>
         (() => {
         if (window.fieldopsElectricalBoardLocationPickerBootstrapped) {
@@ -320,12 +317,7 @@
             return window.__fieldopsLeafletPromise;
         };
 
-        window.fieldopsRegisterElectricalBoardLocationPicker = window.fieldopsRegisterElectricalBoardLocationPicker || function () {
-            if (! window.Alpine) {
-                return;
-            }
-
-            window.Alpine.data('fieldopsElectricalBoardLocationPicker', (config) => ({
+        window.Alpine.data('fieldopsElectricalBoardLocationPicker', (config) => ({
                 config,
                 map: null,
                 marker: null,
@@ -338,7 +330,6 @@
                 currentPinCoords: null,
                 currentCenterCoords: null,
                 lastCenterKey: null,
-                stateObserver: null,
                 statePoller: null,
 
                 async init() {
@@ -385,8 +376,6 @@
                     this.syncFromLatLng(initial, false, false);
                     this.bindStateObservers();
                     this.syncExternalState(true);
-                    this.syncTheme();
-                    this.observeTheme();
 
                     setTimeout(() => this.map.invalidateSize(), 0);
                 },
@@ -495,39 +484,8 @@
                     }
                 },
 
-                syncTheme() {
-                    if (! this.map || ! this.map._controlCorners) {
-                        return;
-                    }
-
-                    const isDark = document.documentElement.classList.contains('dark');
-                    this.$el.dataset.theme = isDark ? 'dark' : 'light';
-
-                    Object.values(this.map._controlCorners).forEach((corner) => {
-                        if (corner && corner.classList) {
-                            corner.classList.toggle('fieldops-electrical-board-location-picker__leaflet-corners--dark', isDark);
-                        }
-                    });
-                },
-
-                observeTheme() {
-                    const observer = new MutationObserver(() => this.syncTheme());
-                    observer.observe(document.documentElement, {
-                        attributes: true,
-                        attributeFilter: ['class'],
-                    });
-                    this.stateObserver = observer;
-                },
-            }));
-        };
-
-        if (window.Alpine) {
-            window.fieldopsRegisterElectricalBoardLocationPicker();
-        } else {
-            document.addEventListener('alpine:init', window.fieldopsRegisterElectricalBoardLocationPicker);
-        }
+        }));
         })();
             </script>
-        @endpush
-    @endonce
+    @endscript
 </div>

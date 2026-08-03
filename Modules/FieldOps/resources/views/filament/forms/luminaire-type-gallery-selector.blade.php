@@ -28,6 +28,7 @@
         .fieldops-luminaire-type-picker__family { color:#0f172a; font-size:.9rem; font-weight:850; line-height:1.25; }
         .dark .fieldops-luminaire-type-picker__family { color:#f1f5f9; }
         .fieldops-luminaire-type-picker__reference { margin-top:.2rem; color:#0ea5e9; font-size:.78rem; font-weight:800; }
+        .dark .fieldops-luminaire-type-picker__reference { color:#7dd3fc; }
         .fieldops-luminaire-type-picker__meta { margin-top:.35rem; color:#64748b; font-size:.72rem; line-height:1.35; }
         .dark .fieldops-luminaire-type-picker__meta { color:#94a3b8; }
         @media(max-width:1100px){ .fieldops-luminaire-type-picker{grid-template-columns:repeat(2,minmax(0,1fr));} }
@@ -56,9 +57,11 @@
         .fieldops-luminaire-type-picker-wrapper--error .fieldops-luminaire-type-picker,
         .fieldops-luminaire-type-picker-wrapper--error .fieldops-luminaire-type-picker__selected { outline:2px solid #f43f5e; outline-offset:4px; border-radius:1rem; }
         .fieldops-luminaire-type-picker__error-message { margin-top:.6rem; color:#f43f5e; font-size:.8rem; font-weight:600; }
+        .dark .fieldops-luminaire-type-picker__error-message { color:#fda4af; }
 
         .fieldops-luminaire-type-picker__selected--locked { opacity:.9; }
         .fieldops-luminaire-type-picker__locked-hint { grid-column:1 / -1; margin-top:.5rem; color:#0ea5e9; font-size:.78rem; font-weight:700; text-decoration:none; }
+        .dark .fieldops-luminaire-type-picker__locked-hint { color:#7dd3fc; }
         .fieldops-luminaire-type-picker__locked-hint:hover { text-decoration:underline; }
     </style>
 @endonce

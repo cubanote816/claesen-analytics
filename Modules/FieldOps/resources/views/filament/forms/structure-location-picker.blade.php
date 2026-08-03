@@ -23,7 +23,7 @@
     ], $getViewData());
 @endphp
 
-@once
+    @assets
     <style>
         .fieldops-structure-location-picker {
             overflow: hidden;
@@ -172,18 +172,18 @@
             color: #64748b;
         }
 
-        .fieldops-structure-location-picker[data-theme="dark"] .leaflet-control-zoom a {
+        .dark .fieldops-structure-location-picker .leaflet-control-zoom a {
             background: #1d2030;
             color: #e2e8f0;
         }
 
-        .fieldops-structure-location-picker[data-theme="dark"] .leaflet-control-zoom,
-        .fieldops-structure-location-picker[data-theme="dark"] .leaflet-control-attribution {
+        .dark .fieldops-structure-location-picker .leaflet-control-zoom,
+        .dark .fieldops-structure-location-picker .leaflet-control-attribution {
             border-color: rgba(255, 255, 255, 0.08);
             box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
         }
 
-        .fieldops-structure-location-picker[data-theme="dark"] .leaflet-control-attribution {
+        .dark .fieldops-structure-location-picker .leaflet-control-attribution {
             background: rgba(15, 23, 42, 0.9);
             color: #94a3b8;
         }
@@ -226,11 +226,10 @@
             }
         }
     </style>
-@endonce
+    @endassets
 
 <div
     class="fieldops-structure-location-picker"
-    data-theme="light"
     wire:ignore
     x-data="fieldopsStructureLocationPicker({
         latInputId: @js($data['latInputId']),
@@ -244,8 +243,7 @@
     })"
     x-init="init()"
 >
-    @once
-        @push('scripts')
+    @script
             <script>
         (() => {
         if (window.fieldopsStructureLocationPickerBootstrapped) {
@@ -305,12 +303,7 @@
             return window.__fieldopsLeafletPromise;
         };
 
-        window.fieldopsRegisterStructureLocationPicker = window.fieldopsRegisterStructureLocationPicker || function () {
-            if (! window.Alpine) {
-                return;
-            }
-
-            window.Alpine.data('fieldopsStructureLocationPicker', (config) => ({
+        window.Alpine.data('fieldopsStructureLocationPicker', (config) => ({
                 config,
                 map: null,
                 marker: null,
@@ -323,7 +316,6 @@
                 currentPinCoords: null,
                 currentCenterCoords: null,
                 lastCenterKey: null,
-                stateObserver: null,
                 statePoller: null,
                 locationRestoredHandler: null,
                 livewireCommitHandler: null,
@@ -376,8 +368,6 @@
                     this.bindLivewireCommitListener();
                     this.bindLocationRestoredListener();
                     this.syncExternalState(true);
-                    this.syncTheme();
-                    this.observeTheme();
 
                     setTimeout(() => this.map.invalidateSize(), 0);
                 },
@@ -606,41 +596,10 @@
                     }
                 },
 
-                syncTheme() {
-                    if (! this.map || ! this.map._controlCorners) {
-                        return;
-                    }
-
-                    const isDark = document.documentElement.classList.contains('dark');
-                    this.$el.dataset.theme = isDark ? 'dark' : 'light';
-
-                    Object.values(this.map._controlCorners).forEach((corner) => {
-                        if (corner && corner.classList) {
-                            corner.classList.toggle('fieldops-structure-location-picker__leaflet-corners--dark', isDark);
-                        }
-                    });
-                },
-
-                observeTheme() {
-                    const observer = new MutationObserver(() => this.syncTheme());
-                    observer.observe(document.documentElement, {
-                        attributes: true,
-                        attributeFilter: ['class'],
-                    });
-                    this.stateObserver = observer;
-                },
-            }));
-        };
-
-        if (window.Alpine) {
-            window.fieldopsRegisterStructureLocationPicker();
-        } else {
-            document.addEventListener('alpine:init', window.fieldopsRegisterStructureLocationPicker);
-        }
+        }));
         })();
             </script>
-        @endpush
-    @endonce
+    @endscript
 
     <div class="fieldops-structure-location-picker__header">
         <div>

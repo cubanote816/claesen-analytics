@@ -32,7 +32,9 @@
             }
 
             .dark .fieldops-structure-proximity-warning__icon {
+                background: rgba(120, 53, 15, 0.45);
                 color: rgb(207 250 254);
+                box-shadow: 0 0 0 1px rgba(103, 232, 249, 0.24);
             }
 
             .fieldops-structure-proximity-warning__title {
