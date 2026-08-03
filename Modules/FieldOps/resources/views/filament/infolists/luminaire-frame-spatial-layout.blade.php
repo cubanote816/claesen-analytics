@@ -502,6 +502,12 @@
                 border-color: rgba(255, 255, 255, 0.12);
                 background: rgba(255, 255, 255, 0.045);
                 color: #f8fafc;
+                color-scheme: dark;
+            }
+
+            .dark .fieldops-luminaire-frame-spatial__field-control option {
+                background: #171725;
+                color: #f8fafc;
             }
 
             .fieldops-luminaire-frame-spatial__field-hint,

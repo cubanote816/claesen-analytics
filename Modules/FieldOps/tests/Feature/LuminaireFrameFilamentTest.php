@@ -85,6 +85,8 @@ class LuminaireFrameFilamentTest extends TestCase
             ->assertSee('Add luminaire')
             ->assertSee('Choose the luminaire type')
             ->assertSee('fieldops-new-luminaire-type', false)
+            ->assertSee('color-scheme: dark;', false)
+            ->assertSee('.dark .fieldops-luminaire-frame-spatial__field-control option', false)
             ->assertSee('data-fieldops-luminaire-type-preview', false)
             ->assertSee('data-fieldops-technical-details-toggle', false)
             ->assertSee('data-fieldops-marker-scale-control', false)
