@@ -205,4 +205,12 @@ SVG;
 
         return null;
     }
+
+    /**
+     * Render-ready canonical SVG, shared by FieldOps and external map clients.
+     */
+    public static function svg(?string $code): string
+    {
+        return self::find($code)['svg'] ?? self::fallbackSvg();
+    }
 }
