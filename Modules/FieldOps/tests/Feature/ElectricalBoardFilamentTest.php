@@ -207,6 +207,28 @@ class ElectricalBoardFilamentTest extends TestCase
         ])->assertSee("via_structure={$structure->id}", false);
     }
 
+    public function test_structure_electrical_board_create_link_does_not_infer_terrain_relationships(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = Structure::factory()->create();
+        $structure->terrains()->attach([
+            Terrain::factory()->create()->id,
+            Terrain::factory()->create()->id,
+        ]);
+
+        $component = Livewire::test(StructureElectricalBoardsRelationManager::class, [
+            'ownerRecord' => $structure,
+            'pageClass' => ViewStructure::class,
+        ]);
+
+        $component
+            ->assertSee('structure_ids%5B0%5D='.$structure->id, false)
+            ->assertDontSee('terrain_ids', false);
+    }
+
     public function test_structure_electrical_boards_relation_manager_attaches_an_existing_board(): void
     {
         $user = User::factory()->create();

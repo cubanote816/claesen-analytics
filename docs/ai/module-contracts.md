@@ -198,6 +198,8 @@ Modules/Website/Routes/api.php
 
 ## Módulo FieldOps
 
+- Todo `RelationManager` de un recurso compartido M:N (Pattern C; hoy, `ElectricalBoard`) debe exponer siempre **Create** y **Attach** juntos en `headerActions`. No se permite uno sin el otro; cada nuevo punto de entrada debe tener regresión de URL de contexto y de `syncWithoutDetaching`.
+
 Roadmap maestro del programa de mantenimiento y Claesen-Client: `docs/ai/fieldops-maintenance-roadmap.md`.
 
 ### Contrato de cliente y tenant

@@ -17,7 +17,8 @@ use Modules\FieldOps\Models\ElectricalBoard;
  * Structure belongsToMany ElectricalBoard (fo_electrical_board_structure) — a board
  * is shared infrastructure with no single owner (Pattern C), so this is attach/detach
  * of existing boards and a create shortcut that re-links the new board back to the
- * structure, preserving any terrains the structure already spans.
+ * structure only. Terrain relationships are explicit and must not be inferred from
+ * the Structure's own terrain assignments.
  */
 class ElectricalBoardsRelationManager extends RelationManager
 {
@@ -66,7 +67,6 @@ class ElectricalBoardsRelationManager extends RelationManager
                     ->color('primary')
                     ->url(ElectricalBoardResource::getUrl('create', [
                         'structure_ids' => [$this->getOwnerRecord()->getKey()],
-                        'terrain_ids' => $this->getOwnerRecord()->terrains()->pluck('fo_terrains.id')->all(),
                     ])),
                 Action::make('attach')
                     ->label(__('fieldops::resource.electrical_boards.actions.attach'))

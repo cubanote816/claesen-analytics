@@ -3,7 +3,6 @@
 namespace Modules\FieldOps\Filament\Resources\Complexes\RelationManagers;
 
 use Filament\Actions\Action;
-use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -67,18 +66,17 @@ class ElectricalBoardsRelationManager extends RelationManager
                     ->url(ElectricalBoardResource::getUrl('create', [
                         'complex_id' => $this->getOwnerRecord()->getKey(),
                     ])),
-                AttachAction::make()
+                Action::make('attach')
                     ->label(__('fieldops::resource.electrical_boards.actions.attach'))
                     ->button()
                     ->icon('heroicon-m-plus')
                     ->color('gray')
                     ->modalWidth('2xl')
-                    ->preloadRecordSelect()
                     ->extraModalWindowAttributes([
                         'style' => 'z-index: 9999;',
                     ])
-                    ->recordSelect(function (Select $select): Select {
-                        return $select
+                    ->schema([
+                        Select::make('recordId')
                             ->label(__('fieldops::resource.electrical_boards.fields.location_description'))
                             ->searchable()
                             ->required()
@@ -116,8 +114,8 @@ class ElectricalBoardsRelationManager extends RelationManager
                                         ?: $board->getTranslation('location_description', 'nl', false)
                                         ?: '#'.$board->id,
                                 ])
-                                ->all());
-                    })
+                                ->all()),
+                    ])
                     ->action(function (array $data): void {
                         $this->getOwnerRecord()->electricalBoards()->syncWithoutDetaching([
                             $data['recordId'],

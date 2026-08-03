@@ -60,7 +60,7 @@ class TerrainFilamentTest extends TestCase
             ->assertSee('data-fieldops-map-panel', false)
             ->assertSee('Desktop map overview')
             ->assertDontSee(__('fieldops::resource.terrains.actions.attach'))
-            ->assertSee(__('fieldops::resource.structures.actions.create'))
+            ->assertDontSee(__('fieldops::resource.structures.actions.create'))
             ->assertSee('Unmapped')
             ->assertSee('No coordinates yet')
             ->assertSee(ElectricalBoardResource::getUrl('view', [
