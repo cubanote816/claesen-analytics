@@ -29,6 +29,22 @@ class UsersTable
                     ->dateTime()
                     ->since()
                     ->sortable(),
+                TextColumn::make('last_login_at')
+                    ->label(__('users/resource.fields.last_login_at'))
+                    ->getStateUsing(fn ($record) => $record->last_login_at ?? $record->last_active_at)
+                    ->dateTime()
+                    ->since()
+                    ->sortable(),
+                TextColumn::make('last_login_app_source')
+                    ->label(__('users/resource.fields.last_login_app_source'))
+                    ->getStateUsing(fn ($record) => $record->last_login_app_source ?: __('users/resource.fields.unknown_source'))
+                    ->badge()
+                    ->color('info'),
+                TextColumn::make('last_login_channel')
+                    ->label(__('users/resource.fields.last_login_channel'))
+                    ->getStateUsing(fn ($record) => $record->last_login_channel ?: __('users/resource.fields.unknown_channel'))
+                    ->badge()
+                    ->color('gray'),
                 TextColumn::make('email')
                     ->label(__('users/resource.fields.email'))
                     ->searchable()

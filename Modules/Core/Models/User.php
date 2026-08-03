@@ -9,9 +9,11 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Modules\Core\Models\AccessEvent;
 use Modules\Cafca\Models\Employee;
 use Modules\FieldOps\Models\FoClient;
 
@@ -38,6 +40,9 @@ class User extends Authenticatable implements FilamentUser
         'language',
         'theme',
         'preferences_data',
+        'last_login_at',
+        'last_login_app_source',
+        'last_login_channel',
     ];
 
     protected $hidden = [
@@ -57,6 +62,7 @@ class User extends Authenticatable implements FilamentUser
             'last_active_at' => 'datetime',
             'is_active' => 'boolean',
             'preferences_data' => 'array',
+            'last_login_at'              => 'datetime',
         ];
     }
 
@@ -71,6 +77,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsToMany(FoClient::class, 'fo_client_user', 'user_id', 'fo_client_id')
             ->withPivot(['is_active', 'can_view', 'can_report', 'can_manage_contacts'])
             ->withTimestamps();
+    }
+
+    public function accessEvents(): HasMany
+    {
+        return $this->hasMany(AccessEvent::class);
     }
 
     // Single source of truth for "account fully activated".
