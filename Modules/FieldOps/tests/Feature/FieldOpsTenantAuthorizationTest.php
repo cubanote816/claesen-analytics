@@ -6,6 +6,7 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
@@ -105,6 +106,36 @@ class FieldOpsTenantAuthorizationTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseHas('fo_complexes', ['id' => $a['complex']->id, 'name' => 'Client A site']);
+    }
+
+    public function test_client_user_can_mark_only_their_fieldops_notifications_as_read(): void
+    {
+        $client = FoClient::factory()->create();
+        [$user, $token] = $this->clientUser($client);
+        $firstNotification = (string) Str::uuid();
+        $secondNotification = (string) Str::uuid();
+
+        foreach ([$firstNotification, $secondNotification] as $notification) {
+            $user->notifications()->create([
+                'id' => $notification,
+                'type' => 'fieldops-test',
+                'data' => ['viewData' => ['module' => 'fieldops']],
+            ]);
+        }
+
+        $this->withToken($token)
+            ->postJson('/api/v1/fieldops/notifications/read-all')
+            ->assertOk();
+
+        $this->assertNotNull($user->notifications()->findOrFail($firstNotification)->read_at);
+
+        $user->notifications()->whereKey($secondNotification)->update(['read_at' => null]);
+
+        $this->withToken($token)
+            ->postJson("/api/v1/fieldops/notifications/{$secondNotification}/read")
+            ->assertOk();
+
+        $this->assertNotNull($user->notifications()->findOrFail($secondNotification)->read_at);
     }
 
     public function test_inactive_or_non_viewable_membership_grants_no_access(): void

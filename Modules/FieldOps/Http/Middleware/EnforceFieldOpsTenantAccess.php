@@ -81,6 +81,8 @@ class EnforceFieldOpsTenantAccess
             || $request->is('api/v1/fieldops/maintenance-requests/*/confirm')
             || $request->is('api/v1/fieldops/maintenance-requests/*/reopen')
             || $request->is('api/v1/fieldops/maintenance-requests/*/cancel')
+            || $request->is('api/v1/fieldops/notifications/read-all')
+            || $request->is('api/v1/fieldops/notifications/*/read')
             || $request->is('api/v1/fieldops/clients/*/contacts/invitations');
     }
 }
