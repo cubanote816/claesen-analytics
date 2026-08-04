@@ -69,7 +69,7 @@ class FoMaintenancePlanResource extends Resource
             Section::make(__('fieldops::resource.maintenance_plans.sections.schedule'))->schema([
                 Select::make('assigned_employee_id')
                     ->label(__('fieldops::resource.work_orders.fields.assignee'))
-                    ->options(Employee::query()->where('fl_active', true)->orderBy('name')->pluck('name', 'id')->all())
+                    ->options(Employee::query()->where('fl_active', true)->orderBy('name')->get()->mapWithKeys(fn (Employee $employee) => [(string) $employee->id => $employee->name])->all())
                     ->searchable()->nullable(),
                 DateTimePicker::make('next_due_at')
                     ->label(__('fieldops::resource.maintenance_plans.fields.next_due_at'))
