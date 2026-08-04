@@ -47,7 +47,9 @@ class ViewMaintenanceRequest extends ViewRecord
                         (int) auth()->id(),
                     );
                     Notification::make()->title('Work order created')->success()->send();
-                    $this->redirect(FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $order]));
+                    // Land directly on the edit form so the backoffice user can finish
+                    // assignment, date, priority and instructions without an extra click.
+                    $this->redirect(FoMaintenanceWorkOrderResource::getUrl('edit', ['record' => $order]));
                 }),
             Action::make('openWorkOrder')
                 ->label('Open work order')

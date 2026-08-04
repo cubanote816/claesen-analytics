@@ -7,7 +7,9 @@ namespace Modules\FieldOps\Tests\Feature;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Modules\Cafca\Models\Employee;
+use Modules\FieldOps\Database\Seeders\QaFieldWorkerSeeder;
 use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
@@ -110,6 +112,50 @@ class MaintenanceWorkOrderTest extends TestCase
             'luminaire_position_id' => $luminaire->luminaire_position_id,
             'solution_applied' => 'Driver replaced and output tested.',
         ]);
+    }
+
+    public function test_assignment_is_rejected_for_an_employee_without_an_active_linked_user(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'FIELD-002', 'name' => 'Unlinked Worker', 'fl_active' => true]);
+        $type = FoMaintenanceType::factory()->corrective()->create();
+
+        $this->expectException(ValidationException::class);
+
+        app(MaintenanceWorkOrderService::class)->create([
+            'maintainable_type' => Luminaire::class,
+            'maintainable_id' => $luminaire->id,
+            'fo_maintenance_type_id' => $type->id,
+            'assigned_employee_id' => $employee->id,
+            'scheduled_for' => now(),
+            'priority' => 'medium',
+        ], null);
+    }
+
+    public function test_qa_seeded_field_workers_are_eligible_assignees(): void
+    {
+        UserFactory::new()->create([
+            'email' => 'qa.tecnico@claesen-verlichting.test',
+            'name' => 'QA Técnico',
+            'employee_id' => null,
+            'is_active' => false,
+        ]);
+        $this->seed(QaFieldWorkerSeeder::class);
+
+        [$luminaire] = $this->luminaireWithClientContext();
+        $type = FoMaintenanceType::factory()->corrective()->create();
+
+        $order = app(MaintenanceWorkOrderService::class)->create([
+            'maintainable_type' => Luminaire::class,
+            'maintainable_id' => $luminaire->id,
+            'fo_maintenance_type_id' => $type->id,
+            'assigned_employee_id' => '100',
+            'scheduled_for' => now(),
+            'priority' => 'medium',
+        ], null);
+
+        self::assertSame('100', $order->assigned_employee_id);
+        self::assertSame(MaintenanceWorkOrderStatus::ASSIGNED, $order->status);
     }
 
     public function test_electrical_board_order_derives_client_from_its_site(): void

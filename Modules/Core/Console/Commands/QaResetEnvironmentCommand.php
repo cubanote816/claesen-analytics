@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Database\Seeders\FieldOpsDemoDataSeeder;
+use Modules\FieldOps\Database\Seeders\QaFieldWorkerSeeder;
 use Modules\FieldOps\Database\Seeders\QaTenantIsolationSeeder;
 use Modules\FieldOps\Models\FoClient;
 use Throwable;
@@ -55,6 +56,11 @@ class QaResetEnvironmentCommand extends Command
         });
 
         $this->createQaUsers();
+
+        $this->components->task('Field worker QA seed (5 active employees, QA Técnico linked)', function () {
+            Artisan::call('db:seed', ['--class' => QaFieldWorkerSeeder::class, '--force' => true]);
+        });
+        $this->summaryRows[] = ['QA field workers', '✅ 5 employees seeded (100, QA-FIELD-002..005), employee_id=100 linked to qa.tecnico@claesen-verlichting.test'];
 
         $this->components->task('Tenant isolation QA data (2nd client + complexes for both)', function () {
             Artisan::call('db:seed', ['--class' => QaTenantIsolationSeeder::class, '--force' => true]);
