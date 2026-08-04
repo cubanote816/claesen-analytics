@@ -26,6 +26,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Arr;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalBoard;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\EditElectricalBoard;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\ListElectricalBoards;
@@ -33,6 +34,8 @@ use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\ViewElectricalBoa
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoardType;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 
 class ElectricalBoardResource extends Resource
 {
@@ -96,7 +99,11 @@ class ElectricalBoardResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        $locationDefaults = static::resolveLocationDefaults(request()->integer('complex_id'));
+        $locationDefaults = static::resolveLocationDefaults(
+            request()->integer('complex_id'),
+            Arr::wrap(request()->input('terrain_ids', [])),
+            Arr::wrap(request()->input('structure_ids', [])),
+        );
 
         return $schema->components([
             Section::make()->schema([
@@ -216,13 +223,103 @@ class ElectricalBoardResource extends Resource
     }
 
     /**
+     * An electrical board can be created from a Complex, a Terrain, or a
+     * Structure relation manager — each sends its own query param and,
+     * by relation-manager design, only one of the three is ever populated
+     * at a time. Priority (structure > terrain > complex) only matters
+     * defensively, if that assumption is ever violated. Structure/Terrain
+     * are M:N, so a board created from a Structure falls back to one of
+     * its terrains via the same deterministic (lowest-id) rule already
+     * used by Structure::resolveTerrain() for breadcrumbs.
+     *
+     * @param array<int, int|string> $terrainIds
+     * @param array<int, int|string> $structureIds
      * @return array{lat: float, lng: float, zoom: int, complex_label: ?string}
      */
-    protected static function resolveLocationDefaults(?int $complexId = null): array
+    protected static function resolveLocationDefaults(?int $complexId = null, array $terrainIds = [], array $structureIds = []): array
     {
-        $fallbackLat = 51.1635;
-        $fallbackLng = 5.1640;
-        $fallbackZoom = 16;
+        $fallbackLat = (float) config('fieldops.default_map.lat');
+        $fallbackLng = (float) config('fieldops.default_map.lng');
+        $fallbackZoom = (int) config('fieldops.default_map.zoom');
+
+        $structureId = static::firstNumericId($structureIds);
+
+        if ($structureId) {
+            $structure = Structure::query()->find($structureId);
+
+            if ($structure) {
+                if (static::hasCoordinates($structure)) {
+                    return [
+                        'lat' => (float) $structure->lat,
+                        'lng' => (float) $structure->lng,
+                        'zoom' => 17,
+                        'complex_label' => static::structureLabel($structure),
+                    ];
+                }
+
+                $terrain = $structure->resolveTerrain();
+
+                if ($terrain) {
+                    if (static::hasCoordinates($terrain)) {
+                        return [
+                            'lat' => (float) $terrain->lat,
+                            'lng' => (float) $terrain->lng,
+                            'zoom' => 16,
+                            'complex_label' => static::structureLabel($structure),
+                        ];
+                    }
+
+                    if ($terrain->complex && static::hasCoordinates($terrain->complex)) {
+                        return [
+                            'lat' => (float) $terrain->complex->lat,
+                            'lng' => (float) $terrain->complex->lng,
+                            'zoom' => 15,
+                            'complex_label' => static::structureLabel($structure),
+                        ];
+                    }
+                }
+
+                return [
+                    'lat' => $fallbackLat,
+                    'lng' => $fallbackLng,
+                    'zoom' => $fallbackZoom,
+                    'complex_label' => static::structureLabel($structure),
+                ];
+            }
+        }
+
+        $terrainId = static::firstNumericId($terrainIds);
+
+        if ($terrainId) {
+            $terrain = Terrain::query()->with('complex')->find($terrainId);
+
+            if ($terrain) {
+                if (static::hasCoordinates($terrain)) {
+                    return [
+                        'lat' => (float) $terrain->lat,
+                        'lng' => (float) $terrain->lng,
+                        'zoom' => 17,
+                        'complex_label' => $terrain->name,
+                    ];
+                }
+
+                if ($terrain->complex && static::hasCoordinates($terrain->complex)) {
+                    return [
+                        'lat' => (float) $terrain->complex->lat,
+                        'lng' => (float) $terrain->complex->lng,
+                        'zoom' => 16,
+                        'complex_label' => $terrain->name,
+                    ];
+                }
+
+                return [
+                    'lat' => $fallbackLat,
+                    'lng' => $fallbackLng,
+                    'zoom' => $fallbackZoom,
+                    'complex_label' => $terrain->name,
+                ];
+            }
+        }
 
         $complex = $complexId ? Complex::query()->find($complexId) : null;
 
@@ -241,6 +338,22 @@ class ElectricalBoardResource extends Resource
             'zoom' => $fallbackZoom,
             'complex_label' => $complex?->name,
         ];
+    }
+
+    /**
+     * @param array<int, int|string> $ids
+     */
+    protected static function firstNumericId(array $ids): ?int
+    {
+        return collect($ids)
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (int) $value)
+            ->first();
+    }
+
+    protected static function structureLabel(Structure $structure): string
+    {
+        return (string) StructureResource::getRecordTitle($structure);
     }
 
     protected static function hasCoordinates($record): bool

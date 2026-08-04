@@ -6,6 +6,15 @@ return [
     'field_app_url' => env('FRONTEND_URL', 'http://localhost:5173'),
     'client_portal_url' => env('CLIENT_PORTAL_URL', 'http://localhost:5174'),
 
+    // Fallback map center/zoom used by location pickers (Complex/Terrain/
+    // Structure/ElectricalBoard) when no coordinates can be resolved from
+    // the record itself or its hierarchy — defaults to Claesen's home area.
+    'default_map' => [
+        'lat' => env('FIELDOPS_DEFAULT_MAP_LAT', 51.1635),
+        'lng' => env('FIELDOPS_DEFAULT_MAP_LNG', 5.1640),
+        'zoom' => env('FIELDOPS_DEFAULT_MAP_ZOOM', 16),
+    ],
+
     // Thresholds for `fieldops:check-request-alerts` (Fase 5 operational monitoring).
     'request_alerts' => [
         'first_response_hours' => env('FIELDOPS_REQUEST_ALERT_FIRST_RESPONSE_HOURS', 24),

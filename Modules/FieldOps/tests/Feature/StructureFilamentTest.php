@@ -147,9 +147,10 @@ class StructureFilamentTest extends TestCase
         ]);
 
         $boardType = ElectricalBoardType::factory()->create();
-        Livewire::test(CreateElectricalBoard::class)
-            ->set('structureIds', [$structure->id])
-            ->set('terrainIds', [$terrain->id])
+        Livewire::withQueryParams([
+            'structure_ids' => [$structure->id],
+            'terrain_ids' => [$terrain->id],
+        ])->test(CreateElectricalBoard::class)
             ->set('data.electrical_board_type_id', $boardType->id)
             ->set('data.location_description', 'Structure board')
             ->set('data.lat', 51.163912)

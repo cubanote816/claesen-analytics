@@ -23,6 +23,9 @@
     $hasMap = ! empty($markers);
     $mapConfig = [
         'markers' => $markers,
+        'defaultLat' => (float) config('fieldops.default_map.lat'),
+        'defaultLng' => (float) config('fieldops.default_map.lng'),
+        'defaultZoom' => (int) config('fieldops.default_map.zoom'),
     ];
 
     $typeStyles = [
@@ -666,7 +669,7 @@
                                 maxZoom: markers.length === 1 ? 17 : 16,
                             });
                         } else {
-                            map.setView([51.1635, 5.1640], 16);
+                            map.setView([config.defaultLat, config.defaultLng], config.defaultZoom);
                         }
 
                         markers.forEach((marker) => {

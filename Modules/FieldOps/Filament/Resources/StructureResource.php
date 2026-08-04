@@ -245,9 +245,9 @@ class StructureResource extends Resource
      */
     protected static function resolveLocationDefaults(array $terrainIds = []): array
     {
-        $fallbackLat = 51.1635;
-        $fallbackLng = 5.1640;
-        $fallbackZoom = 16;
+        $fallbackLat = (float) config('fieldops.default_map.lat');
+        $fallbackLng = (float) config('fieldops.default_map.lng');
+        $fallbackZoom = (int) config('fieldops.default_map.zoom');
 
         $terrainId = collect($terrainIds)
             ->filter(fn ($value) => is_numeric($value))

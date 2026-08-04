@@ -13,9 +13,9 @@
      */
     $data = array_merge([
         'terrainLabel' => null,
-        'defaultLat' => 51.1635,
-        'defaultLng' => 5.1640,
-        'defaultZoom' => 16,
+        'defaultLat' => config('fieldops.default_map.lat'),
+        'defaultLng' => config('fieldops.default_map.lng'),
+        'defaultZoom' => config('fieldops.default_map.zoom'),
         'latInputId' => 'form.lat',
         'lngInputId' => 'form.lng',
         'centerLatInputId' => 'form.map_center_lat',

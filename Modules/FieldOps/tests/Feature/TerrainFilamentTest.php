@@ -222,8 +222,8 @@ class TerrainFilamentTest extends TestCase
         $terrain = Terrain::factory()->create();
         $type = ElectricalBoardType::factory()->create();
 
-        Livewire::test(CreateElectricalBoard::class)
-            ->set('terrainIds', [$terrain->id])
+        Livewire::withQueryParams(['terrain_ids' => [$terrain->id]])
+            ->test(CreateElectricalBoard::class)
             ->set('data.electrical_board_type_id', $type->id)
             ->set('data.location_description', 'Terrace board')
             ->call('create')

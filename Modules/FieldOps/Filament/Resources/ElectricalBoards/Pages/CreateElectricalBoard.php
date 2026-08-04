@@ -52,6 +52,19 @@ class CreateElectricalBoard extends CreateRecord
         $this->terrainIds = is_array($terrainIds)
             ? array_values(array_filter(Arr::wrap($terrainIds), fn ($value) => $value !== null && $value !== ''))
             : null;
+
+        // Business rule: an electrical board is never created standalone —
+        // it must always belong to at least one Complex/Terrain/Structure.
+        // The 3 relation-manager "Create electrical board" actions always
+        // send valid context; this guard only blocks bypassing them (e.g.
+        // hitting /electrical-boards/create directly with no/bogus params).
+        $hasValidComplex = $this->complexId && Complex::query()->whereKey($this->complexId)->exists();
+        $hasValidStructure = ! empty($this->structureIds) && Structure::query()->whereKey($this->structureIds)->exists();
+        $hasValidTerrain = ! empty($this->terrainIds) && Terrain::query()->whereKey($this->terrainIds)->exists();
+
+        if (! $hasValidComplex && ! $hasValidStructure && ! $hasValidTerrain) {
+            abort(403, 'An electrical board must be created from a Complex, Terrain, or Structure.');
+        }
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array

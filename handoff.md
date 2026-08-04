@@ -544,6 +544,16 @@
 
 - **Sprint activo:** `fieldops-backend-fixes` (ver detalle abajo, sin ticket Linear formal todavía) + CLA-229/CLA-231 (Analytics, en revisión en `codex/instrumentacion-apps-internas`). Sigue pendiente sin ticket Linear formal el "reto" exploratorio del usuario para portar `service.claesen-verlichting` (frontend legacy FieldOps) contra el backend real `Modules/FieldOps`. Documentado acá por su tamaño, pero **sin commitear todavía** en ninguno de los dos repos (`claesen_api_web_oficial` y `service.claesen-verlichting`).
 
+### Sesión 2026-08-04 (cont.) — CLA-342: Electrical Board hereda coordenadas del padre + fallback via env + bloquear creación sin padre (Done)
+
+**Contexto:** usuario reportó que crear un cuadro eléctrico no heredaba las coordenadas de la instalación (Complex/Terrain/Structure) a la que pertenece, salvo desde Complex. Pidió además mover el fallback hardcodeado `51.1635`/`5.1640` a `.env` y bloquear la creación de cuadros eléctricos sin padre (requerimiento de negocio explícito).
+
+- `ElectricalBoardResource::resolveLocationDefaults()` extendido a los 3 contextos (`complex_id`/`terrain_ids`/`structure_ids`) con cascada de fallback, mismo patrón que `StructureResource` ya tenía para Terrain.
+- Fallback `51.1635`/`5.1640`/zoom `16` movido a `fieldops.default_map` (`FIELDOPS_DEFAULT_MAP_LAT/LNG/ZOOM`) en `Modules/FieldOps/Config/config.php` — reemplazado en los 4 resources + 4 blade pickers + `map-panel.blade.php`.
+- Creación huérfana bloqueada: guard `abort(403)` en `CreateElectricalBoard::mount()` + `CreateAction` quitado del índice plano. `canCreate(): false` se descartó tras verificar que Filament lo evalúa antes de cualquier guard propio (habría bloqueado también las 3 vías legítimas).
+- Detalle completo, incluyendo la corrección de diseño sobre el plan original y la regresión de tests encontrada/corregida, en `CLAUDE.md` sección FieldOps → CLA-342.
+- **Validación:** 9 tests nuevos + 3 corregidos, 69/70 en verde (único fallo preexistente, ya documentado en CLA-340). GO técnico del usuario recibido, commit dedicado pendiente de crear en este mismo turno.
+
 ### Sesión 2026-07-08 — Retomada `fieldops-backend-fixes`: DB de test refrescada, bug real en `FoClientResource` (En progreso, sin ticket Linear formal, sin commitear)
 
 **Contexto:** la sesión anterior se interrumpió con toda esta rama sin commitear y, según el usuario, sin correr los tests del módulo. Working tree de `fieldops-backend-fixes` (arriba de `main`, mismos 3 últimos commits que `main`) trae acumulado: el dominio Luminaire completo (`scale_x`/`scale_y`, endpoint de frame type personalizado, fix del 500 de `StructureResource`, ya documentado en la sesión 2026-07-05/06 de más abajo), más cambios nuevos no narrados hasta ahora:

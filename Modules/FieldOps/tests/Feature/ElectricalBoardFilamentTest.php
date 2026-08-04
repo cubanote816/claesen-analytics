@@ -67,6 +67,20 @@ class ElectricalBoardFilamentTest extends TestCase
         $this->get("/electrical-boards/{$board->id}/edit")->assertOk();
     }
 
+    public function test_flat_index_does_not_expose_a_standalone_create_link(): void
+    {
+        // Electrical boards are never created standalone — only contextually
+        // from a Complex/Terrain/Structure tab. The flat (nav-hidden) index
+        // must not offer a way to reach the create page without that context.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $this->get('/electrical-boards')
+            ->assertOk()
+            ->assertDontSee(ElectricalBoardResource::getUrl('create'), false);
+    }
+
     public function test_board_without_any_usage_renders(): void
     {
         $user = User::factory()->create();
