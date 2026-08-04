@@ -361,8 +361,8 @@
                     }).addTo(this.map);
 
                     this.map.setView([initial.lat, initial.lng], Number(this.config.defaultZoom || 16));
-                    this.marker.on('dragend', () => this.syncFromLatLng(this.marker.getLatLng(), false));
-                    this.map.on('click', (event) => this.syncFromLatLng(event.latlng));
+                    this.marker.on('dragend', () => this.syncFromLatLng(this.marker.getLatLng(), false, true));
+                    this.map.on('click', (event) => this.syncFromLatLng(event.latlng, true, true));
 
                     this.syncFromLatLng(initial, false, false);
                     this.bindStateObservers();
@@ -454,10 +454,14 @@
                     if (syncCenterFields) {
                         if (this.centerLatInput) {
                             this.centerLatInput.value = lat;
+                            this.centerLatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            this.centerLatInput.dispatchEvent(new Event('change', { bubbles: true }));
                         }
 
                         if (this.centerLngInput) {
                             this.centerLngInput.value = lng;
+                            this.centerLngInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            this.centerLngInput.dispatchEvent(new Event('change', { bubbles: true }));
                         }
 
                         this.currentCenterCoords = { lat: parsedLat, lng: parsedLng };

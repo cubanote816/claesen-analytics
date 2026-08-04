@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\FieldOps\Tests\Feature;
 
+use Filament\Facades\Filament;
+use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\Complexes\Pages\EditComplex;
 use Modules\FieldOps\Models\Complex;
 use Modules\Intelligence\Services\GeminiService;
 use Illuminate\Support\Facades\DB;
@@ -58,5 +61,43 @@ class ComplexEditLocationMapTest extends TestCase
             ->assertSee('zoom', false)
             ->assertDontSee('Latitude')
             ->assertDontSee('Longitude');
+    }
+
+    public function test_edit_complex_keeps_the_new_pin_position_after_saving(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $complex = Complex::factory()->create([
+            'lat' => 51.164145,
+            'lng' => 5.163746,
+        ]);
+
+        $component = Livewire::test(EditComplex::class, ['record' => $complex->getRouteKey()])
+            ->assertSet('data.lat', 51.164145)
+            ->assertSet('data.lng', 5.163746)
+            ->assertSet('data.map_center_lat', 51.164145)
+            ->assertSet('data.map_center_lng', 5.163746);
+
+        $component
+            ->set('data.lat', 51.162345)
+            ->set('data.lng', 5.162345)
+            ->call('save')
+            ->assertSet('data.lat', 51.162345)
+            ->assertSet('data.lng', 5.162345)
+            ->assertSet('data.map_center_lat', 51.162345)
+            ->assertSet('data.map_center_lng', 5.162345);
+
+        $this->assertSame(51.162345, $complex->refresh()->lat);
+        $this->assertSame(5.162345, $complex->lng);
+
+        $this->get("/complexes/{$complex->id}/edit")
+            ->assertOk()
+            ->assertSee("this.marker.on('dragend', () => this.syncFromLatLng(this.marker.getLatLng(), false, true));")
+            ->assertSee("this.map.on('click', (event) => this.syncFromLatLng(event.latlng, true, true));")
+            ->assertSee("this.centerLatInput.dispatchEvent(new Event('input', { bubbles: true }));")
+            ->assertSee("this.centerLngInput.dispatchEvent(new Event('input', { bubbles: true }));");
     }
 }

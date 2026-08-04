@@ -12,6 +12,7 @@ use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\CreateElectricalBoard;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\CreateLuminaireFrame;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\CreateStructure;
+use Modules\FieldOps\Filament\Resources\Structures\Pages\EditStructure;
 use Modules\FieldOps\Filament\Resources\Terrains\Pages\CreateTerrain;
 use Modules\FieldOps\Models\AccessType;
 use Modules\FieldOps\Models\Complex;
@@ -260,5 +261,43 @@ class StructureFilamentTest extends TestCase
             ->assertOk()
             ->assertSee('Test value', false)
             ->assertDontSee('[object Object]', false);
+    }
+
+    public function test_edit_structure_keeps_the_new_pin_position_after_saving(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $structure = Structure::factory()->create([
+            'lat' => 51.164145,
+            'lng' => 5.163746,
+        ]);
+
+        $component = Livewire::test(EditStructure::class, ['record' => $structure->getRouteKey()])
+            ->assertSet('data.lat', 51.164145)
+            ->assertSet('data.lng', 5.163746)
+            ->assertSet('data.map_center_lat', 51.164145)
+            ->assertSet('data.map_center_lng', 5.163746);
+
+        $component
+            ->set('data.lat', 51.162345)
+            ->set('data.lng', 5.162345)
+            ->call('save')
+            ->assertSet('data.lat', 51.162345)
+            ->assertSet('data.lng', 5.162345)
+            ->assertSet('data.map_center_lat', 51.162345)
+            ->assertSet('data.map_center_lng', 5.162345);
+
+        $this->assertSame(51.162345, $structure->refresh()->lat);
+        $this->assertSame(5.162345, $structure->lng);
+
+        $this->get("/structures/{$structure->id}/edit")
+            ->assertOk()
+            ->assertSee("this.marker.on('dragend', () => this.syncFromLatLng(this.marker.getLatLng(), false, true));")
+            ->assertSee("this.map.on('click', (event) => this.syncFromLatLng(event.latlng, true, true));")
+            ->assertSee("this.centerLatInput.dispatchEvent(new Event('input', { bubbles: true }));")
+            ->assertSee("this.centerLngInput.dispatchEvent(new Event('input', { bubbles: true }));");
     }
 }
