@@ -103,7 +103,9 @@ class WorkOrderOperationalNotification extends Notification implements ShouldQue
     private function url(): string
     {
         if ($this->audience === 'worker') {
-            return rtrim((string) config('fieldops.field_app_url'), '/')."/work-orders/{$this->workOrder->id}";
+            // FieldOps frontend only exposes a task list route (no per-order detail page),
+            // so the link must resolve there instead of a nonexistent /work-orders/{id}.
+            return rtrim((string) config('fieldops.field_app_url'), '/').'/app/tasks';
         }
 
         return url("/fo-maintenance-work-orders/{$this->workOrder->id}");
