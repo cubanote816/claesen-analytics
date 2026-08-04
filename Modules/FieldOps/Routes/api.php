@@ -14,6 +14,7 @@ use Modules\FieldOps\Http\Controllers\LuminaireFrameController;
 use Modules\FieldOps\Http\Controllers\MaintenanceRecordController;
 use Modules\FieldOps\Http\Controllers\MaintenanceRequestController;
 use Modules\FieldOps\Http\Controllers\MaintenanceWorkOrderController;
+use Modules\FieldOps\Http\Controllers\PinCatalogController;
 use Modules\FieldOps\Http\Controllers\StructureController;
 use Modules\FieldOps\Http\Controllers\TerrainController;
 use Modules\FieldOps\Http\Middleware\EnforceFieldOpsTenantAccess;
@@ -22,6 +23,10 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
     ->prefix('v1/fieldops')->group(function () {
         // External client portal: a deliberately read-only, reduced topology projection.
         Route::get('/client-portal/infrastructure', [ClientPortalInfrastructureController::class, 'index']);
+
+        // Canonical map-pin catalogs (Terrain/Structure/ElectricalBoard) — CLA-343, shared
+        // with any authenticated FieldOps consumer, not client-portal-only.
+        Route::get('/pin-catalog', [PinCatalogController::class, 'index']);
 
         // Clients
         Route::get('/clients', [FoClientController::class, 'index']);
