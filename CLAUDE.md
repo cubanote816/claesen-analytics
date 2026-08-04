@@ -294,9 +294,11 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 
 ---
 
-## Sprint FieldOps — EN CURSO (rama: `main`, menú "(Demo)")
+## Sprint FieldOps — EN CURSO (rama de trabajo: `fieldops-backend-fixes`, menú "(Demo)")
 
 > Auditoria comparativa 2026-07-03 contra el satélite anterior `api-claesen-sport-app`. Ver `handoff.md` para el detalle completo.
+
+> **Rama fuente de verdad (CLA-295, 2026-08-04):** todo el trabajo activo de FieldOps se comitea en `fieldops-backend-fixes`, no en `main`. `main` es la rama de release/deploy — `infrastructure/scripts/deploy.sh` clona `origin/main` directamente (`git clone --branch main`), así que solo lo que llega a `origin/main` se despliega. `fieldops-backend-fixes` se reconcilia en `main` periódicamente (merge o fast-forward según si `main` acumuló commits propios) y luego se empuja a `origin/main` explícitamente — nunca asumir que comitear en `fieldops-backend-fixes` por sí solo actualiza producción. Antes de CLA-295, `origin/main` llevaba ~1 mes sin push (desde 2026-07-07) y `fieldops-backend-fixes` nunca se había subido al remoto.
 
 ### Estado
 
