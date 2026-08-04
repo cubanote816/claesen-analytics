@@ -138,7 +138,8 @@ class FoMaintenanceWorkOrderResource extends Resource
                         ->where('fl_active', true)
                         ->whereIn('id', User::query()->where('is_active', true)->whereNotNull('employee_id')->select('employee_id'))
                         ->orderBy('name')
-                        ->pluck('name', 'id')
+                        ->get()
+                        ->mapWithKeys(fn (Employee $employee) => [(string) $employee->id => $employee->name])
                         ->all())
                     ->searchable()
                     ->nullable(),
@@ -264,7 +265,7 @@ class FoMaintenanceWorkOrderResource extends Resource
             TextColumn::make('priority')->label(__('fieldops::resource.work_orders.fields.priority'))->badge(),
         ])->filters([
             SelectFilter::make('status')->options(collect(MaintenanceWorkOrderStatus::cases())->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])->all()),
-            SelectFilter::make('assigned_employee_id')->label(__('fieldops::resource.work_orders.fields.assignee'))->options(Employee::query()->orderBy('name')->pluck('name', 'id')->all()),
+            SelectFilter::make('assigned_employee_id')->label(__('fieldops::resource.work_orders.fields.assignee'))->options(Employee::query()->orderBy('name')->get()->mapWithKeys(fn (Employee $employee) => [(string) $employee->id => $employee->name])->all()),
         ])->recordActions([
             ViewAction::make(),
             EditAction::make()->visible(fn (FoMaintenanceWorkOrder $record): bool => static::canEdit($record)),

@@ -24,7 +24,11 @@ class MaintenanceWorkOrderService
 
     public function create(array $data, ?int $userId): FoMaintenanceWorkOrder
     {
-        $assignedEmployeeId = $data['assigned_employee_id'] ?? null;
+        // Filament's Select stores the chosen employee id as an options() array
+        // key, and PHP unconditionally coerces numeric-looking string array keys
+        // (e.g. legacy employee id "100") to int — so $data may carry an int here
+        // even though employees.id is a string column. Normalize at the boundary.
+        $assignedEmployeeId = isset($data['assigned_employee_id']) ? (string) $data['assigned_employee_id'] : null;
         $this->assertAssignableEmployee($assignedEmployeeId);
 
         $order = DB::transaction(function () use ($data, $userId, $assignedEmployeeId): FoMaintenanceWorkOrder {
@@ -37,6 +41,7 @@ class MaintenanceWorkOrderService
                 'created_by_user_id' => $userId,
                 'client_id' => $context['client_id'],
                 'luminaire_position_id' => $context['luminaire_position_id'],
+                'assigned_employee_id' => $assignedEmployeeId,
                 'assigned_by_user_id' => $assignedEmployeeId ? $userId : null,
                 'assigned_at' => $assignedEmployeeId ? now() : null,
                 'status' => $assignedEmployeeId
@@ -99,7 +104,9 @@ class MaintenanceWorkOrderService
 
     public function updatePlanning(FoMaintenanceWorkOrder $order, array $data, int $userId): FoMaintenanceWorkOrder
     {
-        $newEmployeeId = $data['assigned_employee_id'] ?? null;
+        // See create() above: normalize the Select-derived employee id back to
+        // string before it reaches strictly-typed code or gets compared/persisted.
+        $newEmployeeId = isset($data['assigned_employee_id']) ? (string) $data['assigned_employee_id'] : null;
         $this->assertAssignableEmployee($newEmployeeId);
 
         [$updated, $previousEmployeeId] = DB::transaction(function () use ($order, $data, $userId, $newEmployeeId): array {
@@ -121,6 +128,7 @@ class MaintenanceWorkOrderService
                 'fo_maintenance_type_id', 'assigned_employee_id', 'scheduled_for', 'due_at',
                 'priority', 'problem_description', 'instructions',
             ]);
+            $changes['assigned_employee_id'] = $newEmployeeId;
             $changes['status'] = $nextStatus;
 
             if ($assignmentChanged) {

@@ -6,12 +6,14 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Modules\Cafca\Models\Employee;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Filament\Resources\ComplexResource;
 use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\CreateMaintenanceWorkOrder;
+use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\EditMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
@@ -190,6 +192,31 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
         ]))
             ->assertOk()
             ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false);
+    }
+
+    public function test_editing_work_order_assignee_with_numeric_employee_id_does_not_throw(): void
+    {
+        // Regression for CLA-339: employees.id is a string column, but legacy
+        // ERP values like "100" are numeric-looking. PHP auto-casts numeric
+        // string array keys to int, so a Select built via pluck('name', 'id')
+        // silently returns an int and breaks MaintenanceWorkOrderService's
+        // strict_types(?string $employeeId) signature.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'assigned_employee_id' => null,
+        ]);
+        $employee = Employee::create(['id' => '100', 'name' => 'Numeric Id Worker', 'fl_active' => true]);
+        User::factory()->create(['employee_id' => $employee->id, 'is_active' => true]);
+        $this->actingAs($user);
+
+        Livewire::test(EditMaintenanceWorkOrder::class, ['record' => $order->getKey()])
+            ->fillForm(['assigned_employee_id' => $employee->id])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        self::assertSame($employee->id, $order->refresh()->assigned_employee_id);
     }
 
     private function luminaireWithClientContext(): Luminaire
