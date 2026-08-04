@@ -304,4 +304,23 @@ SVG;
 
         return null;
     }
+
+    /**
+     * Returns a render-ready SVG for an API consumer. This keeps external maps
+     * on the exact same marker geometry as the FieldOps backoffice rather than
+     * making each client reimplement a parallel icon switch.
+     */
+    public static function svg(?string $code, ?string $color): string
+    {
+        $fill = $color ?: '#e6007e';
+        $template = self::find($code)['svg'] ?? <<<SVG
+<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 4C14.48 4 10 8.48 10 14C10 21.5 20 36 20 36C20 36 30 21.5 30 14C30 8.48 25.52 4 20 4Z" fill="\${fill}" stroke="white" stroke-width="1"/>
+    <line x1="16.5" y1="10" x2="16.5" y2="21" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M16.5,10 L23,12.7 L16.5,15.4 Z" fill="white"/>
+</svg>
+SVG;
+
+        return str_replace('${fill}', $fill, $template);
+    }
 }

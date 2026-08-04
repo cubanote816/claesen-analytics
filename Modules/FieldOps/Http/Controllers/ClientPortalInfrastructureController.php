@@ -14,6 +14,9 @@ use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Services\FieldOpsTenantService;
+use Modules\FieldOps\Support\ElectricalBoardPinCatalog;
+use Modules\FieldOps\Support\StructurePinCatalog;
+use Modules\FieldOps\Support\TerrainPinCatalog;
 
 /**
  * Read model for the external client portal.
@@ -79,6 +82,11 @@ class ClientPortalInfrastructureController extends Controller
             'id' => $terrain->id,
             'name' => $terrain->getTranslation('name', $locale, true),
             'type' => $terrain->terrainType?->getTranslation('type', $locale, true),
+            'pin' => [
+                'code' => $terrain->terrainType?->code,
+                'color' => $terrain->terrainType?->pin_color,
+                'svg' => TerrainPinCatalog::svg($terrain->terrainType?->code, $terrain->terrainType?->pin_color),
+            ],
             'location' => ['lat' => $terrain->lat, 'lng' => $terrain->lng],
             'structures' => $terrain->structures->map(fn (Structure $structure): array => $this->structure($structure, $locale))->values(),
             'electrical_boards' => $terrain->electricalBoards->map(fn (ElectricalBoard $board): array => $this->board($board, $locale))->values(),
@@ -90,6 +98,11 @@ class ClientPortalInfrastructureController extends Controller
         return [
             'id' => $structure->id,
             'type' => $structure->structureType?->getTranslation('name', $locale, true),
+            'pin' => [
+                'code' => $structure->structureType?->code,
+                'color' => $structure->structureType?->pin_color,
+                'svg' => StructurePinCatalog::svg($structure->structureType?->code),
+            ],
             'location' => ['lat' => $structure->lat, 'lng' => $structure->lng],
             'frames' => $structure->luminaireFrames->map(fn (LuminaireFrame $frame): array => [
                 'id' => $frame->id,
@@ -112,6 +125,7 @@ class ClientPortalInfrastructureController extends Controller
         return [
             'id' => $board->id,
             'type' => $board->electricalBoardType?->getTranslation('name', $locale, true),
+            'pin' => ['type' => 'electrical-board', 'svg' => ElectricalBoardPinCatalog::svg()],
             'location_description' => $board->getTranslation('location_description', $locale, true),
             'location' => ['lat' => $board->lat, 'lng' => $board->lng],
         ];

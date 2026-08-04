@@ -10,12 +10,15 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 use LogicException;
 use Mockery;
 use Modules\Cafca\Models\Employee;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Enums\MaintenanceRequestStatus;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRequestResource;
+use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
+use Modules\FieldOps\Filament\Resources\MaintenanceRequests\Pages\ViewMaintenanceRequest;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
@@ -494,6 +497,47 @@ class MaintenanceRequestTest extends TestCase
         $this->actingAs($admin)
             ->get(FoMaintenanceRequestResource::getUrl('view', ['record' => $request]))
             ->assertOk();
+    }
+
+    public function test_converting_a_request_redirects_to_the_work_order_edit_page(): void
+    {
+        $topology = $this->topology('Redirect Client');
+        [$admin] = $this->adminUser();
+        FoMaintenanceType::factory()->corrective()->create();
+        $request = FoMaintenanceRequest::query()->create([
+            'client_id' => $topology['client']->id,
+            'status' => MaintenanceRequestStatus::RECEIVED,
+            'description' => 'Needs a work order for redirect coverage.',
+            'maintainable_type' => Luminaire::class,
+            'maintainable_id' => $topology['luminaire']->id,
+        ]);
+
+        $this->actingAs($admin);
+        Livewire::test(ViewMaintenanceRequest::class, ['record' => $request->id])
+            ->callAction('convert')
+            ->assertRedirect(FoMaintenanceWorkOrderResource::getUrl('edit', [
+                'record' => $request->fresh()->work_order_id,
+            ]));
+    }
+
+    public function test_conversion_without_an_explicit_priority_defaults_to_medium(): void
+    {
+        $topology = $this->topology('Priority Client');
+        [, $clientToken] = $this->clientUser($topology['client']);
+        [, $adminToken] = $this->adminUser();
+        FoMaintenanceType::factory()->corrective()->create();
+        $requestId = $this->createRequest($clientToken, $topology['luminaire']);
+
+        Auth::forgetGuards();
+        $workOrderId = $this->withToken($adminToken)
+            ->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/convert")
+            ->assertOk()
+            ->json('work_order_id');
+
+        $this->assertDatabaseHas('fo_maintenance_work_orders', [
+            'id' => $workOrderId,
+            'priority' => 'medium',
+        ]);
     }
 
     private function createRequest(string $token, Luminaire|ElectricalBoard $equipment): int

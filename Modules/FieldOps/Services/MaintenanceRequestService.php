@@ -98,7 +98,7 @@ class MaintenanceRequestService
                 'fo_maintenance_type_id' => $type->id,
                 'maintainable_type' => $locked->maintainable_type,
                 'maintainable_id' => $locked->maintainable_id,
-                'priority' => $planning['priority'] ?? ($locked->impact === 'emergency' ? 'high' : 'normal'),
+                'priority' => $planning['priority'] ?? ($locked->impact === 'emergency' ? 'high' : 'medium'),
                 'source' => 'client_request',
                 'assigned_employee_id' => $planning['assigned_employee_id'] ?? null,
                 'problem_description' => $locked->description,

@@ -45,7 +45,9 @@ class CoreServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            \Modules\Core\Console\Commands\QaResetEnvironmentCommand::class,
+        ]);
     }
 
     /**
