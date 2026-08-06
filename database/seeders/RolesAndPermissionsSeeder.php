@@ -22,6 +22,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'hr_manager' => 5,
             'viewer' => 6,
             'client' => 7,
+            'technician' => 8,
         ];
 
         foreach ($roles as $roleName => $sort) {
