@@ -15,6 +15,7 @@ class MaintenanceWorkOrderResource extends JsonResource
     {
         $equipment = $this->relationLoaded('maintainable') ? $this->maintainable : null;
         $context = app(MaintenanceEquipmentContextService::class);
+        $location = $equipment ? $context->resolveLocationIds($equipment) : null;
 
         return [
             'id' => $this->id,
@@ -35,6 +36,12 @@ class MaintenanceWorkOrderResource extends JsonResource
                 'image_url' => $this->equipmentImageUrl($equipment),
                 'serial_number' => $equipment instanceof Luminaire ? $equipment->serial_number : null,
                 'frame_position' => $equipment instanceof Luminaire ? $equipment->frame_position : null,
+                // Solo resuelto para Luminaire (ver MaintenanceEquipmentContextService::
+                // resolveLocationIds) — permite al frontend reconstruir el enlace de vuelta a
+                // la página de detalle de la luminaria. null para ElectricalBoard por ahora.
+                'structure_id' => $location['structure_id'] ?? null,
+                'terrain_id' => $location['terrain_id'] ?? null,
+                'complex_id' => $location['complex_id'] ?? null,
             ] : null,
             'luminaire_position_id' => $this->luminaire_position_id,
             'maintenance_plan_id' => $this->maintenance_plan_id,

@@ -30,12 +30,47 @@ class MaintenanceEquipmentContextService
             ]),
         };
 
+        $location = $this->resolveLocationIds($equipment);
+
         return [
             'equipment' => $equipment,
             'client_id' => $this->resolveClientId($equipment),
             'luminaire_position_id' => $equipment instanceof Luminaire ? $equipment->luminaire_position_id : null,
             'label' => $this->equipmentLabel($equipment),
             'site_label' => $this->siteLabel($equipment),
+            'structure_id' => $location['structure_id'],
+            'terrain_id' => $location['terrain_id'],
+            'complex_id' => $location['complex_id'],
+        ];
+    }
+
+    /**
+     * IDs para que el frontend pueda reconstruir la URL de detalle de la luminaria
+     * (complex-detail/:id/terrain-detail/:terrainId/structure-detail/:structureId/...).
+     *
+     * Solo resuelto para Luminaire. La cadena frame->structure->terrain permite M:N en el
+     * schema, pero es 1:1 en la práctica (confirmado contra datos reales: 0 frames con 2+
+     * estructuras, 0 estructuras con 2+ terrenos en el dataset de QA) — se toma el primero de
+     * cada colección, mismo criterio determinista que ya usan Structure::resolveTerrain()/
+     * LuminaireFrame::resolveStructure() para el caso raro de ambigüedad real.
+     *
+     * ElectricalBoard no se resuelve aquí: a diferencia de Luminaire no tiene una cadena
+     * única (puede colgar directo de complexes, de terrains, o de structures — 3 rutas de
+     * padre posibles sin jerarquía equivalente) — queda fuera de alcance por ahora.
+     */
+    public function resolveLocationIds(Model $equipment): array
+    {
+        if (! $equipment instanceof Luminaire) {
+            return ['structure_id' => null, 'terrain_id' => null, 'complex_id' => null];
+        }
+
+        $structure = $equipment->luminaireFrame?->structures?->first();
+        $terrain = $structure?->terrains?->first();
+
+        return [
+            'structure_id' => $structure?->id,
+            'terrain_id' => $terrain?->id,
+            'complex_id' => $terrain?->complex_id,
         ];
     }
 
