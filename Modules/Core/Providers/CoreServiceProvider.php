@@ -29,6 +29,9 @@ class CoreServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
 
         \Livewire\Livewire::component('session-keeper', \Modules\Core\Livewire\SessionKeeper::class);
+
+        // CLA-347: revoke tokens/session immediately when a user is deactivated.
+        \Modules\Core\Models\User::observe(\Modules\Core\Observers\UserObserver::class);
     }
 
     /**

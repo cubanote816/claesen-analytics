@@ -16,6 +16,13 @@ class AuthController extends Controller
     private const LOGIN_ATTEMPT_LIMIT = 5;
     private const LOGIN_LOCKOUT_SECONDS = 300;
 
+    // CLA-347: email|ip alone lets an attacker rotating IPs brute-force one
+    // account without ever tripping the per-IP limit. This second limiter is
+    // keyed on email only, with a higher ceiling so shared/corporate IPs with
+    // several legitimate users aren't penalised by the per-IP limit above.
+    private const EMAIL_LOGIN_ATTEMPT_LIMIT = 20;
+    private const EMAIL_LOGIN_LOCKOUT_SECONDS = 3600;
+
     /**
      * Session-based login for browser-first SPAs (Safety PWA, Sport, etc.).
      * Establishes an HttpOnly cookie session — never returns a token.
@@ -58,8 +65,11 @@ class AuthController extends Controller
 
         $appSource = $this->resolveAppSource($request, $appSourceFallback);
         $throttleKey = $this->throttleKey($request);
+        $emailThrottleKey = $this->emailThrottleKey($request);
 
-        if ($this->isRateLimited($throttleKey)) {
+        if ($this->isRateLimited($throttleKey) || $this->isEmailRateLimited($emailThrottleKey)) {
+            $limitedKey = $this->isRateLimited($throttleKey) ? $throttleKey : $emailThrottleKey;
+
             $analytics->recordThrottledLogin(
                 null,
                 $request->input('email'),
@@ -67,10 +77,10 @@ class AuthController extends Controller
                 'session_cookie',
                 $request,
                 'rate_limited',
-                ['retry_after_seconds' => RateLimiter::availableIn($throttleKey)]
+                ['retry_after_seconds' => RateLimiter::availableIn($limitedKey)]
             );
 
-            throw $this->throttleException($throttleKey);
+            throw $this->throttleException($limitedKey);
         }
 
         $user = User::where('email', $request->email)->first();
@@ -85,6 +95,7 @@ class AuthController extends Controller
                 'unknown_user'
             );
             $this->hitRateLimiter($throttleKey);
+            $this->hitEmailRateLimiter($emailThrottleKey);
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
@@ -131,6 +142,7 @@ class AuthController extends Controller
                 'invalid_password'
             );
             $this->hitRateLimiter($throttleKey);
+            $this->hitEmailRateLimiter($emailThrottleKey);
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
@@ -158,6 +170,7 @@ class AuthController extends Controller
         }
 
         RateLimiter::clear($throttleKey);
+        RateLimiter::clear($emailThrottleKey);
 
         $analytics->recordLogin($user, $appSource, 'session_cookie', $request);
 
@@ -191,8 +204,11 @@ class AuthController extends Controller
 
         $appSource = $this->resolveAppSource($request, 'api');
         $throttleKey = $this->throttleKey($request);
+        $emailThrottleKey = $this->emailThrottleKey($request);
 
-        if ($this->isRateLimited($throttleKey)) {
+        if ($this->isRateLimited($throttleKey) || $this->isEmailRateLimited($emailThrottleKey)) {
+            $limitedKey = $this->isRateLimited($throttleKey) ? $throttleKey : $emailThrottleKey;
+
             $analytics->recordThrottledLogin(
                 null,
                 $request->input('email'),
@@ -200,10 +216,10 @@ class AuthController extends Controller
                 'sanctum_token',
                 $request,
                 'rate_limited',
-                ['retry_after_seconds' => RateLimiter::availableIn($throttleKey)]
+                ['retry_after_seconds' => RateLimiter::availableIn($limitedKey)]
             );
 
-            throw $this->throttleException($throttleKey);
+            throw $this->throttleException($limitedKey);
         }
 
         $user = User::where('email', $request->email)->first();
@@ -218,6 +234,7 @@ class AuthController extends Controller
                 'unknown_user'
             );
             $this->hitRateLimiter($throttleKey);
+            $this->hitEmailRateLimiter($emailThrottleKey);
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
@@ -265,6 +282,7 @@ class AuthController extends Controller
                 'invalid_password'
             );
             $this->hitRateLimiter($throttleKey);
+            $this->hitEmailRateLimiter($emailThrottleKey);
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
@@ -276,6 +294,7 @@ class AuthController extends Controller
         ]);
 
         RateLimiter::clear($throttleKey);
+        RateLimiter::clear($emailThrottleKey);
 
         return response()->json([
             'success' => true,
@@ -359,14 +378,31 @@ class AuthController extends Controller
         return "core-login:{$email}|{$ip}";
     }
 
+    private function emailThrottleKey(Request $request): string
+    {
+        $email = $request->string('email')->trim()->lower()->toString();
+
+        return "core-login-email:{$email}";
+    }
+
     private function isRateLimited(string $key): bool
     {
         return RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPT_LIMIT);
     }
 
+    private function isEmailRateLimited(string $key): bool
+    {
+        return RateLimiter::tooManyAttempts($key, self::EMAIL_LOGIN_ATTEMPT_LIMIT);
+    }
+
     private function hitRateLimiter(string $key): void
     {
         RateLimiter::hit($key, self::LOGIN_LOCKOUT_SECONDS);
+    }
+
+    private function hitEmailRateLimiter(string $key): void
+    {
+        RateLimiter::hit($key, self::EMAIL_LOGIN_LOCKOUT_SECONDS);
     }
 
     private function throttleException(string $key): ValidationException
