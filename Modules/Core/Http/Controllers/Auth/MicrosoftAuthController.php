@@ -118,6 +118,31 @@ class MicrosoftAuthController extends Controller
                 return redirect('/login')->withErrors(['email' => 'This account has been deactivated.']);
             }
 
+            // CLA-344: resolve the intended destination before establishing the session,
+            // so a non-client user can be blocked from the Client Portal without ever
+            // getting a session cookie for it. Peeking at the session value here does not
+            // consume it — the existing session()->pull('custom_redirect_url') below still
+            // runs normally and resolves to the same URL.
+            $redirects = app(FrontendRedirectService::class);
+            $intendedFrontendUrl = $redirects->resolve(session('custom_redirect_url')) ?? $redirects->fallback();
+
+            if ($redirects->sameOrigin($intendedFrontendUrl, config('fieldops.client_portal_url')) && ! $user->hasRole('client')) {
+                $analytics->recordBlockedLogin(
+                    $user,
+                    $azureUser->getEmail(),
+                    'client_portal',
+                    'azure_oauth_session',
+                    $request,
+                    'role_not_permitted',
+                    ['provider' => 'azure']
+                );
+
+                Auth::logout();
+
+                return redirect('/login')
+                    ->withErrors(['microsoft' => "Toegang Geweigerd: Uw Microsoft-account ({$azureUser->getEmail()}) is niet geautoriseerd voor deze applicatie. Neem contact op met de beheerder."]);
+            }
+
             Auth::login($user);
             if ($request->hasSession()) {
                 $request->session()->regenerate();

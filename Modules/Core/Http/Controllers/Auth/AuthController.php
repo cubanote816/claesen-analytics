@@ -22,12 +22,41 @@ class AuthController extends Controller
      */
     public function loginSpa(Request $request, AccessAnalyticsService $analytics)
     {
+        $user = $this->attemptSessionLogin($request, $analytics, 'spa');
+
+        return response()->json(['user' => $this->sessionUserPayload($user)]);
+    }
+
+    /**
+     * Session-based login for the Client Portal — same contract as loginSpa(),
+     * except only users with the 'client' role may establish a session here.
+     * CLA-344: the Client Portal must be usable only by active client-role users.
+     */
+    public function loginClientPortal(Request $request, AccessAnalyticsService $analytics)
+    {
+        $user = $this->attemptSessionLogin($request, $analytics, 'client_portal', 'client');
+
+        return response()->json(['user' => $this->sessionUserPayload($user)]);
+    }
+
+    /**
+     * Shared validation/authentication pipeline for session-cookie logins.
+     * When $requiredRole is set, a user who fails that role check gets the
+     * same generic auth.failed message as any other rejection — never a hint
+     * that their credentials were otherwise correct.
+     */
+    private function attemptSessionLogin(
+        Request $request,
+        AccessAnalyticsService $analytics,
+        string $appSourceFallback,
+        ?string $requiredRole = null,
+    ): User {
         $request->validate([
             'email'    => 'required|email',
             'password' => 'required',
         ]);
 
-        $appSource = $this->resolveAppSource($request, 'spa');
+        $appSource = $this->resolveAppSource($request, $appSourceFallback);
         $throttleKey = $this->throttleKey($request);
 
         if ($this->isRateLimited($throttleKey)) {
@@ -108,6 +137,21 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($requiredRole !== null && ! $user->hasRole($requiredRole)) {
+            $analytics->recordBlockedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'session_cookie',
+                $request,
+                'role_not_permitted'
+            );
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
         Auth::login($user);
         if ($request->hasSession()) {
             $request->session()->regenerate();
@@ -117,14 +161,20 @@ class AuthController extends Controller
 
         $analytics->recordLogin($user, $appSource, 'session_cookie', $request);
 
-        return response()->json([
-            'user' => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email,
-                'roles' => $user->getRoleNames(),
-            ],
-        ]);
+        return $user;
+    }
+
+    /**
+     * @return array{id: int, name: string, email: string, roles: \Illuminate\Support\Collection}
+     */
+    private function sessionUserPayload(User $user): array
+    {
+        return [
+            'id'    => $user->id,
+            'name'  => $user->name,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames(),
+        ];
     }
 
     /**

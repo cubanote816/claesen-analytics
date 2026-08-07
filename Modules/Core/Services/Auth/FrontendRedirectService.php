@@ -25,6 +25,18 @@ class FrontendRedirectService
         return null;
     }
 
+    /**
+     * Whether two URLs share the same scheme+host+port. Used by CLA-344 to detect
+     * when an OAuth login is headed for a specific frontend (e.g. the Client Portal)
+     * without trusting a client-supplied "app" label.
+     */
+    public function sameOrigin(?string $a, ?string $b): bool
+    {
+        $originA = $this->origin($a);
+
+        return $originA !== null && $originA === $this->origin($b);
+    }
+
     public function fallback(): string
     {
         foreach (config('core.frontend_redirect_urls', []) as $allowedUrl) {
