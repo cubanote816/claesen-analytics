@@ -41,6 +41,8 @@ class MaintenanceEquipmentContextService
             'structure_id' => $location['structure_id'],
             'terrain_id' => $location['terrain_id'],
             'complex_id' => $location['complex_id'],
+            'lat' => $location['lat'],
+            'lng' => $location['lng'],
         ];
     }
 
@@ -61,7 +63,7 @@ class MaintenanceEquipmentContextService
     public function resolveLocationIds(Model $equipment): array
     {
         if (! $equipment instanceof Luminaire) {
-            return ['structure_id' => null, 'terrain_id' => null, 'complex_id' => null];
+            return ['structure_id' => null, 'terrain_id' => null, 'complex_id' => null, 'lat' => null, 'lng' => null];
         }
 
         $structure = $equipment->luminaireFrame?->structures?->first();
@@ -71,6 +73,10 @@ class MaintenanceEquipmentContextService
             'structure_id' => $structure?->id,
             'terrain_id' => $terrain?->id,
             'complex_id' => $terrain?->complex_id,
+            // El frontend usa lat/lng del terreno como segmentos de URL (no de geolocalización
+            // real) para la ruta de detalle de estructura — ver ROUTE_PATHS.
+            'lat' => $terrain?->lat,
+            'lng' => $terrain?->lng,
         ];
     }
 

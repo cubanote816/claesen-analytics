@@ -36,12 +36,17 @@ class MaintenanceWorkOrderResource extends JsonResource
                 'image_url' => $this->equipmentImageUrl($equipment),
                 'serial_number' => $equipment instanceof Luminaire ? $equipment->serial_number : null,
                 'frame_position' => $equipment instanceof Luminaire ? $equipment->frame_position : null,
-                // Solo resuelto para Luminaire (ver MaintenanceEquipmentContextService::
-                // resolveLocationIds) — permite al frontend reconstruir el enlace de vuelta a
-                // la página de detalle de la luminaria. null para ElectricalBoard por ahora.
+                // Todos los siguientes solo resueltos para Luminaire (ver
+                // MaintenanceEquipmentContextService::resolveLocationIds) — juntos permiten al
+                // frontend reconstruir la URL completa de vuelta a la página de detalle de la
+                // luminaria (6 segmentos: complex/terrain/structure/lat/lng/frame+posición).
+                // null para ElectricalBoard por ahora.
+                'luminaire_frame_id' => $equipment instanceof Luminaire ? $equipment->luminaire_frame_id : null,
                 'structure_id' => $location['structure_id'] ?? null,
                 'terrain_id' => $location['terrain_id'] ?? null,
                 'complex_id' => $location['complex_id'] ?? null,
+                'lat' => $location['lat'] ?? null,
+                'lng' => $location['lng'] ?? null,
             ] : null,
             'luminaire_position_id' => $this->luminaire_position_id,
             'maintenance_plan_id' => $this->maintenance_plan_id,

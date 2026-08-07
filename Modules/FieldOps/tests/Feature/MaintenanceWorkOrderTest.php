@@ -241,7 +241,7 @@ class MaintenanceWorkOrderTest extends TestCase
 
     public function test_assigned_queue_only_returns_the_workers_orders_with_equipment_context(): void
     {
-        [$luminaire, $client] = $this->luminaireWithClientContext();
+        [$luminaire, $client, $structure, $terrain, $complex] = $this->luminaireWithClientContext();
         $luminaire->luminaireType()->update(['product_family' => 'OptiVision LED']);
         $assigned = Employee::create(['id' => 'FIELD-QUEUE', 'name' => 'Assigned worker', 'fl_active' => true]);
         $other = Employee::create(['id' => 'FIELD-OTHER-QUEUE', 'name' => 'Other worker', 'fl_active' => true]);
@@ -268,6 +268,12 @@ class MaintenanceWorkOrderTest extends TestCase
             ->assertJsonPath('data.0.id', $ownOrder->id)
             ->assertJsonPath('data.0.equipment.kind', 'luminaire')
             ->assertJsonPath('data.0.equipment.serial_number', $luminaire->serial_number)
+            ->assertJsonPath('data.0.equipment.luminaire_frame_id', $luminaire->luminaire_frame_id)
+            ->assertJsonPath('data.0.equipment.structure_id', $structure->id)
+            ->assertJsonPath('data.0.equipment.terrain_id', $terrain->id)
+            ->assertJsonPath('data.0.equipment.complex_id', $complex->id)
+            ->assertJsonPath('data.0.equipment.lat', $terrain->lat)
+            ->assertJsonPath('data.0.equipment.lng', $terrain->lng)
             ->assertJsonPath('data.0.client.id', $client->id);
     }
 
@@ -353,6 +359,6 @@ class MaintenanceWorkOrderTest extends TestCase
         $frame->structures()->attach($structure);
         $luminaire = Luminaire::factory()->create(['luminaire_frame_id' => $frame->id]);
 
-        return [$luminaire, $client];
+        return [$luminaire, $client, $structure, $terrain, $complex];
     }
 }

@@ -27,6 +27,7 @@ return [
         'https://lightcoral-whale-907350.hostingersite.com',
         'http://localhost:5173',
         'http://localhost:5174',
+        'http://localhost:5180',
         'http://localhost:5186',
         'http://localhost:5190',
     ])),
