@@ -516,6 +516,15 @@ Fix: mismo diff mecánico de CLA-305 portado a los 3 recursos (`EditComplex.php`
 
 **Validación:** `ComplexEditLocationMapTest`/`StructureFilamentTest`/`ElectricalBoardFilamentTest` (filtro combinado) 21/21 en verde. Suite completa de FieldOps: 151 fallos con el fix vs. 149 fallos en la misma corrida contra HEAD sin el fix (confirmado con `git stash`) — el delta de 2 es ruido del harness ya documentado (`RoleAlreadyExists`, DB `testing` compartida entre clases de test en paralelo, ver `feedback_sail_docker`), confirmado por grep que los bloques de fallo de las clases afectadas en esa corrida completa son literalmente `RoleAlreadyExists`, no fallos de aserción del fix.
 
+### CLA-362 — expone luminaire_frame_id/lat/lng en MaintenanceWorkOrderResource (2026-08-07, commit `ddf16fc`)
+
+Extiende CLA-351: esa memoria de cierre solo documenta `structure_id`/`terrain_id`/`complex_id`, pero su propia descripción original ya pedía los 6 segmentos de URL (`complex/terrain/structure/lat/lng/frame+posición`) para que el frontend reconstruya el enlace de vuelta desde "My Tasks" al detalle de la luminaria. La sesión que agregó los 3 campos restantes (`luminaire_frame_id`, `lat`, `lng` del `Terrain` resuelto) quedó sin comitear por un cierre inesperado de la máquina — retomada y cerrada en esta sesión.
+
+- `MaintenanceEquipmentContextService::resolveLocationIds()` suma `lat`/`lng` (del mismo `Terrain` ya resuelto para `terrain_id`) al array devuelto. `MaintenanceWorkOrderResource` suma `luminaire_frame_id` (columna directa de `Luminaire`, sin resolver nada) junto a los 5 campos.
+- Mismo alcance que CLA-351: solo `Luminaire`, `null` para `ElectricalBoard` (sin cadena de padre única).
+- Cambio colateral no relacionado: `config/cors.php` suma `http://localhost:5180` (puerto de dev local).
+- **Test nuevo:** `MaintenanceWorkOrderTest::test_assigned_queue_only_returns_the_workers_orders_with_equipment_context` ganó 6 aserciones (antes solo cubría `kind`/`serial_number`/`client.id`) verificando los 6 campos de location contra el registro real creado por el helper `luminaireWithClientContext()`. 26/26 tests en verde (126 assertions, antes 120) en el filtro `MaintenanceWorkOrder`.
+
 ### CLA-339 — fix TypeError en asignación de Maintenance Work Orders (2026-08-04, commit `80db935`)
 
 Reportado por el usuario vía la página de error de Laravel al editar una work order: `assertAssignableEmployee(): Argument #1 ($employeeId) must be of type ?string, int given`. Causa real: `employees.id` es `string` (regla general de IDs del ERP legacy), pero valores numéricos como `"100"` — al pasar por el array de `options()` del `Select::make('assigned_employee_id')` de Filament (`pluck('name', 'id')`), PHP castea automáticamente esas keys a `int` (comportamiento del lenguaje, no de Filament ni de Eloquent). `MaintenanceWorkOrderService` tiene `declare(strict_types=1)`, así que el `int` filtrado hasta `assertAssignableEmployee(?string $employeeId)` revienta.
