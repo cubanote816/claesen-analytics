@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
+use Illuminate\Validation\ValidationException;
 use Modules\FieldOps\Http\Requests\CloseMaintenanceWorkOrderRequest;
+use Modules\FieldOps\Http\Requests\ExecuteMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\ReturnMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\StoreMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\SubmitMaintenanceWorkOrderRequest;
@@ -66,6 +68,16 @@ class MaintenanceWorkOrderController extends Controller
         return $this->store($request, $electricalBoard::class, $electricalBoard->id);
     }
 
+    public function executeForLuminaire(ExecuteMaintenanceWorkOrderRequest $request, Luminaire $luminaire): JsonResponse
+    {
+        return $this->execute($request, $luminaire::class, $luminaire->id);
+    }
+
+    public function executeForElectricalBoard(ExecuteMaintenanceWorkOrderRequest $request, ElectricalBoard $electricalBoard): JsonResponse
+    {
+        return $this->execute($request, $electricalBoard::class, $electricalBoard->id);
+    }
+
     public function start(TransitionMaintenanceWorkOrderRequest $request, FoMaintenanceWorkOrder $workOrder): JsonResponse
     {
         return $this->response($this->service->start($workOrder, $request->user()->id));
@@ -101,6 +113,23 @@ class MaintenanceWorkOrderController extends Controller
             'maintainable_type' => $type,
             'maintainable_id' => $id,
         ]), $request->user()->id);
+
+        return $this->response($order, 201);
+    }
+
+    private function execute(ExecuteMaintenanceWorkOrderRequest $request, string $type, int $id): JsonResponse
+    {
+        $employeeId = $request->user()->employee_id;
+        if (! $employeeId) {
+            throw ValidationException::withMessages([
+                'employee_id' => __('fieldops::resource.work_orders.validation.assignee_requires_user'),
+            ]);
+        }
+
+        $order = $this->service->createAndClose(array_merge($request->validated(), [
+            'maintainable_type' => $type,
+            'maintainable_id' => $id,
+        ]), $request->user()->id, $employeeId);
 
         return $this->response($order, 201);
     }

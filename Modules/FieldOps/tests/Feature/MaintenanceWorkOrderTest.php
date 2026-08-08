@@ -35,7 +35,7 @@ class MaintenanceWorkOrderTest extends TestCase
     {
         parent::setUp();
         $this->mock(GeminiService::class, fn ($mock) => $mock->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
-        foreach (['super_admin', 'admin', 'project_manager'] as $role) {
+        foreach (['super_admin', 'admin', 'project_manager', 'technician'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
     }
@@ -346,6 +346,132 @@ class MaintenanceWorkOrderTest extends TestCase
         self::assertSame(1, app(MaintenanceWorkOrderService::class)->generateDueOrders());
         self::assertSame(2, $plan->workOrders()->count());
         self::assertSame(0, app(MaintenanceWorkOrderService::class)->generateDueOrders());
+    }
+
+    public function test_project_manager_can_create_and_assign_a_work_order(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'PM-ASSIGN', 'name' => 'PM assignee target', 'fl_active' => true]);
+        $technicianUser = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $technicianUser->assignRole('project_manager');
+        $pm = UserFactory::new()->create();
+        $pm->assignRole('project_manager');
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($pm->createToken('pm')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders", [
+                'fo_maintenance_type_id' => $type->id,
+                'assigned_employee_id' => $employee->id,
+                'scheduled_for' => now()->addDay()->toIso8601String(),
+                'priority' => 'medium',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'assigned');
+    }
+
+    public function test_technician_cannot_create_a_work_order(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'TECH-CREATE', 'name' => 'Technician', 'fl_active' => true]);
+        $technician = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $technician->assignRole('technician');
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($technician->createToken('field')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders", [
+                'fo_maintenance_type_id' => $type->id,
+                'scheduled_for' => now()->addDay()->toIso8601String(),
+                'priority' => 'medium',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_project_manager_can_execute_and_close_a_work_order_in_one_step(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'PM-SELF', 'name' => 'PM self-executor', 'fl_active' => true]);
+        $pm = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $pm->assignRole('project_manager');
+        $type = FoMaintenanceType::factory()->corrective()->create();
+
+        $response = $this->withToken($pm->createToken('pm')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders/execute", [
+                'fo_maintenance_type_id' => $type->id,
+                'priority' => 'high',
+                'problem_description' => 'Fixture flickering, reported by club staff',
+                'root_cause' => 'Loose connector',
+                'solution_applied' => 'Reseated connector and tested output',
+                'completion_notes' => 'Verified on-site, no further action needed',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.assigned_employee.id', $employee->id);
+
+        $order = FoMaintenanceWorkOrder::findOrFail($response->json('data.id'));
+        self::assertSame($employee->id, $order->assigned_employee_id);
+        self::assertSame($pm->id, $order->assigned_by_user_id);
+        self::assertNotNull($order->maintenance_record_id);
+        self::assertSame(
+            ['created', 'assigned', 'started', 'submitted', 'overridden'],
+            $order->events()->orderBy('id')->pluck('event_type')->map(fn ($type) => $type->value)->all(),
+        );
+
+        $this->assertDatabaseHas('fo_maintenance_records', [
+            'id' => $order->maintenance_record_id,
+            'maintainable_id' => $luminaire->id,
+            'solution_applied' => 'Reseated connector and tested output',
+        ]);
+    }
+
+    public function test_execute_endpoint_requires_solution_applied(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'PM-NOSOL', 'name' => 'PM missing solution', 'fl_active' => true]);
+        $pm = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $pm->assignRole('project_manager');
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($pm->createToken('pm')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders/execute", [
+                'fo_maintenance_type_id' => $type->id,
+                'priority' => 'medium',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('solution_applied');
+    }
+
+    public function test_execute_endpoint_rejects_a_user_without_a_linked_employee(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $pmWithoutEmployee = UserFactory::new()->create(['employee_id' => null]);
+        $pmWithoutEmployee->assignRole('project_manager');
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($pmWithoutEmployee->createToken('pm')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders/execute", [
+                'fo_maintenance_type_id' => $type->id,
+                'priority' => 'medium',
+                'solution_applied' => 'Should not be reachable',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('employee_id');
+    }
+
+    public function test_technician_cannot_execute_a_work_order(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'TECH-EXEC', 'name' => 'Technician', 'fl_active' => true]);
+        $technician = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $technician->assignRole('technician');
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($technician->createToken('field')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders/execute", [
+                'fo_maintenance_type_id' => $type->id,
+                'priority' => 'medium',
+                'solution_applied' => 'Should not be reachable',
+            ])
+            ->assertForbidden();
     }
 
     private function luminaireWithClientContext(): array

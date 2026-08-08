@@ -114,6 +114,10 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         // completed maintenance records are produced only after backoffice validation.
         Route::post('/luminaires/{luminaire}/maintenance-work-orders', [MaintenanceWorkOrderController::class, 'storeForLuminaire']);
         Route::post('/electrical-boards/{electricalBoard}/maintenance-work-orders', [MaintenanceWorkOrderController::class, 'storeForElectricalBoard']);
+        // Self-service: create a work order already executed by whoever creates it (self-assigned,
+        // closed in the same transaction) — no separate start/submit/validate actors.
+        Route::post('/luminaires/{luminaire}/maintenance-work-orders/execute', [MaintenanceWorkOrderController::class, 'executeForLuminaire']);
+        Route::post('/electrical-boards/{electricalBoard}/maintenance-work-orders/execute', [MaintenanceWorkOrderController::class, 'executeForElectricalBoard']);
         Route::get('/maintenance-work-orders/assigned', [MaintenanceWorkOrderController::class, 'assigned']);
         Route::get('/maintenance-work-orders/{workOrder}', [MaintenanceWorkOrderController::class, 'show']);
         Route::post('/maintenance-work-orders/{workOrder}/start', [MaintenanceWorkOrderController::class, 'start']);

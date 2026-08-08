@@ -433,6 +433,7 @@ return [
             'completion_notes' => 'Field completion notes',
             'override_reason' => 'Exceptional closure reason',
             'override_reason_help' => 'Required audit note explaining why this work is being closed without a submitted field execution.',
+            'self_execution_reason' => 'Executed and closed immediately by the creator, without a separate field submission.',
             'cancellation_reason' => 'Cancellation reason',
             'assigned_by' => 'Assigned by',
             'assigned_at' => 'Assigned at',

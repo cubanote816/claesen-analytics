@@ -433,6 +433,7 @@ return [
             'completion_notes' => 'Notities uitvoering',
             'override_reason' => 'Reden uitzonderlijke afsluiting',
             'override_reason_help' => 'Verplichte auditnotitie waarom dit werk zonder ingediende terreinuitvoering wordt afgesloten.',
+            'self_execution_reason' => 'Direct uitgevoerd en afgesloten door de aanmaker, zonder aparte indiening vanaf het terrein.',
             'cancellation_reason' => 'Reden voor annulering',
             'assigned_by' => 'Toegewezen door',
             'assigned_at' => 'Toegewezen op',
