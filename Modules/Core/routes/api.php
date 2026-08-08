@@ -18,6 +18,18 @@ Route::middleware(['throttle:5,1'])
         [\Modules\Core\Http\Controllers\Auth\ExchangeActivationCodeController::class, 'exchange'])
     ->name('auth.activate');
 
+// CLA-371: public — request/consume a password reset. Rate-limited for the
+// same reason as /activate above (sendLink additionally never reveals
+// whether the email exists, regardless of throttle state).
+Route::middleware(['throttle:5,1'])->prefix('v1/auth')->group(function () {
+    Route::post('/forgot-password',
+        [\Modules\Core\Http\Controllers\Auth\PasswordResetController::class, 'sendLink'])
+        ->name('auth.password.forgot');
+    Route::post('/reset-password',
+        [\Modules\Core\Http\Controllers\Auth\PasswordResetController::class, 'reset'])
+        ->name('auth.password.reset');
+});
+
 // Requires a setup:password Sanctum token (issued by /auth/activate).
 // Intentionally excluded from EnsurePasswordIsSet — it is the cure.
 Route::middleware(['auth:sanctum', 'abilities:setup:password'])
