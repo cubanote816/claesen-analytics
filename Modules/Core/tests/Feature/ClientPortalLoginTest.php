@@ -11,9 +11,7 @@ use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 // CLA-344: the Client Portal must be usable only by active users with the
-// 'client' role. This covers the dedicated login/client-portal endpoint and
-// confirms it does not change behaviour for the shared login/spa endpoint
-// used by Safety PWA / Sport.
+// 'client' role. Covers the dedicated login/client-portal endpoint.
 class ClientPortalLoginTest extends TestCase
 {
     use RefreshDatabase;
@@ -94,20 +92,5 @@ class ClientPortalLoginTest extends TestCase
             ->assertJsonValidationErrors('email');
 
         $this->assertGuest();
-    }
-
-    public function test_login_spa_still_accepts_non_client_users_unaffected(): void
-    {
-        $admin = $this->activeUser();
-        $admin->assignRole('admin');
-
-        $this->postJson('/api/v1/auth/login/spa', [
-            'email' => $admin->email,
-            'password' => 'Secret1234!',
-        ])
-            ->assertOk()
-            ->assertJsonPath('user.id', $admin->id);
-
-        $this->assertAuthenticatedAs($admin);
     }
 }

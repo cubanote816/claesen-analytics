@@ -43,7 +43,7 @@ class EmailRateLimitTest extends TestCase
         // limiter accumulates across all of them.
         for ($attempt = 1; $attempt <= 20; $attempt++) {
             $this->withServerVariables(['REMOTE_ADDR' => "10.0.0.{$attempt}"])
-                ->postJson('/api/v1/auth/login/spa', [
+                ->postJson('/api/v1/auth/login/sport', [
                     'email' => $user->email,
                     'password' => 'WrongPassword!',
                 ])
@@ -52,7 +52,7 @@ class EmailRateLimitTest extends TestCase
         }
 
         $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.21'])
-            ->postJson('/api/v1/auth/login/spa', [
+            ->postJson('/api/v1/auth/login/sport', [
                 'email' => $user->email,
                 'password' => 'WrongPassword!',
             ])
@@ -66,7 +66,7 @@ class EmailRateLimitTest extends TestCase
 
         for ($attempt = 1; $attempt <= 5; $attempt++) {
             $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
-                ->postJson('/api/v1/auth/login/spa', [
+                ->postJson('/api/v1/auth/login/sport', [
                     'email' => $user->email,
                     'password' => 'WrongPassword!',
                 ])
@@ -74,7 +74,7 @@ class EmailRateLimitTest extends TestCase
         }
 
         $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
-            ->postJson('/api/v1/auth/login/spa', [
+            ->postJson('/api/v1/auth/login/sport', [
                 'email' => $user->email,
                 'password' => 'WrongPassword!',
             ])

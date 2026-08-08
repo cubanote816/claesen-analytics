@@ -18,13 +18,9 @@ Route::prefix('auth/microsoft')->group(function () {
 Route::get('api/v1/auth/microsoft/redirect', [\Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::class, 'redirect']);
 Route::get('api/v1/auth/microsoft/callback', [\Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::class, 'callback']);
 
-// Session-cookie login for browser-first SPAs (Safety PWA, Sport, etc.) — needs the 'web'
-// middleware group (session, CSRF) that api.php's stateless 'api' group does not provide.
-Route::post('api/v1/auth/login/spa', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'loginSpa'])
-    ->name('auth.login.spa');
-
 // CLA-344: dedicated login for the Client Portal — same session-cookie contract as
-// login/spa, but only users with the 'client' role may establish a session here.
+// the removed login/spa, but only users with the 'client' role may establish a
+// session here.
 Route::post('api/v1/auth/login/client-portal', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'loginClientPortal'])
     ->name('auth.login.client-portal');
 

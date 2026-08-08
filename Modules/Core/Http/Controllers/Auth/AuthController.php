@@ -24,19 +24,8 @@ class AuthController extends Controller
     private const EMAIL_LOGIN_LOCKOUT_SECONDS = 3600;
 
     /**
-     * Session-based login for browser-first SPAs (Safety PWA, Sport, etc.).
-     * Establishes an HttpOnly cookie session — never returns a token.
-     */
-    public function loginSpa(Request $request, AccessAnalyticsService $analytics)
-    {
-        $user = $this->attemptSessionLogin($request, $analytics, 'spa');
-
-        return response()->json(['user' => $this->sessionUserPayload($user)]);
-    }
-
-    /**
-     * Session-based login for the Client Portal — same contract as loginSpa(),
-     * except only users with the 'client' role may establish a session here.
+     * Session-based login for the Client Portal — establishes an HttpOnly cookie
+     * session (never a token), only for the 'client' role.
      * CLA-344: the Client Portal must be usable only by active client-role users.
      */
     public function loginClientPortal(Request $request, AccessAnalyticsService $analytics)
@@ -47,10 +36,10 @@ class AuthController extends Controller
     }
 
     /**
-     * Session-based login for Sport ("Servicios") — same contract as loginSpa(),
-     * except only technician/project_manager/super_admin/admin may establish a
-     * session here. CLA-363: closes the same login/spa role gap CLA-344 closed
-     * for Client Portal.
+     * Session-based login for Sport ("Servicios") — establishes an HttpOnly
+     * cookie session, only for technician/project_manager/super_admin/admin.
+     * CLA-363: closes the same unrestricted-login gap CLA-344 closed for
+     * Client Portal.
      */
     public function loginSport(Request $request, AccessAnalyticsService $analytics)
     {

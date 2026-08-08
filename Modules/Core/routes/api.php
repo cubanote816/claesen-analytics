@@ -6,8 +6,9 @@ use Modules\Core\Http\Controllers\CoreController;
 Route::prefix('v1/auth')->group(function () {
     // Bearer-token login — non-browser clients and legacy integrations.
     Route::post('/login', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'login']);
-    // loginSpa() lives in routes/web.php — it needs session/CSRF (the 'web' middleware
-    // group), which this api.php file's 'api' middleware group does not provide.
+    // Session-cookie logins (login/client-portal, login/sport) live in routes/web.php —
+    // they need session/CSRF (the 'web' middleware group), which this api.php file's
+    // 'api' middleware group does not provide.
 });
 
 // Public — exchange one-time activation code for a limited setup:password token.

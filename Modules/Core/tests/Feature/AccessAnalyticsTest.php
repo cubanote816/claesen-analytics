@@ -25,6 +25,7 @@ class AccessAnalyticsTest extends TestCase
         parent::setUp();
 
         Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'web']);
     }
 
     private function activeUser(array $overrides = []): User
@@ -71,8 +72,9 @@ class AccessAnalyticsTest extends TestCase
     public function test_session_login_records_explicit_app_source_and_updates_user_snapshot(): void
     {
         $user = $this->activeUser();
+        $user->assignRole('technician');
 
-        $this->postJson('/api/v1/auth/login/spa', [
+        $this->postJson('/api/v1/auth/login/sport', [
             'email' => $user->email,
             'password' => 'Secret1234!',
             'app_source' => 'Claesen-Sport-updateing',

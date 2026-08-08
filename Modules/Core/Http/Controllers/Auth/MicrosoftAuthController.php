@@ -239,9 +239,10 @@ class MicrosoftAuthController extends Controller
 
     /**
      * CLA-363: maps an intended frontend destination to the roles allowed to log
-     * into it, mirroring the AuthController::loginSafety()/loginSport()/
-     * loginClientPortal() session-login gates. Returns null for destinations with
-     * no dedicated role gate (matches login/spa's historical unrestricted default).
+     * into it, mirroring AuthController::loginSport()/loginClientPortal() and
+     * Safety's own Modules\Safety\Http\Controllers\AuthController::login() — same
+     * role list, different codebase. Returns null for destinations with no
+     * dedicated role gate.
      *
      * @return array{roles: array<int, string>, appSource: string}|null
      */
