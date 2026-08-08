@@ -96,7 +96,7 @@ HTML
             ->default()
             ->id('admin')
             ->path('')
-            ->login()
+            ->login(\Modules\Core\Filament\Pages\Auth\Login::class)
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
             ->navigationGroups([

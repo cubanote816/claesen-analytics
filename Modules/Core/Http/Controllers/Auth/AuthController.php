@@ -41,14 +41,27 @@ class AuthController extends Controller
      */
     public function loginClientPortal(Request $request, AccessAnalyticsService $analytics)
     {
-        $user = $this->attemptSessionLogin($request, $analytics, 'client_portal', 'client');
+        $user = $this->attemptSessionLogin($request, $analytics, 'client_portal', ['client']);
+
+        return response()->json(['user' => $this->sessionUserPayload($user)]);
+    }
+
+    /**
+     * Session-based login for Sport ("Servicios") — same contract as loginSpa(),
+     * except only technician/project_manager/super_admin/admin may establish a
+     * session here. CLA-363: closes the same login/spa role gap CLA-344 closed
+     * for Client Portal.
+     */
+    public function loginSport(Request $request, AccessAnalyticsService $analytics)
+    {
+        $user = $this->attemptSessionLogin($request, $analytics, 'sport', ['technician', 'project_manager', 'super_admin', 'admin']);
 
         return response()->json(['user' => $this->sessionUserPayload($user)]);
     }
 
     /**
      * Shared validation/authentication pipeline for session-cookie logins.
-     * When $requiredRole is set, a user who fails that role check gets the
+     * When $requiredRoles is set, a user who fails that role check gets the
      * same generic auth.failed message as any other rejection — never a hint
      * that their credentials were otherwise correct.
      */
@@ -56,7 +69,7 @@ class AuthController extends Controller
         Request $request,
         AccessAnalyticsService $analytics,
         string $appSourceFallback,
-        ?string $requiredRole = null,
+        ?array $requiredRoles = null,
     ): User {
         $request->validate([
             'email'    => 'required|email',
@@ -149,7 +162,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($requiredRole !== null && ! $user->hasRole($requiredRole)) {
+        if ($requiredRoles !== null && ! $user->hasAnyRole($requiredRoles)) {
             $analytics->recordBlockedLogin(
                 $user,
                 $request->input('email'),

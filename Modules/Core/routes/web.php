@@ -28,6 +28,11 @@ Route::post('api/v1/auth/login/spa', [\Modules\Core\Http\Controllers\Auth\AuthCo
 Route::post('api/v1/auth/login/client-portal', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'loginClientPortal'])
     ->name('auth.login.client-portal');
 
+// CLA-363: dedicated login for Sport, same pattern as login/client-portal. Safety
+// already has its own gated login — see Modules/Safety/Http/Controllers/AuthController.
+Route::post('api/v1/auth/login/sport', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'loginSport'])
+    ->name('auth.login.sport');
+
 // Password setup — for users provisioned by an admin (Azure-first flow, Filament/web).
 // Protected by web session only (Auth::login() called in callback before redirect here).
 // Intentionally outside the Filament panel so EnsurePasswordIsSet does not block it.

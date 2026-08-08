@@ -5,6 +5,9 @@ return [
     'structure_proximity_warning_meters' => env('FIELDOPS_STRUCTURE_PROXIMITY_WARNING_METERS', 10),
     'field_app_url' => env('FRONTEND_URL', 'http://localhost:5173'),
     'client_portal_url' => env('CLIENT_PORTAL_URL', 'http://localhost:5174'),
+    // No local default on purpose: unset in dev keeps the Safety role gate inert
+    // (sameOrigin() against null never matches) until a real URL is configured.
+    'safety_app_url' => env('SAFETY_URL'),
 
     // Fallback map center/zoom used by location pickers (Complex/Terrain/
     // Structure/ElectricalBoard) when no coordinates can be resolved from
