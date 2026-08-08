@@ -26,10 +26,20 @@ class FieldOpsTenantService
         return $user->hasRole('client');
     }
 
+    // CLA-364: distinct from isClientUser() — this is about *scope*, not the
+    // Client Portal specifically. A technician/project_manager without this
+    // permission is scoped the same way a client is (allowedClientIds() below),
+    // but keeps every other client-only restriction (isClientUser() call sites
+    // elsewhere, e.g. the maintenance-work-order block) untouched.
+    public function hasBroadAccess(User $user): bool
+    {
+        return $user->can('fieldops.view-all-clients');
+    }
+
     /** @return Collection<int, int> */
     public function allowedClientIds(User $user): Collection
     {
-        if (! $this->isClientUser($user)) {
+        if ($this->hasBroadAccess($user)) {
             return collect();
         }
 
@@ -43,7 +53,7 @@ class FieldOpsTenantService
 
     public function scopeForUser(Builder $query, User $user, string $modelClass): Builder
     {
-        if (! $this->isClientUser($user)) {
+        if ($this->hasBroadAccess($user)) {
             return $query;
         }
 

@@ -10,6 +10,7 @@ use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Models\TerrainType;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class TerrainCrudTest extends TestCase
@@ -25,6 +26,8 @@ class TerrainCrudTest extends TestCase
     private function user(): array
     {
         $user  = UserFactory::new()->create();
+        // CLA-364: broad FieldOps access needs the permission explicitly now.
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
         $token = $user->createToken('test')->plainTextToken;
 
         return [$user, $token];

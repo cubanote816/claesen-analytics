@@ -8,6 +8,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\FoClient;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class FoClientCrudTest extends TestCase
@@ -16,7 +17,11 @@ class FoClientCrudTest extends TestCase
 
     private function token(): string
     {
-        return UserFactory::new()->create()->createToken('test')->plainTextToken;
+        $user = UserFactory::new()->create();
+        // CLA-364: broad FieldOps access needs the permission explicitly now.
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+
+        return $user->createToken('test')->plainTextToken;
     }
 
     public function test_index_and_show_remain_available_to_authenticated_internal_users(): void

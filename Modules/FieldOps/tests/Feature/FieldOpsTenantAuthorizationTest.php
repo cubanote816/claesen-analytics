@@ -16,6 +16,7 @@ use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -26,7 +27,9 @@ class FieldOpsTenantAuthorizationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Role::firstOrCreate(['name' => 'client', 'guard_name' => 'web']);
+        foreach (['client', 'technician', 'project_manager', 'admin'] as $role) {
+            Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+        }
     }
 
     public function test_client_user_only_lists_linked_client_topology(): void
@@ -159,6 +162,73 @@ class FieldOpsTenantAuthorizationTest extends TestCase
             ->assertOk()->assertJsonCount(0, 'data');
         $this->withToken($token)->getJson("/api/v1/fieldops/electrical-boards/{$a['board']->id}")
             ->assertForbidden();
+    }
+
+    // CLA-364: broad FieldOps access is the exception (fieldops.view-all-clients),
+    // not the default for any non-client role. technician/project_manager without
+    // that permission are scoped exactly like a client, via the same
+    // fieldOpsClients() assignment (managed today from Users > fieldOpsClients in
+    // Filament — no separate assignment mechanism was built for this).
+    public function test_technician_without_a_client_assignment_sees_nothing(): void
+    {
+        $this->topology('Client A');
+        [, $token] = $this->internalUser('technician');
+
+        $this->withToken($token)->getJson('/api/v1/fieldops/complexes')
+            ->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_technician_with_a_client_assignment_is_scoped_like_a_client(): void
+    {
+        $a = $this->topology('Client A');
+        $b = $this->topology('Client B');
+        [, $token] = $this->internalUser('technician', $a['client']);
+
+        $this->withToken($token)->getJson('/api/v1/fieldops/complexes')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $a['complex']->id);
+
+        $this->assertNotSame($a['client']->id, $b['client']->id);
+    }
+
+    public function test_project_manager_without_the_broad_permission_is_also_scoped(): void
+    {
+        $this->topology('Client A');
+        [, $token] = $this->internalUser('project_manager');
+
+        $this->withToken($token)->getJson('/api/v1/fieldops/complexes')
+            ->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_admin_with_the_broad_permission_sees_every_client(): void
+    {
+        $a = $this->topology('Client A');
+        $b = $this->topology('Client B');
+        [, $token] = $this->internalUser('admin', broadAccess: true);
+
+        $this->withToken($token)->getJson('/api/v1/fieldops/complexes')
+            ->assertOk()->assertJsonCount(2, 'data');
+
+        $this->assertNotSame($a['client']->id, $b['client']->id);
+    }
+
+    private function internalUser(string $role, ?FoClient $client = null, bool $broadAccess = false): array
+    {
+        $user = UserFactory::new()->create();
+        $user->assignRole($role);
+
+        if ($broadAccess) {
+            $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+        }
+
+        if ($client) {
+            $user->fieldOpsClients()->attach($client->id, [
+                'is_active' => true,
+                'can_view' => true,
+                'can_report' => true,
+            ]);
+        }
+
+        return [$user, $user->createToken('internal')->plainTextToken];
     }
 
     private function clientUser(FoClient $client): array
