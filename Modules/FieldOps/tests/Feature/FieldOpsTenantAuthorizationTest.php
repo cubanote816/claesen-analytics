@@ -7,10 +7,12 @@ namespace Modules\FieldOps\Tests\Feature;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Modules\Cafca\Models\Employee;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
+use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\Structure;
@@ -209,6 +211,53 @@ class FieldOpsTenantAuthorizationTest extends TestCase
             ->assertOk()->assertJsonCount(2, 'data');
 
         $this->assertNotSame($a['client']->id, $b['client']->id);
+    }
+
+    // CLA-369: work orders are the one model where the Client Portal rule
+    // (isClientUser — never see work orders) and the general scoping rule
+    // (hasBroadAccess — everyone else, scoped to assigned clients) both apply
+    // to the same model, so it's worth its own pair of tests distinct from the
+    // generic scoping coverage above.
+    public function test_technician_can_view_a_work_order_for_their_assigned_client(): void
+    {
+        $a = $this->topology('Client A');
+        // show() also gates on authorizeWorkerOrPlanner() (admin, or the
+        // order's own assigned employee) independent of tenant scope — give
+        // this technician a matching employee_id so that check isn't what's
+        // actually being exercised here.
+        $employee = Employee::create(['id' => 'TECH-VIEW', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $user->fieldOpsClients()->attach($a['client']->id, ['is_active' => true, 'can_view' => true]);
+        $token = $user->createToken('field')->plainTextToken;
+
+        $order = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-work-orders/{$order->id}")
+            ->assertOk()->assertJsonPath('data.id', $order->id);
+    }
+
+    public function test_technician_cannot_view_a_work_order_for_another_client(): void
+    {
+        $a = $this->topology('Client A');
+        $b = $this->topology('Client B');
+        // Same isolation as the positive test above: this technician is the
+        // order's own assigned employee, so authorizeWorkerOrPlanner() would
+        // let them through — the 403 below has to come from tenant scope.
+        $employee = Employee::create(['id' => 'TECH-CROSS', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $user->fieldOpsClients()->attach($a['client']->id, ['is_active' => true, 'can_view' => true]);
+        $token = $user->createToken('field')->plainTextToken;
+
+        $order = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($b['luminaire'])
+            ->create(['client_id' => $b['client']->id, 'assigned_employee_id' => $employee->id]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-work-orders/{$order->id}")
+            ->assertForbidden();
     }
 
     private function internalUser(string $role, ?FoClient $client = null, bool $broadAccess = false): array

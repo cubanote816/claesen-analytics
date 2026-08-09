@@ -43,14 +43,26 @@ class EnforceFieldOpsTenantAccess
     {
         $user = $request->user();
 
-        if (! $user || ! $this->tenants->isClientUser($user)) {
+        if (! $user) {
             return $next($request);
         }
 
-        abort_unless($request->isMethodSafe() || $this->isAllowedClientMutation($request), 403);
-        abort_if($request->is('api/v1/fieldops/maintenance-work-orders*'), 403);
-        abort_if($request->is('api/v1/fieldops/maintenance-records/stats/*'), 403);
-        abort_if($request->is('api/v1/fieldops/maintenance-records/client-reported/*'), 403);
+        // CLA-369: this block is Client Portal-only — the work-order/stats
+        // blanket blocks and the mutation whitelist are about what a client
+        // may do, not about tenant scope. A scoped technician/project_manager
+        // (no fieldops.view-all-clients) is neither exempt here nor subject to
+        // these client-specific restrictions; they fall through to the
+        // scoping enforcement below instead.
+        if ($this->tenants->isClientUser($user)) {
+            abort_unless($request->isMethodSafe() || $this->isAllowedClientMutation($request), 403);
+            abort_if($request->is('api/v1/fieldops/maintenance-work-orders*'), 403);
+            abort_if($request->is('api/v1/fieldops/maintenance-records/stats/*'), 403);
+            abort_if($request->is('api/v1/fieldops/maintenance-records/client-reported/*'), 403);
+        }
+
+        if ($this->tenants->hasBroadAccess($user)) {
+            return $next($request);
+        }
 
         foreach ($request->route()?->parameters() ?? [] as $parameter) {
             if ($parameter instanceof Media) {

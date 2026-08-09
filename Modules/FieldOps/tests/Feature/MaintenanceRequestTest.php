@@ -114,6 +114,9 @@ class MaintenanceRequestTest extends TestCase
         $employee = Employee::create(['id' => 'CLA-276-WORKER', 'name' => 'CLA-276 Worker', 'fl_active' => true]);
         $worker = UserFactory::new()->create(['employee_id' => $employee->id]);
         $worker->assignRole('project_manager');
+        // CLA-369: incidental backoffice actor in this test (it's about client
+        // tenant isolation, not worker scoping) — broad access keeps it that way.
+        $worker->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('fieldops.view-all-clients', 'web'));
 
         // Mirrors Claesen-Client's actual flow: the portal never has the luminaire ID
         // ahead of time, it reads it off the infrastructure explorer response
@@ -569,6 +572,8 @@ class MaintenanceRequestTest extends TestCase
     {
         $user = UserFactory::new()->create();
         $user->assignRole('admin');
+        // CLA-369: broad FieldOps access needs the permission explicitly now.
+        $user->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('fieldops.view-all-clients', 'web'));
 
         return [$user, $user->createToken('backoffice')->plainTextToken];
     }

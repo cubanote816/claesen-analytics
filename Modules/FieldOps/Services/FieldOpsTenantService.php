@@ -79,12 +79,16 @@ class FieldOpsTenantService
 
     public function canView(User $user, Model $model): bool
     {
-        if (! $this->isClientUser($user)) {
-            return true;
+        // CLA-369: Client Portal-only rule, independent of scope — clients never
+        // see work orders (an internal concept), but a scoped technician/
+        // project_manager must still be able to view their own, so this check
+        // stays tied to isClientUser() rather than the general scoping gate below.
+        if ($model instanceof FoMaintenanceWorkOrder && $this->isClientUser($user)) {
+            return false;
         }
 
-        if ($model instanceof FoMaintenanceWorkOrder) {
-            return false;
+        if ($this->hasBroadAccess($user)) {
+            return true;
         }
 
         if ($model instanceof FoMaintenanceRequest) {
@@ -117,6 +121,7 @@ class FieldOpsTenantService
                     ->flatMap(fn (Structure $structure) => $structure->terrains->pluck('complex.client_id'))),
             $model instanceof FoMaintenanceRecord => collect([$model->client_id]),
             $model instanceof FoMaintenanceRequest => collect([$model->client_id]),
+            $model instanceof FoMaintenanceWorkOrder => collect([$model->client_id]),
             default => collect(),
         };
 
