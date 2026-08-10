@@ -410,6 +410,9 @@ return [
             'context' => 'Equipment context',
             'context_copy' => 'Equipment, client, site and physical position come from FieldOps and cannot be reassigned here.',
             'planning' => 'Planning and assignment',
+            'review' => 'Field report review',
+            'review_copy' => 'Correct or complete what the field worker submitted before validating and closing this work order.',
+            'tasks_performed' => 'Tasks performed',
             'recurrence' => 'Recurring plan',
             'recurrence_copy' => 'Leave recurrence empty for a one-off order. A recurring choice creates a maintenance plan after saving.',
             'summary' => 'Work order summary',
@@ -446,6 +449,20 @@ return [
             'from_status' => 'Previous status',
             'to_status' => 'New status',
             'reason' => 'Reason',
+        ],
+        // Mismas claves que Claesen-Sport-updateing (TaskChecklistCard.tsx) — deliberadamente
+        // constantes propias del backoffice, no un catálogo compartido (completion_details no
+        // tiene forma exigida por el backend, ver CLA-374).
+        'tasks' => [
+            'inspection' => 'Visual inspection',
+            'cleaning' => 'Cleaning',
+            'component_checks' => 'Component verification',
+            'lubrication' => 'Lubrication',
+            'testing' => 'Functional testing',
+            'electrical_testing' => 'Electrical testing',
+            'connection_checks' => 'Connection verification',
+            'safety_verification' => 'Safety verification',
+            'other_tasks' => 'Other tasks performed',
         ],
         'status' => [
             'planned' => 'Planned',
@@ -497,6 +514,7 @@ return [
             'cannot_edit' => 'Only planned or assigned work orders can be edited.',
             'return_reason' => 'Explain what the field worker must correct.',
             'cannot_return' => 'Only work awaiting validation can be returned for correction.',
+            'cannot_review' => 'Only work awaiting validation can have its field report reviewed.',
         ],
         'events' => [
             'created' => 'Created',
@@ -506,6 +524,7 @@ return [
             'started' => 'Started',
             'submitted' => 'Submitted',
             'returned' => 'Returned for correction',
+            'reviewed' => 'Field report reviewed',
             'validated' => 'Validated',
             'overridden' => 'Closed exceptionally',
             'cancelled' => 'Cancelled',

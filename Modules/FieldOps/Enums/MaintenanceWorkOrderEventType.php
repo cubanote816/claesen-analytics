@@ -15,5 +15,6 @@ enum MaintenanceWorkOrderEventType: string
     case RETURNED = 'returned';
     case VALIDATED = 'validated';
     case OVERRIDDEN = 'overridden';
+    case REVIEWED = 'reviewed';
     case CANCELLED = 'cancelled';
 }

@@ -165,6 +165,33 @@ class MaintenanceWorkOrderService
         return $updated;
     }
 
+    /**
+     * Lets the backoffice correct/complete the field report (root_cause, solution_applied,
+     * completion_notes, completion_details) while the order is awaiting_validation — before
+     * validating/closing it. Deliberately separate from updatePlanning(): different fields,
+     * different allowed status, and editing here never touches assignment/scheduling.
+     */
+    public function updateReview(FoMaintenanceWorkOrder $order, array $data, int $userId): FoMaintenanceWorkOrder
+    {
+        return DB::transaction(function () use ($order, $data, $userId): FoMaintenanceWorkOrder {
+            $locked = FoMaintenanceWorkOrder::query()->lockForUpdate()->findOrFail($order->id);
+
+            if ($locked->status !== MaintenanceWorkOrderStatus::AWAITING_VALIDATION) {
+                throw ValidationException::withMessages([
+                    'status' => __('fieldops::resource.work_orders.validation.cannot_review'),
+                ]);
+            }
+
+            $locked->update(Arr::only($data, [
+                'root_cause', 'solution_applied', 'completion_notes', 'completion_details',
+            ]));
+
+            $this->recordEvent($locked, MaintenanceWorkOrderEventType::REVIEWED, $userId, $locked->status, $locked->status);
+
+            return $locked->fresh();
+        });
+    }
+
     public function generateDueOrders(bool $dryRun = false): int
     {
         $plans = FoMaintenancePlan::query()

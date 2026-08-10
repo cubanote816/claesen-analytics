@@ -219,6 +219,106 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
         self::assertSame($employee->id, $order->refresh()->assigned_employee_id);
     }
 
+    public function test_backoffice_can_review_and_correct_field_report_before_validating(): void
+    {
+        // CLA-374: the backoffice can correct/complete what the field worker submitted
+        // (root_cause/solution_applied/completion_notes/completion_details) while the order
+        // sits awaiting_validation — before validating/closing it.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'status' => MaintenanceWorkOrderStatus::AWAITING_VALIDATION,
+            'root_cause' => 'Original root cause',
+            'solution_applied' => 'Original solution',
+            'completion_notes' => 'Original notes',
+            'completion_details' => ['inspection' => true],
+        ]);
+        $this->actingAs($user);
+
+        Livewire::test(EditMaintenanceWorkOrder::class, ['record' => $order->getKey()])
+            ->fillForm([
+                'root_cause' => 'Corrected root cause',
+                'solution_applied' => 'Corrected solution',
+                'completion_notes' => 'Corrected notes',
+                'completion_details' => ['inspection' => false, 'cleaning' => true, 'otherTasks' => 'Replaced a bolt'],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $order->refresh();
+        self::assertSame('Corrected root cause', $order->root_cause);
+        self::assertSame('Corrected solution', $order->solution_applied);
+        self::assertSame('Corrected notes', $order->completion_notes);
+        self::assertFalse($order->completion_details['inspection']);
+        self::assertTrue($order->completion_details['cleaning']);
+        self::assertSame('Replaced a bolt', $order->completion_details['otherTasks']);
+        self::assertSame(
+            ['reviewed'],
+            $order->events()->latest('id')->limit(1)->pluck('event_type')->map(fn ($type) => $type->value)->all(),
+        );
+    }
+
+    public function test_edit_page_locks_planning_fields_when_awaiting_validation(): void
+    {
+        // The planning Section is disabled+dehydrated(false) once awaiting_validation — a
+        // fillForm() attempt at those fields should have no effect, and updateReview()'s
+        // own whitelist is the second line of defense even if the UI lock were bypassed.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $type = FoMaintenanceType::factory()->create();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'status' => MaintenanceWorkOrderStatus::AWAITING_VALIDATION,
+            'fo_maintenance_type_id' => $type->id,
+            'priority' => 'medium',
+        ]);
+        $otherType = FoMaintenanceType::factory()->create();
+        $this->actingAs($user);
+
+        Livewire::test(EditMaintenanceWorkOrder::class, ['record' => $order->getKey()])
+            ->fillForm([
+                'fo_maintenance_type_id' => $otherType->id,
+                'priority' => 'urgent',
+                'solution_applied' => 'Solution to satisfy the required field',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $order->refresh();
+        self::assertSame($type->id, $order->fo_maintenance_type_id);
+        self::assertSame('medium', $order->priority);
+    }
+
+    public function test_cannot_edit_in_progress_or_completed_or_cancelled_orders(): void
+    {
+        $luminaire = $this->luminaireWithClientContext();
+        $type = FoMaintenanceType::factory()->create();
+        foreach ([MaintenanceWorkOrderStatus::IN_PROGRESS, MaintenanceWorkOrderStatus::COMPLETED, MaintenanceWorkOrderStatus::CANCELLED] as $status) {
+            $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+                'fo_maintenance_type_id' => $type->id,
+                'status' => $status,
+            ]);
+            self::assertFalse(FoMaintenanceWorkOrderResource::canEdit($order), "Expected canEdit() to be false for status {$status->value}");
+        }
+    }
+
+    public function test_service_rejects_review_on_a_non_awaiting_validation_order(): void
+    {
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'status' => MaintenanceWorkOrderStatus::PLANNED,
+        ]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        app(\Modules\FieldOps\Services\MaintenanceWorkOrderService::class)->updateReview(
+            $order,
+            ['solution_applied' => 'Should not be reachable'],
+            1,
+        );
+    }
+
     private function luminaireWithClientContext(): Luminaire
     {
         $client = FoClient::factory()->create();
