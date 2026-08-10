@@ -95,10 +95,33 @@ class FieldOpsTenantService
             return $this->allowedClientIds($user)->contains((int) $model->client_id);
         }
 
-        $allowed = $this->allowedClientIds($user);
+        $allowed = $this->allowedClientIds($user)->merge($this->assignedWorkOrderClientIds($user))->unique();
         $owners = $this->ownerClientIds($model);
 
         return $owners->count() === 1 && $allowed->contains($owners->first());
+    }
+
+    // CLA-375: assigning a work order (MaintenanceWorkOrderService) never grants
+    // fieldOpsClients scope — only checks the employee has an active linked User.
+    // Without this, an assigned technician can list their own task (assigned()
+    // filters by assigned_employee_id only) but gets 403 opening it or any
+    // linked equipment, because allowedClientIds() alone stays empty. This widens
+    // canView() only — scopeForUser() (listing endpoints) is untouched on purpose,
+    // this is about detail access to a technician's own assignment, not browsing.
+    /** @return Collection<int, int> */
+    private function assignedWorkOrderClientIds(User $user): Collection
+    {
+        if (! $user->employee_id) {
+            return collect();
+        }
+
+        return FoMaintenanceWorkOrder::query()
+            ->where('assigned_employee_id', $user->employee_id)
+            ->pluck('client_id')
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
     }
 
     /** @return Collection<int, int> */

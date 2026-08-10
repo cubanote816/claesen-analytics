@@ -243,20 +243,70 @@ class FieldOpsTenantAuthorizationTest extends TestCase
     {
         $a = $this->topology('Client A');
         $b = $this->topology('Client B');
-        // Same isolation as the positive test above: this technician is the
-        // order's own assigned employee, so authorizeWorkerOrPlanner() would
-        // let them through — the 403 below has to come from tenant scope.
         $employee = Employee::create(['id' => 'TECH-CROSS', 'name' => 'Technician', 'fl_active' => true]);
+        $otherEmployee = Employee::create(['id' => 'TECH-CROSS-OTHER', 'name' => 'Other Technician', 'fl_active' => true]);
         $user = UserFactory::new()->create(['employee_id' => $employee->id]);
         $user->assignRole('technician');
         $user->fieldOpsClients()->attach($a['client']->id, ['is_active' => true, 'can_view' => true]);
         $token = $user->createToken('field')->plainTextToken;
 
+        // CLA-375: assigned to a different employee, so the assignment-based
+        // widening below doesn't apply here either — this stays forbidden on
+        // tenant scope alone. (Before CLA-375 this test assigned the order to
+        // $employee itself and still expected 403 — that was the bug: an
+        // assigned technician couldn't view their own order. See the two
+        // CLA-375 tests below for that corrected case.)
         $order = FoMaintenanceWorkOrder::factory()
             ->forMaintainable($b['luminaire'])
-            ->create(['client_id' => $b['client']->id, 'assigned_employee_id' => $employee->id]);
+            ->create(['client_id' => $b['client']->id, 'assigned_employee_id' => $otherEmployee->id]);
 
         $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-work-orders/{$order->id}")
+            ->assertForbidden();
+    }
+
+    // CLA-375: assigning a work order never grants fieldOpsClients scope —
+    // without this, a technician who legitimately gets assigned work sees it
+    // in their queue (assigned() filters by assigned_employee_id only) but
+    // gets 403 on the work order itself and every linked equipment page.
+    public function test_technician_can_view_their_assigned_work_order_and_its_equipment_without_a_client_assignment(): void
+    {
+        $a = $this->topology('Client A');
+        $employee = Employee::create(['id' => 'TECH-ASSIGNED-NO-SCOPE', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        $order = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id]);
+
+        $this->assertTrue($user->fieldOpsClients->isEmpty());
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-work-orders/{$order->id}")
+            ->assertOk()->assertJsonPath('data.id', $order->id);
+        $this->withToken($token)->getJson("/api/v1/fieldops/complexes/{$a['complex']->id}")
+            ->assertOk()->assertJsonPath('data.id', $a['complex']->id);
+
+        // The widened scope is for detail access only — listing endpoints stay
+        // untouched (same behavior as test_technician_without_a_client_assignment_sees_nothing).
+        $this->withToken($token)->getJson('/api/v1/fieldops/complexes')
+            ->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_technician_with_an_assigned_work_order_still_cannot_view_unrelated_clients_equipment(): void
+    {
+        $a = $this->topology('Client A');
+        $b = $this->topology('Client B');
+        $employee = Employee::create(['id' => 'TECH-ASSIGNED-CROSS', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/complexes/{$b['complex']->id}")
             ->assertForbidden();
     }
 
