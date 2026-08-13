@@ -1978,7 +1978,7 @@
     };
 
     var tryAPIGeolocation = function () {
-        jQuery.post("https://www.googleapis.com/geolocation/v1/geolocate?key=AIzaSyCX8o5tgId3vZpNrfC1zMG9Oh_qkraTQoA", function (success) {
+        jQuery.post("https://www.googleapis.com/geolocation/v1/geolocate?key=REPLACE_WITH_YOUR_GOOGLE_MAPS_API_KEY", function (success) {
             apiGeolocationSuccess({ coords: { latitude: success.location.lat, longitude: success.location.lng } });
         })
       .fail(function (err) {
@@ -2269,7 +2269,7 @@
         }
         if (typeof google === "undefined") {
             var script = document.createElement("script");
-            script.src = "http://maps.google.com/maps/api/js?key=AIzaSyCX8o5tgId3vZpNrfC1zMG9Oh_qkraTQoA&callback=" + callbackFn;
+            script.src = "http://maps.google.com/maps/api/js?key=REPLACE_WITH_YOUR_GOOGLE_MAPS_API_KEY&callback=" + callbackFn;
             document.getElementsByTagName("head")[0].appendChild(script);
         } else {
             if (callbackFn != "") {
