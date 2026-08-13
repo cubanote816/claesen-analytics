@@ -11,6 +11,7 @@ use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class MaintenanceRecordCrudTest extends TestCase
@@ -142,8 +143,16 @@ class MaintenanceRecordCrudTest extends TestCase
             ->assertJsonPath('data.total_corrective', 1);
     }
 
+    // CLA-369 tightened FieldOps tenant scoping to single-record access (not just
+    // lists) — this helper stands in for "generic authenticated internal staff"
+    // across the whole file, none of these tests exercise tenant scope itself, so
+    // it needs fieldops.view-all-clients like CLA-369 already gave
+    // MaintenanceWorkOrderTest/MaintenanceRequestTest/MaintenanceWorkOrderAuditNotificationTest.
     private function token(): string
     {
-        return UserFactory::new()->create()->createToken('test')->plainTextToken;
+        $user = UserFactory::new()->create();
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+
+        return $user->createToken('test')->plainTextToken;
     }
 }

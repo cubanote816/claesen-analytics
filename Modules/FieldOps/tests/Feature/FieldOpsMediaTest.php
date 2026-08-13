@@ -13,6 +13,7 @@ use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -27,9 +28,15 @@ class FieldOpsMediaTest extends TestCase
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
     }
 
+    // CLA-369 tightened FieldOps tenant scoping to single-record access (not just
+    // lists) — this helper stands in for "generic authenticated internal staff"
+    // across the whole file, none of these tests exercise tenant scope itself, so
+    // it needs fieldops.view-all-clients like CLA-369 already gave
+    // MaintenanceWorkOrderTest/MaintenanceRequestTest/MaintenanceWorkOrderAuditNotificationTest.
     private function user(): array
     {
-        $user  = UserFactory::new()->create();
+        $user = UserFactory::new()->create();
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
         $token = $user->createToken('test')->plainTextToken;
 
         return [$user, $token];
