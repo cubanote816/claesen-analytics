@@ -263,7 +263,8 @@ class FoMaintenanceWorkOrderResource extends Resource
                     ->label(__('fieldops::resource.work_orders.sections.tasks_performed'))
                     ->placeholder('—')
                     ->columnSpanFull()
-                    ->formatStateUsing(function (?array $state): ?string {
+                    ->state(function (FoMaintenanceWorkOrder $record): ?string {
+                        $state = $record->completion_details;
                         if (! $state) {
                             return null;
                         }

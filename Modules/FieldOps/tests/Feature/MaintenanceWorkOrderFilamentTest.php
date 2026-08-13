@@ -259,6 +259,27 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
         );
     }
 
+    public function test_view_page_renders_completion_details_with_multiple_tasks_marked(): void
+    {
+        // Regression for CLA-376: Filament's TextEntry fragments an array state into
+        // one formatStateUsing() call per value once count($state) > 1 (here 2 keys),
+        // so the closure received a bare `true`/`null` instead of the full array and
+        // broke its `?array $state` typehint. Fixed via ->state() reading the record
+        // directly instead of relying on Filament to hand over the array intact.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'completion_details' => ['inspection' => true, 'otherTasks' => null],
+        ]);
+        $this->actingAs($user);
+
+        $this->withHeader('Accept-Language', 'en-US')
+            ->get(FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $order]))
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.work_orders.tasks.inspection', [], 'en'));
+    }
+
     public function test_edit_page_locks_planning_fields_when_awaiting_validation(): void
     {
         // The planning Section is disabled+dehydrated(false) once awaiting_validation — a
