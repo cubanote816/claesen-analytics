@@ -167,10 +167,16 @@ class FieldOpsTenantAuthorizationTest extends TestCase
     }
 
     // CLA-364: broad FieldOps access is the exception (fieldops.view-all-clients),
-    // not the default for any non-client role. technician/project_manager without
-    // that permission are scoped exactly like a client, via the same
-    // fieldOpsClients() assignment (managed today from Users > fieldOpsClients in
-    // Filament — no separate assignment mechanism was built for this).
+    // not the default for any non-client role. Any role without that permission is
+    // scoped exactly like a client, via the same fieldOpsClients() assignment
+    // (managed today from Users > fieldOpsClients in Filament — no separate
+    // assignment mechanism was built for this). technician stays without the
+    // permission in the real seeder; project_manager was moved into the broad
+    // group afterwards (RolesAndPermissionsSeeder) so PMs see every client by
+    // default — the test below exercises the underlying mechanism against a
+    // project_manager role built in isolation (setUp() above, not the seeder), to
+    // keep proving the scoping itself still works for a role that doesn't have
+    // the permission, independent of which real roles carry it today.
     public function test_technician_without_a_client_assignment_sees_nothing(): void
     {
         $this->topology('Client A');
