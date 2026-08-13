@@ -38,8 +38,8 @@ class ElectricalBoardCreateComplexAttachmentTest extends TestCase
         $complex = Complex::factory()->create();
         $type = ElectricalBoardType::factory()->create();
 
-        Livewire::test(CreateElectricalBoard::class)
-            ->set('complexId', $complex->id)
+        Livewire::withQueryParams(['complex_id' => $complex->id])
+            ->test(CreateElectricalBoard::class)
             ->set('data.electrical_board_type_id', $type->id)
             ->set('data.lat', 51.1635)
             ->set('data.lng', 5.1640)
@@ -91,5 +91,126 @@ class ElectricalBoardCreateComplexAttachmentTest extends TestCase
             'via_structure' => $structure->id,
             'via_terrain' => $terrain->id,
         ]));
+    }
+
+    public function test_create_page_defaults_pin_to_terrain_coordinates_when_terrain_has_its_own(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $terrain = Terrain::factory()->create(['lat' => 51.201, 'lng' => 5.301]);
+
+        Livewire::withQueryParams(['terrain_ids' => [$terrain->id]])
+            ->test(CreateElectricalBoard::class)
+            ->assertSet('data.lat', 51.201)
+            ->assertSet('data.lng', 5.301);
+    }
+
+    public function test_create_page_falls_back_to_terrains_complex_coordinates_when_terrain_has_none(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create(['lat' => 51.202, 'lng' => 5.302]);
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id, 'lat' => null, 'lng' => null]);
+
+        Livewire::withQueryParams(['terrain_ids' => [$terrain->id]])
+            ->test(CreateElectricalBoard::class)
+            ->assertSet('data.lat', 51.202)
+            ->assertSet('data.lng', 5.302);
+    }
+
+    public function test_create_page_defaults_pin_to_structures_own_coordinates(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $structure = Structure::factory()->create(['lat' => 51.203, 'lng' => 5.303]);
+
+        Livewire::withQueryParams(['structure_ids' => [$structure->id]])
+            ->test(CreateElectricalBoard::class)
+            ->assertSet('data.lat', 51.203)
+            ->assertSet('data.lng', 5.303);
+    }
+
+    public function test_create_page_falls_back_to_structures_terrain_coordinates_when_structure_has_none(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $terrain = Terrain::factory()->create(['lat' => 51.204, 'lng' => 5.304]);
+        $structure = Structure::factory()->create(['lat' => null, 'lng' => null]);
+        $structure->terrains()->attach($terrain->id);
+
+        Livewire::withQueryParams(['structure_ids' => [$structure->id]])
+            ->test(CreateElectricalBoard::class)
+            ->assertSet('data.lat', 51.204)
+            ->assertSet('data.lng', 5.304);
+    }
+
+    public function test_create_page_falls_back_to_structures_terrains_complex_coordinates_as_last_resort(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create(['lat' => 51.205, 'lng' => 5.305]);
+        $terrain = Terrain::factory()->create(['complex_id' => $complex->id, 'lat' => null, 'lng' => null]);
+        $structure = Structure::factory()->create(['lat' => null, 'lng' => null]);
+        $structure->terrains()->attach($terrain->id);
+
+        Livewire::withQueryParams(['structure_ids' => [$structure->id]])
+            ->test(CreateElectricalBoard::class)
+            ->assertSet('data.lat', 51.205)
+            ->assertSet('data.lng', 5.305);
+    }
+
+    public function test_create_page_falls_back_to_configured_default_map_when_nothing_has_coordinates(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        config(['fieldops.default_map' => ['lat' => 12.345, 'lng' => 67.891, 'zoom' => 11]]);
+
+        $complex = Complex::factory()->create(['lat' => null, 'lng' => null]);
+
+        Livewire::withQueryParams(['complex_id' => $complex->id])
+            ->test(CreateElectricalBoard::class)
+            ->assertSet('data.lat', 12.345)
+            ->assertSet('data.lng', 67.891);
+    }
+
+    public function test_create_page_aborts_when_no_parent_context_is_present(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $this->get('/electrical-boards/create')->assertForbidden();
+    }
+
+    public function test_create_page_aborts_when_context_ids_do_not_resolve_to_real_records(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $this->get('/electrical-boards/create?complex_id=999999')->assertForbidden();
+    }
+
+    public function test_create_page_renders_when_a_valid_parent_context_is_present(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $complex = Complex::factory()->create();
+
+        $this->get('/electrical-boards/create?complex_id='.$complex->id)->assertOk();
     }
 }

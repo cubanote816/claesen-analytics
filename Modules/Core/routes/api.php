@@ -6,8 +6,9 @@ use Modules\Core\Http\Controllers\CoreController;
 Route::prefix('v1/auth')->group(function () {
     // Bearer-token login — non-browser clients and legacy integrations.
     Route::post('/login', [\Modules\Core\Http\Controllers\Auth\AuthController::class, 'login']);
-    // loginSpa() lives in routes/web.php — it needs session/CSRF (the 'web' middleware
-    // group), which this api.php file's 'api' middleware group does not provide.
+    // Session-cookie logins (login/client-portal, login/sport) live in routes/web.php —
+    // they need session/CSRF (the 'web' middleware group), which this api.php file's
+    // 'api' middleware group does not provide.
 });
 
 // Public — exchange one-time activation code for a limited setup:password token.
@@ -16,6 +17,18 @@ Route::middleware(['throttle:5,1'])
     ->post('v1/auth/activate',
         [\Modules\Core\Http\Controllers\Auth\ExchangeActivationCodeController::class, 'exchange'])
     ->name('auth.activate');
+
+// CLA-371: public — request/consume a password reset. Rate-limited for the
+// same reason as /activate above (sendLink additionally never reveals
+// whether the email exists, regardless of throttle state).
+Route::middleware(['throttle:5,1'])->prefix('v1/auth')->group(function () {
+    Route::post('/forgot-password',
+        [\Modules\Core\Http\Controllers\Auth\PasswordResetController::class, 'sendLink'])
+        ->name('auth.password.forgot');
+    Route::post('/reset-password',
+        [\Modules\Core\Http\Controllers\Auth\PasswordResetController::class, 'reset'])
+        ->name('auth.password.reset');
+});
 
 // Requires a setup:password Sanctum token (issued by /auth/activate).
 // Intentionally excluded from EnsurePasswordIsSet — it is the cure.

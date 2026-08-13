@@ -39,7 +39,18 @@ class EditStructure extends EditRecord
                 ?? null;
         }
 
+        if (is_numeric($data['lat'] ?? null) && is_numeric($data['lng'] ?? null)) {
+            $data['map_center_lat'] = $data['lat'];
+            $data['map_center_lng'] = $data['lng'];
+        }
+
         return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        $this->record->refresh();
+        $this->fillForm();
     }
 
     protected function getHeaderActions(): array

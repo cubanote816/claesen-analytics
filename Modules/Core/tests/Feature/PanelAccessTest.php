@@ -6,6 +6,7 @@ namespace Modules\Core\Tests\Feature;
 
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -112,5 +113,51 @@ class PanelAccessTest extends TestCase
             ->assertRedirect(route('filament.admin.auth.login'));
 
         $this->assertGuest();
+    }
+
+    // CLA-363: the login attempt itself must fail for client/technician (no session
+    // established at all) — unlike hasPanelAccess()/EnsurePanelAccess above, which
+    // only redirect an *already authenticated* user away from panel resources.
+    // canAccessPanel() intentionally stays permissive (tests above), so this is
+    // exercised through Modules\Core\Filament\Pages\Auth\Login instead.
+    public function test_client_and_technician_login_attempts_fail_without_establishing_a_session(): void
+    {
+        Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'web']);
+
+        foreach (['client', 'technician'] as $role) {
+            $user = $this->activeUser();
+            $user->assignRole($role);
+
+            Livewire::test(\Modules\Core\Filament\Pages\Auth\Login::class)
+                ->fillForm(['email' => $user->email, 'password' => 'Secret1234!'])
+                ->call('authenticate')
+                ->assertHasFormErrors();
+
+            $this->assertGuest();
+        }
+    }
+
+    public function test_other_existing_roles_can_still_log_in_through_the_panel(): void
+    {
+        foreach (['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer', 'project_manager'] as $role) {
+            $user = $this->activeUser();
+            $user->assignRole($role);
+
+            // WithRateLimiting throttles authenticate() at 5/min keyed on
+            // component+method+IP — every iteration below shares that key, so it
+            // needs clearing between roles or the loop trips its own rate limit.
+            \Illuminate\Support\Facades\RateLimiter::clear(
+                'livewire-rate-limiter:'.sha1(\Modules\Core\Filament\Pages\Auth\Login::class.'|authenticate|127.0.0.1'),
+            );
+
+            Livewire::test(\Modules\Core\Filament\Pages\Auth\Login::class)
+                ->fillForm(['email' => $user->email, 'password' => 'Secret1234!'])
+                ->call('authenticate')
+                ->assertHasNoFormErrors();
+
+            $this->assertAuthenticatedAs($user);
+
+            $this->app['auth']->guard('web')->logout();
+        }
     }
 }

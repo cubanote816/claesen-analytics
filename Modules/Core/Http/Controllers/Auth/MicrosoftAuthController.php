@@ -118,6 +118,58 @@ class MicrosoftAuthController extends Controller
                 return redirect('/login')->withErrors(['email' => 'This account has been deactivated.']);
             }
 
+            // CLA-344/CLA-363: resolve the intended destination (and, for the backoffice,
+            // peek whether this is a Filament login) before establishing the session, so a
+            // non-permitted user is blocked before ever getting a session cookie — for any
+            // of the 4 destinations, not just Client Portal. Peeking here (session(), not
+            // pull) does not consume the values — the existing pulls further down still run
+            // normally and resolve to the same values.
+            $redirects = app(FrontendRedirectService::class);
+            $intendedFrontendUrl = $redirects->resolve(session('custom_redirect_url')) ?? $redirects->fallback();
+            $intendedSource = session('auth_source', 'frontend');
+
+            if ($intendedSource === 'filament') {
+                // Deny-list client/technician; every other existing role
+                // (financial_manager, hr_manager, viewer, project_manager,
+                // super_admin, admin, ...) is left untouched here — hasPanelAccess()/
+                // EnsurePanelAccess still governs which resources they see once inside.
+                if ($user->hasRole('client') || $user->hasRole('technician')) {
+                    $analytics->recordBlockedLogin(
+                        $user,
+                        $azureUser->getEmail(),
+                        'backoffice',
+                        'azure_oauth_session',
+                        $request,
+                        'role_not_permitted',
+                        ['provider' => 'azure']
+                    );
+
+                    Auth::logout();
+
+                    return redirect('/login')
+                        ->withErrors(['microsoft' => "Toegang Geweigerd: Uw Microsoft-account ({$azureUser->getEmail()}) is niet geautoriseerd voor deze applicatie. Neem contact op met de beheerder."]);
+                }
+            } else {
+                $roleGate = $this->roleGateForFrontend($redirects, $intendedFrontendUrl);
+
+                if ($roleGate !== null && ! $user->hasAnyRole($roleGate['roles'])) {
+                    $analytics->recordBlockedLogin(
+                        $user,
+                        $azureUser->getEmail(),
+                        $roleGate['appSource'],
+                        'azure_oauth_session',
+                        $request,
+                        'role_not_permitted',
+                        ['provider' => 'azure']
+                    );
+
+                    Auth::logout();
+
+                    return redirect('/login')
+                        ->withErrors(['microsoft' => "Toegang Geweigerd: Uw Microsoft-account ({$azureUser->getEmail()}) is niet geautoriseerd voor deze applicatie. Neem contact op met de beheerder."]);
+                }
+            }
+
             Auth::login($user);
             if ($request->hasSession()) {
                 $request->session()->regenerate();
@@ -183,6 +235,32 @@ class MicrosoftAuthController extends Controller
             return redirect('/login')
                 ->withErrors(['microsoft' => 'Inloggen via Microsoft is mislukt. Probeer het opnieuw of neem contact op met de beheerder.']);
         }
+    }
+
+    /**
+     * CLA-363: maps an intended frontend destination to the roles allowed to log
+     * into it, mirroring AuthController::loginSport()/loginClientPortal() and
+     * Safety's own Modules\Safety\Http\Controllers\AuthController::login() — same
+     * role list, different codebase. Returns null for destinations with no
+     * dedicated role gate.
+     *
+     * @return array{roles: array<int, string>, appSource: string}|null
+     */
+    private function roleGateForFrontend(FrontendRedirectService $redirects, ?string $intendedFrontendUrl): ?array
+    {
+        if ($redirects->sameOrigin($intendedFrontendUrl, config('fieldops.client_portal_url'))) {
+            return ['roles' => ['client'], 'appSource' => 'client_portal'];
+        }
+
+        if ($redirects->sameOrigin($intendedFrontendUrl, config('fieldops.safety_app_url'))) {
+            return ['roles' => ['project_manager', 'super_admin', 'admin'], 'appSource' => 'safety'];
+        }
+
+        if ($redirects->sameOrigin($intendedFrontendUrl, config('fieldops.field_app_url'))) {
+            return ['roles' => ['technician', 'project_manager', 'super_admin', 'admin'], 'appSource' => 'sport'];
+        }
+
+        return null;
     }
 
     private function deriveAppSource(string $source, ?string $frontendUrl): string

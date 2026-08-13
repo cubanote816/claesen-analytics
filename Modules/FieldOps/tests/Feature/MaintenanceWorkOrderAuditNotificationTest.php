@@ -24,6 +24,7 @@ use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Notifications\WorkOrderOperationalNotification;
 use Modules\FieldOps\Services\MaintenanceWorkOrderService;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -47,6 +48,7 @@ class MaintenanceWorkOrderAuditNotificationTest extends TestCase
         $employee = Employee::create(['id' => 'AUDIT-001', 'name' => 'Field Worker', 'fl_active' => true]);
         $admin = UserFactory::new()->create();
         $admin->assignRole('admin');
+        $admin->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
         $type = FoMaintenanceType::factory()->corrective()->create();
 
         try {
@@ -78,6 +80,7 @@ class MaintenanceWorkOrderAuditNotificationTest extends TestCase
         $worker->assignRole('project_manager');
         $admin = UserFactory::new()->create();
         $admin->assignRole('admin');
+        $admin->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
         $order = $this->createOrder(
             $luminaire,
             FoMaintenanceType::factory()->corrective()->create(),

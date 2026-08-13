@@ -7,6 +7,7 @@ namespace Modules\FieldOps\Filament\Resources;
 use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -31,6 +32,7 @@ use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\EditMaintena
 use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\ListMaintenanceWorkOrders;
 use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\ViewMaintenanceWorkOrder;
 use Modules\FieldOps\Models\FoClient;
+use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
@@ -56,7 +58,14 @@ class FoMaintenanceWorkOrderResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return static::canAccess() && in_array($record->status, [MaintenanceWorkOrderStatus::PLANNED, MaintenanceWorkOrderStatus::ASSIGNED], true);
+        // AWAITING_VALIDATION: the Edit page switches its form entirely to the review section
+        // (root_cause/solution_applied/completion_notes/completion_details) — see form() and
+        // EditMaintenanceWorkOrder::handleRecordUpdate(). Planning fields stay locked there.
+        return static::canAccess() && in_array($record->status, [
+            MaintenanceWorkOrderStatus::PLANNED,
+            MaintenanceWorkOrderStatus::ASSIGNED,
+            MaintenanceWorkOrderStatus::AWAITING_VALIDATION,
+        ], true);
     }
 
     public static function getNavigationGroup(): ?string
@@ -116,7 +125,13 @@ class FoMaintenanceWorkOrderResource extends Resource
                         ->disabled()
                         ->dehydrated(false),
                 ])->columns(2),
-            Section::make(__('fieldops::resource.work_orders.sections.planning'))->schema([
+            Section::make(__('fieldops::resource.work_orders.sections.planning'))
+                // awaiting_validation: locked, read-only — this page's editable fields switch
+                // entirely to the review section below (updateReview() only ever touches
+                // root_cause/solution_applied/completion_notes/completion_details, never these).
+                ->disabled(fn (?FoMaintenanceWorkOrder $record): bool => $record?->status === MaintenanceWorkOrderStatus::AWAITING_VALIDATION)
+                ->dehydrated(fn (?FoMaintenanceWorkOrder $record): bool => $record?->status !== MaintenanceWorkOrderStatus::AWAITING_VALIDATION)
+                ->schema([
                 Select::make('fo_maintenance_type_id')
                     ->label(__('fieldops::resource.maintenance_records.fields.maintenance_type'))
                     ->options(fn (): array => FoMaintenanceType::query()->orderBy('id')->get()->mapWithKeys(fn ($item) => [
@@ -138,7 +153,8 @@ class FoMaintenanceWorkOrderResource extends Resource
                         ->where('fl_active', true)
                         ->whereIn('id', User::query()->where('is_active', true)->whereNotNull('employee_id')->select('employee_id'))
                         ->orderBy('name')
-                        ->pluck('name', 'id')
+                        ->get()
+                        ->mapWithKeys(fn (Employee $employee) => [(string) $employee->id => $employee->name])
                         ->all())
                     ->searchable()
                     ->nullable(),
@@ -157,6 +173,52 @@ class FoMaintenanceWorkOrderResource extends Resource
                     ->rows(4)
                     ->columnSpanFull(),
             ])->columns(2),
+            // awaiting_validation only — lets the backoffice correct/complete what the field
+            // worker submitted before validating/closing (CLA-374). The task checklist mirrors
+            // Claesen-Sport-updateing's TaskChecklistCard constants (deliberately not a backend
+            // catalog — completion_details has no enforced shape, see
+            // ExecuteMaintenanceWorkOrderRequest/SubmitMaintenanceWorkOrderRequest).
+            Section::make(__('fieldops::resource.work_orders.sections.review'))
+                ->description(__('fieldops::resource.work_orders.sections.review_copy'))
+                ->visible(fn (?FoMaintenanceWorkOrder $record): bool => $record?->status === MaintenanceWorkOrderStatus::AWAITING_VALIDATION)
+                ->schema([
+                    Textarea::make('root_cause')
+                        ->label(__('fieldops::resource.maintenance_records.fields.root_cause'))
+                        ->rows(3),
+                    Textarea::make('solution_applied')
+                        ->label(__('fieldops::resource.maintenance_records.fields.solution_applied'))
+                        ->rows(3)
+                        ->required(),
+                    Textarea::make('completion_notes')
+                        ->label(__('fieldops::resource.work_orders.fields.completion_notes'))
+                        ->rows(3)
+                        ->columnSpanFull(),
+                ])->columns(2),
+            Section::make(__('fieldops::resource.work_orders.sections.tasks_performed'))
+                ->visible(fn (?FoMaintenanceWorkOrder $record): bool => $record?->status === MaintenanceWorkOrderStatus::AWAITING_VALIDATION)
+                ->schema([
+                    Checkbox::make('completion_details.inspection')->label(__('fieldops::resource.work_orders.tasks.inspection')),
+                    Checkbox::make('completion_details.cleaning')->label(__('fieldops::resource.work_orders.tasks.cleaning')),
+                    Checkbox::make('completion_details.component_checks')->label(__('fieldops::resource.work_orders.tasks.component_checks')),
+                    Checkbox::make('completion_details.lubrication')
+                        ->label(__('fieldops::resource.work_orders.tasks.lubrication'))
+                        ->visible(fn (?FoMaintenanceWorkOrder $record): bool => $record?->maintainable_type === Luminaire::class),
+                    Checkbox::make('completion_details.testing')
+                        ->label(__('fieldops::resource.work_orders.tasks.testing'))
+                        ->visible(fn (?FoMaintenanceWorkOrder $record): bool => $record?->maintainable_type === Luminaire::class),
+                    Checkbox::make('completion_details.electrical_testing')
+                        ->label(__('fieldops::resource.work_orders.tasks.electrical_testing'))
+                        ->visible(fn (?FoMaintenanceWorkOrder $record): bool => $record?->maintainable_type === ElectricalBoard::class),
+                    Checkbox::make('completion_details.connection_checks')
+                        ->label(__('fieldops::resource.work_orders.tasks.connection_checks'))
+                        ->visible(fn (?FoMaintenanceWorkOrder $record): bool => $record?->maintainable_type === ElectricalBoard::class),
+                    Checkbox::make('completion_details.safety_verification')
+                        ->label(__('fieldops::resource.work_orders.tasks.safety_verification'))
+                        ->visible(fn (?FoMaintenanceWorkOrder $record): bool => $record?->maintainable_type === ElectricalBoard::class),
+                    TextInput::make('completion_details.otherTasks')
+                        ->label(__('fieldops::resource.work_orders.tasks.other_tasks'))
+                        ->columnSpanFull(),
+                ])->columns(3),
             Section::make(__('fieldops::resource.work_orders.sections.recurrence'))
                 ->description(__('fieldops::resource.work_orders.sections.recurrence_copy'))
                 ->visible(fn (?FoMaintenanceWorkOrder $record): bool => $record === null)
@@ -197,6 +259,26 @@ class FoMaintenanceWorkOrderResource extends Resource
                 TextEntry::make('root_cause')->label(__('fieldops::resource.maintenance_records.fields.root_cause'))->placeholder('—'),
                 TextEntry::make('solution_applied')->label(__('fieldops::resource.maintenance_records.fields.solution_applied'))->placeholder('—'),
                 TextEntry::make('completion_notes')->label(__('fieldops::resource.work_orders.fields.completion_notes'))->placeholder('—')->columnSpanFull(),
+                TextEntry::make('completion_details')
+                    ->label(__('fieldops::resource.work_orders.sections.tasks_performed'))
+                    ->placeholder('—')
+                    ->columnSpanFull()
+                    ->state(function (FoMaintenanceWorkOrder $record): ?string {
+                        $state = $record->completion_details;
+                        if (! $state) {
+                            return null;
+                        }
+                        $labels = collect($state)
+                            ->filter(fn ($value, $key) => $key !== 'otherTasks' && $value === true)
+                            ->keys()
+                            ->map(fn ($key) => __("fieldops::resource.work_orders.tasks.{$key}"))
+                            ->all();
+                        if (! empty($state['otherTasks'])) {
+                            $labels[] = $state['otherTasks'];
+                        }
+
+                        return $labels ? implode(', ', $labels) : null;
+                    }),
                 TextEntry::make('override_reason')->label(__('fieldops::resource.work_orders.fields.override_reason'))->placeholder('—')->columnSpanFull(),
             ])->columns(2)->collapsible(),
             Section::make(__('fieldops::resource.work_orders.sections.assignment'))->schema([
@@ -264,7 +346,7 @@ class FoMaintenanceWorkOrderResource extends Resource
             TextColumn::make('priority')->label(__('fieldops::resource.work_orders.fields.priority'))->badge(),
         ])->filters([
             SelectFilter::make('status')->options(collect(MaintenanceWorkOrderStatus::cases())->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])->all()),
-            SelectFilter::make('assigned_employee_id')->label(__('fieldops::resource.work_orders.fields.assignee'))->options(Employee::query()->orderBy('name')->pluck('name', 'id')->all()),
+            SelectFilter::make('assigned_employee_id')->label(__('fieldops::resource.work_orders.fields.assignee'))->options(Employee::query()->orderBy('name')->get()->mapWithKeys(fn (Employee $employee) => [(string) $employee->id => $employee->name])->all()),
         ])->recordActions([
             ViewAction::make(),
             EditAction::make()->visible(fn (FoMaintenanceWorkOrder $record): bool => static::canEdit($record)),

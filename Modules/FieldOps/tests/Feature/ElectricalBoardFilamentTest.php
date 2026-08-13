@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\ComplexResource;
 use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
+use Modules\FieldOps\Filament\Resources\ElectricalBoards\Pages\EditElectricalBoard;
 use Modules\FieldOps\Filament\Resources\Structures\Pages\ViewStructure;
 use Modules\FieldOps\Filament\Resources\Structures\RelationManagers\ElectricalBoardsRelationManager as StructureElectricalBoardsRelationManager;
 use Modules\FieldOps\Models\Complex;
@@ -65,6 +67,20 @@ class ElectricalBoardFilamentTest extends TestCase
         $this->get("/electrical-boards/{$board->id}/edit")->assertOk();
     }
 
+    public function test_flat_index_does_not_expose_a_standalone_create_link(): void
+    {
+        // Electrical boards are never created standalone — only contextually
+        // from a Complex/Terrain/Structure tab. The flat (nav-hidden) index
+        // must not offer a way to reach the create page without that context.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $this->get('/electrical-boards')
+            ->assertOk()
+            ->assertDontSee(ElectricalBoardResource::getUrl('create'), false);
+    }
+
     public function test_board_without_any_usage_renders(): void
     {
         $user = User::factory()->create();
@@ -94,6 +110,44 @@ class ElectricalBoardFilamentTest extends TestCase
             ->assertOk()
             ->assertSee('Test value', false)
             ->assertDontSee('[object Object]', false);
+    }
+
+    public function test_edit_board_keeps_the_new_pin_position_after_saving(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        $board = ElectricalBoard::factory()->create([
+            'lat' => 51.164145,
+            'lng' => 5.163746,
+        ]);
+
+        $component = Livewire::test(EditElectricalBoard::class, ['record' => $board->getRouteKey()])
+            ->assertSet('data.lat', 51.164145)
+            ->assertSet('data.lng', 5.163746)
+            ->assertSet('data.map_center_lat', 51.164145)
+            ->assertSet('data.map_center_lng', 5.163746);
+
+        $component
+            ->set('data.lat', 51.162345)
+            ->set('data.lng', 5.162345)
+            ->call('save')
+            ->assertSet('data.lat', 51.162345)
+            ->assertSet('data.lng', 5.162345)
+            ->assertSet('data.map_center_lat', 51.162345)
+            ->assertSet('data.map_center_lng', 5.162345);
+
+        $this->assertSame(51.162345, $board->refresh()->lat);
+        $this->assertSame(5.162345, $board->lng);
+
+        $this->get("/electrical-boards/{$board->id}/edit")
+            ->assertOk()
+            ->assertSee("this.marker.on('dragend', () => this.syncFromLatLng(this.marker.getLatLng(), false, true));")
+            ->assertSee("this.map.on('click', (event) => this.syncFromLatLng(event.latlng, true, true));")
+            ->assertSee("this.centerLatInput.dispatchEvent(new Event('input', { bubbles: true }));")
+            ->assertSee("this.centerLngInput.dispatchEvent(new Event('input', { bubbles: true }));");
     }
 
     public function test_board_map_passes_terrain_type_code_and_color_for_sport_pin(): void

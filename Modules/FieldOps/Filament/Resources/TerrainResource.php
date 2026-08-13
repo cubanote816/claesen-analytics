@@ -351,9 +351,9 @@ class TerrainResource extends Resource
      */
     protected static function resolveLocationDefaults(?int $complexId = null): array
     {
-        $fallbackLat = 51.1635;
-        $fallbackLng = 5.1640;
-        $fallbackZoom = 16;
+        $fallbackLat = (float) config('fieldops.default_map.lat');
+        $fallbackLng = (float) config('fieldops.default_map.lng');
+        $fallbackZoom = (int) config('fieldops.default_map.zoom');
 
         $complex = $complexId ? Complex::query()->find($complexId) : null;
 

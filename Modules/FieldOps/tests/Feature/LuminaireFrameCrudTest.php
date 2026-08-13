@@ -8,6 +8,7 @@ use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\Structure;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class LuminaireFrameCrudTest extends TestCase
@@ -21,6 +22,8 @@ class LuminaireFrameCrudTest extends TestCase
         parent::setUp();
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
         $this->user = User::factory()->create();
+        // CLA-364: broad FieldOps access needs the permission explicitly now.
+        $this->user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
     }
 
     // ── AUTH ──────────────────────────────────────────────────────────────

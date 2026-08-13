@@ -26,10 +26,20 @@ class FieldOpsTenantService
         return $user->hasRole('client');
     }
 
+    // CLA-364: distinct from isClientUser() — this is about *scope*, not the
+    // Client Portal specifically. A technician/project_manager without this
+    // permission is scoped the same way a client is (allowedClientIds() below),
+    // but keeps every other client-only restriction (isClientUser() call sites
+    // elsewhere, e.g. the maintenance-work-order block) untouched.
+    public function hasBroadAccess(User $user): bool
+    {
+        return $user->can('fieldops.view-all-clients');
+    }
+
     /** @return Collection<int, int> */
     public function allowedClientIds(User $user): Collection
     {
-        if (! $this->isClientUser($user)) {
+        if ($this->hasBroadAccess($user)) {
             return collect();
         }
 
@@ -43,7 +53,7 @@ class FieldOpsTenantService
 
     public function scopeForUser(Builder $query, User $user, string $modelClass): Builder
     {
-        if (! $this->isClientUser($user)) {
+        if ($this->hasBroadAccess($user)) {
             return $query;
         }
 
@@ -69,22 +79,49 @@ class FieldOpsTenantService
 
     public function canView(User $user, Model $model): bool
     {
-        if (! $this->isClientUser($user)) {
-            return true;
+        // CLA-369: Client Portal-only rule, independent of scope — clients never
+        // see work orders (an internal concept), but a scoped technician/
+        // project_manager must still be able to view their own, so this check
+        // stays tied to isClientUser() rather than the general scoping gate below.
+        if ($model instanceof FoMaintenanceWorkOrder && $this->isClientUser($user)) {
+            return false;
         }
 
-        if ($model instanceof FoMaintenanceWorkOrder) {
-            return false;
+        if ($this->hasBroadAccess($user)) {
+            return true;
         }
 
         if ($model instanceof FoMaintenanceRequest) {
             return $this->allowedClientIds($user)->contains((int) $model->client_id);
         }
 
-        $allowed = $this->allowedClientIds($user);
+        $allowed = $this->allowedClientIds($user)->merge($this->assignedWorkOrderClientIds($user))->unique();
         $owners = $this->ownerClientIds($model);
 
         return $owners->count() === 1 && $allowed->contains($owners->first());
+    }
+
+    // CLA-375: assigning a work order (MaintenanceWorkOrderService) never grants
+    // fieldOpsClients scope — only checks the employee has an active linked User.
+    // Without this, an assigned technician can list their own task (assigned()
+    // filters by assigned_employee_id only) but gets 403 opening it or any
+    // linked equipment, because allowedClientIds() alone stays empty. This widens
+    // canView() only — scopeForUser() (listing endpoints) is untouched on purpose,
+    // this is about detail access to a technician's own assignment, not browsing.
+    /** @return Collection<int, int> */
+    private function assignedWorkOrderClientIds(User $user): Collection
+    {
+        if (! $user->employee_id) {
+            return collect();
+        }
+
+        return FoMaintenanceWorkOrder::query()
+            ->where('assigned_employee_id', $user->employee_id)
+            ->pluck('client_id')
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
     }
 
     /** @return Collection<int, int> */
@@ -107,6 +144,7 @@ class FieldOpsTenantService
                     ->flatMap(fn (Structure $structure) => $structure->terrains->pluck('complex.client_id'))),
             $model instanceof FoMaintenanceRecord => collect([$model->client_id]),
             $model instanceof FoMaintenanceRequest => collect([$model->client_id]),
+            $model instanceof FoMaintenanceWorkOrder => collect([$model->client_id]),
             default => collect(),
         };
 

@@ -14,8 +14,10 @@ class StructureResource extends JsonResource
         return [
             'id'                 => $this->id,
             'structure_type'     => $this->whenLoaded('structureType', fn () => [
-                'id'   => $this->structureType->id,
-                'name' => $this->structureType->getTranslations('name'),
+                'id'        => $this->structureType->id,
+                'name'      => $this->structureType->getTranslations('name'),
+                'code'      => $this->structureType->code,
+                'pin_color' => $this->structureType->pin_color,
             ]),
             'height'             => $this->height,
             'lat'                => $this->lat,

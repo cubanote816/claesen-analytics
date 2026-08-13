@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\Core\Models\User;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class RolesAndPermissionsSeeder extends Seeder
@@ -22,6 +23,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'hr_manager' => 5,
             'viewer' => 6,
             'client' => 7,
+            'technician' => 8,
         ];
 
         foreach ($roles as $roleName => $sort) {
@@ -29,6 +31,18 @@ class RolesAndPermissionsSeeder extends Seeder
                 ['name' => $roleName, 'guard_name' => 'web'],
                 ['sort' => $sort]
             );
+        }
+
+        // CLA-364: broad (unscoped) FieldOps data access is the exception, not the
+        // default — only these roles keep seeing every client's data. Everyone else
+        // (technician included) is scoped to whichever FoClient records get
+        // assigned to them via Users > fieldOpsClients in Filament.
+        // CLA-377: project_manager was moved back into the unscoped group (business
+        // decision) so PMs see every client without needing an explicit
+        // fieldOpsClients assignment.
+        $viewAllClients = Permission::findOrCreate('fieldops.view-all-clients', 'web');
+        foreach (['super_admin', 'admin', 'project_manager', 'financial_manager', 'hr_manager', 'viewer'] as $roleName) {
+            Role::findByName($roleName, 'web')->givePermissionTo($viewAllClients);
         }
 
         $superAdminRole = Role::findByName('super_admin');

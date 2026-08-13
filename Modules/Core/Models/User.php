@@ -113,6 +113,12 @@ class User extends Authenticatable implements FilamentUser
     {
         // Keep Filament authentication available so EnsurePanelAccess can send
         // non-panel users to the dedicated no-access page and still allow logout.
+        // CLA-363: the actual login-time rejection for client/technician lives in
+        // \Modules\Core\Filament\Pages\Auth\Login::authenticate() instead of here —
+        // this method is also called by Filament's Authenticate middleware on
+        // every panel request (not just login), and an already-authenticated
+        // session failing it gets 403'd on every route including logout (see
+        // EnsurePanelAccess's comment on why that's avoided).
         return (bool) $this->is_active;
     }
 

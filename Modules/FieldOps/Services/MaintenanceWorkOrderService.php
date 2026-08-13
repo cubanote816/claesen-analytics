@@ -24,7 +24,11 @@ class MaintenanceWorkOrderService
 
     public function create(array $data, ?int $userId): FoMaintenanceWorkOrder
     {
-        $assignedEmployeeId = $data['assigned_employee_id'] ?? null;
+        // Filament's Select stores the chosen employee id as an options() array
+        // key, and PHP unconditionally coerces numeric-looking string array keys
+        // (e.g. legacy employee id "100") to int — so $data may carry an int here
+        // even though employees.id is a string column. Normalize at the boundary.
+        $assignedEmployeeId = isset($data['assigned_employee_id']) ? (string) $data['assigned_employee_id'] : null;
         $this->assertAssignableEmployee($assignedEmployeeId);
 
         $order = DB::transaction(function () use ($data, $userId, $assignedEmployeeId): FoMaintenanceWorkOrder {
@@ -37,6 +41,7 @@ class MaintenanceWorkOrderService
                 'created_by_user_id' => $userId,
                 'client_id' => $context['client_id'],
                 'luminaire_position_id' => $context['luminaire_position_id'],
+                'assigned_employee_id' => $assignedEmployeeId,
                 'assigned_by_user_id' => $assignedEmployeeId ? $userId : null,
                 'assigned_at' => $assignedEmployeeId ? now() : null,
                 'status' => $assignedEmployeeId
@@ -99,7 +104,9 @@ class MaintenanceWorkOrderService
 
     public function updatePlanning(FoMaintenanceWorkOrder $order, array $data, int $userId): FoMaintenanceWorkOrder
     {
-        $newEmployeeId = $data['assigned_employee_id'] ?? null;
+        // See create() above: normalize the Select-derived employee id back to
+        // string before it reaches strictly-typed code or gets compared/persisted.
+        $newEmployeeId = isset($data['assigned_employee_id']) ? (string) $data['assigned_employee_id'] : null;
         $this->assertAssignableEmployee($newEmployeeId);
 
         [$updated, $previousEmployeeId] = DB::transaction(function () use ($order, $data, $userId, $newEmployeeId): array {
@@ -121,6 +128,7 @@ class MaintenanceWorkOrderService
                 'fo_maintenance_type_id', 'assigned_employee_id', 'scheduled_for', 'due_at',
                 'priority', 'problem_description', 'instructions',
             ]);
+            $changes['assigned_employee_id'] = $newEmployeeId;
             $changes['status'] = $nextStatus;
 
             if ($assignmentChanged) {
@@ -155,6 +163,33 @@ class MaintenanceWorkOrderService
         }
 
         return $updated;
+    }
+
+    /**
+     * Lets the backoffice correct/complete the field report (root_cause, solution_applied,
+     * completion_notes, completion_details) while the order is awaiting_validation — before
+     * validating/closing it. Deliberately separate from updatePlanning(): different fields,
+     * different allowed status, and editing here never touches assignment/scheduling.
+     */
+    public function updateReview(FoMaintenanceWorkOrder $order, array $data, int $userId): FoMaintenanceWorkOrder
+    {
+        return DB::transaction(function () use ($order, $data, $userId): FoMaintenanceWorkOrder {
+            $locked = FoMaintenanceWorkOrder::query()->lockForUpdate()->findOrFail($order->id);
+
+            if ($locked->status !== MaintenanceWorkOrderStatus::AWAITING_VALIDATION) {
+                throw ValidationException::withMessages([
+                    'status' => __('fieldops::resource.work_orders.validation.cannot_review'),
+                ]);
+            }
+
+            $locked->update(Arr::only($data, [
+                'root_cause', 'solution_applied', 'completion_notes', 'completion_details',
+            ]));
+
+            $this->recordEvent($locked, MaintenanceWorkOrderEventType::REVIEWED, $userId, $locked->status, $locked->status);
+
+            return $locked->fresh();
+        });
     }
 
     public function generateDueOrders(bool $dryRun = false): int
@@ -331,70 +366,7 @@ class MaintenanceWorkOrderService
 
     public function close(FoMaintenanceWorkOrder $order, int $userId, ?string $overrideReason = null): FoMaintenanceWorkOrder
     {
-        $closed = DB::transaction(function () use ($order, $userId, $overrideReason): FoMaintenanceWorkOrder {
-            $order = FoMaintenanceWorkOrder::query()->lockForUpdate()->findOrFail($order->id);
-            $override = $order->status !== MaintenanceWorkOrderStatus::AWAITING_VALIDATION;
-
-            if ($order->status === MaintenanceWorkOrderStatus::COMPLETED || $order->maintenance_record_id) {
-                throw ValidationException::withMessages(['status' => __('fieldops::resource.work_orders.validation.already_closed')]);
-            }
-            if ($order->status === MaintenanceWorkOrderStatus::CANCELLED) {
-                throw ValidationException::withMessages(['status' => __('fieldops::resource.work_orders.validation.cancelled')]);
-            }
-            if ($override && blank($overrideReason)) {
-                throw ValidationException::withMessages(['override_reason' => __('fieldops::resource.work_orders.validation.override_reason')]);
-            }
-
-            $fromStatus = $order->status;
-            $completedAt = $order->completed_at ?? now();
-            $type = FoMaintenanceType::query()->findOrFail($order->fo_maintenance_type_id);
-            $details = $order->completion_details ?? [];
-            if ($override) {
-                $details['backoffice_override'] = true;
-                $details['override_reason'] = $overrideReason;
-            }
-            $record = $order->maintainable->maintenanceRecords()->create([
-                'created_by_user_id' => $userId,
-                'fo_maintenance_type_id' => $order->fo_maintenance_type_id,
-                'luminaire_position_id' => $order->luminaire_position_id,
-                'employee_id' => $order->assigned_employee_id,
-                'client_id' => $order->client_id,
-                'maintenance_at' => $completedAt,
-                'details' => $details ?: null,
-                'notes' => $order->completion_notes,
-                'problem_description' => $order->problem_description,
-                'root_cause' => $order->root_cause,
-                'solution_applied' => $order->solution_applied,
-                'is_emergency' => $type->code === FoMaintenanceType::CODE_EMERGENCY,
-                'problem_reported_at' => $order->problem_description ? $order->created_at : null,
-                'problem_solved_at' => $order->problem_description ? $completedAt : null,
-                'downtime_hours' => $order->problem_description ? $order->created_at->diffInMinutes($completedAt, true) / 60 : null,
-                'priority' => $order->priority,
-            ]);
-
-            $order->update([
-                'status' => MaintenanceWorkOrderStatus::COMPLETED,
-                'completed_at' => $completedAt,
-                'validated_at' => now(),
-                'validated_by_user_id' => $userId,
-                'override_reason' => $override ? $overrideReason : null,
-                'maintenance_record_id' => $record->id,
-            ]);
-            app(MaintenanceRequestService::class)->resolveFromWorkOrder(
-                $order,
-                $order->solution_applied ?: $order->completion_notes ?: 'The maintenance work has been completed.',
-            );
-            $this->recordEvent(
-                $order,
-                $override ? MaintenanceWorkOrderEventType::OVERRIDDEN : MaintenanceWorkOrderEventType::VALIDATED,
-                $userId,
-                $fromStatus,
-                MaintenanceWorkOrderStatus::COMPLETED,
-                data: $override ? ['reason' => $overrideReason] : null,
-            );
-
-            return $order->fresh(['maintenanceRecord', 'assignedBy', 'serviceRequest.reporter']);
-        });
+        $closed = DB::transaction(fn () => $this->closeCore($order, $userId, $overrideReason));
 
         $this->notifications->completed($closed);
         if ($closed->serviceRequest?->reporter) {
@@ -402,6 +374,135 @@ class MaintenanceWorkOrderService
         }
 
         return $closed;
+    }
+
+    /**
+     * Creates a work order self-assigned to the requester's own employee record and closes it in
+     * the same transaction — no separate start/submit/validate actors. Used by the "execute now"
+     * endpoint (a project_manager/admin who fixes something on the spot and registers it
+     * immediately, as opposed to assigning it to a technician for later execution via create()).
+     *
+     * Logs the full CREATED→ASSIGNED→STARTED→SUBMITTED→OVERRIDDEN event chain at the same instant
+     * so the audit trail reads the same shape as a normal order's history, just compressed in
+     * time — no new event type needed. No notifications fire: the executor is the assigner, the
+     * assignee, and the closer all at once, so "assignment changed"/"completed" would just notify
+     * themselves about their own action.
+     */
+    public function createAndClose(array $data, int $userId, string $employeeId): FoMaintenanceWorkOrder
+    {
+        return DB::transaction(function () use ($data, $userId, $employeeId): FoMaintenanceWorkOrder {
+            $context = $this->context->resolve($data['maintainable_type'], (int) $data['maintainable_id']);
+            $now = now();
+
+            $order = FoMaintenanceWorkOrder::query()->create([
+                'created_by_user_id' => $userId,
+                'client_id' => $context['client_id'],
+                'luminaire_position_id' => $context['luminaire_position_id'],
+                'maintainable_type' => $data['maintainable_type'],
+                'maintainable_id' => $data['maintainable_id'],
+                'fo_maintenance_type_id' => $data['fo_maintenance_type_id'],
+                'assigned_employee_id' => $employeeId,
+                'assigned_by_user_id' => $userId,
+                'assigned_at' => $now,
+                'status' => MaintenanceWorkOrderStatus::IN_PROGRESS,
+                'priority' => $data['priority'],
+                'scheduled_for' => $now,
+                'problem_description' => $data['problem_description'] ?? null,
+                'root_cause' => $data['root_cause'] ?? null,
+                'solution_applied' => $data['solution_applied'],
+                'completion_notes' => $data['completion_notes'] ?? null,
+                'completion_details' => $data['completion_details'] ?? null,
+                'started_at' => $now,
+                'started_by_user_id' => $userId,
+                'submitted_at' => $now,
+                'completed_at' => $now,
+                'completed_by_user_id' => $userId,
+                'source' => 'field_self_execution',
+            ]);
+
+            $this->recordEvent($order, MaintenanceWorkOrderEventType::CREATED, $userId, null, MaintenanceWorkOrderStatus::PLANNED, null, $employeeId);
+            $this->recordEvent($order, MaintenanceWorkOrderEventType::ASSIGNED, $userId, MaintenanceWorkOrderStatus::PLANNED, MaintenanceWorkOrderStatus::ASSIGNED, null, $employeeId);
+            $this->recordEvent($order, MaintenanceWorkOrderEventType::STARTED, $userId, MaintenanceWorkOrderStatus::ASSIGNED, MaintenanceWorkOrderStatus::IN_PROGRESS);
+            // Logged for a complete audit narrative even though the order's live status never
+            // actually sits in AWAITING_VALIDATION — it goes IN_PROGRESS straight to COMPLETED via
+            // closeCore()'s override branch below, since there's no separate reviewer here.
+            $this->recordEvent($order, MaintenanceWorkOrderEventType::SUBMITTED, $userId, MaintenanceWorkOrderStatus::IN_PROGRESS, MaintenanceWorkOrderStatus::AWAITING_VALIDATION);
+
+            // Intentionally left at IN_PROGRESS (not AWAITING_VALIDATION) so closeCore() takes its
+            // override branch — creator and closer being the same person, with no separate
+            // submission/validation actors, is exactly what "override" means here.
+            return $this->closeCore(
+                $order->fresh(),
+                $userId,
+                __('fieldops::resource.work_orders.self_execution_reason'),
+            );
+        });
+    }
+
+    private function closeCore(FoMaintenanceWorkOrder $order, int $userId, ?string $overrideReason): FoMaintenanceWorkOrder
+    {
+        $order = FoMaintenanceWorkOrder::query()->lockForUpdate()->findOrFail($order->id);
+        $override = $order->status !== MaintenanceWorkOrderStatus::AWAITING_VALIDATION;
+
+        if ($order->status === MaintenanceWorkOrderStatus::COMPLETED || $order->maintenance_record_id) {
+            throw ValidationException::withMessages(['status' => __('fieldops::resource.work_orders.validation.already_closed')]);
+        }
+        if ($order->status === MaintenanceWorkOrderStatus::CANCELLED) {
+            throw ValidationException::withMessages(['status' => __('fieldops::resource.work_orders.validation.cancelled')]);
+        }
+        if ($override && blank($overrideReason)) {
+            throw ValidationException::withMessages(['override_reason' => __('fieldops::resource.work_orders.validation.override_reason')]);
+        }
+
+        $fromStatus = $order->status;
+        $completedAt = $order->completed_at ?? now();
+        $type = FoMaintenanceType::query()->findOrFail($order->fo_maintenance_type_id);
+        $details = $order->completion_details ?? [];
+        if ($override) {
+            $details['backoffice_override'] = true;
+            $details['override_reason'] = $overrideReason;
+        }
+        $record = $order->maintainable->maintenanceRecords()->create([
+            'created_by_user_id' => $userId,
+            'fo_maintenance_type_id' => $order->fo_maintenance_type_id,
+            'luminaire_position_id' => $order->luminaire_position_id,
+            'employee_id' => $order->assigned_employee_id,
+            'client_id' => $order->client_id,
+            'maintenance_at' => $completedAt,
+            'details' => $details ?: null,
+            'notes' => $order->completion_notes,
+            'problem_description' => $order->problem_description,
+            'root_cause' => $order->root_cause,
+            'solution_applied' => $order->solution_applied,
+            'is_emergency' => $type->code === FoMaintenanceType::CODE_EMERGENCY,
+            'problem_reported_at' => $order->problem_description ? $order->created_at : null,
+            'problem_solved_at' => $order->problem_description ? $completedAt : null,
+            'downtime_hours' => $order->problem_description ? $order->created_at->diffInMinutes($completedAt, true) / 60 : null,
+            'priority' => $order->priority,
+        ]);
+
+        $order->update([
+            'status' => MaintenanceWorkOrderStatus::COMPLETED,
+            'completed_at' => $completedAt,
+            'validated_at' => now(),
+            'validated_by_user_id' => $userId,
+            'override_reason' => $override ? $overrideReason : null,
+            'maintenance_record_id' => $record->id,
+        ]);
+        app(MaintenanceRequestService::class)->resolveFromWorkOrder(
+            $order,
+            $order->solution_applied ?: $order->completion_notes ?: 'The maintenance work has been completed.',
+        );
+        $this->recordEvent(
+            $order,
+            $override ? MaintenanceWorkOrderEventType::OVERRIDDEN : MaintenanceWorkOrderEventType::VALIDATED,
+            $userId,
+            $fromStatus,
+            MaintenanceWorkOrderStatus::COMPLETED,
+            data: $override ? ['reason' => $overrideReason] : null,
+        );
+
+        return $order->fresh(['maintenanceRecord', 'assignedBy', 'serviceRequest.reporter']);
     }
 
     public function cancel(FoMaintenanceWorkOrder $order, int $userId, string $reason): FoMaintenanceWorkOrder

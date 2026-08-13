@@ -16,21 +16,62 @@ class AuthController extends Controller
     private const LOGIN_ATTEMPT_LIMIT = 5;
     private const LOGIN_LOCKOUT_SECONDS = 300;
 
+    // CLA-347: email|ip alone lets an attacker rotating IPs brute-force one
+    // account without ever tripping the per-IP limit. This second limiter is
+    // keyed on email only, with a higher ceiling so shared/corporate IPs with
+    // several legitimate users aren't penalised by the per-IP limit above.
+    private const EMAIL_LOGIN_ATTEMPT_LIMIT = 20;
+    private const EMAIL_LOGIN_LOCKOUT_SECONDS = 3600;
+
     /**
-     * Session-based login for browser-first SPAs (Safety PWA, Sport, etc.).
-     * Establishes an HttpOnly cookie session — never returns a token.
+     * Session-based login for the Client Portal — establishes an HttpOnly cookie
+     * session (never a token), only for the 'client' role.
+     * CLA-344: the Client Portal must be usable only by active client-role users.
      */
-    public function loginSpa(Request $request, AccessAnalyticsService $analytics)
+    public function loginClientPortal(Request $request, AccessAnalyticsService $analytics)
     {
+        $user = $this->attemptSessionLogin($request, $analytics, 'client_portal', ['client']);
+
+        return response()->json(['user' => $this->sessionUserPayload($user)]);
+    }
+
+    /**
+     * Session-based login for Sport ("Servicios") — establishes an HttpOnly
+     * cookie session, only for technician/project_manager/super_admin/admin.
+     * CLA-363: closes the same unrestricted-login gap CLA-344 closed for
+     * Client Portal.
+     */
+    public function loginSport(Request $request, AccessAnalyticsService $analytics)
+    {
+        $user = $this->attemptSessionLogin($request, $analytics, 'sport', ['technician', 'project_manager', 'super_admin', 'admin']);
+
+        return response()->json(['user' => $this->sessionUserPayload($user)]);
+    }
+
+    /**
+     * Shared validation/authentication pipeline for session-cookie logins.
+     * When $requiredRoles is set, a user who fails that role check gets the
+     * same generic auth.failed message as any other rejection — never a hint
+     * that their credentials were otherwise correct.
+     */
+    private function attemptSessionLogin(
+        Request $request,
+        AccessAnalyticsService $analytics,
+        string $appSourceFallback,
+        ?array $requiredRoles = null,
+    ): User {
         $request->validate([
             'email'    => 'required|email',
             'password' => 'required',
         ]);
 
-        $appSource = $this->resolveAppSource($request, 'spa');
+        $appSource = $this->resolveAppSource($request, $appSourceFallback);
         $throttleKey = $this->throttleKey($request);
+        $emailThrottleKey = $this->emailThrottleKey($request);
 
-        if ($this->isRateLimited($throttleKey)) {
+        if ($this->isRateLimited($throttleKey) || $this->isEmailRateLimited($emailThrottleKey)) {
+            $limitedKey = $this->isRateLimited($throttleKey) ? $throttleKey : $emailThrottleKey;
+
             $analytics->recordThrottledLogin(
                 null,
                 $request->input('email'),
@@ -38,10 +79,10 @@ class AuthController extends Controller
                 'session_cookie',
                 $request,
                 'rate_limited',
-                ['retry_after_seconds' => RateLimiter::availableIn($throttleKey)]
+                ['retry_after_seconds' => RateLimiter::availableIn($limitedKey)]
             );
 
-            throw $this->throttleException($throttleKey);
+            throw $this->throttleException($limitedKey);
         }
 
         $user = User::where('email', $request->email)->first();
@@ -56,6 +97,7 @@ class AuthController extends Controller
                 'unknown_user'
             );
             $this->hitRateLimiter($throttleKey);
+            $this->hitEmailRateLimiter($emailThrottleKey);
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
@@ -102,6 +144,22 @@ class AuthController extends Controller
                 'invalid_password'
             );
             $this->hitRateLimiter($throttleKey);
+            $this->hitEmailRateLimiter($emailThrottleKey);
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        if ($requiredRoles !== null && ! $user->hasAnyRole($requiredRoles)) {
+            $analytics->recordBlockedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'session_cookie',
+                $request,
+                'role_not_permitted'
+            );
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
@@ -114,17 +172,24 @@ class AuthController extends Controller
         }
 
         RateLimiter::clear($throttleKey);
+        RateLimiter::clear($emailThrottleKey);
 
         $analytics->recordLogin($user, $appSource, 'session_cookie', $request);
 
-        return response()->json([
-            'user' => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email,
-                'roles' => $user->getRoleNames(),
-            ],
-        ]);
+        return $user;
+    }
+
+    /**
+     * @return array{id: int, name: string, email: string, roles: \Illuminate\Support\Collection}
+     */
+    private function sessionUserPayload(User $user): array
+    {
+        return [
+            'id'    => $user->id,
+            'name'  => $user->name,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames(),
+        ];
     }
 
     /**
@@ -141,8 +206,11 @@ class AuthController extends Controller
 
         $appSource = $this->resolveAppSource($request, 'api');
         $throttleKey = $this->throttleKey($request);
+        $emailThrottleKey = $this->emailThrottleKey($request);
 
-        if ($this->isRateLimited($throttleKey)) {
+        if ($this->isRateLimited($throttleKey) || $this->isEmailRateLimited($emailThrottleKey)) {
+            $limitedKey = $this->isRateLimited($throttleKey) ? $throttleKey : $emailThrottleKey;
+
             $analytics->recordThrottledLogin(
                 null,
                 $request->input('email'),
@@ -150,10 +218,10 @@ class AuthController extends Controller
                 'sanctum_token',
                 $request,
                 'rate_limited',
-                ['retry_after_seconds' => RateLimiter::availableIn($throttleKey)]
+                ['retry_after_seconds' => RateLimiter::availableIn($limitedKey)]
             );
 
-            throw $this->throttleException($throttleKey);
+            throw $this->throttleException($limitedKey);
         }
 
         $user = User::where('email', $request->email)->first();
@@ -168,6 +236,7 @@ class AuthController extends Controller
                 'unknown_user'
             );
             $this->hitRateLimiter($throttleKey);
+            $this->hitEmailRateLimiter($emailThrottleKey);
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
@@ -215,6 +284,7 @@ class AuthController extends Controller
                 'invalid_password'
             );
             $this->hitRateLimiter($throttleKey);
+            $this->hitEmailRateLimiter($emailThrottleKey);
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
@@ -226,6 +296,7 @@ class AuthController extends Controller
         ]);
 
         RateLimiter::clear($throttleKey);
+        RateLimiter::clear($emailThrottleKey);
 
         return response()->json([
             'success' => true,
@@ -309,14 +380,31 @@ class AuthController extends Controller
         return "core-login:{$email}|{$ip}";
     }
 
+    private function emailThrottleKey(Request $request): string
+    {
+        $email = $request->string('email')->trim()->lower()->toString();
+
+        return "core-login-email:{$email}";
+    }
+
     private function isRateLimited(string $key): bool
     {
         return RateLimiter::tooManyAttempts($key, self::LOGIN_ATTEMPT_LIMIT);
     }
 
+    private function isEmailRateLimited(string $key): bool
+    {
+        return RateLimiter::tooManyAttempts($key, self::EMAIL_LOGIN_ATTEMPT_LIMIT);
+    }
+
     private function hitRateLimiter(string $key): void
     {
         RateLimiter::hit($key, self::LOGIN_LOCKOUT_SECONDS);
+    }
+
+    private function hitEmailRateLimiter(string $key): void
+    {
+        RateLimiter::hit($key, self::EMAIL_LOGIN_LOCKOUT_SECONDS);
     }
 
     private function throttleException(string $key): ValidationException

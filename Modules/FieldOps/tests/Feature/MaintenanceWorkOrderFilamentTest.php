@@ -6,12 +6,14 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Modules\Cafca\Models\Employee;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Filament\Resources\ComplexResource;
 use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
 use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\CreateMaintenanceWorkOrder;
+use Modules\FieldOps\Filament\Resources\MaintenanceWorkOrders\Pages\EditMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
@@ -190,6 +192,152 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
         ]))
             ->assertOk()
             ->assertSee('href="'.ComplexResource::getUrl('view', ['record' => $complex]).'"', false);
+    }
+
+    public function test_editing_work_order_assignee_with_numeric_employee_id_does_not_throw(): void
+    {
+        // Regression for CLA-339: employees.id is a string column, but legacy
+        // ERP values like "100" are numeric-looking. PHP auto-casts numeric
+        // string array keys to int, so a Select built via pluck('name', 'id')
+        // silently returns an int and breaks MaintenanceWorkOrderService's
+        // strict_types(?string $employeeId) signature.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'assigned_employee_id' => null,
+        ]);
+        $employee = Employee::create(['id' => '100', 'name' => 'Numeric Id Worker', 'fl_active' => true]);
+        User::factory()->create(['employee_id' => $employee->id, 'is_active' => true]);
+        $this->actingAs($user);
+
+        Livewire::test(EditMaintenanceWorkOrder::class, ['record' => $order->getKey()])
+            ->fillForm(['assigned_employee_id' => $employee->id])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        self::assertSame($employee->id, $order->refresh()->assigned_employee_id);
+    }
+
+    public function test_backoffice_can_review_and_correct_field_report_before_validating(): void
+    {
+        // CLA-374: the backoffice can correct/complete what the field worker submitted
+        // (root_cause/solution_applied/completion_notes/completion_details) while the order
+        // sits awaiting_validation — before validating/closing it.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'status' => MaintenanceWorkOrderStatus::AWAITING_VALIDATION,
+            'root_cause' => 'Original root cause',
+            'solution_applied' => 'Original solution',
+            'completion_notes' => 'Original notes',
+            'completion_details' => ['inspection' => true],
+        ]);
+        $this->actingAs($user);
+
+        Livewire::test(EditMaintenanceWorkOrder::class, ['record' => $order->getKey()])
+            ->fillForm([
+                'root_cause' => 'Corrected root cause',
+                'solution_applied' => 'Corrected solution',
+                'completion_notes' => 'Corrected notes',
+                'completion_details' => ['inspection' => false, 'cleaning' => true, 'otherTasks' => 'Replaced a bolt'],
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $order->refresh();
+        self::assertSame('Corrected root cause', $order->root_cause);
+        self::assertSame('Corrected solution', $order->solution_applied);
+        self::assertSame('Corrected notes', $order->completion_notes);
+        self::assertFalse($order->completion_details['inspection']);
+        self::assertTrue($order->completion_details['cleaning']);
+        self::assertSame('Replaced a bolt', $order->completion_details['otherTasks']);
+        self::assertSame(
+            ['reviewed'],
+            $order->events()->latest('id')->limit(1)->pluck('event_type')->map(fn ($type) => $type->value)->all(),
+        );
+    }
+
+    public function test_view_page_renders_completion_details_with_multiple_tasks_marked(): void
+    {
+        // Regression for CLA-376: Filament's TextEntry fragments an array state into
+        // one formatStateUsing() call per value once count($state) > 1 (here 2 keys),
+        // so the closure received a bare `true`/`null` instead of the full array and
+        // broke its `?array $state` typehint. Fixed via ->state() reading the record
+        // directly instead of relying on Filament to hand over the array intact.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'completion_details' => ['inspection' => true, 'otherTasks' => null],
+        ]);
+        $this->actingAs($user);
+
+        $this->withHeader('Accept-Language', 'en-US')
+            ->get(FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $order]))
+            ->assertOk()
+            ->assertSee(__('fieldops::resource.work_orders.tasks.inspection', [], 'en'));
+    }
+
+    public function test_edit_page_locks_planning_fields_when_awaiting_validation(): void
+    {
+        // The planning Section is disabled+dehydrated(false) once awaiting_validation — a
+        // fillForm() attempt at those fields should have no effect, and updateReview()'s
+        // own whitelist is the second line of defense even if the UI lock were bypassed.
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $type = FoMaintenanceType::factory()->create();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'status' => MaintenanceWorkOrderStatus::AWAITING_VALIDATION,
+            'fo_maintenance_type_id' => $type->id,
+            'priority' => 'medium',
+        ]);
+        $otherType = FoMaintenanceType::factory()->create();
+        $this->actingAs($user);
+
+        Livewire::test(EditMaintenanceWorkOrder::class, ['record' => $order->getKey()])
+            ->fillForm([
+                'fo_maintenance_type_id' => $otherType->id,
+                'priority' => 'urgent',
+                'solution_applied' => 'Solution to satisfy the required field',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $order->refresh();
+        self::assertSame($type->id, $order->fo_maintenance_type_id);
+        self::assertSame('medium', $order->priority);
+    }
+
+    public function test_cannot_edit_in_progress_or_completed_or_cancelled_orders(): void
+    {
+        $luminaire = $this->luminaireWithClientContext();
+        $type = FoMaintenanceType::factory()->create();
+        foreach ([MaintenanceWorkOrderStatus::IN_PROGRESS, MaintenanceWorkOrderStatus::COMPLETED, MaintenanceWorkOrderStatus::CANCELLED] as $status) {
+            $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+                'fo_maintenance_type_id' => $type->id,
+                'status' => $status,
+            ]);
+            self::assertFalse(FoMaintenanceWorkOrderResource::canEdit($order), "Expected canEdit() to be false for status {$status->value}");
+        }
+    }
+
+    public function test_service_rejects_review_on_a_non_awaiting_validation_order(): void
+    {
+        $luminaire = $this->luminaireWithClientContext();
+        $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'status' => MaintenanceWorkOrderStatus::PLANNED,
+        ]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        app(\Modules\FieldOps\Services\MaintenanceWorkOrderService::class)->updateReview(
+            $order,
+            ['solution_applied' => 'Should not be reachable'],
+            1,
+        );
     }
 
     private function luminaireWithClientContext(): Luminaire

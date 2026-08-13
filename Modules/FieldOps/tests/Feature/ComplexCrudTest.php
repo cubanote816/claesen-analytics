@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\FoClient;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class ComplexCrudTest extends TestCase
@@ -24,6 +25,11 @@ class ComplexCrudTest extends TestCase
     private function user(): array
     {
         $user = UserFactory::new()->create();
+        // CLA-364: broad FieldOps access is no longer the default for any
+        // authenticated user — this helper simulates internal staff, so it
+        // needs the permission explicitly, same as an admin/super_admin would
+        // get from RolesAndPermissionsSeeder in a real environment.
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
         $token = $user->createToken('test')->plainTextToken;
 
         return [$user, $token];

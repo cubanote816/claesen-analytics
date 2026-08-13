@@ -10,7 +10,7 @@ class CloseMaintenanceWorkOrderRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasAnyRole(['super_admin', 'admin']) ?? false;
+        return $this->user()?->hasAnyRole(['super_admin', 'admin', 'project_manager']) ?? false;
     }
 
     public function rules(): array

@@ -96,6 +96,12 @@ php artisan website:regenerate-media
 **Fix de referencia:** migrar `@push('scripts')`/`@once` a `@script`/`@endscript` (Livewire) y registrar `Alpine.data(...)` directo (sin envolver en `addEventListener('alpine:init', ...)` si lo tuviera) — ver diffs de los commits `a935834` y `9f2ef37`.
 **Acción requerida:** ticket nuevo para auditar y corregir los 4 archivos — dada la tasa de confirmación (2/2), tratar como "muy probablemente roto", no como riesgo especulativo.
 
+### Acceso amplio de roles internos no-cliente a rutas genéricas de FieldOps (decisión consciente, no bug)
+
+**Contexto:** CLA-344/CLA-345 (auditoría de auth del Client Portal, 2026-08-07). `EnforceFieldOpsTenantAccess` hace bypass total de scoping por tenant para cualquier usuario autenticado sin rol `client` (`if (! $user || ! $this->tenants->isClientUser($user)) { return $next($request); }`). Esto significa que `/api/v1/fieldops/complexes`, `/terrains`, `/structures`, `/luminaire-frames`, `/electrical-boards`, `/clients` devuelven datos de **todos** los clientes sin scope a cualquier usuario interno (Safety PWA, Sport, backoffice), sin distinguir por permiso/rol específico.
+**Decisión tomada:** no tocar — Safety PWA/Sport dependen legítimamente de ver todos los clientes en esas mismas rutas; forzar `scopeForUser` incondicional las rompería. `ClientPortalInfrastructureController` (el endpoint específico y exclusivo del Client Portal) sí exige `isClientUser()` correctamente y no depende de esto.
+**Pendiente (fuera de alcance de CLA-344/345):** si en el futuro se requiere granularidad de permisos entre roles internos (ej. un `field_technician` no debería ver clientes fuera de sus asignaciones), es un rediseño de RBAC interno más amplio, no un fix puntual de FieldOps.
+
 ---
 
 ## Deuda técnica
@@ -109,6 +115,14 @@ Además, no pasar varios paths de test a `sail artisan test` en este harness: pu
 ### Infraestructura del portal cliente pendiente
 
 El roadmap maestro fija `client.claesen-verlichting.be` como hostname objetivo y descarta el typo previo `clent.claesen-verlichting.be`. El dominio todavía no está provisionado: antes del despliegue se deben verificar DNS, TLS, reverse proxy, redirects OAuth, CORS, cookies y `SANCTUM_STATEFUL_DOMAINS`. Ver `docs/ai/fieldops-maintenance-roadmap.md`; el portal no debe considerarse desplegable solo porque el aislamiento backend esté listo.
+
+**Nota CLA-344/345 (2026-08-07):** confirmado que la cookie de sesión de Sanctum pertenece al dominio del backend, no al de cada frontend — `config/cors.php` permite varios orígenes de frontend contra las mismas rutas `api/*`/`v1/*` con `supports_credentials: true`. Una sesión creada en Safety PWA/Sport es válida para llamadas hechas desde el Client Portal. CLA-344 cierra el login (nadie puede autenticarse *directamente* en el Client Portal sin rol `client`), pero no aísla la sesión entre apps a nivel de cookie — eso requeriría dominios de backend separados por app, fuera de alcance actual. Tenerlo en cuenta al verificar `SANCTUM_STATEFUL_DOMAINS`/`SESSION_DOMAIN` antes del despliegue de producción.
+
+### Test roto: ClientPortalInfrastructureTest duplica código 'soccer' entre dos topologías
+
+**Riesgo:** `test_client_portal_returns_only_the_members_authorised_topology_and_reduced_payload` (`Modules/FieldOps/tests/Feature/ClientPortalInfrastructureTest.php:31-54`) llama a su helper `topology()` dos veces en el mismo test (`$allowed` y `$hidden`, línea 33-34), y `topology()` (línea 89) crea un `TerrainType` con `code: 'soccer'` hardcodeado sin `firstOrCreate` — la segunda llamada choca contra el `unique` de `fo_terrain_types.code` y el test falla con `UniqueConstraintViolationException`. **Confirmado en aislamiento total** (ejecutando solo esta clase, sin ningún cambio de CLA-344/345 involucrado) — no es contaminación entre suites, es un bug propio del test.
+**Impacto:** el único test que verifica el payload reducido/topología autorizada del endpoint específico del Client Portal está roto y no corre en CI tal como está.
+**Pendiente:** cambiar el segundo `TerrainType::create(['code' => 'soccer', ...])` dentro de `topology()` para aceptar un código parametrizado (o usar `firstOrCreate`), y volver a correr para confirmar que las aserciones del payload siguen siendo correctas.
 
 ### Tests de módulo Website inexistentes
 

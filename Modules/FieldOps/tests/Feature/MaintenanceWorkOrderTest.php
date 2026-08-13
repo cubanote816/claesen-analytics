@@ -24,6 +24,7 @@ use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 use Modules\FieldOps\Services\MaintenanceWorkOrderService;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -35,7 +36,7 @@ class MaintenanceWorkOrderTest extends TestCase
     {
         parent::setUp();
         $this->mock(GeminiService::class, fn ($mock) => $mock->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
-        foreach (['super_admin', 'admin', 'project_manager'] as $role) {
+        foreach (['super_admin', 'admin', 'project_manager', 'technician'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
     }
@@ -45,6 +46,7 @@ class MaintenanceWorkOrderTest extends TestCase
         [$luminaire, $client] = $this->luminaireWithClientContext();
         $admin = UserFactory::new()->create();
         $admin->assignRole('admin');
+        $this->grantBroadAccess($admin);
         $token = $admin->createToken('test')->plainTextToken;
         $type = FoMaintenanceType::factory()->corrective()->create();
 
@@ -70,8 +72,10 @@ class MaintenanceWorkOrderTest extends TestCase
         $employee = Employee::create(['id' => 'FIELD-001', 'name' => 'Field Worker', 'fl_active' => true]);
         $worker = UserFactory::new()->create(['employee_id' => $employee->id]);
         $worker->assignRole('project_manager');
+        $this->grantBroadAccess($worker);
         $admin = UserFactory::new()->create();
         $admin->assignRole('admin');
+        $this->grantBroadAccess($admin);
         $type = FoMaintenanceType::factory()->corrective()->create();
         $order = app(MaintenanceWorkOrderService::class)->create([
             'maintainable_type' => Luminaire::class,
@@ -184,6 +188,7 @@ class MaintenanceWorkOrderTest extends TestCase
         $type = FoMaintenanceType::factory()->preventive()->create();
         $admin = UserFactory::new()->create();
         $admin->assignRole('admin');
+        $this->grantBroadAccess($admin);
 
         $this->withToken($admin->createToken('backoffice')->plainTextToken)
             ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders", [
@@ -209,6 +214,7 @@ class MaintenanceWorkOrderTest extends TestCase
         $type = FoMaintenanceType::factory()->preventive()->create();
         $admin = UserFactory::new()->create();
         $admin->assignRole('admin');
+        $this->grantBroadAccess($admin);
 
         $this->withToken($admin->createToken('backoffice')->plainTextToken)
             ->postJson("/api/v1/fieldops/electrical-boards/{$board->id}/maintenance-work-orders", [
@@ -224,11 +230,14 @@ class MaintenanceWorkOrderTest extends TestCase
 
     public function test_other_field_worker_cannot_execute_an_assigned_order(): void
     {
-        [$luminaire] = $this->luminaireWithClientContext();
+        [$luminaire, $client] = $this->luminaireWithClientContext();
         $assigned = Employee::create(['id' => 'FIELD-ASSIGNED', 'name' => 'Assigned', 'fl_active' => true]);
         $other = Employee::create(['id' => 'FIELD-OTHER', 'name' => 'Other', 'fl_active' => true]);
         $user = UserFactory::new()->create(['employee_id' => $other->id]);
         $user->assignRole('project_manager');
+        // CLA-369: scoped-but-valid for this client, so the 403 below is
+        // unambiguously the "wrong assignee" rule, not a tenant-scope block.
+        $user->fieldOpsClients()->attach($client->id, ['is_active' => true, 'can_view' => true]);
         $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
             'assigned_employee_id' => $assigned->id,
             'status' => MaintenanceWorkOrderStatus::ASSIGNED,
@@ -241,7 +250,7 @@ class MaintenanceWorkOrderTest extends TestCase
 
     public function test_assigned_queue_only_returns_the_workers_orders_with_equipment_context(): void
     {
-        [$luminaire, $client] = $this->luminaireWithClientContext();
+        [$luminaire, $client, $structure, $terrain, $complex] = $this->luminaireWithClientContext();
         $luminaire->luminaireType()->update(['product_family' => 'OptiVision LED']);
         $assigned = Employee::create(['id' => 'FIELD-QUEUE', 'name' => 'Assigned worker', 'fl_active' => true]);
         $other = Employee::create(['id' => 'FIELD-OTHER-QUEUE', 'name' => 'Other worker', 'fl_active' => true]);
@@ -268,6 +277,12 @@ class MaintenanceWorkOrderTest extends TestCase
             ->assertJsonPath('data.0.id', $ownOrder->id)
             ->assertJsonPath('data.0.equipment.kind', 'luminaire')
             ->assertJsonPath('data.0.equipment.serial_number', $luminaire->serial_number)
+            ->assertJsonPath('data.0.equipment.luminaire_frame_id', $luminaire->luminaire_frame_id)
+            ->assertJsonPath('data.0.equipment.structure_id', $structure->id)
+            ->assertJsonPath('data.0.equipment.terrain_id', $terrain->id)
+            ->assertJsonPath('data.0.equipment.complex_id', $complex->id)
+            ->assertJsonPath('data.0.equipment.lat', $terrain->lat)
+            ->assertJsonPath('data.0.equipment.lng', $terrain->lng)
             ->assertJsonPath('data.0.client.id', $client->id);
     }
 
@@ -279,6 +294,7 @@ class MaintenanceWorkOrderTest extends TestCase
         $employee = Employee::create(['id' => 'FIELD-VALIDATION', 'name' => 'Field worker', 'fl_active' => true]);
         $worker = UserFactory::new()->create(['employee_id' => $employee->id]);
         $worker->assignRole('project_manager');
+        $this->grantBroadAccess($worker);
         $order = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
             'assigned_employee_id' => $employee->id,
             'status' => MaintenanceWorkOrderStatus::IN_PROGRESS,
@@ -295,6 +311,7 @@ class MaintenanceWorkOrderTest extends TestCase
     {
         $admin = UserFactory::new()->create();
         $admin->assignRole('admin');
+        $this->grantBroadAccess($admin);
         $order = FoMaintenanceWorkOrder::factory()->create(['status' => MaintenanceWorkOrderStatus::PLANNED]);
         $token = $admin->createToken('backoffice')->plainTextToken;
 
@@ -342,6 +359,152 @@ class MaintenanceWorkOrderTest extends TestCase
         self::assertSame(0, app(MaintenanceWorkOrderService::class)->generateDueOrders());
     }
 
+    public function test_project_manager_can_create_and_assign_a_work_order(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'PM-ASSIGN', 'name' => 'PM assignee target', 'fl_active' => true]);
+        $technicianUser = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $technicianUser->assignRole('project_manager');
+        $pm = UserFactory::new()->create();
+        $pm->assignRole('project_manager');
+        $this->grantBroadAccess($pm);
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($pm->createToken('pm')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders", [
+                'fo_maintenance_type_id' => $type->id,
+                'assigned_employee_id' => $employee->id,
+                'scheduled_for' => now()->addDay()->toIso8601String(),
+                'priority' => 'medium',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'assigned');
+    }
+
+    public function test_technician_cannot_create_a_work_order(): void
+    {
+        [$luminaire, $client] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'TECH-CREATE', 'name' => 'Technician', 'fl_active' => true]);
+        $technician = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $technician->assignRole('technician');
+        // CLA-369: scoped-but-valid for this client, so the 403 below is the
+        // role check (technician can't create), not a tenant-scope block.
+        $technician->fieldOpsClients()->attach($client->id, ['is_active' => true, 'can_view' => true]);
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($technician->createToken('field')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders", [
+                'fo_maintenance_type_id' => $type->id,
+                'scheduled_for' => now()->addDay()->toIso8601String(),
+                'priority' => 'medium',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_project_manager_can_execute_and_close_a_work_order_in_one_step(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'PM-SELF', 'name' => 'PM self-executor', 'fl_active' => true]);
+        $pm = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $pm->assignRole('project_manager');
+        $this->grantBroadAccess($pm);
+        $type = FoMaintenanceType::factory()->corrective()->create();
+
+        $response = $this->withToken($pm->createToken('pm')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders/execute", [
+                'fo_maintenance_type_id' => $type->id,
+                'priority' => 'high',
+                'problem_description' => 'Fixture flickering, reported by club staff',
+                'root_cause' => 'Loose connector',
+                'solution_applied' => 'Reseated connector and tested output',
+                'completion_notes' => 'Verified on-site, no further action needed',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.assigned_employee.id', $employee->id);
+
+        $order = FoMaintenanceWorkOrder::findOrFail($response->json('data.id'));
+        self::assertSame($employee->id, $order->assigned_employee_id);
+        self::assertSame($pm->id, $order->assigned_by_user_id);
+        self::assertNotNull($order->maintenance_record_id);
+        self::assertSame(
+            ['created', 'assigned', 'started', 'submitted', 'overridden'],
+            $order->events()->orderBy('id')->pluck('event_type')->map(fn ($type) => $type->value)->all(),
+        );
+
+        $this->assertDatabaseHas('fo_maintenance_records', [
+            'id' => $order->maintenance_record_id,
+            'maintainable_id' => $luminaire->id,
+            'solution_applied' => 'Reseated connector and tested output',
+        ]);
+    }
+
+    public function test_execute_endpoint_requires_solution_applied(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'PM-NOSOL', 'name' => 'PM missing solution', 'fl_active' => true]);
+        $pm = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $pm->assignRole('project_manager');
+        $this->grantBroadAccess($pm);
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($pm->createToken('pm')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders/execute", [
+                'fo_maintenance_type_id' => $type->id,
+                'priority' => 'medium',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('solution_applied');
+    }
+
+    public function test_execute_endpoint_rejects_a_user_without_a_linked_employee(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $pmWithoutEmployee = UserFactory::new()->create(['employee_id' => null]);
+        $pmWithoutEmployee->assignRole('project_manager');
+        $this->grantBroadAccess($pmWithoutEmployee);
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($pmWithoutEmployee->createToken('pm')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders/execute", [
+                'fo_maintenance_type_id' => $type->id,
+                'priority' => 'medium',
+                'solution_applied' => 'Should not be reachable',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('employee_id');
+    }
+
+    public function test_technician_cannot_execute_a_work_order(): void
+    {
+        [$luminaire, $client] = $this->luminaireWithClientContext();
+        $employee = Employee::create(['id' => 'TECH-EXEC', 'name' => 'Technician', 'fl_active' => true]);
+        $technician = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $technician->assignRole('technician');
+        // CLA-369: scoped-but-valid for this client, so the 403 below is the
+        // role check (technician can't execute), not a tenant-scope block.
+        $technician->fieldOpsClients()->attach($client->id, ['is_active' => true, 'can_view' => true]);
+        $type = FoMaintenanceType::factory()->create();
+
+        $this->withToken($technician->createToken('field')->plainTextToken)
+            ->postJson("/api/v1/fieldops/luminaires/{$luminaire->id}/maintenance-work-orders/execute", [
+                'fo_maintenance_type_id' => $type->id,
+                'priority' => 'medium',
+                'solution_applied' => 'Should not be reachable',
+            ])
+            ->assertForbidden();
+    }
+
+    // CLA-369: these tests are about role-based work-order authorization, not
+    // tenant scoping (that's FieldOpsTenantAuthorizationTest's job) — granting
+    // broad access keeps them focused on the behaviour they actually assert,
+    // matching what a real admin/super_admin account has via
+    // RolesAndPermissionsSeeder.
+    private function grantBroadAccess(\Modules\Core\Models\User $user): void
+    {
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+    }
+
     private function luminaireWithClientContext(): array
     {
         $client = FoClient::factory()->create();
@@ -353,6 +516,6 @@ class MaintenanceWorkOrderTest extends TestCase
         $frame->structures()->attach($structure);
         $luminaire = Luminaire::factory()->create(['luminaire_frame_id' => $frame->id]);
 
-        return [$luminaire, $client];
+        return [$luminaire, $client, $structure, $terrain, $complex];
     }
 }
