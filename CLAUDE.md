@@ -119,6 +119,12 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 
 ---
 
+## Identidad visual — `DESIGN.md` (CLA-379, 2026-08-14)
+
+`DESIGN.md` en la raíz del repo documenta la paleta real (Claesen Cyan `#00aeef`/Lime `#a5d610`/Magenta `#e6007e`/Amber `#fcd34d` + acento Orange `#f97316` "signature"), tipografía (Outfit para UI digital, sans-serif genérica para PDFs) y componentes clave, siguiendo la especificación abierta [`google-labs-code/design.md`](https://github.com/google-labs-code/design.md) (formato YAML front-matter + Markdown, **no es un MCP** — es un CLI local sin auth: `npx @google/design.md lint DESIGN.md`). Es documentación derivada de `AdminPanelProvider.php`/`tailwind.config.js`/`app.css`, no una fuente nueva de verdad — si esos archivos cambian, `DESIGN.md` debe actualizarse junto con ellos. Lint en verde (0 errores); quedan 3 warnings de contraste WCAG AA documentados en el propio archivo como hallazgo conocido y deliberadamente no corregido (ajustar los colores reales de producción es una decisión aparte, no tomada en este ticket).
+
+---
+
 ## Sprint User Provisioning — USR-001 / CLA-171 (rama: FieldOps)
 
 > Ticket A (backend) completado: 2026-06-23. Commit: `a2846ea`.
