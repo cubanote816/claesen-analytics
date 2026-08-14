@@ -89,6 +89,8 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 
 10. **En `app/Providers/Filament/AdminPanelProvider.php`, todo `->label(__(...))`/`->group('...')` de `NavigationGroup`/`NavigationItem` debe ser un closure** (`fn () => __(...)`), nunca un string plano ya evaluado (CLA-235, 2026-07-07). `panel()` corre una sola vez al bootear la app, en el locale por defecto (`APP_LOCALE=nl`) — un `__()` evaluado ahí queda congelado en holandés para siempre, mientras que `Resource::getNavigationGroup()` evalúa `__()` de nuevo en cada request con el locale real del visitante (fijado después por `BrowserLocaleMiddleware`). Como las dos strings no coinciden en ningún locale que no sea el de boot, el `array_search` interno de Filament para ordenar grupos falla en silencio y el orden del sidebar queda determinado por azar (orden de descubrimiento de recursos), y un `NavigationItem::group('string hardcodeado')` sin traducir crea un grupo duplicado en cualquier otro idioma. `NavigationGroup::label()`/`NavigationItem::group()`/`NavigationItem::make()` aceptan `string|Closure` — usar siempre closure.
 
+11. **Antes de crear o modificar cualquier vista Blade/Filament o token de estilo (Tailwind/CSS), leer `DESIGN.md`** (CLA-380, 2026-08-14). Si el cambio toca colores o tipografía, correr `npx @google/design.md lint DESIGN.md` antes de comitear. Regla replicada en `.agents/rules/00-project-startup.md` (leído "Always On" antes de cualquier edición) — no basta con la mención pasiva que tenía antes en la sección "Identidad visual" de este mismo archivo. Si `DESIGN.md` y el código divergen, reportar el conflicto y actualizar `DESIGN.md` para reflejar el cambio real aprobado — no dejarlo desactualizado en silencio.
+
 ---
 
 ## Módulos
