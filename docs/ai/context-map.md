@@ -18,7 +18,7 @@
 | Módulos | nwidart/laravel-modules ^12.0 | 8 módulos bajo `Modules/` |
 | Auth | Laravel Sanctum + Azure OAuth | `socialiteproviders/microsoft-azure` |
 | RBAC | spatie/laravel-permission ^6.x | Roles: `super_admin`, `project_manager` |
-| IA | Google Gemini 1.5 Flash | Via `GeminiService` |
+| IA | Google Gemini (`gemini-flash-latest`) | Via `GeminiService` |
 | Media | spatie/laravel-medialibrary ^11 | Conversiones WebP para Website |
 | Infra | Docker Sail, Redis, Meilisearch | Redis: colas + cache |
 | Email | Microsoft Graph (transporte actual) | Via `MicrosoftGraphMailer` |
@@ -74,7 +74,7 @@
 **Propósito:** IA con Gemini, Mirror SQL→MySQL, Similarity, Budget Assistant.
 
 **Servicios:**
-- `GeminiService` — llamadas a Google Gemini 1.5 Flash con Semantic Cache (hash MD5)
+- `GeminiService` — llamadas a Google Gemini (`gemini-flash-latest`) con Semantic Cache (hash MD5)
 - `BudgetAssistantService` — asistente de presupuesto con IA
 - `ProjectSimilarityService` — nearest neighbors para proyectos similares
 - `MaterialIntelligenceService` — inteligencia sobre materiales

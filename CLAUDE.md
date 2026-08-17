@@ -62,7 +62,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | Módulos | nwidart/laravel-modules ^12.0 |
 | Auth | Laravel Sanctum + Azure OAuth (Microsoft Graph) |
 | RBAC | spatie/laravel-permission |
-| IA | Google Gemini 1.5 Flash |
+| IA | Google Gemini (alias `gemini-flash-latest`, `GEMINI_API_URL` en `.env`) |
 | Infra | Docker Sail, Redis, Meilisearch |
 
 ---
@@ -99,7 +99,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 |--------|-------------|--------|
 | **Cafca** | Modelos ReadOnly del SQL Server ERP (Project, Labor, Invoice, Employee…) | ✅ ~90% |
 | **Core** | Auth (Azure OAuth + Laravel), RBAC Spatie, Filament V5 admin panel, user provisioning (USR-001) | ✅ ~98% |
-| **Intelligence** | Gemini 1.5 Flash, Mirror SQL→MySQL, Similarity (Nearest Neighbors), Budget Assistant | ✅ ~90% |
+| **Intelligence** | Gemini (`gemini-flash-latest`), Mirror SQL→MySQL, Similarity (Nearest Neighbors), Budget Assistant | ✅ ~90% |
 | **Performance** | Project insights, arquetipos de técnicos, Watchdog (€20k), SWOT | ✅ ~85% |
 | **Prospects** | Sync federaciones deportivas (RBFA, LBFA, AFT), CRM, campañas email | 🚧 ~75% |
 | **Safety** | Checklists seguridad en obra, inspecciones, incidents — **sprint completado** | ✅ ~100% |

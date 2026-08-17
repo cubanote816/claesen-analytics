@@ -34,7 +34,7 @@ class TechnicianAnalysisService
 
             $prompt = $this->buildPrompt($locale, $employeeName, json_encode($historyData));
 
-            $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+            $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
             $apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY');
 
             try {

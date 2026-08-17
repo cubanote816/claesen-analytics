@@ -393,7 +393,7 @@
                         {{ $isNl ? 'Projectinzichten beschikbaar' : 'Project insights available' }}
                     </p>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                        {{ $isNl ? 'Er is een AI-analyse beschikbaar voor dit project (Gemini 1.5 Flash).' : 'An AI analysis is available for this project (Gemini 1.5 Flash).' }}
+                        {{ $isNl ? 'Er is een AI-analyse beschikbaar voor dit project (Gemini).' : 'An AI analysis is available for this project (Gemini).' }}
                     </p>
                 </div>
                 <x-filament::button
