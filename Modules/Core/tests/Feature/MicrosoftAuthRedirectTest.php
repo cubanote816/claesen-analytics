@@ -27,6 +27,30 @@ class MicrosoftAuthRedirectTest extends TestCase
         $response->assertStatus(302);
     }
 
+    // CLA-XXX: MICROSOFT_AUTH_PUBLIC_REDIRECT is a single static value, so it can only ever
+    // match the Azure-registered callback for one frontend. redirect() now derives the
+    // per-frontend callback from custom_redirect_url/referer instead, so each configured
+    // frontend (Safety, Sport, ...) gets sent back to its own registered redirect_uri.
+    public function test_api_redirect_uses_the_callback_for_the_requesting_frontend(): void
+    {
+        Config::set('services.azure.public_redirect', 'https://safety.claesen-verlichting.be/api/v1/auth/microsoft/callback');
+        Config::set('services.azure.redirect', 'https://backoffice.claesen.local/auth/microsoft/callback');
+        Config::set('services.azure.client_id', 'test-client-id');
+        Config::set('services.azure.tenant', 'test-tenant-id');
+        Config::set('core.frontend_redirect_urls', [
+            'https://safety.claesen-verlichting.be/',
+            'https://service.claesen-verlichting.be/',
+        ]);
+
+        $response = $this->get('/api/v1/auth/microsoft/redirect?custom_redirect_url='.urlencode('https://service.claesen-verlichting.be/app/dashboard'));
+
+        $response->assertStatus(302);
+        $this->assertStringContainsString(
+            urlencode('https://service.claesen-verlichting.be/api/v1/auth/microsoft/callback'),
+            (string) $response->headers->get('Location'),
+        );
+    }
+
     public function test_frontend_redirects_are_limited_to_configured_origins(): void
     {
         Config::set('core.frontend_redirect_urls', [

@@ -19,7 +19,10 @@ class MicrosoftAuthController extends Controller
 {
     /**
      * Returns the OAuth redirect URI to use.
-     * API requests (Safety Hub / PWA) use the public-facing URL registered in Azure.
+     * API requests (Safety Hub / Sport / PWA) use the public-facing URL registered in Azure
+     * for whichever frontend initiated the flow — see redirect() below, which derives and
+     * caches it in session since a single static MICROSOFT_AUTH_PUBLIC_REDIRECT can only
+     * ever serve one frontend's registered Azure callback.
      * Internal Filament requests use the intranet URL.
      */
     private function oauthRedirectUri(Request $request): string
@@ -28,7 +31,9 @@ class MicrosoftAuthController extends Controller
             // config()'s 2nd arg only applies when the key is absent — 'public_redirect' always
             // exists (mapped from MICROSOFT_AUTH_PUBLIC_REDIRECT), so an unset env var resolves
             // to null here rather than falling back. Coalesce on the resolved value instead.
-            return config('services.azure.public_redirect') ?? config('services.azure.redirect');
+            return session('oauth_redirect_uri')
+                ?? config('services.azure.public_redirect')
+                ?? config('services.azure.redirect');
         }
 
         return config('services.azure.redirect');
@@ -45,12 +50,35 @@ class MicrosoftAuthController extends Controller
             session(['auth_source' => $source]);
         }
 
+        $redirect = null;
+
         if ($request->has('custom_redirect_url')) {
             $redirect = app(FrontendRedirectService::class)->resolve($request->string('custom_redirect_url')->toString());
-            $redirect ? session(['custom_redirect_url' => $redirect]) : session()->forget('custom_redirect_url');
         } elseif ($referer = $request->headers->get('referer')) {
             $redirect = app(FrontendRedirectService::class)->resolve($referer);
-            $redirect ? session(['custom_redirect_url' => $redirect]) : session()->forget('custom_redirect_url');
+        }
+
+        $redirect ? session(['custom_redirect_url' => $redirect]) : session()->forget('custom_redirect_url');
+
+        // CLA-XXX: cache the callback URI for *this* frontend's origin so callback() sends
+        // Microsoft back to the same domain the flow started on — required for the session
+        // cookie set here to still be readable there, and for the app's own Azure-registered
+        // redirect URI (safety.claesen-verlichting.be, service.claesen-verlichting.be, ...)
+        // to actually match what gets sent.
+        if ($request->is('api/*')) {
+            $origin = null;
+
+            if ($redirect) {
+                $parts = parse_url($redirect);
+
+                if (isset($parts['scheme'], $parts['host'])) {
+                    $origin = $parts['scheme'].'://'.$parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
+                }
+            }
+
+            $origin
+                ? session(['oauth_redirect_uri' => $origin.'/api/v1/auth/microsoft/callback'])
+                : session()->forget('oauth_redirect_uri');
         }
 
         return Socialite::driver('azure')
