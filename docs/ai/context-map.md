@@ -18,7 +18,7 @@
 | Módulos | nwidart/laravel-modules ^12.0 | 8 módulos bajo `Modules/` |
 | Auth | Laravel Sanctum + Azure OAuth | `socialiteproviders/microsoft-azure` |
 | RBAC | spatie/laravel-permission ^6.x | Roles: `super_admin`, `project_manager` |
-| IA | Google Gemini (`gemini-flash-latest`) | Via `GeminiService` |
+| IA | Google Gemini (`gemini-flash-latest`) + Anthropic Claude Sonnet 5 | Via `GeminiService` / `ClaudeVisionService` |
 | Media | spatie/laravel-medialibrary ^11 | Conversiones WebP para Website |
 | Infra | Docker Sail, Redis, Meilisearch | Redis: colas + cache |
 | Email | Microsoft Graph (transporte actual) | Via `MicrosoftGraphMailer` |

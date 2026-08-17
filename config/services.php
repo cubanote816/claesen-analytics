@@ -44,6 +44,11 @@ return [
         'url' => env('GEMINI_API_URL'),
     ],
 
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'vision_model' => env('ANTHROPIC_VISION_MODEL', 'claude-sonnet-5'),
+    ],
+
     'github' => [
         'webhook_pat' => env('GITHUB_WEBHOOK_PAT'),
         'portfolio_repo' => env('GITHUB_PORTFOLIO_REPO', 'totti/claesen-astro'),

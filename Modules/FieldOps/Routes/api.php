@@ -11,6 +11,7 @@ use Modules\FieldOps\Http\Controllers\FieldOpsNotificationController;
 use Modules\FieldOps\Http\Controllers\FoClientController;
 use Modules\FieldOps\Http\Controllers\LuminaireController;
 use Modules\FieldOps\Http\Controllers\LuminaireFrameController;
+use Modules\FieldOps\Http\Controllers\LuminaireVisionController;
 use Modules\FieldOps\Http\Controllers\MaintenanceRecordController;
 use Modules\FieldOps\Http\Controllers\MaintenanceRequestController;
 use Modules\FieldOps\Http\Controllers\MaintenanceWorkOrderController;
@@ -68,6 +69,8 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::patch('/luminaire-frames/{frame}', [LuminaireFrameController::class, 'update']);
         Route::delete('/luminaire-frames/{frame}', [LuminaireFrameController::class, 'destroy']);
         Route::get('/luminaire-frames/{frame}/luminaires', [LuminaireFrameController::class, 'luminaires']);
+        // Vision-assisted identification (CLA-386) — read-only suggestion, never persists.
+        Route::post('/luminaire-frames/{frame}/vision-suggestions', [LuminaireVisionController::class, 'suggest']);
 
         // Luminaires
         Route::post('/luminaires', [LuminaireController::class, 'store']);
