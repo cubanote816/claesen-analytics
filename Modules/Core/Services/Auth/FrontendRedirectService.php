@@ -45,6 +45,12 @@ class FrontendRedirectService
             }
         }
 
+        $envUrl = env('FRONTEND_URL');
+
+        if (is_string($envUrl) && $this->origin($envUrl) !== null) {
+            return rtrim($envUrl, '/').'/';
+        }
+
         return app()->environment('production')
             ? 'https://service.claesen-verlichting.be/'
             : 'http://localhost:5173/';

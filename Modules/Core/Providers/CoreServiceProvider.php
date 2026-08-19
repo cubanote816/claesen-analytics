@@ -85,6 +85,10 @@ class CoreServiceProvider extends ServiceProvider
      */
     protected function registerConfig(): void
     {
+        if ($this->app->configurationIsCached()) {
+            return;
+        }
+
         $configPath = module_path($this->name, config('modules.paths.generator.config.path'));
 
         if (is_dir($configPath)) {

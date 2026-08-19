@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use Modules\Core\Http\Middleware\ResolveSessionCookieDomain;
 use Modules\Core\Models\User;
 use Modules\Core\Services\Auth\AzureRoleService;
 use Modules\Core\Services\Auth\FrontendRedirectService;
@@ -67,18 +68,35 @@ class MicrosoftAuthController extends Controller
         // to actually match what gets sent.
         if ($request->is('api/*')) {
             $origin = null;
+            $originHost = null;
 
             if ($redirect) {
                 $parts = parse_url($redirect);
 
                 if (isset($parts['scheme'], $parts['host'])) {
                     $origin = $parts['scheme'].'://'.$parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
+                    $originHost = $parts['host'];
                 }
             }
 
             $origin
                 ? session(['oauth_redirect_uri' => $origin.'/api/v1/auth/microsoft/callback'])
                 : session()->forget('oauth_redirect_uri');
+
+            // CLA-XXX: the callback request is reached via a redirect FROM the IdP, so its
+            // Referer points at login.microsoftonline.com, not at us — ResolveSessionCookieDomain
+            // can't trust Origin/Referer there. Stash the domain decision in a plain cookie now,
+            // while Referer is still reliable (this request came straight from the frontend), so
+            // the middleware can fall back to it on the callback. See that class for the full story.
+            cookie()->queue(cookie(
+                name: ResolveSessionCookieDomain::OAUTH_HINT_COOKIE,
+                value: ResolveSessionCookieDomain::isProductionHost($originHost) ? '1' : '0',
+                minutes: 10,
+                path: '/',
+                secure: true,
+                httpOnly: true,
+                sameSite: 'lax',
+            ));
         }
 
         return Socialite::driver('azure')

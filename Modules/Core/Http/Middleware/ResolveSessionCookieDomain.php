@@ -29,16 +29,32 @@ use Symfony\Component\HttpFoundation\Response;
  * nunca va a mandar de vuelta una cookie con Domain=.claesen-verlichting.be).
  * Por eso se mira específicamente el host del Origin/Referer contra el sufijo
  * de producción, no el resultado genérico de fromFrontend() (CLA-234).
+ *
+ * Origin/Referer, sin embargo, NO sobrevive el callback de un login OAuth: ese
+ * request llega vía redirect DESDE el IdP (login.microsoftonline.com), no desde
+ * nuestro frontend, así que su Referer apunta a Microsoft (confirmado en
+ * claesen-access.log — sesión 2026-08-19). Justo en ese request es donde
+ * Auth::login()+regenerate() emiten la cookie de sesión real, así que con solo
+ * Origin/Referer terminaba emitiéndose con el Domain equivocado, dejando dos
+ * cookies laravel_session (una .claesen-verlichting.be de /redirect, otra de
+ * host exacto del callback) compitiendo — de ahí el login intermitente que
+ * requería un refresh. MicrosoftAuthController::redirect() guarda por eso un
+ * hint en cookie plana (no de sesión, así sobrevive el hop al IdP y se puede
+ * leer aquí, antes de que arranque la sesión) con el mismo Domain que ya
+ * resolvió con un Referer confiable, y ese hint se usa como respaldo cuando el
+ * Origin/Referer del request actual no resuelve a un host de producción.
  */
 class ResolveSessionCookieDomain
 {
-    private const PRODUCTION_DOMAIN_SUFFIX = 'claesen-verlichting.be';
+    public const PRODUCTION_DOMAIN_SUFFIX = 'claesen-verlichting.be';
+
+    public const OAUTH_HINT_COOKIE = 'oauth_frontend_domain';
 
     public function handle(Request $request, Closure $next): Response
     {
         $frontendHost = $this->resolveFrontendHost($request);
-        $isProductionFrontend = $frontendHost === self::PRODUCTION_DOMAIN_SUFFIX
-            || ($frontendHost !== null && str_ends_with($frontendHost, '.'.self::PRODUCTION_DOMAIN_SUFFIX));
+        $isProductionFrontend = self::isProductionHost($frontendHost)
+            || $request->cookies->get(self::OAUTH_HINT_COOKIE) === '1';
 
         config([
             'session.domain' => $isProductionFrontend
@@ -47,6 +63,12 @@ class ResolveSessionCookieDomain
         ]);
 
         return $next($request);
+    }
+
+    public static function isProductionHost(?string $host): bool
+    {
+        return $host === self::PRODUCTION_DOMAIN_SUFFIX
+            || ($host !== null && str_ends_with($host, '.'.self::PRODUCTION_DOMAIN_SUFFIX));
     }
 
     private function resolveFrontendHost(Request $request): ?string

@@ -12,6 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(\Modules\Core\Http\Middleware\ResolveSessionCookieDomain::class);
+        // The OAuth hint cookie is read by ResolveSessionCookieDomain, which is prepended
+        // before EncryptCookies runs — so it must stay unencrypted to be readable there.
+        $middleware->encryptCookies(except: [
+            \Modules\Core\Http\Middleware\ResolveSessionCookieDomain::OAUTH_HINT_COOKIE,
+        ]);
         $middleware->statefulApi();
         $middleware->alias([
             'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,

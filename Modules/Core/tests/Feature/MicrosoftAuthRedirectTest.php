@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Modules\Core\Tests\Feature;
 
 use Illuminate\Support\Facades\Config;
+use Modules\Core\Providers\CoreServiceProvider;
 use Modules\Core\Services\Auth\FrontendRedirectService;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class MicrosoftAuthRedirectTest extends TestCase
@@ -68,5 +70,34 @@ class MicrosoftAuthRedirectTest extends TestCase
         $this->assertNull($redirects->resolve('https://evil.example/steal-session'));
         $this->assertNull($redirects->resolve('javascript:alert(1)'));
         $this->assertNull($redirects->resolve('https://user:password@service.claesen-verlichting.be/'));
+    }
+
+    // Regression: CoreServiceProvider::registerConfig() used to call merge_config_from()
+    // unconditionally on every boot, re-requiring Modules/Core/Config/config.php and
+    // overwriting whatever was already in config('core.*') — including values baked in by
+    // `php artisan config:cache`. In production this silently dropped entries from
+    // core.frontend_redirect_urls (e.g. the safety/client frontends) any time the config
+    // cache was warm, without ever throwing. The previous tests only used Config::set() at
+    // runtime, which never exercises the configurationIsCached() path, so this went undetected.
+    public function test_module_config_merge_is_skipped_when_config_is_cached(): void
+    {
+        Config::set('core.frontend_redirect_urls', ['https://sentinel.example/']);
+
+        $cachedConfigPath = $this->app->getCachedConfigPath();
+        file_put_contents($cachedConfigPath, "<?php\n\nreturn [];\n");
+
+        try {
+            $provider = new CoreServiceProvider($this->app);
+            $method = new ReflectionMethod($provider, 'registerConfig');
+            $method->setAccessible(true);
+            $method->invoke($provider);
+        } finally {
+            @unlink($cachedConfigPath);
+        }
+
+        $this->assertSame(
+            ['https://sentinel.example/'],
+            Config::get('core.frontend_redirect_urls'),
+        );
     }
 }
