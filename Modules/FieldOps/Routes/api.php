@@ -71,6 +71,8 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/luminaire-frames/{frame}/luminaires', [LuminaireFrameController::class, 'luminaires']);
         // Vision-assisted identification (CLA-386) — read-only suggestion, never persists.
         Route::post('/luminaire-frames/{frame}/vision-suggestions', [LuminaireVisionController::class, 'suggest']);
+        // Vision-assisted multi-luminaire detection (CLA-391 / CLA-390 Fase 2) — read-only, never persists.
+        Route::post('/luminaire-frames/{frame}/vision-luminaire-detections', [LuminaireVisionController::class, 'detectLuminaires']);
 
         // Luminaires
         Route::post('/luminaires', [LuminaireController::class, 'store']);

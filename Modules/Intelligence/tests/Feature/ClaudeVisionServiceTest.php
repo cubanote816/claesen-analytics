@@ -134,4 +134,41 @@ class ClaudeVisionServiceTest extends TestCase
         $this->assertSame('unknown', $result['status']);
         $this->assertSame([], $result['candidates']);
     }
+
+    /**
+     * CLA-391 (CLA-390 Fase 2) — same abstention contract, for the
+     * multi-luminaire detection method (returns "detections", not
+     * "candidates").
+     */
+    public function test_detect_luminaires_in_frame_abstains_without_hitting_the_network_when_the_api_key_is_missing(): void
+    {
+        Config::set('services.anthropic.key', null);
+
+        $service = new ClaudeVisionService;
+
+        $result = $service->detectLuminairesInFrame(
+            base64_encode('fake-image-bytes'),
+            'image/jpeg',
+            [['id' => 1, 'name' => 'Test', 'product_family' => null, 'model_reference' => null, 'typical_application' => null, 'brand' => null, 'group_name' => null]]
+        );
+
+        $this->assertSame('unknown', $result['status']);
+        $this->assertSame([], $result['detections']);
+    }
+
+    public function test_detect_luminaires_in_frame_abstains_when_the_catalog_is_empty(): void
+    {
+        Config::set('services.anthropic.key', 'test-key');
+
+        $service = new ClaudeVisionService;
+
+        $result = $service->detectLuminairesInFrame(
+            base64_encode('fake-image-bytes'),
+            'image/jpeg',
+            []
+        );
+
+        $this->assertSame('unknown', $result['status']);
+        $this->assertSame([], $result['detections']);
+    }
 }

@@ -209,6 +209,172 @@ class ClaudeVisionService
         }
     }
 
+    /**
+     * CLA-391 (CLA-390 Fase 2) — detect every individual luminaire fixture
+     * visibly mounted on a frame photo, estimating each one's approximate
+     * normalized position (x, y, both 0..1, origin top-left) and attempting
+     * to identify its catalog type using the same evidence-based criteria as
+     * identifyLuminaires(). Read-only — the caller decides what to do with
+     * each detection (typically: create a real Luminaire at the estimated
+     * position, using a placeholder catalog type for detections that
+     * couldn't be identified). A frame with no visible fixtures, or a photo
+     * with no usable evidence, is a valid "unknown" outcome, not an error.
+     *
+     * Deliberately simpler than identifyLuminaires(): no out-of-catalog
+     * brand/model guessing here (CLA-389's design) — a detection with an
+     * unidentified type already has a well-defined fallback (the placeholder
+     * catalog type), so there's no need to duplicate that extra complexity
+     * for a per-detection guess that can't be verified either way.
+     *
+     * @param  string  $imageBase64  Raw base64 image data (no data: URI prefix).
+     * @param  string  $imageMediaType  e.g. "image/jpeg", "image/png".
+     * @param  array<int, array{id: int, name: string, product_family: ?string, model_reference: ?string, typical_application: ?string, brand: ?string, group_name: ?string}>  $catalog
+     * @return array{status: string, detections: array<int, array{x: float, y: float, catalog_id: ?int, confidence: float, evidence: array<int, string>, status: string}>}
+     */
+    public function detectLuminairesInFrame(string $imageBase64, string $imageMediaType, array $catalog): array
+    {
+        $abstain = ['status' => 'unknown', 'detections' => []];
+
+        if (empty($this->apiKey)) {
+            Log::error('Anthropic API key is missing.');
+
+            return $abstain;
+        }
+
+        if (empty($catalog)) {
+            Log::warning('ClaudeVisionService::detectLuminairesInFrame called with an empty luminaire catalog.');
+
+            return $abstain;
+        }
+
+        try {
+            $client = new Client(apiKey: $this->apiKey);
+
+            $message = $client->messages->create(
+                maxTokens: 4096,
+                model: $this->model,
+                system: $this->detectionSystemPrompt(),
+                outputConfig: [
+                    'format' => [
+                        'type' => 'json_schema',
+                        'schema' => $this->detectionResponseSchema(),
+                    ],
+                ],
+                messages: [
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            [
+                                'type' => 'image',
+                                'source' => [
+                                    'type' => 'base64',
+                                    'mediaType' => $imageMediaType,
+                                    'data' => $imageBase64,
+                                ],
+                            ],
+                            [
+                                'type' => 'text',
+                                'text' => $this->buildDetectionPrompt($catalog),
+                            ],
+                        ],
+                    ],
+                ],
+            );
+
+            $textBlock = collect($message->content)->first(
+                fn ($block) => ($block->type ?? null) === 'text'
+            );
+
+            $decoded = json_decode($textBlock->text ?? '{}', true);
+
+            return is_array($decoded) && isset($decoded['status'], $decoded['detections'])
+                ? $decoded
+                : $abstain;
+        } catch (\Throwable $e) {
+            Log::error('Claude Vision Exception (luminaire detection): '.$e->getMessage());
+
+            return $abstain;
+        }
+    }
+
+    protected function detectionSystemPrompt(): string
+    {
+        return <<<'PROMPT'
+You are a technical assistant helping field technicians of a Belgian sports lighting contractor inventory the luminaire fixtures physically mounted on a frame, from a single wide photo of that frame.
+
+CRITICAL RULE: Only report a detection for a fixture you can actually see mounted on the frame in the photo — never invent fixtures to match an expected count. For each fixture you do detect, only claim a specific catalog type match when clearly supported by visible evidence (housing shape, module arrangement, mounting/bracket, color, proportions, visible labels); when a fixture is visible but its type is not identifiable, still report its position with status "unknown" — this is a valid, expected, and preferred outcome over guessing. A frame with no fixtures visible in the photo is also a valid outcome: return status "unknown" with an empty detections array.
+PROMPT;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $catalog
+     */
+    protected function buildDetectionPrompt(array $catalog): string
+    {
+        $catalogJson = json_encode($catalog, JSON_UNESCAPED_UNICODE);
+
+        return <<<PROMPT
+Internal luminaire catalog (JSON array; each item has "id", "name", "product_family", "model_reference", "typical_application", "brand", "group_name"):
+{$catalogJson}
+
+Task: look at the attached photo of a luminaire frame with fixtures mounted on it, and report one detection per individual fixture you can visually identify as mounted on the frame (up to 40 detections).
+
+For each detection return:
+- "x", "y": the fixture's approximate center position as a fraction of the image width/height (both 0.0 to 1.0, origin at the top-left corner)
+- "catalog_id": the matching catalog "id" for this specific fixture, or null if its type isn't identifiable
+- "confidence": a number between 0 and 1
+- "evidence": short list of concrete visual features supporting the type match (empty array if "catalog_id" is null)
+- "status": "identified" (confident, specific catalog match), "probable" (partial catalog match, lower confidence), or "unknown" (fixture is visible but its type is not identifiable)
+
+If no fixtures are visible on the frame in the photo, return an empty "detections" array and set the top-level "status" to "unknown". Otherwise set the top-level "status" to "detected".
+PROMPT;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function detectionResponseSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'additionalProperties' => false,
+            'required' => ['status', 'detections'],
+            'properties' => [
+                'status' => [
+                    'type' => 'string',
+                    'enum' => ['detected', 'unknown'],
+                ],
+                'detections' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'required' => ['x', 'y', 'catalog_id', 'confidence', 'evidence', 'status'],
+                        'properties' => [
+                            'x' => ['type' => 'number'],
+                            'y' => ['type' => 'number'],
+                            'catalog_id' => [
+                                'anyOf' => [
+                                    ['type' => 'integer'],
+                                    ['type' => 'null'],
+                                ],
+                            ],
+                            'confidence' => ['type' => 'number'],
+                            'evidence' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'string'],
+                            ],
+                            'status' => [
+                                'type' => 'string',
+                                'enum' => ['identified', 'probable', 'unknown'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
     protected function frameTypeSystemPrompt(): string
     {
         return <<<'PROMPT'

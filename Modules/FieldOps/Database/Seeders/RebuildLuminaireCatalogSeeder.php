@@ -31,6 +31,7 @@ class RebuildLuminaireCatalogSeeder extends Seeder
             $this->call([
                 LuminaireSubgroupSeeder::class,
                 LuminaireTypeSeeder::class,
+                PlaceholderLuminaireTypeSeeder::class,
             ]);
         });
     }

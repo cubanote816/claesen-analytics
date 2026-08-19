@@ -21,6 +21,7 @@ class FieldOpsCatalogSeeder extends Seeder
             LuminaireFrameTypeSeeder::class,
             LuminaireSubgroupSeeder::class,
             LuminaireTypeSeeder::class,
+            PlaceholderLuminaireTypeSeeder::class,
         ]);
     }
 }
