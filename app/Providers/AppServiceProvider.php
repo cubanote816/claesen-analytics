@@ -29,5 +29,17 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole('super_admin') ? true : null;
         });
+
+        // El backoffice no tiene salida a internet. Las peticiones directas de LAN a
+        // backoffice.claesen.local (REMOTE_ADDR real) deben generar URLs de storage locales;
+        // las peticiones proxied desde sbapu03 vía túnel también llegan con ese mismo Host
+        // (backoffice.claesen.local, forzado por proxy_set_header en sbapu03) pero con
+        // REMOTE_ADDR 127.0.0.1 — esas deben seguir usando MEDIA_URL para los visitantes públicos.
+        if (! $this->app->runningInConsole()
+            && request()->getHost() === parse_url(config('app.url'), PHP_URL_HOST)
+            && request()->ip() !== '127.0.0.1'
+        ) {
+            config(['filesystems.disks.public.url' => rtrim(config('app.url'), '/').'/storage']);
+        }
     }
 }
