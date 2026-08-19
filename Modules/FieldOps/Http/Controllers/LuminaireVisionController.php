@@ -3,8 +3,10 @@
 namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Routing\Controller;
+use Modules\FieldOps\Http\Requests\StoreFrameTypeVisionSuggestionRequest;
 use Modules\FieldOps\Http\Requests\StoreLuminaireVisionSuggestionRequest;
 use Modules\FieldOps\Models\LuminaireFrame;
+use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\Intelligence\Services\ClaudeVisionService;
 
@@ -43,6 +45,40 @@ class LuminaireVisionController extends Controller
             'success' => true,
             'data' => [
                 'luminaire_frame_id' => $frame->id,
+                'status' => $result['status'],
+                'candidates' => $result['candidates'],
+            ],
+        ]);
+    }
+
+    /**
+     * CLA-390 — compare a photo of a physical frame against the internal
+     * LuminaireFrameType catalog, before any LuminaireFrame instance exists.
+     * Read-only — never creates or edits a frame type; the technician confirms
+     * (reusing the matched type) or falls back to the existing "create custom
+     * frame type from this photo" flow when nothing matches.
+     */
+    public function suggestFrameType(StoreFrameTypeVisionSuggestionRequest $request, ClaudeVisionService $vision): \Illuminate\Http\JsonResponse
+    {
+        $photo = $request->file('photo');
+
+        $catalog = LuminaireFrameType::orderBy('id')
+            ->get(['id', 'name'])
+            ->map(fn (LuminaireFrameType $type) => [
+                'id' => $type->id,
+                'name' => $type->name,
+            ])
+            ->all();
+
+        $result = $vision->identifyFrameType(
+            base64_encode($photo->get()),
+            $photo->getMimeType(),
+            $catalog
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
                 'status' => $result['status'],
                 'candidates' => $result['candidates'],
             ],

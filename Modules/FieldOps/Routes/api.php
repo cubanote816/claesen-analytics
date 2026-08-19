@@ -146,6 +146,7 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/electrical-board-types', [CatalogController::class, 'electricalBoardTypes']);
         Route::get('/luminaire-frame-types', [CatalogController::class, 'luminaireFrameTypes']);
         Route::post('/luminaire-frame-types/custom', [CatalogController::class, 'storeCustomLuminaireFrameType']);
+        Route::post('/luminaire-frame-types/vision-suggestions', [LuminaireVisionController::class, 'suggestFrameType']);
         Route::get('/luminaire-types', [CatalogController::class, 'luminaireTypes']);
         Route::post('/luminaire-types/from-suggestion', [CatalogController::class, 'storeLuminaireTypeFromSuggestion']);
         Route::get('/luminaire-subgroups', [CatalogController::class, 'luminaireSubgroups']);

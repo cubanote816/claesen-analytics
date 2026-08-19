@@ -98,4 +98,40 @@ class ClaudeVisionServiceTest extends TestCase
 
         $this->assertSame('unknown', $clamped['status']);
     }
+
+    /**
+     * CLA-390 — same abstention contract as identifyLuminaires(), for the
+     * separate frame-type-matching method.
+     */
+    public function test_identify_frame_type_abstains_without_hitting_the_network_when_the_api_key_is_missing(): void
+    {
+        Config::set('services.anthropic.key', null);
+
+        $service = new ClaudeVisionService;
+
+        $result = $service->identifyFrameType(
+            base64_encode('fake-image-bytes'),
+            'image/jpeg',
+            [['id' => 1, 'name' => 'Fixed cross-arm headframe']]
+        );
+
+        $this->assertSame('unknown', $result['status']);
+        $this->assertSame([], $result['candidates']);
+    }
+
+    public function test_identify_frame_type_abstains_when_the_catalog_is_empty(): void
+    {
+        Config::set('services.anthropic.key', 'test-key');
+
+        $service = new ClaudeVisionService;
+
+        $result = $service->identifyFrameType(
+            base64_encode('fake-image-bytes'),
+            'image/jpeg',
+            []
+        );
+
+        $this->assertSame('unknown', $result['status']);
+        $this->assertSame([], $result['candidates']);
+    }
 }
