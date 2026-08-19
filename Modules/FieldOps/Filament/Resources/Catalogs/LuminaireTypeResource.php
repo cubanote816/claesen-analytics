@@ -3,6 +3,7 @@
 namespace Modules\FieldOps\Filament\Resources\Catalogs;
 
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -149,8 +150,22 @@ class LuminaireTypeResource extends Resource
                     ->label(__('fieldops::resource.catalogs.fields.typical_application'))
                     ->limit(80)
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('verified_by_user_id')
+                    ->label(__('fieldops::resource.catalogs.fields.verified_by'))
+                    ->badge()
+                    ->state(fn (LuminaireType $record): string => $record->source === 'ai_suggestion' && $record->verified_by_user_id === null
+                        ? __('fieldops::resource.catalogs.unverified')
+                        : __('fieldops::resource.catalogs.source_'.$record->source))
+                    ->color(fn (LuminaireType $record): string => $record->source === 'ai_suggestion' && $record->verified_by_user_id === null
+                        ? 'warning'
+                        : 'gray'),
             ])
             ->recordActions([
+                Action::make('markVerified')
+                    ->label(__('fieldops::resource.catalogs.mark_verified'))
+                    ->icon(Heroicon::OutlinedCheckBadge)
+                    ->visible(fn (LuminaireType $record): bool => $record->source === 'ai_suggestion' && $record->verified_by_user_id === null)
+                    ->action(fn (LuminaireType $record) => $record->update(['verified_by_user_id' => auth()->id()])),
                 EditAction::make(),
             ])
             ->toolbarActions([

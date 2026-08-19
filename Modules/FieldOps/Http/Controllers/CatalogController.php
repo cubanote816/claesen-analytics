@@ -5,6 +5,7 @@ namespace Modules\FieldOps\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
+use Modules\FieldOps\Http\Requests\StoreLuminaireTypeFromSuggestionRequest;
 use Modules\FieldOps\Http\Resources\AccessTypeResource;
 use Modules\FieldOps\Http\Resources\ElectricalBoardTypeResource;
 use Modules\FieldOps\Http\Resources\LuminaireFrameTypeResource;
@@ -81,6 +82,50 @@ class CatalogController extends Controller
         return response()->json([
             'success' => true,
             'data'    => new LuminaireFrameTypeResource($frameType),
+        ], 201);
+    }
+
+    /**
+     * CLA-389 — creates a LuminaireType (and its LuminaireSubgroup, if the brand
+     * doesn't exist yet) from a technician-confirmed out-of-catalog AI suggestion
+     * (ClaudeVisionService, candidate.suggested_brand/suggested_model). Same trust
+     * level as storeCustomLuminaireFrameType() above — any authenticated FieldOps
+     * user, not just super_admin — but marked source=ai_suggestion/verified_by_user_id=null
+     * so a super_admin can review it later from Filament. Deduplicated case-insensitively
+     * on brand and on name-within-subgroup, so two technicians suggesting the same real
+     * product don't create two catalog rows.
+     */
+    public function storeLuminaireTypeFromSuggestion(StoreLuminaireTypeFromSuggestionRequest $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validated();
+
+        $subgroup = LuminaireSubgroup::whereRaw('LOWER(brand) = ?', [mb_strtolower($validated['brand'])])->first();
+
+        if (! $subgroup) {
+            $subgroup = LuminaireSubgroup::create([
+                'created_by_user_id' => $request->user()->id,
+                'group_name' => 'LED',
+                'brand' => $validated['brand'],
+                'source' => 'ai_suggestion',
+            ]);
+        }
+
+        $type = LuminaireType::where('luminaire_subgroup_id', $subgroup->id)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($validated['model_name'])])
+            ->first();
+
+        if (! $type) {
+            $type = LuminaireType::create([
+                'created_by_user_id' => $request->user()->id,
+                'luminaire_subgroup_id' => $subgroup->id,
+                'name' => $validated['model_name'],
+                'source' => 'ai_suggestion',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => new LuminaireTypeResource($type),
         ], 201);
     }
 

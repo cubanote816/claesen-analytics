@@ -147,6 +147,7 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/luminaire-frame-types', [CatalogController::class, 'luminaireFrameTypes']);
         Route::post('/luminaire-frame-types/custom', [CatalogController::class, 'storeCustomLuminaireFrameType']);
         Route::get('/luminaire-types', [CatalogController::class, 'luminaireTypes']);
+        Route::post('/luminaire-types/from-suggestion', [CatalogController::class, 'storeLuminaireTypeFromSuggestion']);
         Route::get('/luminaire-subgroups', [CatalogController::class, 'luminaireSubgroups']);
 
         // Media (photos/videos/documents attached to complexes, terrains, structures, electrical boards, luminaires)

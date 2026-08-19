@@ -3,6 +3,7 @@
 namespace Modules\FieldOps\Filament\Resources\Catalogs;
 
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -88,8 +89,22 @@ class LuminaireSubgroupResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('verified_by_user_id')
+                    ->label(__('fieldops::resource.catalogs.fields.verified_by'))
+                    ->badge()
+                    ->state(fn (LuminaireSubgroup $record): string => $record->source === 'ai_suggestion' && $record->verified_by_user_id === null
+                        ? __('fieldops::resource.catalogs.unverified')
+                        : __('fieldops::resource.catalogs.source_'.$record->source))
+                    ->color(fn (LuminaireSubgroup $record): string => $record->source === 'ai_suggestion' && $record->verified_by_user_id === null
+                        ? 'warning'
+                        : 'gray'),
             ])
             ->recordActions([
+                Action::make('markVerified')
+                    ->label(__('fieldops::resource.catalogs.mark_verified'))
+                    ->icon(Heroicon::OutlinedCheckBadge)
+                    ->visible(fn (LuminaireSubgroup $record): bool => $record->source === 'ai_suggestion' && $record->verified_by_user_id === null)
+                    ->action(fn (LuminaireSubgroup $record) => $record->update(['verified_by_user_id' => auth()->id()])),
                 EditAction::make(),
             ])
             ->toolbarActions([

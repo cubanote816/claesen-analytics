@@ -45,4 +45,57 @@ class ClaudeVisionServiceTest extends TestCase
         $this->assertSame('unknown', $result['status']);
         $this->assertSame([], $result['candidates']);
     }
+
+    /**
+     * CLA-389 — an out-of-catalog brand/model guess can never be "identified":
+     * it is unverifiable against real hardware data, so it's clamped to "probable"
+     * regardless of what the model itself claimed.
+     */
+    public function test_it_downgrades_an_out_of_catalog_suggestion_claiming_identified_to_probable(): void
+    {
+        $service = new ClaudeVisionService;
+
+        $clamped = $service->clampExternalSuggestions([
+            'catalog_id' => null,
+            'suggested_brand' => 'Schréder',
+            'suggested_model' => 'OMNISTAR LED XL',
+            'confidence' => 0.9,
+            'evidence' => ['distinctive trapezoidal housing'],
+            'status' => 'identified',
+        ]);
+
+        $this->assertSame('probable', $clamped['status']);
+    }
+
+    public function test_it_leaves_a_real_catalog_match_claiming_identified_untouched(): void
+    {
+        $service = new ClaudeVisionService;
+
+        $clamped = $service->clampExternalSuggestions([
+            'catalog_id' => 27,
+            'suggested_brand' => null,
+            'suggested_model' => null,
+            'confidence' => 0.95,
+            'evidence' => ['exact label match'],
+            'status' => 'identified',
+        ]);
+
+        $this->assertSame('identified', $clamped['status']);
+    }
+
+    public function test_it_leaves_a_genuine_unknown_candidate_untouched(): void
+    {
+        $service = new ClaudeVisionService;
+
+        $clamped = $service->clampExternalSuggestions([
+            'catalog_id' => null,
+            'suggested_brand' => null,
+            'suggested_model' => null,
+            'confidence' => 0,
+            'evidence' => [],
+            'status' => 'unknown',
+        ]);
+
+        $this->assertSame('unknown', $clamped['status']);
+    }
 }

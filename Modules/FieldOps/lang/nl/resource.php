@@ -589,7 +589,13 @@ return [
             'name_fr' => 'Naam (FR)',
             'name_de' => 'Naam (DE)',
             'pin_color' => 'Markeringskleur',
+            'source' => 'Bron',
+            'verified_by' => 'Geverifieerd door',
         ],
+        'source_manual' => 'Handmatig',
+        'source_ai_suggestion' => 'AI-suggestie',
+        'unverified' => 'Niet geverifieerd',
+        'mark_verified' => 'Markeer als geverifieerd',
         'pin_selector' => [
             'label' => 'Kaartmarkering',
             'helper' => 'Kies het icoon dat op de kaart wordt getoond voor dit terreintype. Kies "Generiek" als geen van de sporticonen past.',

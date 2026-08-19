@@ -17,11 +17,16 @@ class LuminaireSubgroup extends Model
 
     protected $table = 'fo_luminaire_subgroups';
 
-    protected $fillable = ['created_by_user_id', 'group_name', 'brand'];
+    protected $fillable = ['created_by_user_id', 'group_name', 'brand', 'source', 'verified_by_user_id'];
 
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function verifiedBy()
+    {
+        return $this->belongsTo(User::class, 'verified_by_user_id');
     }
 
     public function luminaireTypes()

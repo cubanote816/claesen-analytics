@@ -592,7 +592,13 @@ return [
             'name_fr' => 'Name (FR)',
             'name_de' => 'Name (DE)',
             'pin_color' => 'Marker color',
+            'source' => 'Source',
+            'verified_by' => 'Verified by',
         ],
+        'source_manual' => 'Manual',
+        'source_ai_suggestion' => 'AI suggestion',
+        'unverified' => 'Unverified',
+        'mark_verified' => 'Mark as verified',
         'pin_selector' => [
             'label' => 'Map marker',
             'helper' => 'Pick the icon shown for this terrain type on the map. Pick "Generic" if none of the sport icons apply.',
