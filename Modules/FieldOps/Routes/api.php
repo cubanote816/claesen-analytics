@@ -124,6 +124,10 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::post('/luminaires/{luminaire}/maintenance-work-orders/execute', [MaintenanceWorkOrderController::class, 'executeForLuminaire']);
         Route::post('/electrical-boards/{electricalBoard}/maintenance-work-orders/execute', [MaintenanceWorkOrderController::class, 'executeForElectricalBoard']);
         Route::get('/maintenance-work-orders/assigned', [MaintenanceWorkOrderController::class, 'assigned']);
+        // Must stay registered before the {workOrder} wildcard below — a literal path
+        // registered after a wildcard is never reached (CLA-405: this route was missing
+        // entirely, and "history" was silently swallowed by {workOrder} as a bogus ID).
+        Route::get('/maintenance-work-orders/history', [MaintenanceWorkOrderController::class, 'history']);
         Route::get('/maintenance-work-orders/{workOrder}', [MaintenanceWorkOrderController::class, 'show']);
         Route::post('/maintenance-work-orders/{workOrder}/start', [MaintenanceWorkOrderController::class, 'start']);
         Route::post('/maintenance-work-orders/{workOrder}/submit', [MaintenanceWorkOrderController::class, 'submit']);
