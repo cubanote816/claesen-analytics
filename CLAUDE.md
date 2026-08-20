@@ -356,9 +356,29 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | CLA-389 | Identificación visual contra el catálogo completo de marcas (Philips/Signify, Schréder, Thorn, Musco), no solo los 10 tipos internos | ✅ Done — ver detalle abajo. Guía de usuario: `docs/luminaire-vision-identification-user-guide.md` |
 | CLA-390 | Identificación visual de tipo de frame al crear uno nuevo (Fase 1 de 3: match contra catálogo) | ✅ Done — ver detalle abajo. Fases 2 (multi-luminaria) y 3 (generación de imagen) fuera de alcance, sin ticket todavía |
 | CLA-391 | Detección multi-luminaria + posicionamiento aproximado por foto (CLA-390 Fase 2 de 3) | ✅ Done — ver detalle abajo. Fase 3 (generación de imagen) sigue sin ticket, necesita prueba de concepto propia |
+| CLA-405 | Ruta faltante `GET /fieldops/maintenance-work-orders/history` (404 en Reports) | ✅ Done — ver detalle abajo |
+| CLA-406 | Auditar/normalizar el pipeline de deploy de `service.claesen-verlichting.be` + redeploy del commit actual | ⬜ Todo — ver detalle abajo |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
 **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.
+
+### CLA-405 / CLA-406 — 404 en Reports (ruta faltante) + deploy desactualizado de service.claesen-verlichting.be (2026-08-20)
+
+Reportado por el usuario (`orelvys.cuellar@claesen-verlichting.be`) probando `service.claesen-verlichting.be` en producción como `super_admin`: no veía "Complexes" ni "Clients" en el sidebar, y la página "Rapporten" (Reports) mostraba "Unable to load work order history". Diagnóstico ejecutado delegando a una instancia de Claude Code corriendo en `prod-priv-01` (solo lectura, sin tocar nada — ver `feedback_operating_rules`/protocolo de acciones riesgosas).
+
+**CLA-405 (✅ Done, `d546ba0`) — la ruta nunca existió:**
+
+- El frontend (`Claesen-Sport-updateing/src/services/maintenance-work-order.service.ts:95`, `fetchMaintenanceWorkOrderHistory`) llama a `GET /fieldops/maintenance-work-orders/history` desde hace tiempo, pero esa ruta **nunca se implementó** en `Modules/FieldOps/Routes/api.php` — solo existían `/assigned`, `/{workOrder}` (show), `/start`, `/submit`, `/return`, `/validate`, `/override`. Como `/{workOrder}` está registrada justo después de `/assigned`, la request caía ahí con `$workOrder = "history"` (route-model-binding implícito sobre `FoMaintenanceWorkOrder`) → 404. Confirmado con evidencia real de nginx access log en prod (múltiples hits el 2026-08-20, `referer: .../app/reports`, status 404) — no con solo lectura de código.
+- **No era específico de rol** — le pasa a cualquier usuario que abra Reports, independientemente de si es `super_admin` o no.
+- Fix: `MaintenanceWorkOrderController::history()`, calcado de `assigned()` (mismo scope: `super_admin`/`admin` ven todo, el resto solo `assigned_employee_id === $user->employee_id`) pero filtrado a `completed`/`cancelled` en vez de excluirlos. Ruta registrada **antes** del wildcard `{workOrder}`, con comentario explicando por qué el orden importa. 3 tests nuevos (scoping propio, super_admin ve todo, requiere auth) — 21/21 en `MaintenanceWorkOrderTest`, 85/85 en regresión ampliada (`MaintenanceWorkOrder|MaintenanceRequest|FoMaintenance|FieldOpsTenant`).
+- **Gotcha de test replicado de CLA-374:** la factory de `FoMaintenanceWorkOrder` crea un `FoMaintenanceType` nuevo con `code='preventive'` por default en cada llamada — un test que crea 3 work orders en loop sin fijar `fo_maintenance_type_id` explícito choca contra el unique constraint de `code`. Mismo fix: crear un solo `FoMaintenanceType` y reutilizar su id.
+
+**CLA-406 (⬜ Todo, sin iniciar) — el problema real de "no veo Complexes/Clients" es deploy, no permisos:**
+
+- El rol en BD de producción está **correcto y limpio**: `super_admin`, sin duplicados de cuenta, sin ambigüedad. El menú se oculta en el frontend (`Claesen-Sport-updateing/src/constants/roles.ts`, `canAccessComplexes`/`canAccessClients`) solo si el array de roles llega vacío o si todos los roles son `technician` — no debería pasarle a este usuario con el código actual.
+- Pero el bundle servido en `service.claesen-verlichting.be` (`sbapu03:/var/www/service.claesen-verlichting.be/public`) tiene fecha **2026-08-17**, dos días antes del commit `bc3b389` (2026-08-19) que trae ese fix — el navegador del usuario corre código de antes de que la lógica correcta existiera.
+- **Hallazgo más grave, sin resolver:** el runner de GitHub Actions self-hosted conocido (`/opt/actions-runner-safety/` en prod-priv-01, repo `cubanote816/safety_claesen`) está parado en `74fa34f` (2026-07-21) y no coincide con el bundle del 17/8 — ese deploy no pasó por ningún pipeline documentado (rsync manual u otro runner no encontrado todavía). Se encontraron **3 webroots independientes** en `sbapu03` para dominios FieldOps relacionados (`service.claesen-verlichting.be` 17/8, `safety.claesen-verlichting.be` 21/7, `fieldops.claesen-verlichting.be` 24/6), sin relación clara entre sí. El nombre del repo del runner (`safety_claesen`) no coincide con el remoto del checkout local auditado (`Claesen-Sport-updateing` → `service.claesen-verlichting.git`) — sin confirmar todavía si son el mismo proyecto.
+- Alcance pendiente: investigar el mecanismo real de deploy del 17/8, confirmar la relación entre los 3 dominios/repos, documentar/formalizar un pipeline real, y redeploy puntual del commit actual. Ningún cambio ejecutado en prod durante el diagnóstico — requiere plan + aprobación explícita antes de tocar el webroot o cualquier pipeline (alto impacto, difícil de revertir).
 
 ### CLA-278 — Create Luminaire: buscador de tipo, UX progresiva y media (2026-07-25)
 
