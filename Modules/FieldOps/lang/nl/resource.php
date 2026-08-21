@@ -507,6 +507,8 @@ return [
             'override_reason' => 'Een uitzonderlijke afsluiting vereist een auditreden.',
             'cannot_cancel' => 'Deze werkorder kan niet meer worden geannuleerd.',
             'invalid_recurrence' => 'Kies een geldige herhalingseenheid.',
+            'recurrence_unit_required' => 'Kies een herhalingseenheid — er is een interval ingesteld, dus zonder eenheid kan er geen onderhoudsplan worden aangemaakt.',
+            'recurrence_interval_required' => 'Voer een herhalingsinterval in — er is een eenheid ingesteld, dus zonder interval kan er geen onderhoudsplan worden aangemaakt.',
             'assignee_requires_user' => 'De geselecteerde medewerker heeft een actieve applicatiegebruiker nodig voordat werk kan worden toegewezen.',
             'cannot_edit' => 'Alleen geplande of toegewezen werkorders kunnen worden bewerkt.',
             'return_reason' => 'Leg uit wat de terreinmedewerker moet corrigeren.',

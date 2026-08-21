@@ -120,6 +120,91 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
         $this->get('/fo-maintenance-plans')->assertOk()->assertSee('6 month(s)');
     }
 
+    public function test_recurrence_interval_without_unit_fails_validation_and_creates_no_plan(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        $this->actingAs($user);
+
+        Livewire::withQueryParams([
+            'maintainable_type' => Luminaire::class,
+            'maintainable_id' => $luminaire->id,
+        ])->test(CreateMaintenanceWorkOrder::class)
+            ->fillForm([
+                'fo_maintenance_type_id' => $type->id,
+                'scheduled_for' => now()->addWeek()->startOfHour(),
+                'priority' => 'medium',
+                'instructions' => 'Inspect optics and clean the luminaire.',
+                'recurrence_interval' => 3,
+            ])->call('create')->assertHasFormErrors(['recurrence_unit' => 'required_with']);
+
+        self::assertSame(0, FoMaintenanceWorkOrder::count());
+        self::assertSame(0, FoMaintenancePlan::count());
+    }
+
+    public function test_recurrence_unit_without_interval_fails_validation_and_creates_no_plan(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        $this->actingAs($user);
+
+        Livewire::withQueryParams([
+            'maintainable_type' => Luminaire::class,
+            'maintainable_id' => $luminaire->id,
+        ])->test(CreateMaintenanceWorkOrder::class)
+            ->fillForm([
+                'fo_maintenance_type_id' => $type->id,
+                'scheduled_for' => now()->addWeek()->startOfHour(),
+                'priority' => 'medium',
+                'instructions' => 'Inspect optics and clean the luminaire.',
+                'recurrence_unit' => 'months',
+            ])->call('create')->assertHasFormErrors(['recurrence_interval' => 'required_with']);
+
+        self::assertSame(0, FoMaintenanceWorkOrder::count());
+        self::assertSame(0, FoMaintenancePlan::count());
+    }
+
+    public function test_recurrence_interval_has_no_misleading_default_value(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $this->actingAs($user);
+
+        Livewire::withQueryParams([
+            'maintainable_type' => Luminaire::class,
+            'maintainable_id' => $luminaire->id,
+        ])->test(CreateMaintenanceWorkOrder::class)
+            ->assertFormSet(['recurrence_interval' => null, 'recurrence_unit' => null]);
+    }
+
+    public function test_creating_work_order_without_any_recurrence_fields_still_works(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $luminaire = $this->luminaireWithClientContext();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        $this->actingAs($user);
+
+        Livewire::withQueryParams([
+            'maintainable_type' => Luminaire::class,
+            'maintainable_id' => $luminaire->id,
+        ])->test(CreateMaintenanceWorkOrder::class)
+            ->fillForm([
+                'fo_maintenance_type_id' => $type->id,
+                'scheduled_for' => now()->addWeek()->startOfHour(),
+                'priority' => 'medium',
+                'instructions' => 'One-off inspection, no recurrence.',
+            ])->call('create')->assertHasNoFormErrors();
+
+        self::assertSame(1, FoMaintenanceWorkOrder::count());
+        self::assertSame(0, FoMaintenancePlan::count());
+    }
+
     public function test_create_work_order_breadcrumb_reflects_luminaire_hierarchy(): void
     {
         $user = User::factory()->create();

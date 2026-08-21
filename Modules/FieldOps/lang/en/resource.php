@@ -510,6 +510,8 @@ return [
             'override_reason' => 'An exceptional closure requires an audit reason.',
             'cannot_cancel' => 'This work order can no longer be cancelled.',
             'invalid_recurrence' => 'Select a valid recurrence unit.',
+            'recurrence_unit_required' => 'Choose a recurrence unit — an interval was set, so a maintenance plan cannot be created without it.',
+            'recurrence_interval_required' => 'Enter a recurrence interval — a unit was set, so a maintenance plan cannot be created without it.',
             'assignee_requires_user' => 'The selected employee needs an active application user before work can be assigned.',
             'cannot_edit' => 'Only planned or assigned work orders can be edited.',
             'return_reason' => 'Explain what the field worker must correct.',
