@@ -13,7 +13,7 @@ class BudgetAssistantService
 {
     protected ProjectSimilarityService $similarityService;
 
-    public function __construct(ProjectSimilarityService $similarityService)
+    public function __construct(ProjectSimilarityService $similarityService, protected GoogleServiceAccountAuthService $auth)
     {
         $this->similarityService = $similarityService;
     }
@@ -103,11 +103,10 @@ class BudgetAssistantService
             $projectNames = collect($similarProjects)->map(fn($p) => "- {$p['name']} ({$p['city']}, {$p['year']})")->implode("\n");
 
             // ... Prepare and Call AI ...
-            $apiKey = config('services.gemini.key');
-            $baseUrl = config('services.gemini.url', 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent');
-            $url = "{$baseUrl}?key={$apiKey}";
+            $baseUrl = config('services.gemini.url', 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent');
+            $token = $this->auth->getAccessToken();
 
-            if (!$apiKey) {
+            if (!$token) {
                 return $this->generateFallbackSimulation(['description' => $description, 'category' => $category, 'zipcode' => $zipcode, 'complexity' => $complexity, 'similar_projects' => $similarProjects]);
             }
 
@@ -159,9 +158,9 @@ OUTPUT SCHEMA (JSON):
 EOT;
 
             try {
-                $response = Http::post($url, [
+                $response = Http::withToken($token)->post($baseUrl, [
                     'system_instruction' => ['parts' => [['text' => $systemText]]],
-                    'contents' => [['parts' => [['text' => $userInputText]]]],
+                    'contents' => [['role' => 'user', 'parts' => [['text' => $userInputText]]]],
                     'generationConfig' => ['response_mime_type' => 'application/json', 'temperature' => 0.1]
                 ]);
 

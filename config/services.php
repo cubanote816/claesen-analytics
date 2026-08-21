@@ -42,6 +42,13 @@ return [
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'url' => env('GEMINI_API_URL'),
+        // CLA-407 — org policy blocks simple API keys for Gemini; auth is via
+        // a dedicated service account's JSON credentials instead (OAuth2
+        // JWT-bearer flow), see GoogleServiceAccountAuthService.
+        'service_account_path' => env(
+            'GEMINI_SERVICE_ACCOUNT_PATH',
+            storage_path('app/private/credentials/gemini-service-account.json')
+        ),
     ],
 
     'anthropic' => [
