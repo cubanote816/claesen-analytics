@@ -358,9 +358,19 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | CLA-391 | Detección multi-luminaria + posicionamiento aproximado por foto (CLA-390 Fase 2 de 3) | ✅ Done — ver detalle abajo. Fase 3 (generación de imagen) sigue sin ticket, necesita prueba de concepto propia |
 | CLA-405 | Ruta faltante `GET /fieldops/maintenance-work-orders/history` (404 en Reports) | ✅ Done — ver detalle abajo |
 | CLA-406 | Auditar/normalizar el pipeline de deploy de `service.claesen-verlichting.be` + redeploy del commit actual | ✅ Done — ver detalle abajo |
+| CLA-408 | Fix UX de recurrencia en Schedule Maintenance: interval con default engañoso | ✅ Done — ver detalle abajo |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
 **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.
+
+### CLA-408 — Fix UX de recurrencia en Schedule Maintenance (2026-08-21, commit `5877a1b`)
+
+Reportado por el usuario probando `/fo-maintenance-plans`: creó una work order desde "Schedule maintenance" esperando que generara un `FoMaintenancePlan` recurrente, pero la tabla quedó vacía.
+
+- **Diagnóstico:** no era un bug de listado — `fo_maintenance_plans` tenía 0 filas (`withTrashed()`), ninguna de las 22 work orders existentes en dev tenía `maintenance_plan_id` seteado. Un `FoMaintenancePlan` solo se crea si `recurrence_unit` (Days/Weeks/Months/Years) no está vacío (`MaintenanceWorkOrderService::create()`, línea 76). El usuario confirmó que dejó ese select vacío — el campo `recurrence_interval` mostraba `1` por su `->default(1)`, dando la falsa impresión de que la recurrencia ya estaba configurada cuando en realidad faltaba la mitad de la información y el interval sin unidad no significa nada.
+- **Fix (`FoMaintenanceWorkOrderResource::form()`, sección "Recurrence"):** se quita el `->default(1)` de `recurrence_interval` — no muestra ningún valor hasta que se elige una unidad — y se agrega `requiredWith()` cruzado en ambos campos (cada uno exige al otro), con mensajes de validación traducidos (`work_orders.validation.recurrence_unit_required`/`recurrence_interval_required`, en/nl) en vez de guardar la work order sin generar el plan en silencio.
+- **No se tocó** `MaintenanceWorkOrderService::create()` ni el modelo `FoMaintenancePlan` — la lógica de creación del plan ya era correcta, el bug era puramente de UX/validación del formulario.
+- **Validación:** 4 tests nuevos (interval sin unit falla y no crea nada, unit sin interval falla y no crea nada, el campo interval ya no trae ningún default visible, crear sin tocar ninguno de los dos sigue funcionando igual que antes — work order sin plan, comportamiento intencional). 17/17 en `MaintenanceWorkOrderFilamentTest`, 69/69 en regresión amplia (`MaintenanceWorkOrder|MaintenancePlan|MaintenanceRequest`), sin regresiones.
 
 ### CLA-405 / CLA-406 — 404 en Reports (ruta faltante) + deploy desactualizado de service.claesen-verlichting.be (2026-08-20)
 
