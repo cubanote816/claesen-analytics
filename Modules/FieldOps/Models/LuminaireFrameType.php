@@ -18,7 +18,7 @@ class LuminaireFrameType extends Model
 
     protected $table = 'fo_luminaire_frame_types';
 
-    protected $fillable = ['created_by_user_id', 'name', 'image'];
+    protected $fillable = ['created_by_user_id', 'name', 'image', 'source', 'verified_by_user_id'];
 
     public function createdBy()
     {

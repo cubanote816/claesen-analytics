@@ -153,6 +153,9 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/luminaire-frame-types', [CatalogController::class, 'luminaireFrameTypes']);
         Route::post('/luminaire-frame-types/custom', [CatalogController::class, 'storeCustomLuminaireFrameType']);
         Route::post('/luminaire-frame-types/vision-suggestions', [LuminaireVisionController::class, 'suggestFrameType']);
+        // CLA-409 (CLA-390 Fase 3) — read-only generation preview + creation from an accepted preview.
+        Route::post('/luminaire-frame-types/vision-generate', [LuminaireVisionController::class, 'generateFrameType']);
+        Route::post('/luminaire-frame-types/from-generated', [CatalogController::class, 'storeGeneratedLuminaireFrameType']);
         Route::get('/luminaire-types', [CatalogController::class, 'luminaireTypes']);
         Route::post('/luminaire-types/from-suggestion', [CatalogController::class, 'storeLuminaireTypeFromSuggestion']);
         Route::get('/luminaire-subgroups', [CatalogController::class, 'luminaireSubgroups']);

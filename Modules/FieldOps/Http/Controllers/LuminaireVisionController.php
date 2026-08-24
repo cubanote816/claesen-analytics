@@ -4,6 +4,7 @@ namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Routing\Controller;
 use Modules\FieldOps\Database\Seeders\PlaceholderLuminaireTypeSeeder;
+use Modules\FieldOps\Http\Requests\StoreFrameTypeVisionGenerateRequest;
 use Modules\FieldOps\Http\Requests\StoreFrameTypeVisionSuggestionRequest;
 use Modules\FieldOps\Http\Requests\StoreLuminaireDetectionVisionSuggestionRequest;
 use Modules\FieldOps\Http\Requests\StoreLuminaireVisionSuggestionRequest;
@@ -11,6 +12,7 @@ use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\Intelligence\Services\ClaudeVisionService;
+use Modules\Intelligence\Services\GeminiImageGenerationService;
 
 class LuminaireVisionController extends Controller
 {
@@ -127,6 +129,34 @@ class LuminaireVisionController extends Controller
             'data' => [
                 'status' => $result['status'],
                 'candidates' => $result['candidates'],
+            ],
+        ]);
+    }
+
+    /**
+     * CLA-409 (CLA-390 Fase 3) — generate a catalog-style illustration of a
+     * frame photographed at a job site, for the case where suggestFrameType()
+     * found no match in the existing catalog. Read-only — never creates or
+     * edits a frame type; the technician confirms (optionally editing the
+     * suggested name) via LuminaireFrameTypeController::storeFromGenerated()
+     * before anything is persisted.
+     */
+    public function generateFrameType(StoreFrameTypeVisionGenerateRequest $request, GeminiImageGenerationService $generator): \Illuminate\Http\JsonResponse
+    {
+        $photo = $request->file('photo');
+
+        $result = $generator->generateFrameTypeImage(
+            base64_encode($photo->get()),
+            $photo->getMimeType(),
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => $result['status'],
+                'image_base64' => $result['image_base64'],
+                'mime_type' => $result['mime_type'],
+                'suggested_name' => $result['suggested_name'],
             ],
         ]);
     }

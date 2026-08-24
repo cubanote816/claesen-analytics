@@ -599,6 +599,7 @@ return [
         ],
         'source_manual' => 'Manual',
         'source_ai_suggestion' => 'AI suggestion',
+        'source_ai_generated' => 'AI generated',
         'unverified' => 'Unverified',
         'mark_verified' => 'Mark as verified',
         'pin_selector' => [

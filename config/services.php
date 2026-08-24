@@ -49,6 +49,11 @@ return [
             'GEMINI_SERVICE_ACCOUNT_PATH',
             storage_path('app/private/credentials/gemini-service-account.json')
         ),
+        // CLA-409 — Vertex AI project/location for GeminiImageGenerationService
+        // (image generation isn't available on the plain Generative Language
+        // API endpoint GEMINI_API_URL points to for text calls).
+        'vertex_project' => env('GEMINI_VERTEX_PROJECT', 'gen-lang-client-0849598291'),
+        'vertex_location' => env('GEMINI_VERTEX_LOCATION', 'us-central1'),
     ],
 
     'anthropic' => [

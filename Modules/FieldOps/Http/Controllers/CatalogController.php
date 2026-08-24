@@ -5,6 +5,7 @@ namespace Modules\FieldOps\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
+use Modules\FieldOps\Http\Requests\StoreLuminaireFrameTypeFromGeneratedRequest;
 use Modules\FieldOps\Http\Requests\StoreLuminaireTypeFromSuggestionRequest;
 use Modules\FieldOps\Http\Resources\AccessTypeResource;
 use Modules\FieldOps\Http\Resources\ElectricalBoardTypeResource;
@@ -77,6 +78,43 @@ class CatalogController extends Controller
             'created_by_user_id' => $request->user()->id,
             'name'                => $validated['name'],
             'image'               => Storage::disk('public')->url($path),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data'    => new LuminaireFrameTypeResource($frameType),
+        ], 201);
+    }
+
+    /**
+     * CLA-409 (CLA-390 Fase 3) — creates a LuminaireFrameType from an
+     * AI-generated catalog-style illustration (GeminiImageGenerationService,
+     * technician-confirmed) instead of a raw uploaded photo. Marked
+     * source=ai_generated/verified_by_user_id=null so a super_admin can
+     * review it later from Filament — same governance pattern already used
+     * for storeLuminaireTypeFromSuggestion() below (CLA-389).
+     */
+    public function storeGeneratedLuminaireFrameType(StoreLuminaireFrameTypeFromGeneratedRequest $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validated();
+
+        $decoded = base64_decode($validated['image_base64'], true);
+
+        if ($decoded === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid image data.',
+            ], 422);
+        }
+
+        $path = 'luminaire-frame-types/'.uniqid('generated_', true).'.png';
+        Storage::disk('public')->put($path, $decoded);
+
+        $frameType = LuminaireFrameType::create([
+            'created_by_user_id' => $request->user()->id,
+            'name'                => $validated['name'],
+            'image'               => Storage::disk('public')->url($path),
+            'source'              => 'ai_generated',
         ]);
 
         return response()->json([

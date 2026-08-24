@@ -596,6 +596,7 @@ return [
         ],
         'source_manual' => 'Handmatig',
         'source_ai_suggestion' => 'AI-suggestie',
+        'source_ai_generated' => 'AI-gegenereerd',
         'unverified' => 'Niet geverifieerd',
         'mark_verified' => 'Markeer als geverifieerd',
         'pin_selector' => [
