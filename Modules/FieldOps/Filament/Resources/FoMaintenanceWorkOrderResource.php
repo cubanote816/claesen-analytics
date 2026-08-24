@@ -230,10 +230,22 @@ class FoMaintenanceWorkOrderResource extends Resource
                             'weeks' => __('fieldops::resource.work_orders.recurrence.weeks'),
                             'months' => __('fieldops::resource.work_orders.recurrence.months'),
                             'years' => __('fieldops::resource.work_orders.recurrence.years'),
-                        ])->live()->nullable(),
+                        ])
+                        ->live()
+                        ->nullable()
+                        ->requiredWith('recurrence_interval')
+                        ->validationMessages([
+                            'required_with' => __('fieldops::resource.work_orders.validation.recurrence_unit_required'),
+                        ]),
                     TextInput::make('recurrence_interval')
                         ->label(__('fieldops::resource.work_orders.fields.interval'))
-                        ->numeric()->minValue(1)->default(1),
+                        ->numeric()
+                        ->minValue(1)
+                        ->live(onBlur: true)
+                        ->requiredWith('recurrence_unit')
+                        ->validationMessages([
+                            'required_with' => __('fieldops::resource.work_orders.validation.recurrence_interval_required'),
+                        ]),
                 ])->columns(2)->collapsible(),
         ]);
     }

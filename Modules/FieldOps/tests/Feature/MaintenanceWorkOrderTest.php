@@ -286,6 +286,82 @@ class MaintenanceWorkOrderTest extends TestCase
             ->assertJsonPath('data.0.client.id', $client->id);
     }
 
+    public function test_history_only_returns_the_workers_completed_or_cancelled_orders_with_equipment_context(): void
+    {
+        [$luminaire, $client, $structure, $terrain, $complex] = $this->luminaireWithClientContext();
+        $assigned = Employee::create(['id' => 'FIELD-HISTORY', 'name' => 'Assigned worker', 'fl_active' => true]);
+        $other = Employee::create(['id' => 'FIELD-OTHER-HISTORY', 'name' => 'Other worker', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $assigned->id]);
+        $user->assignRole('project_manager');
+        $type = FoMaintenanceType::factory()->corrective()->create();
+
+        $ownCompleted = FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'fo_maintenance_type_id' => $type->id,
+            'client_id' => $client->id,
+            'assigned_employee_id' => $assigned->id,
+            'status' => MaintenanceWorkOrderStatus::COMPLETED,
+        ]);
+        // Still open — must never show up in history.
+        FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'fo_maintenance_type_id' => $type->id,
+            'assigned_employee_id' => $assigned->id,
+            'status' => MaintenanceWorkOrderStatus::ASSIGNED,
+        ]);
+        // Completed but assigned to someone else — must never show up either.
+        FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'fo_maintenance_type_id' => $type->id,
+            'assigned_employee_id' => $other->id,
+            'status' => MaintenanceWorkOrderStatus::CANCELLED,
+        ]);
+
+        $this->withToken($user->createToken('field')->plainTextToken)
+            ->getJson('/api/v1/fieldops/maintenance-work-orders/history')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $ownCompleted->id)
+            ->assertJsonPath('data.0.equipment.kind', 'luminaire')
+            ->assertJsonPath('data.0.equipment.structure_id', $structure->id)
+            ->assertJsonPath('data.0.equipment.terrain_id', $terrain->id)
+            ->assertJsonPath('data.0.equipment.complex_id', $complex->id)
+            ->assertJsonPath('data.0.client.id', $client->id);
+    }
+
+    public function test_history_returns_every_completed_or_cancelled_order_for_super_admin(): void
+    {
+        [$luminaire] = $this->luminaireWithClientContext();
+        $employeeA = Employee::create(['id' => 'FIELD-HIST-A', 'name' => 'Worker A', 'fl_active' => true]);
+        $employeeB = Employee::create(['id' => 'FIELD-HIST-B', 'name' => 'Worker B', 'fl_active' => true]);
+        $admin = UserFactory::new()->create();
+        $admin->assignRole('super_admin');
+        $type = FoMaintenanceType::factory()->corrective()->create();
+
+        FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'fo_maintenance_type_id' => $type->id,
+            'assigned_employee_id' => $employeeA->id,
+            'status' => MaintenanceWorkOrderStatus::COMPLETED,
+        ]);
+        FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'fo_maintenance_type_id' => $type->id,
+            'assigned_employee_id' => $employeeB->id,
+            'status' => MaintenanceWorkOrderStatus::CANCELLED,
+        ]);
+        FoMaintenanceWorkOrder::factory()->forMaintainable($luminaire)->create([
+            'fo_maintenance_type_id' => $type->id,
+            'assigned_employee_id' => $employeeA->id,
+            'status' => MaintenanceWorkOrderStatus::ASSIGNED,
+        ]);
+
+        $this->withToken($admin->createToken('backoffice')->plainTextToken)
+            ->getJson('/api/v1/fieldops/maintenance-work-orders/history')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
+    public function test_history_requires_authentication(): void
+    {
+        $this->getJson('/api/v1/fieldops/maintenance-work-orders/history')->assertUnauthorized();
+    }
+
     public function test_work_order_queue_requires_authentication_and_submission_requires_solution(): void
     {
         $this->getJson('/api/v1/fieldops/maintenance-work-orders/assigned')->assertUnauthorized();

@@ -11,6 +11,7 @@ use Modules\FieldOps\Http\Controllers\FieldOpsNotificationController;
 use Modules\FieldOps\Http\Controllers\FoClientController;
 use Modules\FieldOps\Http\Controllers\LuminaireController;
 use Modules\FieldOps\Http\Controllers\LuminaireFrameController;
+use Modules\FieldOps\Http\Controllers\LuminaireVisionController;
 use Modules\FieldOps\Http\Controllers\MaintenanceRecordController;
 use Modules\FieldOps\Http\Controllers\MaintenanceRequestController;
 use Modules\FieldOps\Http\Controllers\MaintenanceWorkOrderController;
@@ -68,6 +69,10 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::patch('/luminaire-frames/{frame}', [LuminaireFrameController::class, 'update']);
         Route::delete('/luminaire-frames/{frame}', [LuminaireFrameController::class, 'destroy']);
         Route::get('/luminaire-frames/{frame}/luminaires', [LuminaireFrameController::class, 'luminaires']);
+        // Vision-assisted identification (CLA-386) — read-only suggestion, never persists.
+        Route::post('/luminaire-frames/{frame}/vision-suggestions', [LuminaireVisionController::class, 'suggest']);
+        // Vision-assisted multi-luminaire detection (CLA-391 / CLA-390 Fase 2) — read-only, never persists.
+        Route::post('/luminaire-frames/{frame}/vision-luminaire-detections', [LuminaireVisionController::class, 'detectLuminaires']);
 
         // Luminaires
         Route::post('/luminaires', [LuminaireController::class, 'store']);
@@ -119,6 +124,10 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::post('/luminaires/{luminaire}/maintenance-work-orders/execute', [MaintenanceWorkOrderController::class, 'executeForLuminaire']);
         Route::post('/electrical-boards/{electricalBoard}/maintenance-work-orders/execute', [MaintenanceWorkOrderController::class, 'executeForElectricalBoard']);
         Route::get('/maintenance-work-orders/assigned', [MaintenanceWorkOrderController::class, 'assigned']);
+        // Must stay registered before the {workOrder} wildcard below — a literal path
+        // registered after a wildcard is never reached (CLA-405: this route was missing
+        // entirely, and "history" was silently swallowed by {workOrder} as a bogus ID).
+        Route::get('/maintenance-work-orders/history', [MaintenanceWorkOrderController::class, 'history']);
         Route::get('/maintenance-work-orders/{workOrder}', [MaintenanceWorkOrderController::class, 'show']);
         Route::post('/maintenance-work-orders/{workOrder}/start', [MaintenanceWorkOrderController::class, 'start']);
         Route::post('/maintenance-work-orders/{workOrder}/submit', [MaintenanceWorkOrderController::class, 'submit']);
@@ -143,7 +152,12 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/electrical-board-types', [CatalogController::class, 'electricalBoardTypes']);
         Route::get('/luminaire-frame-types', [CatalogController::class, 'luminaireFrameTypes']);
         Route::post('/luminaire-frame-types/custom', [CatalogController::class, 'storeCustomLuminaireFrameType']);
+        Route::post('/luminaire-frame-types/vision-suggestions', [LuminaireVisionController::class, 'suggestFrameType']);
+        // CLA-409 (CLA-390 Fase 3) — read-only generation preview + creation from an accepted preview.
+        Route::post('/luminaire-frame-types/vision-generate', [LuminaireVisionController::class, 'generateFrameType']);
+        Route::post('/luminaire-frame-types/from-generated', [CatalogController::class, 'storeGeneratedLuminaireFrameType']);
         Route::get('/luminaire-types', [CatalogController::class, 'luminaireTypes']);
+        Route::post('/luminaire-types/from-suggestion', [CatalogController::class, 'storeLuminaireTypeFromSuggestion']);
         Route::get('/luminaire-subgroups', [CatalogController::class, 'luminaireSubgroups']);
 
         // Media (photos/videos/documents attached to complexes, terrains, structures, electrical boards, luminaires)

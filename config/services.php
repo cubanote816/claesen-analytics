@@ -42,6 +42,23 @@ return [
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'url' => env('GEMINI_API_URL'),
+        // CLA-407 — org policy blocks simple API keys for Gemini; auth is via
+        // a dedicated service account's JSON credentials instead (OAuth2
+        // JWT-bearer flow), see GoogleServiceAccountAuthService.
+        'service_account_path' => env(
+            'GEMINI_SERVICE_ACCOUNT_PATH',
+            storage_path('app/private/credentials/gemini-service-account.json')
+        ),
+        // CLA-409 — Vertex AI project/location for GeminiImageGenerationService
+        // (image generation isn't available on the plain Generative Language
+        // API endpoint GEMINI_API_URL points to for text calls).
+        'vertex_project' => env('GEMINI_VERTEX_PROJECT', 'gen-lang-client-0849598291'),
+        'vertex_location' => env('GEMINI_VERTEX_LOCATION', 'us-central1'),
+    ],
+
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'vision_model' => env('ANTHROPIC_VISION_MODEL', 'claude-sonnet-5'),
     ],
 
     'github' => [

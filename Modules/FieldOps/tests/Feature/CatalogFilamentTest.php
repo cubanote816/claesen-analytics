@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireFrameTypes\Pages\ListLuminaireFrameTypes;
+use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireTypes\Pages\ListLuminaireTypes;
 use Modules\FieldOps\Models\AccessType;
 use Modules\FieldOps\Models\ElectricalBoardType;
 use Modules\FieldOps\Models\FoMaintenanceType;
@@ -97,6 +100,79 @@ class CatalogFilamentTest extends TestCase
             ->assertSee(__('fieldops::resource.catalogs.fields.typical_application'), false)
             ->assertSee('OptiVision LED gen3.5', false)
             ->assertSee('BVP518', false);
+    }
+
+    /**
+     * CLA-389 — a LuminaireType created from a confirmed AI suggestion (source
+     * ai_suggestion, verified_by_user_id null) shows an "Unverified" badge in
+     * Filament; a manually-created or already-verified one doesn't. The "Mark as
+     * verified" row action itself renders inside a Livewire dropdown menu that a
+     * plain GET can't observe (same JS-dependent-content limitation already
+     * documented for other Filament actions in this codebase) — its visibility
+     * closure is the same one driving this badge, so this test covers the real
+     * logic without asserting on markup a static request can't see.
+     */
+    public function test_luminaire_type_shows_unverified_badge_only_for_unverified_ai_suggestions(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        LuminaireType::factory()->create(['name' => 'Manual entry', 'source' => 'manual']);
+        LuminaireType::factory()->create(['name' => 'Suggested entry', 'source' => 'ai_suggestion', 'verified_by_user_id' => null]);
+        LuminaireType::factory()->create(['name' => 'Verified suggestion', 'source' => 'ai_suggestion', 'verified_by_user_id' => $user->id]);
+
+        $this->get('/catalogs/luminaire-types')
+            ->assertOk()
+            ->assertSeeText(__('fieldops::resource.catalogs.unverified'));
+    }
+
+    public function test_mark_verified_action_records_the_reviewing_super_admin(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $suggested = LuminaireType::factory()->create(['source' => 'ai_suggestion', 'verified_by_user_id' => null]);
+
+        Livewire::test(ListLuminaireTypes::class)
+            ->callTableAction('markVerified', $suggested);
+
+        $this->assertSame($user->id, $suggested->refresh()->verified_by_user_id);
+    }
+
+    /**
+     * CLA-409 (CLA-390 Fase 3) — same badge/verify treatment as LuminaireType
+     * (CLA-389), but source=ai_generated instead of ai_suggestion (a
+     * generated catalog illustration, not a suggested existing product).
+     */
+    public function test_luminaire_frame_type_shows_unverified_badge_only_for_unverified_ai_generated_entries(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        LuminaireFrameType::factory()->create(['name' => 'Manual frame', 'source' => 'manual']);
+        LuminaireFrameType::factory()->create(['name' => 'Generated frame', 'source' => 'ai_generated', 'verified_by_user_id' => null]);
+        LuminaireFrameType::factory()->create(['name' => 'Verified generated frame', 'source' => 'ai_generated', 'verified_by_user_id' => $user->id]);
+
+        $this->get('/catalogs/luminaire-frame-types')
+            ->assertOk()
+            ->assertSeeText(__('fieldops::resource.catalogs.unverified'));
+    }
+
+    public function test_mark_verified_action_records_the_reviewing_super_admin_for_frame_types(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('super_admin');
+        $this->actingAs($user);
+
+        $generated = LuminaireFrameType::factory()->create(['source' => 'ai_generated', 'verified_by_user_id' => null]);
+
+        Livewire::test(ListLuminaireFrameTypes::class)
+            ->callTableAction('markVerified', $generated);
+
+        $this->assertSame($user->id, $generated->refresh()->verified_by_user_id);
     }
 
     public function test_terrain_type_edit_resolves_translated_label_instead_of_raw_json(): void

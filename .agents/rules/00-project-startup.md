@@ -68,6 +68,11 @@ Website:
 - Preserve WebP/media flow.
 - Do not break GitHub Actions webhook assumptions.
 
+UI / Visual identity:
+- Before creating or modifying any Blade/Filament view, or any Tailwind/CSS style token, read `DESIGN.md` first.
+- If a change touches colors or typography, run `npx @google/design.md lint DESIGN.md` before committing.
+- If `DESIGN.md` and the actual code diverge, report the conflict and update `DESIGN.md` to match the real, approved change — do not silently let it go stale.
+
 If documents conflict:
 1. Report the conflict.
 2. Verify against current code.

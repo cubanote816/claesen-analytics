@@ -4,9 +4,14 @@ namespace Modules\Performance\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Modules\Intelligence\Services\GoogleServiceAccountAuthService;
 
 class AuditProjectService
 {
+    public function __construct(protected GoogleServiceAccountAuthService $auth)
+    {
+    }
+
     /**
      * Post-mortem financial analysis of a project, returning structured JSON.
      */
@@ -45,12 +50,17 @@ INSTRUCTIONS:
 4. Output strict JSON only.
 PROMPT;
 
-        $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-        $apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY');
+        $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent';
+        $token = $this->auth->getAccessToken();
+
+        if (empty($token)) {
+            Log::error('AuditProjectService: could not obtain a service account access token.');
+            return $this->fallbackJson('API Fout.');
+        }
 
         try {
-            $response = Http::post($apiUrl . "?key=" . $apiKey, [
-                'contents' => [['parts' => [['text' => $prompt]]]],
+            $response = Http::withToken($token)->post($apiUrl, [
+                'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
                 'generationConfig' => [
                     'temperature' => 0.1,
                     'responseMimeType' => 'application/json'

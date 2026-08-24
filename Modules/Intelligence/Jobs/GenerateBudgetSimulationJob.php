@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Modules\Performance\Models\ProjectInsight;
 use Modules\Cafca\Models\Employee;
 use Illuminate\Support\Facades\Http;
+use Modules\Intelligence\Services\GoogleServiceAccountAuthService;
 
 class GenerateBudgetSimulationJob implements ShouldQueue
 {
@@ -30,7 +31,7 @@ class GenerateBudgetSimulationJob implements ShouldQueue
         $this->cacheKey = $cacheKey;
     }
 
-    public function handle()
+    public function handle(GoogleServiceAccountAuthService $auth)
     {
         try {
             $zipcode = $this->requestData['zipcode'] ?? '0000';
@@ -93,7 +94,7 @@ INSTRUCTIONS:
 Language: Translate your final response to exactly this locale: {$this->locale}
 PROMPT;
 
-            $result = $this->callAiNative($prompt);
+            $result = $this->callAiNative($prompt, $auth);
             
             // Store result in cache for 48 hours (48 * 60 * 60 seconds)
             Cache::put($this->cacheKey, $result, now()->addHours(48));
@@ -104,14 +105,19 @@ PROMPT;
         }
     }
 
-    private function callAiNative(string $prompt): string
+    private function callAiNative(string $prompt, GoogleServiceAccountAuthService $auth): string
     {
-        $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-        $apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY');
+        $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent';
+        $token = $auth->getAccessToken();
 
-        $response = Http::post($apiUrl . "?key=" . $apiKey, [
+        if (empty($token)) {
+            throw new \Exception('Could not obtain a service account access token.');
+        }
+
+        $response = Http::withToken($token)->post($apiUrl, [
             'contents' => [
                 [
+                    'role' => 'user',
                     'parts' => [
                         ['text' => $prompt]
                     ]

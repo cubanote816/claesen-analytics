@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Log;
 
 class MaterialIntelligenceService
 {
+    public function __construct(protected GoogleServiceAccountAuthService $auth)
+    {
+    }
+
     /**
      * Build a usage summary from historical projects and use AI to classify the material.
      */
@@ -18,11 +22,11 @@ class MaterialIntelligenceService
         $usageSummary = $this->buildUsageSummary($material);
         $material->usage_summary = $usageSummary;
 
-        $apiKey = config('services.gemini.key');
-        $baseUrl = config('services.gemini.url', 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent');
-        
-        if (!$apiKey) {
-            Log::warning("Gemini API key not found. Skipping AI learning for material {$material->id}");
+        $baseUrl = config('services.gemini.url', 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent');
+        $token = $this->auth->getAccessToken();
+
+        if (!$token) {
+            Log::warning("Gemini: could not obtain a service account access token. Skipping AI learning for material {$material->id}");
             return false;
         }
 
@@ -53,8 +57,8 @@ JSON FORMAAT:
 EOT;
 
         try {
-            $response = Http::post("{$baseUrl}?key={$apiKey}", [
-                'contents' => [['parts' => [['text' => $prompt]]]],
+            $response = Http::withToken($token)->post($baseUrl, [
+                'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
                 'generationConfig' => ['response_mime_type' => 'application/json']
             ]);
 

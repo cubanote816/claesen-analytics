@@ -26,11 +26,18 @@ class LuminaireType extends Model
         'typical_application',
         'image',
         'image_source_url',
+        'source',
+        'verified_by_user_id',
     ];
 
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function verifiedBy()
+    {
+        return $this->belongsTo(User::class, 'verified_by_user_id');
     }
 
     public function subgroup()

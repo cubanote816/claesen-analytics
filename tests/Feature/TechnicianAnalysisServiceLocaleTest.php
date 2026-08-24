@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Modules\Cafca\Models\Employee;
+use Modules\Intelligence\Services\GoogleServiceAccountAuthService;
 use Modules\Performance\Services\TechnicianAnalysisService;
 use Tests\TestCase;
 
@@ -14,9 +15,11 @@ class TechnicianAnalysisServiceLocaleTest extends TestCase
     use RefreshDatabase;
 
     // Test subclass exposes protected methods without making them part of the public API.
+    // Only resolveLocale()/buildPrompt() are exercised here (neither touches $auth), so a
+    // real container-resolved GoogleServiceAccountAuthService is enough — no mock needed.
     private function makeTestService(): object
     {
-        return new class extends TechnicianAnalysisService {
+        return new class(app(GoogleServiceAccountAuthService::class)) extends TechnicianAnalysisService {
             public function exposeLocale(): string
             {
                 return $this->resolveLocale();

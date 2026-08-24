@@ -6,9 +6,14 @@ use Modules\Cafca\Models\Labor;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Modules\Intelligence\Services\GoogleServiceAccountAuthService;
 
 class TechnicianAnalysisService
 {
+    public function __construct(protected GoogleServiceAccountAuthService $auth)
+    {
+    }
+
     /**
      * Retrieves an Employee Archetype profile using Gemini.
      */
@@ -34,12 +39,17 @@ class TechnicianAnalysisService
 
             $prompt = $this->buildPrompt($locale, $employeeName, json_encode($historyData));
 
-            $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-            $apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY');
+            $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent';
 
             try {
-                $response = Http::post($apiUrl . '?key=' . $apiKey, [
-                    'contents'         => [['parts' => [['text' => $prompt]]]],
+                $token = $this->auth->getAccessToken();
+
+                if (empty($token)) {
+                    throw new \Exception('Could not obtain a service account access token.');
+                }
+
+                $response = Http::withToken($token)->post($apiUrl, [
+                    'contents'         => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
                     'generationConfig' => [
                         'temperature'      => 0.1,
                         'responseMimeType' => 'application/json',

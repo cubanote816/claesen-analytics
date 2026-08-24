@@ -6,13 +6,11 @@ use Illuminate\Support\Facades\Log;
 
 class GeminiService
 {
-    protected ?string $apiKey;
     protected string $apiUrl;
 
-    public function __construct()
+    public function __construct(protected GoogleServiceAccountAuthService $auth)
     {
-        $this->apiKey = config('services.gemini.key');
-        $this->apiUrl = config('services.gemini.url') ?: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+        $this->apiUrl = config('services.gemini.url') ?: 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent';
     }
 
     /**
@@ -20,14 +18,16 @@ class GeminiService
      */
     public function generateStructuredResponse(string $prompt): array
     {
-        if (empty($this->apiKey)) {
-            Log::error("Gemini API Key is missing.");
+        $token = $this->auth->getAccessToken();
+
+        if (empty($token)) {
+            Log::error("Gemini: could not obtain a service account access token.");
             return [];
         }
 
         try {
-            $response = \Illuminate\Support\Facades\Http::post($this->apiUrl . "?key=" . $this->apiKey, [
-                'contents' => [['parts' => [['text' => $prompt]]]],
+            $response = \Illuminate\Support\Facades\Http::withToken($token)->post($this->apiUrl, [
+                'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
                 'generationConfig' => [
                     'response_mime_type' => 'application/json',
                     'temperature' => 0.2,

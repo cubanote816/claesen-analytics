@@ -48,6 +48,24 @@ class MaintenanceWorkOrderController extends Controller
         return response()->json(['success' => true, 'data' => MaintenanceWorkOrderResource::collection($orders)]);
     }
 
+    public function history(): JsonResponse
+    {
+        $user = request()->user();
+        $query = FoMaintenanceWorkOrder::query()
+            ->with(self::RELATIONS)
+            ->whereIn('status', [MaintenanceWorkOrderStatus::COMPLETED->value, MaintenanceWorkOrderStatus::CANCELLED->value])
+            ->latest('scheduled_for');
+
+        if (! $user->hasAnyRole(['super_admin', 'admin'])) {
+            $query->where('assigned_employee_id', $user->employee_id ?: '__unlinked__');
+        }
+
+        $orders = $query->get();
+        $this->loadEquipmentContext($orders);
+
+        return response()->json(['success' => true, 'data' => MaintenanceWorkOrderResource::collection($orders)]);
+    }
+
     public function show(FoMaintenanceWorkOrder $workOrder): JsonResponse
     {
         $this->authorizeWorkerOrPlanner($workOrder);

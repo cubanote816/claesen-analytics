@@ -3,6 +3,7 @@
 namespace Modules\FieldOps\Filament\Resources\Catalogs;
 
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -102,11 +103,25 @@ class LuminaireFrameTypeResource extends Resource
                 TextColumn::make('luminaire_frames_count')
                     ->label(__('fieldops::resource.catalogs.fields.used_by'))
                     ->counts('luminaireFrames'),
+                TextColumn::make('verified_by_user_id')
+                    ->label(__('fieldops::resource.catalogs.fields.verified_by'))
+                    ->badge()
+                    ->state(fn (LuminaireFrameType $record): string => $record->source === 'ai_generated' && $record->verified_by_user_id === null
+                        ? __('fieldops::resource.catalogs.unverified')
+                        : __('fieldops::resource.catalogs.source_'.$record->source))
+                    ->color(fn (LuminaireFrameType $record): string => $record->source === 'ai_generated' && $record->verified_by_user_id === null
+                        ? 'warning'
+                        : 'gray'),
             ])
             ->filters([
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                Action::make('markVerified')
+                    ->label(__('fieldops::resource.catalogs.mark_verified'))
+                    ->icon(Heroicon::OutlinedCheckBadge)
+                    ->visible(fn (LuminaireFrameType $record): bool => $record->source === 'ai_generated' && $record->verified_by_user_id === null)
+                    ->action(fn (LuminaireFrameType $record) => $record->update(['verified_by_user_id' => auth()->id()])),
                 EditAction::make(),
                 RestoreAction::make(),
             ])
