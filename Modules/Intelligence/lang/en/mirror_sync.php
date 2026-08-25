@@ -20,6 +20,16 @@ return [
     ],
     'actions' => [
         'refresh_now' => 'Refresh now',
+        'sync_employees' => 'Sync employees',
+        'sync_clients' => 'Sync clients',
+        'sync_complexes' => 'Sync complexes',
+        'sync_all_manual' => 'Sync all (employees + clients + complexes)',
+    ],
+    'tasks' => [
+        'employees' => 'Employees',
+        'clients' => 'Clients',
+        'complexes' => 'Complexes',
+        'all' => 'Employees, clients and complexes',
     ],
     'notifications' => [
         'queued_title' => 'Sync queued',
@@ -27,5 +37,8 @@ return [
         'already_running_title' => 'Sync already running',
         'already_running_body' => 'A sync is already in progress. Wait for it to finish before starting another one.',
         'failed_title' => 'Could not queue sync',
+        'manual_sync_done_title' => 'Sync complete',
+        'manual_sync_done_body' => ':task synced successfully.',
+        'manual_sync_failed_title' => 'Sync failed',
     ],
 ];

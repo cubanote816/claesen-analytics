@@ -64,7 +64,19 @@ class IntelligenceServiceProvider extends ServiceProvider
     {
         $this->app->booted(function () {
             $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
-            $schedule->command('intelligence:sync-mirror')->dailyAt('04:00');
+            // CLA-439 — el bridge FieldOps (MirrorRelation -> FoClient, FO-012;
+            // MirrorRelationDelivery -> Complex, FO-013) nunca estuvo en ningún
+            // schedule, solo se corría a mano. Encadenado acá con onSuccess() (no
+            // after(), que corre incluso si el mirror falla) para que nunca lea
+            // datos parciales/viejos del mirror. Orden importa: clients primero,
+            // porque el sync de complexes solo importa deliveries cuyo relation_id
+            // ya resolvió a un FoClient sincronizado (ver FO-013).
+            $schedule->command('intelligence:sync-mirror')
+                ->dailyAt('04:00')
+                ->onSuccess(function () {
+                    \Illuminate\Support\Facades\Artisan::call('fieldops:sync-clients-from-relations');
+                    \Illuminate\Support\Facades\Artisan::call('fieldops:sync-complexes-from-relation-deliveries');
+                });
             // Monthly Billing Guardian: day 2 of each month at 07:00 Brussels time.
             // Analyses the previous month so all data has settled.
             $schedule->command('intelligence:billing-guardian --previous-month')

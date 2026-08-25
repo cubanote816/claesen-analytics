@@ -20,6 +20,16 @@ return [
     ],
     'actions' => [
         'refresh_now' => 'Nu vernieuwen',
+        'sync_employees' => 'Werknemers synchroniseren',
+        'sync_clients' => 'Klanten synchroniseren',
+        'sync_complexes' => 'Complexen synchroniseren',
+        'sync_all_manual' => 'Alles synchroniseren (werknemers + klanten + complexen)',
+    ],
+    'tasks' => [
+        'employees' => 'Werknemers',
+        'clients' => 'Klanten',
+        'complexes' => 'Complexen',
+        'all' => 'Werknemers, klanten en complexen',
     ],
     'notifications' => [
         'queued_title' => 'Synchronisatie in wachtrij',
@@ -27,5 +37,8 @@ return [
         'already_running_title' => 'Synchronisatie loopt al',
         'already_running_body' => 'Er loopt al een synchronisatie. Wacht tot deze klaar is voordat u een nieuwe start.',
         'failed_title' => 'Synchronisatie kon niet worden gestart',
+        'manual_sync_done_title' => 'Synchronisatie voltooid',
+        'manual_sync_done_body' => ':task succesvol gesynchroniseerd.',
+        'manual_sync_failed_title' => 'Synchronisatie mislukt',
     ],
 ];

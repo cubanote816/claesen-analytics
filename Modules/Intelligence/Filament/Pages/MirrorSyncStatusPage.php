@@ -8,6 +8,8 @@ use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Modules\Intelligence\Jobs\RunManualDataSyncJob;
 use Modules\Intelligence\Models\MirrorSyncRun;
 
 class MirrorSyncStatusPage extends Page
@@ -45,6 +47,16 @@ class MirrorSyncStatusPage extends Page
     public function mount(): void
     {
         $this->loadData();
+    }
+
+    /**
+     * CLA-439 — distinto de $isRunning (que solo mira MirrorSyncRun, exclusivo
+     * del botón "Refresh now"/mirror completo): los 4 syncs manuales nuevos
+     * comparten un lock de cache propio, sin tabla de tracking dedicada.
+     */
+    public function isManualSyncRunning(): bool
+    {
+        return Cache::has(RunManualDataSyncJob::RUNNING_FLAG_KEY);
     }
 
     public function loadData(): void
@@ -85,7 +97,61 @@ class MirrorSyncStatusPage extends Page
                 ->requiresConfirmation()
                 ->disabled(fn (): bool => $this->isRunning)
                 ->action('runSyncNow'),
+            Action::make('sync_employees')
+                ->label(__('intelligence::mirror_sync.actions.sync_employees'))
+                ->icon('heroicon-o-users')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->disabled(fn (): bool => $this->isManualSyncRunning())
+                ->action(fn () => $this->runManualSync('employees')),
+            Action::make('sync_clients')
+                ->label(__('intelligence::mirror_sync.actions.sync_clients'))
+                ->icon('heroicon-o-building-office-2')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->disabled(fn (): bool => $this->isManualSyncRunning())
+                ->action(fn () => $this->runManualSync('clients')),
+            Action::make('sync_complexes')
+                ->label(__('intelligence::mirror_sync.actions.sync_complexes'))
+                ->icon('heroicon-o-map-pin')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->disabled(fn (): bool => $this->isManualSyncRunning())
+                ->action(fn () => $this->runManualSync('complexes')),
+            Action::make('sync_all_manual')
+                ->label(__('intelligence::mirror_sync.actions.sync_all_manual'))
+                ->icon('heroicon-o-bolt')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->disabled(fn (): bool => $this->isManualSyncRunning())
+                ->action(fn () => $this->runManualSync('all')),
         ];
+    }
+
+    /**
+     * CLA-439 — dispara uno de los 4 sync manuales (empleados/clientes/
+     * complejos/todo) en cola (RunManualDataSyncJob), distinto del "Refresh
+     * now" ya existente (mirror CAFCA completo, botón/acción separados).
+     */
+    public function runManualSync(string $task): void
+    {
+        if ($this->isManualSyncRunning()) {
+            Notification::make()
+                ->title(__('intelligence::mirror_sync.notifications.already_running_title'))
+                ->body(__('intelligence::mirror_sync.notifications.already_running_body'))
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        RunManualDataSyncJob::dispatch($task, auth()->id());
+
+        Notification::make()
+            ->title(__('intelligence::mirror_sync.notifications.queued_title'))
+            ->body(__('intelligence::mirror_sync.notifications.queued_body'))
+            ->success()
+            ->send();
     }
 
     public function runSyncNow(): void
