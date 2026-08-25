@@ -47,13 +47,9 @@ return [
         ],
     ],
     'actions' => [
-        'save'     => 'Save',
-        'sync_now' => 'Run sync now',
+        'save' => 'Save',
     ],
     'notifications' => [
-        'saved_title'       => 'Configuration saved',
-        'sync_queued_title' => 'Sync queued',
-        'sync_queued_body'  => 'Sync is running in the background.',
-        'sync_failed_title' => 'Sync failed',
+        'saved_title' => 'Configuration saved',
     ],
 ];

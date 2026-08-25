@@ -47,13 +47,9 @@ return [
         ],
     ],
     'actions' => [
-        'save'     => 'Opslaan',
-        'sync_now' => 'Sync nu uitvoeren',
+        'save' => 'Opslaan',
     ],
     'notifications' => [
-        'saved_title'       => 'Configuratie opgeslagen',
-        'sync_queued_title' => 'Sync in wachtrij geplaatst',
-        'sync_queued_body'  => 'De synchronisatie wordt op de achtergrond uitgevoerd.',
-        'sync_failed_title' => 'Sync mislukt',
+        'saved_title' => 'Configuratie opgeslagen',
     ],
 ];

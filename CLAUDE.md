@@ -728,6 +728,14 @@ Auditoría del satélite viejo (`api-claesen-sport-app`) confirmó que tanto `Cl
 
 **Pendiente:** confirmar con el negocio el mapeo real de `relation.language` (1/2/3/4 → nl/fr/en/de) — hoy es una inferencia. La key de Google Geocoding está restringida por IP en Google Cloud Console a la IP de este entorno de dev (`169.155.241.57`, probablemente dinámica) — si se corre este sync desde producción (`prod-priv-01`) hay que agregar esa IP también.
 
+### CLA-404 — indicador de última sincronización + refresh manual del mirror Intelligence (parcial, 2026-08-25)
+
+Origen: incidente 2026-08-20 (mirror 57 días desactualizado, ver `project_safety_mirror_incident`). El botón de sync manual vivía enterrado en `BiConfigPage` (`super_admin` únicamente), sin indicador de última corrida en ningún lado del panel y sin guard contra doble-disparo.
+
+- **`intelligence_mirror_sync_runs`** (tabla nueva, modelo `MirrorSyncRun`): status/started_at/finished_at/trigger_source/triggered_by/error_message. `SyncMirrorDataService::syncAll()` instrumentado con `startRun()`/`finishRun()` — guard atómico contra dos corridas concurrentes (mismo patrón que `Modules\Prospects\Filament\Pages\SyncDashboardPage`, no reinventado).
+- **Página dedicada `Modules/Intelligence/Filament/Pages/MirrorSyncStatusPage`** (slug `mirror-sync-status`, dentro de "Intelligence Hub"), reemplaza el botón escondido de `BiConfigPage`: última corrida (fecha/hora/duración/estado/quién la disparó), botón "Refresh now" (deshabilitado mientras `MirrorSyncRun::STATUS_RUNNING` exista), historial de las últimas 10 corridas. Acceso ampliado a `super_admin`/`admin`/`financial_manager` (antes solo `super_admin`).
+- **Pendiente, fuera de este cierre (ticket sigue `In Progress`, no se marca Done):** el banner de frescura ("Datos actualizados hace X · Actualizar") en la vista de proyectos de Safety Inspections — punto 4 del alcance original — todavía no está implementado.
+
 ### Sesión 2026-07-05 (cont.) — catálogos portados, campo único + AI translation, fixes de UX/CSRF
 
 - **`client_id` de `Complex` es inmutable vía API** (commit `3bfd95f`): el vínculo cliente↔complejo viene del sync CAFCA (FO-013) y nunca debe reasignarse desde la app. Se quitó `client_id` de `UpdateComplexRequest::rules()` — `FormRequest::validated()` solo devuelve claves con regla definida, así que un `client_id` en el body se ignora en silencio en vez de aplicarse. Frontend (`ComplexFormModal.tsx`): el selector de cliente pasó de un `<select>` editable a texto de solo lectura (y de paso se detectó que el `<select>` viejo solo cargaba los primeros 50 clientes de 1167 — por eso a veces se veía vacío aunque el complejo sí tuviera cliente).

@@ -24,32 +24,94 @@ use Modules\Performance\Models\Mirror\MirrorWorkdoc;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Modules\Intelligence\Models\MirrorSyncRun;
 
 class SyncMirrorDataService
 {
     /**
      * Synchronize all relevant tables for the Offer Simulator.
+     *
+     * Guarded against overlapping runs (CLA-404): a run in progress blocks a
+     * new one from starting, whether triggered by the daily scheduler or by a
+     * manual click — same lockForUpdate guard already proven in
+     * Modules\Prospects\Filament\Pages\SyncDashboardPage.
      */
-    public function syncAll(bool $fullHistory = false): void
-    {
+    public function syncAll(
+        bool $fullHistory = false,
+        string $triggerSource = MirrorSyncRun::SOURCE_SCHEDULED,
+        ?int $triggeredByUserId = null
+    ): void {
+        $run = $this->startRun($triggerSource, $triggeredByUserId);
+
+        if ($run === null) {
+            Log::warning('Mirror Sync Process skipped — another run is already in progress.');
+            return;
+        }
+
         Log::info("Starting Mirror Sync Process...");
 
-        $this->syncProjects($fullHistory);
-        $this->syncRelations();
-        $this->syncRelationDeliveries();
-        $this->syncEmployees();
-        $this->syncLaborTypes();
-        $this->syncLabor($fullHistory);
-        $this->syncMaterials($fullHistory);
-        $this->syncInvoices($fullHistory);
-        $this->syncCosts($fullHistory);
-        $this->syncEstimateItems($fullHistory);
-        $this->syncEstimateCalc();
-        $this->syncProjectLinks();
-        $this->syncProjectResults();
-        $this->syncWorkdocs();
+        try {
+            $this->syncProjects($fullHistory);
+            $this->syncRelations();
+            $this->syncRelationDeliveries();
+            $this->syncEmployees();
+            $this->syncLaborTypes();
+            $this->syncLabor($fullHistory);
+            $this->syncMaterials($fullHistory);
+            $this->syncInvoices($fullHistory);
+            $this->syncCosts($fullHistory);
+            $this->syncEstimateItems($fullHistory);
+            $this->syncEstimateCalc();
+            $this->syncProjectLinks();
+            $this->syncProjectResults();
+            $this->syncWorkdocs();
 
-        Log::info("Mirror Sync Process Completed.");
+            $this->finishRun($run, MirrorSyncRun::STATUS_COMPLETED);
+            Log::info("Mirror Sync Process Completed.");
+        } catch (\Throwable $e) {
+            $this->finishRun($run, MirrorSyncRun::STATUS_FAILED, $e->getMessage());
+            Log::error('Mirror Sync Process Failed: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Atomically start a tracked run, or return null if one is already in
+     * progress (whether triggered by cron or a manual click).
+     */
+    public function startRun(
+        string $triggerSource = MirrorSyncRun::SOURCE_SCHEDULED,
+        ?int $triggeredByUserId = null
+    ): ?MirrorSyncRun {
+        $run = null;
+
+        DB::transaction(function () use (&$run, $triggerSource, $triggeredByUserId) {
+            $alreadyRunning = MirrorSyncRun::where('status', MirrorSyncRun::STATUS_RUNNING)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($alreadyRunning) {
+                return;
+            }
+
+            $run = MirrorSyncRun::create([
+                'status' => MirrorSyncRun::STATUS_RUNNING,
+                'trigger_source' => $triggerSource,
+                'triggered_by_user_id' => $triggeredByUserId,
+                'started_at' => now(),
+            ]);
+        });
+
+        return $run;
+    }
+
+    private function finishRun(MirrorSyncRun $run, string $status, ?string $errorMessage = null): void
+    {
+        $run->update([
+            'status' => $status,
+            'finished_at' => now(),
+            'error_message' => $errorMessage !== null ? substr($errorMessage, 0, 1000) : null,
+        ]);
     }
 
     private function syncProjects(bool $fullHistory): void
