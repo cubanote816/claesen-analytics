@@ -49,16 +49,28 @@ return [
             'GEMINI_SERVICE_ACCOUNT_PATH',
             storage_path('app/private/credentials/gemini-service-account.json')
         ),
-        // CLA-409 — Vertex AI project/location for GeminiImageGenerationService
-        // (image generation isn't available on the plain Generative Language
-        // API endpoint GEMINI_API_URL points to for text calls).
-        'vertex_project' => env('GEMINI_VERTEX_PROJECT', 'gen-lang-client-0849598291'),
-        'vertex_location' => env('GEMINI_VERTEX_LOCATION', 'us-central1'),
     ],
 
     'anthropic' => [
         'key' => env('ANTHROPIC_API_KEY'),
         'vision_model' => env('ANTHROPIC_VISION_MODEL', 'claude-sonnet-5'),
+    ],
+
+    // CLA-440 — frame-type illustration generation (CLA-390 Fase 3) moved
+    // from Gemini 2.5 Flash Image to OpenAI: real side-by-side comparison
+    // showed Gemini's output far below usable catalog quality, while
+    // gpt-image-2 also gives native alpha transparency (no chroma-key
+    // post-processing needed, unlike Gemini). See OpenAiImageGenerationService.
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+        'image_model' => env('OPENAI_IMAGE_MODEL', 'gpt-image-2'),
+        'image_quality' => env('OPENAI_IMAGE_QUALITY', 'low'),
+        // "low" measured at 25-28s for the real 7-image payload (6 catalog
+        // references + technician photo) vs 56-61s at "medium" — the public
+        // proxy in front of this API (sbapu03, backend.claesen-verlichting.be
+        // /api/ block) has proxy_read_timeout 60s, so "medium" left no safety
+        // margin and one real run already exceeded it.
+        'name_model' => env('OPENAI_NAME_MODEL', 'gpt-5.4-mini-2026-03-17'),
     ],
 
     'github' => [

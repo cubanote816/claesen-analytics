@@ -88,7 +88,7 @@ class CatalogController extends Controller
 
     /**
      * CLA-409 (CLA-390 Fase 3) — creates a LuminaireFrameType from an
-     * AI-generated catalog-style illustration (GeminiImageGenerationService,
+     * AI-generated catalog-style illustration (OpenAiImageGenerationService,
      * technician-confirmed) instead of a raw uploaded photo. Marked
      * source=ai_generated/verified_by_user_id=null so a super_admin can
      * review it later from Filament — same governance pattern already used
