@@ -6,6 +6,7 @@ namespace Modules\Safety\Tests\Feature;
 
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Intelligence\Models\MirrorSyncRun;
 use Modules\Performance\Models\Mirror\MirrorProject;
 use Modules\Performance\Models\Mirror\MirrorRelation;
 use Spatie\Permission\Models\Role;
@@ -28,17 +29,18 @@ class ProjectControllerTest extends TestCase
     {
         $user = UserFactory::new()->create();
         $user->assignRole(Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']));
+
         return $user->createToken('test', ['role:safety-access'])->plainTextToken;
     }
 
     private function project(string $id, string $name, bool $active = true, ?int $relationId = null, ?string $descr = null, ?string $projectAddressText = null): MirrorProject
     {
         return MirrorProject::create([
-            'id'                   => $id,
-            'name'                 => $name,
-            'descr'                => $descr,
-            'fl_active'            => $active,
-            'relation_id'          => $relationId,
+            'id' => $id,
+            'name' => $name,
+            'descr' => $descr,
+            'fl_active' => $active,
+            'relation_id' => $relationId,
             'project_address_text' => $projectAddressText,
         ]);
     }
@@ -85,7 +87,7 @@ class ProjectControllerTest extends TestCase
     public function test_inactive_project_is_excluded(): void
     {
         $token = $this->tokenFor('project_manager');
-        $this->project('P-ACTIVE', 'Active Project',   active: true);
+        $this->project('P-ACTIVE', 'Active Project', active: true);
         $this->project('P-HIDDEN', 'Inactive Project', active: false);
 
         $response = $this->withToken($token)
@@ -106,7 +108,68 @@ class ProjectControllerTest extends TestCase
         $this->withToken($token)
             ->getJson('/api/v1/safety/projects')
             ->assertOk()
-            ->assertExactJson(['data' => []]);
+            ->assertExactJson(['data' => [], 'meta' => ['last_synced_at' => null]]);
+    }
+
+    // ── CLA-404: meta.last_synced_at reflects the mirror sync history ────────
+
+    public function test_meta_last_synced_at_reflects_the_latest_completed_run(): void
+    {
+        $token = $this->tokenFor('project_manager');
+
+        // Older completed run — must be ignored in favor of the more recent one below.
+        MirrorSyncRun::create([
+            'status' => MirrorSyncRun::STATUS_COMPLETED,
+            'trigger_source' => MirrorSyncRun::SOURCE_SCHEDULED,
+            'started_at' => now()->subDays(1),
+            'finished_at' => now()->subDays(1)->addMinutes(5),
+        ]);
+
+        // Most recent completed run — this is the one that must win.
+        $mostRecentCompleted = MirrorSyncRun::create([
+            'status' => MirrorSyncRun::STATUS_COMPLETED,
+            'trigger_source' => MirrorSyncRun::SOURCE_MANUAL,
+            'started_at' => now()->subMinutes(10),
+            'finished_at' => now()->subMinutes(3),
+        ]);
+
+        // Failed run, more recent than any completed run — must never win just by
+        // being newer; only status=completed rows are eligible.
+        MirrorSyncRun::create([
+            'status' => MirrorSyncRun::STATUS_FAILED,
+            'trigger_source' => MirrorSyncRun::SOURCE_SCHEDULED,
+            'started_at' => now()->subMinutes(2),
+            'finished_at' => now()->subMinute(),
+        ]);
+
+        // Running run, more recent still, with no finished_at at all — must never
+        // win either (would otherwise crash the null-safe finished_at?-> access).
+        MirrorSyncRun::create([
+            'status' => MirrorSyncRun::STATUS_RUNNING,
+            'trigger_source' => MirrorSyncRun::SOURCE_SCHEDULED,
+            'started_at' => now(),
+        ]);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/safety/projects')
+            ->assertOk()
+            ->assertJsonPath('meta.last_synced_at', $mostRecentCompleted->finished_at->toIso8601String());
+    }
+
+    public function test_meta_last_synced_at_is_null_when_no_run_has_completed(): void
+    {
+        $token = $this->tokenFor('project_manager');
+
+        MirrorSyncRun::create([
+            'status' => MirrorSyncRun::STATUS_RUNNING,
+            'trigger_source' => MirrorSyncRun::SOURCE_SCHEDULED,
+            'started_at' => now(),
+        ]);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/safety/projects')
+            ->assertOk()
+            ->assertJsonPath('meta.last_synced_at', null);
     }
 
     // ── Test 5: project_address_text con dirección multilinea real ───────────

@@ -174,7 +174,7 @@
 - `GET /v1/safety/inspections/{id}/answers/{answer}/photo` — foto
 - `GET /v1/safety/checklists` — listar checklists
 - `GET /v1/safety/compliance` — estado de compliance
-- `GET /v1/safety/projects` — proyectos disponibles
+- `GET /v1/safety/projects` — proyectos disponibles; respuesta `{data, meta: {last_synced_at}}` (CLA-404) — `last_synced_at` es el `finished_at` de la corrida `completed` más reciente de `MirrorSyncRun` (Intelligence), `null` si ninguna completó nunca
 - `GET /v1/safety/workers` — técnicos disponibles
 
 **Política:** `InspectionPolicy` — `project_manager` solo ve sus propios recursos.
