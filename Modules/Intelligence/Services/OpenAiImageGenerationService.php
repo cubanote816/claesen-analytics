@@ -145,7 +145,7 @@ class OpenAiImageGenerationService
             $response = Http::withToken($apiKey)
                 ->timeout(self::NAME_TIMEOUT_SECONDS)
                 ->post('https://api.openai.com/v1/chat/completions', [
-                    'model' => config('services.openai.name_model', 'gpt-5.4-mini-2026-03-17'),
+                    'model' => config('services.openai.name_model', 'gpt-5.4-nano-2026-03-17'),
                     'messages' => [[
                         'role' => 'user',
                         'content' => [

@@ -18,7 +18,7 @@
 | Módulos | nwidart/laravel-modules ^12.0 | 8 módulos bajo `Modules/` |
 | Auth | Laravel Sanctum + Azure OAuth | `socialiteproviders/microsoft-azure` |
 | RBAC | spatie/laravel-permission ^6.x | Roles: `super_admin`, `project_manager` |
-| IA | Google Gemini (`gemini-flash-latest`) + Anthropic Claude Sonnet 5 + OpenAI (`gpt-image-2`/`gpt-5.4-mini`) | Via `GeminiService` / `ClaudeVisionService` / `OpenAiImageGenerationService` (CLA-440, generación de imagen de frame types) |
+| IA | Google Gemini (`gemini-flash-latest`) + Anthropic Claude Sonnet 5 + OpenAI (`gpt-image-2`/`gpt-5.4-nano`) | Via `GeminiService` / `ClaudeVisionService` / `OpenAiImageGenerationService` (CLA-440, generación de imagen de frame types) |
 | Media | spatie/laravel-medialibrary ^11 | Conversiones WebP para Website |
 | Infra | Docker Sail, Redis, Meilisearch | Redis: colas + cache |
 | Email | Microsoft Graph (transporte actual) | Via `MicrosoftGraphMailer` |
@@ -75,7 +75,7 @@
 
 **Servicios:**
 - `GeminiService` — llamadas a Google Gemini (`gemini-flash-latest`) con Semantic Cache (hash MD5)
-- `OpenAiImageGenerationService` — genera la ilustración de catálogo de un frame type (CLA-440, `gpt-image-2`) + nombre sugerido (`gpt-5.4-mini`), usado por FieldOps cuando no hay match de catálogo (CLA-390 Fase 3); reemplaza a `GeminiImageGenerationService` (CLA-409, retirado)
+- `OpenAiImageGenerationService` — genera la ilustración de catálogo de un frame type (CLA-440, `gpt-image-2`) + nombre sugerido (`gpt-5.4-nano`, migrado desde `gpt-5.4-mini` en CLA-444/CLA-445 tras perder acceso al proyecto OpenAI), usado por FieldOps cuando no hay match de catálogo (CLA-390 Fase 3); reemplaza a `GeminiImageGenerationService` (CLA-409, retirado)
 - `BudgetAssistantService` — asistente de presupuesto con IA
 - `ProjectSimilarityService` — nearest neighbors para proyectos similares
 - `MaterialIntelligenceService` — inteligencia sobre materiales

@@ -23,7 +23,7 @@ class OpenAiImageGenerationServiceTest extends TestCase
             'services.openai.key' => 'fake-key',
             'services.openai.image_model' => 'gpt-image-2',
             'services.openai.image_quality' => 'low',
-            'services.openai.name_model' => 'gpt-5.4-mini-2026-03-17',
+            'services.openai.name_model' => 'gpt-5.4-nano-2026-03-17',
         ]);
     }
 
@@ -124,6 +124,30 @@ class OpenAiImageGenerationServiceTest extends TestCase
             $this->assertStringContainsString('png', $body);
             $this->assertStringContainsString('1024x1024', $body);
             $this->assertStringContainsString('low', $body);
+
+            return true;
+        });
+    }
+
+    public function test_it_sends_the_configured_model_in_the_naming_request(): void
+    {
+        Http::fake([
+            'https://api.openai.com/v1/images/edits' => Http::response([
+                'data' => [['b64_json' => base64_encode($this->magentaPngBytes())]],
+            ], 200),
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [['message' => ['content' => json_encode(['name' => 'Test headframe'])]]],
+            ], 200),
+        ]);
+
+        (new OpenAiImageGenerationService())->generateFrameTypeImage($this->tinyPngBase64(), 'image/jpeg');
+
+        Http::assertSent(function ($request) {
+            if ($request->url() !== 'https://api.openai.com/v1/chat/completions') {
+                return false;
+            }
+
+            $this->assertSame('gpt-5.4-nano-2026-03-17', $request->data()['model']);
 
             return true;
         });

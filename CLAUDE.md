@@ -364,6 +364,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | CLA-439 | Programar sync de FoClient/Complex (FO-012/FO-013) encadenado tras el mirror nocturno | ✅ Done — ver detalle abajo |
 | CLA-440 | Migrar generación de imagen de frame type (CLA-409) de Gemini a OpenAI `gpt-image-2` | ✅ Done — ver detalle abajo |
 | CLA-444 | Fix imagen rota tras guardar (URL absoluta) + prompt agregaba herrajes inexistentes (QA real post-CLA-440) | ✅ Done — ver detalle abajo |
+| CLA-445 | Fix residuo `gpt-5.4-mini` en el fallback PHP de `OpenAiImageGenerationService` (config/.env.example ya decían nano) | ✅ Done — ver detalle abajo |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
 **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.
@@ -717,6 +718,16 @@ El usuario probó CLA-440 en vivo con una foto real (mástil en T con reflector+
 - **Bug real #2 — el prompt de `OpenAiImageGenerationService` agregaba placas/bridas de montaje que no estaban en la foto real:** las 6 imágenes de referencia del catálogo (todas con herrajes atornillados visibles) se estaban usando como plantilla de forma además de guía de estilo. Prompt reescrito para ser explícito: las referencias son solo guía de renderizado/material/estilo de línea, **nunca** una plantilla de forma — reproducir exactamente la forma estructural de la foto (mismo mástil, mismos brazos/ángulos, mismo número de niveles), sin agregar herrajes/placas/gussets que no sean claramente visibles en la foto, y donde la foto muestre un extremo de tubo/barra desnudo, dibujarlo desnudo.
 - **Verificación en vivo con la foto real del usuario** (recortada del screenshot para aislar solo la foto, sin chrome de UI): resultado sin cámara/reflector, sin herrajes inventados, forma en T fiel a la foto real (mástil vertical + brazo horizontal + brazo angulado, igual que la foto). Nombres reales generados en las corridas: "T-Shaped headframe", "Straight T-Arm Headframe". Verificado también HTTP end-to-end con token Sanctum real: `image` persistida como `/storage/luminaire-frame-types/generated_...png` (ruta relativa, ya no absoluta). Artefactos de la verificación borrados al finalizar.
 - **Validación:** 14/14 tests (`CustomLuminaireFrameTypeTest`, `LuminaireFrameTypeFromGeneratedControllerTest`, `OpenAiImageGenerationServiceTest`), sin regresiones.
+
+### CLA-445 — fix residuo `gpt-5.4-mini` en el fallback PHP del naming (2026-08-27)
+
+Auditoría rápida pedida por el usuario tras cerrar CLA-444 encontró que la nota del párrafo anterior ("corregido a `gpt-5.4-nano-2026-03-17` en CLA-444") era solo parcialmente cierta: `config/services.php` y `.env.example` sí quedaron en nano, pero el **fallback en código** de `OpenAiImageGenerationService::requestName()` (línea 148, usado únicamente cuando la clave `services.openai.name_model` está ausente del árbol de config, no cuando falta la env var — la config normal ya cae en el default de `config/services.php`) y el test de esa misma clase seguían con `gpt-5.4-mini-2026-03-17`, igual que `docs/ai/context-map.md`.
+
+- Fix mecánico de 1 línea en el servicio + 1 línea en el mock del test, ambos a `gpt-5.4-nano-2026-03-17`.
+- **Test nuevo, no solo el mock corregido:** `test_it_sends_the_configured_model_in_the_naming_request` — hasta este ticket ningún test verificaba qué `model` viaja realmente en la llamada a `chat/completions`; los tests existentes solo aserteban parámetros de `images/edits`. Filtra exclusivamente la request a `chat/completions` (nunca mezclado con las aserciones de `images/edits` de `test_it_sends_all_seven_images_with_the_photo_last_and_the_correct_parameters`).
+- `docs/ai/context-map.md` actualizado (2 menciones) preservando la nota histórica de CLA-440/CLA-444 intacta, solo agregando la referencia a este ticket.
+- Sin cambios en `.env`, frontend, Gemini, generación de imagen ni prompts. Sin llamadas reales a OpenAI.
+- **Validación:** 19/19 tests en el filtro `OpenAiImageGenerationServiceTest|FrameTypeVisionGenerateControllerTest|LuminaireFrameTypeFromGeneratedControllerTest|CustomLuminaireFrameTypeTest`, sin regresiones. Pint reporta 2 issues preexistentes en ambos archivos (estilo `new Class()` con paréntesis + un docblock), confirmados idénticos contra `HEAD` sin estos cambios — no introducidos por este ticket, no corregidos (fuera de alcance).
 
 ### CLA-391 — detección multi-luminaria con posicionamiento aproximado por foto (CLA-390 Fase 2) (2026-08-19)
 
