@@ -62,6 +62,10 @@ class LuminaireFrameTypeFromGeneratedControllerTest extends TestCase
         ]);
 
         $frameType = LuminaireFrameType::where('name', 'Custom lowering headframe')->firstOrFail();
+        // CLA-444 — must be a relative path (resolved client-side by
+        // resolveApiAssetUrl), never an absolute URL baked from this
+        // server's own APP_URL at write time.
         $this->assertNotNull($frameType->image);
+        $this->assertStringStartsWith('/storage/', $frameType->image);
     }
 }

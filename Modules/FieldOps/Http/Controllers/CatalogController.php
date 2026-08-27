@@ -77,7 +77,14 @@ class CatalogController extends Controller
         $frameType = LuminaireFrameType::create([
             'created_by_user_id' => $request->user()->id,
             'name'                => $validated['name'],
-            'image'               => Storage::disk('public')->url($path),
+            // CLA-444 — relative path, not Storage::disk('public')->url($path)
+            // (an absolute URL baked from this server's own APP_URL at write
+            // time, which never matches the client's real public-facing
+            // domain in this project's tunnel architecture). Same convention
+            // as the seeded catalog images (/assets/frame-types/*.png):
+            // resolveApiAssetUrl() on the frontend prepends whatever origin
+            // the client actually used, at read time.
+            'image'               => '/storage/'.$path,
         ]);
 
         return response()->json([
@@ -113,7 +120,10 @@ class CatalogController extends Controller
         $frameType = LuminaireFrameType::create([
             'created_by_user_id' => $request->user()->id,
             'name'                => $validated['name'],
-            'image'               => Storage::disk('public')->url($path),
+            // CLA-444 — same fix as storeCustomLuminaireFrameType() above:
+            // relative path, resolved client-side, not an absolute URL baked
+            // from this server's own APP_URL at write time.
+            'image'               => '/storage/'.$path,
             'source'              => 'ai_generated',
         ]);
 

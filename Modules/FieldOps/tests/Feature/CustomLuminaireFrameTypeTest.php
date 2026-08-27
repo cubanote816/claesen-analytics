@@ -36,7 +36,12 @@ class CustomLuminaireFrameTypeTest extends TestCase
             'created_by_user_id'  => $user->id,
         ]);
 
-        $this->assertNotNull($response->json('data.image'));
+        // CLA-444 — must be a relative path (resolved client-side by
+        // resolveApiAssetUrl), never an absolute URL baked from this
+        // server's own APP_URL at write time.
+        $image = $response->json('data.image');
+        $this->assertNotNull($image);
+        $this->assertStringStartsWith('/storage/', $image);
     }
 
     public function test_store_requires_name_and_photo(): void

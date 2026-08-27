@@ -70,7 +70,7 @@ return [
         // proxy in front of this API (sbapu03, backend.claesen-verlichting.be
         // /api/ block) has proxy_read_timeout 60s, so "medium" left no safety
         // margin and one real run already exceeded it.
-        'name_model' => env('OPENAI_NAME_MODEL', 'gpt-5.4-mini-2026-03-17'),
+        'name_model' => env('OPENAI_NAME_MODEL', 'gpt-5.4-nano-2026-03-17'),
     ],
 
     'github' => [
