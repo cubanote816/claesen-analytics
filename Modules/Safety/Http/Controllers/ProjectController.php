@@ -6,6 +6,7 @@ namespace Modules\Safety\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
+use Modules\Intelligence\Models\MirrorSyncRun;
 use Modules\Performance\Models\Mirror\MirrorProject;
 
 class ProjectController extends Controller
@@ -29,8 +30,15 @@ class ProjectController extends Controller
             ->orderBy('intelligence_mirror_projects.name')
             ->get();
 
+        $lastSync = MirrorSyncRun::where('status', MirrorSyncRun::STATUS_COMPLETED)
+            ->latest('finished_at')
+            ->first();
+
         return response()->json([
             'data' => $projects,
+            'meta' => [
+                'last_synced_at' => $lastSync?->finished_at?->toIso8601String(),
+            ],
         ]);
     }
 }

@@ -13,7 +13,9 @@ class SyncMirrorCommand extends Command
                             {--materials : Sync the entire material catalog only}
                             {--relations : Sync CAFCA clients/relations only}
                             {--deliveries : Sync CAFCA relation_delivery (client site addresses) only}
-                            {--estimates : Sync CAFCA estimate items (offer lines) only}';
+                            {--estimates : Sync CAFCA estimate items (offer lines) only}
+                            {--source=scheduled : Trigger source recorded on the sync run (scheduled|manual)}
+                            {--triggered-by= : User ID that triggered a manual sync}';
 
     protected $description = 'Synchronize legacy CAFCA data to local MySQL mirror tables.';
 
@@ -66,7 +68,13 @@ class SyncMirrorCommand extends Command
             ));
         }
 
-        $syncService->syncAll($full);
+        $triggeredBy = $this->option('triggered-by');
+
+        $syncService->syncAll(
+            $full,
+            $this->option('source'),
+            $triggeredBy !== null ? (int) $triggeredBy : null
+        );
         $this->info('Mirror Sync Finished Successfully.');
     }
 }

@@ -156,14 +156,7 @@ class BiConfigPage extends Page implements HasForms
                             ->label(__('intelligence::bi_config.fields.labor_end'))
                             ->seconds(false),
                     ])
-                    ->columns(2)
-                    ->footerActions([
-                        Action::make('sync_now')
-                            ->label(__('intelligence::bi_config.actions.sync_now'))
-                            ->icon('heroicon-o-arrow-path')
-                            ->color('gray')
-                            ->action('runMirrorSync'),
-                    ]),
+                    ->columns(2),
 
                 // ── Section 5: Billing Guardian rules ────────────────────────
                 Section::make(__('intelligence::bi_config.sections.guardian'))
@@ -252,23 +245,5 @@ class BiConfigPage extends Page implements HasForms
             ->title(__('intelligence::bi_config.notifications.saved_title'))
             ->success()
             ->send();
-    }
-
-    public function runMirrorSync(): void
-    {
-        try {
-            \Illuminate\Support\Facades\Artisan::queue('intelligence:sync-mirror');
-            Notification::make()
-                ->title(__('intelligence::bi_config.notifications.sync_queued_title'))
-                ->body(__('intelligence::bi_config.notifications.sync_queued_body'))
-                ->success()
-                ->send();
-        } catch (\Throwable $e) {
-            Notification::make()
-                ->title(__('intelligence::bi_config.notifications.sync_failed_title'))
-                ->body($e->getMessage())
-                ->danger()
-                ->send();
-        }
     }
 }

@@ -12,7 +12,7 @@ use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\Intelligence\Services\ClaudeVisionService;
-use Modules\Intelligence\Services\GeminiImageGenerationService;
+use Modules\Intelligence\Services\OpenAiImageGenerationService;
 
 class LuminaireVisionController extends Controller
 {
@@ -141,7 +141,7 @@ class LuminaireVisionController extends Controller
      * suggested name) via LuminaireFrameTypeController::storeFromGenerated()
      * before anything is persisted.
      */
-    public function generateFrameType(StoreFrameTypeVisionGenerateRequest $request, GeminiImageGenerationService $generator): \Illuminate\Http\JsonResponse
+    public function generateFrameType(StoreFrameTypeVisionGenerateRequest $request, OpenAiImageGenerationService $generator): \Illuminate\Http\JsonResponse
     {
         $photo = $request->file('photo');
 

@@ -5,13 +5,13 @@ namespace Modules\FieldOps\Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Modules\Core\Models\User;
-use Modules\Intelligence\Services\GeminiImageGenerationService;
+use Modules\Intelligence\Services\OpenAiImageGenerationService;
 use Modules\Intelligence\Services\GeminiService;
 use Tests\TestCase;
 
 /**
  * CLA-409 (CLA-390 Fase 3) — the endpoint only ever returns a generated
- * preview; it never creates or edits anything. GeminiImageGenerationService
+ * preview; it never creates or edits anything. OpenAiImageGenerationService
  * is mocked so these tests never hit the network.
  */
 class FrameTypeVisionGenerateControllerTest extends TestCase
@@ -44,7 +44,7 @@ class FrameTypeVisionGenerateControllerTest extends TestCase
 
     public function test_generate_returns_the_generated_image_and_suggested_name(): void
     {
-        $this->mock(GeminiImageGenerationService::class, function ($mock) {
+        $this->mock(OpenAiImageGenerationService::class, function ($mock) {
             $mock->shouldReceive('generateFrameTypeImage')
                 ->once()
                 ->andReturn([
@@ -72,7 +72,7 @@ class FrameTypeVisionGenerateControllerTest extends TestCase
 
     public function test_generate_returns_failed_status_as_a_valid_outcome_not_an_error(): void
     {
-        $this->mock(GeminiImageGenerationService::class, function ($mock) {
+        $this->mock(OpenAiImageGenerationService::class, function ($mock) {
             $mock->shouldReceive('generateFrameTypeImage')
                 ->once()
                 ->andReturn(['status' => 'failed', 'image_base64' => null, 'mime_type' => null, 'suggested_name' => null]);
