@@ -88,6 +88,21 @@ class AdminPanelProvider extends PanelProvider
 </style>
 HTML
             );
+
+            // CLA-449 — modern favicon/app icon set. Not via Filament's own
+            // ->favicon() (HasFavicon trait): that only supports a single
+            // <link rel="icon">, not this full set, and would duplicate the
+            // .ico entry if combined with this hook.
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::HEAD_END,
+                static fn (): string => <<<'HTML'
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48 64x64 128x128 256x256">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any">
+<link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="/site.webmanifest">
+HTML
+            );
         });
     }
     public function panel(Panel $panel): Panel
