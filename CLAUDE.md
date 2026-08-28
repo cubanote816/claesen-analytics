@@ -365,6 +365,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | CLA-440 | Migrar generación de imagen de frame type (CLA-409) de Gemini a OpenAI `gpt-image-2` | ✅ Done — ver detalle abajo |
 | CLA-444 | Fix imagen rota tras guardar (URL absoluta) + prompt agregaba herrajes inexistentes (QA real post-CLA-440) | ✅ Done — ver detalle abajo |
 | CLA-445 | Fix residuo `gpt-5.4-mini` en el fallback PHP de `OpenAiImageGenerationService` (config/.env.example ya decían nano) | ✅ Done — ver detalle abajo |
+| CLA-448 | Repo hygiene: destrackear 5 archivos ya trackeados bajo `tmp/` desde antes de la regla `/tmp` de `.gitignore` | 🚧 In Progress — ver detalle abajo |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
 **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.
@@ -728,6 +729,16 @@ Auditoría rápida pedida por el usuario tras cerrar CLA-444 encontró que la no
 - `docs/ai/context-map.md` actualizado (2 menciones) preservando la nota histórica de CLA-440/CLA-444 intacta, solo agregando la referencia a este ticket.
 - Sin cambios en `.env`, frontend, Gemini, generación de imagen ni prompts. Sin llamadas reales a OpenAI.
 - **Validación:** 19/19 tests en el filtro `OpenAiImageGenerationServiceTest|FrameTypeVisionGenerateControllerTest|LuminaireFrameTypeFromGeneratedControllerTest|CustomLuminaireFrameTypeTest`, sin regresiones. Pint reporta 2 issues preexistentes en ambos archivos (estilo `new Class()` con paréntesis + un docblock), confirmados idénticos contra `HEAD` sin estos cambios — no introducidos por este ticket, no corregidos (fuera de alcance).
+
+### CLA-448 — repo hygiene: destrackear archivos ya trackeados bajo `tmp/` (2026-08-28)
+
+Auditoría de higiene de repo pedida por el usuario tras cerrar la integración de CLA-404/439/440/444/445 a `main`. `.gitignore` raíz ya tenía `/tmp` (línea 21) desde antes y funciona correctamente para archivos nuevos (confirmado con `git check-ignore -v` sobre un archivo hipotético y sobre los 2 archivos sueltos en disco sin trackear) — el problema real es que **5 archivos quedaron trackeados dentro de `tmp/` desde antes de que la regla existiera** (`tmp/.gitignore`, `tmp/fieldops-backoffice-map-panels-v1.html`, `tmp/fieldops-map-ui-system-v3.html`, `tmp/image.png`, `tmp/ttt.md`) — git nunca destrackea retroactivamente por una regla de `.gitignore` posterior al commit, confirmado con `git check-ignore -v` devolviendo "no ignorado" para los 5 mientras seguían en el índice.
+
+- **`tmp/.gitignore` (uno de los 5) es una copia idéntica del `.gitignore` raíz completo** — no una regla de subcarpeta intencional, parece un archivo copiado por error sin revisar.
+- **Sin referencias de código** a ninguno de los 5 (`git grep` en todo el árbol trackeado, cero resultados en PHP/Blade/JS/TS) — solo 2 menciones narrativas en `handoff.md` (texto de historial, no un link a blob de git, no se rompe al destrackear).
+- Fix: `git rm --cached` con rutas explícitas sobre los 5 (nunca `-r tmp/`) — deja las copias en disco intactas (tamaño/hash idénticos antes y después, verificado). `tmp/image.png` sigue existiendo en disco, solo sale del índice.
+- Sin cambios en `.gitignore` raíz (ya tenía la regla correcta) ni en ningún otro archivo — commit dedicado, separado de la integración de CLA-404/439/440/444/445.
+- **Validación:** tamaño+sha256 de los 5 archivos idénticos antes/después; `git ls-files tmp` vacío tras el `rm --cached`; `git check-ignore -v tmp/image.png` pasó de "no ignorado" a matchear la regla `/tmp` del `.gitignore` raíz; `git diff --cached --check` limpio.
 
 ### CLA-391 — detección multi-luminaria con posicionamiento aproximado por foto (CLA-390 Fase 2) (2026-08-19)
 
