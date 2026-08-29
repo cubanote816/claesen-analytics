@@ -26,6 +26,7 @@ Al iniciar cada sesión, leer en este orden:
 | `module-contracts.md` | Reglas no negociables por módulo (Mailing, Safety, Website, Cafca…) |
 | `testing-checklists.md` | Qué testear según el tipo de cambio; comandos de test por módulo |
 | `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
+| `laravel-13-readiness.md` | Baseline de PHP/Composer, entornos y riesgos del programa CLA-514 |
 | `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, reglas por módulo |
 | `known-risks.md` | Riesgos abiertos, deuda técnica, bloqueantes y decisiones pendientes |
 | `prompt-templates.md` | Prompts reutilizables para las tareas más comunes |
@@ -55,7 +56,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 
 | Capa | Tecnología |
 |------|------------|
-| Backend | Laravel 12 / PHP 8.2+ |
+| Backend | Laravel 12 / PHP 8.3+ |
 | Admin UI | Filament V5 (Bleeding Edge) |
 | DB local | MySQL 8.4 |
 | DB legacy | SQL Server 192.168.254.102 (ReadOnly) |
@@ -64,6 +65,18 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | RBAC | spatie/laravel-permission |
 | IA | Google Gemini (alias `gemini-flash-latest`, `GEMINI_API_URL` en `.env`) + Anthropic Claude Sonnet 5 (`Modules/Intelligence/Services/ClaudeVisionService`, identificación visual FieldOps) |
 | Infra | Docker Sail, Redis, Meilisearch |
+
+---
+
+## CLA-515 — Baseline/readiness para Laravel 13 (Done, 2026-08-29)
+
+- El proyecto exige PHP `^8.3`; desarrollo y scripts versionados se alinean en PHP 8.4. El host auditado usa PHP 8.4.24 y Composer oficial 2.10.3 sin deprecations.
+- `lara-zeus/spatie-translatable` está fijado en `^2.0` y resuelto a 2.0.1. No volver a usar un wildcard para esta dependencia.
+- Fuente de verdad del programa CLA-514: `docs/ai/laravel-13-readiness.md`.
+- Migraciones desde cero pasan en la base aislada `testing_cla515`. La suite completa no está verde: 1072 passed, 200 failed, 2 skipped (3232 assertions, 2223.18 s). Las familias principales son estado compartido/roles de FieldOps, locale/config, Mailing, rollback lento de migraciones Website e `Imagick` ausente en el host.
+- `composer audit` registra 60 advisories en 21 paquetes; resolverlas coordinadamente en CLA-520, sin desactivar el bloqueo de seguridad ni actualizar Laravel incidentalmente desde CLA-515.
+- El PHP CLI del host carga `Imagick` 3.8.1; los dos tests de media de `WorkDetailsTest` que fallaban por la extensión pasan 2/2 (17 assertions). Sail PHP 8.4.17 también la carga. Producción está verificada: PHP CLI 8.4.22, Composer 2.10.1, FPM 8.4 activo y workers/scheduler RUNNING sobre `/usr/bin/php8.4`. `backoffice.claesen.local` es solo LAN y se integra con las otras apps mediante túnel; nunca exponerlo a Internet. El health check del workflow contra `https://backoffice.claesen.local/` devuelve curl exit 7 porque no hay listener en esa ruta/puerto desde el host, aunque el deploy completa; rediseñarlo en CLA-523 según la topología interna. CI de tests y staging se implementan/certifican en CLA-524/CLA-525. CLA-515 quedó cerrado con este baseline explícito.
+- No usar APIs de Laravel 13 antes de completar la matriz de compatibilidad (CLA-518) y el upgrade del núcleo (CLA-519).
 
 ---
 

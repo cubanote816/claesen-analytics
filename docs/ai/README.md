@@ -36,6 +36,7 @@ Leer siempre en este orden:
 | Tests técnicos por tipo de cambio | `docs/ai/testing-checklists.md` |
 | Revisar código de un PR | `docs/ai/code-review-rubric.md` |
 | Preparar deploy / staging | `docs/ai/production-readiness.md` |
+| Migración a Laravel 13 | `docs/ai/laravel-13-readiness.md` |
 | Riesgos y deuda técnica | `docs/ai/known-risks.md` |
 | Comandos Artisan | `docs/ai/commands-runbook.md` |
 | Prompts reutilizables | `docs/ai/prompt-templates.md` |
@@ -55,6 +56,7 @@ Leer siempre en este orden:
 | **`test-gate-harness.md`** | **Arnés obligatorio de testing: matriz, waiver, plantilla de cierre — leer antes de Plan/Review/Done** |
 | `testing-checklists.md` | Checklists técnicos por tipo de cambio y módulo (referenciados desde el test-gate) |
 | `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
+| `laravel-13-readiness.md` | Baseline de PHP/Composer, entornos y riesgos para el programa CLA-514 |
 | `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, Testing Gate, reglas por módulo |
 | `known-risks.md` | Riesgos abiertos, deuda técnica, bloqueantes y decisiones pendientes |
 | `prompt-templates.md` | Prompts reutilizables con sección "Tests requeridos" obligatoria |

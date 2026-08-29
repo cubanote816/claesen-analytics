@@ -1,7 +1,7 @@
 # Mapa de contexto — CAFCA Intelligence Hub
 
 > Generado desde exploración real del código. Actualizar cuando cambie la arquitectura.
-> Última actualización: 2026-07-22 (CLA-268 Done; CLA-275 — mockup Claesen-Client iniciado)
+> Última actualización: 2026-08-29 (CLA-515 — baseline Laravel 13/PHP 8.3+)
 
 > Roadmap canónico de mantenimiento y Claesen-Client: `docs/ai/fieldops-maintenance-roadmap.md`.
 
@@ -11,7 +11,7 @@
 
 | Capa | Tecnología | Notas |
 |------|------------|-------|
-| Backend | Laravel 12 / PHP 8.2+ | `laravel/framework ^12.0` |
+| Backend | Laravel 12 / PHP 8.3+ | `laravel/framework ^12.0`; baseline de migración en `laravel-13-readiness.md` |
 | Admin UI | Filament V5 | `filament/filament ^5.0` — **solo V5, nunca V3/V4** |
 | DB local | MySQL 8.4 | Base de datos principal del proyecto |
 | DB legacy | SQL Server 192.168.254.102 | ReadOnly — conexión `sqlsrv` |

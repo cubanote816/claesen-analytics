@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "397a5d5945f0ccb7494c9a204835742e",
+    "content-hash": "5dd6f7c2668b0deb0d8e23ca1c7202d9",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -2557,16 +2557,16 @@
         },
         {
             "name": "lara-zeus/spatie-translatable",
-            "version": "2.0.0",
+            "version": "2.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/lara-zeus/spatie-translatable.git",
-                "reference": "260339895e504d54f8fb82d5a3e5b1a5563eaed4"
+                "reference": "4583205ade3270a9b4c3293cab102f8b2d772523"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/lara-zeus/spatie-translatable/zipball/260339895e504d54f8fb82d5a3e5b1a5563eaed4",
-                "reference": "260339895e504d54f8fb82d5a3e5b1a5563eaed4",
+                "url": "https://api.github.com/repos/lara-zeus/spatie-translatable/zipball/4583205ade3270a9b4c3293cab102f8b2d772523",
+                "reference": "4583205ade3270a9b4c3293cab102f8b2d772523",
                 "shasum": ""
             },
             "require": {
@@ -2611,7 +2611,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-01-28T13:50:52+00:00"
+            "time": "2026-04-23T17:31:05+00:00"
         },
         {
             "name": "laravel/framework",
@@ -12968,12 +12968,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.2"
+        "php": "^8.3"
     },
-    "platform-dev": [],
-    "plugin-api-version": "2.6.0"
+    "platform-dev": {},
+    "plugin-api-version": "2.9.0"
 }

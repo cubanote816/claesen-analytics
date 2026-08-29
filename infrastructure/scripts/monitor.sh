@@ -2,7 +2,7 @@
 set -euo pipefail
 source /etc/claesen-notify.env
 
-SERVICES=(nginx php8.3-fpm mysql redis-server meilisearch supervisor)
+SERVICES=(nginx php8.4-fpm mysql redis-server meilisearch supervisor)
 FAILED=()
 
 for SVC in "${SERVICES[@]}"; do

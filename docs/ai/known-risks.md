@@ -1,11 +1,18 @@
 # Riesgos conocidos y deuda técnica — CAFCA Intelligence Hub
 
 > Riesgos abiertos, bloqueantes, deuda técnica y decisiones pendientes.
-> Última actualización: 2026-06-02 (DOCS-AI-001 / CLA-105)
+> Última actualización: 2026-08-29 (CLA-515)
 
 ---
 
 ## Bloqueantes activos
+
+### CLA-515/CLA-514 — Readiness incompleta para Laravel 13
+
+**Estado:** CLA-515 completado; CLA-514 todavía no autoriza actualizar Laravel hasta cerrar sus tickets bloqueantes.
+**Riesgo:** el repositorio no tiene workflow independiente de CI para suite/build/audit ni staging versionado. El deploy 106 completó en `prod-priv-01`, pero su health check final terminó con curl exit 7 y dejó el job en rojo; la última ejecución exitosa fue la 95 del 2026-07-07.
+**Evidencia:** `docs/ai/laravel-13-readiness.md`; suite completa en base aislada: 1072 passed, 200 failed, 2 skipped. Producción está en PHP CLI 8.4.22/Composer 2.10.1, FPM 8.4 activo y workers/scheduler sobre `/usr/bin/php8.4`.
+**Acción requerida:** mantener `backoffice.claesen.local` exclusivamente en LAN y su integración por túnel; nunca resolver el health check exponiéndolo a Internet. CLA-523 debe validar el listener o la ruta interna real. Definir CI/staging o aprobar el baseline/waiver, sanear advisories en CLA-520 y estabilizar la suite en CLA-524 antes del cambio de framework. `php8.4-imagick` ya está instalado y verificado en el host.
 
 ### MAI-026 — Webhook handler ESP externo
 
