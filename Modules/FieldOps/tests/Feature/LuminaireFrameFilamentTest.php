@@ -7,9 +7,9 @@ namespace Modules\FieldOps\Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireFrameTypes\Pages\CreateLuminaireFrameType;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource;
 use Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource;
-use Modules\FieldOps\Filament\Resources\Catalogs\LuminaireFrameTypes\Pages\CreateLuminaireFrameType;
 use Modules\FieldOps\Filament\Resources\LuminaireFrameResource;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\Pages\CreateLuminaireFrame;
 use Modules\FieldOps\Filament\Resources\LuminaireFrames\RelationManagers\LuminairesRelationManager;
@@ -26,6 +26,7 @@ use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 use Modules\Intelligence\Services\GeminiService;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\DomCrawler\Crawler;
 use Tests\TestCase;
 
 class LuminaireFrameFilamentTest extends TestCase
@@ -215,7 +216,7 @@ class LuminaireFrameFilamentTest extends TestCase
             ->get("/luminaire-frames/{$frame->id}?layout=technical&vacant_position={$retired->luminaire_position_id}")
             ->assertOk()
             ->assertSee('Vacant position #7')
-            ->assertSee($historyUrl, false)
+            ->assertSee($historyUrl)
             ->assertSee('data-fieldops-vacant-position="'.$retired->luminaire_position_id.'"', false)
             ->assertSee('fieldops-luminaire-frame-spatial__vacant-position--highlighted', false)
             ->assertSee('wire:navigate', false);
@@ -433,13 +434,23 @@ class LuminaireFrameFilamentTest extends TestCase
 
         $structure = $this->buildComplexTerrainStructure();
         $origin = LuminaireFrameResource::getUrl('create', ['structure_ids' => [$structure->id]]);
+        $createTypeUrl = url('/catalogs/luminaire-frame-types/create').'?'.http_build_query([
+            'return_to' => $origin,
+        ]);
 
-        $this->get($origin)
+        $response = $this->get($origin)
             ->assertOk()
             ->assertSee('wire:navigate', false)
             ->assertSee('return_to', false)
-            ->assertSee(urlencode($origin), false)
-            ->assertDontSee('target="_blank"', false);
+            ->assertSee(urlencode($origin), false);
+
+        $createTypeLink = (new Crawler($response->getContent()))
+            ->filter('a')
+            ->reduce(fn (Crawler $link): bool => $link->attr('href') === $createTypeUrl);
+
+        $this->assertCount(1, $createTypeLink);
+        $this->assertNull($createTypeLink->attr('target'));
+        $this->assertNotNull($createTypeLink->attr('wire:navigate'));
     }
 
     public function test_luminaire_frames_relation_manager_hides_create_and_attach_at_capacity(): void

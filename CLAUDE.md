@@ -74,9 +74,20 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 - `lara-zeus/spatie-translatable` está fijado en `^2.0` y resuelto a 2.0.1. No volver a usar un wildcard para esta dependencia.
 - Fuente de verdad del programa CLA-514: `docs/ai/laravel-13-readiness.md`.
 - Migraciones desde cero pasan en la base aislada `testing_cla515`. La suite completa no está verde: 1072 passed, 200 failed, 2 skipped (3232 assertions, 2223.18 s). Las familias principales son estado compartido/roles de FieldOps, locale/config, Mailing, rollback lento de migraciones Website e `Imagick` ausente en el host.
-- `composer audit` registra 60 advisories en 21 paquetes; resolverlas coordinadamente en CLA-520, sin desactivar el bloqueo de seguridad ni actualizar Laravel incidentalmente desde CLA-515.
+- El baseline registraba 60 advisories en 21 paquetes; CLA-520 las saneó de forma coordinada sin salir de Laravel 12 ni desactivar el bloqueo de seguridad.
 - El PHP CLI del host carga `Imagick` 3.8.1; los dos tests de media de `WorkDetailsTest` que fallaban por la extensión pasan 2/2 (17 assertions). Sail PHP 8.4.17 también la carga. Producción está verificada: PHP CLI 8.4.22, Composer 2.10.1, FPM 8.4 activo y workers/scheduler RUNNING sobre `/usr/bin/php8.4`. `backoffice.claesen.local` es solo LAN y se integra con las otras apps mediante túnel; nunca exponerlo a Internet. El health check del workflow contra `https://backoffice.claesen.local/` devuelve curl exit 7 porque no hay listener en esa ruta/puerto desde el host, aunque el deploy completa; rediseñarlo en CLA-523 según la topología interna. CI de tests y staging se implementan/certifican en CLA-524/CLA-525. CLA-515 quedó cerrado con este baseline explícito.
 - No usar APIs de Laravel 13 antes de completar la matriz de compatibilidad (CLA-518) y el upgrade del núcleo (CLA-519).
+
+---
+
+## CLA-520 — Saneamiento de seguridad en Laravel 12 (cierre técnico aprobado; Linear In Progress, 2026-08-29)
+
+- `composer.lock` actualiza 34 paquetes en tres lotes revisados, sin instalaciones, eliminaciones ni saltos de major. `composer.json` permanece intacto.
+- Baseline resuelto: Laravel 12.68.0, Filament 5.7.6, Livewire 4.4.2, Sanctum 4.3.3, Dompdf 3.1.6, Spatie MediaLibrary 11.23.5, Guzzle 7.15.5, CommonMark 2.10.0, phpseclib 3.0.57 y PsySH 0.12.24; Symfony vulnerable quedó actualizado dentro de sus líneas compatibles.
+- `composer audit` pasa con 0 advisories/0 paquetes abandonados; validación estricta, requisitos de plataforma e instalación limpia aislada de 179 paquetes también pasan.
+- Filament 5.7 endureció el escape de URLs y Livewire 4.4 cambió la serialización segura de JavaScript embebido. Cuatro tests FieldOps se adaptaron para verificar el HTML escapado y limitar la ausencia de `target="_blank"` al enlace concreto; no se modificó código de aplicación.
+- Build Vite y smoke tests de Artisan/scheduler pasan. Suite completa diferencial en `testing_cla520`: **1086 passed, 186 failed, 2 skipped (3270 assertions, 1131.20 s)** frente a 1072/200/2 en CLA-515; no apareció ninguna familia nueva de fallos. Persisten únicamente las familias preexistentes de Example/locale-config, estado compartido FieldOps, Mailing y rollback Website, cuya estabilización corresponde a CLA-524.
+- GO técnico y waiver diferencial aprobados. Sin push ni deploy. La observación productiva sigue reservada para CLA-523 después de CLA-525; CLA-520 permanece `In Progress` y no puede saltarse ese gate aunque su implementación local esté completa.
 
 ---
 

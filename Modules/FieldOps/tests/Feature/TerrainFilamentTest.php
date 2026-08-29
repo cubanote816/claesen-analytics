@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\FieldOps\Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\ElectricalBoardResource;
@@ -148,11 +148,11 @@ class TerrainFilamentTest extends TestCase
 
         $this->get("/terrains/{$terrain->id}/edit")
             ->assertOk()
-            ->assertSee('defaultPinVariant: "'.$terrainType->id.'"', false)
-            ->assertSee("this.marker.on('dragend', () => this.syncFromLatLng(this.marker.getLatLng(), false, true));", false)
-            ->assertSee("this.map.on('click', (event) => this.syncFromLatLng(event.latlng, true, true));", false)
-            ->assertSee("this.centerLatInput.dispatchEvent(new Event('input', { bubbles: true }));", false)
-            ->assertSee("this.centerLngInput.dispatchEvent(new Event('input', { bubbles: true }));", false);
+            ->assertSee("defaultPinVariant: '{$terrainType->id}'", false)
+            ->assertSee("this.marker.on('dragend', () => this.syncFromLatLng(this.marker.getLatLng(), false, true));")
+            ->assertSee("this.map.on('click', (event) => this.syncFromLatLng(event.latlng, true, true));")
+            ->assertSee("this.centerLatInput.dispatchEvent(new Event('input', { bubbles: true }));")
+            ->assertSee("this.centerLngInput.dispatchEvent(new Event('input', { bubbles: true }));");
     }
 
     public function test_structure_creation_from_terrain_attaches_the_current_terrain(): void

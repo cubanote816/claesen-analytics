@@ -1,8 +1,8 @@
 # Laravel 13 — baseline y readiness de PHP/Composer
 
-> Ticket: CLA-515 (Done), primer subticket de CLA-514.
+> Tickets: CLA-515 (Done) y CLA-520 (cierre técnico aprobado; Linear In Progress hasta el gate productivo), primeros subtickets de CLA-514.
 > Fecha del inventario: 2026-08-29.
-> Alcance: baseline técnico; no actualiza Laravel ni corrige en bloque las advisories.
+> Alcance: baseline técnico y saneamiento compatible; permanece en Laravel 12 y no introduce APIs de Laravel 13.
 
 ## Decisión de readiness
 
@@ -32,7 +32,7 @@ No queda ningún runtime productivo PHP 8.2: CLI, workers y scheduler ejecutan `
 - Node.js: 22.22.0.
 - npm: 10.9.4.
 - MySQL local: imagen 8.4, publicada por el worktree principal en `127.0.0.1:3308` durante este inventario.
-- Laravel: 12.50.0; Filament: 5.2.0; Livewire: 4.1.3; Laravel Modules: 12.0.4; Spatie Permission: 6.24.0.
+- Laravel: 12.68.0; Filament: 5.7.6; Livewire: 4.4.2; Sanctum: 4.3.3; Laravel Modules: 12.0.4; Spatie Permission: 6.24.0.
 
 El `Dockerfile` de Sail usa Ubuntu 24.04, PHP 8.4 y extensiones MySQL/SQLite/Redis/Imagick/Intl/GD/Zip, además de ODBC y `sqlsrv`. `compose.yaml` construye desde `docker/8.4`; la etiqueta incoherente `sail-8.5/app` se corrigió a `sail-8.4/app`.
 
@@ -42,17 +42,24 @@ El `Dockerfile` de Sail usa Ubuntu 24.04, PHP 8.4 y extensiones MySQL/SQLite/Red
 - Se instaló Composer 2.10.3 para el usuario en `~/.local/bin/composer` desde `getcomposer.org`; el SHA-256 publicado fue verificado antes de instalar.
 - `composer.json` exige ahora PHP `^8.3`.
 - `lara-zeus/spatie-translatable` pasó de `*` a `^2.0`; el lockfile resolvió 2.0.1. Esa versión declara PHP `^8.1`, Filament `^5.0` y `spatie/laravel-translatable ^6.0`, compatibles con el baseline actual.
-- La actualización parcial cambió solo esa dependencia. Laravel, Filament y las demás dependencias raíz quedaron inmóviles.
-- Composer 2.10 aplica bloqueo de seguridad durante una resolución completa. El lock actual contiene versiones afectadas, por lo que una regeneración global debe realizarse dentro de CLA-520/CLA-518 y no ocultarse desactivando el audit de forma permanente.
+- En CLA-515, la actualización parcial cambió solo esa dependencia; Laravel, Filament y las demás dependencias raíz quedaron inmóviles hasta el saneamiento controlado de CLA-520.
+- Composer 2.10 aplica bloqueo de seguridad durante una resolución completa. CLA-520 regeneró de forma controlada las entradas afectadas del lock; no desactivar el audit ni el bloqueo de seguridad en actualizaciones posteriores.
+
+### Saneamiento CLA-520
+
+- Se actualizaron 34 paquetes en tres lotes con `--with-all-dependencies --minimal-changes`; no hubo instalaciones, eliminaciones ni saltos de major y `composer.json` no cambió.
+- Versiones de mayor riesgo revisadas: Laravel 12.68.0, Filament 5.7.6, Livewire 4.4.2, Sanctum 4.3.3, Dompdf 3.1.6, Spatie MediaLibrary 11.23.5, Guzzle 7.15.5, CommonMark 2.10.0, phpseclib 3.0.57 y PsySH 0.12.24.
+- Los componentes Symfony afectados quedaron dentro de las líneas compatibles ya permitidas: DomCrawler/HtmlSanitizer 8.1.x y HttpFoundation/HttpKernel/Mailer/Mime/Routing/Yaml 7.4.x.
+- La instalación limpia desde el lock actualizado resolvió 179 paquetes en `/tmp` con scripts deshabilitados y sin reutilizar `vendor/`.
 
 ## Baseline de seguridad
 
 | Check | Resultado |
 |---|---|
 | `npm audit --audit-level=moderate` | PASS, 0 vulnerabilidades |
-| `composer audit` | FAIL esperado: 60 advisories en 21 paquetes |
+| `composer audit` | PASS tras CLA-520: 0 advisories y 0 paquetes abandonados |
 
-Entre los paquetes afectados están Laravel 12.50.0, Filament 5.2.0, Guzzle, League CommonMark, Dompdf, Spatie MediaLibrary, phpseclib y varios componentes Symfony. El saneamiento está separado en CLA-520 porque requiere una actualización coordinada y regresión completa, no un cambio incidental del baseline.
+El baseline de CLA-515 contenía 60 advisories en 21 paquetes, incluidos Laravel, Filament, Guzzle, CommonMark, Dompdf, MediaLibrary, phpseclib y Symfony. CLA-520 eliminó esa exposición manteniendo Laravel 12 y sin desactivar el bloqueo de seguridad.
 
 ## Jobs, scheduler, workers y despliegue
 
@@ -87,6 +94,14 @@ Entre los paquetes afectados están Laravel 12.50.0, Filament 5.2.0, Guzzle, Lea
   - Website/media: dos casos fallaron porque la clase `Imagick` no existía en el host local. Tras instalar `php8.4-imagick`, ambos pasan de forma focalizada: 2 passed, 17 assertions.
 - Este resultado no prueba una regresión causada por elevar el requisito de PHP o fijar la dependencia: prueba que el baseline previo del repositorio no está verde. La estabilización corresponde principalmente a CLA-524; los gaps de permisos FieldOps deben resolverse en su ticket funcional propio.
 
+### Regresión diferencial de CLA-520
+
+- Suite completa en `testing_cla520`: **1086 passed, 186 failed, 2 skipped; 3270 assertions; 1131.20 s**.
+- Diferencial contra CLA-515: 14 tests adicionales pasan y no apareció ninguna familia nueva de fallos. Persisten Example/locale-config, estado compartido FieldOps, Mailing y rollback Website.
+- Login/sesiones/permisos, FieldOps tenant/media, Filament, PDF Safety, media Website y payload Microsoft Graph se ejecutaron focalizadamente. El único fallo focalizado no FieldOps fue el caso NL de `WorkDetailsTest`, ya documentado en el baseline de locale/config.
+- Filament 5.7 escapa ahora las URLs generadas en atributos y Livewire 4.4 serializa de forma más segura JavaScript embebido. Se adaptaron cuatro archivos de test para verificar la representación segura equivalente; no se cambió código de aplicación.
+- `npm run build`, `php artisan about`, scheduler, Pint focalizado y `git diff --check` pasan.
+
 ## Seguimientos posteriores a CLA-515
 
 - Definir runtime y gate de tests/build/audit en CI; con el baseline actual la ventana debe superar 40 minutos o, preferiblemente, reducir antes los rollbacks lentos de Website.
@@ -95,7 +110,7 @@ Entre los paquetes afectados están Laravel 12.50.0, Filament 5.2.0, Guzzle, Lea
 
 ## Secuencia posterior
 
-1. CLA-520: sanear advisories manteniendo Laravel 12.
+1. CLA-520: cierre técnico y waiver diferencial aprobados; pendiente únicamente del gate de despliegue/observación reservado a CLA-523.
 2. CLA-518: definir la matriz de compatibilidad y el lockfile objetivo.
 3. CLA-519: actualizar el núcleo y configuración a Laravel 13.
 4. CLA-516, CLA-517 y CLA-526: Filament/media, Laravel Modules y paquetes Spatie.

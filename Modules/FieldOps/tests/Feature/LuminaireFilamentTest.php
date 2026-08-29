@@ -76,7 +76,7 @@ class LuminaireFilamentTest extends TestCase
                 'record' => $luminaire->luminaire_frame_id,
                 'layout' => 'technical',
                 'luminaire' => $luminaire->id,
-            ]), false);
+            ]));
 
         $this->withHeader('Accept-Language', 'en-US')->get("/luminaires/{$luminaire->id}/edit")
             ->assertOk()
@@ -110,7 +110,7 @@ class LuminaireFilamentTest extends TestCase
             ->assertSee(FoMaintenanceWorkOrderResource::getUrl('create', [
                 'maintainable_type' => Luminaire::class,
                 'maintainable_id' => $luminaire->id,
-            ]), false);
+            ]));
     }
 
     // Reproduces a real bug from manual QA: the photo/video gallery used $media->getUrl(),
