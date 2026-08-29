@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\FieldOps\Http\Resources\MaintenanceRecordResource;
 use Modules\FieldOps\Http\Resources\MaintenanceTypeResource;
@@ -12,10 +13,13 @@ use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Services\FieldOpsTenantService;
 
 class MaintenanceRecordController extends Controller
 {
     private const RELATIONS = ['maintainable', 'maintenanceType', 'employee', 'client', 'createdBy'];
+
+    public function __construct(private readonly FieldOpsTenantService $tenants) {}
 
     // ── catalog ───────────────────────────────────────────────────────────────
 
@@ -81,9 +85,15 @@ class MaintenanceRecordController extends Controller
 
     // ── stats ─────────────────────────────────────────────────────────────────
 
-    public function correctiveStats(): \Illuminate\Http\JsonResponse
+    // CLA-497: these 3 aggregate/list endpoints have no route-bound model, so
+    // EnforceFieldOpsTenantAccess never touches them (its authorization loop only
+    // runs for a parameter that is a bound Eloquent instance) — the tenant scope has
+    // to be applied here, in the query, before the collection is materialized.
+    public function correctiveStats(Request $request): \Illuminate\Http\JsonResponse
     {
-        $corrective = FoMaintenanceRecord::corrective()->get();
+        $query = FoMaintenanceRecord::corrective();
+        $this->tenants->scopeForUser($query, $request->user(), FoMaintenanceRecord::class);
+        $corrective = $query->get();
 
         return response()->json([
             'success' => true,
@@ -103,12 +113,13 @@ class MaintenanceRecordController extends Controller
 
     // ── client-reported ──────────────────────────────────────────────────────
 
-    public function pendingClientReported(): \Illuminate\Http\JsonResponse
+    public function pendingClientReported(Request $request): \Illuminate\Http\JsonResponse
     {
-        $records = FoMaintenanceRecord::pendingClientReported()
+        $query = FoMaintenanceRecord::pendingClientReported()
             ->with(self::RELATIONS)
-            ->orderByDesc('problem_reported_at')
-            ->get();
+            ->orderByDesc('problem_reported_at');
+        $this->tenants->scopeForUser($query, $request->user(), FoMaintenanceRecord::class);
+        $records = $query->get();
 
         return response()->json([
             'success' => true,
@@ -116,9 +127,11 @@ class MaintenanceRecordController extends Controller
         ]);
     }
 
-    public function clientReportedStatistics(): \Illuminate\Http\JsonResponse
+    public function clientReportedStatistics(Request $request): \Illuminate\Http\JsonResponse
     {
-        $records = FoMaintenanceRecord::clientReported()->get();
+        $query = FoMaintenanceRecord::clientReported();
+        $this->tenants->scopeForUser($query, $request->user(), FoMaintenanceRecord::class);
+        $records = $query->get();
         $resolved = $records->whereNotNull('problem_solved_at');
 
         return response()->json([

@@ -54,6 +54,7 @@ La conversión `Solicitud → Orden` es idempotente mediante `work_order_id`. Ce
 - La confirmación, reapertura y cancelación deben usar transiciones de dominio; no se permite editar estados arbitrariamente.
 - El portal debe aislar sesión, caché y datos por usuario para evitar fugas BOLA entre clientes.
 - SQL Server/Cafca permanece estrictamente ReadOnly.
+- Un endpoint agregado/de listado sin parámetro de ruta ligado a un modelo (stats, resúmenes) **no** queda cubierto por `EnforceFieldOpsTenantAccess` — su autorización solo recorre parámetros de ruta que ya son una instancia Eloquent. Cualquier endpoint así debe aplicar `FieldOpsTenantService::scopeForUser()` explícitamente en el controller, sobre el `Builder` antes de materializar la colección, nunca filtrando la colección ya cargada (CLA-497).
 
 ## Estado de fases
 
@@ -240,6 +241,7 @@ El hostname objetivo del plan es `client.claesen-verlichting.be`. Antes de deplo
 | Infraestructura de `client.claesen-verlichting.be` preparada pero no aplicada | Requiere acceso SSH real a `sbapu03`/`prod-priv-01` y al DNS; runbook completo en `docs/ai/production-readiness.md`, artefactos en `infrastructure/nginx/sbapu03/` |
 | Sin pipeline de CI/CD para Claesen-Client | Hoy el build se sincroniza a mano (`rsync`); decidir si se construye uno equivalente al de Website (GitHub Actions + webhook) |
 | IA de intake puede producir datos incorrectos | Tratarla como asistencia; validar entradas y nunca usarla como autoridad de tenancy |
+| ✅ Fix implementado, pendiente de commit (CLA-497, 2026-08-30): `MaintenanceRecordController::correctiveStats()`/`pendingClientReported()`/`clientReportedStatistics()` sin tenant-scope | Un `technician` (único rol interno sin `fieldops.view-all-clients`) veía agregados y PII (`contact_person`/`contact_phone`/`location_details`) de todos los clientes. Fix: `scopeForUser()` aplicado en la query de los 3 métodos; `hasBroadAccess()` (project_manager/admin/super_admin/etc.) sigue viendo todo por decisión vigente (CLA-377); `client` sigue bloqueado sin cambios. Tests dedicados en `MaintenanceRecordTenantScopeTest.php` (2 clientes reales, PII exacta con `assertDontSee` cruzado, shape exacto de respuesta vacía; para el actor amplio: `assertExactJson` sobre las dos respuestas agregadas globales de `correctiveStats()`/`clientReportedStatistics()`, y conteo + IDs + PII exacta por registro para `pendingClientReported()`). Confirmado además con QA real contra dev (tokens Sanctum reales, fixtures borrados al terminar) |
 
 ## Orden de ejecución obligatorio
 
@@ -269,3 +271,4 @@ Todo el código del programa de mantenimiento (Fases 0-5, CLA-267/266/271/268/27
 | 2026-07-24 | CLA-276 | Alertas operacionales + widget de métricas de ciclo de vida | Backend `26110b5` |
 | 2026-07-24 | CLA-276 | Fase 5 cerrada en Linear (Done) | — |
 | 2026-07-22 | CLA-275 | Ticket creado; repositorio y mockup interactivo iniciados | `9f2414b` |
+| 2026-08-30 | CLA-497 | Tenant-scope aplicado a `correctiveStats()`/`pendingClientReported()`/`clientReportedStatistics()`; `ClientReportedMaintenanceTest` corregido (actor sin `fieldops.view-all-clients` ya no asume acceso global); `MaintenanceRecordTenantScopeTest.php` nuevo (incluye `assertExactJson` agregado global para un actor amplio) + QA real contra dev con tokens Sanctum reales | Implementado y testeado (59/59, 347 assertions), pendiente de commit/push/deploy |

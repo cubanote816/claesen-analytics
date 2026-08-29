@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class ClientReportedMaintenanceTest extends TestCase
@@ -64,8 +65,21 @@ class ClientReportedMaintenanceTest extends TestCase
         $this->assertDatabaseCount('fo_maintenance_records', 1);
     }
 
+    public function test_client_reported_routes_require_authentication(): void
+    {
+        $this->getJson('/api/v1/fieldops/maintenance-records/client-reported/pending')->assertUnauthorized();
+        $this->getJson('/api/v1/fieldops/maintenance-records/client-reported/statistics')->assertUnauthorized();
+    }
+
+    // CLA-497: this helper stands in for "generic authenticated internal staff" across
+    // this whole file — none of these tests exercise tenant scope itself (that lives in
+    // MaintenanceRecordTenantScopeTest), so it needs fieldops.view-all-clients, same
+    // treatment CLA-378/369 already gave the equivalent helpers elsewhere in the module.
     private function token(): string
     {
-        return UserFactory::new()->create()->createToken('test')->plainTextToken;
+        $user = UserFactory::new()->create();
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+
+        return $user->createToken('test')->plainTextToken;
     }
 }

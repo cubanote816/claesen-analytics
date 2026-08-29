@@ -126,6 +126,11 @@ class MaintenanceRecordCrudTest extends TestCase
         $this->assertDatabaseCount('fo_maintenance_records', 1);
     }
 
+    public function test_corrective_stats_requires_authentication(): void
+    {
+        $this->getJson('/api/v1/fieldops/maintenance-records/stats/corrective')->assertUnauthorized();
+    }
+
     public function test_maintenance_catalog_and_corrective_stats_remain_available(): void
     {
         $token = $this->token();
