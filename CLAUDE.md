@@ -27,6 +27,7 @@ Al iniciar cada sesión, leer en este orden:
 | `testing-checklists.md` | Qué testear según el tipo de cambio; comandos de test por módulo |
 | `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
 | `laravel-13-readiness.md` | Baseline de PHP/Composer, entornos y riesgos del programa CLA-514 |
+| `laravel-13-compatibility-matrix.md` | Matriz exacta, lockfile objetivo simulado y gate previo a CLA-519 |
 | `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, reglas por módulo |
 | `known-risks.md` | Riesgos abiertos, deuda técnica, bloqueantes y decisiones pendientes |
 | `prompt-templates.md` | Prompts reutilizables para las tareas más comunes |
@@ -88,6 +89,19 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 - Filament 5.7 endureció el escape de URLs y Livewire 4.4 cambió la serialización segura de JavaScript embebido. Cuatro tests FieldOps se adaptaron para verificar el HTML escapado y limitar la ausencia de `target="_blank"` al enlace concreto; no se modificó código de aplicación.
 - Build Vite y smoke tests de Artisan/scheduler pasan. Suite completa diferencial en `testing_cla520`: **1086 passed, 186 failed, 2 skipped (3270 assertions, 1131.20 s)** frente a 1072/200/2 en CLA-515; no apareció ninguna familia nueva de fallos. Persisten únicamente las familias preexistentes de Example/locale-config, estado compartido FieldOps, Mailing y rollback Website, cuya estabilización corresponde a CLA-524.
 - GO técnico y waiver diferencial aprobados. Sin push ni deploy. La observación productiva sigue reservada para CLA-523 después de CLA-525; CLA-520 permanece `In Progress` y no puede saltarse ese gate aunque su implementación local esté completa.
+
+---
+
+## CLA-518 — Matriz de compatibilidad Laravel 13 (cierre técnico aprobado, 2026-08-30)
+
+- El repositorio continúa en Laravel 12.68.0: este ticket no cambia `composer.json`, `composer.lock`, aplicación ni base de datos. La matriz canónica está en `docs/ai/laravel-13-compatibility-matrix.md`.
+- Un sandbox aislado resolvió e instaló Laravel 13.29.0: 177 paquetes, con 2 instalaciones, 107 actualizaciones y 4 eliminaciones. Composer validate, platform requirements, audit y `why-not` objetivo pasan; el lock real Laravel 12 conserva 0 advisories.
+- Restricciones objetivo coordinadas: PHP `^8.4`, Tinker 3, plugin Filament Media 5.7, Laravel Modules 13, Resend 1.4, Activitylog 5, Permission 8, Query Builder 7, Translatable 6.14, PHPUnit 12, Pail 1.2.7, Sail 1.67 y Collision 8.9.5. Filament permanece en 5.7, Livewire en 4.4, Sanctum en 4 y MediaLibrary en 11.
+- Activitylog 5 es el riesgo crítico: exige PHP 8.4 y una migración reversible de `activity_log`; pertenece a CLA-526 y no debe ocultarse dentro del update masivo. CI y staging deben certificar PHP 8.4 en CLA-525.
+- Antes de CLA-519 es obligatorio integrar todo el trabajo activo sobre Laravel 12, congelar dependencias/bootstrap y repetir la resolución contra la rama base final. Cambios posteriores en dependencias, bootstrap, auth, módulos o Activitylog invalidan el gate.
+- Ownership: Core/CSRF/cache/session en CLA-519; Filament/media en CLA-516; Modules en CLA-517; auth/túnel en CLA-521; mail/cache/queues/scheduler en CLA-522; Spatie y datos en CLA-526; PHPUnit en CLA-524; CI/staging/rollback en CLA-525/523.
+- El backoffice mantiene su restricción LAN/túnel. Ningún health check o paso de la migración puede justificar exposición a Internet.
+- **WAIVER aprobado por GO técnico:** CLA-518 es documental/diagnóstico; cobertura alternativa mediante solver real aislado, instalación limpia, validación estricta, platform check y audits. El riesgo residual es runtime y deriva de futuros merges Laravel 12.
 
 ---
 

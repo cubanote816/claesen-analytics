@@ -1,14 +1,16 @@
 # Laravel 13 — baseline y readiness de PHP/Composer
 
-> Tickets: CLA-515 (Done) y CLA-520 (cierre técnico aprobado; Linear In Progress hasta el gate productivo), primeros subtickets de CLA-514.
-> Fecha del inventario: 2026-08-29.
+> Tickets: CLA-515 (Done), CLA-520 (cierre técnico aprobado; Linear In Progress hasta el gate productivo) y CLA-518 (matriz en revisión técnica), subtickets de CLA-514.
+> Fecha del inventario: 2026-08-29; matriz de compatibilidad actualizada el 2026-08-30.
 > Alcance: baseline técnico y saneamiento compatible; permanece en Laravel 12 y no introduce APIs de Laravel 13.
 
 ## Decisión de readiness
 
-Los entornos local y productivo están listos a nivel de PHP/Composer para ejecutar el trabajo de migración, pero el proyecto todavía **no está listo para cambiar a Laravel 13**. Antes deben cerrarse el saneamiento de Laravel 12 (CLA-520), la matriz de compatibilidad (CLA-518) y los gates de CI/staging.
+Los entornos local y productivo están listos a nivel de PHP/Composer para ejecutar el trabajo de migración, pero el proyecto todavía **no está listo para cambiar a Laravel 13**. CLA-518 confirmó que el grafo objetivo es resoluble, pero el cambio real debe esperar a que todo el trabajo Laravel 12 pendiente esté integrado y a que existan los gates de CI/staging.
 
-El requisito de plataforma del proyecto queda elevado de PHP `^8.2` a `^8.3`, que es el mínimo de Laravel 13. La imagen de desarrollo y los scripts operativos versionados quedan alineados en PHP 8.4.
+El requisito de plataforma vigente quedó elevado de PHP `^8.2` a `^8.3`, mínimo de Laravel 13. La matriz objetivo eleva el proyecto a PHP `^8.4`, porque `spatie/laravel-activitylog` 5 lo exige. La imagen de desarrollo y los scripts operativos versionados ya están alineados en PHP 8.4; CI y staging todavía deben certificarlo.
+
+La matriz exacta, el lockfile simulado y el gate de revalidación son fuente de verdad en [`docs/ai/laravel-13-compatibility-matrix.md`](laravel-13-compatibility-matrix.md).
 
 ## Matriz de entornos
 
@@ -108,12 +110,23 @@ El baseline de CLA-515 contenía 60 advisories en 21 paquetes, incluidos Laravel
 - Registrar el reemplazo del health check en CLA-523: debe validar la ruta interna/túnel real y mantener la prohibición de exposición pública.
 - Decidir si la ausencia deliberada de CI de tests y staging en este punto del programa se acepta como baseline de CLA-515 o requiere waiver explícito; su implementación/certificación corresponde a CLA-524/CLA-525.
 
+## Matriz y simulación CLA-518
+
+- El lock real permanece en Laravel 12.68.0. CLA-518 no modifica `composer.json`, `composer.lock`, aplicación ni base de datos.
+- Una copia aislada de los manifests resolvió Laravel 13.29.0 con 177 paquetes: 2 instalaciones, 107 actualizaciones y 4 eliminaciones. La instalación limpia, validación estricta, requisitos de plataforma y auditoría pasan.
+- Majors raíz coordinados: Tinker 3, plugin Filament Media 5.7, Laravel Modules 13, Activitylog 5, Permission 8, Query Builder 7 y PHPUnit 12. Filament permanece en 5.7, Livewire en 4.4, MediaLibrary en 11 y Collision en 8.
+- Activitylog 5 es el bloqueante de mayor riesgo: exige PHP 8.4 y una transformación reversible de `activity_log` antes de retirar columnas legacy. Esa tarea pertenece a CLA-526 y requiere backup/rollback probado.
+- El código contiene puntos de adaptación para CSRF, cache, sesión y bootstrap, además de regresiones obligatorias para dominios/túnel, módulos, permisos, mail, colas y scheduler. Se asignaron a CLA-519/516/517/521/522/526.
+- Antes de CLA-519 se deben integrar las ramas Laravel 12 activas, congelar cambios de dependencias/bootstrap y repetir `why-not`, resolución completa y audit sobre la rama base final. Cualquier cambio posterior relevante invalida la matriz.
+- La existencia de una solución del solver no autoriza todavía el upgrade ni el despliegue; CI/staging, PHPUnit 12 y el rollback productivo siguen en CLA-524/525/523.
+
 ## Secuencia posterior
 
 1. CLA-520: cierre técnico y waiver diferencial aprobados; pendiente únicamente del gate de despliegue/observación reservado a CLA-523.
-2. CLA-518: definir la matriz de compatibilidad y el lockfile objetivo.
-3. CLA-519: actualizar el núcleo y configuración a Laravel 13.
-4. CLA-516, CLA-517 y CLA-526: Filament/media, Laravel Modules y paquetes Spatie.
-5. CLA-521/CLA-522: certificar autenticación mult-dominio y subsistemas operativos.
-6. CLA-524: PHPUnit 12 y estabilización de la suite.
-7. CLA-525/CLA-523: staging, E2E, producción, observabilidad y rollback.
+2. CLA-518: matriz y lockfile objetivo simulados; GO técnico y waiver documental aprobados.
+3. Gate previo a CLA-519: integrar el trabajo Laravel 12 pendiente, congelar dependencias/bootstrap y revalidar el solver sobre la rama base final.
+4. CLA-519: actualizar el núcleo y configuración a Laravel 13.
+5. CLA-516, CLA-517 y CLA-526: Filament/media, Laravel Modules y paquetes Spatie.
+6. CLA-521/CLA-522: certificar autenticación mult-dominio y subsistemas operativos.
+7. CLA-524: PHPUnit 12 y estabilización de la suite.
+8. CLA-525/CLA-523: staging, E2E, producción, observabilidad y rollback.
