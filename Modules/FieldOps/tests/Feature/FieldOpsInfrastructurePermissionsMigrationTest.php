@@ -60,6 +60,12 @@ class FieldOpsInfrastructurePermissionsMigrationTest extends TestCase
 
     public function test_it_creates_the_permissions_without_throwing_when_no_roles_exist(): void
     {
+        // CLA-496 (backfill, migration 037): migrate:fresh now also runs 037 for real
+        // before this test starts, which creates the technician role as part of its
+        // own baseline backfill — clear that first to exercise the true "roles table
+        // empty" branch this test is about, independent of 037's existence.
+        Role::query()->delete();
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
         $this->assertSame(0, Role::count());
 
         $this->migration()->up();

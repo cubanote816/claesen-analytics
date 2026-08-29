@@ -601,9 +601,9 @@
 ## Estado actual
 
 - **Sprint activo:** `fieldops-backend-fixes` (ver detalle abajo, sin ticket Linear formal todavía) + CLA-229/CLA-231 (Analytics, en revisión en `codex/instrumentacion-apps-internas`). Sigue pendiente sin ticket Linear formal el "reto" exploratorio del usuario para portar `service.claesen-verlichting` (frontend legacy FieldOps) contra el backend real `Modules/FieldOps`. Documentado acá por su tamaño, pero **sin commitear todavía** en ninguno de los dos repos (`claesen_api_web_oficial` y `service.claesen-verlichting`).
-- **CLA-496 implementado y verificado, GO técnico de commit/cierre pendiente** (ver sesión 2026-08-29 debajo) — primer ticket de una batería de 16 nacida de una auditoría de seguridad FieldOps completa.
+- **CLA-496 comiteado (`b81e8a3`, ya en `origin/main` y desplegado) y cerrado en Linear, reabierto el mismo día** por un gap de baseline en producción encontrado en auditoría post-cierre; backfill (migración 037) implementado y verificado, pendiente de nueva auditoría técnica antes de commit/push/deploy (ver sesión 2026-08-29 debajo) — primer ticket de una batería de 16 nacida de una auditoría de seguridad FieldOps completa.
 
-### Sesión 2026-08-29 — CLA-496: matriz de autorización create/update/delete FieldOps (implementado, commit pendiente de GO)
+### Sesión 2026-08-29 — CLA-496: matriz de autorización create/update/delete FieldOps (comiteado, cerrado y reabierto por gap de baseline)
 
 **Contexto:** auditoría de seguridad FieldOps de varias fases (solo lectura → verificación con 4 sub-agentes en paralelo → correcciones → 16 tickets creados en Linear con GO explícito → plan técnico de CLA-496 revisado en 3 rondas por el usuario actuando de auditor independiente → GO de implementación). Detalle completo de la matriz, el split de policies, el backfill fail-safe y la validación en `CLAUDE.md` sección FieldOps → CLA-496 — resumen operativo acá.
 
@@ -616,7 +616,9 @@
 - **Regresión real encontrada y corregida durante la implementación:** los 6 `*CrudTest.php` existentes construían un actor "acceso amplio" solo con `fieldops.view-all-clients` — sus propios casos positivos de create/update/delete empezaron a fallar con 403 bajo la nueva policy hasta agregarles explícitamente los 3 permisos de escritura en sus helpers (mismo tratamiento que CLA-378 ya aplicó antes para `fieldops.view-all-clients`).
 - **`docs/ai/known-risks.md`** corregido — la descripción del bypass CLA-344/345 predataba `hasBroadAccess()`; conservada como referencia histórica.
 - **No tocado en este ticket:** CLA-499 (ni código ni descripción de Linear).
-- **Pendiente:** GO técnico del usuario para commit/cierre. CLA-496 permanece `In Progress` en Linear. Sin commit, sin push todavía.
+- **Cierre original:** comiteado `b81e8a3938d24a0fb6baf8f39e62bfc80601d5c4` (ya en `origin/main` y desplegado en producción) y movido a Done en Linear el 2026-08-29.
+
+**Reapertura, mismo día — gap de baseline en producción:** auditoría post-cierre (`permission:show` contra un entorno real) encontró que `fieldops.view-all-clients` (CLA-364) y los roles `technician`/`client` solo se crean en `RolesAndPermissionsSeeder`, nunca en una migración — `deploy.sh` nunca corre un seeder. Un entorno cuya última corrida del seeder es anterior a CLA-364/esos roles queda sin ese baseline: sin la fila `fieldops.view-all-clients`, `hasBroadAccess()` da `false` siempre y `super_admin`/`admin` pierden todo acceso amplio a FieldOps. Fix: migración nueva `2026_08_29_037_backfill_fieldops_baseline_roles_and_permissions.php` (no toca la 036), `down()` deliberadamente no destructivo. Detalle completo, gotcha de tests (RefreshDatabase corre la migración real antes de cada test, rompiendo la premisa de 2 tests nuevos y 1 test ya comiteado de la 036) y validación (8 tests nuevos, gate serial de 11 clases 224 passed / 718 assertions sin fallos, `migrate`/`rollback`/`migrate` real contra dev) en `CLAUDE.md` → FieldOps → CLA-496 → adenda. `client` queda fuera de alcance a propósito. **Pendiente:** nueva auditoría técnica del usuario antes de commit/push/deploy. CLA-496 vuelve a estar `In Progress` en Linear.
 
 ### Sesión 2026-08-04 (cont.) — CLA-342: Electrical Board hereda coordenadas del padre + fallback via env + bloquear creación sin padre (Done)
 
