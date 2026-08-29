@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\FieldOps\Models\Terrain;
 
 class StoreTerrainRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', Terrain::class) ?? false;
     }
 
     public function rules(): array

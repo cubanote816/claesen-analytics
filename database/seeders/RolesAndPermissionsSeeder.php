@@ -45,6 +45,30 @@ class RolesAndPermissionsSeeder extends Seeder
             Role::findByName($roleName, 'web')->givePermissionTo($viewAllClients);
         }
 
+        // CLA-496: write capabilities on FieldOps infrastructure (Complex/Terrain/
+        // Structure/LuminaireFrame/Luminaire/ElectricalBoard) are separate from
+        // fieldops.view-all-clients above — a role can see everything and still not
+        // be allowed to mutate it (financial_manager/hr_manager/viewer). Mirrors the
+        // grants already applied by migration 2026_08_28_036 for a fresh install
+        // where that migration ran before these roles existed.
+        $infrastructurePermissions = [
+            'fieldops.create',
+            'fieldops.update',
+            'fieldops.delete-infrastructure',
+            'fieldops.media',
+            'fieldops.ai',
+        ];
+        foreach ($infrastructurePermissions as $permission) {
+            Permission::findOrCreate($permission, 'web');
+        }
+
+        Role::findByName('super_admin', 'web')->givePermissionTo($infrastructurePermissions);
+        Role::findByName('admin', 'web')->givePermissionTo($infrastructurePermissions);
+
+        $scopedWritePermissions = ['fieldops.create', 'fieldops.update', 'fieldops.media', 'fieldops.ai'];
+        Role::findByName('project_manager', 'web')->givePermissionTo($scopedWritePermissions);
+        Role::findByName('technician', 'web')->givePermissionTo($scopedWritePermissions);
+
         $superAdminRole = Role::findByName('super_admin');
 
         // Create a Super Admin User

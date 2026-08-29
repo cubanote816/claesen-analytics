@@ -6,13 +6,14 @@ namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 
 class StoreStructureRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', Structure::class) ?? false;
     }
 
     public function rules(): array

@@ -6,17 +6,28 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Modules\Cafca\Models\Employee;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
+use Modules\FieldOps\Models\ElectricalBoardType;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
+use Modules\FieldOps\Models\FoMaintenanceRequest;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
+use Modules\FieldOps\Models\LuminaireFrameType;
+use Modules\FieldOps\Models\LuminaireType;
 use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\StructureType;
 use Modules\FieldOps\Models\Terrain;
+use Modules\FieldOps\Models\TerrainType;
+use Modules\FieldOps\Policies\FieldOpsInfrastructurePolicy;
+use Modules\FieldOps\Policies\FieldOpsTenantPolicy;
+use Modules\Intelligence\Services\ClaudeVisionService;
+use Modules\Intelligence\Services\GeminiService;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -29,7 +40,7 @@ class FieldOpsTenantAuthorizationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        foreach (['client', 'technician', 'project_manager', 'admin'] as $role) {
+        foreach (['client', 'technician', 'project_manager', 'admin', 'super_admin', 'financial_manager', 'hr_manager', 'viewer'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
     }
@@ -316,13 +327,274 @@ class FieldOpsTenantAuthorizationTest extends TestCase
             ->assertForbidden();
     }
 
-    private function internalUser(string $role, ?FoClient $client = null, bool $broadAccess = false): array
+    // ============================================================
+    // CLA-496: capability matrix — create/update/delete separated from view scope.
+    // Create: 5 resources (Complex has no POST route — bridge-only, CLA-226/227).
+    // Update/delete: 6 resources, Complex included.
+    // ============================================================
+
+    public function test_broad_access_roles_without_write_permission_get_403_on_writes(): void
+    {
+        foreach (['financial_manager', 'hr_manager', 'viewer'] as $role) {
+            $a = $this->topology("Broad {$role}");
+            [, $token] = $this->internalUser($role, broadAccess: true);
+
+            // create (5 resources, no Complex — it has no POST route)
+            $this->withToken($token)->postJson('/api/v1/fieldops/terrains', $this->terrainPayload($a['complex']->id))
+                ->assertForbidden();
+            $this->withToken($token)->postJson('/api/v1/fieldops/structures', $this->structurePayload($a['terrain']->id))
+                ->assertForbidden();
+            $this->withToken($token)->postJson('/api/v1/fieldops/luminaire-frames', $this->luminaireFramePayload($a['structure']->id))
+                ->assertForbidden();
+            $this->withToken($token)->postJson('/api/v1/fieldops/luminaires', $this->luminairePayload($a['frame']->id))
+                ->assertForbidden();
+            $this->withToken($token)->postJson('/api/v1/fieldops/electrical-boards', $this->electricalBoardPayload())
+                ->assertForbidden();
+
+            // update (6 resources, Complex included)
+            $this->withToken($token)->patchJson("/api/v1/fieldops/complexes/{$a['complex']->id}", ['lat' => 10.0])->assertForbidden();
+            $this->withToken($token)->patchJson("/api/v1/fieldops/terrains/{$a['terrain']->id}", ['lat' => 10.0])->assertForbidden();
+            $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$a['structure']->id}", ['height' => 5])->assertForbidden();
+            $this->withToken($token)->patchJson("/api/v1/fieldops/luminaire-frames/{$a['frame']->id}", ['luminaire_frame_type_id' => LuminaireFrameType::factory()->create()->id])->assertForbidden();
+            $this->withToken($token)->patchJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}", ['scale_x' => 2])->assertForbidden();
+            $this->withToken($token)->patchJson("/api/v1/fieldops/electrical-boards/{$a['board']->id}", ['lat' => 10.0])->assertForbidden();
+
+            // delete (6 resources, Complex included)
+            $this->withToken($token)->deleteJson("/api/v1/fieldops/complexes/{$a['complex']->id}")->assertForbidden();
+            $this->withToken($token)->deleteJson("/api/v1/fieldops/terrains/{$a['terrain']->id}")->assertForbidden();
+            $this->withToken($token)->deleteJson("/api/v1/fieldops/structures/{$a['structure']->id}")->assertForbidden();
+            $this->withToken($token)->deleteJson("/api/v1/fieldops/luminaire-frames/{$a['frame']->id}")->assertForbidden();
+            $this->withToken($token)->deleteJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")->assertForbidden();
+            $this->withToken($token)->deleteJson("/api/v1/fieldops/electrical-boards/{$a['board']->id}")->assertForbidden();
+        }
+    }
+
+    public function test_admin_and_super_admin_can_create_update_and_delete_infrastructure(): void
+    {
+        foreach (['admin', 'super_admin'] as $role) {
+            $a = $this->topology("Full access {$role}");
+            [, $token] = $this->internalUser($role, broadAccess: true, permissions: [
+                'fieldops.create', 'fieldops.update', 'fieldops.delete-infrastructure',
+            ]);
+
+            $this->withToken($token)->postJson('/api/v1/fieldops/terrains', $this->terrainPayload($a['complex']->id))
+                ->assertCreated();
+            $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$a['structure']->id}", ['height' => 5])
+                ->assertOk();
+            $this->withToken($token)->deleteJson("/api/v1/fieldops/electrical-boards/{$a['board']->id}")
+                ->assertNoContent();
+        }
+    }
+
+    public function test_project_manager_can_create_and_update_infrastructure_but_not_delete(): void
+    {
+        $a = $this->topology('PM writable');
+        [, $token] = $this->internalUser('project_manager', broadAccess: true, permissions: [
+            'fieldops.create', 'fieldops.update',
+        ]);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/terrains', $this->terrainPayload($a['complex']->id))
+            ->assertCreated();
+        $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$a['structure']->id}", ['height' => 5])
+            ->assertOk();
+        $this->withToken($token)->deleteJson("/api/v1/fieldops/electrical-boards/{$a['board']->id}")
+            ->assertForbidden();
+        $this->withToken($token)->deleteJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")
+            ->assertForbidden();
+    }
+
+    public function test_technician_can_update_within_scope_but_not_cross_tenant_and_never_delete(): void
+    {
+        $a = $this->topology('Tech scoped A');
+        $b = $this->topology('Tech scoped B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create', 'fieldops.update']);
+
+        // within scope: create/update succeed
+        $this->withToken($token)->postJson('/api/v1/fieldops/terrains', $this->terrainPayload($a['complex']->id))
+            ->assertCreated();
+        $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$a['structure']->id}", ['height' => 5])
+            ->assertOk();
+
+        // cross-tenant: update on Client B's equipment is forbidden by canView() inside update()
+        $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$b['structure']->id}", ['height' => 5])
+            ->assertForbidden();
+
+        // delete: never, even within own scope, regardless of having fieldops.update
+        $this->withToken($token)->deleteJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")
+            ->assertForbidden();
+        $this->withToken($token)->deleteJson("/api/v1/fieldops/electrical-boards/{$a['board']->id}")
+            ->assertForbidden();
+    }
+
+    public function test_client_role_still_cannot_write_infrastructure(): void
+    {
+        $a = $this->topology('Client writes');
+        [, $token] = $this->clientUser($a['client']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/terrains', $this->terrainPayload($a['complex']->id))
+            ->assertForbidden();
+        $this->withToken($token)->deleteJson("/api/v1/fieldops/structures/{$a['structure']->id}")
+            ->assertForbidden();
+    }
+
+    // Regression: maintenance work order/request mutation routes must keep exactly
+    // the 'view' authorization they had before CLA-496 — they are POST/PATCH on
+    // models outside INFRASTRUCTURE_MODELS, so the middleware's dispatch must never
+    // touch them.
+    public function test_maintenance_work_order_actions_keep_their_pre_cla496_authorization(): void
+    {
+        $a = $this->topology('Maintenance regression');
+        $employee = Employee::create(['id' => 'TECH-CLA496-REG', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        $order = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id, 'status' => 'assigned']);
+
+        // Same behavior as before CLA-496: the assigned technician can reach the
+        // work order (canView() widened by assignedWorkOrderClientIds(), CLA-375),
+        // start() only requires 'view' — no new 'update'/'ai' ability was added here.
+        $this->withToken($token)->postJson("/api/v1/fieldops/maintenance-work-orders/{$order->id}/start")
+            ->assertOk();
+    }
+
+    public function test_maintenance_request_respond_patch_keeps_view_authorization_not_update(): void
+    {
+        // FoMaintenanceRequest is NOT in INFRASTRUCTURE_MODELS — a PATCH on it must
+        // stay on 'view', not be silently upgraded to 'update' by the new dispatch.
+        // No factory exists for this model (see MaintenanceRequestTest for the same
+        // pattern) — created directly via query()->create().
+        $client = FoClient::factory()->create();
+        $board = ElectricalBoard::factory()->create();
+        $request = FoMaintenanceRequest::query()->create([
+            'client_id' => $client->id,
+            'status' => \Modules\FieldOps\Enums\MaintenanceRequestStatus::RECEIVED,
+            'description' => 'CLA-496 regression check',
+            'maintainable_type' => ElectricalBoard::class,
+            'maintainable_id' => $board->id,
+        ]);
+        [, $token] = $this->internalUser('admin', broadAccess: true);
+
+        // This admin has fieldops.view-all-clients but deliberately NOT
+        // fieldops.update — a 200 here only proves the request went through 'view'
+        // (which hasBroadAccess() satisfies), not 'update' (which it would fail).
+        $response = $this->withToken($token)->patchJson(
+            "/api/v1/fieldops/maintenance-requests/{$request->id}/respond",
+            ['public_response' => 'Acknowledged'],
+        );
+
+        $response->assertOk();
+    }
+
+    public function test_infrastructure_models_and_maintenance_models_resolve_to_different_policies(): void
+    {
+        $this->assertInstanceOf(FieldOpsInfrastructurePolicy::class, Gate::getPolicyFor(Complex::class));
+        $this->assertInstanceOf(FieldOpsInfrastructurePolicy::class, Gate::getPolicyFor(Terrain::class));
+        $this->assertInstanceOf(FieldOpsInfrastructurePolicy::class, Gate::getPolicyFor(Structure::class));
+        $this->assertInstanceOf(FieldOpsInfrastructurePolicy::class, Gate::getPolicyFor(LuminaireFrame::class));
+        $this->assertInstanceOf(FieldOpsInfrastructurePolicy::class, Gate::getPolicyFor(Luminaire::class));
+        $this->assertInstanceOf(FieldOpsInfrastructurePolicy::class, Gate::getPolicyFor(ElectricalBoard::class));
+
+        $this->assertInstanceOf(FieldOpsTenantPolicy::class, Gate::getPolicyFor(FoClient::class));
+        $this->assertInstanceOf(FieldOpsTenantPolicy::class, Gate::getPolicyFor(FoMaintenanceRecord::class));
+        $this->assertInstanceOf(FieldOpsTenantPolicy::class, Gate::getPolicyFor(FoMaintenanceWorkOrder::class));
+        $this->assertInstanceOf(FieldOpsTenantPolicy::class, Gate::getPolicyFor(FoMaintenanceRequest::class));
+    }
+
+    // fieldops.media/fieldops.ai are created as foundation by CLA-496 but are
+    // deliberately not enforced anywhere yet — CLA-498 (media) and CLA-502 (ai) are
+    // the tickets that will actually gate on them. These two tests pin today's
+    // (pre-CLA-498/CLA-502) behavior so that whoever implements those tickets sees
+    // this assertion flip and knows to update/remove it, instead of it silently
+    // passing for the wrong reason.
+    public function test_media_upload_is_not_yet_gated_by_fieldops_media_permission_pending_cla498(): void
+    {
+        $a = $this->topology('Media inert CLA-498');
+        // technician scoped to their own client, WITHOUT fieldops.media granted.
+        [, $token] = $this->internalUser('technician', $a['client']);
+
+        $response = $this->withToken($token)->postJson(
+            "/api/v1/fieldops/complexes/{$a['complex']->id}/media",
+            ['collection' => 'photos', 'file' => \Illuminate\Http\UploadedFile::fake()->image('site.jpg')],
+        );
+
+        $response->assertStatus(201); // pending CLA-498: will require fieldops.media
+    }
+
+    public function test_vision_endpoint_is_not_yet_gated_by_fieldops_ai_permission_pending_cla502(): void
+    {
+        $a = $this->topology('Vision inert CLA-502');
+        // technician scoped to their own client, WITHOUT fieldops.ai granted.
+        [, $token] = $this->internalUser('technician', $a['client']);
+
+        $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
+        $this->mock(ClaudeVisionService::class, function ($mock): void {
+            $mock->shouldReceive('identifyLuminaires')->andReturn(['status' => 'unknown', 'candidates' => []]);
+        });
+
+        $response = $this->withToken($token)->postJson(
+            "/api/v1/fieldops/luminaire-frames/{$a['frame']->id}/vision-suggestions",
+            ['photo' => \Illuminate\Http\UploadedFile::fake()->image('frame.jpg')],
+        );
+
+        $response->assertStatus(200); // pending CLA-502: will require fieldops.ai
+    }
+
+    private function terrainPayload(int $complexId): array
+    {
+        return [
+            'complex_id' => $complexId,
+            'terrain_type_id' => TerrainType::factory()->create()->id,
+        ];
+    }
+
+    private function structurePayload(int $terrainId): array
+    {
+        return [
+            'structure_type_id' => StructureType::factory()->create()->id,
+            'terrain_ids' => [$terrainId],
+        ];
+    }
+
+    private function luminaireFramePayload(int $structureId): array
+    {
+        return [
+            'luminaire_frame_type_id' => LuminaireFrameType::factory()->create()->id,
+            'structure_ids' => [$structureId],
+        ];
+    }
+
+    private function luminairePayload(int $frameId): array
+    {
+        $type = LuminaireType::factory()->create();
+
+        return [
+            'luminaire_frame_id' => $frameId,
+            'luminaire_type_id' => $type->id,
+            'luminaire_subgroup_id' => $type->luminaire_subgroup_id,
+        ];
+    }
+
+    private function electricalBoardPayload(): array
+    {
+        return [
+            'electrical_board_type_id' => ElectricalBoardType::factory()->create()->id,
+        ];
+    }
+
+    private function internalUser(string $role, ?FoClient $client = null, bool $broadAccess = false, array $permissions = []): array
     {
         $user = UserFactory::new()->create();
         $user->assignRole($role);
 
         if ($broadAccess) {
             $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+        }
+
+        foreach ($permissions as $permission) {
+            $user->givePermissionTo(Permission::findOrCreate($permission, 'web'));
         }
 
         if ($client) {

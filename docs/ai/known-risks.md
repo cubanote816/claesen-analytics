@@ -96,11 +96,22 @@ php artisan website:regenerate-media
 **Fix de referencia:** migrar `@push('scripts')`/`@once` a `@script`/`@endscript` (Livewire) y registrar `Alpine.data(...)` directo (sin envolver en `addEventListener('alpine:init', ...)` si lo tuviera) — ver diffs de los commits `a935834` y `9f2ef37`.
 **Acción requerida:** ticket nuevo para auditar y corregir los 4 archivos — dada la tasa de confirmación (2/2), tratar como "muy probablemente roto", no como riesgo especulativo.
 
-### Acceso amplio de roles internos no-cliente a rutas genéricas de FieldOps (decisión consciente, no bug)
+### Acceso amplio de roles internos no-cliente a rutas genéricas de FieldOps — DESACTUALIZADO, ver CLA-364/369/377/496
+
+**Estado (corregido 2026-08-28, CLA-496):** la descripción original de este riesgo (abajo, conservada como referencia histórica) predata `hasBroadAccess()` y ya no describe el mecanismo real. Desde CLA-364 (2026-08-08), `EnforceFieldOpsTenantAccess`/`FieldOpsTenantService::scopeForUser()`/`canView()` ya NO hacen un bypass total por "cualquier no-`client`" — el gate real es el permiso Spatie `fieldops.view-all-clients` (`hasBroadAccess()`): `technician` está scoped por diseño desde CLA-364 (necesita `fieldOpsClients` asignados en Filament); `super_admin`/`admin`/`financial_manager`/`hr_manager`/`viewer`/`project_manager` (este último por decisión explícita de CLA-377) mantienen acceso amplio de lectura a propósito.
+**Gap real que sí existía y que CLA-496 cierra:** hasta CLA-496, ese mismo permiso amplio de *lectura* (`fieldops.view-all-clients`) era también, de facto, la única barrera para create/update/delete — no existía ninguna capacidad de escritura separada. CLA-496 introduce `fieldops.create`/`fieldops.update`/`fieldops.delete-infrastructure` (más `fieldops.media`/`fieldops.ai`, creados como fundación para CLA-498/CLA-502) sobre `Complex`/`Terrain`/`Structure`/`LuminaireFrame`/`Luminaire`/`ElectricalBoard`, vía una policy separada (`FieldOpsInfrastructurePolicy`) — `financial_manager`/`hr_manager`/`viewer` conservan la lectura amplia pero ya no pueden mutar infraestructura pese a tenerla.
+**`ClientPortalInfrastructureController`** sigue exigiendo `isClientUser()` correctamente, sin relación con este cambio.
+
+---
+
+<details>
+<summary>Descripción original (2026-08-07, desactualizada — conservada solo como referencia histórica)</summary>
 
 **Contexto:** CLA-344/CLA-345 (auditoría de auth del Client Portal, 2026-08-07). `EnforceFieldOpsTenantAccess` hace bypass total de scoping por tenant para cualquier usuario autenticado sin rol `client` (`if (! $user || ! $this->tenants->isClientUser($user)) { return $next($request); }`). Esto significa que `/api/v1/fieldops/complexes`, `/terrains`, `/structures`, `/luminaire-frames`, `/electrical-boards`, `/clients` devuelven datos de **todos** los clientes sin scope a cualquier usuario interno (Safety PWA, Sport, backoffice), sin distinguir por permiso/rol específico.
-**Decisión tomada:** no tocar — Safety PWA/Sport dependen legítimamente de ver todos los clientes en esas mismas rutas; forzar `scopeForUser` incondicional las rompería. `ClientPortalInfrastructureController` (el endpoint específico y exclusivo del Client Portal) sí exige `isClientUser()` correctamente y no depende de esto.
+**Decisión tomada:** no tocar — Safety PWA/Sport dependen legítimamente de ver todos los clientes en esas mismas rutas; forzar `scopeForUser` incondicional las rompería.
 **Pendiente (fuera de alcance de CLA-344/345):** si en el futuro se requiere granularidad de permisos entre roles internos (ej. un `field_technician` no debería ver clientes fuera de sus asignaciones), es un rediseño de RBAC interno más amplio, no un fix puntual de FieldOps.
+
+</details>
 
 ---
 

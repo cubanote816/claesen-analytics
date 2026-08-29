@@ -37,6 +37,19 @@ class EnforceFieldOpsTenantAccess
         FoMaintenanceRequest::class,
     ];
 
+    // CLA-496: only these 6 get method-aware dispatch (update/delete abilities on
+    // PUT/PATCH/DELETE). Everything else in TENANT_MODELS (FoClient + the 3
+    // maintenance models) keeps the single 'view' check on every method, exactly as
+    // before this ticket — their write rules live in their own services, not here.
+    private const INFRASTRUCTURE_MODELS = [
+        FieldOpsComplex::class,
+        Terrain::class,
+        Structure::class,
+        LuminaireFrame::class,
+        Luminaire::class,
+        ElectricalBoard::class,
+    ];
+
     public function __construct(private readonly FieldOpsTenantService $tenants) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -60,9 +73,12 @@ class EnforceFieldOpsTenantAccess
             abort_if($request->is('api/v1/fieldops/maintenance-records/client-reported/*'), 403);
         }
 
-        if ($this->tenants->hasBroadAccess($user)) {
-            return $next($request);
-        }
+        // CLA-496: hasBroadAccess() must NOT short-circuit here anymore — it only
+        // waives the ownership/scope check inside canView() (already handled there
+        // independently, see FieldOpsTenantService::canView()). The capability check
+        // below (create/update/delete permission) must still run for every role,
+        // broad-access included, or a viewer/financial_manager/hr_manager with
+        // fieldops.view-all-clients but no write permission would sail through.
 
         foreach ($request->route()?->parameters() ?? [] as $parameter) {
             if ($parameter instanceof Media) {
@@ -73,7 +89,21 @@ class EnforceFieldOpsTenantAccess
             }
 
             if ($parameter instanceof Model && in_array($parameter::class, self::TENANT_MODELS, true)) {
-                Gate::authorize('view', $parameter);
+                $ability = 'view';
+
+                if (in_array($parameter::class, self::INFRASTRUCTURE_MODELS, true)) {
+                    $ability = match ($request->method()) {
+                        'PUT', 'PATCH' => 'update',
+                        'DELETE' => 'delete',
+                        default => 'view', // GET/HEAD/POST unchanged — POST sub-actions
+                        // (vision-suggestions, replacement, etc.) keep the same 'view'
+                        // baseline they had before this ticket; any additional
+                        // ability on top of that is added explicitly by the ticket
+                        // that owns that specific action, never here.
+                    };
+                }
+
+                Gate::authorize($ability, $parameter);
             }
         }
 

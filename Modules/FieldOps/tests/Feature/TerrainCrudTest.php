@@ -28,6 +28,14 @@ class TerrainCrudTest extends TestCase
         $user  = UserFactory::new()->create();
         // CLA-364: broad FieldOps access needs the permission explicitly now.
         $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+        // CLA-496: this actor represents an admin/broad-access actor for this CRUD
+        // suite's happy-path assertions — needs the write capabilities too, or every
+        // create/update/delete test below 403s under the new policy.
+        $user->givePermissionTo([
+            Permission::findOrCreate('fieldops.create', 'web'),
+            Permission::findOrCreate('fieldops.update', 'web'),
+            Permission::findOrCreate('fieldops.delete-infrastructure', 'web'),
+        ]);
         $token = $user->createToken('test')->plainTextToken;
 
         return [$user, $token];

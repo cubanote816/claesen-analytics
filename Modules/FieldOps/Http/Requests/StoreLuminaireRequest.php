@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminairePosition;
 use Modules\FieldOps\Models\LuminaireType;
 
@@ -12,7 +13,7 @@ class StoreLuminaireRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', Luminaire::class) ?? false;
     }
 
     public function rules(): array

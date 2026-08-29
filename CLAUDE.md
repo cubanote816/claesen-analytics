@@ -366,6 +366,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 | CLA-444 | Fix imagen rota tras guardar (URL absoluta) + prompt agregaba herrajes inexistentes (QA real post-CLA-440) | ✅ Done — ver detalle abajo |
 | CLA-445 | Fix residuo `gpt-5.4-mini` en el fallback PHP de `OpenAiImageGenerationService` (config/.env.example ya decían nano) | ✅ Done — ver detalle abajo |
 | CLA-448 | Repo hygiene: destrackear 5 archivos ya trackeados bajo `tmp/` desde antes de la regla `/tmp` de `.gitignore` | 🚧 In Progress — ver detalle abajo |
+| CLA-496 | FieldOps: matriz de autorización create/update/delete por rol (auditoría de seguridad FieldOps, primer ticket de una batería de 16) | 🚧 In Progress — implementado y verificado, commit pendiente de GO técnico final. Ver detalle abajo |
 | FO-006 | Slice C.6b — Cutover: frontend Sport → Core, deprecar Sport | ⬜ Todo (ya no bloqueado por la parte de Mantenimiento cubierta en FO-009; si el cutover necesita mantenimiento *programado* a futuro, abrir ticket nuevo para `ScheduledMaintenanceService` antes de cerrar C.6b) |
 
 **Orden de trabajo acordado:** FO-008 → FO-004 → FO-003 → FO-005 → FO-007 → FO-009 → FO-012 → FO-013 → **FO-006**.
@@ -739,6 +740,46 @@ Auditoría de higiene de repo pedida por el usuario tras cerrar la integración 
 - Fix: `git rm --cached` con rutas explícitas sobre los 5 (nunca `-r tmp/`) — deja las copias en disco intactas (tamaño/hash idénticos antes y después, verificado). `tmp/image.png` sigue existiendo en disco, solo sale del índice.
 - Sin cambios en `.gitignore` raíz (ya tenía la regla correcta) ni en ningún otro archivo — commit dedicado, separado de la integración de CLA-404/439/440/444/445.
 - **Validación:** tamaño+sha256 de los 5 archivos idénticos antes/después; `git ls-files tmp` vacío tras el `rm --cached`; `git check-ignore -v tmp/image.png` pasó de "no ignorado" a matchear la regla `/tmp` del `.gitignore` raíz; `git diff --cached --check` limpio.
+
+### CLA-496 — matriz de autorización FieldOps: create/update/delete separados de fieldops.view-all-clients (2026-08-29, implementado, commit pendiente)
+
+Primer ticket (de 16) de una batería nacida de una auditoría de seguridad completa de FieldOps (sesión de verificación multi-fase, solo lectura → tickets → plan técnico revisado por un auditor independiente en varias rondas → implementación). Hallazgo raíz: `FieldOpsTenantPolicy` solo tenía la ability `view()`; el middleware la usaba como única barrera tanto para leer como para escribir (PUT/PATCH/DELETE), y `fieldops.view-all-clients` (pensado solo para scope de lectura, CLA-364/369/377) funcionaba de facto también como bypass total de escritura para cualquier rol que lo tuviera.
+
+**Matriz final aprobada:**
+
+| Rol | Ver (scope) | Create | Update | Delete infraestructura | Media/IA (permiso creado, aún inerte) |
+|---|---|---|---|---|---|
+| super_admin / admin | Todo | ✅ | ✅ | ✅ | ✅ |
+| financial_manager / hr_manager / viewer | Todo (`fieldops.view-all-clients`) | ❌ | ❌ | ❌ | ❌ |
+| project_manager | Todo (CLA-377, vigente) | ✅ | ✅ | ❌ | ✅ |
+| technician | Scoped (`fieldOpsClients`) | ✅ (permiso; scope del padre referenciado en el body pendiente de CLA-499) | ✅ (dentro de scope) | ❌ | ✅ |
+| client | Sin cambios (whitelist `isAllowedClientMutation`/`can_report`, mecanismo separado) | — | — | — | — |
+
+- **Create:** 5 recursos (Terrain/Structure/LuminaireFrame/Luminaire/ElectricalBoard) — Complex no tiene ruta `POST` (bridge CAFCA-only, CLA-226/227), queda fuera.
+- **Update/Delete:** 6 recursos, Complex incluido.
+- Permiso `fieldops.delete-infrastructure` (no `-topology`, nombre ajustado durante la revisión) también cubre `Luminaire` — el retiro/reemplazo de campo pasa por `LuminaireReplacementService`/`POST .../replacement` (CLA-265), no por `DELETE` crudo.
+
+**Split de policies (hallazgo del propio proceso de revisión, no del diseño original):** una sola policy compartida por los 10 modelos de `TENANT_MODELS` no puede diferenciar una llamada de autorización basada en clase (`Gate::authorize('create', Terrain::class)`) — Laravel descarta el class-string antes de invocar `create($user)` (`vendor/laravel/framework/.../Gate.php`, `callPolicyMethod()`). Se creó `Modules/FieldOps/Policies/FieldOpsInfrastructurePolicy.php` (view/create/update/delete) exclusiva para los 6 recursos de infraestructura; `FieldOpsTenantPolicy` (solo `view()`, sin cambios) sigue siendo la policy de `FoClient` y los 3 modelos de mantenimiento (`FoMaintenanceRecord`/`WorkOrder`/`Request`) — sus reglas de negocio (`MaintenanceWorkOrderService`, etc.) no se tocaron. `FieldOpsServiceProvider::registerPolicies()` registra ambas por separado.
+
+**Middleware (`EnforceFieldOpsTenantAccess.php`):** se quitó el early-return de `hasBroadAccess($user)` — existía como atajo de rendimiento para un mundo donde `view` era la única ability, y ocultaba exactamente el gap que este ticket cierra (`canView()` ya resuelve el acceso amplio de forma independiente en su propio cuerpo, así que quitar el atajo no regresiona nada de lectura). Se agregó `INFRASTRUCTURE_MODELS` (los 6 recursos): en PUT/PATCH se autoriza `update`, en DELETE se autoriza `delete`; GET/POST y cualquier modelo fuera de esa lista (incluidos los 3 de mantenimiento) conservan exactamente `view`, sin excepción — esto preserva sin tocar las rutas de acción de work orders (start/submit/return/validate/override), `replacement`, y las 2 rutas de vision ligadas a un `LuminaireFrame`.
+
+**Autorización de `create` (sin modelo enlazado):** los 5 `Store*Request::authorize()` (antes `return true;` incondicional) pasan a `$this->user()?->can('create', Modelo::class) ?? false` — el patrón idiomático de Laravel para class-based abilities, el único punto donde puede vivir esta autorización ya que el middleware no tiene ningún parámetro Eloquent que evaluar en una ruta de creación.
+
+**`fieldops.media`/`fieldops.ai` — creados, deliberadamente inertes:** el permiso existe en BD (migración + seeder) para las 4 filas de la matriz que corresponde, pero ningún controller los verifica todavía. Dos tests en `FieldOpsTenantAuthorizationTest` pinchan este comportamiento a propósito (`test_media_upload_is_not_yet_gated_by_fieldops_media_permission_pending_cla498`, `test_vision_endpoint_is_not_yet_gated_by_fieldops_ai_permission_pending_cla502`) — un `technician` sin ese permiso hoy sube media/dispara vision sin problema; **CLA-498 y CLA-502 invertirán esa aserción** cuando conecten el enforcement real, no antes.
+
+**Backfill fail-safe (sin depender de un seeder manual):** `deploy.sh` solo corre `migrate --force` (nunca un seeder) y activa el release nuevo (symlink + reload PHP-FPM) recién después de que las migraciones terminan — así que el backfill se implementó como **migración** (`2026_08_28_036_add_fieldops_infrastructure_permissions.php`), no como dependencia del seeder. `up()` crea los 5 permisos siempre (`Permission::findOrCreate`) y concede por rol solo si el rol ya existe (`Role::where(...)->first()`, nunca `findByName()` — evita `RoleDoesNotExist` en `migrate:fresh` con la tabla de roles vacía); `RolesAndPermissionsSeeder` recibe el mismo bloque de grants para que una instalación nueva (`migrate:fresh --seed`) termine consistente aunque la migración no haya podido conceder nada por falta de roles en ese momento. `down()` simétrico (borra los 5 permisos). Cache de `PermissionRegistrar` limpiada antes y después de crear/conceder.
+
+**Validación:**
+- Gate serial (mismo filtro histórico de 8 clases + `ComplexCrudTest` + `FieldOpsInfrastructurePermissionsMigrationTest`, una sola invocación, sin nada concurrente): **216 passed / 677 assertions, 635.31s**. Base histórica era 180/520 sobre 8 clases — el crecimiento corresponde exactamente a las 2 clases añadidas y a los tests nuevos de autorización, no a un cambio de cobertura previa.
+- `FieldOpsInfrastructurePermissionsMigrationTest` (4 tests): roles ya existentes, tabla de roles vacía (sin `RoleDoesNotExist`), idempotencia de `up()`, `down()` real.
+- `migrate`/`migrate:rollback`/`migrate` de nuevo ejecutado contra la DB real de dev (no solo en aislamiento de test): verificado que los grants aparecen, desaparecen tras el rollback, y vuelven a aparecer — dev quedó en el mismo estado final que tendría producción tras un deploy.
+- QA real contra el servidor de dev corriendo (no Selenium — este ticket no toca frontend): usuarios reales `project_manager`/`technician` con tokens Sanctum reales, vía `curl` — `project_manager` crea un Terrain (201) pero no puede borrar un Complex (403); `technician` scoped actualiza su propio Complex (200) pero nunca puede borrarlo (403). Datos de QA borrados de la DB de dev al terminar.
+- Regresión real encontrada y corregida durante la implementación (no en el diseño): los 6 `*CrudTest.php` existentes (Terrain/Structure/LuminaireFrame/Luminaire/ElectricalBoard/Complex) construían un actor "acceso amplio" con solo `fieldops.view-all-clients` — sus propios casos positivos de create/update/delete empezaron a fallar con 403 bajo la nueva policy hasta que se les agregó explícitamente `fieldops.create`/`update`/`delete-infrastructure` en sus helpers, mismo tratamiento que CLA-378 ya había aplicado para `fieldops.view-all-clients`.
+- `docs/ai/known-risks.md` corregido — la descripción del bypass CLA-344/345 predataba `hasBroadAccess()`, conservada como referencia histórica dentro de un `<details>`.
+
+**No incluido en este ticket, a propósito:** CLA-499 (validación tenant-aware de IDs de relación en el body) no se tocó — ni sus `rules()` ni su descripción de Linear. CLA-498 (media BOLA) y CLA-502 (throttle/permiso de vision) consumen `fieldops.media`/`fieldops.ai` pero no se implementaron aquí.
+
+**Estado: implementado y verificado, GO técnico de commit/cierre pendiente** — CLA-496 permanece en `In Progress` hasta esa aprobación explícita. Commit todavía no creado.
 
 ### CLA-391 — detección multi-luminaria con posicionamiento aproximado por foto (CLA-390 Fase 2) (2026-08-19)
 

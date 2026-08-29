@@ -36,6 +36,12 @@ class StructureCrudTest extends TestCase
         $user  = UserFactory::new()->create();
         // CLA-364: broad FieldOps access needs the permission explicitly now.
         $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+        // CLA-496: see TerrainCrudTest for why the write permissions are needed here too.
+        $user->givePermissionTo([
+            Permission::findOrCreate('fieldops.create', 'web'),
+            Permission::findOrCreate('fieldops.update', 'web'),
+            Permission::findOrCreate('fieldops.delete-infrastructure', 'web'),
+        ]);
         $token = $user->createToken('test')->plainTextToken;
 
         return [$user, $token];

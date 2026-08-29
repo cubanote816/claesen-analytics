@@ -9,6 +9,7 @@ use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireSubgroup;
 use Modules\FieldOps\Models\LuminaireType;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -28,6 +29,15 @@ class LuminaireCrudTest extends TestCase
         $this->user     = User::factory()->create();
         Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
         $this->user->assignRole('super_admin');
+        // CLA-496: assigning the role name alone doesn't grant permissions in this
+        // test harness (RolesAndPermissionsSeeder isn't run here) — needs the write
+        // capabilities explicitly, same as the other CrudTest files in this module.
+        $this->user->givePermissionTo([
+            Permission::findOrCreate('fieldops.view-all-clients', 'web'),
+            Permission::findOrCreate('fieldops.create', 'web'),
+            Permission::findOrCreate('fieldops.update', 'web'),
+            Permission::findOrCreate('fieldops.delete-infrastructure', 'web'),
+        ]);
         $this->subgroup = LuminaireSubgroup::factory()->create();
         $this->type     = LuminaireType::factory()->create(['luminaire_subgroup_id' => $this->subgroup->id]);
         $this->frame    = LuminaireFrame::factory()->create();

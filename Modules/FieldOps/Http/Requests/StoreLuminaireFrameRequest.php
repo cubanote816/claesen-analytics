@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Rules\StructureHasFrameCapacity;
 
 class StoreLuminaireFrameRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', LuminaireFrame::class) ?? false;
     }
 
     public function rules(): array

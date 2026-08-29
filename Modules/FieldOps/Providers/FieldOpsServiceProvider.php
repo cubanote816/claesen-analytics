@@ -15,6 +15,7 @@ use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
+use Modules\FieldOps\Policies\FieldOpsInfrastructurePolicy;
 use Modules\FieldOps\Policies\FieldOpsTenantPolicy;
 use Nwidart\Modules\Traits\PathNamespace;
 
@@ -39,14 +40,23 @@ class FieldOpsServiceProvider extends ServiceProvider
 
     protected function registerPolicies(): void
     {
+        // CLA-496: infrastructure resources get view/create/update/delete via their
+        // own policy. FoClient and the 3 maintenance models keep FieldOpsTenantPolicy
+        // (view only) unchanged — their write rules live in their own services
+        // (MaintenanceWorkOrderService, etc.), not in this capability matrix.
         foreach ([
-            FoClient::class,
             Complex::class,
             Terrain::class,
             Structure::class,
             LuminaireFrame::class,
             Luminaire::class,
             ElectricalBoard::class,
+        ] as $model) {
+            Gate::policy($model, FieldOpsInfrastructurePolicy::class);
+        }
+
+        foreach ([
+            FoClient::class,
             FoMaintenanceRecord::class,
             FoMaintenanceRequest::class,
             FoMaintenanceWorkOrder::class,

@@ -24,6 +24,12 @@ class LuminaireFrameCrudTest extends TestCase
         $this->user = User::factory()->create();
         // CLA-364: broad FieldOps access needs the permission explicitly now.
         $this->user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+        // CLA-496: see TerrainCrudTest for why the write permissions are needed here too.
+        $this->user->givePermissionTo([
+            Permission::findOrCreate('fieldops.create', 'web'),
+            Permission::findOrCreate('fieldops.update', 'web'),
+            Permission::findOrCreate('fieldops.delete-infrastructure', 'web'),
+        ]);
     }
 
     // ── AUTH ──────────────────────────────────────────────────────────────

@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\FieldOps\Models\ElectricalBoard;
 
 class StoreElectricalBoardRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', ElectricalBoard::class) ?? false;
     }
 
     public function rules(): array

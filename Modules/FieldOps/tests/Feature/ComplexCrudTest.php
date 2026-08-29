@@ -30,6 +30,12 @@ class ComplexCrudTest extends TestCase
         // needs the permission explicitly, same as an admin/super_admin would
         // get from RolesAndPermissionsSeeder in a real environment.
         $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+        // CLA-496: Complex has no create route, but update()/delete() now go through
+        // FieldOpsInfrastructurePolicy too — needs the write permissions.
+        $user->givePermissionTo([
+            Permission::findOrCreate('fieldops.update', 'web'),
+            Permission::findOrCreate('fieldops.delete-infrastructure', 'web'),
+        ]);
         $token = $user->createToken('test')->plainTextToken;
 
         return [$user, $token];
