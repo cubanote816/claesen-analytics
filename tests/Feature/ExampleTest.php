@@ -2,18 +2,18 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
+     * `/` is the Filament admin dashboard, so an unauthenticated visitor is
+     * redirected to the login page rather than served a 200. (The stock scaffold
+     * assertion of a bare 200 has never held for this app.)
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_the_root_route_redirects_guests_to_the_login_page(): void
     {
-        $response = $this->get('/');
-
-        $response->assertStatus(200);
+        $this->get('/')
+            ->assertRedirect(route('filament.admin.auth.login'));
     }
 }

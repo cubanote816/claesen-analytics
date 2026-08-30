@@ -192,6 +192,38 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 
 ---
 
+## CLA-524 — PHPUnit 12 + estabilización de la suite (cierre técnico aprobado, 2026-08-30)
+
+- **PHPUnit 12.5.34 + Collision 8.9.5 ya estaban instalados** (corte de `composer.lock` de CLA-519). `phpunit.xml` ya era moderno (`<source><include>`, schema v12). Este ticket no cambia `composer.json`/`composer.lock`.
+- **Dos regresiones de cobertura silenciosas del upgrade, corregidas** (PHPUnit 12 dejó de descubrir metadata en doc-comments):
+  1. `tests/Feature/LocalizationTest.php` — 4 tests con `/** @test */` que **no se ejecutaban** desde el upgrade (`No tests found in class "Tests\Feature\LocalizationTest"` en cada corrida). Reescrito: `#[Test]` + `#[DataProvider]`, y además ejercita `BrowserLocaleMiddleware` **directamente** en vez de `GET /` — `/` es el dashboard de Filament (guest → 302), así que el middleware nunca corría y 3 de las 4 aserciones pasaban solo porque esperaban el default `nl`. El test viejo tampoco contemplaba que `fr`/`de` ya están en la lista soportada (`['nl','en','fr','de']`). La versión nueva cubre los 6 casos reales (en/nl/fr/de + `es`→`nl` + sin header→`en`) con aserciones más fuertes, no relajadas.
+  2. `Modules/Intelligence/tests/Feature/MirrorSyncStatusPageManualSyncTest.php` — `/** @dataProvider manualSyncActionProvider */` no lo honra PHPUnit 12 → `test_each_header_action_dispatches_the_matching_task()` corría con 0 args → `ArgumentCountError`. Fix: `#[DataProvider('manualSyncActionProvider')]`. Recupera las 4 filas de datos (sync employees/clients/complexes/all).
+- **Deprecations PHP 8.4 (las "relevantes" del criterio) — eliminadas.** Exactamente 3 firmas con parámetros *implicitly nullable* (`Tipo $x = null` sin `?`): `Modules/Safety/tests/Feature/ComplianceControllerTest.php` (`?string $name`, `?Carbon $completedAt`) y `NotifyInactiveManagersCommandTest.php` (`?string $email`, `?Carbon $createdAt`). Sin relajar aserciones. Verificado con `--display-deprecations`: 0 deprecations en esos archivos. (`BiConfigService::get(mixed $default = null)` NO era deprecation — `mixed` ya incluye null.)
+- **`phpunit.xml` endurecido** para que la suite sea un gate confiable: `failOnEmptyTestSuite="true"` + `failOnWarning="true"` (habría atrapado la regresión de `LocalizationTest`) + `displayDetailsOnTestsThatTriggerDeprecations`/`...PhpunitDeprecations`/`...Warnings`/`...Errors`. **`failOnDeprecation`/`failOnRisky` NO se activan** — hay ~186-200 fallos preexistentes (baselines CLA-515/520) que no son regresiones L13 y el entorno local no puede correr `migrate:fresh` de la suite completa de forma fiable; activar `failOn*` con la suite aún no verde es una decisión de gate de CI que corresponde a CLA-525.
+- **Test nuevo `Modules/Core/tests/Feature/Laravel13MigrationsCompatibilityTest.php`** (3/3): protege el gap de "migrate desde cero" — que `config('activitylog.table_name')` es `null` en v5 y que las 3 migraciones históricas de `activity_log` usan el fallback literal `'activity_log'` (regresión de CLA-526, evita que alguien lo revierta); que la migración v5 de `activity_log` tiene `down()` reversible real.
+- **Clasificación de fallos de la suite** (para el gate de CLA-525):
+
+  | Familia | Origen | Estado |
+  |---|---|---|
+  | Mailing dispatch/scheduling (`AbTestingTest` ×3, `DispatchScheduledTest` ×2, `FollowUpTest` ×6 = 11) | `Queue::fake()` + comandos de dispatch programado | **Preexistente** (CLA-278 cont.7 / CLA-515 / CLA-520). No es regresión L13. |
+  | FieldOps `RoleAlreadyExists` estado compartido | seeding concurrente de roles en la DB `testing` compartida entre clases | **Preexistente** — aislamiento de tests, no bug de código (`feedback_sail_docker`) |
+  | `MicrosoftAuthRedirectTest::test_module_config_merge_is_skipped_when_config_is_cached` | timing del harness sobre `configurationIsCached()` | **Preexistente** — falla idéntico en Laravel 12 |
+  | Rollback lento de migraciones Website | timing de `migrate:fresh` en el MySQL reenviado | **Entorno**, no código |
+  | `LocalizationTest` (4) + `MirrorSyncStatusPageManualSyncTest` dataProvider (1) | doc-comments no descubiertos por PHPUnit 12 | **Regresión L13 — corregida en este ticket** |
+  | `attribute_changes` / `Schema::create(null)` | Activitylog 5 | **Regresión L13 — corregida en CLA-526** |
+  | cache de rankings `Collection` | `serializable_classes => false` | **Regresión L13 — corregida en CLA-522** |
+  | `PortfolioService::allowedFilters([...])` | Query Builder 7 variádico | **Regresión L13 — corregida en CLA-526** |
+
+- **Cobertura de cambios mayores (criterio "tests críticos cubren…"):** 7 `Modules/Core/tests/Feature/Laravel13*CompatibilityTest.php` — Core/CSRF/cache/sesión (CLA-519), Spatie no cubierto directamente pero sí `PortfolioApiTest`/`EmployeeRankingsTest` (CLA-526/522), Modules 13 (CLA-517), Filament/media (CLA-516), auth/sesión/CSRF (CLA-521), cache/queue/mail (CLA-522), migraciones (este ticket). Todos verdes.
+- **Un fallo más, del scaffold, corregido:** `tests/Feature/ExampleTest.php` afirmaba `GET /` → 200 (assertion del stub de Laravel que nunca se cumplió — `/` es el dashboard de Filament → guest 302). Reescrito para afirmar el redirect real a `filament.admin.auth.login`. No se relaja: es una aserción real del comportamiento de la app.
+- **Verificación:** suites raíz `Unit`+`Feature` vía `phpunit` directo — **32 tests**, tras los fixes **0 fallos** (antes 1: `ExampleTest`); quedan 4 "PHPUnit notices" que solo aparecen en la corrida combinada y no per-archivo (artefacto de aislamiento de tests, misma familia que `RoleAlreadyExists`; `failOnNotice` no está activo). Los 6 archivos tocados + los 7 `Laravel13*CompatibilityTest` verdes; `--display-deprecations` sobre los archivos tocados → **0 deprecations**. `composer validate --strict` OK. Pint: `LocalizationTest.php` (reescrito) / `ExampleTest.php` (reescrito) / `Laravel13MigrationsCompatibilityTest.php` limpios; el veredicto de pint sobre los 3 archivos preexistentes es **mejor que HEAD** — la firma `?type` **elimina** el fixer `nullable_type_declaration_for_default_null_value` que HEAD tenía; el resto de fixers de estilo son preexistentes.
+- **WAIVER diferencial (= toda la cadena L13):** la corrida de la suite completa sobre PHP 8.4 con el conteo diferencial vs baseline CLA-520, y la alineación de versiones PHP/extensiones CI↔staging, corresponden a **CLA-525** (el propio criterio "CI usa las mismas versiones que staging" es un handoff a CLA-525).
+- Sin push ni deploy. `.codex/` sin tocar.
+
+---
+
+---
+
 ## Restricciones críticas — NUNCA ignorar
 
 1. **SQL Server es ReadOnly.** Jamás generar `save()`, `update()`, `create()`, `delete()` en conexión `sqlsrv`. Todos los modelos Cafca usan `ReadOnlyTrait`. Lanza `LogicException` si se intenta mutar.

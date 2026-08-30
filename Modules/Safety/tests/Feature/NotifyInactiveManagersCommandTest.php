@@ -32,7 +32,7 @@ class NotifyInactiveManagersCommandTest extends TestCase
         config(['safety.pwa_url' => 'https://safety.example.com/']);
     }
 
-    private function manager(string $email = null, Carbon $createdAt = null)
+    private function manager(?string $email = null, ?Carbon $createdAt = null)
     {
         $user = UserFactory::new()->create([
             'email'      => $email ?? fake()->unique()->safeEmail(),
