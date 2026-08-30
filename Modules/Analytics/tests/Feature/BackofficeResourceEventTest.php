@@ -20,7 +20,7 @@ class BackofficeResourceEventTest extends TestCase
 
     private function superAdmin(): User
     {
-        Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
 
         $user = User::factory()->create();
         $user->assignRole('super_admin');

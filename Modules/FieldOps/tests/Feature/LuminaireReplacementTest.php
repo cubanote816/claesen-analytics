@@ -46,7 +46,7 @@ class LuminaireReplacementTest extends TestCase
             ->andReturn(['translations' => [], 'detected_locale' => 'nl']));
 
         $this->user = User::factory()->create();
-        Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         $this->user->assignRole('super_admin');
         $this->frame = LuminaireFrame::factory()->create();
         $this->originalSubgroup = LuminaireSubgroup::factory()->create();

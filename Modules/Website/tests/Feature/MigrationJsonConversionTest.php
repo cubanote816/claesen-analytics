@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Website\Tests\Feature;
 
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -12,12 +12,17 @@ use Tests\TestCase;
  * Tests for 2026_06_02_000001_convert_location_client_to_json_in_website_projects.
  *
  * Uses the real migration file via require + down()/up() — no SQL copied to the test.
- * DatabaseMigrations is required because DDL changes (ALTER TABLE) cannot be
- * rolled back by RefreshDatabase's wrapping transaction in MySQL.
+ * DatabaseTruncation (not RefreshDatabase): the test drives ALTER TABLE directly and
+ * RefreshDatabase's wrapping transaction cannot roll DDL back in MySQL. Not
+ * DatabaseMigrations either: its teardown runs `migrate:rollback` on the whole
+ * batch, which trips over broken down() methods in unrelated migrations and
+ * half-tears-down the schema for every later Website test class. Each test here is
+ * symmetric (down() … up()) so it leaves the schema migrated; truncation only
+ * clears rows between tests and never rolls back.
  */
 class MigrationJsonConversionTest extends TestCase
 {
-    use DatabaseMigrations;
+    use DatabaseTruncation;
 
     private function getMigration(): object
     {

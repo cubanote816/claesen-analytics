@@ -32,7 +32,7 @@ class FieldOpsHierarchyNavigationTest extends TestCase
     {
         parent::setUp();
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
-        Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
     }
 
     // ── CLA-278: Terrains/Structures/Luminaire frames/Luminaires out of the flat sidebar ──

@@ -27,7 +27,7 @@ class LuminaireCrudTest extends TestCase
         parent::setUp();
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
         $this->user     = User::factory()->create();
-        Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         $this->user->assignRole('super_admin');
         // CLA-496: assigning the role name alone doesn't grant permissions in this
         // test harness (RolesAndPermissionsSeeder isn't run here) — needs the write

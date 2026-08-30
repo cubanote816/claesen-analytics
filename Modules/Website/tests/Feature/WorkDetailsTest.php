@@ -85,9 +85,11 @@ class WorkDetailsTest extends TestCase
             'work_story' => ['nl' => 'Verhaal in het NL', 'en' => 'Story in English'],
         ]);
 
-        app()->setLocale('nl');
-
-        $this->get("/v1/website/projects/{$project->slug}")
+        // The /v1/website/* group runs SetPanelLocale, which resolves the request
+        // locale from the Accept-Language header (defaulting to 'en'). A bare
+        // app()->setLocale('nl') in the test is overwritten before the response is
+        // serialized, so the locale must be requested the way a real client does.
+        $this->getJson("/v1/website/projects/{$project->slug}", ['Accept-Language' => 'nl'])
             ->assertOk()
             ->assertJsonPath('data.work_story', 'Verhaal in het NL');
     }

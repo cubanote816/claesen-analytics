@@ -30,7 +30,7 @@ class FoMaintenanceFilamentTest extends TestCase
     {
         parent::setUp();
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
-        Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
     }
 
     public function test_maintenance_history_only_exposes_list_and_view_pages(): void
