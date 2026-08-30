@@ -39,11 +39,15 @@
     "autoload": {
         "psr-4": {
             "App\\": "app/",
+            "Modules\\FieldOps\\Database\\Factories\\": "Modules/FieldOps/database/factories/",
+            "Modules\\FieldOps\\Database\\Seeders\\": "Modules/FieldOps/database/seeders/",
+            "Modules\\Intelligence\\Database\\Seeders\\": "Modules/Intelligence/database/seeders/",
             "Modules\\Mailing\\Database\\Factories\\": "Modules/Mailing/database/factories/",
             "Modules\\Mailing\\Database\\Seeders\\": "Modules/Mailing/database/seeders/",
-            "Modules\\Intelligence\\Database\\Seeders\\": "Modules/Intelligence/database/seeders/",
             "Modules\\Prospects\\Database\\Factories\\": "Modules/Prospects/database/factories/",
             "Modules\\Safety\\Database\\Factories\\": "Modules/Safety/database/factories/",
+            "Modules\\Safety\\Database\\Seeders\\": "Modules/Safety/database/seeders/",
+            "Modules\\Website\\Database\\Factories\\": "Modules/Website/database/factories/",
             "Modules\\": "Modules/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"

@@ -235,6 +235,27 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 
 ---
 
+## CLA-527 — Unificar el casing de los directorios de migración de módulo (cierre técnico aprobado, 2026-08-30)
+
+Hallazgo de CLA-517, deuda de higiene (no un problema de Laravel 13). Los 11 módulos no usaban el mismo casing para `Database/` vs `database/`.
+
+- **Renombrado a minúscula (`git mv`, filesystem Linux = movimiento real; ~96 renames):**
+  - `Modules/FieldOps/Database/{Migrations,Factories,Seeders}` → `.../database/{migrations,factories,seeders}` (45 migraciones + 19 factories + 15 seeders).
+  - `Modules/Website/Database/{Migrations,Factories}` → `.../database/{migrations,factories}` (10 migraciones + 5 factories).
+  - `Modules/Safety/Database/Seeders/*` → `Modules/Safety/database/seeders/` (3 seeders; el resto de Safety ya era minúscula).
+  - **Timestamps de migración sin tocar → orden de ejecución idéntico** (179 migraciones, mismo que CLA-526).
+- **Bug preexistente resuelto de paso:** `Modules\Safety\Database\Seeders\SafetyDatabaseSeeder` existía **dos veces** con el mismo namespace+clase — un stub vacío en `database/seeders/` (`// $this->call([])`) y el real en `Database/Seeders/` (llama a `SafetyChecklistSeeder` + `IncidentChecklistSeeder`). El autoload resolvía al real (verificado por reflexión antes de tocar nada), así que el stub era código muerto. Se borró el stub y se movió el real a `database/seeders/`.
+- **`composer.json` — mapeos PSR-4 explícitos añadidos** (mismo patrón que ya tenían Mailing/Prospects/Intelligence/Safety): `Modules\FieldOps\Database\Factories\` / `...\Seeders\` → `Modules/FieldOps/database/{factories,seeders}/`, `Modules\Website\Database\Factories\` → `Modules/Website/database/factories/`, `Modules\Safety\Database\Seeders\` → `Modules/Safety/database/seeders/`. Los **namespaces no cambian** (`Database\` studly, igual que el resto del repo) — solo la ruta de disco. Sin esto, el catch-all `"Modules\\": "Modules/"` buscaba las clases en la ruta con mayúscula ya inexistente.
+- **Providers:** `FieldOpsServiceProvider` `module_path($this->name, 'Database/Migrations')` → `'database/migrations'`; `WebsiteServiceProvider` `__DIR__ . '/../Database/Migrations'` → `'/../database/migrations'` (se mantiene el estilo `__DIR__` propio de ese archivo — no tiene `protected string $name`).
+- **3 tests con rutas hardcodeadas** a `base_path('Modules/.../Database/Migrations/...')` corregidos a minúscula: `FieldOpsInfrastructurePermissionsMigrationTest`, `FieldOpsBaselineRolesAndPermissionsBackfillTest`, `MigrationJsonConversionTest`.
+- **Mecanismo de registro de migraciones:** post-rename los 11 módulos son consistentes — el `auto-discover.migrations` de nwidart (minúscula, activo) ahora encuentra a los 11, y el `loadMigrationsFrom` manual de cada provider apunta a la misma ruta minúscula → el migrator deduplica, **sin doble registro para nadie**. Se dejó `auto-discover.migrations => true` (default nwidart) y el `loadMigrationsFrom` manual como red de seguridad — consolidar a un único call site (quitar los 11 manuales o desactivar auto-discover) es un refactor aparte de mayor radio, no justificado por un ticket de casing Low.
+- **Verificación:** `composer validate --strict` OK; `composer dump-autoload -o` → 12712 clases, `Modules\{FieldOps,Website,Safety}\Database\...` resuelven desde las rutas minúscula (verificado por reflexión). `module:list` 11/11 `[Enabled]`; `route:list` sin regresión (116 rutas fieldops/website). `migrate` completo sobre `testing_cla527` → **179 migraciones, exit 0, 0 duplicados** (`GROUP BY migration HAVING count > 1` vacío), mismo count que CLA-526. Tests focalizados: <PENDIENTE>. Pint: veredicto sobre los 2 providers idéntico a HEAD (deuda de estilo preexistente; los diffs son cambios de 1 línea de string).
+- **Assets publicados de Filament (`public/{css,js}/filament/*`)** NO se comitean — `composer dump-autoload` disparó `filament:upgrade` en `post-autoload-dump` y regeneró ~28 bundles; `deploy.sh` los regenera en cada deploy (mismo criterio que CLA-516).
+- `docs/ai/known-risks.md` → la entrada de "Deuda técnica" se marca resuelta con referencia a este commit.
+- Sin push ni deploy. `.codex/` sin tocar.
+
+---
+
 ## Restricciones críticas — NUNCA ignorar
 
 1. **SQL Server es ReadOnly.** Jamás generar `save()`, `update()`, `create()`, `delete()` en conexión `sqlsrv`. Todos los modelos Cafca usan `ReadOnlyTrait`. Lanza `LogicException` si se intenta mutar.

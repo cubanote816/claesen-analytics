@@ -34,7 +34,7 @@ class FieldOpsInfrastructurePermissionsMigrationTest extends TestCase
 
     private function migration(): object
     {
-        return require base_path('Modules/FieldOps/Database/Migrations/2026_08_28_036_add_fieldops_infrastructure_permissions.php');
+        return require base_path('Modules/FieldOps/database/migrations/2026_08_28_036_add_fieldops_infrastructure_permissions.php');
     }
 
     public function test_it_grants_permissions_when_roles_already_exist(): void

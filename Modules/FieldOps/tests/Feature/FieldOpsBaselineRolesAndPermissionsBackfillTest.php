@@ -47,7 +47,7 @@ class FieldOpsBaselineRolesAndPermissionsBackfillTest extends TestCase
 
     private function migration(): object
     {
-        return require base_path('Modules/FieldOps/Database/Migrations/2026_08_29_037_backfill_fieldops_baseline_roles_and_permissions.php');
+        return require base_path('Modules/FieldOps/database/migrations/2026_08_29_037_backfill_fieldops_baseline_roles_and_permissions.php');
     }
 
     public function test_it_grants_view_all_clients_to_every_existing_broad_role(): void

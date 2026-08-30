@@ -22,7 +22,7 @@ class MigrationJsonConversionTest extends TestCase
     private function getMigration(): object
     {
         return require base_path(
-            'Modules/Website/Database/Migrations/2026_06_02_000001_convert_location_client_to_json_in_website_projects.php'
+            'Modules/Website/database/migrations/2026_06_02_000001_convert_location_client_to_json_in_website_projects.php'
         );
     }
 

@@ -124,16 +124,9 @@ php artisan website:regenerate-media
 
 ## Deuda técnica
 
-### Casing inconsistente de los directorios de migración de módulo — CLA-527
+### ~~Casing inconsistente de los directorios de migración de módulo — CLA-527~~ RESUELTO (2026-08-30)
 
-**Detectado en CLA-517** (certificación de `nwidart/laravel-modules` 13; no es un problema de v13). Los 11 módulos no usan el mismo casing para su carpeta de migraciones:
-
-- **`Database/Migrations` (mayúscula):** `FieldOps`, `Website`.
-- **`database/migrations` (minúscula):** `Analytics`, `Core`, `Intelligence`, `Mailing`, `Performance`, `Prospects`, `Safety`.
-
-El `auto-discover.migrations` de nwidart (activo) usa `config('modules.paths.generator.migration.path')` = `database/migrations` (minúscula). En Linux `Database/Migrations` ≠ `database/migrations`, así que el auto-discover **no encuentra** las de `FieldOps`/`Website`; esas cargan solo por el `loadMigrationsFrom(module_path($name, 'Database/Migrations'))` manual de su propio `ServiceProvider`. Para los otros 7 módulos, el auto-discover y el `loadMigrationsFrom` manual apuntan a la misma ruta y el migrator la deduplica.
-
-**Hoy no hay bug observable:** `migrate` completo sobre DB vacía corre limpio (CLA-526, 179 migraciones exit 0) y `migrate:status` no muestra duplicados. **Riesgo latente:** si alguien quita el `loadMigrationsFrom` manual de `FieldOps`/`Website` asumiendo que el auto-discover ya las cubre, dejan de registrarse. Resolución (elegir un mecanismo único + unificar casing de `database/{migrations,factories,seeders}` en los 11 módulos) en **CLA-527** (Low). No mezclar con tickets funcionales.
+**Detectado en CLA-517, resuelto en CLA-527.** `FieldOps` y `Website` usaban `Database/{Migrations,Factories,Seeders}` (mayúscula) frente a los otros 9 en minúscula; `Safety` tenía además un `Database/Seeders/` residual con un `SafetyDatabaseSeeder` duplicado (stub muerto). CLA-527 renombró los 3 árboles a minúscula (`git mv`, ~96 renames, timestamps intactos → orden de migración idéntico), añadió los mapeos PSR-4 explícitos en `composer.json` (`Modules\FieldOps\Database\Factories\` etc. → rutas minúscula; namespaces `Database\` studly sin cambio), corrigió los 2 providers y 3 tests con rutas hardcodeadas, y borró el stub duplicado. Post-rename los 11 módulos son consistentes: el `auto-discover.migrations` (default nwidart, activo) encuentra a los 11 y el `loadMigrationsFrom` manual apunta a la misma ruta → el migrator deduplica, sin doble registro para nadie. Verificado: `migrate` completo 179 migraciones / 0 duplicados; autoload resuelve todas las clases `Database\*` desde las rutas minúscula. Consolidar a un único call site (quitar los 11 `loadMigrationsFrom` manuales o desactivar auto-discover) sigue siendo un refactor aparte, no hecho en CLA-527.
 
 ### Suite FieldOps amplia contaminada entre clases
 
