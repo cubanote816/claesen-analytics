@@ -31,7 +31,20 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
             $ttl     = $this->cacheTtl($endDate);
             $cacheKey = 'employee.rankings.' . md5($startDate . $endDate);
 
-            return Cache::remember($cacheKey, $ttl, fn () => $this->computeTopEmployees(null, $startDate, $endDate));
+            // Cache the array form, not the Collection: Laravel 13's
+            // cache.serializable_classes => false makes DatabaseStore reject any
+            // object on read (__PHP_Incomplete_Class). ->toArray() flattens the
+            // nested `rankings` Collection too, so the payload is a pure array.
+            $payload = Cache::remember(
+                $cacheKey,
+                $ttl,
+                fn () => $this->computeTopEmployees(null, $startDate, $endDate)->toArray()
+            );
+
+            return new Collection([
+                'period'   => $payload['period'] ?? [],
+                'rankings' => new Collection($payload['rankings'] ?? []),
+            ]);
         } catch (\Exception $e) {
             Log::error('EmployeeDashboardRankingService: getTopEmployees failed', ['error' => $e->getMessage()]);
             throw $e;

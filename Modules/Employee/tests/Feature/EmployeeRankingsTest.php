@@ -6,7 +6,10 @@ namespace Modules\Employee\Tests\Feature;
 
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Modules\Cafca\Models\Employee;
+use Modules\Employee\Services\EmployeeDashboardRankingService;
 use Modules\Performance\Models\Mirror\MirrorLabor;
 use Tests\TestCase;
 
@@ -172,6 +175,36 @@ class EmployeeRankingsTest extends TestCase
         $emp = collect($response->json('data.rankings'))->firstWhere('name', 'Silent Worker');
         $this->assertNotNull($emp);
         $this->assertEquals(0.0, $emp['total_hours']);
+    }
+
+    // -------------------------------------------------------------------------
+    // CLA-522 — cache round-trip under Laravel 13's serializable_classes => false
+    // -------------------------------------------------------------------------
+
+    public function test_cached_rankings_survive_the_serializable_classes_lockdown(): void
+    {
+        // The default test cache store is `array` (no serialization). Force the
+        // `database` store so the value goes through
+        // DatabaseStore::get() -> unserialize($v, ['allowed_classes' => false]),
+        // which is exactly what breaks a cached Collection under Laravel 13.
+        config(['cache.default' => 'database']);
+        Cache::store('database')->flush();
+
+        $this->makeEmployee(300, 'Cache Worker');
+        $start = now()->subMonth()->startOfMonth()->toDateString();
+        $end   = now()->subMonth()->endOfMonth()->toDateString();
+        $this->makeEntry(300, 6.0, 'Werf', $start);
+
+        $service = app(EmployeeDashboardRankingService::class);
+
+        // 1st call populates the cache; 2nd call reads it back.
+        $service->getTopEmployees(null, $start, $end);
+        $cached = $service->getTopEmployees(null, $start, $end);
+
+        $this->assertInstanceOf(Collection::class, $cached);
+        $this->assertInstanceOf(Collection::class, $cached->get('rankings'));
+        $this->assertSame('Cache Worker', $cached->get('rankings')->first()['name']);
+        $this->assertSame(6.0, $cached->get('rankings')->first()['total_hours']);
     }
 
     // -------------------------------------------------------------------------
