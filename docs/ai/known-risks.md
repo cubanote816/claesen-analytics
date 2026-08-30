@@ -124,6 +124,17 @@ php artisan website:regenerate-media
 
 ## Deuda técnica
 
+### Casing inconsistente de los directorios de migración de módulo — CLA-527
+
+**Detectado en CLA-517** (certificación de `nwidart/laravel-modules` 13; no es un problema de v13). Los 11 módulos no usan el mismo casing para su carpeta de migraciones:
+
+- **`Database/Migrations` (mayúscula):** `FieldOps`, `Website`.
+- **`database/migrations` (minúscula):** `Analytics`, `Core`, `Intelligence`, `Mailing`, `Performance`, `Prospects`, `Safety`.
+
+El `auto-discover.migrations` de nwidart (activo) usa `config('modules.paths.generator.migration.path')` = `database/migrations` (minúscula). En Linux `Database/Migrations` ≠ `database/migrations`, así que el auto-discover **no encuentra** las de `FieldOps`/`Website`; esas cargan solo por el `loadMigrationsFrom(module_path($name, 'Database/Migrations'))` manual de su propio `ServiceProvider`. Para los otros 7 módulos, el auto-discover y el `loadMigrationsFrom` manual apuntan a la misma ruta y el migrator la deduplica.
+
+**Hoy no hay bug observable:** `migrate` completo sobre DB vacía corre limpio (CLA-526, 179 migraciones exit 0) y `migrate:status` no muestra duplicados. **Riesgo latente:** si alguien quita el `loadMigrationsFrom` manual de `FieldOps`/`Website` asumiendo que el auto-discover ya las cubre, dejan de registrarse. Resolución (elegir un mecanismo único + unificar casing de `database/{migrations,factories,seeders}` en los 11 módulos) en **CLA-527** (Low). No mezclar con tickets funcionales.
+
 ### Suite FieldOps amplia contaminada entre clases
 
 La ejecución conjunta de toda la suite FieldOps mantiene dos fallos de harness preexistentes: varios `setUp()` usan `Role::create('super_admin')` y chocan con estado compartido (`RoleAlreadyExists`), y los tests de media pueden encontrar directorios de `storage/framework/testing/disks` creados con permisos incompatibles. En el hardening de CLA-267 la corrida amplia terminó con **209 passed / 649 assertions y 93 fallos** de esas dos familias; la regresión integrada aislada pasó **42/42 con 301 assertions** y los tests nuevos también pasan dentro de la corrida amplia. Pendiente normalizar roles con `firstOrCreate`/limpieza del PermissionRegistrar y los permisos del storage de testing en un ticket de infraestructura de pruebas; no mezclar ese refactor con tickets funcionales.
