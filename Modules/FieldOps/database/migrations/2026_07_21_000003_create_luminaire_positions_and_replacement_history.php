@@ -165,8 +165,16 @@ return new class extends Migration
 
         Schema::table('fo_luminaires', function (Blueprint $table): void {
             $table->dropConstrainedForeignId('replaced_by_luminaire_id');
+
+            // active_position_id's foreign key is backed by the unique index
+            // fo_luminaires_one_active_per_position (MySQL requires an FK column
+            // to be indexed). The FK must be dropped before the index, otherwise
+            // MySQL 8 refuses with error 1553 "Cannot drop index ... needed in a
+            // foreign key constraint". dropColumn then removes what's left.
+            $table->dropForeign(['active_position_id']);
             $table->dropUnique('fo_luminaires_one_active_per_position');
-            $table->dropConstrainedForeignId('active_position_id');
+            $table->dropColumn('active_position_id');
+
             $table->dropConstrainedForeignId('luminaire_position_id');
             $table->dropColumn(['installed_at', 'removed_at', 'removal_reason']);
         });
