@@ -137,6 +137,18 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 
 ---
 
+## CLA-517 — Certificación de nwidart/laravel-modules 13 (cierre técnico aprobado, 2026-08-30)
+
+- **`nwidart/laravel-modules` 12→13 es un bump puro de compatibilidad con Laravel 13.** El diff `v12.0.5..v13.0.0` toca **solo 3 archivos**: workflow de CI, `README.md` y `composer.json` (constraints a `^13`). Cero cambios de código fuente, config, API, discovery o schema de `module.json` (verificado vía `gh api .../compare`). El paquete ya quedó en `v13.0.0` con el corte de `composer.lock` de CLA-519; este ticket **no cambia `composer.json`/`composer.lock` ni código de aplicación** — es certificación.
+- **`config/modules.php`** ya coincide estructuralmente con el default de v13 (regenerado en la prep de CLA-518, `diff` de claves = 0). Sin cambios.
+- **Evidencia de certificación (todo verde):** `module:list` → **11/11 `[Enabled]`** (`Module::allEnabled()` los devuelve keyed por alias en minúsculas — `analytics`, `cafca`, … — no por el nombre studly); `route:list` → rutas modulares registradas (96 con acción `Modules\X\Http\Controllers`, `api.cafca.index` resuelve); `list` → **33 comandos** con namespace de módulo (`fieldops:*`, `mailing:*`, `intelligence:*`, `prospects:*`, `safety:*`, `performance:*`, …); `schedule:list` → **0 comandos programados duplicados**; `deploy.sh` → **0 referencias** a `modules_statuses.json`/`module:enable`/`module:disable`; `config:cache`/`package:discover`/`about` OK sobre Laravel 13.29.0. Migraciones modulares: el `migrate` completo sobre DB vacía de CLA-526 (179 migraciones, exit 0) ya incluyó `Modules/FieldOps/Database/Migrations/*` y el resto sin duplicados.
+- **Test nuevo `Modules/Core/tests/Feature/Laravel13ModulesCompatibilityTest.php`** (6/6): `nwidart/laravel-modules` en línea `13.`, los 11 módulos de `modules_statuses.json` descubiertos y enabled, ruta modular registrada, comandos modulares registrados, `config('modules.paths.generator.config.path')` no es `null` (los providers de Safety/Performance/Prospects dependen de esa clave), Filament descubre recursos de módulo.
+- **Hallazgo colateral — deuda preexistente, fuera de alcance, NO es un problema de v13:** casing mixto en directorios de migración de módulo — `FieldOps` y `Website` usan `Database/Migrations` (mayúscula), los otros 9 `database/migrations`. En Linux son rutas distintas: el `auto-discover.migrations` de nwidart (que usa `config('modules.paths.generator.migration.path')` = `database/migrations`, minúscula) simplemente no encuentra las de FieldOps/Website, que se cargan por el `loadMigrationsFrom(module_path($name, 'Database/Migrations'))` manual de su propio provider. **No hay doble registro** (verificado: `migrate` limpio, `migrate:status` sin duplicados). Unificar el casing es un ticket propio si se decide priorizarlo.
+- **WAIVER diferencial (= CLA-519/526):** la suite PHPUnit completa con `RefreshDatabase` no se certifica localmente por la lentitud de `migrate:fresh` en el MySQL reenviado → CLA-524/CLA-525. Las migraciones modulares ya corrieron limpio en el `migrate` completo de CLA-526.
+- Sin push ni deploy. `.codex/` sin tocar.
+
+---
+
 ## Restricciones críticas — NUNCA ignorar
 
 1. **SQL Server es ReadOnly.** Jamás generar `save()`, `update()`, `create()`, `delete()` en conexión `sqlsrv`. Todos los modelos Cafca usan `ReadOnlyTrait`. Lanza `LogicException` si se intenta mutar.
