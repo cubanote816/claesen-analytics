@@ -18,11 +18,11 @@ class PortfolioService
         return QueryBuilder::for(Project::class)
             ->published()
             ->ordered()
-            ->allowedFilters([
+            ->allowedFilters(
                 AllowedFilter::exact('category'),
                 AllowedFilter::exact('year'),
                 AllowedFilter::scope('featured'),
-            ])
+            )
             ->paginate($perPage)
             ->appends(request()->query());
     }
