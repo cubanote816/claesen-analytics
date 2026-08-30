@@ -28,6 +28,7 @@ Al iniciar cada sesión, leer en este orden:
 | `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
 | `laravel-13-readiness.md` | Baseline de PHP/Composer, entornos y riesgos del programa CLA-514 |
 | `laravel-13-compatibility-matrix.md` | Matriz exacta, lockfile objetivo simulado y gate previo a CLA-519 |
+| `laravel-13-staging-certification.md` | Checklist de ejecución de CLA-525 (E2E por rol + subsistemas) + ensayo de rollback / health check (CLA-523) |
 | `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, reglas por módulo |
 | `known-risks.md` | Riesgos abiertos, deuda técnica, bloqueantes y decisiones pendientes |
 | `prompt-templates.md` | Prompts reutilizables para las tareas más comunes |
@@ -221,6 +222,16 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 - Sin push ni deploy. `.codex/` sin tocar.
 
 ---
+
+---
+
+## CLA-525 / CLA-523 — Certificación de staging + CI de tests + ensayo de rollback (artefactos preparados, ejecución pendiente de infra real, 2026-08-30)
+
+- **CLA-525 (QA E2E + certificar staging) y CLA-523 (rollback + health check) son tickets de ejecución contra infraestructura real** (SSH a `prod-priv-01`/`sbapu03`, deploy a un staging equivalente, E2E por navegador contra los dominios reales, ensayo de rollback en servidores reales). No se pueden cerrar desde el entorno de desarrollo. Ambos quedan `In Progress` con los artefactos listos.
+- **Artefacto CI (`.github/workflows/tests.yml`, nuevo):** workflow de GitHub Actions que corre la suite PHPUnit sobre **PHP 8.4 + el mismo set de extensiones que staging** (`curl exif fileinfo gd imagick intl libxml mbstring openssl pdo_mysql simplexml sodium xml xmlreader xmlwriter zip` — refleja `composer.json` `ext-*` + lo que carga el FPM del host, incluida Imagick 3.8.1 de CLA-515), con servicio MySQL 8.4, `migrate --force` desde cero (prueba el "migrate-from-zero" que todos los waivers diferieron aquí) y `php artisan test`. Job `static-analysis` con `composer validate --strict` + `composer audit --locked`. Dispara en `push` a `main`, `pull_request` y `workflow_dispatch`. **No es todavía un gate de merge duro** — su primera corrida en infra CI limpia establece el conteo diferencial real vs el baseline de CLA-520 (1086/186/2); las familias de fallos preexistentes están catalogadas en §CLA-524.
+- **Artefacto checklist (`docs/ai/laravel-13-staging-certification.md`, nuevo):** pasos de ejecución de CLA-525 — prerrequisitos (versiones PHP/Composer/Imagick de staging, sesiones de prueba pre-deploy), deploy del candidato (calcado de `deploy.sh`, con atención al backfill `eachById` de `activity_log` de CLA-526), **matriz E2E por rol** (super_admin/admin/project_manager/technician/viewer/client × login/OAuth/CRUD/media/PDF/email/IA/sync/tenant-isolation/419-modal/rankings-cache/portfolio), checks de subsistemas (cache/queues/scheduler/mail/SQL Server read-only/CSRF multidominio), observación (logs/perf/queries/workers), **ensayo de rollback** (re-symlink al release anterior + `composer install` del lockfile L12 + `config:cache` + `reload php8.4-fpm` + `queue:restart` + supervisor + `up`; la migración v5 de `activity_log` tiene `down()` reversible verificado en CLA-526), y el **rediseño del health check** de `deploy.yml` (el `curl https://backoffice.claesen.local/` da curl exit 7 desde el runner — CLA-515; reemplazar por un check en-servidor a `/up` local + `supervisorctl status`).
+- **Pendiente de ejecución (no bloquea el trabajo de código, sí el deploy):** correr la CI, desplegar el candidato en staging, ejecutar la matriz E2E, el ensayo de rollback y aplicar el rediseño del health check. La rama de release consolidada (merge de la cadena stacked `cla-519 → … → cla-524`) es prerequisito.
+- Sin push ni deploy. `.codex/` sin tocar.
 
 ---
 

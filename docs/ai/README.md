@@ -57,6 +57,8 @@ Leer siempre en este orden:
 | `testing-checklists.md` | Checklists técnicos por tipo de cambio y módulo (referenciados desde el test-gate) |
 | `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
 | `laravel-13-readiness.md` | Baseline de PHP/Composer, entornos y riesgos para el programa CLA-514 |
+| `laravel-13-compatibility-matrix.md` | Matriz exacta de dependencias, lockfile objetivo y gate previo a CLA-519 |
+| `laravel-13-staging-certification.md` | Checklist de ejecución de CLA-525 (E2E por rol, subsistemas) + ensayo de rollback y rediseño del health check (CLA-523) |
 | `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, Testing Gate, reglas por módulo |
 | `known-risks.md` | Riesgos abiertos, deuda técnica, bloqueantes y decisiones pendientes |
 | `prompt-templates.md` | Prompts reutilizables con sección "Tests requeridos" obligatoria |
