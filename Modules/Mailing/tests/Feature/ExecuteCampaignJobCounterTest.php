@@ -27,6 +27,14 @@ class ExecuteCampaignJobCounterTest extends TestCase
         parent::setUp();
         // Eliminate usleep() wait between sends so tests are not slow.
         config(['mailing.send_delay_ms' => 0]);
+        // MicrosoftGraphService::__construct assigns config(...) ?? env(...) into a
+        // typed string property; with neither set (CI) that is a TypeError. Give it
+        // dummy credentials — no real Graph call happens (HTTP is faked in these tests).
+        config([
+            'mail.mailers.microsoft-graph.client_id'     => 'test-client-id',
+            'mail.mailers.microsoft-graph.tenant_id'     => 'test-tenant-id',
+            'mail.mailers.microsoft-graph.client_secret' => 'test-client-secret',
+        ]);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

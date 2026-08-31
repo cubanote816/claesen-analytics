@@ -46,7 +46,11 @@ class Laravel13CacheQueueMailCompatibilityTest extends TestCase
 
     public function test_microsoft_graph_transport_is_a_valid_symfony_8_transport(): void
     {
-        $transport = new MicrosoftGraphTransport(app(MicrosoftGraphService::class));
+        // Mock, not app(...): MicrosoftGraphService::__construct reads Graph
+        // credentials into typed string properties and TypeErrors when they are
+        // unset (CI). This test only checks the Symfony transport contract, which
+        // never touches the service.
+        $transport = new MicrosoftGraphTransport($this->createMock(MicrosoftGraphService::class));
 
         $this->assertInstanceOf(AbstractTransport::class, $transport);
 

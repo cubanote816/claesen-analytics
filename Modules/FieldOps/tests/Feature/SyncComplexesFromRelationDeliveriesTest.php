@@ -19,6 +19,9 @@ class SyncComplexesFromRelationDeliveriesTest extends TestCase
     {
         parent::setUp();
 
+        // GeocodingService short-circuits to null without a key (CI has none).
+        config(['services.google_geocoding.key' => 'test-geocoding-key']);
+
         Http::fake([
             'maps.googleapis.com/*' => Http::response([
                 'status'  => 'OK',

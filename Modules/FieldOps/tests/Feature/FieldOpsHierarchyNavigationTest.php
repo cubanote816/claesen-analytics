@@ -31,6 +31,9 @@ class FieldOpsHierarchyNavigationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Breadcrumb assertions read translated names; pin the locale so they do
+        // not depend on APP_LOCALE (CI runs with 'en').
+        app()->setLocale('nl');
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
         Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
     }

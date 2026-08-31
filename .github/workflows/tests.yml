@@ -80,6 +80,19 @@ jobs:
       - name: Install PHP dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Build front-end assets
+        # public/build/ is gitignored; Filament layouts call @vite, so a missing
+        # manifest makes every panel page render 500 (ViteManifestNotFoundException).
+        run: |
+          npm ci
+          npm run build
+
       - name: Prepare application
         run: |
           cp .env.example .env
