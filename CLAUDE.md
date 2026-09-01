@@ -300,7 +300,7 @@ Cierre de los **11 fallos** que el waiver diferencial de CLA-528 dejó abiertos.
 - **Riesgo DST residual (documentado, NO se resuelve aquí):** el fix conserva semántica "hora local Brussels". En un cruce exacto de DST, un delay de "N horas" puede abarcar N-1 o N+1 horas reales. La corrección de duración absoluta exige normalizar almacenamiento y conexiones a UTC + backfill — alcance mucho mayor, fuera de CLA-529.
 - **Verificación:** 3 clases afectadas + form test juntos **35/106 OK**; suite Mailing completa **197 tests, 0 fallos / 0 errores, 2 skipped**; **suite global desde `migrate:fresh` (MySQL 8.4 aislado): `Tests: 1324, Assertions: 4285, Failures: 0, Errors: 0, PHPUnit Notices: 7, Skipped: 2` → 1322 passed** (11:38 min). Progresión: CLA-528 waiver 1305/11/0/2 → **CLA-529 1322/0/0/2**. Pint: los 2 comandos + 3 tests modificados con veredicto **idéntico a HEAD** (deuda de estilo preexistente); `CampaignFormScheduledAtTimezoneTest` limpio. `git diff --check` OK.
 - **Antes del deploy (pendiente, fuera de este cierre):** verificar `@@session.time_zone` / `@@system_time_zone` / `NOW()` / `UTC_TIMESTAMP()` en staging y producción; inventariar A/B winners y follow-ups ya vencidos y no reclamados (entrarán en el siguiente tick tras el fix; `scheduled_at` no cambia).
-- Commit dedicado a hacer. Sin push ni deploy. `.codex/` fuera.
+- Comiteado **`a735ee9`** en la rama `cubanote816/cla-529-...` (sobre `0301aa4`). CLA-529 sigue `In Progress`. Sin push, integración a release, staging ni deploy. `.codex/` fuera del commit.
 
 ---
 
