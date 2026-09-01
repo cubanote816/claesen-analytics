@@ -3,6 +3,8 @@
 namespace Modules\Mailing\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Modules\Mailing\Enums\CampaignStatus;
@@ -19,6 +21,14 @@ use Tests\TestCase;
 class AbTestingTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        // Restore anything the timezone-skew tests below changed. No-op for the rest.
+        Carbon::setTestNow();
+        DB::statement("SET time_zone = 'SYSTEM'");
+        parent::tearDown();
+    }
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -259,6 +269,57 @@ class AbTestingTest extends TestCase
         $this->artisan('mailing:ab-select-winner')->assertSuccessful();
 
         Queue::assertPushed(ExecuteCampaignJob::class, 1); // not twice
+    }
+
+    // -------------------------------------------------------------------------
+    // CLA-529: the winner window is evaluated on the application clock (the clock
+    // ExecuteCampaignJob writes ab_test_started_at with), NOT MySQL's NOW() which
+    // follows the DB session time zone. Each case pins the session to +00:00 — a
+    // zone that differs from app.timezone — so a NOW()-based comparison would drift
+    // by that offset and fail these boundary assertions.
+    // -------------------------------------------------------------------------
+
+    public function test_ab_winner_window_uses_the_application_clock_summer_dst(): void
+    {
+        // 12:00 CEST == 10:00 UTC — a 2 h skew from the +00:00 session.
+        $this->assertAbWinnerWindowIgnoresSessionTimeZone(Carbon::create(2026, 7, 15, 12, 0, 0, 'Europe/Brussels'));
+    }
+
+    public function test_ab_winner_window_uses_the_application_clock_winter(): void
+    {
+        // 12:00 CET == 11:00 UTC — a 1 h skew from the +00:00 session.
+        $this->assertAbWinnerWindowIgnoresSessionTimeZone(Carbon::create(2026, 1, 15, 12, 0, 0, 'Europe/Brussels'));
+    }
+
+    private function assertAbWinnerWindowIgnoresSessionTimeZone(Carbon $appNow): void
+    {
+        config(['app.timezone' => 'Europe/Brussels']);
+        Carbon::setTestNow($appNow);
+        // Pin the DB session to a zone that differs from app.timezone (the scenario
+        // reproduced for CLA-529) so a NOW()-based due check would be wrong.
+        DB::statement("SET time_zone = '+00:00'");
+
+        Queue::fake();
+
+        $campaign = $this->abCampaign([
+            'status'                => CampaignStatus::SENDING,
+            'ab_winner_after_hours'  => 3,
+        ]);
+
+        // 1 s BEFORE the 3 h window closes on the application clock → not a candidate.
+        $campaign->forceFill(['ab_test_started_at' => now()->subHours(3)->addSecond()])->save();
+        $this->artisan('mailing:ab-select-winner')
+            ->expectsOutputToContain('No A/B campaigns ready for winner selection.')
+            ->assertSuccessful();
+        Queue::assertNothingPushed();
+
+        // 1 s AFTER → it is a candidate. (No sent messages, so the command reports
+        // the candidate then skips selection — the window evaluation is the point.)
+        $campaign->forceFill(['ab_test_started_at' => now()->subHours(3)->subSecond()])->save();
+        $this->artisan('mailing:ab-select-winner')
+            ->expectsOutputToContain('Found 1 candidate(s).')
+            ->assertSuccessful();
+        Queue::assertNothingPushed();
     }
 
     public function test_command_skips_when_one_variant_has_zero_sent(): void
