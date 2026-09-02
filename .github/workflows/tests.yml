@@ -1,9 +1,11 @@
 # Test CI — CLA-525. Runs the PHPUnit suite on the same PHP 8.4 + extension set
-# that staging/production use (deploy.sh reloads php8.4-fpm; prod-priv-01 loads
-# Imagick 3.8.1 — see CLA-515). The first run on clean CI infra establishes the
-# real differential baseline vs the CLA-520 local baseline; the known
-# pre-existing failure families are catalogued in CLAUDE.md (CLA-524). Tighten
-# this into a hard merge gate once that differential is triaged to zero.
+# that the staging target runtime and the production runtime use (deploy.sh
+# reloads php8.4-fpm; prod-priv-01 loads Imagick 3.8.1 — see CLA-515). Staging
+# does not exist yet — PHP 8.4 is its target runtime (see CLA-530). As of the
+# CLA-519 -> CLA-529 chain the suite is fully green on release/laravel-13-rc1:
+# 1322 passed / 0 failed / 0 errors / 2 skipped (runs 33512861220, 33526166018,
+# 33552786969). Promoting this to a required check on `main` still depends on
+# branch-protection config, which has not been verified yet.
 name: Tests
 
 on:

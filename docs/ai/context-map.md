@@ -1,7 +1,7 @@
 # Mapa de contexto — CAFCA Intelligence Hub
 
 > Generado desde exploración real del código. Actualizar cuando cambie la arquitectura.
-> Última actualización: 2026-08-29 (CLA-515 — baseline Laravel 13/PHP 8.3+)
+> Última actualización: 2026-09-01 (cadena Laravel 13 consolidada — CLA-519→CLA-529; versiones contra `composer.lock`)
 
 > Roadmap canónico de mantenimiento y Claesen-Client: `docs/ai/fieldops-maintenance-roadmap.md`.
 
@@ -11,13 +11,13 @@
 
 | Capa | Tecnología | Notas |
 |------|------------|-------|
-| Backend | Laravel 12 / PHP 8.3+ | `laravel/framework ^12.0`; baseline de migración en `laravel-13-readiness.md` |
+| Backend | Laravel 13 / PHP 8.4 | `laravel/framework ^13.0` (lock v13.29.0); `php ^8.4` |
 | Admin UI | Filament V5 | `filament/filament ^5.0` — **solo V5, nunca V3/V4** |
 | DB local | MySQL 8.4 | Base de datos principal del proyecto |
 | DB legacy | SQL Server 192.168.254.102 | ReadOnly — conexión `sqlsrv` |
-| Módulos | nwidart/laravel-modules ^12.0 | 8 módulos bajo `Modules/` |
+| Módulos | nwidart/laravel-modules ^13.0 | lock v13.0.0; 11 módulos bajo `Modules/` (Analytics, Cafca, Core, Employee, FieldOps, Intelligence, Mailing, Performance, Prospects, Safety, Website) |
 | Auth | Laravel Sanctum + Azure OAuth | `socialiteproviders/microsoft-azure` |
-| RBAC | spatie/laravel-permission ^6.x | Roles: `super_admin`, `project_manager` |
+| RBAC | spatie/laravel-permission ^8.0 | lock 8.3.0; Roles: `super_admin`, `project_manager` |
 | IA | Google Gemini (`gemini-flash-latest`) + Anthropic Claude Sonnet 5 + OpenAI (`gpt-image-2`/`gpt-5.4-nano`) | Via `GeminiService` / `ClaudeVisionService` / `OpenAiImageGenerationService` (CLA-440, generación de imagen de frame types) |
 | Media | spatie/laravel-medialibrary ^11 | Conversiones WebP para Website |
 | Infra | Docker Sail, Redis, Meilisearch | Redis: colas + cache |

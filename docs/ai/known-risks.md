@@ -1,18 +1,18 @@
 # Riesgos conocidos y deuda técnica — CAFCA Intelligence Hub
 
 > Riesgos abiertos, bloqueantes, deuda técnica y decisiones pendientes.
-> Última actualización: 2026-08-29 (CLA-515)
+> Última actualización: 2026-09-01 (FASE 0 del plan de despliegue Laravel 13)
 
 ---
 
 ## Bloqueantes activos
 
-### CLA-515/CLA-514 — Readiness incompleta para Laravel 13
+### CLA-514 — Falta staging Laravel y hardening del pipeline de deploy antes de producción
 
-**Estado:** CLA-515 completado; CLA-514 todavía no autoriza actualizar Laravel hasta cerrar sus tickets bloqueantes.
-**Riesgo:** el repositorio no tiene workflow independiente de CI para suite/build/audit ni staging versionado. El deploy 106 completó en `prod-priv-01`, pero su health check final terminó con curl exit 7 y dejó el job en rojo; la última ejecución exitosa fue la 95 del 2026-07-07.
-**Evidencia:** `docs/ai/laravel-13-readiness.md`; suite completa en base aislada: 1072 passed, 200 failed, 2 skipped. Producción está en PHP CLI 8.4.22/Composer 2.10.1, FPM 8.4 activo y workers/scheduler sobre `/usr/bin/php8.4`.
-**Acción requerida:** mantener `backoffice.claesen.local` exclusivamente en LAN y su integración por túnel; nunca resolver el health check exponiéndolo a Internet. CLA-523 debe validar el listener o la ruta interna real. Definir CI/staging o aprobar el baseline/waiver, sanear advisories en CLA-520 y estabilizar la suite en CLA-524 antes del cambio de framework. `php8.4-imagick` ya está instalado y verificado en el host.
+**Estado (2026-09-01):** la cadena de código CLA-519 → CLA-529 está **Done** y consolidada en `release/laravel-13-rc1` (`origin`; base técnica certificada durante FASE 0: `c6a5e89`; Draft **PR #9** contra `main`). `.github/workflows/tests.yml` **existe y está verde**: `Static checks` + `Build front-end assets` + `PHPUnit (PHP 8.4)` = **1322 passed / 0 failed / 0 errors / 2 skipped** (runs `33512861220` / `33526166018` / `33552786969`). La afirmación histórica *"el repositorio no tiene workflow independiente de CI para suite/build/audit"* **quedó obsoleta** desde `tests.yml` (CLA-525).
+**Bloqueante que queda:** **no existe un entorno de staging Laravel** — host separado de producción con PHP-FPM 8.4 + Imagick + MySQL 8.4 aislado + workers/scheduler Supervisor. `.github/workflows/deploy.yml` despliega directo a `prod-priv-01` al hacer `push` a `main` (job único `[self-hosted, linux, prod]`). Sin staging no se pueden ejecutar las FASES 1–5 de la certificación (CLA-525) ni el ensayo de rollback previo (CLA-523).
+**Riesgos del pipeline (auditoría FASE 0):** el health check de `deploy.yml` hace `curl https://backoffice.claesen.local/` desde el runner → `curl exit 7` (host LAN-only, sin listener alcanzable); `deploy.sh` paso 9 usa `supervisorctl start ... || restart ...` (el `restart` nunca corre sobre un proceso RUNNING → bytecode viejo en workers/scheduler entre deploys, causa raíz del incidente del mirror de Safety); el backup (`paso 0`) continúa aunque falle; no hay rollback automático.
+**Acción requerida:** **CLA-530** (aprovisionar staging Laravel real y separado de producción — `blocks` CLA-525) y **CLA-531** (endurecer `deploy.sh`/`deploy.yml` + rollback automático probado en staging — `blocks` CLA-525 y CLA-523) — ambos en Backlog, parent CLA-514. Mantener `backoffice.claesen.local` exclusivamente en LAN; nunca exponerlo para "arreglar" el health check.
 
 ### MAI-026 — Webhook handler ESP externo
 
@@ -140,11 +140,9 @@ El roadmap maestro fija `client.claesen-verlichting.be` como hostname objetivo y
 
 **Nota CLA-344/345 (2026-08-07):** confirmado que la cookie de sesión de Sanctum pertenece al dominio del backend, no al de cada frontend — `config/cors.php` permite varios orígenes de frontend contra las mismas rutas `api/*`/`v1/*` con `supports_credentials: true`. Una sesión creada en Safety PWA/Sport es válida para llamadas hechas desde el Client Portal. CLA-344 cierra el login (nadie puede autenticarse *directamente* en el Client Portal sin rol `client`), pero no aísla la sesión entre apps a nivel de cookie — eso requeriría dominios de backend separados por app, fuera de alcance actual. Tenerlo en cuenta al verificar `SANCTUM_STATEFUL_DOMAINS`/`SESSION_DOMAIN` antes del despliegue de producción.
 
-### Test roto: ClientPortalInfrastructureTest duplica código 'soccer' entre dos topologías
+### ~~Test roto: ClientPortalInfrastructureTest duplica código 'soccer' entre dos topologías~~ RESUELTO (CLA-528, 2026-08-30)
 
-**Riesgo:** `test_client_portal_returns_only_the_members_authorised_topology_and_reduced_payload` (`Modules/FieldOps/tests/Feature/ClientPortalInfrastructureTest.php:31-54`) llama a su helper `topology()` dos veces en el mismo test (`$allowed` y `$hidden`, línea 33-34), y `topology()` (línea 89) crea un `TerrainType` con `code: 'soccer'` hardcodeado sin `firstOrCreate` — la segunda llamada choca contra el `unique` de `fo_terrain_types.code` y el test falla con `UniqueConstraintViolationException`. **Confirmado en aislamiento total** (ejecutando solo esta clase, sin ningún cambio de CLA-344/345 involucrado) — no es contaminación entre suites, es un bug propio del test.
-**Impacto:** el único test que verifica el payload reducido/topología autorizada del endpoint específico del Client Portal está roto y no corre en CI tal como está.
-**Pendiente:** cambiar el segundo `TerrainType::create(['code' => 'soccer', ...])` dentro de `topology()` para aceptar un código parametrizado (o usar `firstOrCreate`), y volver a correr para confirmar que las aserciones del payload siguen siendo correctas.
+`test_client_portal_returns_only_the_members_authorised_topology_and_reduced_payload` llamaba a su helper `topology()` dos veces en el mismo test, y `topology()` creaba `TerrainType`/`StructureType` con `code` hardcodeado (`'soccer'`/`'conical'`) sin `firstOrCreate` — la 2ª llamada chocaba con el `unique` de `fo_terrain_types.code` (`UniqueConstraintViolationException`). CLA-528 lo corrigió: `TerrainType::firstWhere('code', 'soccer') ?? TerrainType::factory()->create(...)` (ídem `StructureType`) — reutiliza la fila de catálogo en la 2ª llamada, conservando la población completa de la factory en la 1ª. Verificado en la suite completa verde (1322/0/0/2).
 
 ### Tests de módulo Website inexistentes
 

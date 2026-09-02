@@ -5,17 +5,29 @@
 > este documento son el trabajo que todos los "WAIVER diferencial" de la cadena
 > CLA-519 → CLA-524 difirieron a este ticket.
 >
-> Rama candidata: cadena stacked `cla-519 → cla-526 → cla-517 → cla-516 → cla-521
-> → cla-522 → cla-524` (reconciliar en una sola rama de release antes de desplegar).
+> Rama candidata: `release/laravel-13-rc1` (en `origin`). Base técnica certificada durante
+> FASE 0: `c6a5e89`. **El deploy debe usar el head más reciente de `release/laravel-13-rc1`
+> con CI verde**, no un commit fijo. Consolida la cadena completa `cla-519 → … → cla-529`
+> (en la base `c6a5e89`: 24 commits sobre `origin/main`, 0 merges — el conteo se mueve con
+> cada commit nuevo). Draft **PR #9** contra `main` — NO mergear
+> hasta cerrar CLA-525 y CLA-523.
+>
+> **Prerrequisitos de infraestructura:** no existe un entorno de staging Laravel. Este
+> checklist no puede iniciarse hasta que:
+> - **CLA-530** (aprovisionar staging separado de producción) esté **cerrado**;
+> - exista una **implementación candidata de CLA-531** (pipeline de deploy endurecido +
+>   rollback automático) desplegable en staging.
+>
+> **CLA-531 se valida durante el deploy y el ensayo de rollback de este checklist (§1, §5,
+> §6) y debe cerrarse antes que CLA-525.** No usar `prod-priv-01` como staging.
 
 ---
 
 ## 0. Prerrequisitos
 
-- [ ] CI de tests (`.github/workflows/tests.yml`) ejecutada al menos una vez sobre la rama candidata. Registrar el conteo **passed / failed / skipped** y compararlo con el baseline de CLA-520 (**1086 passed / 186 failed / 2 skipped**). El delta esperado:
-  - **+** los tests recuperados en CLA-524 (`LocalizationTest` ×6, `MirrorSyncStatusPageManualSyncTest` dataProvider ×4).
-  - **−** ninguna familia nueva de fallos. Si aparece una, es un bloqueante.
-  - Familias preexistentes toleradas (catalogadas en `CLAUDE.md` §CLA-524): Mailing dispatch (`AbTestingTest`/`DispatchScheduledTest`/`FollowUpTest`), `RoleAlreadyExists` por estado compartido, `MicrosoftAuthRedirectTest::test_module_config_merge_is_skipped_when_config_is_cached`, rollback lento de Website.
+- [ ] CI de tests (`.github/workflows/tests.yml`) **verde** sobre el head exacto de `release/laravel-13-rc1`. Gate vigente: **`Static checks` `success` · `Build front-end assets` `success` · `PHPUnit (PHP 8.4)` `1322 passed / 0 failed / 0 errors / 2 skipped` (4285 assertions)** — resultado exacto; cualquier desviación es bloqueante. Confirmado en runs `33512861220` (head `4d0e32c`), `33526166018` (head `640242c`) y `33552786969` (head `c6a5e89`).
+  - Las 4 familias de fallos que el baseline CLA-520 (1086/186/2) toleraba **ya no existen**: Mailing dispatch (`AbTestingTest`/`DispatchScheduledTest`/`FollowUpTest`) → CLA-529; `RoleAlreadyExists` por estado compartido → CLA-528; `MicrosoftAuthRedirectTest::test_module_config_merge_is_skipped_when_config_is_cached` → CLA-528; cascada `migrate:rollback` de Website → CLA-528 (`DatabaseTruncation`) + `f876942` (CLA-523 parcial).
+  - Si CI vuelve a mostrar cualquier fallo o error, es un bloqueante — no hay "familias toleradas".
 - [ ] Backup de MySQL de staging tomado y verificado restaurable (`/opt/claesen/scripts/backup-mysql.sh`).
 - [ ] Anotar el release actual (`readlink /srv/www/claesen/current`) y su `composer.lock` — es el destino del rollback.
 - [ ] Confirmar en staging: `php -v` = 8.4.x, `php -m | grep -i imagick` presente, `composer -V` = 2.10.x, `systemctl is-active php8.4-fpm`, `supervisorctl status claesen-worker:*` y `claesen-scheduler` en RUNNING.

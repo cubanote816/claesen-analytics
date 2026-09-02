@@ -2,13 +2,13 @@
 
 > Tickets: CLA-515 (Done), CLA-520 (cierre técnico aprobado; Linear In Progress hasta el gate productivo) y CLA-518 (matriz en revisión técnica), subtickets de CLA-514.
 > Fecha del inventario: 2026-08-29; matriz de compatibilidad actualizada el 2026-08-30.
-> Alcance: baseline técnico y saneamiento compatible; permanece en Laravel 12 y no introduce APIs de Laravel 13.
+> Alcance: nació como baseline técnico pre-migración (saneamiento compatible dentro de Laravel 12). Ahora refleja el candidato Laravel 13 ya ejecutado — cadena CLA-519 → CLA-529 consolidada en `release/laravel-13-rc1` (Laravel 13.29.0).
 
 ## Decisión de readiness
 
-Los entornos local y productivo están listos a nivel de PHP/Composer para ejecutar el trabajo de migración, pero el proyecto todavía **no está listo para cambiar a Laravel 13**. CLA-518 confirmó que el grafo objetivo es resoluble, pero el cambio real debe esperar a que todo el trabajo Laravel 12 pendiente esté integrado y a que existan los gates de CI/staging.
+Los entornos local y productivo están listos a nivel de PHP/Composer. **El cambio de framework ya se ejecutó** (CLA-519 → CLA-529, cadena consolidada en `release/laravel-13-rc1`, Laravel 13.29.0), y la CI de tests (`.github/workflows/tests.yml`) está **verde** (`1322 passed / 0 failed / 0 errors / 2 skipped`). **Pendiente para declarar readiness productiva:** no existe un entorno de staging Laravel (CLA-530) ni un pipeline de deploy endurecido con rollback automático probado (CLA-531); ambos bloquean la certificación de staging (CLA-525) y el despliegue productivo (CLA-523). Hasta cerrar esos gates, **no hay readiness de producción**.
 
-El requisito de plataforma vigente quedó elevado de PHP `^8.2` a `^8.3`, mínimo de Laravel 13. La matriz objetivo eleva el proyecto a PHP `^8.4`, porque `spatie/laravel-activitylog` 5 lo exige. La imagen de desarrollo y los scripts operativos versionados ya están alineados en PHP 8.4; CI y staging todavía deben certificarlo.
+El requisito de plataforma **efectivo actual es PHP `^8.4`** (`composer.json` → `require.php`), no `^8.3` — `spatie/laravel-activitylog` 5 lo exige. La imagen de desarrollo, los scripts operativos versionados, la CI (`.github/workflows/tests.yml`) y el runtime de producción ya están en PHP 8.4; el **runtime objetivo de staging** debe certificarlo cuando el entorno exista (CLA-530).
 
 La matriz exacta, el lockfile simulado y el gate de revalidación son fuente de verdad en [`docs/ai/laravel-13-compatibility-matrix.md`](laravel-13-compatibility-matrix.md).
 
@@ -18,9 +18,9 @@ La matriz exacta, el lockfile simulado y el gate de revalidación son fuente de 
 |---|---:|---:|---|---|
 | Host local, CLI | 8.4.24 | 2.10.3 | `php -v`, `php --ri imagick`, `composer --version` | Listo; Composer oficial sin deprecations e Imagick 3.8.1 cargado |
 | Sail local, web/CLI | 8.4 definido; 8.4.17 verificado | Instalador oficial durante el build | `docker/8.4/Dockerfile`, `compose.yaml`, contenedor compartido activo | Listo; `Imagick` está cargado. Este worktree no tiene un contenedor propio |
-| CI de tests | Sin runtime definido | Sin runtime definido | Solo existe `.github/workflows/deploy.yml` | Bloqueado: no existe workflow de tests/build independiente |
+| CI de tests | 8.4 (`shivammathur/setup-php`) | 2 (`tools: composer:v2`) | `.github/workflows/tests.yml` — PHPUnit + build Vite + `composer validate`/`audit`, servicio MySQL 8.4, `migrate` desde cero | Listo y verde: `1322 passed / 0 failed / 0 errors / 2 skipped` (runs 33512861220 / 33526166018 / 33552786969) |
 | Runner de deploy | 8.4.22 CLI (`/usr/bin/php8.4`) | 2.10.1 | Verificación directa en `prod-priv-01` + GitHub Actions run 106 | Listo; sin deprecations observadas |
-| Staging | No inventariado / no configurado en el repo | No inventariado | No hay workflow ni host de staging versionado | Bloqueado; corresponde a CLA-525 |
+| Staging | — | — | No existe host ni workflow de staging Laravel | Bloqueado: aprovisionar en CLA-530; certificación E2E en CLA-525; pipeline endurecido en CLA-531 |
 | Producción, PHP-FPM | 8.4, servicio activo | — | `systemctl is-active php8.4-fpm` + reload exitoso en run 106 | Listo |
 | Producción, CLI/queues/scheduler | 8.4.22, `/usr/bin/php8.4` | 2.10.1 | Procesos reales de Supervisor inspeccionados | Listo; dos workers Redis y `schedule:work` en estado RUNNING |
 
@@ -34,7 +34,7 @@ No queda ningún runtime productivo PHP 8.2: CLI, workers y scheduler ejecutan `
 - Node.js: 22.22.0.
 - npm: 10.9.4.
 - MySQL local: imagen 8.4, publicada por el worktree principal en `127.0.0.1:3308` durante este inventario.
-- Laravel: 12.68.0; Filament: 5.7.6; Livewire: 4.4.2; Sanctum: 4.3.3; Laravel Modules: 12.0.4; Spatie Permission: 6.24.0.
+- Laravel: 12.68.0; Filament: 5.7.6; Livewire: 4.4.2; Sanctum: 4.3.3; Laravel Modules: 12.0.4; Spatie Permission: 6.24.0. *(Inventario del 2026-08-29, pre-CLA-519. Estado actual según `composer.lock`: Laravel 13.29.0, Modules 13.0.0, Permission 8.3.0, Activitylog 5.1.0, Query Builder 7.3.3, Translatable 6.14.1, Tinker 3.0.2, PHPUnit 12.5.34; Filament 5.7.6 / Livewire 4.4.2 / Sanctum 4.3.3 / MediaLibrary 11.23.5 sin cambio de major.)*
 
 El `Dockerfile` de Sail usa Ubuntu 24.04, PHP 8.4 y extensiones MySQL/SQLite/Redis/Imagick/Intl/GD/Zip, además de ODBC y `sqlsrv`. `compose.yaml` construye desde `docker/8.4`; la etiqueta incoherente `sail-8.5/app` se corrigió a `sail-8.4/app`.
 
@@ -106,9 +106,9 @@ El baseline de CLA-515 contenía 60 advisories en 21 paquetes, incluidos Laravel
 
 ## Seguimientos posteriores a CLA-515
 
-- Definir runtime y gate de tests/build/audit en CI; con el baseline actual la ventana debe superar 40 minutos o, preferiblemente, reducir antes los rollbacks lentos de Website.
-- Registrar el reemplazo del health check en CLA-523: debe validar la ruta interna/túnel real y mantener la prohibición de exposición pública.
-- Decidir si la ausencia deliberada de CI de tests y staging en este punto del programa se acepta como baseline de CLA-515 o requiere waiver explícito; su implementación/certificación corresponde a CLA-524/CLA-525.
+- ~~Definir runtime y gate de tests/build/audit en CI~~ — hecho en `.github/workflows/tests.yml` (CLA-525); las corridas reales tardan ~4–5 min (`timeout-minutes: 40` es holgura). Los rollbacks lentos de Website se neutralizaron en CLA-528 (`DatabaseTruncation`).
+- Registrar el reemplazo del health check `curl https://backoffice.claesen.local/`: pasa a **CLA-531** (check en-servidor con `about` + `/up` local + `supervisorctl status`), manteniendo la prohibición de exposición pública.
+- CI de tests: **resuelto** — `tests.yml` está verde. Staging: **pendiente** — no existe host de staging Laravel (**CLA-530**); la certificación E2E (CLA-525) y el ensayo de rollback (CLA-523) dependen de él y del pipeline endurecido (**CLA-531**).
 
 ## Matriz y simulación CLA-518
 
