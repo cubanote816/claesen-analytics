@@ -11,6 +11,9 @@ class SafetyDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            SafetyChecklistSeeder::class,
+            IncidentChecklistSeeder::class,
+        ]);
     }
 }

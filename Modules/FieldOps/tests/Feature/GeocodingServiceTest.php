@@ -14,6 +14,15 @@ class GeocodingServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // GeocodingService::geocode() short-circuits to null when no key is set,
+        // before any Http::fake is consulted. CI has no real key; give it a dummy
+        // so the fakes below run. (The "no api key" test overrides this itself.)
+        config(['services.google_geocoding.key' => 'test-geocoding-key']);
+    }
+
     public function test_resolves_and_caches_a_successful_address(): void
     {
         Http::fake([

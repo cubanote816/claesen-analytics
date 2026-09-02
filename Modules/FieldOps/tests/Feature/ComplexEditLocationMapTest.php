@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Tests\Feature;
 
 use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Resources\Complexes\Pages\EditComplex;
@@ -17,6 +18,8 @@ use Tests\TestCase;
 
 class ComplexEditLocationMapTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();

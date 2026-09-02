@@ -86,8 +86,12 @@ class ClientPortalInfrastructureTest extends TestCase
     {
         $client = FoClient::factory()->create(['name' => $name]);
         $complex = Complex::factory()->create(['client_id' => $client->id, 'name' => "{$name} complex"]);
-        $terrainType = TerrainType::factory()->create(['code' => 'soccer', 'pin_color' => '#4c8c4a']);
-        $structureType = StructureType::factory()->create(['code' => 'conical', 'pin_color' => '#f5a524']);
+        // topology() runs once per test client; fo_{terrain,structure}_types.code is
+        // unique, so reuse the catalog row when a prior call already created it.
+        $terrainType = TerrainType::firstWhere('code', 'soccer')
+            ?? TerrainType::factory()->create(['code' => 'soccer', 'pin_color' => '#4c8c4a']);
+        $structureType = StructureType::firstWhere('code', 'conical')
+            ?? StructureType::factory()->create(['code' => 'conical', 'pin_color' => '#f5a524']);
         $terrain = Terrain::factory()->create(['complex_id' => $complex->id, 'terrain_type_id' => $terrainType->id, 'name' => ['en' => "{$name} terrain", 'nl' => "{$name} terrein"]]);
         $structure = Structure::factory()->create(['structure_type_id' => $structureType->id]);
         $structure->terrains()->attach($terrain);

@@ -15,6 +15,14 @@ use Modules\Prospects\Models\Prospect;
 /**
  * Dispatches follow-up campaigns for completed parent campaigns whose delay has passed.
  *
+ * Due check: finished_at <= (application now) - followup_delay_hours. The threshold
+ * uses the application clock (config('app.timezone')) — the same clock
+ * ExecuteCampaignJob writes finished_at with — bound once as a parameter, NOT MySQL's
+ * NOW(). MySQL's NOW() follows the DB session time zone, which can differ from
+ * app.timezone and would then drift the threshold by that offset (reproduced with
+ * the session on +00:00). DST residual: on a boundary an "N hour" wait can span N-1
+ * or N+1 real hours.
+ *
  * Safety guarantees:
  *  - Self-referential follow-up (followup_campaign_id === id) is skipped explicitly.
  *  - Child campaign must be in APPROVED status; otherwise skipped with log.
@@ -33,13 +41,16 @@ class DispatchFollowUpsCommand extends Command
 
     public function handle(): int
     {
+        // Single captured instant for the whole run; bound as a parameter below.
+        $now = now();
+
         $candidates = Campaign::where('status', CampaignStatus::COMPLETED->value)
             ->whereNotNull('followup_campaign_id')
             ->whereNotNull('followup_trigger')
             ->whereNotNull('followup_delay_hours')
             ->whereNull('followup_dispatched_at')
             ->whereNotNull('finished_at')
-            ->whereRaw('finished_at <= DATE_SUB(NOW(), INTERVAL followup_delay_hours HOUR)')
+            ->whereRaw('finished_at <= DATE_SUB(?, INTERVAL followup_delay_hours HOUR)', [$now])
             ->get();
 
         if ($candidates->isEmpty()) {

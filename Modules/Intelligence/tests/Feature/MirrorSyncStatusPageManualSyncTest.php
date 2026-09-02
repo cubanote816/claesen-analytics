@@ -11,6 +11,7 @@ use Livewire\Livewire;
 use Modules\Core\Models\User;
 use Modules\Intelligence\Filament\Pages\MirrorSyncStatusPage;
 use Modules\Intelligence\Jobs\RunManualDataSyncJob;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -28,7 +29,7 @@ class MirrorSyncStatusPageManualSyncTest extends TestCase
         return $user;
     }
 
-    /** @dataProvider manualSyncActionProvider */
+    #[DataProvider('manualSyncActionProvider')]
     public function test_each_header_action_dispatches_the_matching_task(string $action, string $task): void
     {
         Bus::fake();

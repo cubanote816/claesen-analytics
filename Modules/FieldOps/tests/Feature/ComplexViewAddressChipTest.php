@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\FieldOps\Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Core\Models\User;
@@ -14,6 +15,8 @@ use Tests\TestCase;
 
 class ComplexViewAddressChipTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();

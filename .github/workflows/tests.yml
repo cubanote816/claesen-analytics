@@ -1,0 +1,132 @@
+# Test CI — CLA-525. Runs the PHPUnit suite on the same PHP 8.4 + extension set
+# that the staging target runtime and the production runtime use (deploy.sh
+# reloads php8.4-fpm; prod-priv-01 loads Imagick 3.8.1 — see CLA-515). Staging
+# does not exist yet — PHP 8.4 is its target runtime (see CLA-530). As of the
+# CLA-519 -> CLA-529 chain the suite is fully green on release/laravel-13-rc1:
+# 1322 passed / 0 failed / 0 errors / 2 skipped (runs 33512861220, 33526166018,
+# 33552786969). Promoting this to a required check on `main` still depends on
+# branch-protection config, which has not been verified yet.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phpunit:
+    name: PHPUnit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Staging/production run PHP 8.4. Add a version here only when staging moves.
+        php: ['8.4']
+
+    services:
+      mysql:
+        # Matches the MySQL 8.4 used locally (docker-compose) and on the host.
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: claesen_analytics_web_testing
+          MYSQL_USER: sail
+          MYSQL_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ppassword"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: claesen_analytics_web_testing
+      DB_USERNAME: sail
+      DB_PASSWORD: password
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: array
+      MAIL_MAILER: array
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          # Mirrors composer.json ext-* + what the host FPM loads.
+          extensions: curl, exif, fileinfo, gd, imagick, intl, libxml, mbstring, openssl, pdo_mysql, simplexml, sodium, xml, xmlreader, xmlwriter, zip
+          coverage: none
+          tools: composer:v2
+          ini-values: memory_limit=512M
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ matrix.php }}-
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Build front-end assets
+        # public/build/ is gitignored; Filament layouts call @vite, so a missing
+        # manifest makes every panel page render 500 (ViteManifestNotFoundException).
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan config:clear
+
+      - name: Migrate from a clean database
+        # Proves migrate-from-zero — the gap every differential waiver deferred here.
+        run: php artisan migrate --force --no-interaction
+
+      - name: Run the test suite
+        run: php artisan test
+
+  static-analysis:
+    name: Static checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Validate composer.json / composer.lock
+        run: composer validate --strict --no-check-publish
+
+      - name: composer audit
+        run: composer audit --locked

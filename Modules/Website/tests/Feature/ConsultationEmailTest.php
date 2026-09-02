@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Website\Tests\Feature;
 
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Modules\Website\Mail\NewConsultationRequestMail;
@@ -14,13 +14,16 @@ use Tests\TestCase;
 /**
  * Tests for the DB::afterCommit email guard in ConsultationService::createRequest().
  *
- * DatabaseMigrations is required here — NOT RefreshDatabase.
- * RefreshDatabase wraps each test in a transaction so DB::afterCommit callbacks
- * never fire during the test, making the happy-path assert always fail.
+ * DatabaseTruncation (not RefreshDatabase): RefreshDatabase wraps each test in a
+ * transaction so DB::afterCommit callbacks never fire during the test, making the
+ * happy-path assert always fail. DatabaseMigrations would work too but its
+ * teardown runs `migrate:rollback` on the whole batch, which trips over broken
+ * down() methods in unrelated migrations and half-tears-down the schema for every
+ * later Website test class. Truncation migrates forward once and never rolls back.
  */
 class ConsultationEmailTest extends TestCase
 {
-    use DatabaseMigrations;
+    use DatabaseTruncation;
 
     // =========================================================================
     // Happy path — email fires after the transaction commits

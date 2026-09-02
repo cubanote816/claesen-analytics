@@ -18,6 +18,15 @@ class AiTranslationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // HasAiTranslations uses app()->getLocale() as the source language; the
+        // fixtures below only carry 'nl'. Pin it so the test does not depend on
+        // APP_LOCALE (CI runs with 'en').
+        app()->setLocale('nl');
+    }
+
     private function mockGemini(array $translations): void
     {
         $this->mock(GeminiService::class, function ($mock) use ($translations): void {

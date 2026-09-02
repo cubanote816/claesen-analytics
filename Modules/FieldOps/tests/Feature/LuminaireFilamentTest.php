@@ -35,7 +35,7 @@ class LuminaireFilamentTest extends TestCase
     {
         parent::setUp();
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
-        Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
     }
 
     public function test_luminaire_pages_render_with_maintenance_history(): void
@@ -76,7 +76,7 @@ class LuminaireFilamentTest extends TestCase
                 'record' => $luminaire->luminaire_frame_id,
                 'layout' => 'technical',
                 'luminaire' => $luminaire->id,
-            ]), false);
+            ]));
 
         $this->withHeader('Accept-Language', 'en-US')->get("/luminaires/{$luminaire->id}/edit")
             ->assertOk()
@@ -110,7 +110,7 @@ class LuminaireFilamentTest extends TestCase
             ->assertSee(FoMaintenanceWorkOrderResource::getUrl('create', [
                 'maintainable_type' => Luminaire::class,
                 'maintainable_id' => $luminaire->id,
-            ]), false);
+            ]));
     }
 
     // Reproduces a real bug from manual QA: the photo/video gallery used $media->getUrl(),

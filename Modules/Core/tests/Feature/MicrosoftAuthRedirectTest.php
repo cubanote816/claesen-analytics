@@ -83,17 +83,16 @@ class MicrosoftAuthRedirectTest extends TestCase
     {
         Config::set('core.frontend_redirect_urls', ['https://sentinel.example/']);
 
-        $cachedConfigPath = $this->app->getCachedConfigPath();
-        file_put_contents($cachedConfigPath, "<?php\n\nreturn [];\n");
+        // Application::configurationIsCached() reads the 'config_loaded_from_cache'
+        // container binding, registered once during bootstrap (same in Laravel 12.50
+        // and 13.x). Writing the cache file after boot does not flip it, so bind the
+        // flag directly to simulate a warm config cache.
+        $this->app->instance('config_loaded_from_cache', true);
 
-        try {
-            $provider = new CoreServiceProvider($this->app);
-            $method = new ReflectionMethod($provider, 'registerConfig');
-            $method->setAccessible(true);
-            $method->invoke($provider);
-        } finally {
-            @unlink($cachedConfigPath);
-        }
+        $provider = new CoreServiceProvider($this->app);
+        $method = new ReflectionMethod($provider, 'registerConfig');
+        $method->setAccessible(true);
+        $method->invoke($provider);
 
         $this->assertSame(
             ['https://sentinel.example/'],

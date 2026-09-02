@@ -28,7 +28,7 @@ class CatalogFilamentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
     }
 
     public function test_luminaire_frame_type_content_grid_renders_with_and_without_image(): void

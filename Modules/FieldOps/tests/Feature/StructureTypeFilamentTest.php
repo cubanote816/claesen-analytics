@@ -24,7 +24,7 @@ class StructureTypeFilamentTest extends TestCase
     {
         parent::setUp();
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
-        Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         // The `name` field saves under app()->getLocale() (HasAiTranslations
         // auto-translates the rest) — pin to 'en' so assertions on `name->en`
         // are deterministic regardless of APP_LOCALE.

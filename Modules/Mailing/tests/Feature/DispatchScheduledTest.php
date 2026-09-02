@@ -14,6 +14,17 @@ class DispatchScheduledTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * scheduled_at is stored in UTC (CampaignForm converts Europe/Brussels -> UTC on
+     * save) and DispatchScheduledCampaignsCommand compares with now()->utc(). Fixtures
+     * must therefore express the "due"/"future" offset in UTC too, not the app-local
+     * now(), or the comparison drifts by the UTC offset.
+     */
+    private function scheduledUtc(string $modifier): \Illuminate\Support\Carbon
+    {
+        return now()->utc()->modify($modifier);
+    }
+
     private function approvedCampaign(array $attrs = []): Campaign
     {
         return Campaign::factory()->create(array_merge([
@@ -31,7 +42,7 @@ class DispatchScheduledTest extends TestCase
         Queue::fake();
 
         $campaign = $this->approvedCampaign([
-            'scheduled_at' => now()->subMinute(),
+            'scheduled_at' => $this->scheduledUtc('-1 minute'),
         ]);
 
         $this->artisan('mailing:dispatch-scheduled')->assertSuccessful();
@@ -50,7 +61,7 @@ class DispatchScheduledTest extends TestCase
     {
         Queue::fake();
 
-        $this->approvedCampaign(['scheduled_at' => now()->addHour()]);
+        $this->approvedCampaign(['scheduled_at' => $this->scheduledUtc('+1 hour')]);
 
         $this->artisan('mailing:dispatch-scheduled')->assertSuccessful();
 
@@ -75,7 +86,7 @@ class DispatchScheduledTest extends TestCase
         foreach ([CampaignStatus::DRAFT, CampaignStatus::REVIEW, CampaignStatus::SENDING, CampaignStatus::COMPLETED] as $status) {
             Campaign::factory()->create([
                 'status'      => $status,
-                'scheduled_at' => now()->subMinute(),
+                'scheduled_at' => $this->scheduledUtc('-1 minute'),
                 'template_id'  => EmailTemplate::factory()->create()->id,
             ]);
         }
@@ -94,7 +105,7 @@ class DispatchScheduledTest extends TestCase
         Queue::fake();
 
         $campaign = $this->approvedCampaign([
-            'scheduled_at' => now()->subMinute(),
+            'scheduled_at' => $this->scheduledUtc('-1 minute'),
         ]);
 
         // First run: should claim (approved → sending) and dispatch.
@@ -121,10 +132,15 @@ class DispatchScheduledTest extends TestCase
         Queue::fake();
 
         $campaign = $this->approvedCampaign([
-            'scheduled_at' => now()->subMinute(),
+            'scheduled_at' => $this->scheduledUtc('-1 minute'),
         ]);
 
-        $this->artisan('mailing:dispatch-scheduled --dry-run')->assertSuccessful();
+        // Assert the run actually found this campaign — otherwise "nothing pushed /
+        // status unchanged" would pass vacuously if the due filter matched nobody.
+        $this->artisan('mailing:dispatch-scheduled --dry-run')
+            ->expectsOutputToContain('Found 1 candidate(s).')
+            ->expectsOutputToContain("[dry-run] campaign #{$campaign->id}")
+            ->assertSuccessful();
 
         Queue::assertNothingPushed();
 

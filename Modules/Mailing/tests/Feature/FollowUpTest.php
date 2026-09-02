@@ -3,6 +3,8 @@
 namespace Modules\Mailing\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Enums\FollowUpTrigger;
@@ -19,6 +21,14 @@ use Tests\TestCase;
 class FollowUpTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        // Restore anything the timezone-skew tests below changed. No-op for the rest.
+        Carbon::setTestNow();
+        DB::statement("SET time_zone = 'SYSTEM'");
+        parent::tearDown();
+    }
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -84,6 +94,53 @@ class FollowUpTest extends TestCase
         $this->artisan('mailing:dispatch-followups')->assertSuccessful();
 
         Queue::assertNothingPushed();
+    }
+
+    // -------------------------------------------------------------------------
+    // CLA-529: the delay is evaluated on the application clock (the clock
+    // ExecuteCampaignJob writes finished_at with), NOT MySQL's NOW() which follows
+    // the DB session time zone. Each case pins the session to +00:00 — a zone that
+    // differs from app.timezone — so a NOW()-based comparison would drift by that
+    // offset and fail these boundary assertions.
+    // -------------------------------------------------------------------------
+
+    public function test_followup_delay_uses_the_application_clock_summer_dst(): void
+    {
+        $this->assertFollowUpDelayIgnoresSessionTimeZone(Carbon::create(2026, 7, 15, 12, 0, 0, 'Europe/Brussels'));
+    }
+
+    public function test_followup_delay_uses_the_application_clock_winter(): void
+    {
+        $this->assertFollowUpDelayIgnoresSessionTimeZone(Carbon::create(2026, 1, 15, 12, 0, 0, 'Europe/Brussels'));
+    }
+
+    private function assertFollowUpDelayIgnoresSessionTimeZone(Carbon $appNow): void
+    {
+        config(['app.timezone' => 'Europe/Brussels']);
+        Carbon::setTestNow($appNow);
+        // Pin the DB session to a zone that differs from app.timezone (the scenario
+        // reproduced for CLA-529) so a NOW()-based due check would be wrong.
+        DB::statement("SET time_zone = '+00:00'");
+
+        Queue::fake();
+
+        $parent = $this->completedParent(['followup_delay_hours' => 6]);
+
+        // 1 s BEFORE the 6 h delay elapses on the application clock → not due.
+        $parent->forceFill(['finished_at' => now()->subHours(6)->addSecond()])->save();
+        $this->artisan('mailing:dispatch-followups')
+            ->expectsOutputToContain('No follow-up campaigns due.')
+            ->assertSuccessful();
+        Queue::assertNothingPushed();
+
+        // 1 s AFTER → due. (Audience is empty in this minimal fixture, so the command
+        // marks followup_dispatched_at without sending — the "empty audience" path;
+        // the due evaluation is the point.)
+        $parent->forceFill(['finished_at' => now()->subHours(6)->subSecond(), 'followup_dispatched_at' => null])->save();
+        $this->artisan('mailing:dispatch-followups')
+            ->expectsOutputToContain('Found 1 candidate(s).')
+            ->assertSuccessful();
+        $this->assertNotNull($parent->fresh()->followup_dispatched_at);
     }
 
     // -------------------------------------------------------------------------

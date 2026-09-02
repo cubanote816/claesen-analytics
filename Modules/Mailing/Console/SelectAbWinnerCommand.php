@@ -14,7 +14,14 @@ use Modules\Mailing\Models\Campaign;
  * Selects the A/B test winner for eligible campaigns and dispatches the winner send.
  *
  * Eligibility: status=SENDING, ab_subject_b IS NOT NULL, ab_winner_variant IS NULL,
- *              ab_test_started_at <= NOW() - ab_winner_after_hours.
+ *              ab_test_started_at <= (application now) - ab_winner_after_hours.
+ *              The threshold uses the application clock (config('app.timezone')) — the
+ *              same clock ExecuteCampaignJob writes ab_test_started_at with — bound
+ *              once as a parameter, NOT MySQL's NOW(). MySQL's NOW() follows the DB
+ *              session time zone, which can differ from app.timezone and would then
+ *              drift the threshold by that offset (reproduced with the session on
+ *              +00:00). DST residual: on a boundary an "N hour" wait can span N-1 or
+ *              N+1 real hours.
  *
  * Winner metric: CTR = unique clicked messages / sent messages per variant.
  * Tie-breaking:  variant A wins.
@@ -30,11 +37,14 @@ class SelectAbWinnerCommand extends Command
 
     public function handle(): int
     {
+        // Single captured instant for the whole run; bound as a parameter below.
+        $now = now();
+
         $candidates = Campaign::where('status', CampaignStatus::SENDING->value)
             ->whereNotNull('ab_subject_b')
             ->whereNull('ab_winner_variant')
             ->whereNotNull('ab_test_started_at')
-            ->whereRaw('ab_test_started_at <= DATE_SUB(NOW(), INTERVAL ab_winner_after_hours HOUR)')
+            ->whereRaw('ab_test_started_at <= DATE_SUB(?, INTERVAL ab_winner_after_hours HOUR)', [$now])
             ->get();
 
         if ($candidates->isEmpty()) {

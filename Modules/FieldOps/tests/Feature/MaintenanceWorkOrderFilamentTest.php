@@ -87,7 +87,7 @@ class MaintenanceWorkOrderFilamentTest extends TestCase
             ->assertOk()
             ->assertSee('Schedule maintenance')
             ->assertSee('Open work orders')
-            ->assertSee($expected, false)
+            ->assertSee($expected)
             ->assertSee(FoMaintenanceWorkOrderResource::getUrl('view', ['record' => $order]), false);
     }
 

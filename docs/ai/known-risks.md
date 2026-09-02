@@ -1,11 +1,18 @@
 # Riesgos conocidos y deuda técnica — CAFCA Intelligence Hub
 
 > Riesgos abiertos, bloqueantes, deuda técnica y decisiones pendientes.
-> Última actualización: 2026-06-02 (DOCS-AI-001 / CLA-105)
+> Última actualización: 2026-09-01 (FASE 0 del plan de despliegue Laravel 13)
 
 ---
 
 ## Bloqueantes activos
+
+### CLA-514 — Falta staging Laravel y hardening del pipeline de deploy antes de producción
+
+**Estado (2026-09-01):** la cadena de código CLA-519 → CLA-529 está **Done** y consolidada en `release/laravel-13-rc1` (`origin`; base técnica certificada durante FASE 0: `c6a5e89`; Draft **PR #9** contra `main`). `.github/workflows/tests.yml` **existe y está verde**: `Static checks` + `Build front-end assets` + `PHPUnit (PHP 8.4)` = **1322 passed / 0 failed / 0 errors / 2 skipped** (runs `33512861220` / `33526166018` / `33552786969`). La afirmación histórica *"el repositorio no tiene workflow independiente de CI para suite/build/audit"* **quedó obsoleta** desde `tests.yml` (CLA-525).
+**Bloqueante que queda:** **no existe un entorno de staging Laravel** — host separado de producción con PHP-FPM 8.4 + Imagick + MySQL 8.4 aislado + workers/scheduler Supervisor. `.github/workflows/deploy.yml` despliega directo a `prod-priv-01` al hacer `push` a `main` (job único `[self-hosted, linux, prod]`). Sin staging no se pueden ejecutar las FASES 1–5 de la certificación (CLA-525) ni el ensayo de rollback previo (CLA-523).
+**Riesgos del pipeline (auditoría FASE 0):** el health check de `deploy.yml` hace `curl https://backoffice.claesen.local/` desde el runner → `curl exit 7` (host LAN-only, sin listener alcanzable); `deploy.sh` paso 9 usa `supervisorctl start ... || restart ...` (el `restart` nunca corre sobre un proceso RUNNING → bytecode viejo en workers/scheduler entre deploys, causa raíz del incidente del mirror de Safety); el backup (`paso 0`) continúa aunque falle; no hay rollback automático.
+**Acción requerida:** **CLA-530** (aprovisionar staging Laravel real y separado de producción — `blocks` CLA-525) y **CLA-531** (endurecer `deploy.sh`/`deploy.yml` + rollback automático probado en staging — `blocks` CLA-525 y CLA-523) — ambos en Backlog, parent CLA-514. Mantener `backoffice.claesen.local` exclusivamente en LAN; nunca exponerlo para "arreglar" el health check.
 
 ### MAI-026 — Webhook handler ESP externo
 
@@ -117,6 +124,10 @@ php artisan website:regenerate-media
 
 ## Deuda técnica
 
+### ~~Casing inconsistente de los directorios de migración de módulo — CLA-527~~ RESUELTO (2026-08-30)
+
+**Detectado en CLA-517, resuelto en CLA-527.** `FieldOps` y `Website` usaban `Database/{Migrations,Factories,Seeders}` (mayúscula) frente a los otros 9 en minúscula; `Safety` tenía además un `Database/Seeders/` residual con un `SafetyDatabaseSeeder` duplicado (stub muerto). CLA-527 renombró los 3 árboles a minúscula (`git mv`, ~96 renames, timestamps intactos → orden de migración idéntico), añadió los mapeos PSR-4 explícitos en `composer.json` (`Modules\FieldOps\Database\Factories\` etc. → rutas minúscula; namespaces `Database\` studly sin cambio), corrigió los 2 providers y 3 tests con rutas hardcodeadas, y borró el stub duplicado. Post-rename los 11 módulos son consistentes: el `auto-discover.migrations` (default nwidart, activo) encuentra a los 11 y el `loadMigrationsFrom` manual apunta a la misma ruta → el migrator deduplica, sin doble registro para nadie. Verificado: `migrate` completo 179 migraciones / 0 duplicados; autoload resuelve todas las clases `Database\*` desde las rutas minúscula. Consolidar a un único call site (quitar los 11 `loadMigrationsFrom` manuales o desactivar auto-discover) sigue siendo un refactor aparte, no hecho en CLA-527.
+
 ### Suite FieldOps amplia contaminada entre clases
 
 La ejecución conjunta de toda la suite FieldOps mantiene dos fallos de harness preexistentes: varios `setUp()` usan `Role::create('super_admin')` y chocan con estado compartido (`RoleAlreadyExists`), y los tests de media pueden encontrar directorios de `storage/framework/testing/disks` creados con permisos incompatibles. En el hardening de CLA-267 la corrida amplia terminó con **209 passed / 649 assertions y 93 fallos** de esas dos familias; la regresión integrada aislada pasó **42/42 con 301 assertions** y los tests nuevos también pasan dentro de la corrida amplia. Pendiente normalizar roles con `firstOrCreate`/limpieza del PermissionRegistrar y los permisos del storage de testing en un ticket de infraestructura de pruebas; no mezclar ese refactor con tickets funcionales.
@@ -129,11 +140,9 @@ El roadmap maestro fija `client.claesen-verlichting.be` como hostname objetivo y
 
 **Nota CLA-344/345 (2026-08-07):** confirmado que la cookie de sesión de Sanctum pertenece al dominio del backend, no al de cada frontend — `config/cors.php` permite varios orígenes de frontend contra las mismas rutas `api/*`/`v1/*` con `supports_credentials: true`. Una sesión creada en Safety PWA/Sport es válida para llamadas hechas desde el Client Portal. CLA-344 cierra el login (nadie puede autenticarse *directamente* en el Client Portal sin rol `client`), pero no aísla la sesión entre apps a nivel de cookie — eso requeriría dominios de backend separados por app, fuera de alcance actual. Tenerlo en cuenta al verificar `SANCTUM_STATEFUL_DOMAINS`/`SESSION_DOMAIN` antes del despliegue de producción.
 
-### Test roto: ClientPortalInfrastructureTest duplica código 'soccer' entre dos topologías
+### ~~Test roto: ClientPortalInfrastructureTest duplica código 'soccer' entre dos topologías~~ RESUELTO (CLA-528, 2026-08-30)
 
-**Riesgo:** `test_client_portal_returns_only_the_members_authorised_topology_and_reduced_payload` (`Modules/FieldOps/tests/Feature/ClientPortalInfrastructureTest.php:31-54`) llama a su helper `topology()` dos veces en el mismo test (`$allowed` y `$hidden`, línea 33-34), y `topology()` (línea 89) crea un `TerrainType` con `code: 'soccer'` hardcodeado sin `firstOrCreate` — la segunda llamada choca contra el `unique` de `fo_terrain_types.code` y el test falla con `UniqueConstraintViolationException`. **Confirmado en aislamiento total** (ejecutando solo esta clase, sin ningún cambio de CLA-344/345 involucrado) — no es contaminación entre suites, es un bug propio del test.
-**Impacto:** el único test que verifica el payload reducido/topología autorizada del endpoint específico del Client Portal está roto y no corre en CI tal como está.
-**Pendiente:** cambiar el segundo `TerrainType::create(['code' => 'soccer', ...])` dentro de `topology()` para aceptar un código parametrizado (o usar `firstOrCreate`), y volver a correr para confirmar que las aserciones del payload siguen siendo correctas.
+`test_client_portal_returns_only_the_members_authorised_topology_and_reduced_payload` llamaba a su helper `topology()` dos veces en el mismo test, y `topology()` creaba `TerrainType`/`StructureType` con `code` hardcodeado (`'soccer'`/`'conical'`) sin `firstOrCreate` — la 2ª llamada chocaba con el `unique` de `fo_terrain_types.code` (`UniqueConstraintViolationException`). CLA-528 lo corrigió: `TerrainType::firstWhere('code', 'soccer') ?? TerrainType::factory()->create(...)` (ídem `StructureType`) — reutiliza la fila de catálogo en la 2ª llamada, conservando la población completa de la factory en la 1ª. Verificado en la suite completa verde (1322/0/0/2).
 
 ### Tests de módulo Website inexistentes
 

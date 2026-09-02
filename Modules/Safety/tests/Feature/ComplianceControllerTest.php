@@ -34,12 +34,12 @@ class ComplianceControllerTest extends TestCase
         return [$user, $token];
     }
 
-    private function project(string $id, string $name = null, bool $active = true): MirrorProject
+    private function project(string $id, ?string $name = null, bool $active = true): MirrorProject
     {
         return MirrorProject::create(['id' => $id, 'name' => $name ?? "Project {$id}", 'fl_active' => $active]);
     }
 
-    private function inspection(string $projectId, int $userId, Carbon $completedAt = null): Inspection
+    private function inspection(string $projectId, int $userId, ?Carbon $completedAt = null): Inspection
     {
         return InspectionFactory::new()->create([
             'user_id'      => $userId,

@@ -30,7 +30,7 @@ class FieldOpsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadConfig();
-        $this->loadMigrationsFrom(module_path($this->name, 'Database/Migrations'));
+        $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
         $this->loadViewsFrom(module_path($this->name, 'resources/views'), $this->nameLower);
         $this->registerTranslations();
         $this->registerCommands();

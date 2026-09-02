@@ -226,4 +226,19 @@ return [
 
     'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Session Serialization
+    |--------------------------------------------------------------------------
+    |
+    | Keep PHP serialization during the Laravel 13 cutover so existing users
+    | are not signed out. A future JSON migration requires a planned session
+    | invalidation and verification that no objects are stored in sessions.
+    |
+    | Supported: "json", "php"
+    |
+    */
+
+    'serialization' => 'php',
+
 ];
