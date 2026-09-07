@@ -646,7 +646,7 @@
 
 - **Sprint activo:** `fieldops-backend-fixes` (ver detalle abajo, sin ticket Linear formal todavía) + CLA-229/CLA-231 (Analytics, en revisión en `codex/instrumentacion-apps-internas`). Sigue pendiente sin ticket Linear formal el "reto" exploratorio del usuario para portar `service.claesen-verlichting` (frontend legacy FieldOps) contra el backend real `Modules/FieldOps`. Documentado acá por su tamaño, pero **sin commitear todavía** en ninguno de los dos repos (`claesen_api_web_oficial` y `service.claesen-verlichting`).
 - **CLA-496 Done en Linear** — comiteado en dos tandas (`b81e8a3` matriz original + `f437492` backfill de baseline tras un gap de producción encontrado el mismo día), ambas en `origin/main` y verificadas end-to-end en producción real por el usuario (ver sesión 2026-08-29 debajo) — primer ticket de una batería de 16 nacida de una auditoría de seguridad FieldOps completa.
-- **CLA-497 implementado y testeado, pendiente de GO técnico para commit/push/deploy** — tenant-scope en 3 endpoints globales de `MaintenanceRecordController` (segundo ticket de la batería, ver sesión 2026-08-30 debajo).
+- **CLA-497 Done en Linear** — comiteado (`ba149cc`), en `origin/main` y en producción, con waiver aprobado para el smoke funcional productivo cross-tenant (segundo ticket de la batería, ver sesión 2026-08-30 debajo).
 
 ### Sesión 2026-08-29 — CLA-496: matriz de autorización create/update/delete FieldOps (comiteado, cerrado y reabierto por gap de baseline, cerrado de nuevo)
 
@@ -677,7 +677,9 @@
 - **QA real contra dev con tokens Sanctum reales** (sin imprimir tokens): technician scoped solo a Client A vs admin con acceso amplio, vía `curl`. Confirmado: technician excluye por completo los registros/PII de Client B en las 3 rutas; admin ve A+B combinados en las 3. Fixtures (5 records, 5 luminarias, 2 tipos de mantenimiento auto-generados, 2 clientes, 2 usuarios/tokens) borrados y verificados en 0 al terminar — el tipo `corrective` compartido preexistente en dev se preservó.
 - **Gate serial (única invocación, tras la corrección):** `MaintenanceRecordCrudTest|ClientReportedMaintenanceTest|MaintenanceRecordTenantScopeTest|FieldOpsTenantAuthorizationTest|MaintenanceRequestTest` → **59 passed / 347 assertions, 474.05s**, sin fallos.
 - **No tocado:** `EnforceFieldOpsTenantAccess`, `FieldOpsTenantService`, modelo, resource, schema.
-- **Pendiente:** GO técnico para commit/push/deploy y cierre en Linear. CLA-497 sigue `In Progress`.
+- **Publicación:** comiteado `ba149cc535a2332ac565fe802fbc02ed1f57ef0d` (7 archivos exactos), preflight confirmó `origin/main` en `f4374920a7103604450b0bc3855d48111b1c9e74` (CLA-496) antes del push; fast-forward a `main`. `origin/main`/producción = `ba149cc`. Step `Deploy` de CI exitoso; único fallo `Verify deployment` es el falso negativo ya documentado de CLA-447 (health-check contra el hostname privado `backoffice.claesen.local`), no un fallo real.
+- **Waiver aprobado para el smoke funcional productivo cross-tenant** (sin crear fixtures/credenciales en producción): cobertura alternativa = gate serial 59/59 (347 assertions) + QA cross-tenant real en dev con tokens Sanctum + fixtures eliminados + `origin/main`/producción en `ba149cc` + rutas registradas + step Deploy exitoso. Aprobado por el auditor Codex, 2026-08-30.
+- **Cierre:** **CLA-497 Done en Linear** el 2026-08-30, con esta evidencia y el waiver publicados en el ticket.
 
 ### Sesión 2026-08-04 (cont.) — CLA-342: Electrical Board hereda coordenadas del padre + fallback via env + bloquear creación sin padre (Done)
 
