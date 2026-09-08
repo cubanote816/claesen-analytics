@@ -665,6 +665,9 @@ Nadie puede lanzar una campaña sin que un `admin` o `campaign_manager` la aprue
 ## Reglas no negociables
 
 1. **Transporte es intercambiable.** Nunca llamar `MicrosoftGraphMailer` directamente — siempre via `MarketingCampaignInterface`.
+   - **CLA-532:** el transporte se elige **fail-closed** desde `config('app.mailing_driver')` (= `env('MAILING_DRIVER')`, **sin default**). Valores válidos: `microsoft-graph` (envío real), `simulation` (`SimulationMailer` — cero HTTP, `Log::info('[simulation]')` + `true`; **prohibido en `APP_ENV=production`** → `MailConfigurationException`), `saas` (stub MAI-026). Cualquier otro valor o `null` lanza `MailConfigurationException` **antes** de enviar — no hay fallback implícito a un transporte real. `simulation` NO reutiliza `SaaSMailer`.
+   - **CLA-532:** Microsoft Graph sin credenciales → `MicrosoftGraphService::assertConfigured()` lanza `MailConfigurationException` (`extends RuntimeException`) al entrar en cualquier operación, **antes de HTTP** — nunca `TypeError`. `MicrosoftGraphMailer` la captura → `false` → `ExecuteCampaignJob` marca `CampaignMessage.status='failed'`, `sent_count=0`, campaña `FAILED`. Una campaña **nunca** se marca enviada por un fallo de configuración.
+   - **CLA-532:** `MAIL_TO_ADDRESS` → `config('mail.always_to')` (array, config:cache-safe). `Mail::alwaysTo()` solo afecta al mailer por defecto, así que `MailingServiceProvider::boot()` también hace `Mail::mailer('microsoft-graph')->alwaysTo(...)` cuando está configurado (dev/staging).
 2. **`mailing_message_events` es append-only.** No se editan eventos ya registrados. El historial es inmutable.
 3. **Supresión es permanente para `spam_complaint` y `hard_bounce`.** Solo un `super_admin` puede levantar una supresión con nota obligatoria y auditoría.
 4. **Sin aprobación, sin envío.** El job debe verificar `status === approved` como primera instrucción.

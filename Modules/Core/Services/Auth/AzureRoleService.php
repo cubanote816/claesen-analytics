@@ -24,13 +24,11 @@ class AzureRoleService
 
         $rolesToAssign = [];
 
-        $roleMapping = config('core.azure_role_mapping', [
-            // Example: 'azure-group-uuid' => 'financial_manager'
-            env('AZURE_GROUP_SUPER_ADMIN') => 'super_admin',
-            env('AZURE_GROUP_ADMIN') => 'admin',
-            env('AZURE_GROUP_FINANCE') => 'financial_manager',
-            env('AZURE_GROUP_PM') => 'project_manager',
-        ]);
+        // CLA-532: read only from config (config:cache-safe). The mapping is
+        // built null-safe in Modules/Core/config/config.php ('azure_role_mapping').
+        // The previous inline env() default array collapsed to a single
+        // empty-string key under config:cache, sending every Azure user to 'viewer'.
+        $roleMapping = config('core.azure_role_mapping', []);
 
         foreach ($azureGroups as $groupId) {
             if (isset($roleMapping[$groupId]) && !in_array($roleMapping[$groupId], $rolesToAssign)) {

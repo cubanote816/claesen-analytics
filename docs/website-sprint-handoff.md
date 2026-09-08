@@ -140,7 +140,16 @@ GITHUB_ACTION_TOKEN=<token con scope repo + workflow>
 IMAGE_DRIVER=imagick
 QUEUE_CONNECTION=sync   # cambiar a redis en producción para no bloquear requests
 MEDIA_DISK=public
+# CLA-532: destinatario del aviso interno de nueva consulta. Leído vía
+# config('website.consultation_notification_email') (config:cache-safe).
+# Antes era una dirección hardcodeada en ConsultationService. Vacío => el
+# aviso se omite (log warning) y la consulta se persiste igual.
+WEBSITE_CONSULTATION_EMAIL=<buzón interno>
 ```
+
+### Contrato de `POST /v1/website/consultations` (CLA-532)
+
+Cada POST que responde **HTTP 201** persiste **exactamente una** fila `ConsultationRequest`, aunque el mailer `microsoft-graph` esté mal configurado o `WEBSITE_CONSULTATION_EMAIL` esté vacío. El envío del aviso vive en `DB::afterCommit`; un fallo del mailer se registra con `Log::error`/`Log::warning` y **no** produce un 500 posterior al commit. Un Graph sin credenciales ahora lanza `MailConfigurationException` (capturada por el `catch (\Exception)` existente), no un `TypeError`. **El endpoint no es idempotente**: dos POST deliberados crean dos filas; la garantía es únicamente "201 ⇒ una fila, sin 500 tras persistir".
 
 ---
 

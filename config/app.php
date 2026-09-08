@@ -123,4 +123,19 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Mailing campaign transport driver
+    |--------------------------------------------------------------------------
+    | CLA-532: single, config:cache-safe source for the campaign transport
+    | selected in AppServiceProvider::register(). Allowed values:
+    |   'microsoft-graph' — real send via Microsoft Graph
+    |   'simulation'      — no send, logs only (dev/staging; refused in prod)
+    |   'saas'            — ESP stub, MAI-026 (no send)
+    | Fail-closed: an unset value (null) or any unknown value raises
+    | MailConfigurationException before sending. There is NO implicit fallback
+    | to a real transport — MAILING_DRIVER must be set explicitly.
+    */
+    'mailing_driver' => env('MAILING_DRIVER'),
+
 ];

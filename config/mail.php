@@ -122,4 +122,20 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Global "always to" override
+    |--------------------------------------------------------------------------
+    | CLA-532: dev/staging safety net. Comma-separated addresses, normalised to
+    | an array here so it survives config:cache. When non-empty,
+    | AppServiceProvider::boot() applies it to the default mailer and
+    | MailingServiceProvider::boot() applies it to the named 'microsoft-graph'
+    | mailer as well (Mail::alwaysTo() only touches the default mailer instance).
+    | Expected to be unset/empty in production.
+    */
+    'always_to' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('MAIL_TO_ADDRESS', ''))
+    ))),
+
 ];

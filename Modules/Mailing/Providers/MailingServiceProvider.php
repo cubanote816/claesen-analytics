@@ -39,6 +39,17 @@ class MailingServiceProvider extends ServiceProvider
                 new \Modules\Mailing\Services\MicrosoftGraphService()
             );
         });
+
+        // CLA-532: Mail::alwaysTo() only affects the default mailer instance;
+        // MailManager keeps a separate instance per name, so the 'microsoft-graph'
+        // mailer must be redirected explicitly. Applied whenever
+        // config('mail.always_to') is non-empty (regardless of environment) —
+        // in production it is expected to be [] so this branch is skipped.
+        // Resolving the mailer builds the service + transport but makes no
+        // external call.
+        if ($globalTo = config('mail.always_to')) {
+            \Illuminate\Support\Facades\Mail::mailer('microsoft-graph')->alwaysTo($globalTo);
+        }
     }
 
     /**

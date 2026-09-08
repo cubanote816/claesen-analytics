@@ -34,6 +34,11 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_DATABASE" value="claesen_analytics_web_testing"/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- CLA-532: pin the campaign transport to the no-send simulation driver
+             so the suite never depends on the local .env and can never resolve a
+             real transport by default. Tests that exercise Microsoft Graph
+             behaviour set config('app.mailing_driver') = 'microsoft-graph' per case. -->
+        <env name="MAILING_DRIVER" value="simulation"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

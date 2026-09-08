@@ -111,11 +111,20 @@ class CashFlowWatchdogService
 
     private function triggerVanguardAlerts(Collection $alerts): void
     {
-        $recipient = env('WATCHDOG_VANGUARD_EMAIL', 'gerencia@claesen.be');
+        // CLA-532: recipient from config (config:cache-safe), no real-address
+        // fallback. The per-alert warning log is always kept; only the e-mail
+        // send is guarded when no recipient is configured.
+        $recipient = config('performance.watchdog.vanguard_email');
 
         foreach ($alerts as $alert) {
             Log::warning("VANGUARD ALERT: Critical risk on project {$alert['id']} ({$alert['name']}). WIP: €{$alert['wip']}");
-            
+
+            if (empty($recipient)) {
+                Log::warning("CashFlowWatchdogService: no recipient configured (performance.watchdog.vanguard_email) — Vanguard e-mail for project {$alert['id']} not sent.");
+
+                continue;
+            }
+
             try {
                 Mail::to($recipient)->send(new VanguardImmediateAlertMail($alert));
             } catch (\Exception $e) {

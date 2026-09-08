@@ -33,4 +33,22 @@ return [
         'repeated_identifier_threshold' => env('CORE_SECURITY_IDENTIFIER_THRESHOLD', 5),
         'repeated_ip_threshold' => env('CORE_SECURITY_IP_THRESHOLD', 5),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Azure AD group -> local role mapping
+    |--------------------------------------------------------------------------
+    | CLA-532: built role-first then flipped so that unset AZURE_GROUP_* vars
+    | (null) are removed by array_filter BEFORE they could collapse into a
+    | single empty-string key (the previous runtime env() default array did
+    | exactly that under config:cache, leaving every Azure user at 'viewer').
+    | Evaluated at config-cache build time -> config:cache-safe.
+    | Result shape: [ '<azure-group-guid>' => '<role>' ].
+    */
+    'azure_role_mapping' => array_flip(array_filter([
+        'super_admin' => env('AZURE_GROUP_SUPER_ADMIN'),
+        'admin' => env('AZURE_GROUP_ADMIN'),
+        'financial_manager' => env('AZURE_GROUP_FINANCE'),
+        'project_manager' => env('AZURE_GROUP_PM'),
+    ])),
 ];

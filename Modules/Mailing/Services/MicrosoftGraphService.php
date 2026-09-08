@@ -11,19 +11,43 @@ namespace Modules\Mailing\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Modules\Mailing\Exceptions\MailConfigurationException;
 
 class MicrosoftGraphService
 {
-    protected string $clientId;
-    protected string $tenantId;
-    protected string $clientSecret;
+    // CLA-532: nullable — the constructor only assigns, it never validates, so
+    // a missing credential no longer throws a TypeError while the mailer is
+    // being resolved (at boot, inside Mail::extend, or before
+    // mailing:parse-bounces reaches its own try/catch). Validation happens at
+    // the start of every Graph operation via assertConfigured().
+    protected ?string $clientId;
+    protected ?string $tenantId;
+    protected ?string $clientSecret;
     protected string $baseUrl = 'https://graph.microsoft.com/v1.0';
 
     public function __construct()
     {
-        $this->clientId = config('mail.mailers.microsoft-graph.client_id', env('MICROSOFT_GRAPH_CLIENT_ID'));
-        $this->tenantId = config('mail.mailers.microsoft-graph.tenant_id', env('MICROSOFT_GRAPH_TENANT_ID'));
-        $this->clientSecret = config('mail.mailers.microsoft-graph.client_secret', env('MICROSOFT_GRAPH_CLIENT_SECRET'));
+        // CLA-532: read only from config() (config:cache-safe). config/mail.php
+        // already resolves these from MICROSOFT_GRAPH_* at config-build time; the
+        // previous runtime env() fallbacks here were dead under config:cache.
+        $this->clientId = config('mail.mailers.microsoft-graph.client_id');
+        $this->tenantId = config('mail.mailers.microsoft-graph.tenant_id');
+        $this->clientSecret = config('mail.mailers.microsoft-graph.client_secret');
+    }
+
+    /**
+     * CLA-532: guard called at the start of every Graph operation, before any
+     * HTTP. Missing credentials raise a controlled MailConfigurationException
+     * (extends RuntimeException) — never a TypeError.
+     */
+    private function assertConfigured(): void
+    {
+        if (empty($this->clientId) || empty($this->tenantId) || empty($this->clientSecret)) {
+            throw new MailConfigurationException(
+                'Microsoft Graph mailer is not configured '
+                .'(MICROSOFT_GRAPH_CLIENT_ID / MICROSOFT_GRAPH_TENANT_ID / MICROSOFT_GRAPH_CLIENT_SECRET).'
+            );
+        }
     }
 
     /**
@@ -31,6 +55,8 @@ class MicrosoftGraphService
      */
     public function getAccessToken(): ?string
     {
+        $this->assertConfigured();
+
         // Never use Cache::remember() here — it caches null on auth failure, locking
         // out retries for ~58 min even after credentials are corrected.
         $cached = Cache::get('microsoft_graph_token');

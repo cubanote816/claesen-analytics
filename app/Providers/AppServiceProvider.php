@@ -2,27 +2,44 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-
+use App\Contracts\MarketingCampaignInterface;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\ServiceProvider;
+use Modules\Mailing\Exceptions\MailConfigurationException;
+use Modules\Mailing\Services\MicrosoftGraphMailer;
+use Modules\Mailing\Services\SaaSMailer;
+use Modules\Mailing\Services\SimulationMailer;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(\App\Contracts\MarketingCampaignInterface::class, function ($app) {
-            $driver = config('app.mailing_driver', env('MAILING_DRIVER', 'simulation'));
-            return $driver === 'saas'
-                ? new \Modules\Mailing\Services\SaaSMailer()
-                : new \Modules\Mailing\Services\MicrosoftGraphMailer();
+        // CLA-532: fail-closed allow-list. config('app.mailing_driver') is the
+        // single, config:cache-safe source; an unknown or unset value raises a
+        // controlled MailConfigurationException before any send — there is no
+        // implicit fallback to a real transport.
+        $this->app->bind(MarketingCampaignInterface::class, function () {
+            return match (config('app.mailing_driver')) {
+                'simulation' => new SimulationMailer,
+                'saas' => new SaaSMailer,
+                'microsoft-graph' => new MicrosoftGraphMailer,
+                default => throw new MailConfigurationException(
+                    "Unknown mailing driver: '".config('app.mailing_driver')."'. "
+                    .'Valid values: microsoft-graph, simulation, saas.'
+                ),
+            };
         });
     }
+
     public function boot(): void
     {
-        // Intercepta todos los correos si hay una dirección global de prueba configurada
-        if ($globalTo = env('MAIL_TO_ADDRESS')) {
-            $addresses = array_map('trim', explode(',', $globalTo));
-            \Illuminate\Support\Facades\Mail::alwaysTo($addresses);
+        // CLA-532: global "always to" override for the DEFAULT mailer, from
+        // config('mail.always_to') (config:cache-safe) instead of env(). Applied
+        // whenever the value is non-empty. The named 'microsoft-graph' mailer is
+        // redirected separately in MailingServiceProvider::boot().
+        if ($globalTo = config('mail.always_to')) {
+            Mail::alwaysTo($globalTo);
         }
 
 

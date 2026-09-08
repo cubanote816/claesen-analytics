@@ -55,11 +55,27 @@ class ConsultationService
             }
 
             // Schedule email after transaction commits — avoids sending on rollback
-            // and keeps the DB lock free from external HTTP calls
+            // and keeps the DB lock free from external HTTP calls.
+            // CLA-532: recipient from config (was hardcoded); if unset, skip the
+            // notification and log a warning — the consultation is already
+            // persisted and the endpoint still returns 201. A misconfigured
+            // Graph mailer now raises MailConfigurationException (a
+            // RuntimeException), which the catch below handles — it no longer
+            // throws a TypeError that would escape and 500 after the commit.
             DB::afterCommit(function () use ($request) {
+                $to = config('website.consultation_notification_email');
+
+                if (empty($to)) {
+                    Log::warning('ConsultationService: website.consultation_notification_email is not configured — new-request notification skipped.', [
+                        'consultation_request_id' => $request->id,
+                    ]);
+
+                    return;
+                }
+
                 try {
                     Mail::mailer('microsoft-graph')
-                        ->to('orelvys.cuellar@claesen-verlichting.be')
+                        ->to($to)
                         ->send(new NewConsultationRequestMail($request));
                 } catch (\Exception $e) {
                     Log::error('Failed to send consultation email: ' . $e->getMessage());

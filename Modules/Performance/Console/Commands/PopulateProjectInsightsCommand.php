@@ -11,6 +11,7 @@ use Modules\Performance\Models\ProjectInsight;
 use Modules\Performance\Emails\ImmediateRiskAlertMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PopulateProjectInsightsCommand extends Command
 {
@@ -21,7 +22,8 @@ class PopulateProjectInsightsCommand extends Command
     {
         $this->info('Starting Full ETL process...');
 
-        $yearsBack = env('WATCHDOG_SYNC_YEARS_BACK', 5);
+        // CLA-532: config() instead of runtime env() (config:cache-safe).
+        $yearsBack = (int) config('performance.watchdog.sync_years_back', 5);
         $minDate = now()->subYears($yearsBack);
 
         // Fetch active projects from the last X years using chunking (100 at a time)
@@ -87,18 +89,39 @@ class PopulateProjectInsightsCommand extends Command
 
                     // VANGUARD: Immediate high-risk alert
                     $wipAmount = abs(min(0, $margin));
-                    $threshold = env('WATCHDOG_IMMEDIATE_THRESHOLD', 20000);
+                    $threshold = (int) config('performance.watchdog.immediate_threshold', 20000);
 
                     if ($wipAmount >= $threshold && $insight->last_immediate_alert_at === null) {
-                        $recipient = env('WATCHDOG_REPORT_EMAIL', 'gerencia@claesen.be');
-                        Mail::to($recipient)->send(new ImmediateRiskAlertMail($insight, $wipAmount));
-                        
-                        $insight->update(['last_immediate_alert_at' => now()]);
-                        $this->warn("!!! HIGH RISK DETECTED !!! Alert sent for project: {$projectId}");
+                        $this->sendImmediateAlert($insight, $wipAmount, $projectId);
                     }
                 }
             });
 
         $this->info('Full ETL process finished.');
+    }
+
+    /**
+     * CLA-532: extracted verbatim from the ETL loop so it is testable without a
+     * SQL Server connection — behaviour unchanged. Recipient from config
+     * (config:cache-safe). No recipient => warn, send nothing and DO NOT set
+     * last_immediate_alert_at, so the alert re-fires once a recipient exists.
+     */
+    protected function sendImmediateAlert(ProjectInsight $insight, float $wipAmount, string $projectId): void
+    {
+        $recipient = config('performance.watchdog.report_email');
+
+        if (empty($recipient)) {
+            Log::warning('performance:populate-insights: high-risk project detected but no recipient configured (performance.watchdog.report_email) — alert not sent, last_immediate_alert_at left unchanged.', [
+                'project_id' => $projectId,
+                'wip' => $wipAmount,
+            ]);
+
+            return;
+        }
+
+        Mail::to($recipient)->send(new ImmediateRiskAlertMail($insight, $wipAmount));
+
+        $insight->update(['last_immediate_alert_at' => now()]);
+        $this->warn("!!! HIGH RISK DETECTED !!! Alert sent for project: {$projectId}");
     }
 }

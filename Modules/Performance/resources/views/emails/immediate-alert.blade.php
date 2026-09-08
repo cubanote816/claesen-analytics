@@ -26,7 +26,7 @@
         <div class="body">
             <div class="alert-box">
                 <span class="alert-title">Kritiek Financieel Risico Gedetecteerd</span>
-                Dit project heeft het veiligheidslimiet van <b>€ {{ number_format(env('WATCHDOG_IMMEDIATE_THRESHOLD', 20000), 0, ',', '.') }}</b> overschreden. Onmiddellijke actie is vereist.
+                Dit project heeft het veiligheidslimiet van <b>€ {{ number_format(config('performance.watchdog.immediate_threshold', 20000), 0, ',', '.') }}</b> overschreden. Onmiddellijke actie is vereist.
             </div>
 
             <div class="project-details">

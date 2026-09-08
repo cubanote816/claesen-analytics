@@ -17,6 +17,9 @@ class WebsiteServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // CLA-532: cache-safe home for website.consultation_notification_email.
+        $this->mergeConfigFrom(__DIR__ . '/../config/config.php', 'website');
+
         $this->app->bind(ProjectRepositoryInterface::class, EloquentProjectRepository::class);
         $this->app->bind(MessageRepositoryInterface::class, EloquentMessageRepository::class);
     }
