@@ -5,6 +5,8 @@ namespace Modules\Mailing\Tests\Feature;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tests\TestCase;
 
 /**
@@ -12,7 +14,17 @@ use Tests\TestCase;
  * the default mailer and the named 'microsoft-graph' mailer — Mail::alwaysTo()
  * alone only affects the default mailer instance. No database is used and no
  * external HTTP is performed.
+ *
+ * Isolated processes: the fake MAIL_TO_ADDRESS / MICROSOFT_GRAPH_* values must be
+ * visible to config/mail.php and MailingServiceProvider::boot() at bootstrap
+ * time. A plain putenv() from the shared suite process is shadowed once .env has
+ * loaded the key into $_SERVER (CI copies .env.example, which ships
+ * `MAIL_TO_ADDRESS=`), and phpdotenv re-clobbers it on the next bootstrap. A
+ * dedicated process gives each test a pristine environment where the pre-boot
+ * override is the only value, and guarantees nothing leaks to sibling tests.
  */
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState(false)]
 class AlwaysToConfigTest extends TestCase
 {
     /** @var array<string, string> */
@@ -23,21 +35,18 @@ class AlwaysToConfigTest extends TestCase
         'MICROSOFT_GRAPH_CLIENT_SECRET' => 'fake-client-secret',
     ];
 
-    /** @var array<string, string|false> exact prior process-env values */
-    private array $originalEnv = [];
-
     protected function setUp(): void
     {
-        // Set BEFORE the app boots so config/mail.php + both providers see them.
-        // MailingServiceProvider::boot() does the real
-        // Mail::mailer('microsoft-graph')->alwaysTo(...) wiring at boot time, and
-        // MicrosoftGraphService needs non-empty credentials to pass
-        // assertConfigured() and reach the (faked) HTTP call. The exact prior
-        // value of each var is captured so tearDown restores it verbatim
-        // (putenv($name) alone would drop a value that was previously set).
+        // Set BEFORE the app boots, in all three sources Laravel's Env repository
+        // reads ($_SERVER / $_ENV take priority over the putenv adapter), so
+        // config/mail.php and MailingServiceProvider::boot() (the real
+        // Mail::mailer('microsoft-graph')->alwaysTo(...) wiring) see them.
+        // MicrosoftGraphService also needs non-empty credentials to pass
+        // assertConfigured() and reach the faked HTTP call.
         foreach ($this->overrides as $name => $value) {
-            $this->originalEnv[$name] = getenv($name);
             putenv("{$name}={$value}");
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
         }
 
         parent::setUp();
@@ -47,15 +56,6 @@ class AlwaysToConfigTest extends TestCase
             'login.microsoftonline.com/*' => Http::response(['access_token' => 'fake-token'], 200),
             'graph.microsoft.com/*' => Http::response([], 202),
         ]);
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        foreach ($this->originalEnv as $name => $original) {
-            $original === false ? putenv($name) : putenv("{$name}={$original}");
-        }
     }
 
     public function test_config_normalises_the_address_list(): void

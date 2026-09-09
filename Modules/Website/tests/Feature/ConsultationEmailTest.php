@@ -33,6 +33,12 @@ class ConsultationEmailTest extends TestCase
     {
         Mail::fake();
 
+        // CLA-532: the notification recipient now comes from config (was a
+        // hardcoded address). Set it for the happy path; the null-recipient
+        // "persist but skip the send" behaviour is covered by
+        // ConsultationEndpoint201Test.
+        config(['website.consultation_notification_email' => 'qa@example.test']);
+
         $service = app(ConsultationService::class);
 
         $service->createRequest([
@@ -44,6 +50,7 @@ class ConsultationEmailTest extends TestCase
         Mail::assertSent(
             NewConsultationRequestMail::class,
             fn ($mail) => $mail->consultation->email === 'jan@example.com'
+                && $mail->hasTo('qa@example.test')
         );
     }
 
