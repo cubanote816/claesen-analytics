@@ -52,7 +52,7 @@ class SimulationDriverCampaignLifecycleTest extends TestCase
         return [$campaign, [$p->id]];
     }
 
-    private function run(Campaign $campaign, array $ids): void
+    private function runCampaignJob(Campaign $campaign, array $ids): void
     {
         (new ExecuteCampaignJob(campaignId: $campaign->id, overrideProspectIds: $ids))
             ->handle(app(MarketingCampaignInterface::class), app(SuppressionService::class));
@@ -64,7 +64,7 @@ class SimulationDriverCampaignLifecycleTest extends TestCase
         $this->assertInstanceOf(SimulationMailer::class, app(MarketingCampaignInterface::class));
 
         [$campaign, $ids] = $this->campaignWithOneProspect();
-        $this->run($campaign, $ids);
+        $this->runCampaignJob($campaign, $ids);
 
         $this->assertDatabaseHas('mailing_campaigns', [
             'id' => $campaign->id,
@@ -86,7 +86,7 @@ class SimulationDriverCampaignLifecycleTest extends TestCase
             config(['app.mailing_driver' => 'simulation']);
 
             [$campaign, $ids] = $this->campaignWithOneProspect();
-            $this->run($campaign, $ids);
+            $this->runCampaignJob($campaign, $ids);
         } finally {
             $this->app['env'] = $originalEnv;
         }
@@ -108,7 +108,7 @@ class SimulationDriverCampaignLifecycleTest extends TestCase
         [$campaign, $ids] = $this->campaignWithOneProspect();
 
         try {
-            $this->run($campaign, $ids);
+            $this->runCampaignJob($campaign, $ids);
             $this->fail('Expected MailConfigurationException.');
         } catch (MailConfigurationException $e) {
             $this->assertStringContainsString('Unknown mailing driver', $e->getMessage());
