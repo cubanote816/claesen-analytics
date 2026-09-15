@@ -15,14 +15,18 @@ Este sistema reemplaza la necesidad de re-explicar el proyecto desde cero en cad
 
 ## Lectura obligatoria al iniciar una sesión
 
-Leer siempre en este orden:
+> Protocolo completo (orden de lectura, flujo ticket → plan → GO) → **`docs/ai/project-protocol.md`** — este README es solo el índice de qué documento consultar según la tarea. `AGENTS.md`/`.agents/rules/00-project-startup.md` referencian el mismo protocolo, no lo duplican.
+
+Orden mínimo:
 
 ```
-1. CLAUDE.md                          ← reglas del proyecto, estado macro
-2. handoff.md                         ← estado global vivo (sprint activo, último ticket)
+1. CLAUDE.md                          ← reglas del proyecto, estado macro (ahora ~150 líneas)
+2. handoff.md                         ← estado global vivo (sprint activo, último ticket; ahora compacto)
 3. docs/ai/README.md                  ← este archivo, orienta la sesión
 4. Documento específico del módulo    ← según la tarea activa
 ```
+
+Lectura opcional, solo a demanda (no cargar por defecto): `docs/ai/decisions-log.md` (historial de cierres técnicos Laravel 13) y `docs/ai/handoff-archive.md` (histórico completo de `handoff.md` previo a CLA-536).
 
 ### Documentos específicos por módulo
 
@@ -36,7 +40,8 @@ Leer siempre en este orden:
 | Tests técnicos por tipo de cambio | `docs/ai/testing-checklists.md` |
 | Revisar código de un PR | `docs/ai/code-review-rubric.md` |
 | Preparar deploy / staging | `docs/ai/production-readiness.md` |
-| Migración a Laravel 13 | `docs/ai/laravel-13-readiness.md` |
+| Migración a Laravel 13 (programa cerrado, consulta puntual) | `docs/ai/archive/laravel-13-readiness.md` |
+| Historial de cierres técnicos Laravel 13 (CLA-515→532) | `docs/ai/decisions-log.md` |
 | Riesgos y deuda técnica | `docs/ai/known-risks.md` |
 | Comandos Artisan | `docs/ai/commands-runbook.md` |
 | Prompts reutilizables | `docs/ai/prompt-templates.md` |
@@ -56,9 +61,8 @@ Leer siempre en este orden:
 | **`test-gate-harness.md`** | **Arnés obligatorio de testing: matriz, waiver, plantilla de cierre — leer antes de Plan/Review/Done** |
 | `testing-checklists.md` | Checklists técnicos por tipo de cambio y módulo (referenciados desde el test-gate) |
 | `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
-| `laravel-13-readiness.md` | Baseline de PHP/Composer, entornos y riesgos para el programa CLA-514 |
-| `laravel-13-compatibility-matrix.md` | Matriz exacta de dependencias, lockfile objetivo y gate previo a CLA-519 |
-| `laravel-13-staging-certification.md` | Checklist de ejecución de CLA-525 (E2E por rol, subsistemas) + ensayo de rollback y rediseño del health check (CLA-523) |
+| `decisions-log.md` | Historial detallado de cierres técnicos por ticket (Laravel 13, CLA-515→532) — no es lectura obligatoria |
+| `archive/laravel-13-readiness.md`, `archive/laravel-13-compatibility-matrix.md`, `archive/laravel-13-staging-certification.md` | Programa Laravel 13 (CLA-514) — núcleo cerrado; consultar solo si el ticket activo es CLA-523/525/530/531 |
 | `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, Testing Gate, reglas por módulo |
 | `known-risks.md` | Riesgos abiertos, deuda técnica, bloqueantes y decisiones pendientes |
 | `prompt-templates.md` | Prompts reutilizables con sección "Tests requeridos" obligatoria |
@@ -80,6 +84,8 @@ docs/safety-sprint-linear-tickets.md ← mapa de tickets Safety
 ```
 
 **Si hay conflicto entre documentos:** el código fuente + ticket Linear es la fuente de verdad. Ver `handoff-strategy.md` para el protocolo de resolución.
+
+**Regla de tamaño (CLA-536):** `CLAUDE.md` y `handoff.md` deben mantenerse como reglas permanentes + estado vivo compacto — el historial detallado va a `docs/ai/decisions-log.md` / `docs/ai/handoff-archive.md`, que no son lectura obligatoria.
 
 ---
 
