@@ -33,10 +33,14 @@ class FieldOpsMediaTest extends TestCase
     // across the whole file, none of these tests exercise tenant scope itself, so
     // it needs fieldops.view-all-clients like CLA-369 already gave
     // MaintenanceWorkOrderTest/MaintenanceRequestTest/MaintenanceWorkOrderAuditNotificationTest.
+    // CLA-498: also grants fieldops.media — store() now checks it via
+    // FieldOpsInfrastructurePolicy::media(), same treatment CLA-378/497 already gave
+    // the equivalent helpers elsewhere when a new permission started being enforced.
     private function user(): array
     {
         $user = UserFactory::new()->create();
         $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.media', 'web'));
         $token = $user->createToken('test')->plainTextToken;
 
         return [$user, $token];
@@ -187,6 +191,45 @@ class FieldOpsMediaTest extends TestCase
             'collection' => 'photos',
             'file'       => UploadedFile::fake()->image('photo.jpg'),
         ])->assertStatus(401);
+    }
+
+    // ── authorization (CLA-498) ──────────────────────────────────────────────
+
+    // Broad view access (fieldops.view-all-clients, granted to financial_manager/
+    // hr_manager/viewer per the CLA-496 matrix) is not enough on its own — the
+    // capability permission is separate and must also be present. Cross-tenant
+    // scoping is covered instead in FieldOpsTenantAuthorizationTest, which already
+    // has the two-client topology fixtures this check needs.
+    public function test_store_requires_fieldops_media_even_with_broad_view_access(): void
+    {
+        $user = UserFactory::new()->create();
+        Role::findOrCreate('financial_manager', 'web');
+        $user->assignRole('financial_manager');
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+        $token = $user->createToken('test')->plainTextToken;
+
+        $complex = Complex::factory()->create();
+
+        $this->withToken($token)->postJson("/api/v1/fieldops/complexes/{$complex->id}/media", [
+            'collection' => 'photos',
+            'file'       => UploadedFile::fake()->image('photo.jpg'),
+        ])->assertForbidden();
+
+        $this->assertCount(0, $complex->fresh()->getMedia('photos'));
+    }
+
+    // luminaire-frames is a real FieldOps model but was never part of the media
+    // route's whitelist (Routes/api.php's ->where('modelType', ...) constraint) —
+    // confirms the route itself rejects it (404, request never reaches the
+    // controller), no code change needed for this case.
+    public function test_store_rejects_a_model_type_outside_the_media_whitelist(): void
+    {
+        [, $token] = $this->user();
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/luminaire-frames/1/media', [
+            'collection' => 'photos',
+            'file'       => UploadedFile::fake()->image('photo.jpg'),
+        ])->assertStatus(404);
     }
 
     // ── show (stream) ─────────────────────────────────────────────────────────

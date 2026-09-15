@@ -3,6 +3,7 @@
 namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Gate;
 use Modules\FieldOps\Http\Requests\StoreFieldOpsMediaRequest;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
@@ -26,6 +27,12 @@ class FieldOpsMediaController extends Controller
     {
         $modelClass = self::MODEL_MAP[$modelType];
         $model      = $modelClass::findOrFail($modelId);
+
+        // CLA-498: this route has no Eloquent-bound route parameter, so
+        // EnforceFieldOpsTenantAccess never authorizes it — the check has to happen
+        // here, once the model is resolved, and strictly before addMediaFromRequest()
+        // so no file/row persists when authorization fails.
+        Gate::authorize('media', $model);
 
         $media = $model
             ->addMediaFromRequest('file')

@@ -503,26 +503,65 @@ class FieldOpsTenantAuthorizationTest extends TestCase
         $this->assertInstanceOf(FieldOpsTenantPolicy::class, Gate::getPolicyFor(FoMaintenanceRequest::class));
     }
 
-    // fieldops.media/fieldops.ai are created as foundation by CLA-496 but are
-    // deliberately not enforced anywhere yet — CLA-498 (media) and CLA-502 (ai) are
-    // the tickets that will actually gate on them. These two tests pin today's
-    // (pre-CLA-498/CLA-502) behavior so that whoever implements those tickets sees
-    // this assertion flip and knows to update/remove it, instead of it silently
-    // passing for the wrong reason.
-    public function test_media_upload_is_not_yet_gated_by_fieldops_media_permission_pending_cla498(): void
+    // CLA-498: fieldops.media is now enforced by FieldOpsMediaController::store()
+    // (via FieldOpsInfrastructurePolicy::media()). Even a technician correctly
+    // scoped to the model's own client (canView() passes) is blocked without the
+    // capability permission itself — this was previously asserted as 201
+    // ("pending CLA-498"); inverted here now that the gate is real, and no media
+    // may persist when it's denied.
+    public function test_media_upload_requires_fieldops_media_permission_even_when_scoped_to_the_right_client(): void
     {
-        $a = $this->topology('Media inert CLA-498');
-        // technician scoped to their own client, WITHOUT fieldops.media granted.
+        $a = $this->topology('Media gated CLA-498');
+        // Migration 2026_08_29_037 unconditionally backfills the real `technician`
+        // role with fieldops.media (matches the approved production matrix) on every
+        // migrate:fresh, including the one RefreshDatabase runs for this test process
+        // — so the role already carries it before setUp()'s Role::firstOrCreate() even
+        // runs. Revoke it here, scoped to this test's own transaction only (rolled
+        // back afterwards, other tests still see the real baseline), to isolate the
+        // permission-check dimension from the ownership dimension this test is about.
         [, $token] = $this->internalUser('technician', $a['client']);
+        Role::findByName('technician', 'web')->revokePermissionTo('fieldops.media');
 
         $response = $this->withToken($token)->postJson(
             "/api/v1/fieldops/complexes/{$a['complex']->id}/media",
             ['collection' => 'photos', 'file' => \Illuminate\Http\UploadedFile::fake()->image('site.jpg')],
         );
 
-        $response->assertStatus(201); // pending CLA-498: will require fieldops.media
+        $response->assertForbidden();
+        $this->assertCount(0, $a['complex']->fresh()->getMedia('photos'));
     }
 
+    // CLA-498: the actual cross-tenant exploit traced in the ticket — a technician
+    // scoped only to Client A could upload media to Client B's equipment because
+    // the route had no Eloquent-bound parameter for the middleware to authorize.
+    public function test_technician_scoped_to_one_client_cannot_upload_media_to_another_clients_luminaire(): void
+    {
+        $a = $this->topology('Media A');
+        $b = $this->topology('Media B');
+        [, $tokenA] = $this->internalUser('technician', $a['client'], false, ['fieldops.media']);
+
+        // Denied cross-tenant: uploading to Client B's luminaire.
+        $denied = $this->withToken($tokenA)->postJson(
+            "/api/v1/fieldops/luminaires/{$b['luminaire']->id}/media",
+            ['collection' => 'photos', 'file' => \Illuminate\Http\UploadedFile::fake()->image('site.jpg')],
+        );
+        $denied->assertForbidden();
+        $this->assertCount(0, $b['luminaire']->fresh()->getMedia('photos'));
+
+        // Allowed within scope: the same technician uploading to their own client's luminaire.
+        $allowed = $this->withToken($tokenA)->postJson(
+            "/api/v1/fieldops/luminaires/{$a['luminaire']->id}/media",
+            ['collection' => 'photos', 'file' => \Illuminate\Http\UploadedFile::fake()->image('site.jpg')],
+        );
+        $allowed->assertStatus(201);
+        $this->assertCount(1, $a['luminaire']->fresh()->getMedia('photos'));
+    }
+
+    // fieldops.ai is created as foundation by CLA-496 but is deliberately not
+    // enforced anywhere yet — CLA-502 is the ticket that will actually gate on it.
+    // This test pins today's (pre-CLA-502) behavior so that whoever implements that
+    // ticket sees this assertion flip and knows to update/remove it, instead of it
+    // silently passing for the wrong reason.
     public function test_vision_endpoint_is_not_yet_gated_by_fieldops_ai_permission_pending_cla502(): void
     {
         $a = $this->topology('Vision inert CLA-502');
