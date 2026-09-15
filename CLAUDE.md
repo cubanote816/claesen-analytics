@@ -311,7 +311,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 
 ---
 
-## Sprint FieldOps — EN CURSO (rama de trabajo: `fieldops-backend-fixes`, menú "(Demo)")
+## Sprint FieldOps — EN CURSO (rama de trabajo: `fieldops-backend-fixes`)
 
 > Auditoria comparativa 2026-07-03 contra el satélite anterior `api-claesen-sport-app`. Ver `handoff.md` para el detalle completo.
 
@@ -319,7 +319,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 
 ### Estado
 
-`fo_admin` (Slices C.1→C.6a) ya está mezclado en `main` y `origin/main`. El menú "Field Operations" en Filament está marcado **"(Demo)"** (`lang/en,nl/navigation.php`, clave `navigation.groups.field_operations`) porque el módulo no tiene ningún consumidor real conectado todavía y le faltan dominios completos frente al sistema anterior.
+`fo_admin` (Slices C.1→C.6a) ya está mezclado en `main` y `origin/main`. El menú "Field Operations" en Filament ya **no** lleva la etiqueta "(Demo)" (`lang/en,nl/navigation.php`, clave `navigation.groups.field_operations`, CLA-541, 2026-09-15) — el módulo tiene consumidores reales en producción (Claesen-Client, portal PWA de mantenimiento; CLA-275/276) y la batería de seguridad CLA-496/497/498 está Done.
 
 ### Reglas FieldOps (no negociables)
 
