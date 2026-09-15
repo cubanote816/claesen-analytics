@@ -67,5 +67,6 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 | 2026-09-03 | CLA-532 | Implementación inicial — migración de `env()` a `config()` cache-safe. |
 | 2026-09-09 | CLA-532 | **Done** — CI certificada verde (1355/0/0/2). PR #9 sigue Draft. |
 | 2026-09-15 | CLA-536 | Auditoría del harness de IA + reorganización de `CLAUDE.md`/`handoff.md`/`docs/ai`/`.agent/skills` para reducir coste de tokens. |
+| 2026-09-15 | CLA-539 | Auditoría de la config `gentle-ai` (memoria `project_gentle_ai_audit`): `rdd_mode` apagado global, effort de los 25 subagentes de `pi` diferenciado por fase, Engram desactivado (solo auto-memory nativo). En el repo: archivado el histórico ticket-por-ticket de FieldOps (CLA-266 en adelante, mismo patrón CLA-536) a `docs/ai/fieldops-decisions-log.md` — `CLAUDE.md` pasó de 245KB a 46.7KB (−81%). |
 
 > Histórico completo de tickets anteriores (CLA-105 a CLA-517, sesiones de FieldOps/Mailing/Website/BI/Safety sin ticket formal, etc.) → `docs/ai/handoff-archive.md`.
