@@ -32,7 +32,19 @@ return [
         'http://localhost:5190',
     ])),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => array_values(array_filter([
+        // Túnel público (cloudflared trycloudflare.com) para probar el dev
+        // server en dispositivos fuera de la red local. Cualquiera puede
+        // levantar un túnel gratuito bajo este dominio con un subdominio
+        // aleatorio, así que este patrón nunca debe aplicar fuera de
+        // `local` — combinado con `supports_credentials`, en cualquier
+        // otro entorno sería CORS abierto a un origen no controlado por
+        // nosotros. Quitar cuando ya no se necesite exponer el frontend
+        // de dev.
+        env('APP_ENV') === 'local'
+            ? '#^https://[a-z0-9-]+\.trycloudflare\.com$#i'
+            : null,
+    ])),
 
     'allowed_headers' => ['*'],
 
