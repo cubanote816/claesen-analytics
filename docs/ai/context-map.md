@@ -126,16 +126,33 @@
 - `Prospect` — contacto/prospecto (fuente de verdad para audiencias Mailing)
 - `ProspectLocation`, `Region`, `SyncHistory`
 
+**Arquitectura de sync (CLA-535, 2026-09-15):** cada federación se sincroniza a través de un adapter que implementa `Contracts\FederationDataSource` (`fetchClubs(): NormalizedClub[]`, lanza `Exceptions\DataSourceException` en fallo). El resultado se normaliza a `DataObjects\NormalizedClub`/`DataObjects\ClubLocation` (validación de forma/prefijo de `external_id` en `NormalizedClub::fromArray()`) y se persiste vía `Services\ClubPersister` (upsert por `external_id`; ubicaciones keyed por `(prospect_id, external_id)`, tipo de contacto vía el enum `Support\ContactType`). Los comandos sin adapter propio (Hockey/TPV/VAL/LBFA, ver tabla abajo) siguen con scraping inline, pero comparten el ciclo de vida instrumentado de `Traits\LogsSyncEvents::guardedSync()` (CLA-535 Slice A).
+
+**Fuentes por federación:**
+
+| Federación | Fuente real | Adapter | Estado |
+|---|---|---|---|
+| RBFA (fútbol NL/FR) | GraphQL oficial | `DataSource\RbfaGraphqlSource` | Adapter con contrato — reemplaza el fetch inline |
+| AFT/AFTT (tenis) | PDF annuaire (`ep.aftt.be`) | `DataSource\AfttPdfSource` (vía `smalot/pdfparser`) | Adapter con contrato — reemplaza los 2 clubes fake hardcodeados (soft-retirados por migración) |
+| Bruselas (multideporte) | CSV catastro (`backend.datastore.brussels`, CC-BY 2.0) | `DataSource\BrusselsCadastreSource` | Adapter con contrato — cobertura nueva, antes inexistente; auxiliar (no pisa direcciones ya sincronizadas por una federación) |
+| Hockey belga | Scrape `hockey.be` | `SyncHockeyClubsCommand` (inline) | Sin adapter propio — solo hardening de errores/logging (Slice A/B) |
+| TPV | Scrape | `SyncTpvClubsCommand` (inline) | ídem |
+| VAL | Scrape | `SyncValClubsCommand` (inline) | ídem |
+| LBFA | Scrape | `SyncLbfaClubsCommand` (inline) | ídem |
+
 **Commands (sync federaciones):**
-- `prospects:sync-master` — orquesta todos los syncs
-- `prospects:sync-rbfa-graphql` — RBFA (fútbol belga)
+- `prospects:sync-master` — orquesta todos los syncs (`MasterSyncJob`, cadena de 7: LBFA → AFT → Hockey → TPV → VAL → RBFA → Bruselas)
+- `prospects:sync-rbfa-graphql` — RBFA (fútbol belga), vía `RbfaGraphqlSource`
 - `prospects:sync-lbfa` — LBFA (fútbol belga francófono)
-- `prospects:sync-aft` — AFT (tenis)
+- `prospects:sync-aft` — AFT/AFTT (tenis), vía `AfttPdfSource`
 - `prospects:sync-hockey` — Hockey belga
 - `prospects:sync-tpv`, `prospects:sync-val` — otras federaciones
+- `prospects:sync-brussels-clubs` — catastro deportivo de Bruselas, vía `BrusselsCadastreSource` (programado `monthlyOn(1, '04:00')`, no en la cadena diaria)
 
 **Jobs:**
-- `ExecuteSyncJob`, `MasterSyncJob`, `SendMasterSyncFinishedNotificationJob`
+- `ExecuteSyncJob`, `MasterSyncJob`, `MarkMasterSyncFailedJob` (marca la corrida maestra `failed` si la cadena revienta), `SendMasterSyncFinishedNotificationJob`
+
+**Gaps diferidos, sin ticket todavía (ver `docs/ai/known-risks.md`):** AFPadel (padel valón, `afpadel.be`, solo HTML) sigue fuera de `AfttPdfSource` — el comando AFT mezcla históricamente tenis+padel bajo el mismo nombre; Verenigingsregister (API oficial de Flandes) requiere API key + integración MAGDA; Sport Vlaanderen open-data no tiene URL de descarga directa confirmada en el portal público.
 
 **Relación con Mailing:** `mailing_messages.prospect_id` referencia `Prospect`. Mailing no duplica datos de contacto.
 

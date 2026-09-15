@@ -24,7 +24,7 @@
 | **Safety** | ✅ Sprint completado | `main` | `docs/safety-sprint-linear-tickets.md` |
 | **Performance** | 🚧 ~85% | `main` | `docs/ai/handoff-archive.md` |
 | **Intelligence / BI** | ✅ Sprint 1+2B completados | `main` | `docs/bi-sprint-plan.md` |
-| **Prospects** | 🚧 ~80% | `main` | `docs/ai/handoff-archive.md` |
+| **Prospects** | 🚧 CLA-535 (refactor de fuentes de federación) — 7 slices Done, docs cerrando F | `audit/prospects-module` | `docs/ai/context-map.md` |
 | **Cafca** | ✅ ~90% | `main` | `docs/ai/handoff-archive.md` |
 | **Core** | ✅ ~99% | `main` | `docs/ai/handoff-archive.md` |
 | **FieldOps** | 🚧 batería de seguridad en curso (CLA-496/497 Done, CLA-498 pendiente de GO) | `main` | `docs/ai/handoff-archive.md` |
@@ -68,5 +68,6 @@ Ver `docs/ai/known-risks.md` para el detalle completo.
 | 2026-09-09 | CLA-532 | **Done** — CI certificada verde (1355/0/0/2). PR #9 sigue Draft. |
 | 2026-09-15 | CLA-536 | Auditoría del harness de IA + reorganización de `CLAUDE.md`/`handoff.md`/`docs/ai`/`.agent/skills` para reducir coste de tokens. |
 | 2026-09-15 | CLA-539 | Auditoría de la config `gentle-ai` (memoria `project_gentle_ai_audit`): `rdd_mode` apagado global, effort de los 25 subagentes de `pi` diferenciado por fase, Engram desactivado (solo auto-memory nativo). En el repo: archivado el histórico ticket-por-ticket de FieldOps (CLA-266 en adelante, mismo patrón CLA-536) a `docs/ai/fieldops-decisions-log.md` — `CLAUDE.md` pasó de 245KB a 46.7KB (−81%). |
+| 2026-09-15 | CLA-535 | Refactor completo de adquisición de datos de Prospects (SDD, rama `audit/prospects-module`, 7 slices A→B→D1→D2→C→E→F): arquitectura `FederationDataSource`/`NormalizedClub`/`ClubPersister` (ver `docs/ai/context-map.md`), adapters reales para RBFA/AFTT-PDF/Bruselas-CSV (nueva cobertura), fix de bugs de datos (idioma Hockey, provincias RBFA faltantes, región AFT), hardening de observabilidad (`guardedSync`, notificación de fallo de cadena maestra), y fix colateral de `region_id NOT NULL` en `LeadService`. Gaps diferidos (AFPadel/Verenigingsregister/Sport Vlaanderen) documentados en `docs/ai/known-risks.md`. Suite Prospects 118/118 (329 assertions); suite completa del repo 1446/1446 sin fallos (stack Docker aislado `claesen_api_web_oficial-*`, puertos alternos, sin tocar el otro checkout del mismo repo). Pendiente: GO técnico y commit dedicado. |
 
 > Histórico completo de tickets anteriores (CLA-105 a CLA-517, sesiones de FieldOps/Mailing/Website/BI/Safety sin ticket formal, etc.) → `docs/ai/handoff-archive.md`.

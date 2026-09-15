@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Prospects\Models\SyncHistory;
 use Modules\Prospects\Traits\LogsSyncEvents;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -16,9 +17,43 @@ class StubSyncCommand extends Command
     use LogsSyncEvents;
 
     protected $signature = 'test:stub-sync';
+
     protected $description = 'Test stub';
 
     public function handle(): void {}
+
+    // Public test seams for the protected trait API (Slice A2 — logging-core).
+    public function persistForTest(): void
+    {
+        $this->markPersisted();
+    }
+
+    public function failForTest(): void
+    {
+        $this->markFailed();
+    }
+
+    public function guardedForTest(callable $body): int
+    {
+        return $this->guardedSync($body);
+    }
+}
+
+/**
+ * Stub exercising the guardedSync failure lifecycle without external HTTP.
+ */
+class StubSyncCommandGuard extends StubSyncCommand
+{
+    protected $signature = 'test:stub-sync-guard';
+
+    protected $description = 'Test stub exercising the guardedSync lifecycle';
+
+    public function handleWithThrow(): void
+    {
+        $this->guardedSync(function (): void {
+            throw new RuntimeException('Source unavailable');
+        });
+    }
 }
 
 class LogsSyncEventsTest extends TestCase
@@ -27,7 +62,7 @@ class LogsSyncEventsTest extends TestCase
 
     private function stub(): StubSyncCommand
     {
-        return new StubSyncCommand();
+        return new StubSyncCommand;
     }
 
     // -------------------------------------------------------------------------
@@ -42,7 +77,7 @@ class LogsSyncEventsTest extends TestCase
         $this->assertDatabaseCount('prospects_sync_histories', 1);
         $this->assertDatabaseHas('prospects_sync_histories', [
             'command' => 'test:stub-sync',
-            'status'  => 'running',
+            'status' => 'running',
         ]);
     }
 
@@ -50,15 +85,15 @@ class LogsSyncEventsTest extends TestCase
     {
         $history = SyncHistory::create([
             'command' => 'prospects:sync-lbfa-clubs',
-            'status'  => 'pending',
-            'logs'    => [],
+            'status' => 'pending',
+            'logs' => [],
         ]);
 
         $cmd = $this->stub();
         $cmd->startSyncLog(null, $history->id);
 
         $this->assertDatabaseHas('prospects_sync_histories', [
-            'id'     => $history->id,
+            'id' => $history->id,
             'status' => 'running',
         ]);
         // Only the one record — no duplicate created
@@ -79,8 +114,8 @@ class LogsSyncEventsTest extends TestCase
 
         $history = SyncHistory::create([
             'command' => 'prospects:sync-lbfa-clubs',
-            'status'  => 'running',
-            'logs'    => $existingLogs,
+            'status' => 'running',
+            'logs' => $existingLogs,
         ]);
 
         $cmd = $this->stub();
@@ -179,6 +214,142 @@ class LogsSyncEventsTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // Slice A2 — immediate error persistence (no crash-loss window)
+    // -------------------------------------------------------------------------
+
+    public function test_error_log_flushes_immediately(): void
+    {
+        $cmd = $this->stub();
+        $cmd->startSyncLog(null, null);
+
+        // Stay below the 5-event batch threshold — the error must still be persisted.
+        $cmd->logSyncEvent('Progress 1');
+        $cmd->logSyncEvent('Progress 2');
+        $cmd->logSyncEvent('Club ACME exploded', 'error', '❌');
+
+        $history = SyncHistory::where('command', 'test:stub-sync')->first();
+        $messages = array_column($history->fresh()->logs, 'message');
+        $this->assertContains('Club ACME exploded', $messages);
+    }
+
+    public function test_flush_sync_log_persists_buffer_below_threshold(): void
+    {
+        $cmd = $this->stub();
+        $cmd->startSyncLog(null, null);
+        $cmd->logSyncEvent('Progress 1');
+        $cmd->logSyncEvent('Progress 2');
+
+        $cmd->flushSyncLog();
+
+        $history = SyncHistory::where('command', 'test:stub-sync')->first();
+        // Starting entry + 2 progress entries — flushed on demand, below the threshold.
+        $this->assertCount(3, $history->fresh()->logs);
+    }
+
+    // -------------------------------------------------------------------------
+    // Slice A2 — persisted / failed counters
+    // -------------------------------------------------------------------------
+
+    public function test_persisted_and_failed_counts_tracked(): void
+    {
+        $cmd = $this->stub();
+        $cmd->startSyncLog(null, null);
+
+        $cmd->persistForTest();
+        $cmd->persistForTest();
+        $cmd->failForTest();
+
+        // records_count is fed with the persisted tally (persisted successes), not attempts.
+        $cmd->finishSyncLog(2);
+
+        $history = SyncHistory::where('command', 'test:stub-sync')->first();
+        $this->assertSame(2, $history->records_count);
+
+        $lastLog = last($history->logs);
+        $this->assertStringContainsString('processed 3 | persisted 2 | failed 1', $lastLog['message']);
+        $this->assertSame('success', $lastLog['type']);
+    }
+
+    public function test_start_sync_log_resets_counters(): void
+    {
+        $cmd = $this->stub();
+        $cmd->startSyncLog(null, null);
+        $cmd->persistForTest();
+        $cmd->failForTest();
+
+        // New run reusing the same history — counters must have been reset.
+        $history = SyncHistory::where('command', 'test:stub-sync')->first();
+        $cmd->startSyncLog(null, $history->id);
+
+        $cmd->persistForTest();
+        $cmd->finishSyncLog(1);
+
+        $fresh = $history->fresh();
+        $this->assertSame(1, $fresh->records_count);
+
+        $lastLog = last($fresh->logs);
+        // Without a reset this would read "processed 3 | persisted 2 | failed 1".
+        $this->assertStringContainsString('processed 1 | persisted 1 | failed 0', $lastLog['message']);
+    }
+
+    // -------------------------------------------------------------------------
+    // Slice A2 — guardedSync lifecycle (fail + rethrow / exit-code plumbing)
+    // -------------------------------------------------------------------------
+
+    public function test_guarded_sync_marks_failed_and_rethrows(): void
+    {
+        $cmd = new StubSyncCommandGuard;
+        $cmd->startSyncLog(null, null);
+
+        try {
+            $cmd->handleWithThrow();
+            $this->fail('Expected RuntimeException to propagate out of guardedSync');
+        } catch (RuntimeException $e) {
+            $this->assertSame('Source unavailable', $e->getMessage());
+        }
+
+        $history = SyncHistory::where('command', 'test:stub-sync-guard')->first();
+        $this->assertSame('failed', $history->status);
+        $this->assertNotNull($history->finished_at);
+
+        $lastLog = last($history->logs);
+        $this->assertSame('error', $lastLog['type']);
+        $this->assertStringContainsString('Source unavailable', $lastLog['message']);
+    }
+
+    public function test_guarded_sync_returns_body_exit_code_without_marking_history(): void
+    {
+        $cmd = $this->stub();
+        $cmd->startSyncLog(null, null);
+
+        $exit = $cmd->guardedForTest(fn () => Command::FAILURE);
+
+        $this->assertSame(Command::FAILURE, $exit);
+
+        // The body did not finish or fail the history — the guard must not
+        // falsely mark success (or failure) on the body's behalf.
+        $history = SyncHistory::where('command', 'test:stub-sync')->first();
+        $this->assertSame('running', $history->status);
+        $this->assertNull($history->finished_at);
+    }
+
+    public function test_guarded_sync_success_path_preserves_normal_finish_behavior(): void
+    {
+        $cmd = $this->stub();
+        $cmd->startSyncLog(null, null);
+
+        // Integer body result is returned as-is.
+        $this->assertSame(Command::SUCCESS, $cmd->guardedForTest(fn () => Command::SUCCESS));
+
+        // A void body (handle() returning nothing) maps to SUCCESS, never a fake finish.
+        $this->assertSame(Command::SUCCESS, $cmd->guardedForTest(function (): void {}));
+
+        $history = SyncHistory::where('command', 'test:stub-sync')->first();
+        $this->assertSame('running', $history->status);
+        $this->assertNull($history->finished_at);
+    }
+
+    // -------------------------------------------------------------------------
     // Recovery actions — SyncHistory model (mark_failed / mark_completed)
     // -------------------------------------------------------------------------
 
@@ -186,26 +357,26 @@ class LogsSyncEventsTest extends TestCase
     {
         $history = SyncHistory::create([
             'command' => 'prospects:sync-lbfa-clubs',
-            'status'  => 'pending',
-            'logs'    => [],
+            'status' => 'pending',
+            'logs' => [],
         ]);
 
-        $logs   = $history->logs ?? [];
+        $logs = $history->logs ?? [];
         $logs[] = [
-            'time'    => now()->format('H:i:s'),
+            'time' => now()->format('H:i:s'),
             'message' => 'Manually marked as failed',
-            'type'    => 'error',
-            'icon'    => '🛑',
+            'type' => 'error',
+            'icon' => '🛑',
         ];
 
         $history->update([
-            'status'      => 'failed',
+            'status' => 'failed',
             'finished_at' => now(),
-            'logs'        => $logs,
+            'logs' => $logs,
         ]);
 
         $this->assertDatabaseHas('prospects_sync_histories', [
-            'id'     => $history->id,
+            'id' => $history->id,
             'status' => 'failed',
         ]);
 
@@ -218,28 +389,28 @@ class LogsSyncEventsTest extends TestCase
     public function test_mark_completed_updates_running_to_completed_with_log_appended(): void
     {
         $history = SyncHistory::create([
-            'command'    => 'prospects:sync-lbfa-clubs',
-            'status'     => 'running',
+            'command' => 'prospects:sync-lbfa-clubs',
+            'status' => 'running',
             'started_at' => now(),
-            'logs'       => [],
+            'logs' => [],
         ]);
 
-        $logs   = $history->logs ?? [];
+        $logs = $history->logs ?? [];
         $logs[] = [
-            'time'    => now()->format('H:i:s'),
+            'time' => now()->format('H:i:s'),
             'message' => 'Manually marked as completed',
-            'type'    => 'success',
-            'icon'    => '✅',
+            'type' => 'success',
+            'icon' => '✅',
         ];
 
         $history->update([
-            'status'      => 'completed',
+            'status' => 'completed',
             'finished_at' => now(),
-            'logs'        => $logs,
+            'logs' => $logs,
         ]);
 
         $this->assertDatabaseHas('prospects_sync_histories', [
-            'id'     => $history->id,
+            'id' => $history->id,
             'status' => 'completed',
         ]);
 

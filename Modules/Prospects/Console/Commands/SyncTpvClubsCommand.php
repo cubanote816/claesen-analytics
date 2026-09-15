@@ -24,7 +24,7 @@ class SyncTpvClubsCommand extends Command
     {
         parent::__construct();
         $this->client = $client ?? new Client([
-            'verify'          => false,
+            'verify'          => true,
             'timeout'         => 20,
             'connect_timeout' => 5,
             'headers'         => [
@@ -33,10 +33,11 @@ class SyncTpvClubsCommand extends Command
         ]);
     }
 
-    public function handle()
+    public function handle(): int
     {
-        $this->startSyncLog($this->option('user'), $this->option('history'));
-        $this->info('Starting Tennis & Padel Vlaanderen synchronization...');
+        return $this->guardedSync(function (): int {
+            $this->startSyncLog($this->option('user'), $this->option('history'));
+            $this->info('Starting Tennis & Padel Vlaanderen synchronization...');
 
         $offset = 0;
         $itemsPerPage = 100;
@@ -91,10 +92,18 @@ class SyncTpvClubsCommand extends Command
 
             } catch (\Exception $e) {
                 $this->error("Error fetching list: " . $e->getMessage());
-                break;
+                throw $e;
             }
 
         } while ($offset < 1000); // Safety limit
+
+        if ($offset >= 1000) {
+            $this->logSyncEvent(
+                'TPV pagination safety cap reached at offset 1000 — results may be truncated.',
+                'warning',
+                '⚠️'
+            );
+        }
 
         $count = count($allClubs);
         $this->info("Found " . $count . " clubs to sync details.");
@@ -107,9 +116,11 @@ class SyncTpvClubsCommand extends Command
             $this->logSyncEvent("Syncing [{$syncedCount}/{$count}]: {$club['name']}", 'info', '🔄');
             try {
                 $this->syncClubDetails($club);
+                $this->markPersisted();
                 //$bar->advance();
                 usleep(300000); // 300ms
             } catch (\Exception $e) {
+                $this->markFailed();
                 $this->error("\nError syncing club {$club['name']}: " . $e->getMessage());
                 $this->logSyncEvent("Error syncing {$club['name']}: {$e->getMessage()}", 'error', '⚠️');
             }
@@ -129,12 +140,15 @@ class SyncTpvClubsCommand extends Command
             ->count();
 
         $this->logSyncEvent(
-            "Quality: {$syncedCount}/{$count} processed | non-fallback region: {$withRealRegion}/{$totalInDb} | real website: {$withRealWebsite}/{$totalInDb}",
+            "Quality: processed {$syncedCount} | persisted {$this->persistedCount} | failed {$this->failedCount} | non-fallback region: {$withRealRegion}/{$totalInDb} | real website: {$withRealWebsite}/{$totalInDb}",
             'info',
             '📊'
         );
 
-        $this->finishSyncLog($count);
+            $this->finishSyncLog($this->persistedCount);
+
+            return self::SUCCESS;
+        });
     }
 
     protected function syncClubDetails($club)

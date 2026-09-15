@@ -28,6 +28,7 @@ class SyncDashboardPage extends Page
         ['command' => 'prospects:sync-tpv-clubs',    'label' => 'TPV',    'sport' => 'Tennis & Padel', 'icon' => '🎾'],
         ['command' => 'prospects:sync-val-clubs',    'label' => 'VAL',    'sport' => 'Atletiek NL',    'icon' => '🏃'],
         ['command' => 'prospects:sync-rbfa-graphql', 'label' => 'RBFA',   'sport' => 'Football',       'icon' => '⚽'],
+        ['command' => 'prospects:sync-brussels-clubs', 'label' => 'Brussels Cadastre', 'sport' => 'Infrastructure', 'icon' => '🏟️'],
     ];
 
     public array $federations = [];

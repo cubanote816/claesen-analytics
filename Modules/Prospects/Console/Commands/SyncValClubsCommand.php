@@ -19,19 +19,20 @@ class SyncValClubsCommand extends Command
     protected $signature = 'prospects:sync-val-clubs {--limit= : Limit the number of clubs to sync} {--user= : User ID who triggered the sync} {--history= : Existing sync history record ID}';
     protected $description = 'Sync athletics clubs from Vlaamse Atletiekliga (VAL) - atletiek.be';
 
-    public function handle(): void
+    public function handle(): int
     {
-        $this->startSyncLog($this->option('user'), $this->option('history'));
-        $this->info('Starting VAL athletics clubs synchronization...');
+        return $this->guardedSync(function (): int {
+            $this->startSyncLog($this->option('user'), $this->option('history'));
+            $this->info('Starting VAL athletics clubs synchronization...');
 
-        $baseUrl = 'https://www.atletiek.be';
-        $listUrl = "{$baseUrl}/organisatie/clubs";
-
-        try {
+            $baseUrl = 'https://www.atletiek.be';
+            $listUrl = "{$baseUrl}/organisatie/clubs";
             $response = Http::get($listUrl);
             if (!$response->successful()) {
-                $this->error("Failed to fetch club list: {$response->status()}");
-                return;
+                $errorMessage = "Failed to fetch club list: {$response->status()}";
+                $this->error($errorMessage);
+                $this->failSyncLog($errorMessage);
+                return self::FAILURE;
             }
 
             $crawler = new Crawler($response->body());
@@ -61,12 +62,10 @@ class SyncValClubsCommand extends Command
 
             $this->newLine();
             $this->info('Synchronization completed successfully.');
-            $this->finishSyncLog($count);
+            $this->finishSyncLog($this->persistedCount);
 
-        } catch (\Exception $e) {
-            $this->error("Error during synchronization: {$e->getMessage()}");
-            $this->failSyncLog($e->getMessage());
-        }
+            return self::SUCCESS;
+        });
     }
 
     protected function syncClub(string $url): void
@@ -74,6 +73,12 @@ class SyncValClubsCommand extends Command
         try {
             $response = Http::get($url);
             if (!$response->successful()) {
+                $this->markFailed();
+                $this->logSyncEvent(
+                    "Error: VAL club {$url} failed with HTTP {$response->status()}",
+                    'error',
+                    '❌'
+                );
                 return;
             }
 
@@ -95,20 +100,29 @@ class SyncValClubsCommand extends Command
                 } elseif ($sectionName === 'secretaris') {
                     $contactInfo['secretary'] = trim(str_replace('Naam:', '', $contentNode->text()));
                 } elseif ($sectionName === 'terreinen') {
-                    // Terreinen are often multiple nodes
                     $contactInfo['locations'] = [];
-                    $header->nextAll()->each(function (Crawler $node) use (&$contactInfo) {
-                        if ($node->nodeName() === 'h5') return false; // Stop at next section
-                        if (Str::contains($node->text(), 'Type:')) {
-                            // This looks like a location block
-                            $lines = explode("\n", trim($node->text()));
-                            $contactInfo['locations'][] = [
-                                'name' => $lines[0] ?? 'Terrein',
-                                'address' => implode(', ', array_slice($lines, 1, -1)),
-                                'type_info' => trim(str_replace('Type:', '', end($lines)))
-                            ];
+                    $node = $header->getNode(0)?->nextSibling;
+
+                    while ($node && strtolower($node->nodeName) !== 'h5') {
+                        if ($node->nodeType === XML_ELEMENT_NODE) {
+                            $locationNode = new Crawler($node);
+                            $text = trim($locationNode->text(null, false));
+
+                            if (Str::contains($text, 'Type:')) {
+                                $lines = array_values(array_filter(array_map(
+                                    'trim',
+                                    preg_split('/\R+/', $text) ?: []
+                                )));
+                                $contactInfo['locations'][] = [
+                                    'name' => $lines[0] ?? 'Terrein',
+                                    'address' => implode(', ', array_slice($lines, 1, -1)),
+                                    'type_info' => trim(str_replace('Type:', '', end($lines))),
+                                ];
+                            }
                         }
-                    });
+
+                        $node = $node->nextSibling;
+                    }
                 }
             });
 
@@ -139,7 +153,7 @@ class SyncValClubsCommand extends Command
             // Locations
             // For now, let's just clear and re-add or update based on name
             if (!empty($contactInfo['locations'])) {
-                foreach ($contactInfo['locations'] as $loc) {
+                foreach ($contactInfo['locations'] as $index => $loc) {
                     ProspectLocation::updateOrCreate(
                         [
                             'prospect_id' => $prospect->id,
@@ -148,15 +162,22 @@ class SyncValClubsCommand extends Command
                         [
                             'contact_type' => 'venue_name',
                             'contact_name' => $contactInfo['secretary'] ?? null,
-                            'email' => $contactInfo['email'] ?? null,
+                            'email' => $index === 0 ? ($contactInfo['email'] ?? null) : null,
                             'phone' => null, // Phone is rarely on the page in a structured way
                         ]
                     );
                 }
             }
 
+            $this->markPersisted();
         } catch (\Exception $e) {
-            // Log or ignore specific club failure
+            $this->markFailed();
+            $this->logSyncEvent(
+                "Error: VAL club {$url} failed: {$e->getMessage()}",
+                'error',
+                '❌'
+            );
+            $this->error("VAL club {$url} failed: {$e->getMessage()}");
         }
     }
 

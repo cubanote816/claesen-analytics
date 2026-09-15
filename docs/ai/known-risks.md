@@ -59,6 +59,34 @@
 
 ---
 
+## Riesgos abiertos — Módulo Prospects
+
+### Fuentes de datos de federaciones sin API oficial (Hockey/TPV/VAL/LBFA)
+
+**Riesgo:** a diferencia de RBFA (GraphQL oficial), AFT/AFTT (PDF publicado) y Bruselas (CSV open-data, CLA-535), las federaciones Hockey belga, TPV, VAL y LBFA no tienen ninguna API pública — sus comandos (`SyncHockeyClubsCommand`/`SyncTpvClubsCommand`/`SyncValClubsCommand`/`SyncLbfaClubsCommand`) siguen haciendo scraping HTML inline, sin adapter `FederationDataSource` propio. Un cambio de layout en cualquiera de esos sitios rompe el sync correspondiente sin aviso más allá de los logs de `SyncHistory`.
+**Mitigación actual:** CLA-535 Slice A/B añadió logging de error por-club y `guardedSync()` (ciclo de vida instrumentado) a los 4 comandos, así que un fallo ya no queda silencioso — pero no resuelve la fragilidad estructural del scraping en sí.
+**Pendiente:** no hay ticket abierto para migrar estos 4 a un adapter propio — evaluar solo si el negocio confirma degradación real de estas fuentes.
+
+### AFPadel (padel valón) no cubierto — mezclado históricamente con AFT/AFTT
+
+**Riesgo:** `AfttPdfSource` (CLA-535 Slice C) cubre tenis (AFTT) vía el annuaire PDF oficial, pero el padel valón (AFPadel, `afpadel.be`) es una federación separada, solo accesible vía scrape HTML — nunca tuvo un adapter ni un comando propio; el comando `prospects:sync-aft` histórico solo cubría tenis pese al nombre genérico "AFT".
+**Estado:** documentado como gap conocido, sin ticket — investigado en la research de CLA-535 (`openspec/changes/prospects-federation-refactor/research.md`), fuera de alcance de la implementación (7 slices ya cerrados).
+**Acción requerida:** ticket nuevo si el negocio prioriza cobertura de padel; requeriría un adapter HTML dedicado (mismo patrón de `FederationDataSource`).
+
+### Verenigingsregister (Flandes) requiere API key — no es un bloqueador de código
+
+**Riesgo:** la API oficial de clubes de Flandes (`publiek.verenigingen.vlaanderen.be`) es JSON-LD y pública en su documentación, pero el acceso completo requiere una API key con integración MAGDA (gubernamental) — no se puede automatizar sin gestión administrativa externa al equipo técnico.
+**Estado:** verificado en la research de CLA-535, no implementado — es trabajo operativo (solicitar la key), no una tarea de desarrollo bloqueada por código.
+**Pendiente:** decisión de negocio sobre si vale la pena tramitar el acceso; sin eso, Flandes sigue cubierta solo por RBFA/Hockey/TPV/VAL.
+
+### Sport Vlaanderen open-data sin URL de descarga directa confirmada
+
+**Riesgo:** el portal `sport.vlaanderen/kennisplatform/open-data/` existe como fuente secundaria potencial para Flandes, pero no expone una URL de descarga directa en su landing page (a diferencia del CSV de Bruselas o el PDF de AFTT) — requeriría investigación adicional para confirmar si el dataset es descargable de forma estable/programática.
+**Estado:** verificado como "portal existe, sin URL confirmada" en la research de CLA-535 — no implementado, no bloqueante para el trabajo ya cerrado (RBFA/AFTT/Bruselas cubren la cadena actual).
+**Pendiente:** revisitar solo si Verenigingsregister no es viable y se necesita una fuente alternativa para Flandes.
+
+---
+
 ## Riesgos abiertos — Módulo Cafca / ERP
 
 ### Dependencia de SQL Server legacy
