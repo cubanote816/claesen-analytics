@@ -118,4 +118,24 @@ class SyncHockeyClubsCommandTest extends TestCase
             'name' => 'Surviving Hockey',
         ]);
     }
+
+    public function test_real_clubs_data_contains_no_test_placeholder_entries(): void
+    {
+        $command = new SyncHockeyClubsCommand;
+        $property = new \ReflectionProperty($command, 'clubsData');
+        $property->setAccessible(true);
+
+        /** @var array<int, array{0: string, 1: string, 2: string}> $clubsData */
+        $clubsData = $property->getValue($command);
+
+        $this->assertNotEmpty($clubsData);
+
+        foreach ($clubsData as $club) {
+            $this->assertStringNotContainsStringIgnoringCase(
+                'test',
+                $club[0],
+                "Real hockey club list must not ship placeholder/test entries to production (found \"{$club[0]}\")."
+            );
+        }
+    }
 }

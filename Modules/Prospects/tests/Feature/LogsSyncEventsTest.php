@@ -192,6 +192,26 @@ class LogsSyncEventsTest extends TestCase
         $this->assertSame('success', $lastLog['type']);
     }
 
+    public function test_finish_sync_log_accumulates_records_count_across_chained_commands(): void
+    {
+        // Reproduces MasterSyncJob: multiple commands share one SyncHistory
+        // row (the same $historyId passed to each ExecuteSyncJob), each
+        // calling finishSyncLog() on its own instance. records_count must
+        // sum across the chain, not be overwritten by whichever command
+        // finishes last.
+        $first = $this->stub();
+        $first->startSyncLog(null, null);
+        $first->finishSyncLog(5);
+
+        $history = SyncHistory::where('command', 'test:stub-sync')->first();
+
+        $second = $this->stub();
+        $second->startSyncLog(null, $history->id);
+        $second->finishSyncLog(3);
+
+        $this->assertSame(8, $history->fresh()->records_count);
+    }
+
     // -------------------------------------------------------------------------
     // failSyncLog
     // -------------------------------------------------------------------------

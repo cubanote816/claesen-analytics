@@ -121,8 +121,6 @@ class SyncHockeyClubsCommand extends Command
         ["Stix", "CC6VK97", "Vlaamse Hockey Liga"],
         ["Sukkelweg", "CC6VB27", "Ligue Francophone de Hockey"],
         ["Taxandria", "CC6VJ1U", "Vlaamse Hockey Liga"],
-        ["Testvereniging 1", "CD7MX2C", "Vlaamse Hockey Liga"],
-        ["Testvereniging 2", "CD7MX4E", "Ligue Francophone de Hockey"],
         ["Tournai", "CC6VD6H", "Ligue Francophone de Hockey"],
         ["Uccle Sport", "CC6VB38", "Ligue Francophone de Hockey"],
         ["Urban Hockey", "CG0CN8Q", "Vlaamse Hockey Liga"],

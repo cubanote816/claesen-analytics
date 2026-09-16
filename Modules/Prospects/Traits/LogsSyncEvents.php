@@ -102,9 +102,15 @@ trait LogsSyncEvents
 
         $this->logSyncEvent("Synchronization completed. Processed {$recordsCount} records.{$breakdown}", 'success', '🏁');
 
-        $this->syncHistory?->update([
+        // increment(), not update(): the master chain shares one SyncHistory
+        // row across all federations, each calling finishSyncLog() in turn.
+        // An update() here would overwrite the running total with just this
+        // command's count, so the row would end up reporting only the last
+        // federation that ran. increment() adds this command's tally onto
+        // whatever the previous commands in the chain already accumulated
+        // (0 for a standalone, non-chained run).
+        $this->syncHistory?->increment('records_count', $recordsCount, [
             'status' => 'completed',
-            'records_count' => $recordsCount,
             'logs' => $this->accumulatedLogs,
             'finished_at' => Carbon::now(),
         ]);
