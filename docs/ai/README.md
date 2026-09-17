@@ -37,6 +37,7 @@ Leer siempre en este orden:
 | Revisar código de un PR | `docs/ai/code-review-rubric.md` |
 | Preparar deploy / staging | `docs/ai/production-readiness.md` |
 | Migración a Laravel 13 | `docs/ai/laravel-13-readiness.md` |
+| **Multiempresa Claesen/Electro Bertels (cualquier fase P0–P7)** | **`docs/ai/adr-multi-organization.md` ← leer antes de tocar organización, sitio, contexto o enforcement** |
 | Riesgos y deuda técnica | `docs/ai/known-risks.md` |
 | Comandos Artisan | `docs/ai/commands-runbook.md` |
 | Prompts reutilizables | `docs/ai/prompt-templates.md` |
@@ -57,6 +58,7 @@ Leer siempre en este orden:
 | `testing-checklists.md` | Checklists técnicos por tipo de cambio y módulo (referenciados desde el test-gate) |
 | `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
 | `laravel-13-readiness.md` | Baseline de PHP/Composer, entornos y riesgos para el programa CLA-514 |
+| `adr-multi-organization.md` | ADR de separación multiempresa Claesen/Electro Bertels: decisiones, secuencia de fases, enforcement, rollback y preguntas abiertas |
 | `laravel-13-compatibility-matrix.md` | Matriz exacta de dependencias, lockfile objetivo y gate previo a CLA-519 |
 | `laravel-13-staging-certification.md` | Checklist de ejecución de CLA-525 (E2E por rol, subsistemas) + ensayo de rollback y rediseño del health check (CLA-523) |
 | `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, Testing Gate, reglas por módulo |
