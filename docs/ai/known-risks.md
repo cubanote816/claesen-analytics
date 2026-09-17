@@ -25,17 +25,20 @@
 
 ## Riesgos abiertos — Módulo Mailing
 
-### Mailing es el único módulo compartido con Electro Bertels (decisión 2026-09-17)
+### De Mailing se comparte el transporte transaccional, no la plataforma de campañas (decisión 2026-09-17)
 
-**Estado:** decidido a nivel de arquitectura (ADR D11), sin implementar. El módulo sigue funcionando como hoy, 100 % Claesen.
-**Consecuencia:** Mailing deja de ser Claesen-only y pasa a necesitar `organization_id` en campañas, plantillas, supresión, preferencias y alertas. En P5b **no** debe recibir el middleware `organization:claesen`: eso bloquearía a Bertels justo en el módulo que sí comparte.
-**Riesgos concretos si se comparte sin ese trabajo previo:**
-- **Audiencia (bloqueante).** `SegmentResolverService` está cableado a `prospects_prospects` (CRM de federaciones de Claesen) y `mailing_messages.prospect_id` apunta ahí. Enviar desde Bertels a esa lista es fuga de datos y uso de un consentimiento ajeno (RGPD).
-- **Identidad remitente.** Un único buzón Graph y un único `config('app.mailing_driver')` global: el correo de Bertels saldría con la identidad de Claesen, degradando entregabilidad y confundiendo quién es el responsable del tratamiento.
+**Estado:** decidido a nivel de arquitectura (ADR D11), sin implementar. Mailing sigue funcionando como hoy, 100 % Claesen.
+
+**Alcance real:** Bertels usará el mailer `microsoft-graph` + `MicrosoftGraphTransport` + Laravel Mail para su correo transaccional (aviso interno de lead y confirmación al cliente). **No** usará campañas, audiencias, supresión, plantillas versionadas, A/B ni follow-ups. Por eso **ninguna tabla `mailing_*` recibe `organization_id`**, y en P5b Mailing **sí** entra en la lista de módulos con middleware `organization:claesen` (sus rutas públicas por token son de prospects de Claesen por construcción).
+
+**Trabajo pendiente, en F4/CLA-473:** remitente y nombre visible por sitio — `NewConsultationRequestMail::envelope()` no fija From, así que cae a `config('mail.from.address')`, y `MicrosoftGraphTransport::getPayload()` toma `'name'` de `config('mail.from.name')` **siempre**, de modo que un correo de Bertels mostraría el nombre de Claesen incluso con la dirección corregida; destinatario interno por sitio (`config('website.consultation_notification_email')` es único global, CLA-532); plantilla y marca propias; **la confirmación al cliente no existe todavía**; y permiso de Graph para enviar como el buzón de Bertels (`POST /users/{buzón}/sendMail`).
+
+**Riesgo condicional — solo si algún día se aprueban campañas para Bertels.** Entonces vuelven íntegros estos bloqueantes, todos verificados en código:
+- **Audiencia.** `SegmentResolverService` está cableado a `prospects_prospects` (CRM de federaciones de Claesen) y `mailing_messages.prospect_id` apunta ahí: enviar desde Bertels a esa lista sería fuga de datos y uso de un consentimiento ajeno (RGPD).
 - **Baja y supresión.** `mailing_suppression_list.email` es UNIQUE global y `config('mailing.unsubscribe_domain')` tiene un único valor (`claesen-verlichting.be`, usado en el `mailto:afmelden@…` de `ProspectCampaignMail`): una baja de Claesen daría de baja de Bertels y al revés.
-- **Marca.** `campaign.blade.php`/`unsubscribe.blade.php`/`preferences.blade.php` embeden `brand-logo-dark.png` con el alt «Claesen Outdoor Lighting».
+- **Marca y plantillas.** `campaign.blade.php`/`unsubscribe.blade.php`/`preferences.blade.php` embeden `brand-logo-dark.png` con el alt «Claesen Outdoor Lighting»; `email_templates.name` es UNIQUE global.
 - **Acceso.** `CampaignResource::canAccess()` es `auth()->check()`: cualquier usuario con panel vería las campañas de ambas empresas.
-- **Destinatarios de alertas.** `CheckDeliverabilityAlertsCommand` notifica por roles globales `super_admin`/`admin`/`campaign_manager` — y `campaign_manager` **no existe** en `RolesAndPermissionsSeeder`, así que hoy solo alcanza a los dos primeros (benigno mientras haya una sola empresa; cross-org en cuanto haya dos).
+- **Destinatarios de alertas.** `CheckDeliverabilityAlertsCommand` notifica por roles globales `super_admin`/`admin`/`campaign_manager`, y `campaign_manager` **no existe** en `RolesAndPermissionsSeeder` (hoy benigno: alcanza solo a los dos primeros).
 
 ### Ciclos indirectos en follow-ups
 
@@ -249,9 +252,9 @@ Los resources de Website (`ConsultationRequestResource`, `ProjectResource`) est�
 | Añadir monitoreo de NotifyAstroFrontendJob | Fallos silenciosos si token GitHub expira | Equipo técnico |
 | Confirmar hostname del portal cliente | Configuración OAuth/CORS/Sanctum de `CLIENT_PORTAL_URL` | Orelvys |
 | ~~¿Electro Bertels usa algún módulo hoy de Claesen?~~ **Resuelta 2026-09-17: solo Mailing, como sistema de envío** (ADR D11) | Mailing pasa a propiedad por fila; el resto sigue exclusivo de Claesen | — |
-| ¿Bertels necesita campañas de marketing o solo correo transaccional? | Alcance del tramo Mailing multiempresa (ADR D11, pregunta 8) | Orelvys |
-| ¿Fuente de audiencia de Bertels? No puede ser `prospects` (consentimiento dado a Claesen) | Bloqueante de la primera campaña de Bertels (ADR D11, pregunta 9) | Orelvys |
-| ¿Identidad remitente de Bertels: 2ª app registration de Graph o ESP externo? | Desbloquearía MAI-026; requiere dominio propio con SPF/DKIM/DMARC (ADR D11, pregunta 10) | Orelvys / Gerencia |
+| ~~¿Campañas o solo transaccional?~~ **Resuelta 2026-09-17: solo transaccional por ahora** (ADR D11) | El tramo Mailing se reduce a F4/CLA-473 | — |
+| ¿Fuente de audiencia de Bertels? **Aparcada** mientras no haya campañas; no puede ser `prospects` | Solo una futura decisión de campañas (ADR D11) | Orelvys |
+| ¿El correo de `electrobertels.be` está en el mismo tenant de Microsoft 365 que Claesen? | Única decisión de infraestructura para el correo transaccional de Bertels; si no, credenciales por organización o ESP (ADR D11, pregunta 10) | Orelvys |
 | Proveedor de identidad de los usuarios de Bertels (mismo tenant Azure, otro tenant o email/contraseña) | Bloquea P5a y la decisión de MFA | Orelvys |
 | Vía de acceso del personal de Bertels al backoffice (hoy LAN + túnel) | Bloquea P6 | Orelvys |
 | Roles y responsable de administrar los usuarios de Bertels en la primera entrega | Bloquea P6 | Orelvys |
