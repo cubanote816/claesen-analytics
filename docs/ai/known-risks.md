@@ -33,6 +33,10 @@
 
 **Trabajo pendiente, en F4/CLA-473:** remitente y nombre visible por sitio — `NewConsultationRequestMail::envelope()` no fija From, así que cae a `config('mail.from.address')`, y `MicrosoftGraphTransport::getPayload()` toma `'name'` de `config('mail.from.name')` **siempre**, de modo que un correo de Bertels mostraría el nombre de Claesen incluso con la dirección corregida; destinatario interno por sitio (`config('website.consultation_notification_email')` es único global, CLA-532); plantilla y marca propias; **la confirmación al cliente no existe todavía**; y permiso de Graph para enviar como el buzón de Bertels (`POST /users/{buzón}/sendMail`).
 
+**Tenant de Microsoft 365 compartido (2026-09-17):** `electrobertels.be` está en el mismo tenant que Claesen, así que el envío transaccional de Bertels usa la misma app registration — sin credenciales por organización ni ESP. Pero eleva dos riesgos reales:
+- **`Mail.Send` de aplicación sin acotar permite enviar como cualquier buzón del tenant.** Preexistente, pero con dos empresas dentro un error en la resolución del From mandaría correo *como Claesen* desde un flujo de Bertels. Mitigación: Application Access Policy de Exchange limitada a los buzones previstos; From siempre desde configuración del sitio, nunca desde entrada del usuario. Verificar el permiso actual antes de añadir el buzón de Bertels.
+- **`AzureRoleService` asigna `viewer` cuando ningún grupo de Azure coincide, y `viewer` está en la allowlist del panel.** Con el tenant compartido, un empleado de Bertels que entre por Microsoft aterrizaría hoy en el panel de **Claesen**: deja de ser hipotético. P5a (`canAccessPanel` por organización + redirección al panel propio) pasa a ser prerrequisito duro del alta de usuarios de Bertels.
+
 **Riesgo condicional — solo si algún día se aprueban campañas para Bertels.** Entonces vuelven íntegros estos bloqueantes, todos verificados en código:
 - **Audiencia.** `SegmentResolverService` está cableado a `prospects_prospects` (CRM de federaciones de Claesen) y `mailing_messages.prospect_id` apunta ahí: enviar desde Bertels a esa lista sería fuga de datos y uso de un consentimiento ajeno (RGPD).
 - **Baja y supresión.** `mailing_suppression_list.email` es UNIQUE global y `config('mailing.unsubscribe_domain')` tiene un único valor (`claesen-verlichting.be`, usado en el `mailto:afmelden@…` de `ProspectCampaignMail`): una baja de Claesen daría de baja de Bertels y al revés.
@@ -254,7 +258,7 @@ Los resources de Website (`ConsultationRequestResource`, `ProjectResource`) est�
 | ~~¿Electro Bertels usa algún módulo hoy de Claesen?~~ **Resuelta 2026-09-17: solo Mailing, como sistema de envío** (ADR D11) | Mailing pasa a propiedad por fila; el resto sigue exclusivo de Claesen | — |
 | ~~¿Campañas o solo transaccional?~~ **Resuelta 2026-09-17: solo transaccional por ahora** (ADR D11) | El tramo Mailing se reduce a F4/CLA-473 | — |
 | ¿Fuente de audiencia de Bertels? **Aparcada** mientras no haya campañas; no puede ser `prospects` | Solo una futura decisión de campañas (ADR D11) | Orelvys |
-| ¿El correo de `electrobertels.be` está en el mismo tenant de Microsoft 365 que Claesen? | Única decisión de infraestructura para el correo transaccional de Bertels; si no, credenciales por organización o ESP (ADR D11, pregunta 10) | Orelvys |
+| ~~¿`electrobertels.be` en el mismo tenant de Microsoft 365?~~ **Resuelta 2026-09-17: sí, lo comparten** (ADR D11) | Sin credenciales por organización ni ESP; exige Application Access Policy y confirmar si los usuarios de Bertels también están en ese tenant | — |
 | Proveedor de identidad de los usuarios de Bertels (mismo tenant Azure, otro tenant o email/contraseña) | Bloquea P5a y la decisión de MFA | Orelvys |
 | Vía de acceso del personal de Bertels al backoffice (hoy LAN + túnel) | Bloquea P6 | Orelvys |
 | Roles y responsable de administrar los usuarios de Bertels en la primera entrega | Bloquea P6 | Orelvys |

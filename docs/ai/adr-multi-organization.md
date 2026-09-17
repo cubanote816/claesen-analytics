@@ -180,6 +180,13 @@ La segunda acota radicalmente la primera, porque en este repositorio el correo t
 
 El comportamiento fail-closed de CLA-532 ya es el correcto aquí: sin credenciales de Graph o sin destinatario configurado, la consulta **se guarda igual** y el endpoint devuelve 201 con un `Log::warning`; no hay 500 posterior al commit que obligue al visitante a reintentar.
 
+**Tenant de Microsoft 365 compartido (respuesta del usuario, 2026-09-17).** `electrobertels.be` vive en el mismo tenant que Claesen, así que el punto 4 de la tabla se resuelve por la vía barata: **no hacen falta credenciales por organización, ni un segundo mailer, ni un ESP.** La misma app registration puede enviar como el buzón de Bertels con `Mail.Send` de aplicación. Consecuencia colateral: **MAI-026 vuelve a ser solo una decisión de entregabilidad de las campañas de Claesen**, desacoplada de Bertels.
+
+Dos cosas que el tenant compartido **empeora**, y que hay que tratar como parte del trabajo, no como detalle de configuración:
+
+1. **Alcance del permiso de envío.** `Mail.Send` de aplicación, sin acotar, permite a la app enviar **como cualquier buzón del tenant**. Es preexistente, pero con dos empresas dentro el impacto cambia: un error en la resolución del From mandaría correo *como Claesen* desde un flujo de Bertels, o al revés. Mitigación: **Application Access Policy** de Exchange restringida a un grupo de seguridad con exactamente los buzones que la app puede usar, y el From resuelto siempre desde configuración del sitio, nunca desde entrada del usuario. Verificar el estado actual del permiso antes de añadir el buzón de Bertels.
+2. **Login de Azure y el fallback a `viewer`.** Si los usuarios de Bertels también viven en el tenant compartido —lo natural, pero **pendiente de confirmar explícitamente** (pregunta 2)—, entran por la misma app registration. Y `AzureRoleService` asigna `viewer` cuando ningún grupo coincide, rol que **está en la allowlist de acceso al panel**: un empleado de Bertels que entre por Microsoft aterrizaría hoy en el panel de **Claesen**. Esto deja de ser hipotético y convierte P5a (`canAccessPanel` por organización + redirección al panel propio) en prerrequisito duro del alta de usuarios de Bertels, además de exigir grupos de Azure propios de Bertels si sus roles difieren.
+
 ## 3. Consecuencias
 
 **Positivas**
@@ -253,7 +260,7 @@ El puerto 3310 evita el 3308 que ocupa otro worktree. `PanelAccessMatrixTest` ll
 | **P6** | Panel Bertels (marca, dashboard vacío) + selector auditado de `super_admin` | Spike confirmado; E2E de cambio de contexto | Quitar el provider de `bootstrap/providers.php` |
 | **P7** | `NOT NULL`, flag activo en producción, alta de Electro Bertels, decisión de MFA (D8) | Staging certificado (CLA-530/531/525); matriz verde en CI | Flag en `false`; `NOT NULL → NULL`; Bertels se suspende, no se borra |
 | **F3/F4** | Recursos Bertels, API pública por sitio, webhook por sitio, antispam y throttle, originales privados, roles de organización | Por ticket | Por ticket |
-| **Correo transaccional de Bertels** (D11 · F4/CLA-473) | Remitente y nombre visible por sitio (respetar el From del Mailable), destinatario interno por sitio, plantilla y marca propias, confirmación al cliente (hoy **no existe**) y permiso de Graph para el buzón de Bertels | Por ticket; un lead de Bertels se guarda y responde 201 aunque el correo falle (fail-closed de CLA-532) | Por ticket; el fallback al remitente global de Claesen nunca se restaura en silencio |
+| **Correo transaccional de Bertels** (D11 · F4/CLA-473) | Remitente y nombre visible por sitio (respetar el From del Mailable), destinatario interno por sitio, plantilla y marca propias, confirmación al cliente (hoy **no existe**) y permiso de Graph para el buzón de Bertels en el tenant compartido, acotado por Application Access Policy | Por ticket; un lead de Bertels se guarda y responde 201 aunque el correo falle (fail-closed de CLA-532) | Por ticket; el fallback al remitente global de Claesen nunca se restaura en silencio |
 
 ---
 
@@ -264,7 +271,7 @@ El puerto 3310 evita el 3308 que ocupa otro worktree. `PanelAccessMatrixTest` ll
 | 1 | ~~¿Electro Bertels usa o usará algún módulo hoy de Claesen?~~ **Respondida (2026-09-17): solo Mailing, como sistema de envío de correo.** Ver D11 | Resuelta. Abre las preguntas 8, 9 y 10 |
 | 8 | ~~¿Campañas de marketing o solo correo transaccional?~~ **Respondida (2026-09-17): solo transaccional por ahora.** Ver D11 | Resuelta. Reduce el tramo Mailing a F4/CLA-473 |
 | 9 | ~~¿De dónde sale la audiencia de Bertels?~~ **Aparcada**: no aplica mientras no haya campañas. Si algún día se aprueban, vuelve como bloqueante (la audiencia no puede ser `prospects`: consentimiento dado a Claesen) | Solo una futura decisión de campañas |
-| 10 | **¿El correo de `electrobertels.be` vive en el mismo tenant de Microsoft 365 que Claesen?** Si sí, basta con dar permiso de envío a la app registration sobre ese buzón; si no, hacen falta credenciales por organización (segundo mailer) o un ESP. Requiere además SPF/DKIM/DMARC del dominio | F4/CLA-473 — es la única decisión de infraestructura que queda para el correo de Bertels |
+| 10 | ~~¿El correo de `electrobertels.be` está en el mismo tenant de Microsoft 365?~~ **Respondida (2026-09-17): sí, lo comparten.** Ver D11 | Resuelta. Elimina la necesidad de credenciales por organización y de ESP |
 | 2 | ¿Cómo se autentica el personal de Bertels: mismo tenant de Azure AD (¿qué grupos?), otro tenant, o email y contraseña? | P5a, D8 |
 | 3 | ¿Cómo accede el personal de Bertels, si `backoffice.claesen.local` es solo LAN + túnel y no debe exponerse a Internet? | P6 |
 | 4 | ¿Quién administra los usuarios de Bertels en la primera entrega y con qué roles? | P6 |
