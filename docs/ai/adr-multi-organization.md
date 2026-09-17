@@ -1,6 +1,7 @@
 # ADR — Separación multiempresa Claesen / Electro Bertels en un backoffice compartido
 
 > **Estado:** Aceptado (dirección arquitectónica), 2026-09-17.
+> **Tickets Linear:** **CLA-451** (auditoría), **CLA-452** (plan de migración/backfill/rollback) y **CLA-453** (este ADR) — los tres `In Progress`, hito «Fase 0 — Descubrimiento y ADR». **CLA-454** (requisitos no funcionales, RGPD y Definition of Done) sigue en `Backlog`, fuera de este entregable.
 > **Fase entregada:** F0 / P0 — auditoría y baseline de regresión. Ninguna fase posterior está autorizada todavía.
 > **Fuente de requisitos:** `Plan de implementacion web y backoffice Electro Bertels.docx` (28-08-2026) y el proyecto Linear «Electro Bertels — Web y backoffice multisite».
 > **Fuente de verdad sobre la implementación:** este repositorio (`electrobertels/trunk`, base técnica `ef2bc6e`).
