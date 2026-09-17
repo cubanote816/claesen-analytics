@@ -7,6 +7,7 @@ namespace Modules\Core\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Database\Seeders\FieldOpsDemoDataSeeder;
 use Modules\FieldOps\Database\Seeders\QaFieldWorkerSeeder;
@@ -116,6 +117,7 @@ class QaResetEnvironmentCommand extends Command
                 'password' => Hash::make('QaBackoffice123!'),
                 'password_set_at' => now(),
                 'is_active' => true,
+                'organization_id' => Organization::claesenId(),
             ]
         );
         $backoffice->syncRoles(['super_admin']);
@@ -129,6 +131,7 @@ class QaResetEnvironmentCommand extends Command
                 'password_set_at' => now(),
                 'is_active' => true,
                 'employee_id' => '100',
+                'organization_id' => Organization::claesenId(),
             ]
         );
         $tecnico->syncRoles([]);
@@ -147,6 +150,7 @@ class QaResetEnvironmentCommand extends Command
                     'password' => Hash::make('QaCliente123!'),
                     'password_set_at' => now(),
                     'is_active' => true,
+                    'organization_id' => Organization::claesenId(),
                 ]
             );
             $cliente->syncRoles(['client']);

@@ -41,6 +41,10 @@ class CoreServiceProvider extends ServiceProvider
     {
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
+
+        // F1/P2 (docs/ai/adr-multi-organization.md, decision D6): scoped, never
+        // singleton — the queue worker resets scoped bindings between jobs.
+        $this->app->scoped(\Modules\Core\Services\OrganizationContext::class);
     }
 
     /**
@@ -50,6 +54,7 @@ class CoreServiceProvider extends ServiceProvider
     {
         $this->commands([
             \Modules\Core\Console\Commands\QaResetEnvironmentCommand::class,
+            \Modules\Core\Console\Commands\BackfillUserOrganizationsCommand::class,
         ]);
     }
 

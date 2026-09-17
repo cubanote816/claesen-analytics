@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -78,6 +79,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'name' => 'Super Admin',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
+            // F1/P2 (docs/ai/adr-multi-organization.md).
+            'organization_id' => Organization::claesenId(),
         ]);
 
         $user->assignRole($superAdminRole);

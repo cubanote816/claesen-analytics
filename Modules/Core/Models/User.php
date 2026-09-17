@@ -33,6 +33,7 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'password_set_at',
         'employee_id',
+        'organization_id',
         'microsoft_id',
         'azure_token',
         'azure_refresh_token',
@@ -70,6 +71,13 @@ class User extends Authenticatable implements FilamentUser
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
+    // F1/P2 (docs/ai/adr-multi-organization.md): resolve-only, nothing
+    // consumes this for scoping/enforcement yet — see Modules\Core\Services\OrganizationContext.
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
     }
 
     public function fieldOpsClients(): BelongsToMany

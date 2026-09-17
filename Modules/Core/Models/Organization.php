@@ -25,6 +25,8 @@ class Organization extends Model
 
     public const STATUS_SUSPENDED = 'suspended';
 
+    public const CLAESEN_SLUG = 'claesen';
+
     protected $fillable = [
         'slug',
         'name',
@@ -47,5 +49,16 @@ class Organization extends Model
     public function sites(): HasMany
     {
         return $this->hasMany(Site::class);
+    }
+
+    /**
+     * The id of the bootstrap Claesen organization row (phase P1 seed
+     * migration). Every user-creation path defaults here until phase P6
+     * adds a real organization picker — see ADR phase P2.
+     */
+    public static function claesenId(): int
+    {
+        return static::query()->where('slug', self::CLAESEN_SLUG)->value('id')
+            ?? throw new \RuntimeException('The Claesen bootstrap organization row is missing — run migrations.');
     }
 }

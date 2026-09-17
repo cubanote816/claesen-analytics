@@ -7,6 +7,7 @@ namespace Modules\FieldOps\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\FoClient;
@@ -76,6 +77,7 @@ class QaTenantIsolationSeeder extends Seeder
                 'password' => Hash::make('QaCliente2123!'),
                 'password_set_at' => now(),
                 'is_active' => true,
+                'organization_id' => Organization::claesenId(),
             ]
         );
         $user->syncRoles(['client']);
