@@ -25,6 +25,18 @@
 
 ## Riesgos abiertos — Módulo Mailing
 
+### Mailing es el único módulo compartido con Electro Bertels (decisión 2026-09-17)
+
+**Estado:** decidido a nivel de arquitectura (ADR D11), sin implementar. El módulo sigue funcionando como hoy, 100 % Claesen.
+**Consecuencia:** Mailing deja de ser Claesen-only y pasa a necesitar `organization_id` en campañas, plantillas, supresión, preferencias y alertas. En P5b **no** debe recibir el middleware `organization:claesen`: eso bloquearía a Bertels justo en el módulo que sí comparte.
+**Riesgos concretos si se comparte sin ese trabajo previo:**
+- **Audiencia (bloqueante).** `SegmentResolverService` está cableado a `prospects_prospects` (CRM de federaciones de Claesen) y `mailing_messages.prospect_id` apunta ahí. Enviar desde Bertels a esa lista es fuga de datos y uso de un consentimiento ajeno (RGPD).
+- **Identidad remitente.** Un único buzón Graph y un único `config('app.mailing_driver')` global: el correo de Bertels saldría con la identidad de Claesen, degradando entregabilidad y confundiendo quién es el responsable del tratamiento.
+- **Baja y supresión.** `mailing_suppression_list.email` es UNIQUE global y `config('mailing.unsubscribe_domain')` tiene un único valor (`claesen-verlichting.be`, usado en el `mailto:afmelden@…` de `ProspectCampaignMail`): una baja de Claesen daría de baja de Bertels y al revés.
+- **Marca.** `campaign.blade.php`/`unsubscribe.blade.php`/`preferences.blade.php` embeden `brand-logo-dark.png` con el alt «Claesen Outdoor Lighting».
+- **Acceso.** `CampaignResource::canAccess()` es `auth()->check()`: cualquier usuario con panel vería las campañas de ambas empresas.
+- **Destinatarios de alertas.** `CheckDeliverabilityAlertsCommand` notifica por roles globales `super_admin`/`admin`/`campaign_manager` — y `campaign_manager` **no existe** en `RolesAndPermissionsSeeder`, así que hoy solo alcanza a los dos primeros (benigno mientras haya una sola empresa; cross-org en cuanto haya dos).
+
 ### Ciclos indirectos en follow-ups
 
 **Riesgo:** Es posible crear un ciclo A → follow-up B → follow-up A. El sistema no lo bloquea.
@@ -236,7 +248,10 @@ Los resources de Website (`ConsultationRequestResource`, `ProjectResource`) est�
 | Enforcement de preferencias de categoría en envío | Actualmente no bloqueado técnicamente | Equipo técnico |
 | Añadir monitoreo de NotifyAstroFrontendJob | Fallos silenciosos si token GitHub expira | Equipo técnico |
 | Confirmar hostname del portal cliente | Configuración OAuth/CORS/Sanctum de `CLIENT_PORTAL_URL` | Orelvys |
-| ¿Electro Bertels usa algún módulo hoy de Claesen (ERP Cafca, Employee, Safety, FieldOps, Mailing)? | Decide propiedad a nivel de módulo vs. a nivel de fila (ADR D9) | Orelvys |
+| ~~¿Electro Bertels usa algún módulo hoy de Claesen?~~ **Resuelta 2026-09-17: solo Mailing, como sistema de envío** (ADR D11) | Mailing pasa a propiedad por fila; el resto sigue exclusivo de Claesen | — |
+| ¿Bertels necesita campañas de marketing o solo correo transaccional? | Alcance del tramo Mailing multiempresa (ADR D11, pregunta 8) | Orelvys |
+| ¿Fuente de audiencia de Bertels? No puede ser `prospects` (consentimiento dado a Claesen) | Bloqueante de la primera campaña de Bertels (ADR D11, pregunta 9) | Orelvys |
+| ¿Identidad remitente de Bertels: 2ª app registration de Graph o ESP externo? | Desbloquearía MAI-026; requiere dominio propio con SPF/DKIM/DMARC (ADR D11, pregunta 10) | Orelvys / Gerencia |
 | Proveedor de identidad de los usuarios de Bertels (mismo tenant Azure, otro tenant o email/contraseña) | Bloquea P5a y la decisión de MFA | Orelvys |
 | Vía de acceso del personal de Bertels al backoffice (hoy LAN + túnel) | Bloquea P6 | Orelvys |
 | Roles y responsable de administrar los usuarios de Bertels en la primera entrega | Bloquea P6 | Orelvys |

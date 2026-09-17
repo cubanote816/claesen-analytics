@@ -15,7 +15,7 @@ El backoffice es un monolito modular con **un único panel Filament** (`admin`, 
 
 El aislamiento que sí existe (`FieldOps`: `FoClient` + `fo_client_user` + `FieldOpsTenantService`) separa **clientes de Claesen**, no empresas del grupo. Es un concepto distinto y no se reutiliza como organización.
 
-La asimetría determinante: de los 11 módulos, 8 son de Claesen por naturaleza (Cafca/ERP, Intelligence, Performance, Employee, Prospects, Mailing, Safety, FieldOps). Lo que Electro Bertels necesita — proyectos, galerías, leads, publicación, usuarios y auditoría — vive casi por completo en el módulo **Website**.
+La asimetría determinante: de los 11 módulos, 7 son de Claesen por naturaleza (Cafca/ERP, Intelligence, Performance, Employee, Prospects, Safety, FieldOps) y **Mailing es el único que se comparte** (decisión del usuario, D11). Lo que Electro Bertels necesita — proyectos, galerías, leads, publicación, usuarios y auditoría — vive casi por completo en el módulo **Website**.
 
 La dificultad principal no son los datos, es la autorización:
 
@@ -141,13 +141,40 @@ Decisión requerida **antes de cerrar P7** (Azure SSO/MFA, MFA del panel, o ambo
 
 `config/organizations.php` declara qué módulos pertenecen a Claesen. Sus grupos de rutas (API y web) reciben un middleware de organización, y sus recursos siguen registrados solo en el panel `admin`. Así se evita añadir `organization_id` a ~100 tablas que nunca tendrán otro dueño, manteniendo la propiedad explícita y verificable por test.
 
-Si Bertels llegara a adoptar alguno de esos módulos (ver preguntas abiertas), ese módulo pasaría a necesitar propiedad a nivel de fila; el resto del diseño no cambia.
+Si Bertels llegara a adoptar alguno de esos módulos (ver preguntas abiertas), ese módulo pasaría a necesitar propiedad a nivel de fila; el resto del diseño no cambia. **Mailing es exactamente ese caso y ya está decidido: ver D11.**
 
 ### D10 — Regla de hierro de secuencia
 
 **Hasta que P5 esté completa y verificada no debe existir ningún usuario real de Electro Bertels**, porque los roles globales le darían acceso a datos de Claesen. El alta de la organización y el sitio de Bertels ocurre al final de P7; los proyectos y leads de Bertels, en las fases F3/F4 del documento.
 
 ---
+
+### D11 — Mailing es el único módulo compartido (decisión del usuario, 2026-09-17)
+
+Respuesta a la pregunta abierta nº 1: **Electro Bertels usará el módulo Mailing como sistema de envío de correo; ningún otro módulo de Claesen se comparte.** Cafca/ERP, Employee, Intelligence, Performance, Prospects, Safety y FieldOps siguen siendo propiedad exclusiva de Claesen a nivel de módulo (D9).
+
+Compartir Mailing tiene dos capas que **no** se comparten igual:
+
+**Capa de transporte e infraestructura — compartida tal cual.** `App\Contracts\MarketingCampaignInterface`, `MicrosoftGraphTransport`, el pipeline de Laravel Mail, el tracking por token y el parser de NDR son técnicos y neutrales: no necesitan cambios por organización.
+
+**Capa de datos, identidad y audiencia — por organización.** Aquí Mailing deja de ser Claesen-only y pasa a **propiedad por fila**:
+
+| Qué | Estado hoy | Qué exige compartir Mailing |
+|---|---|---|
+| **Audiencia** | `SegmentResolverService` está cableado a `prospects_prospects` (CRM de federaciones deportivas de Claesen, ~1167 filas) y `mailing_messages.prospect_id` apunta ahí. Los tres `audience_type` (`all_subscribed`/`segment`/`manual`) resuelven contra esa tabla | **Bloqueante de producto.** Bertels no tiene audiencia en `prospects`, y enviar a los prospects de Claesen desde Bertels sería fuga de datos **y** un problema de RGPD: ese consentimiento se dio a Claesen, no a Bertels. Hace falta una fuente de audiencia propia (leads de su sitio con consentimiento, y/o una tabla de contactos propia) antes de la primera campaña |
+| **Identidad remitente** | Un único buzón/app registration de Microsoft Graph (`config('mail.mailers.microsoft-graph.*')`) y un único `config('app.mailing_driver')` global con allow-list fail-closed (CLA-532) | El driver y el remitente deben resolverse **por campaña** (derivados de su organización), no de una clave global. Bertels necesita su propio dominio con SPF/DKIM/DMARC; enviar su correo desde el buzón de Claesen degrada la entregabilidad y confunde quién es el responsable del tratamiento |
+| **Baja y supresión** | `mailing_suppression_list.email` UNIQUE global; `config('mailing.unsubscribe_domain')` con default `claesen-verlichting.be`, usado en el `mailto:afmelden@…` de `ProspectCampaignMail` | `UNIQUE(organization_id, email)` y dominio de baja por sitio. Darse de baja de Claesen **no** puede dar de baja de Bertels ni al revés: son remitentes y responsables distintos. Una queja de spam sigue siendo permanente, pero contra su propio remitente |
+| **Plantillas y marca** | `email_templates.name` UNIQUE global; `campaign.blade.php`, `unsubscribe.blade.php` y `preferences.blade.php` embeden `brand-logo-dark.png` con el alt «Claesen Outdoor Lighting» | `UNIQUE(organization_id, name)` y marca resuelta por organización, igual que la del panel |
+| **Campañas, mensajes, eventos, enlaces, preferencias, alertas** | `mailing_campaigns` no tiene ninguna columna de organización | `organization_id` en `mailing_campaigns`, `email_templates`, `mailing_suppression_list`, `mailing_contact_preferences` y `mailing_deliverability_alerts`. `mailing_messages`, `mailing_message_events` y `mailing_tracked_links` heredan de la campaña por FK, sin columna propia |
+| **Acceso en el panel** | `CampaignResource::canAccess()` devuelve `auth()->check()` — cualquier usuario con panel ve todas las campañas | Scope por organización + gate de rol; el recurso se registra en ambos paneles |
+| **Destinatarios de alertas** | `CheckDeliverabilityAlertsCommand` notifica a los roles globales `super_admin`/`admin`/`campaign_manager` (este último **no existe** en `RolesAndPermissionsSeeder`, así que hoy solo alcanza a los dos primeros) | Filtrado por organización, como el resto del riesgo crítico de destinatarios |
+| **Scheduler** | Cinco comandos (`dispatch-scheduled`, `ab-select-winner`, `dispatch-followups`, `parse-bounces`, `check-deliverability-alerts`) procesan todas las campañas | Se mantienen sin contexto ambiental y resuelven la organización **desde la fila de la campaña** — es la forma correcta y no requiere contexto por request |
+
+**Consecuencia inmediata sobre el plan:** en P5b, Mailing **queda fuera** de la lista de módulos que reciben el middleware `organization:claesen`. Ponerlo ahí bloquearía a Bertels justo en el único módulo que sí debe compartir.
+
+**Consecuencia sobre MAI-026:** el stub `SaaSMailer` y la decisión de ESP externo (bloqueada por gerencia) dejan de ser solo una mejora de entregabilidad — pasan a ser una de las dos vías para dar a Bertels una identidad remitente propia; la otra es una segunda app registration de Graph.
+
+Nada de esto entra en P1–P7, que no toca Mailing. El trabajo de Mailing multiempresa es su propio tramo, posterior al enforcement, y arranca por la fuente de audiencia: sin eso, la plataforma compartida no tiene a quién enviar por Bertels.
 
 ## 3. Consecuencias
 
@@ -218,10 +245,11 @@ El puerto 3310 evita el 3308 que ocupa otro worktree. `PanelAccessMatrixTest` ll
 | **P2** | `users.organization_id` + backfill + `OrganizationContext` (solo resuelve) | 0 usuarios sin organización; todos los caminos de creación la fijan | Revertir código; columna inocua |
 | **P3** | `site_id` en el dominio compartido, traits inertes, `UNIQUE(site_id, slug)`, publicación por sitio | Contrato de API y matriz de panel idénticos al baseline | Revertir código; `down()` restaura `UNIQUE(slug)` |
 | **P4** | Contexto real (request, Livewire persistente, jobs) + `AuditLogger` | Contexto disponible y auditado, sin restringir | Revertir código |
-| **P5a–d** | Enforcement por capas: paneles y logins → rutas de módulos Claesen → `Gate::before`, policies, selects y búsqueda → asíncrono y destinatarios | Matriz de aislamiento verde con fixture de Bertels; Claesen idéntico con el flag en ambos estados | `ORGANIZATIONS_ENFORCE=false` + `infrastructure/scripts/reload-config.sh` |
+| **P5a–d** | Enforcement por capas: paneles y logins → rutas de módulos Claesen (**Mailing excluido**, D11) → `Gate::before`, policies, selects y búsqueda → asíncrono y destinatarios | Matriz de aislamiento verde con fixture de Bertels; Claesen idéntico con el flag en ambos estados | `ORGANIZATIONS_ENFORCE=false` + `infrastructure/scripts/reload-config.sh` |
 | **P6** | Panel Bertels (marca, dashboard vacío) + selector auditado de `super_admin` | Spike confirmado; E2E de cambio de contexto | Quitar el provider de `bootstrap/providers.php` |
 | **P7** | `NOT NULL`, flag activo en producción, alta de Electro Bertels, decisión de MFA (D8) | Staging certificado (CLA-530/531/525); matriz verde en CI | Flag en `false`; `NOT NULL → NULL`; Bertels se suspende, no se borra |
 | **F3/F4** | Recursos Bertels, API pública por sitio, webhook por sitio, antispam y throttle, originales privados, roles de organización | Por ticket | Por ticket |
+| **Mailing multiempresa** (D11, posterior al enforcement) | Fuente de audiencia de Bertels **primero**; luego `organization_id` en campañas/plantillas/supresión/preferencias/alertas, driver y remitente por campaña, dominio de baja y marca por organización, scope y rol en `CampaignResource`, destinatarios de alertas por organización | Por ticket; ninguna campaña de Bertels antes de resolver audiencia e identidad remitente | Por ticket; la supresión nunca se fusiona entre organizaciones |
 
 ---
 
@@ -229,7 +257,10 @@ El puerto 3310 evita el 3308 que ocupa otro worktree. `PanelAccessMatrixTest` ll
 
 | # | Pregunta | Bloquea |
 |---|---|---|
-| 1 | ¿Electro Bertels usa o usará algún módulo hoy de Claesen (mismo ERP Cafca, horas de empleados, Safety/VCA, FieldOps, Mailing)? | D9; si la respuesta es sí, ese módulo necesita propiedad a nivel de fila |
+| 1 | ~~¿Electro Bertels usa o usará algún módulo hoy de Claesen?~~ **Respondida (2026-09-17): solo Mailing, como sistema de envío de correo.** Ver D11 | Resuelta. Abre las preguntas 8, 9 y 10 |
+| 8 | ¿Bertels necesita **campañas de marketing** o solo **correo transaccional** (confirmación de lead y aviso interno)? Son dos alcances muy distintos: lo transaccional ya lo cubre F4/CLA-473 con remitente por sitio; las campañas exigen todo lo de D11 | Tramo Mailing multiempresa |
+| 9 | ¿De dónde sale la **audiencia** de Bertels? No puede ser `prospects` (CRM de federaciones de Claesen: fuga de datos y consentimiento ajeno). Opciones: leads de su propio sitio con consentimiento, una tabla de contactos propia, o importación con base legal documentada | Primera campaña de Bertels |
+| 10 | ¿Identidad remitente de Bertels: segunda app registration de Microsoft Graph, o ESP externo (desbloquearía MAI-026)? Requiere dominio propio con SPF/DKIM/DMARC | Tramo Mailing multiempresa; se solapa con la pregunta 5 |
 | 2 | ¿Cómo se autentica el personal de Bertels: mismo tenant de Azure AD (¿qué grupos?), otro tenant, o email y contraseña? | P5a, D8 |
 | 3 | ¿Cómo accede el personal de Bertels, si `backoffice.claesen.local` es solo LAN + túnel y no debe exponerse a Internet? | P6 |
 | 4 | ¿Quién administra los usuarios de Bertels en la primera entrega y con qué roles? | P6 |
