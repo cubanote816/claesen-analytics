@@ -188,14 +188,21 @@ final class AccessControlContractTest extends TestCase
         }
     }
 
-    public function test_static_site_publication_is_a_single_global_singleton(): void
+    public function test_static_site_publication_defaults_to_claesen_and_shares_one_global_webhook(): void
     {
-        // One publication state row and one webhook target for the whole
-        // installation: publishing a Bertels record would rebuild Claesen.
-        $this->assertStringContainsString(
-            '$state = static::find(1);',
-            $this->source('Modules/Website/Models/PublicationState.php')
-        );
+        // F1/P3b (CLA-548) gave the table a per-site row (`firstOrCreate` on
+        // site_id, no more hardcoded id = 1) — declared inversion of this
+        // baseline's previous assertion. What has NOT changed, and is the
+        // gap this test still exists to freeze: `current()` still defaults to
+        // Claesen when no site is passed, every caller in the codebase still
+        // omits that argument, and there is still exactly one webhook target
+        // for the whole installation — publishing a Bertels record would
+        // still rebuild Claesen's static site until F3/F4 give static_site
+        // its own per-site configuration.
+        $source = $this->source('Modules/Website/Models/PublicationState.php');
+        $this->assertStringContainsString('Site::claesenId()', $source);
+        $this->assertStringContainsString('firstOrCreate(', $source);
+        $this->assertStringNotContainsString('static::find(1)', $source);
 
         $this->assertSame(
             ['enabled', 'environment', 'webhook_url', 'webhook_secret', 'webhook_timeout', 'health_url', 'debounce_seconds', 'signature_tolerance_seconds'],

@@ -10,15 +10,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\Core\Models\Site;
+use Modules\Website\App\Enums\PublicationStatus;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\Project;
+use Modules\Website\Models\PublicationState;
 use Tests\TestCase;
 
 /**
- * F1/P3a of the multi-organization program — docs/ai/adr-multi-organization.md.
+ * F1/P3a+P3b of the multi-organization program — docs/ai/adr-multi-organization.md.
  *
- * Covers CLA-547: site_id on the shared Website domain, the site-scoped slug
- * uniqueness, and the deliberately inert BelongsToSite scope. Nothing here
+ * Covers CLA-547 (P3a): site_id on the shared Website domain, the site-scoped
+ * slug uniqueness, and the deliberately inert BelongsToSite scope. Also
+ * covers CLA-548 (P3b): site_id on website_publication_states and the
+ * singleton-per-site rework of PublicationState::current(). Nothing here
  * asserts filtering or 403/404 — phase P3 restricts nothing, and asserting
  * otherwise would be asserting a feature that P5 owns.
  */
@@ -36,10 +40,49 @@ final class WebsiteSiteScopingTest extends TestCase
         }
     }
 
-    public function test_publication_states_is_deliberately_untouched_by_this_phase(): void
+    public function test_publication_states_has_a_nullable_unique_site_id_column(): void
     {
-        // P3b owns that table together with the PublicationState singleton.
-        $this->assertFalse(Schema::hasColumn('website_publication_states', 'site_id'));
+        $this->assertTrue(Schema::hasColumn('website_publication_states', 'site_id'));
+
+        $column = DB::select("SHOW COLUMNS FROM website_publication_states WHERE Field = 'site_id'");
+        $this->assertSame('YES', $column[0]->Null, 'website_publication_states.site_id should stay nullable until phase P7');
+
+        $indexes = collect(DB::select('SHOW INDEX FROM website_publication_states WHERE Column_name = "site_id"'));
+        $this->assertTrue($indexes->contains(fn ($index) => (int) $index->Non_unique === 0), 'site_id must carry a UNIQUE index (D3: one publication-state row per site)');
+    }
+
+    public function test_current_without_a_site_argument_resolves_to_the_claesen_row(): void
+    {
+        $state = PublicationState::current();
+
+        $this->assertSame(Site::claesenId(), $state->site_id);
+        $this->assertSame(PublicationStatus::IDLE, $state->status);
+        $this->assertSame(1, PublicationState::query()->count());
+
+        // Idempotent: calling it again returns the same row, not a new one.
+        $this->assertTrue($state->is(PublicationState::current()));
+        $this->assertSame(1, PublicationState::query()->count());
+    }
+
+    public function test_current_with_a_different_site_creates_a_distinct_row(): void
+    {
+        $otherSite = Site::factory()->create(['key' => 'electro-bertels']);
+
+        $claesenState = PublicationState::current();
+        $bertelsState = PublicationState::current($otherSite->id);
+
+        $this->assertFalse($claesenState->is($bertelsState));
+        $this->assertSame($otherSite->id, $bertelsState->site_id);
+        $this->assertSame(2, PublicationState::query()->count());
+    }
+
+    public function test_deleting_a_site_with_a_publication_state_attached_is_restricted(): void
+    {
+        $state = PublicationState::current();
+
+        $this->expectException(QueryException::class);
+
+        DB::table('sites')->where('id', $state->site_id)->delete();
     }
 
     public function test_no_row_is_left_without_a_site_after_migrating(): void

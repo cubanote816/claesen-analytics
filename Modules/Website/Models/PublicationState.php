@@ -3,13 +3,18 @@
 namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Core\Models\Concerns\BelongsToSite;
+use Modules\Core\Models\Site;
 use Modules\Website\App\Enums\PublicationStatus;
 
 class PublicationState extends Model
 {
+    use BelongsToSite;
+
     protected $table = 'website_publication_states';
 
     protected $fillable = [
+        'site_id',
         'status',
         'dispatch_key',
         'dispatched_at',
@@ -27,20 +32,22 @@ class PublicationState extends Model
         'last_error_at'    => 'datetime',
     ];
 
-    // ─── Singleton access ────────────────────────────────────────────────────
+    // ─── Singleton-per-site access ──────────────────────────────────────────
+    //
+    // F1/P3b (docs/ai/adr-multi-organization.md): one row per site (D3),
+    // addressed by site_id rather than a hardcoded id = 1. Every caller today
+    // omits $siteId, so nothing about the observed behaviour for Claesen
+    // changes — there is still, and will remain until a second site exists,
+    // exactly one row.
 
-    public static function current(): static
+    public static function current(?int $siteId = null): static
     {
-        $state = static::find(1);
+        $siteId ??= Site::claesenId();
 
-        if (!$state) {
-            $state = new static();
-            $state->id = 1;
-            $state->status = PublicationStatus::IDLE;
-            $state->save();
-        }
-
-        return $state;
+        return static::firstOrCreate(
+            ['site_id' => $siteId],
+            ['status' => PublicationStatus::IDLE]
+        );
     }
 
     // ─── State transitions ────────────────────────────────────────────────────
