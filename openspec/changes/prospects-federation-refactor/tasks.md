@@ -13,6 +13,34 @@
 
 ---
 
+## Finding numbering — clarification (added by CLA-544, 2026-09-18)
+
+The 16 audit findings are numbered per `explore.md` §2. All 16 are mapped across the slice
+headers below (A: 6,7,8,9,10,16 · B: 2,3,4,5,12,15 · D1: 11,13,14 · D2: 13,14 · C: 1) and all
+16 are resolved in code, verified item by item on 2026-09-18.
+
+Two of them remain **partial by design**, both documented in `docs/ai/known-risks.md`:
+
+* **#2** — the Hockey club list is still hardcoded (~117 clubs). The test clubs were removed
+  (CLA-543), but there is no discovery: the federation publishes no API.
+* **#16** — Guzzle remains in the Hockey/TPV commands. The actionable half was done: TLS
+  verification restored and per-club error logging added.
+
+CLA-543's commit message (`78bbbe3`) describes its two fixes as "original findings #15 and #10
+lost in the SDD renumbering". That framing is wrong and this note supersedes it:
+
+* The Hockey **test clubs** are a sub-item of `explore.md` **#2**, not #15 (#15 is duplicated /
+  magic region inference). The slice simply did not execute that sub-item.
+* The `records_count` **overwrite in the master chain** is not among the original 16 at all
+  (#10 is the missing timeout/retry on RBFA enrichment). It is a distinct bug found afterwards.
+
+The accurate account is **16 findings mapped, plus 2 additional issues discovered later** — not
+two findings lost in a renumbering. The fixes themselves are correct and covered by tests; only
+the bookkeeping was wrong. The published commit message is left untouched on purpose: the record
+is corrected here rather than by rewriting git history.
+
+---
+
 ## Review Workload Forecast
 
 | Field | Value |
