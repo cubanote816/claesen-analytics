@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Website\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Modules\Core\Models\Site;
 use Modules\Website\Models\ConsultationRequest;
 
 class ConsultationRequestFactory extends Factory
@@ -14,6 +15,9 @@ class ConsultationRequestFactory extends Factory
     public function definition(): array
     {
         return [
+            // F1/P3a — see ProjectFactory for the rationale.
+            'site_id'           => fn () => Site::query()->where('key', Site::CLAESEN_KEY)->value('id')
+                ?? Site::factory()->create(['key' => Site::CLAESEN_KEY])->id,
             'name'              => $this->faker->name(),
             'email'             => $this->faker->safeEmail(),
             'phone'             => $this->faker->phoneNumber(),

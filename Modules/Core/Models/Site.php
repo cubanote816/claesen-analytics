@@ -27,6 +27,8 @@ class Site extends Model
 
     public const STATUS_SUSPENDED = 'suspended';
 
+    public const CLAESEN_KEY = 'claesen-verlichting';
+
     protected $fillable = [
         'organization_id',
         'key',
@@ -51,5 +53,16 @@ class Site extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * The id of the bootstrap Claesen site row (phase P1 seed migration).
+     * Every Website creation path defaults here until the public API and the
+     * panel become site-aware — see ADR phase P3a / F3-F4.
+     */
+    public static function claesenId(): int
+    {
+        return static::query()->where('key', self::CLAESEN_KEY)->value('id')
+            ?? throw new \RuntimeException('The Claesen bootstrap site row is missing — run migrations.');
     }
 }

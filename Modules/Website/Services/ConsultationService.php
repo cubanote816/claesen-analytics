@@ -2,6 +2,7 @@
 
 namespace Modules\Website\Services;
 
+use Modules\Core\Models\Site;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\ConsultationActivity;
 use Modules\Website\Mail\NewConsultationRequestMail;
@@ -19,6 +20,10 @@ class ConsultationService
     {
         return DB::transaction(function () use ($data) {
             $request = ConsultationRequest::create([
+                // F1/P3a (docs/ai/adr-multi-organization.md): the public intake
+                // endpoint is still site-agnostic (per-site routing is F3/F4),
+                // so every lead belongs to Claesen until then.
+                'site_id' => Site::claesenId(),
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'] ?? null,

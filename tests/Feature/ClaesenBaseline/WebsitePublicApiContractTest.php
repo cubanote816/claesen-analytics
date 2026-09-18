@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\ClaesenBaseline;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Core\Models\Site;
 use Modules\Intelligence\Services\GeminiService;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\Project;
@@ -122,9 +123,13 @@ final class WebsitePublicApiContractTest extends TestCase
             'status' => 'pending',
         ]);
 
-        // Today a lead carries no site or organization: it is implicitly Claesen.
+        // Phase P3a (CLA-547) gave a lead an explicit site. The intake endpoint
+        // itself is still site-agnostic — it has no way to tell one website from
+        // another, so it assigns Claesen (per-site routing is F3/F4). What
+        // changed is that the ownership is now recorded instead of implied.
         $lead = ConsultationRequest::query()->firstOrFail();
-        $this->assertFalse($lead->getConnection()->getSchemaBuilder()->hasColumn('website_consultation_requests', 'site_id'));
+        $this->assertTrue($lead->getConnection()->getSchemaBuilder()->hasColumn('website_consultation_requests', 'site_id'));
+        $this->assertSame(Site::claesenId(), $lead->site_id);
     }
 
     public function test_an_invalid_public_lead_is_rejected_with_422(): void

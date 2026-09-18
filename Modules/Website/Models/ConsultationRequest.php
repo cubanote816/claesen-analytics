@@ -4,6 +4,7 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Modules\Core\Models\Concerns\BelongsToSite;
 use Modules\Core\Models\User;
 use Modules\Website\Database\Factories\ConsultationRequestFactory;
 
@@ -12,6 +13,7 @@ use Spatie\Activitylog\Support\LogOptions;
 
 class ConsultationRequest extends Model
 {
+    use BelongsToSite;
     use HasFactory;
     use LogsActivity;
 
@@ -23,6 +25,7 @@ class ConsultationRequest extends Model
     protected $table = 'website_consultation_requests';
 
     protected $fillable = [
+        'site_id',
         'name',
         'email',
         'phone',

@@ -5,6 +5,7 @@ namespace Modules\Website\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Core\Models\Concerns\BelongsToSite;
 use Modules\Website\Database\Factories\ProjectFactory;
 use Spatie\Translatable\HasTranslations;
 use Spatie\MediaLibrary\HasMedia;
@@ -14,7 +15,7 @@ use Modules\Intelligence\Traits\HasAiTranslations;
 
 class Project extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia, HasAiTranslations;
+    use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia, HasAiTranslations, BelongsToSite;
 
     protected static function newFactory(): ProjectFactory
     {
@@ -24,6 +25,7 @@ class Project extends Model implements HasMedia
     protected $table = 'website_projects';
 
     protected $fillable = [
+        'site_id',
         'slug',
         'title',
         'content', // Legacy field, kept for safety
