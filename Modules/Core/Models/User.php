@@ -130,6 +130,20 @@ class User extends Authenticatable implements FilamentUser
             return $this->is_active && $this->hasRole('super_admin');
         }
 
+        // F1/P5a (CLA-460 cont., docs/ai/adr-multi-organization.md): "paneles
+        // y logins" is the first enforcement layer. Gated by the flag (D4) —
+        // with it off (the default everywhere today) this branch never runs,
+        // so nothing changes for Claesen. With it on, a user outside
+        // Claesen's organization is rejected from the admin panel the same
+        // way the bertels branch above already rejects non-super_admin: via
+        // this method, which Filament's own Authenticate middleware already
+        // calls per-panel and abort_if(403)s on false. No real non-Claesen
+        // user exists yet (D10) — this can only be exercised with a fixture
+        // organization in tests until P7.
+        if (config('organizations.enforce') && $this->organization_id !== Organization::claesenId()) {
+            return false;
+        }
+
         // Keep Filament authentication available so EnsurePanelAccess can send
         // non-panel users to the dedicated no-access page and still allow logout.
         // CLA-363: the actual login-time rejection for client/technician lives in
