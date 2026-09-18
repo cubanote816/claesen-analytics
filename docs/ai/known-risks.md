@@ -166,10 +166,10 @@ php artisan website:regenerate-media
 Siete puntos sin filtro de organización: `MaintenanceRequestService.php:514`, `MaintenanceRequestAlertService.php:131`, `CheckSafetyComplianceCommand.php:32`, `ChecklistObserver.php:26`, `InspectionReminderService.php:39`, `InspectionController.php:138`, `CheckDeliverabilityAlertsCommand.php:156`. Datos operativos de Claesen llegarían por email y en la campana a usuarios de Bertels con esos roles.
 **Control:** filtro por organización en cada consulta de destinatarios (P5d).
 
-### 5. CRÍTICO — La publicación del sitio estático es un singleton global
+### 5. CRÍTICO — La publicación del sitio estático sigue teniendo un único webhook global
 
-`PublicationState::current()` usa `find(1)` y `config/static_site.php` define un único `webhook_url`/`webhook_secret`. Publicar un registro de Bertels reconstruiría el sitio de Claesen.
-**Control:** estado, webhook y secreto por sitio; jobs con `siteId` (P3).
+**Actualizado (CLA-548, 2026-09-18):** `website_publication_states` ya tiene `site_id` (`UNIQUE`) y `PublicationState::current(?int $siteId = null)` ya no usa `find(1)` — resuelve por `firstOrCreate(['site_id' => ...])`, default a Claesen. El riesgo real no está cerrado por esto: `config/static_site.php` sigue definiendo un único `webhook_url`/`webhook_secret` para toda la instalación, así que publicar un registro de Bertels seguiría reconstruyendo el sitio estático de Claesen — el estado ya es direccionable por sitio, pero el destino del webhook todavía no lo es.
+**Control:** webhook y secreto por sitio, jobs con `siteId` explícito (F3/F4, según el ticket CLA-548 lo deja documentado como fuera de su alcance).
 
 ### 6. CRÍTICO — Media privada de FieldOps accesible solo con rol de panel
 
@@ -201,6 +201,10 @@ Siete puntos sin filtro de organización: `MaintenanceRequestService.php:514`, `
 ---
 
 ## Deuda técnica
+
+### `OrganizationsSchemaTest` afirma que Website no tiene `site_id` — quedó desactualizado por CLA-547 (encontrado en CLA-549, 2026-09-18)
+
+`Modules/Core/tests/Feature/OrganizationsSchemaTest::test_no_website_data_is_touched_by_this_migration` (CLA-458/P1, commit `4c3288a`) afirma `assertFalse(Schema::hasColumn('website_projects', 'site_id'))` (y lo mismo para `website_consultation_requests`) — cierto en P1, pero **CLA-547 (P3a) agregó exactamente esa columna** a ambas tablas sin que nadie actualizara este test, porque el cierre de CLA-547 solo corrió `Modules/Website/tests` + `ClaesenBaseline`, no la suite completa de `Modules/Core/tests` donde vive este archivo. Confirmado con `git log` que el archivo no se ha tocado desde CLA-458. Efecto real: `./vendor/bin/phpunit Modules/Core/tests` falla con 1 assertion falsa desde CLA-547, sin que nadie lo detectara hasta que CLA-549 corrió la suite completa por primera vez. Fix trivial (invertir las 4 aserciones a `assertTrue`, mismo patrón "centinela invertido declarado" ya usado en el resto del programa) — **no corregido en CLA-549** para no mezclar el origen del cambio (CLA-547) dentro de un ticket distinto (CLA-549), per la regla de cambios colaterales de `CLAUDE.md`. Sin ticket todavía.
 
 ### `core:link-users-to-employees` nunca estuvo registrado como comando real (encontrado en CLA-459, 2026-09-18)
 
