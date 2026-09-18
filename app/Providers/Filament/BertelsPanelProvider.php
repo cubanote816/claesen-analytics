@@ -6,6 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -72,6 +73,16 @@ class BertelsPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->widgets([])
+            // F1/P4+P6 (CLA-460 cont.): the same audited switch back to
+            // Claesen. Always visible here — only super_admin can reach this
+            // panel at all (User::canAccessPanel()) — kept as an explicit
+            // ->visible() anyway for defense in depth / symmetry with admin.
+            ->navigationItems([
+                NavigationItem::make(fn () => __('navigation.switch_to_claesen'))
+                    ->url(fn () => route('core.switch-panel', ['panel' => 'admin', 'from' => 'bertels']))
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin')),
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

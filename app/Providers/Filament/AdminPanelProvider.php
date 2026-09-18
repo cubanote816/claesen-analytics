@@ -229,6 +229,15 @@ HTML
                     ->icon('heroicon-o-shield-check')
                     ->group(fn () => __('navigation.groups.content_website'))
                     ->sort(11),
+                // F1/P4+P6 (CLA-460 cont.): audited panel-switch selector.
+                // Ungrouped on purpose — a cross-cutting super_admin action,
+                // not Website content. No real Bertels user exists yet (D10),
+                // so this stays gated to super_admin until P5/P7.
+                NavigationItem::make(fn () => __('navigation.switch_to_bertels'))
+                    ->url(fn () => route('core.switch-panel', ['panel' => 'bertels', 'from' => 'admin']))
+                    ->icon('heroicon-o-building-office-2')
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin'))
+                    ->sort(100),
             ]);
     }
 }

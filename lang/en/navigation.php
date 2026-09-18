@@ -12,4 +12,6 @@ return [
         'mailing' => 'Mailing',
         'field_operations' => 'Field Operations (Demo)',
     ],
+    'switch_to_bertels' => 'Switch to Electro Bertels',
+    'switch_to_claesen' => 'Switch to Claesen',
 ];
