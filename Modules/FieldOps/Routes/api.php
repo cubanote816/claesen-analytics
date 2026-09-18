@@ -33,6 +33,12 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/clients', [FoClientController::class, 'index']);
         Route::get('/clients/{foClient}', [FoClientController::class, 'show']);
         Route::post('/clients/{foClient}/contacts/invitations', [ClientContactController::class, 'invite']);
+        // CLA-554 — list/update an existing contact of this client. {user} must
+        // never be reachable without an existing fo_client_user row for this
+        // exact $foClient — enforced in ClientContactInvitationService::
+        // updateMembership(), not by the route itself.
+        Route::get('/clients/{foClient}/contacts', [ClientContactController::class, 'index']);
+        Route::patch('/clients/{foClient}/contacts/{user}', [ClientContactController::class, 'update']);
 
         // Complexes
         Route::get('/complexes', [ComplexController::class, 'index']);
