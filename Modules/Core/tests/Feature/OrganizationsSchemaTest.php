@@ -155,14 +155,22 @@ final class OrganizationsSchemaTest extends TestCase
         $this->assertSame(Site::STATUS_SUSPENDED, Site::factory()->suspended()->create()->status);
     }
 
-    public function test_no_website_data_is_touched_by_this_migration(): void
+    public function test_this_migration_never_added_an_organization_id_column_to_website(): void
     {
-        // CLA-458: "Ningún dato Website se mezcla durante el despliegue."
-        // Structural check that this phase never reached those tables.
+        // CLA-458 (P1): "Ningún dato Website se mezcla durante el despliegue."
+        // organization_id was never, and per D3 never will be, added directly
+        // to site-owned tables — the organization is always derived through
+        // sites.organization_id.
+        //
+        // site_id is a DIFFERENT phase's promise (P3a/CLA-547) and IS present
+        // on these two tables since then — declared inversion, found stale in
+        // CLA-549 (docs/ai/known-risks.md → "Deuda técnica"): this test
+        // originally asserted site_id's absence too, which stopped being true
+        // the moment CLA-547 shipped without anyone updating this assertion.
         $this->assertFalse(Schema::hasColumn('website_projects', 'organization_id'));
-        $this->assertFalse(Schema::hasColumn('website_projects', 'site_id'));
         $this->assertFalse(Schema::hasColumn('website_consultation_requests', 'organization_id'));
-        $this->assertFalse(Schema::hasColumn('website_consultation_requests', 'site_id'));
+        $this->assertTrue(Schema::hasColumn('website_projects', 'site_id'));
+        $this->assertTrue(Schema::hasColumn('website_consultation_requests', 'site_id'));
     }
 
     public function test_the_organizations_config_scaffolding_defaults_to_disabled_and_empty(): void
