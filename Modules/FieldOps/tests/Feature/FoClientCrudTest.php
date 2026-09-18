@@ -6,9 +6,11 @@ namespace Modules\FieldOps\Tests\Feature;
 
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\FoClient;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class FoClientCrudTest extends TestCase
@@ -65,5 +67,51 @@ class FoClientCrudTest extends TestCase
             ->assertMethodNotAllowed();
 
         $this->assertDatabaseMissing('fo_complexes', ['name' => 'Manual site']);
+    }
+
+    // -------------------------------------------------------------------
+    // CLA-556: FoClientResource.can_manage_contacts — the ACTOR's own
+    // capability, discoverable without first having it (unlike the
+    // GET/PATCH .../contacts endpoints themselves, which 403 without it).
+    // -------------------------------------------------------------------
+    public function test_can_manage_contacts_is_true_for_a_client_manager_and_false_for_a_plain_viewer(): void
+    {
+        foreach (['client', 'admin', 'super_admin'] as $role) {
+            Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+        }
+        $client = FoClient::factory()->create();
+
+        $manager = UserFactory::new()->create();
+        $manager->assignRole('client');
+        $manager->fieldOpsClients()->attach($client->id, [
+            'is_active' => true, 'can_view' => true, 'can_report' => true, 'can_manage_contacts' => true,
+        ]);
+
+        $viewer = UserFactory::new()->create();
+        $viewer->assignRole('client');
+        $viewer->fieldOpsClients()->attach($client->id, [
+            'is_active' => true, 'can_view' => true, 'can_report' => true, 'can_manage_contacts' => false,
+        ]);
+
+        $admin = UserFactory::new()->create();
+        $admin->assignRole('admin');
+        // Needed to pass EnforceFieldOpsTenantAccess's own 'view' gate on this
+        // route (canView() → hasBroadAccess()) — unrelated to the
+        // can_manage_contacts assertion below, which is admin-role-based.
+        $admin->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+
+        $this->withToken($manager->createToken('t')->plainTextToken)
+            ->getJson("/api/v1/fieldops/clients/{$client->id}")
+            ->assertOk()->assertJsonPath('data.can_manage_contacts', true);
+
+        Auth::forgetGuards();
+        $this->withToken($viewer->createToken('t')->plainTextToken)
+            ->getJson("/api/v1/fieldops/clients/{$client->id}")
+            ->assertOk()->assertJsonPath('data.can_manage_contacts', false);
+
+        Auth::forgetGuards();
+        $this->withToken($admin->createToken('t')->plainTextToken)
+            ->getJson("/api/v1/fieldops/clients/{$client->id}")
+            ->assertOk()->assertJsonPath('data.can_manage_contacts', true);
     }
 }
