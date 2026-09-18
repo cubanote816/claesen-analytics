@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\ClaesenBaseline;
 
 use Filament\Facades\Filament;
+use Filament\Pages\Dashboard;
 use Filament\Panel;
 use ReflectionClass;
 use Tests\Feature\ClaesenBaseline\Support\MatchesBaselineSnapshot;
@@ -62,14 +63,29 @@ final class PanelRegistrySnapshotTest extends TestCase
         $this->assertMatchesBaselineSnapshot('panel-registry', implode("\n", $lines));
     }
 
-    public function test_the_only_registered_panel_is_the_claesen_admin_panel(): void
+    public function test_the_registered_panels_are_exactly_claesen_and_the_bertels_spike(): void
     {
-        // The Bertels panel is introduced in a later, declared phase. Until then
-        // a second panel appearing here means something was merged out of order.
+        // F1/P6 spike (CLA-549): declared inversion. A third panel appearing
+        // here without a matching phase ticket is the regression this guards.
         $this->assertSame(
-            ['admin'],
+            ['admin', 'bertels'],
             array_values(array_map(static fn (Panel $panel): string => $panel->getId(), Filament::getPanels())),
         );
+    }
+
+    public function test_the_bertels_panel_has_no_resources_pages_or_widgets_of_its_own(): void
+    {
+        // F1/P6 spike (CLA-549): the panel exists only to prove the technical
+        // assumptions (shared auth guard, Azure login, per-panel authorization)
+        // before any real Bertels resource exists — F3/F4 own that.
+        $panel = Filament::getPanel('bertels');
+
+        $this->assertSame('bertels', $panel->getId());
+        $this->assertSame('bertels', $panel->getPath());
+        $this->assertFalse($panel->isDefault());
+        $this->assertSame([], $panel->getResources());
+        $this->assertSame([Dashboard::class], array_values($panel->getPages()));
+        $this->assertSame([], $panel->getWidgets());
     }
 
     /**

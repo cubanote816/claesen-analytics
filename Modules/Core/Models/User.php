@@ -119,6 +119,17 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
+        // F1/P6 spike (CLA-549, docs/ai/adr-multi-organization.md): no real
+        // Bertels user exists yet (ADR D10, "regla de hierro") — the panel is
+        // reachable only by super_admin while it has no resources of its own.
+        // Filament's own Authenticate middleware calls this per-panel and
+        // abort_if(403)s on false (vendor/filament/filament/.../Authenticate.php),
+        // so this is the intended extension point rather than a bespoke
+        // middleware duplicating EnsurePanelAccess's Claesen role allowlist.
+        if ($panel->getId() === 'bertels') {
+            return $this->is_active && $this->hasRole('super_admin');
+        }
+
         // Keep Filament authentication available so EnsurePanelAccess can send
         // non-panel users to the dedicated no-access page and still allow logout.
         // CLA-363: the actual login-time rejection for client/technician lives in
