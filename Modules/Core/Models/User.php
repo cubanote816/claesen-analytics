@@ -6,6 +6,7 @@ namespace Modules\Core\Models;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -73,11 +74,31 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsTo(Employee::class, 'employee_id');
     }
 
-    // F1/P2 (docs/ai/adr-multi-organization.md): resolve-only, nothing
-    // consumes this for scoping/enforcement yet — see Modules\Core\Services\OrganizationContext.
+    // F1/P2 (docs/ai/adr-multi-organization.md): resolve-only relation — see
+    // Modules\Core\Services\OrganizationContext. F1/P5d added the first real
+    // consumer: scopeInOrganization() below, used to keep operational
+    // notification recipients scoped to one organization.
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    // F1/P5d (ADR §6, "asíncrono y destinatarios"): every recipient query this
+    // model's own role scopes feed (User::role(...)/whereHas('roles', ...))
+    // selected users by role alone, globally — the P0 baseline
+    // (AccessControlContractTest::operationalRecipientQueries) froze exactly
+    // this gap across 7 call sites in FieldOps/Safety/Mailing. Gated by
+    // config('organizations.enforce') (D4) — a no-op with the flag off (the
+    // default in every environment today). Defaults to Claesen because every
+    // one of those 7 notifications is a Claesen-operational context today;
+    // pass an explicit id for anything that isn't.
+    public function scopeInOrganization(Builder $query, ?int $organizationId = null): Builder
+    {
+        if (! config('organizations.enforce')) {
+            return $query;
+        }
+
+        return $query->where('organization_id', $organizationId ?? Organization::claesenId());
     }
 
     public function fieldOpsClients(): BelongsToMany

@@ -110,43 +110,50 @@ final class AccessControlContractTest extends TestCase
      */
     public static function operationalRecipientQueries(): array
     {
+        // Declared inversion (F1/P5d, ADR §6 "asíncrono y destinatarios"): all
+        // 7 sites now chain User::scopeInOrganization() — inert with
+        // organizations.enforce off (the default everywhere today), so this
+        // still freezes each query as global-role selection in practice. The
+        // presence of ->inOrganization() itself is what this baseline exists
+        // to keep frozen from here on, not its absence.
         return [
             'FieldOps request notifications' => [
                 'Modules/FieldOps/Services/MaintenanceRequestService.php',
-                "->whereHas('roles', fn (\$query) => \$query->whereIn('name', ['admin', 'super_admin']))",
+                "->whereHas('roles', fn (\$query) => \$query->whereIn('name', ['admin', 'super_admin']))\n            ->inOrganization()",
             ],
             'FieldOps request alerts' => [
                 'Modules/FieldOps/Services/MaintenanceRequestAlertService.php',
-                "->whereHas('roles', fn (\$query) => \$query->whereIn('name', ['admin', 'super_admin']))",
+                "->whereHas('roles', fn (\$query) => \$query->whereIn('name', ['admin', 'super_admin']))\n            ->inOrganization()",
             ],
             'Safety compliance command' => [
                 'Modules/Safety/Console/CheckSafetyComplianceCommand.php',
-                "User::role('super_admin')->get()",
+                "User::role('super_admin')->inOrganization()->get()",
             ],
             'Safety checklist observer' => [
                 'Modules/Safety/Observers/ChecklistObserver.php',
-                "User::role(['project_manager', 'super_admin'])->get()",
+                "User::role(['project_manager', 'super_admin'])->inOrganization()->get()",
             ],
             'Safety inspection reminders' => [
                 'Modules/Safety/Services/InspectionReminderService.php',
-                "User::role('project_manager')->get()",
+                "User::role('project_manager')->inOrganization()->get()",
             ],
             'Safety inspection controller' => [
                 'Modules/Safety/Http/Controllers/InspectionController.php',
-                "User::role('super_admin')->get()",
+                "User::role('super_admin')->inOrganization()->get()",
             ],
             'Mailing deliverability alerts' => [
                 'Modules/Mailing/Console/CheckDeliverabilityAlertsCommand.php',
-                "User::whereHas('roles', fn (\$q) => \$q->whereIn('id', \$roleIds))->get()",
+                "User::whereHas('roles', fn (\$q) => \$q->whereIn('id', \$roleIds))->inOrganization()->get()",
             ],
         ];
     }
 
     /**
-     * Operational notifications pick their recipients by global role, with no
-     * organization filter. Documented CRITICAL: the day a Bertels user holds one
-     * of those roles, Claesen operational data reaches them by e-mail and in the
-     * notification bell.
+     * F1/P5d (ADR §6, "asíncrono y destinatarios"): closed the CRITICAL gap this
+     * docblock used to describe — "the day a Bertels user holds one of those
+     * roles, Claesen operational data reaches them by e-mail and in the
+     * notification bell". Every site now also filters by organization via
+     * User::scopeInOrganization(), inert with the flag off (today's default).
      */
     #[DataProvider('operationalRecipientQueries')]
     public function test_operational_notification_recipients_are_selected_by_global_role(

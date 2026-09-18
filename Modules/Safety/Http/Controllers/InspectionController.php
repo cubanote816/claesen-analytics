@@ -135,7 +135,7 @@ class InspectionController extends Controller
         try {
             GenerateSafetyPdfJob::dispatch($inspection->id);
 
-            $admins = User::role('super_admin')->get();
+            $admins = User::role('super_admin')->inOrganization()->get();
             if ($admins->count() > 0) {
                 $title = $inspection->type === 'incident' ? 'Nieuw Incidentenrapport' : 'Nieuwe werkplekinspectie';
                 $body  = $inspection->type === 'incident'

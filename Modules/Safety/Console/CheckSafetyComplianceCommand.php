@@ -29,7 +29,7 @@ class CheckSafetyComplianceCommand extends Command
         if ($missing->isNotEmpty()) {
             $this->warn($missing->count() . ' projects are missing inspections.');
 
-            $admins = User::role('super_admin')->get();
+            $admins = User::role('super_admin')->inOrganization()->get();
 
             if ($admins->isNotEmpty()) {
                 Notification::make()

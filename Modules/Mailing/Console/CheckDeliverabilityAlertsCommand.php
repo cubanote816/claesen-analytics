@@ -153,7 +153,7 @@ class CheckDeliverabilityAlertsCommand extends Command
 
         // Notify admins and campaign managers (resilient: skip roles that don't exist yet)
         $roleIds = Role::whereIn('name', ['super_admin', 'admin', 'campaign_manager'])->pluck('id');
-        $recipients = User::whereHas('roles', fn ($q) => $q->whereIn('id', $roleIds))->get();
+        $recipients = User::whereHas('roles', fn ($q) => $q->whereIn('id', $roleIds))->inOrganization()->get();
         $recipients->each->notify(new DeliverabilityAlertNotification($alert));
 
         $alert->update(['notified_at' => now()]);
