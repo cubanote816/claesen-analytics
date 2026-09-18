@@ -18,10 +18,23 @@
 |
 | `owned_modules` (ADR D9): modules whose routes, resources, jobs and
 | scheduled commands belong exclusively to one organization and are
-| registered without any row-level organization_id/site_id column.
-| Populated in phase P5b. Mailing is a deliberate exception (ADR D11): only
-| its transactional transport is shared, so it still belongs in this list
-| once P5b wires the `organization:claesen` middleware onto its routes.
+| registered without any row-level organization_id/site_id column. Each
+| module's `auth:sanctum` API routes carry the `organization:{slug}`
+| middleware (Modules\Core\Http\Middleware\RequireOrganization) naming the
+| same slug listed here — that's the actual enforcement point, this array
+| is documentation/registry, nothing reads it back at runtime yet.
+|
+| Deliberately excluded: Core (the auth/switch-panel gateway itself — could
+| never be organization-gated without breaking login), Website (`site_id`
+| already scopes it, by design meant to serve Bertels too in F3), Analytics
+| (`POST /api/v1/events` is intentionally public/anonymous, no authenticated
+| user to compare against).
+|
+| Mailing is a deliberate partial inclusion (ADR D11): only the `mailings`
+| campaign-management resource is gated here — its transactional transport
+| (MicrosoftGraphTransport, used internally by ConsultationService, no HTTP
+| route of its own) is the one thing Bertels will share, so it's never
+| behind this middleware.
 |
 | `platform_abilities` (ADR D5): the only Gate abilities allowed to bypass
 | the organization boundary when no Eloquent model or class-string is
@@ -36,7 +49,18 @@ return [
 
     'enforce' => env('ORGANIZATIONS_ENFORCE', false),
 
-    'owned_modules' => [],
+    'owned_modules' => [
+        'claesen' => [
+            'fieldops',
+            'safety',
+            'employees',
+            'mailing',
+            'intelligence',
+            'performance',
+            'prospects',
+            'cafca',
+        ],
+    ],
 
     'platform_abilities' => [],
 

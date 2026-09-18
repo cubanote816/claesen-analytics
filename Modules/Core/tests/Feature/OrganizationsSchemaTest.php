@@ -175,10 +175,19 @@ final class OrganizationsSchemaTest extends TestCase
 
     public function test_the_organizations_config_scaffolding_defaults_to_disabled_and_empty(): void
     {
-        // ADR D4/D9/D5: enforcement off, no owned modules or platform
-        // abilities registered yet — this phase is structure only.
+        // ADR D4/D5: enforcement off, no platform abilities registered yet
+        // — every ability check in the repo still passes a model or a
+        // class-string. `owned_modules` (D9) is the one exception, declared
+        // inverted here on purpose: it stopped being an empty placeholder
+        // the moment CLA-552 (P5b) populated it with the Claesen-only
+        // module list. Same pattern as the site_id assertion above (CLA-547
+        // invalidating a P1-era assumption) — a real, later phase legitimately
+        // changing what a structure-only P1 test could assert.
         $this->assertFalse(config('organizations.enforce'));
-        $this->assertSame([], config('organizations.owned_modules'));
         $this->assertSame([], config('organizations.platform_abilities'));
+        $this->assertSame([
+            'fieldops', 'safety', 'employees', 'mailing',
+            'intelligence', 'performance', 'prospects', 'cafca',
+        ], config('organizations.owned_modules.claesen'));
     }
 }

@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->alias([
             'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
+            'organization' => \Modules\Core\Http\Middleware\RequireOrganization::class,
         ]);
         $middleware->web(append: [
             \Modules\Core\Http\Middleware\UpdateUserActivity::class,

@@ -20,7 +20,7 @@ use Modules\FieldOps\Http\Controllers\StructureController;
 use Modules\FieldOps\Http\Controllers\TerrainController;
 use Modules\FieldOps\Http\Middleware\EnforceFieldOpsTenantAccess;
 
-Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHeader::class, EnforceFieldOpsTenantAccess::class])
+Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHeader::class, EnforceFieldOpsTenantAccess::class, 'organization:claesen'])
     ->prefix('v1/fieldops')->group(function () {
         // External client portal: a deliberately read-only, reduced topology projection.
         Route::get('/client-portal/infrastructure', [ClientPortalInfrastructureController::class, 'index']);

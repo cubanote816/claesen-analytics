@@ -21,19 +21,19 @@ use Modules\Safety\Http\Middleware\EnsureSafetyAccess;
 
 Route::post('v1/login', [AuthController::class, 'login'])->name('safety.api.login');
 // Auth & Profile
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'organization:claesen'])->group(function () {
     Route::get('v1/me', [AuthController::class, 'me'])->name('safety.api.me');
 });
 
 // Notifications
-Route::middleware('auth:sanctum')->prefix('v1/safety/notifications')->group(function () {
+Route::middleware(['auth:sanctum', 'organization:claesen'])->prefix('v1/safety/notifications')->group(function () {
     Route::get('/', [NotificationController::class, 'index'])->name('safety.api.notifications.index');
     Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('safety.api.notifications.unread');
     Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('safety.api.notifications.mark-read');
     Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('safety.api.notifications.mark-all-read');
 });
 
-Route::middleware(['auth:sanctum', EnsureSafetyAccess::class])
+Route::middleware(['auth:sanctum', EnsureSafetyAccess::class, 'organization:claesen'])
     ->prefix('v1/safety')
     ->group(function () {
         Route::get('checklists', [\Modules\Safety\Http\Controllers\ChecklistController::class, 'index'])->name('safety.api.checklists.index');
