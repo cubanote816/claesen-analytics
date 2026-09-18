@@ -22,6 +22,7 @@ use Modules\FieldOps\Filament\Resources\MaintenanceRequests\Pages\ViewMaintenanc
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
+use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceRequest;
 use Modules\FieldOps\Models\FoMaintenanceRequestMessage;
 use Modules\FieldOps\Models\FoMaintenanceType;
@@ -541,6 +542,63 @@ class MaintenanceRequestTest extends TestCase
             'id' => $workOrderId,
             'priority' => 'medium',
         ]);
+    }
+
+    // -------------------------------------------------------------------
+    // CLA-561: MaintenanceRecordResource redacts internal fields for a
+    // client actor on the per-asset history endpoints, which were already
+    // reachable by a client before this ticket (tenant-scoped GET on the
+    // asset itself — no route/middleware change here).
+    // -------------------------------------------------------------------
+    public function test_client_sees_maintenance_history_with_internal_fields_redacted(): void
+    {
+        $topology = $this->topology('History Client');
+        [, $clientToken] = $this->clientUser($topology['client']);
+        [$internalActor] = $this->adminUser();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        FoMaintenanceRecord::factory()->forMaintainable($topology['luminaire'])->create([
+            'fo_maintenance_type_id' => $type->id,
+            'created_by_user_id' => $internalActor->id,
+            'notes' => 'Internal-only note',
+            'root_cause' => 'Internal diagnostic shorthand',
+            'solution_applied' => 'Replaced the ballast',
+        ]);
+
+        Auth::forgetGuards();
+        $response = $this->withToken($clientToken)
+            ->getJson("/api/v1/fieldops/luminaires/{$topology['luminaire']->id}/maintenance-records")
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $response->assertJsonPath('data.0.employee', null)
+            ->assertJsonPath('data.0.created_by', null)
+            ->assertJsonPath('data.0.notes', null)
+            ->assertJsonPath('data.0.root_cause', null)
+            // client-facing fields survive untouched
+            ->assertJsonPath('data.0.solution_applied', 'Replaced the ballast');
+
+        $response->assertDontSee('Internal-only note')
+            ->assertDontSee('Internal diagnostic shorthand');
+    }
+
+    public function test_internal_actor_sees_full_maintenance_history_unredacted(): void
+    {
+        $topology = $this->topology('Internal History Client');
+        [$internalActor, $adminToken] = $this->adminUser();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        FoMaintenanceRecord::factory()->forMaintainable($topology['luminaire'])->create([
+            'fo_maintenance_type_id' => $type->id,
+            'created_by_user_id' => $internalActor->id,
+            'notes' => 'Internal-only note',
+            'root_cause' => 'Internal diagnostic shorthand',
+        ]);
+
+        $this->withToken($adminToken)
+            ->getJson("/api/v1/fieldops/luminaires/{$topology['luminaire']->id}/maintenance-records")
+            ->assertOk()
+            ->assertJsonPath('data.0.notes', 'Internal-only note')
+            ->assertJsonPath('data.0.root_cause', 'Internal diagnostic shorthand')
+            ->assertJsonPath('data.0.created_by.id', $internalActor->id);
     }
 
     private function createRequest(string $token, Luminaire|ElectricalBoard $equipment): int
