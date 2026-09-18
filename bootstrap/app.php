@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->web(append: [
             \Modules\Core\Http\Middleware\UpdateUserActivity::class,
+            \Modules\Core\Http\Middleware\ResolveOrganizationContext::class,
         ]);
         $middleware->redirectGuestsTo(fn () => route('filament.admin.auth.login'));
     })
