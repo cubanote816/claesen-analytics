@@ -274,12 +274,12 @@ El puerto 3310 evita el 3308 que ocupa otro worktree. `PanelAccessMatrixTest` ll
 | 8 | ~~¿Campañas de marketing o solo correo transaccional?~~ **Respondida (2026-09-17): solo transaccional por ahora.** Ver D11 | Resuelta. Reduce el tramo Mailing a F4/CLA-473 |
 | 9 | ~~¿De dónde sale la audiencia de Bertels?~~ **Aparcada**: no aplica mientras no haya campañas. Si algún día se aprueban, vuelve como bloqueante (la audiencia no puede ser `prospects`: consentimiento dado a Claesen) | Solo una futura decisión de campañas |
 | 10 | ~~¿El correo de `electrobertels.be` está en el mismo tenant de Microsoft 365?~~ **Respondida (2026-09-17): sí, lo comparten.** Ver D11 | Resuelta. Elimina la necesidad de credenciales por organización y de ESP |
-| 2 | ¿Cómo se autentica el personal de Bertels: mismo tenant de Azure AD (¿qué grupos?), otro tenant, o email y contraseña? | P5a, D8 |
-| 3 | ¿Cómo accede el personal de Bertels, si `backoffice.claesen.local` es solo LAN + túnel y no debe exponerse a Internet? | P6 |
-| 4 | ¿Quién administra los usuarios de Bertels en la primera entrega y con qué roles? | P6 |
+| 2 | ~~¿Cómo se autentica el personal de Bertels: mismo tenant de Azure AD (¿qué grupos?), otro tenant, o email y contraseña?~~ **Respondida (2026-09-18): mismo tenant de Azure AD que Claesen** — consistente con D11 (`electrobertels.be` ya confirmado en el mismo tenant). Requiere un grupo de Azure propio de Bertels (distinto de los grupos de Claesen que alimentan `AzureRoleService`), para no heredar sus roles ni caer en el fallback `viewer` documentado como riesgo en D11. Grupo concreto: **a confirmar** en P5a/P6. | Resuelta la vía; el grupo exacto sigue abierto para P5a/D8 |
+| 3 | ~~¿Cómo accede el personal de Bertels, si `backoffice.claesen.local` es solo LAN + túnel y no debe exponerse a Internet?~~ **Respondida (2026-09-18): se extiende el mismo túnel/VPN que ya usa el personal de Claesen** — sin exponer `/bertels` a Internet por una vía distinta. El spike de P6 debe confirmar que el túnel actual soporta el tráfico de un segundo panel sin cambios de topología. | Resuelta. Confirmar en el spike técnico de P6 |
+| 4 | ~~¿Quién administra los usuarios de Bertels en la primera entrega y con qué roles?~~ **Respondida (2026-09-18): un admin interno de Claesen los da de alta**, con el mismo flujo/herramientas que ya existen para usuarios de Claesen — sin un rol de "admin de Bertels" acotado en esta primera entrega. | Resuelta |
 | 5 | ¿Qué identidad remitente y proveedor usan los correos de Bertels (SPF/DKIM/DMARC de `electrobertels.be`)? | F4 |
 | 6 | ¿Se autoriza una consulta de conteo de solo lectura en producción para dimensionar los backfills? | P2, P3 |
-| 7 | ¿Hay assets de marca aprobados para el panel de Bertels? | P6 |
+| 7 | ¿Hay assets de marca aprobados para el panel de Bertels? **Confirmado que sí existen (2026-09-18)** — pendiente que el usuario los entregue (logo, color primario, nombre visible del panel) antes de poder aplicarlos al provider de P6. | P6 |
 
 ---
 
