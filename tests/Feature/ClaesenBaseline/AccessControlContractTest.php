@@ -44,15 +44,22 @@ final class AccessControlContractTest extends TestCase
         $this->assertStringContainsString('return (bool) $this->is_active;', $user);
     }
 
-    public function test_super_admin_bypasses_every_policy_through_gate_before(): void
+    public function test_super_admin_bypasses_every_policy_through_gate_before_except_a_cross_organization_subject(): void
     {
-        // Documented CRITICAL: no policy can deny super_admin today, so
-        // cross-organization denial for super_admin cannot be built on policies
-        // alone. The organization boundary must be evaluated before this bypass.
-        $this->assertStringContainsString(
-            "Gate::before(function (\$user, \$ability) {\n            return \$user->hasRole('super_admin') ? true : null;\n        });",
-            $this->source('app/Providers/AppServiceProvider.php')
-        );
+        // Declared inversion (F1/P5c, CLA-552-cont, ADR D5): this used to freeze
+        // the CRITICAL gap the comment above named — "no policy can deny
+        // super_admin, the organization boundary must be evaluated before this
+        // bypass" — as a literal, unconditional Gate::before. P5c closed exactly
+        // that gap: with organizations.enforce off (every environment today)
+        // this is still byte-for-byte the old unconditional bypass; with it on,
+        // a subject registered in organizations.owned_models only bypasses when
+        // it belongs to the super_admin's own organization.
+        $appServiceProvider = $this->source('app/Providers/AppServiceProvider.php');
+
+        $this->assertStringContainsString("if (! \$user->hasRole('super_admin')) {\n                return null;", $appServiceProvider);
+        $this->assertStringContainsString("if (! config('organizations.enforce')) {\n                return true;", $appServiceProvider);
+        $this->assertStringContainsString('$ownedModules = config(\'organizations.owned_models\');', $appServiceProvider);
+        $this->assertStringContainsString('$user->organization?->slug === $owningOrgSlug', $appServiceProvider);
     }
 
     public function test_roles_are_global_because_spatie_teams_are_disabled(): void
