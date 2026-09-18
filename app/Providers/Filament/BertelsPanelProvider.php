@@ -55,7 +55,14 @@ class BertelsPanelProvider extends PanelProvider
                 'warning' => Color::Amber,
                 'info' => Color::hex('#EE7203'),
             ])
-            ->brandLogo(asset('img/bertels-brand-logo-light.jpg'))
+            // Real browser verification (2026-09-18) found bertels-brand-logo-light.jpg
+            // (265x360, a tall stacked icon+wordmark lockup) nearly illegible at any
+            // topbar-sized height — the wordmark below the icon gets crushed. The
+            // dark-mode wordmark (1774x887, a wide horizontal lockup) has no light-mode
+            // equivalent among the assets handed over for this spike, so light mode
+            // uses the square icon-only mark instead (472x452, same file as the
+            // favicon) rather than stretching a badly-fitted asset.
+            ->brandLogo(asset('img/bertels-favicon.jpg'))
             ->darkModeBrandLogo(asset('img/bertels-brand-logo-dark.png'))
             ->brandLogoHeight('2.5rem')
             ->favicon(asset('img/bertels-favicon.jpg'))
