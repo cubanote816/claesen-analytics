@@ -34,24 +34,27 @@ class FieldOpsTenantService
     // above: seeing *who else* has access and what they can do is management
     // information, not general read access, so a plain can_view=true contact
     // without can_manage_contacts is correctly rejected here.
-    public function assertCanManageContacts(FoClient $client, User $actor): void
+    // CLA-556: split from assertCanManageContacts() so the client-portal frontend
+    // can DISCOVER the capability (via FoClientResource) without first needing
+    // it — calling assertCanManageContacts() to check would 403 exactly the
+    // sessions that don't have it yet, which is the case this exists to answer.
+    public function canManageContacts(FoClient $client, User $actor): bool
     {
         if (! $this->isClientUser($actor)) {
-            if (! $actor->hasAnyRole(['admin', 'super_admin'])) {
-                throw new AuthorizationException;
-            }
-
-            return;
+            return $actor->hasAnyRole(['admin', 'super_admin']);
         }
 
-        $allowed = $actor->fieldOpsClients()
+        return $actor->fieldOpsClients()
             ->where('fo_clients.id', $client->id)
             ->wherePivot('is_active', true)
             ->wherePivot('can_view', true)
             ->wherePivot('can_manage_contacts', true)
             ->exists();
+    }
 
-        if (! $allowed) {
+    public function assertCanManageContacts(FoClient $client, User $actor): void
+    {
+        if (! $this->canManageContacts($client, $actor)) {
             throw new AuthorizationException;
         }
     }
