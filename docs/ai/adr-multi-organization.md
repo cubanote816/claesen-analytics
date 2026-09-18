@@ -262,6 +262,8 @@ El puerto 3310 evita el 3308 que ocupa otro worktree. `PanelAccessMatrixTest` ll
 | **F3/F4** | Recursos Bertels, API pública por sitio, webhook por sitio, antispam y throttle, originales privados, roles de organización | Por ticket | Por ticket |
 | **Correo transaccional de Bertels** (D11 · F4/CLA-473) | Remitente y nombre visible por sitio (respetar el From del Mailable), destinatario interno por sitio, plantilla y marca propias, confirmación al cliente (hoy **no existe**) y permiso de Graph para el buzón de Bertels en el tenant compartido, acotado por Application Access Policy | Por ticket; un lead de Bertels se guarda y responde 201 aunque el correo falle (fail-closed de CLA-532) | Por ticket; el fallback al remitente global de Claesen nunca se restaura en silencio |
 
+**Nota de secuencia (2026-09-18, decisión explícita del usuario):** la porción de "contexto resuelto en servidor y revalidado por request" de P4 se construyó (CLA-460 parcial) antes que P3 (`site_id` en el dominio compartido de Website). Es una excepción deliberada, no un abandono del orden estructura→contexto→autorización→enforcement: `OrganizationContext` resuelve directo desde `users.organization_id` (P2) y nunca toca `site_id`, así que no hay dependencia técnica real sobre P3. El resto de P4 (`AuditLogger`, jobs) y todo P3 siguen sin empezar — este adelanto no se repite implícitamente para otras piezas de P3/P4/P5 sin la misma revisión explícita caso por caso.
+
 ---
 
 ## 7. Preguntas abiertas que bloquean fases concretas
