@@ -10,7 +10,6 @@ use Modules\Website\Database\Factories\ProjectFactory;
 use Spatie\Translatable\HasTranslations;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use Modules\Website\App\Enums\ProjectCategory;
 use Modules\Intelligence\Traits\HasAiTranslations;
 
 class Project extends Model implements HasMedia
@@ -93,7 +92,10 @@ class Project extends Model implements HasMedia
     }
 
     protected $casts = [
-        'category' => ProjectCategory::class,
+        // F3/CLA-468: category is a plain slug string now, validated against
+        // Modules\Website\Models\ProjectCategory (a site-owned catalog) at
+        // the Filament form layer rather than cast to the global PHP enum
+        // this replaced (Modules\Website\App\Enums\ProjectCategory, deleted).
         'year' => 'integer',
         'published' => 'boolean',
         'featured' => 'boolean',

@@ -19,6 +19,12 @@ abstract class TestCase extends BaseTestCase
      * would throw on the 2nd+ test in a DatabaseTruncation class without this.
      * RefreshDatabase tests are unaffected — they roll back a transaction per
      * test instead of truncating, so the seed row is never actually deleted.
+     *
+     * website_project_categories (CLA-468) is the same situation: seeded by
+     * a migration (Claesen's three categories), never re-seeded by any test,
+     * and read by Modules\Website\Models\ProjectCategory — a
+     * DatabaseTruncation class truncating it would silently empty Claesen's
+     * whole taxonomy for every test that runs after in the same process.
      */
-    protected array $exceptTables = ['organizations', 'sites'];
+    protected array $exceptTables = ['organizations', 'sites', 'website_project_categories'];
 }

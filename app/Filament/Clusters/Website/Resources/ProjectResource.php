@@ -5,7 +5,8 @@ namespace App\Filament\Clusters\Website\Resources;
 use App\Filament\Clusters\Website\WebsiteCluster;
 use App\Filament\Clusters\Website\Resources\ProjectResource\Pages;
 use Modules\Website\Models\Project;
-use Modules\Website\App\Enums\ProjectCategory;
+use Modules\Core\Models\Site;
+use Modules\Website\Models\ProjectCategory;
 use Filament\Forms;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
@@ -39,6 +40,24 @@ class ProjectResource extends Resource
     private const MEDIA_MAX_DIMENSION_PX = 8000;
 
     protected static ?string $model = Project::class;
+
+    /**
+     * F3/CLA-468: this panel manages Claesen's own site only (Bertels gets
+     * its own panel/resources in F3/F4, same reasoning already documented
+     * on CreateProject::mutateFormDataBeforeCreate()) — hardcoding Claesen's
+     * id here is deliberate, not an oversight, until a site picker exists.
+     *
+     * @return array<string, string>
+     */
+    private static function categoryOptions(): array
+    {
+        return ProjectCategory::query()
+            ->where('site_id', Site::claesenId())
+            ->ordered()
+            ->get()
+            ->mapWithKeys(fn (ProjectCategory $category) => [$category->slug => $category->name])
+            ->all();
+    }
 
     public static function getNavigationLabel(): string
     {
@@ -134,7 +153,7 @@ class ProjectResource extends Resource
                                     ->unique(Project::class, 'slug', ignoreRecord: true),
                                 Select::make('category')
                                     ->label(__('website.projects.fields.category'))
-                                    ->options(ProjectCategory::class)
+                                    ->options(fn () => self::categoryOptions())
                                     ->required(),
                                 TextInput::make('client')
                                     ->label(__('website.projects.fields.client')),
@@ -296,6 +315,10 @@ class ProjectResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('category')
                     ->label(__('website.projects.fields.category'))
+                    // F3/CLA-468: category is a plain slug now — the enum this
+                    // replaced gave ->badge() a translated label for free via
+                    // HasLabel; the catalog lookup replaces that.
+                    ->formatStateUsing(fn (?string $state): ?string => $state !== null ? (self::categoryOptions()[$state] ?? $state) : null)
                     ->badge(),
                 Tables\Columns\IconColumn::make('published')
                     ->label(__('website.projects.fields.published'))
@@ -315,7 +338,7 @@ class ProjectResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('category')
                     ->label(__('website.projects.fields.category'))
-                    ->options(ProjectCategory::class),
+                    ->options(fn () => self::categoryOptions()),
                 Tables\Filters\TernaryFilter::make('published')
                     ->label(__('website.projects.fields.published')),
                 Tables\Filters\TernaryFilter::make('featured')
