@@ -670,6 +670,9 @@ return [
             'tool_circle' => 'Circle',
             'tool_hint' => 'Choose a tool, drag on the canvas, and save the result.',
         ],
+        'validation' => [
+            'invalid_generated_image' => 'The generated image data is not a valid image.',
+        ],
     ],
 
     'media' => [

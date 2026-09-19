@@ -33,7 +33,11 @@ class LuminaireDetectionVisionControllerTest extends TestCase
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
 
         $this->user = User::factory()->create();
-        $this->user->givePermissionTo(Permission::findOrCreate('fieldops.view-all-clients', 'web'));
+        $this->user->givePermissionTo([
+            Permission::findOrCreate('fieldops.view-all-clients', 'web'),
+            // CLA-502: the endpoint now requires this explicitly.
+            Permission::findOrCreate('fieldops.ai', 'web'),
+        ]);
 
         $this->frame = LuminaireFrame::factory()->create();
     }

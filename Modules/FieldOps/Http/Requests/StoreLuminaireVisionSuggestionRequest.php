@@ -8,7 +8,7 @@ class StoreLuminaireVisionSuggestionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('fieldops.ai') ?? false;
     }
 
     public function rules(): array
