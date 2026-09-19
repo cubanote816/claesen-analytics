@@ -13,26 +13,26 @@ class ProjectObserver
 
     public function created(Project $project): void
     {
-        $this->publicationService->requestRebuild('content_changed');
+        $this->publicationService->requestRebuild($project->site_id, 'content_changed');
     }
 
     public function updated(Project $project): void
     {
-        $this->publicationService->requestRebuild('content_changed');
+        $this->publicationService->requestRebuild($project->site_id, 'content_changed');
     }
 
     public function deleted(Project $project): void
     {
-        $this->publicationService->requestRebuild('content_changed');
+        $this->publicationService->requestRebuild($project->site_id, 'content_changed');
     }
 
     public function restored(Project $project): void
     {
-        $this->publicationService->requestRebuild('content_changed');
+        $this->publicationService->requestRebuild($project->site_id, 'content_changed');
     }
 
     public function forceDeleted(Project $project): void
     {
-        $this->publicationService->requestRebuild('content_changed');
+        $this->publicationService->requestRebuild($project->site_id, 'content_changed');
     }
 }

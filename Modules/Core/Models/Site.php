@@ -36,6 +36,19 @@ class Site extends Model
         'default_locale',
         'locales',
         'status',
+        // F3/CLA-472: per-site override of config/static_site.php's global
+        // webhook settings. Null on every existing site (Claesen included) —
+        // Modules\Website\Services\StaticSitePublicationService falls back
+        // to the global config when these are unset.
+        'static_site_webhook_url',
+        'static_site_webhook_secret',
+        'static_site_webhook_timeout',
+        'static_site_health_url',
+        'static_site_debounce_seconds',
+    ];
+
+    protected $hidden = [
+        'static_site_webhook_secret',
     ];
 
     protected function casts(): array

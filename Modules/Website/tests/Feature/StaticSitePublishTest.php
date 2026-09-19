@@ -6,6 +6,7 @@ use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Modules\Core\Models\Site;
 use Modules\Website\App\Enums\PublicationStatus;
 use Modules\Website\DTOs\WebhookResult;
 use Modules\Website\Jobs\GenerateGalleryMediaMetadataJob;
@@ -79,7 +80,7 @@ class StaticSitePublishTest extends TestCase
         Queue::fake();
         config(['static_site.enabled' => false]);
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
 
         Queue::assertNothingPushed();
         // PublicationState row should not even be created
@@ -92,7 +93,7 @@ class StaticSitePublishTest extends TestCase
     {
         Queue::fake();
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
 
         Queue::assertPushed(TriggerStaticSiteRebuildJob::class);
         $state = PublicationState::current();
@@ -105,10 +106,10 @@ class StaticSitePublishTest extends TestCase
     {
         Queue::fake();
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
         $key1 = PublicationState::current()->dispatch_key;
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
         $key2 = PublicationState::current()->dispatch_key;
 
         $this->assertNotEquals($key1, $key2);
@@ -118,7 +119,7 @@ class StaticSitePublishTest extends TestCase
     {
         Queue::fake();
 
-        $this->svc->requestRebuild('manual', force: true);
+        $this->svc->requestRebuild(reason: 'manual', force: true);
 
         Queue::assertPushed(TriggerStaticSiteRebuildJob::class, fn ($job) => $job->force === true);
     }
@@ -130,20 +131,20 @@ class StaticSitePublishTest extends TestCase
         Queue::fake();
         Http::fake(['*' => Http::response('', 202)]);
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
         $staleKey = PublicationState::current()->dispatch_key;
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
         $activeKey = PublicationState::current()->dispatch_key;
 
         $this->assertNotEquals($staleKey, $activeKey);
 
         // Stale job aborts — state stays pending (not accepted)
-        (new TriggerStaticSiteRebuildJob($staleKey, 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), $staleKey, 'content_changed', false))->handle($this->svc);
         $this->assertSame(PublicationStatus::PENDING, PublicationState::current()->status);
 
         // Active job succeeds
-        (new TriggerStaticSiteRebuildJob($activeKey, 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), $activeKey, 'content_changed', false))->handle($this->svc);
         $this->assertSame(PublicationStatus::ACCEPTED, PublicationState::current()->status);
     }
 
@@ -153,7 +154,7 @@ class StaticSitePublishTest extends TestCase
     {
         Http::fake(['*' => Http::response('', 202)]);
 
-        $result = $this->svc->sendWebhook('content_changed', false);
+        $result = $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
 
         $this->assertTrue($result->success);
         $this->assertSame(202, $result->statusCode);
@@ -164,7 +165,7 @@ class StaticSitePublishTest extends TestCase
     {
         Http::fake(['*' => Http::response('Bad Gateway', 502)]);
 
-        $result = $this->svc->sendWebhook('content_changed', false);
+        $result = $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
 
         $this->assertFalse($result->success);
         $this->assertSame(502, $result->statusCode);
@@ -179,7 +180,7 @@ class StaticSitePublishTest extends TestCase
             return Http::response('', 202);
         }]);
 
-        $this->svc->sendWebhook('content_changed', false);
+        $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
 
         $ts  = (int) ($captured->header('X-Webhook-Timestamp')[0] ?? 0);
         $sig = $captured->header('X-Webhook-Signature')[0] ?? '';
@@ -201,7 +202,7 @@ class StaticSitePublishTest extends TestCase
             return Http::response('', 202);
         }]);
 
-        $this->svc->sendWebhook('manual', force: true);
+        $this->svc->sendWebhook(Site::claesenId(), reason: 'manual', force: true);
 
         $payload = json_decode($captured->body(), true);
         $this->assertSame('backend',  $payload['source']);
@@ -214,7 +215,7 @@ class StaticSitePublishTest extends TestCase
     {
         config(['static_site.webhook_url' => null]);
 
-        $result = $this->svc->sendWebhook('content_changed', false);
+        $result = $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
 
         $this->assertFalse($result->success);
         $this->assertSame(0, $result->statusCode);
@@ -243,7 +244,7 @@ class StaticSitePublishTest extends TestCase
     public function test_job_superseded_key_aborts_silently(): void
     {
         $s = $this->freshState('A');
-        (new TriggerStaticSiteRebuildJob('B', 'test', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'B', 'test', false))->handle($this->svc);
         $s->refresh();
         $this->assertSame(PublicationStatus::PENDING, $s->status);
     }
@@ -252,7 +253,7 @@ class StaticSitePublishTest extends TestCase
     {
         $s = $this->freshState('C');
         Http::fake(['*' => Http::response('', 202)]);
-        (new TriggerStaticSiteRebuildJob('C', 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'C', 'content_changed', false))->handle($this->svc);
         $s->refresh();
         $this->assertSame(PublicationStatus::ACCEPTED, $s->status);
         $this->assertNotNull($s->last_accepted_at);
@@ -268,7 +269,7 @@ class StaticSitePublishTest extends TestCase
             $s->markPending();
             return Http::response('', 202);
         }]);
-        (new TriggerStaticSiteRebuildJob('D', 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'D', 'content_changed', false))->handle($this->svc);
         $s->refresh();
         $this->assertSame(PublicationStatus::PENDING, $s->status);
         $this->assertSame('E', $s->dispatch_key);
@@ -279,7 +280,7 @@ class StaticSitePublishTest extends TestCase
         $this->freshState('F');
         Http::fake(['*' => Http::response('err', 502)]);
         $this->expectException(\RuntimeException::class);
-        (new TriggerStaticSiteRebuildJob('F', 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'F', 'content_changed', false))->handle($this->svc);
     }
 
     public function test_job_stays_pending_while_retries_in_flight(): void
@@ -287,7 +288,7 @@ class StaticSitePublishTest extends TestCase
         $s = $this->freshState('F');
         Http::fake(['*' => Http::response('err', 502)]);
         try {
-            (new TriggerStaticSiteRebuildJob('F', 'content_changed', false))->handle($this->svc);
+            (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'F', 'content_changed', false))->handle($this->svc);
         } catch (\RuntimeException) {}
         $s->refresh();
         $this->assertSame(PublicationStatus::PENDING, $s->status);
@@ -296,7 +297,7 @@ class StaticSitePublishTest extends TestCase
     public function test_job_failed_with_matching_key_marks_error(): void
     {
         $s = $this->freshState('F');
-        (new TriggerStaticSiteRebuildJob('F', 'content_changed', false))
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'F', 'content_changed', false))
             ->failed(new \RuntimeException('connection refused'));
         $s->refresh();
         $this->assertSame(PublicationStatus::ERROR, $s->status);
@@ -308,7 +309,7 @@ class StaticSitePublishTest extends TestCase
     {
         $s = $this->freshState('G');
         $s->recordDispatch('H');
-        (new TriggerStaticSiteRebuildJob('G', 'content_changed', false))
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'G', 'content_changed', false))
             ->failed(new \RuntimeException('timeout'));
         $s->refresh();
         $this->assertSame(PublicationStatus::PENDING, $s->status);
@@ -386,7 +387,7 @@ class StaticSitePublishTest extends TestCase
     {
         Queue::fake();
 
-        $this->svc->requestRebuild('manual', force: true);
+        $this->svc->requestRebuild(reason: 'manual', force: true);
 
         Queue::assertPushed(TriggerStaticSiteRebuildJob::class, fn ($job) =>
             $job->force === true && $job->reason === 'manual'

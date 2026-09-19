@@ -28,7 +28,7 @@ class MediaObserver
         }
 
         // featured_image, detail_gallery, or any future collection.
-        $this->publicationService->requestRebuild('content_changed');
+        $this->publicationService->requestRebuild($media->model?->site_id, 'content_changed');
     }
 
     public function deleted(Media $media): void
@@ -37,6 +37,6 @@ class MediaObserver
             return;
         }
 
-        $this->publicationService->requestRebuild('content_changed');
+        $this->publicationService->requestRebuild($media->model?->site_id, 'content_changed');
     }
 }

@@ -39,12 +39,23 @@ class PublicationState extends Model
     // omits $siteId, so nothing about the observed behaviour for Claesen
     // changes — there is still, and will remain until a second site exists,
     // exactly one row.
+    //
+    // F3/CLA-472: withoutGlobalScope('site') is deliberate, not a bypass of
+    // isolation — $siteId is already an explicit argument naming exactly the
+    // row this call wants, so BelongsToSite's ambient-context scope (which
+    // filters by whatever OrganizationContext::siteId() currently resolves
+    // to) has nothing left to add. Applying both would AND them together:
+    // called for Bertels' site from a request/job whose ambient context
+    // resolves to Claesen (or none at all under organizations.enforce)
+    // would either silently look at the wrong site or throw
+    // MissingOrganizationContext despite the caller supplying an exact,
+    // valid site id.
 
     public static function current(?int $siteId = null): static
     {
         $siteId ??= Site::claesenId();
 
-        return static::firstOrCreate(
+        return static::withoutGlobalScope('site')->firstOrCreate(
             ['site_id' => $siteId],
             ['status' => PublicationStatus::IDLE]
         );
