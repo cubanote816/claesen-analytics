@@ -31,9 +31,42 @@ class FieldOpsTenantService
     // permission is scoped the same way a client is (allowedClientIds() below),
     // but keeps every other client-only restriction (isClientUser() call sites
     // elsewhere, e.g. the maintenance-work-order block) untouched.
+    //
+    // CLA-558: the Spatie permission alone is not enough once
+    // organizations.enforce is on (D2 — Spatie roles/permissions stay global
+    // on purpose). Without the organization check below, a future Bertels
+    // user holding any role that carries fieldops.view-all-clients
+    // (super_admin, admin, financial_manager, hr_manager, viewer, or
+    // project_manager per CLA-377) would get unrestricted read/write access
+    // to every Claesen FieldOps record, regardless of Gate::before (D5) — the
+    // gap CLA-557 found and deliberately deferred here rather than fixing
+    // inline on already-delicate tenant-isolation logic (CLA-266/364/369/
+    // 375/377/496/497). Inert with the flag off (belongsToOwningOrganization()
+    // short-circuits to true), matching every other P5 mechanism.
     public function hasBroadAccess(User $user): bool
     {
-        return $user->can('fieldops.view-all-clients');
+        return $user->can('fieldops.view-all-clients') && $this->belongsToOwningOrganization($user);
+    }
+
+    /**
+     * Whether $user's own organization is the one FieldOps belongs to
+     * (config('organizations.owned_modules'), D9) — same derivation
+     * Gate::before (app/Providers/AppServiceProvider.php, D5) and
+     * RequireOrganization (P5b) already use, kept local here because this
+     * check only ever applies to the 'fieldops' module key.
+     */
+    private function belongsToOwningOrganization(User $user): bool
+    {
+        if (! config('organizations.enforce')) {
+            return true;
+        }
+
+        $owningSlug = collect(config('organizations.owned_modules'))
+            ->filter(fn (array $modules) => in_array('fieldops', $modules, true))
+            ->keys()
+            ->first();
+
+        return $owningSlug !== null && $user->organization?->slug === $owningSlug;
     }
 
     /** @return Collection<int, int> */
