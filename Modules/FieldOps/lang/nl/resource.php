@@ -678,4 +678,8 @@ return [
         'no_videos' => "Nog geen video's geüpload.",
         'no_documents' => 'Nog geen documenten geüpload.',
     ],
+
+    'validation' => [
+        'out_of_tenant_scope' => 'Het geselecteerde item behoort niet tot een klant waartoe u toegang heeft.',
+    ],
 ];

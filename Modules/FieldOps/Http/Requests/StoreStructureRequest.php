@@ -6,11 +6,14 @@ namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use Modules\FieldOps\Http\Requests\Concerns\ValidatesTenantScopedIds;
 use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Models\Terrain;
 
 class StoreStructureRequest extends FormRequest
 {
+    use ValidatesTenantScopedIds;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', Structure::class) ?? false;
@@ -41,6 +44,8 @@ class StoreStructureRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            $this->assertTenantScopedIds($validator, 'terrain_ids', Terrain::class, $this->input('terrain_ids'));
+
             $terrainIds = collect($this->input('terrain_ids', []))
                 ->filter(fn ($value) => is_numeric($value))
                 ->map(fn ($value) => (int) $value)

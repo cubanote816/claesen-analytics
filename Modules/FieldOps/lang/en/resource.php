@@ -681,4 +681,8 @@ return [
         'no_videos' => 'No videos uploaded yet.',
         'no_documents' => 'No documents uploaded yet.',
     ],
+
+    'validation' => [
+        'out_of_tenant_scope' => 'The selected item does not belong to a client you have access to.',
+    ],
 ];

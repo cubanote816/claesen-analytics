@@ -581,6 +581,159 @@ class FieldOpsTenantAuthorizationTest extends TestCase
         $response->assertStatus(200); // pending CLA-502: will require fieldops.ai
     }
 
+    // ============================================================
+    // CLA-499: tenant-scope validation for relation IDs sent in the request
+    // body (not just the route-bound model) — a technician scoped to one
+    // client could otherwise attach infrastructure to another client's
+    // objects by simply sending that client's ids in the payload, since
+    // EnforceFieldOpsTenantAccess only authorizes the Eloquent-bound route
+    // parameter, never body-only relation ids on create endpoints.
+    // ============================================================
+
+    public function test_technician_cannot_create_terrain_referencing_another_clients_complex(): void
+    {
+        $a = $this->topology('CLA-499 terrain A');
+        $b = $this->topology('CLA-499 terrain B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/terrains', [
+            'complex_id' => $b['complex']->id,
+            'terrain_type_id' => TerrainType::factory()->create()->id,
+        ])->assertStatus(422)->assertJsonValidationErrors('complex_id');
+    }
+
+    public function test_technician_cannot_create_structure_referencing_another_clients_terrain(): void
+    {
+        $a = $this->topology('CLA-499 structure A');
+        $b = $this->topology('CLA-499 structure B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
+            'structure_type_id' => StructureType::factory()->create()->id,
+            'terrain_ids' => [$b['terrain']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('terrain_ids');
+    }
+
+    public function test_technician_cannot_update_structure_to_reference_another_clients_terrain(): void
+    {
+        $a = $this->topology('CLA-499 structure update A');
+        $b = $this->topology('CLA-499 structure update B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.update']);
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$a['structure']->id}", [
+            'terrain_ids' => [$b['terrain']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('terrain_ids');
+    }
+
+    public function test_technician_cannot_create_luminaire_frame_referencing_another_clients_structure(): void
+    {
+        $a = $this->topology('CLA-499 frame A');
+        $b = $this->topology('CLA-499 frame B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/luminaire-frames', [
+            'luminaire_frame_type_id' => LuminaireFrameType::factory()->create()->id,
+            'structure_ids' => [$b['structure']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('structure_ids');
+    }
+
+    public function test_technician_cannot_update_luminaire_frame_to_reference_another_clients_structure(): void
+    {
+        $a = $this->topology('CLA-499 frame update A');
+        $b = $this->topology('CLA-499 frame update B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.update']);
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/luminaire-frames/{$a['frame']->id}", [
+            'structure_ids' => [$b['structure']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('structure_ids');
+    }
+
+    public function test_technician_cannot_create_luminaire_referencing_another_clients_frame(): void
+    {
+        $a = $this->topology('CLA-499 luminaire A');
+        $b = $this->topology('CLA-499 luminaire B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+        $type = LuminaireType::factory()->create();
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/luminaires', [
+            'luminaire_frame_id' => $b['frame']->id,
+            'luminaire_type_id' => $type->id,
+            'luminaire_subgroup_id' => $type->luminaire_subgroup_id,
+        ])->assertStatus(422)->assertJsonValidationErrors('luminaire_frame_id');
+    }
+
+    public function test_technician_cannot_update_luminaire_to_reference_another_clients_frame(): void
+    {
+        $a = $this->topology('CLA-499 luminaire update A');
+        $b = $this->topology('CLA-499 luminaire update B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.update']);
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}", [
+            'luminaire_frame_id' => $b['frame']->id,
+        ])->assertStatus(422)->assertJsonValidationErrors('luminaire_frame_id');
+    }
+
+    public function test_technician_cannot_create_electrical_board_referencing_another_clients_objects(): void
+    {
+        $a = $this->topology('CLA-499 board A');
+        $b = $this->topology('CLA-499 board B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/electrical-boards', [
+            'electrical_board_type_id' => ElectricalBoardType::factory()->create()->id,
+            'complex_ids' => [$b['complex']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('complex_ids');
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/electrical-boards', [
+            'electrical_board_type_id' => ElectricalBoardType::factory()->create()->id,
+            'terrain_ids' => [$b['terrain']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('terrain_ids');
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/electrical-boards', [
+            'electrical_board_type_id' => ElectricalBoardType::factory()->create()->id,
+            'structure_ids' => [$b['structure']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('structure_ids');
+    }
+
+    public function test_technician_cannot_update_electrical_board_to_reference_another_clients_objects(): void
+    {
+        $a = $this->topology('CLA-499 board update A');
+        $b = $this->topology('CLA-499 board update B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.update']);
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/electrical-boards/{$a['board']->id}", [
+            'complex_ids' => [$b['complex']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('complex_ids');
+    }
+
+    // Regression: broad-access actors (hasBroadAccess()) must stay unaffected —
+    // scopeForUser() no-ops for them, exactly like every other tenant-scoping
+    // check in this module.
+    public function test_admin_with_broad_access_can_reference_any_clients_objects_when_creating_electrical_board(): void
+    {
+        $a = $this->topology('CLA-499 broad A');
+        $b = $this->topology('CLA-499 broad B');
+        [, $token] = $this->internalUser('admin', broadAccess: true, permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/electrical-boards', [
+            'electrical_board_type_id' => ElectricalBoardType::factory()->create()->id,
+            'complex_ids' => [$a['complex']->id, $b['complex']->id],
+        ])->assertCreated();
+    }
+
+    // Regression: referencing objects within the technician's own scope must
+    // keep working — the new check must not be a blanket rejection.
+    public function test_technician_can_still_create_luminaire_frame_within_their_own_scope(): void
+    {
+        $a = $this->topology('CLA-499 in-scope');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/luminaire-frames', [
+            'luminaire_frame_type_id' => LuminaireFrameType::factory()->create()->id,
+            'structure_ids' => [$a['structure']->id],
+        ])->assertCreated();
+    }
+
     private function terrainPayload(int $complexId): array
     {
         return [
