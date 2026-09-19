@@ -26,7 +26,17 @@ use Filament\Schemas\Components\Utilities\Get;
 
 class ProjectResource extends Resource
 {
+    // CLA-470: 10 MB matches the precedent already established for photo
+    // uploads elsewhere in the app (Modules\FieldOps's photos collections,
+    // e.g. LuminaireResource) — the previous 100/500 MB limits here had no
+    // real justification for what are plain portfolio photographs.
+    private const MEDIA_MAX_SIZE_KB = 10240;
 
+    // Defends against decompression-bomb-style uploads (a small file
+    // claiming an enormous pixel count) reaching Spatie's WebP conversion
+    // pipeline (registerMediaConversions() in the model) — no legitimate
+    // portfolio photo needs to exceed this.
+    private const MEDIA_MAX_DIMENSION_PX = 8000;
 
     protected static ?string $model = Project::class;
 
@@ -187,8 +197,9 @@ class ProjectResource extends Resource
                                     ->imagePreviewHeight('200')
                                     ->multiple()
                                     ->maxFiles(1)
-                                    ->maxSize(102400)
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                                    ->maxSize(self::MEDIA_MAX_SIZE_KB)
+                                    ->acceptedFileTypes(Project::MEDIA_MIME_TYPES)
+                                    ->rules(['dimensions:max_width='.self::MEDIA_MAX_DIMENSION_PX.',max_height='.self::MEDIA_MAX_DIMENSION_PX])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
@@ -203,8 +214,9 @@ class ProjectResource extends Resource
                                     ->panelLayout('grid')
                                     ->multiple()
                                     ->reorderable()
-                                    ->maxSize(512000)
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'])
+                                    ->maxSize(self::MEDIA_MAX_SIZE_KB)
+                                    ->acceptedFileTypes(Project::MEDIA_MIME_TYPES)
+                                    ->rules(['dimensions:max_width='.self::MEDIA_MAX_DIMENSION_PX.',max_height='.self::MEDIA_MAX_DIMENSION_PX])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
@@ -238,8 +250,9 @@ class ProjectResource extends Resource
                                     ->panelLayout('grid')
                                     ->multiple()
                                     ->reorderable()
-                                    ->maxSize(512000)
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'])
+                                    ->maxSize(self::MEDIA_MAX_SIZE_KB)
+                                    ->acceptedFileTypes(Project::MEDIA_MIME_TYPES)
+                                    ->rules(['dimensions:max_width='.self::MEDIA_MAX_DIMENSION_PX.',max_height='.self::MEDIA_MAX_DIMENSION_PX])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();

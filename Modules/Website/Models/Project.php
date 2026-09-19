@@ -15,6 +15,16 @@ use Modules\Intelligence\Traits\HasAiTranslations;
 
 class Project extends Model implements HasMedia
 {
+    /**
+     * CLA-470: single source of truth for what a project's media collections
+     * accept — App\Filament\Clusters\Website\Resources\ProjectResource reads
+     * this instead of keeping its own copy, so the Filament upload picker
+     * and Spatie MediaLibrary's actual server-side enforcement can never
+     * diverge again the way they had (the form offered video/mp4 uploads
+     * that registerMediaCollections() below always rejected).
+     */
+    public const MEDIA_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
     use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia, HasAiTranslations, BelongsToSite;
 
     protected static function newFactory(): ProjectFactory
@@ -113,17 +123,15 @@ class Project extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-
         $this->addMediaCollection('featured_image')
             ->singleFile()
-            ->acceptsMimeTypes($allowedMimeTypes);
+            ->acceptsMimeTypes(self::MEDIA_MIME_TYPES);
 
         $this->addMediaCollection('gallery')
-            ->acceptsMimeTypes($allowedMimeTypes);
+            ->acceptsMimeTypes(self::MEDIA_MIME_TYPES);
 
         $this->addMediaCollection('detail_gallery')
-            ->acceptsMimeTypes($allowedMimeTypes);
+            ->acceptsMimeTypes(self::MEDIA_MIME_TYPES);
     }
 
     public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
