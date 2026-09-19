@@ -6,7 +6,9 @@ namespace Modules\Core\Models\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Core\Exceptions\MissingOrganizationContext;
 use Modules\Core\Models\Site;
+use Modules\Core\Services\OrganizationContext;
 
 /**
  * F1/P3 of the multi-organization program — docs/ai/adr-multi-organization.md.
@@ -15,18 +17,15 @@ use Modules\Core\Models\Site;
  * D3); the organization is always derived through `sites.organization_id`,
  * never duplicated as a second foreign key on the owning table.
  *
- * INERT AS OF PHASE P3 (decision D4). The global scope below returns without
- * touching the query while `config('organizations.enforce')` is false, which
- * is its value everywhere until phase P5 turns enforcement on. That is the
- * whole point of the sequence structure → context → authorization →
- * enforcement: a fail-closed scope must never land before the context that
- * would feed it exists.
- *
- * Deliberately absent here: any resolution of "which site is this request
- * for". Phase P3 has no answer for that (the panel is still single-site and
- * the public API is still site-agnostic), so inventing one now would be
- * guesswork frozen into a trait. Phase P5 adds it together with the
- * fail-closed MissingOrganizationContext behaviour.
+ * Gated by config('organizations.enforce') (D4) — false everywhere in every
+ * real environment today, so this stays a no-op for Claesen. F3/CLA-471 gave
+ * it its first real consumer: Modules\Core\Http\Middleware\ResolveRequestSite
+ * sets the site for the public Website API; OrganizationContext::site()
+ * falls back to the authenticated user's own organization's site for
+ * everything else (the admin panel). With the flag on and no site resolved
+ * either way, this fails loud (MissingOrganizationContext) rather than
+ * silently returning nothing — a code path querying a site-owned model
+ * outside any site-resolving context is a bug to surface, not hide.
  */
 trait BelongsToSite
 {
@@ -37,12 +36,13 @@ trait BelongsToSite
                 return;
             }
 
-            // Phase P5 fills this in. Reaching here with enforcement on and no
-            // implementation is a bug, not a silent pass-through — but P5 owns
-            // that decision, so P3 leaves the branch unreachable by config.
-            throw new \LogicException(
-                'organizations.enforce is on but site scoping is not implemented yet (phase P5).'
-            );
+            $siteId = app(OrganizationContext::class)->siteId();
+
+            if ($siteId === null) {
+                throw new MissingOrganizationContext(static::class);
+            }
+
+            $query->where($query->getModel()->qualifyColumn('site_id'), $siteId);
         });
     }
 

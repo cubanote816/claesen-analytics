@@ -182,24 +182,26 @@ final class AccessControlContractTest extends TestCase
         );
     }
 
-    public function test_the_public_website_api_is_unauthenticated_unthrottled_and_site_agnostic(): void
+    public function test_the_public_website_api_is_unauthenticated_unthrottled_and_now_site_aware(): void
     {
+        // F3/CLA-471 declared inversion: the public read path used to have no
+        // notion of a site anywhere — a Bertels project would have surfaced
+        // on the Claesen website. Modules\Core\Http\Middleware\
+        // ResolveRequestSite (domain/?site= resolution, defaulting to
+        // Claesen) plus Modules\Core\Models\Concerns\BelongsToSite's now-real
+        // global scope close that gap; behavioural coverage lives in
+        // Modules\Website\tests\Feature\PublicApiSiteScopingTest (real cross-
+        // site HTTP requests) and Modules\Core\tests\Feature\
+        // BelongsToSiteEnforcementTest (the scope in isolation) — both
+        // database-backed, unlike this source-only test.
         $routes = $this->source('Modules/Website/Routes/api.php');
 
-        // No auth and no throttle on the public intake endpoints (documented gap).
+        // Still true, unchanged by this ticket: no auth and no throttle on
+        // the public intake/read endpoints (documented gap).
         $this->assertStringNotContainsString('auth:sanctum', $routes);
         $this->assertStringNotContainsString('throttle', $routes);
 
-        // And no notion of a site anywhere in the read path: this is why a
-        // Bertels project would surface on the Claesen website.
-        foreach ([
-            'Modules/Website/Routes/api.php',
-            'Modules/Website/Http/Controllers/ProjectController.php',
-            'Modules/Website/Services/PortfolioService.php',
-            'Modules/Website/Repositories/EloquentProjectRepository.php',
-        ] as $file) {
-            $this->assertStringNotContainsString('site_id', $this->source($file));
-        }
+        $this->assertStringContainsString('ResolveRequestSite::class', $routes);
     }
 
     public function test_static_site_publication_defaults_to_claesen_and_shares_one_global_webhook(): void

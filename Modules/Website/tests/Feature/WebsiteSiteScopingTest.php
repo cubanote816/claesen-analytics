@@ -20,11 +20,13 @@ use Tests\TestCase;
  * F1/P3a+P3b of the multi-organization program — docs/ai/adr-multi-organization.md.
  *
  * Covers CLA-547 (P3a): site_id on the shared Website domain, the site-scoped
- * slug uniqueness, and the deliberately inert BelongsToSite scope. Also
- * covers CLA-548 (P3b): site_id on website_publication_states and the
- * singleton-per-site rework of PublicationState::current(). Nothing here
- * asserts filtering or 403/404 — phase P3 restricts nothing, and asserting
- * otherwise would be asserting a feature that P5 owns.
+ * slug uniqueness, and BelongsToSite's global scope. Also covers CLA-548
+ * (P3b): site_id on website_publication_states and the singleton-per-site
+ * rework of PublicationState::current(). The scope's real filtering
+ * behaviour (once F3/CLA-471 gave it an implementation) is covered by
+ * Modules\Website\tests\Feature\PublicApiSiteScopingTest and
+ * Modules\Core\tests\Feature\BelongsToSiteEnforcementTest instead — this
+ * file keeps only the "still inert with the flag off" case below.
  */
 final class WebsiteSiteScopingTest extends TestCase
 {

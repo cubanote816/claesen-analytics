@@ -4,7 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Modules\Website\Http\Controllers\ProjectController;
 use Modules\Website\Http\Controllers\ConsultationController;
 
-Route::prefix('v1/website')->middleware(\App\Http\Middleware\SetPanelLocale::class)->group(function () {
+Route::prefix('v1/website')->middleware([
+    \Modules\Core\Http\Middleware\ResolveRequestSite::class,
+    \App\Http\Middleware\SetPanelLocale::class,
+])->group(function () {
     Route::get('/', function () {
         return response()->json(['status' => 'Claesen Website API is running', 'version' => '1.0']);
     });
