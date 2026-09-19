@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Auth\MultiFactor\Email\EmailAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -114,6 +116,21 @@ HTML
             ->login(\Modules\Core\Filament\Pages\Auth\Login::class)
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
+            // CLA-464 (ADR D8): required only for super_admin/admin, not every
+            // internal role with panel access — see the middleware's own
+            // docblock for why the role gate lives there and not in a Closure
+            // passed to requiresMultiFactorAuthentication() (evaluated once at
+            // boot, no per-request user). Only covers the local-password login
+            // path (Modules\Core\Filament\Pages\Auth\Login already carries
+            // Filament's MFA challenge verbatim, CLA-363); Azure OAuth logins
+            // (MicrosoftAuthController) bypass this entirely — that path would
+            // need Azure Conditional Access, outside this repo.
+            ->multiFactorAuthentication([
+                AppAuthentication::make(),
+                EmailAuthentication::make(),
+            ])
+            ->multiFactorAuthenticationRequiredMiddlewareName(\Modules\Core\Http\Middleware\EnsureAdminRoleMultiFactorAuthenticationIsEnabled::class)
+            ->requiresMultiFactorAuthentication()
             ->navigationGroups([
                 NavigationGroup::make('Workforce & Performance')
                     ->label(fn () => __('navigation.groups.workforce_performance'))

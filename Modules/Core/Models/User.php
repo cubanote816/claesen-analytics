@@ -4,6 +4,12 @@ namespace Modules\Core\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\Email\Concerns\InteractsWithEmailAuthentication;
+use Filament\Auth\MultiFactor\Email\Contracts\HasEmailAuthentication;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,9 +24,18 @@ use Modules\Core\Models\AccessEvent;
 use Modules\Cafca\Models\Employee;
 use Modules\FieldOps\Models\FoClient;
 
-class User extends Authenticatable implements FilamentUser
+/**
+ * CLA-464 (ADR D8): implements Filament 5's native MFA contracts (App/TOTP +
+ * recovery codes, Email) via its own ready-made traits — the column names
+ * below (app_authentication_secret, app_authentication_recovery_codes,
+ * has_email_authentication) are fixed by those traits, not chosen here.
+ * Enforcement (which panels/roles require it) lives in each PanelProvider's
+ * ->multiFactorAuthentication() call, not in this model.
+ */
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasEmailAuthentication
 {
     use HasFactory, \Laravel\Sanctum\HasApiTokens, Notifiable, \Spatie\Permission\Traits\HasRoles;
+    use InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, InteractsWithEmailAuthentication;
 
     protected static function newFactory(): Factory
     {
@@ -45,6 +60,7 @@ class User extends Authenticatable implements FilamentUser
         'last_login_at',
         'last_login_app_source',
         'last_login_channel',
+        'has_email_authentication',
     ];
 
     protected $hidden = [

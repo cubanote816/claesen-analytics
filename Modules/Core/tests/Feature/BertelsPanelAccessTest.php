@@ -115,6 +115,11 @@ final class BertelsPanelAccessTest extends TestCase
         $user = User::factory()->create([
             'is_active' => true,
             'password_set_at' => now(),
+            // CLA-464 (ADR D8): super_admin/admin are now forced to set up MFA
+            // before reaching any dashboard — a concern separate from the
+            // panel-access matrix this file tests. See PanelAccessMatrixTest
+            // for the same rationale.
+            'has_email_authentication' => true,
         ]);
 
         if ($role !== null) {

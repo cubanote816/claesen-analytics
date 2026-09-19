@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Auth\MultiFactor\Email\EmailAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -48,6 +50,18 @@ class BertelsPanelProvider extends PanelProvider
             ->id('bertels')
             ->path('bertels')
             ->login(Login::class)
+            // CLA-464 (ADR D8) — same MFA configuration as `admin`, see its
+            // provider for the full rationale. Only super_admin can reach
+            // this panel at all (CLA-549), so the role gate in
+            // EnsureAdminRoleMultiFactorAuthenticationIsEnabled always
+            // matches here in practice; kept identical rather than
+            // special-cased for one panel.
+            ->multiFactorAuthentication([
+                AppAuthentication::make(),
+                EmailAuthentication::make(),
+            ])
+            ->multiFactorAuthenticationRequiredMiddlewareName(\Modules\Core\Http\Middleware\EnsureAdminRoleMultiFactorAuthenticationIsEnabled::class)
+            ->requiresMultiFactorAuthentication()
             ->colors([
                 'primary' => Color::hex('#EE7203'), // Electro Bertels orange
                 'gray' => Color::hex('#121212'),    // Electro Bertels deep black

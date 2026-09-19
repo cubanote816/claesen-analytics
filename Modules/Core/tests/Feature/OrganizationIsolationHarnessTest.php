@@ -116,6 +116,9 @@ class OrganizationIsolationHarnessTest extends TestCase
         // isolates the organization variable specifically.
         $owner = $this->claesenUser();
         $owner->assignRole(Role::findOrCreate('admin', 'web'));
+        // CLA-464 (ADR D8): admin is now forced to set up MFA before reaching
+        // any panel page — a concern separate from what this test isolates.
+        $owner->update(['has_email_authentication' => true]);
 
         $this->assertPanelAllowsOwner($owner, '/');
     }
@@ -130,6 +133,8 @@ class OrganizationIsolationHarnessTest extends TestCase
     public function test_bertels_panel_allows_super_admin(): void
     {
         $superAdmin = $this->superAdminUser();
+        // CLA-464 (ADR D8): same rationale as the admin panel test above.
+        $superAdmin->update(['has_email_authentication' => true]);
 
         $this->assertPanelAllowsOwner($superAdmin, '/bertels');
     }

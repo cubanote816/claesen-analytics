@@ -116,6 +116,10 @@ final class PanelOrganizationEnforcementTest extends TestCase
             'organization_id' => $fixtureOrg->id,
             'is_active' => true,
             'password_set_at' => now(),
+            // CLA-464 (ADR D8): admin is now forced to set up MFA before
+            // reaching the dashboard, a concern separate from what this test
+            // isolates (organization enforcement).
+            'has_email_authentication' => true,
         ]);
         $user->assignRole('admin');
 
