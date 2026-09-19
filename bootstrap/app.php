@@ -31,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
         $schedule->command('app:sync-employees')->dailyAt('04:00');
         $schedule->command('website:process-reminders')->everyFifteenMinutes()->withoutOverlapping();
+        // CLA-465: config('activitylog.clean_after_days') (365) existed since
+        // CLA-526 but was never scheduled — retention was configured, never
+        // enforced.
+        $schedule->command('activitylog:clean')->dailyAt('04:30');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -37,10 +37,10 @@ class SwitchPanelController extends Controller
         $from = $request->query('from');
         $from = in_array($from, self::PANELS, true) ? $from : 'unknown';
 
-        // No activity_log.organization_id column exists yet (ADR D3 plans one,
-        // not built — no Bertels organizations/sites row exists either, per
-        // D10's "regla de hierro"). Logging the panel identifiers in
-        // properties is the complete, correct record until that column lands.
+        // activity_log.organization_id (CLA-465, D3) is filled automatically
+        // by Modules\Core\Models\ActivityLogEntry from causedBy()'s own
+        // organization — nothing to do here. The panel identifiers stay in
+        // properties (no Bertels organizations/sites row exists yet, D10).
         activity('organization_context')
             ->causedBy($request->user())
             ->withProperties(['from_panel' => $from, 'to_panel' => $panel])
