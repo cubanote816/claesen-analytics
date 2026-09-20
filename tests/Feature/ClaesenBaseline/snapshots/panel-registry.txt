@@ -3,6 +3,7 @@ panel_path=<root>
 panel_is_default=yes
 spa_mode=yes
 navigation_groups=Workforce & Performance,Growth & Acquisition,Mailing,Safety & VCA,Content & Website,Intelligence Hub,Field Operations (Demo),User Management
+resource App\Filament\Clusters\Website\Resources\AnnouncementResource | model=Modules\Website\Models\Announcement | slug=announcements | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\ConsultationRequestResource | model=Modules\Website\Models\ConsultationRequest | slug=consultation-requests | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\ProjectResource | model=Modules\Website\Models\Project | slug=projects | navigation=yes | record_title=- | globally_searchable=no
 resource Modules\Core\Filament\Resources\Permissions\PermissionResource | model=Modules\Core\Models\Permission | slug=permissions | navigation=yes | record_title=name | globally_searchable=yes
@@ -37,6 +38,7 @@ resource Modules\Prospects\Filament\Resources\Prospects\ProspectResource | model
 resource Modules\Prospects\Filament\Resources\SyncHistoryResource | model=Modules\Prospects\Models\SyncHistory | slug=sync-histories | navigation=yes | record_title=- | globally_searchable=no
 resource Modules\Safety\Filament\Resources\ChecklistResource | model=Modules\Safety\Models\Checklist | slug=checklists | navigation=yes | record_title=- | globally_searchable=no
 resource Modules\Safety\Filament\Resources\InspectionResource | model=Modules\Safety\Models\Inspection | slug=inspections | navigation=yes | record_title=- | globally_searchable=no
+page App\Filament\Clusters\Website\Pages\SiteSettingsPage
 page App\Filament\Clusters\Website\WebsiteCluster
 page Filament\Pages\Dashboard
 page Modules\Core\Filament\Pages\AccessAnalyticsPage

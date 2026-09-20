@@ -142,4 +142,28 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    'announcements' => [
+        'label' => 'Ankündigung',
+        'plural_label' => 'Ankündigungen',
+        'message_helper' => 'Wird in der aktuellen Sprache dieser Admin-Ansicht angezeigt.',
+        'starts_at_helper' => 'Leer = sofort aktiv nach Veröffentlichung.',
+        'ends_at_helper' => 'Leer = bleibt aktiv bis manuell archiviert.',
+        'status' => [
+            'draft' => 'Entwurf',
+            'published' => 'Veröffentlicht',
+            'archived' => 'Archiviert',
+        ],
+    ],
+    'site_settings' => [
+        'label' => 'Website-Einstellungen',
+        'save' => 'Speichern',
+        'saved' => 'Einstellungen gespeichert',
+        'fields' => [
+            'hours' => 'Öffnungszeiten',
+            'phone' => 'Telefon',
+            'email' => 'E-Mail',
+            'address' => 'Adresse',
+            'social_links' => 'Social-Media-Links (JSON)',
+        ],
+    ],
 ];

@@ -142,4 +142,28 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    'announcements' => [
+        'label' => 'Annonce',
+        'plural_label' => 'Annonces',
+        'message_helper' => 'Affiché dans la langue actuelle de cette vue d\'administration.',
+        'starts_at_helper' => 'Vide = actif immédiatement une fois publié.',
+        'ends_at_helper' => 'Vide = reste actif jusqu\'à archivage manuel.',
+        'status' => [
+            'draft' => 'Brouillon',
+            'published' => 'Publié',
+            'archived' => 'Archivé',
+        ],
+    ],
+    'site_settings' => [
+        'label' => 'Paramètres du site',
+        'save' => 'Enregistrer',
+        'saved' => 'Paramètres enregistrés',
+        'fields' => [
+            'hours' => 'Horaires d\'ouverture',
+            'phone' => 'Téléphone',
+            'email' => 'E-mail',
+            'address' => 'Adresse',
+            'social_links' => 'Liens réseaux sociaux (JSON)',
+        ],
+    ],
 ];

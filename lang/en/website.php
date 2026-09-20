@@ -171,4 +171,28 @@ return [
             'publish_now_success'        => 'Publication requested',
         ],
     ],
+    'announcements' => [
+        'label' => 'Announcement',
+        'plural_label' => 'Announcements',
+        'message_helper' => 'Shown in the current language of this admin view.',
+        'starts_at_helper' => 'Empty = active immediately once published.',
+        'ends_at_helper' => 'Empty = stays active until manually archived.',
+        'status' => [
+            'draft' => 'Draft',
+            'published' => 'Published',
+            'archived' => 'Archived',
+        ],
+    ],
+    'site_settings' => [
+        'label' => 'Site settings',
+        'save' => 'Save',
+        'saved' => 'Settings saved',
+        'fields' => [
+            'hours' => 'Opening hours',
+            'phone' => 'Phone',
+            'email' => 'Email',
+            'address' => 'Address',
+            'social_links' => 'Social media links (JSON)',
+        ],
+    ],
 ];

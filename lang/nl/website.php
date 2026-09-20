@@ -171,4 +171,28 @@ return [
             'publish_now_success'        => 'Publicatie aangevraagd',
         ],
     ],
+    'announcements' => [
+        'label' => 'Mededeling',
+        'plural_label' => 'Mededelingen',
+        'message_helper' => 'Wordt getoond in de huidige taal van deze beheerdersweergave.',
+        'starts_at_helper' => 'Leeg = direct actief zodra gepubliceerd.',
+        'ends_at_helper' => 'Leeg = blijft actief tot handmatig gearchiveerd.',
+        'status' => [
+            'draft' => 'Concept',
+            'published' => 'Gepubliceerd',
+            'archived' => 'Gearchiveerd',
+        ],
+    ],
+    'site_settings' => [
+        'label' => 'Site-instellingen',
+        'save' => 'Opslaan',
+        'saved' => 'Instellingen opgeslagen',
+        'fields' => [
+            'hours' => 'Openingstijden',
+            'phone' => 'Telefoon',
+            'email' => 'E-mail',
+            'address' => 'Adres',
+            'social_links' => 'Social media links (JSON)',
+        ],
+    ],
 ];

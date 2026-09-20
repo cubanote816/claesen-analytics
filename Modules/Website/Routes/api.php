@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Website\Http\Controllers\ProjectController;
 use Modules\Website\Http\Controllers\ConsultationController;
+use Modules\Website\Http\Controllers\SiteContentController;
 
 Route::prefix('v1/website')->middleware([
     \Modules\Core\Http\Middleware\ResolveRequestSite::class,
@@ -19,4 +20,7 @@ Route::prefix('v1/website')->middleware([
 
     Route::post('/consultations', [ConsultationController::class, 'store']);
     Route::post('/contact-email', [\Modules\Website\Http\Controllers\ContactController::class, 'store']);
+
+    Route::get('/settings', [SiteContentController::class, 'settings']);
+    Route::get('/announcements', [SiteContentController::class, 'announcements']);
 });
