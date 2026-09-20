@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Website\Tests\Feature;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -134,6 +135,48 @@ final class SiteContentApiTest extends TestCase
 
         $this->getJson('/v1/website/settings')
             ->assertJsonPath('data.phone', '+32 CLAESEN');
+    }
+
+    // -------------------------------------------------------------------------
+    // CLA-471 (found while verifying it) — same CLA-522 cache round-trip bug,
+    // reproduced for real against config('cache.default')='database' (the
+    // actual .env value; the test suite's default 'array' store never
+    // serializes, which is exactly why this was invisible in CLA-469's
+    // original closure) and fixed the same way: cache the plain array form,
+    // rehydrate a real Collection/model on read.
+    // -------------------------------------------------------------------------
+
+    public function test_cached_settings_survive_the_serializable_classes_lockdown(): void
+    {
+        config(['cache.default' => 'database']);
+        Cache::store('database')->flush();
+
+        SiteSetting::factory()->create(['key' => 'phone', 'value' => '+32 111', 'type' => SiteSetting::TYPE_TEXT]);
+
+        // 1st call populates the cache; 2nd call reads it back through the
+        // real DatabaseStore::get() -> unserialize(..., allowed_classes: false)
+        // path that breaks a cached Collection under Laravel 13.
+        SiteSetting::cachedForCurrentSite();
+        $cached = SiteSetting::cachedForCurrentSite();
+
+        $this->assertInstanceOf(Collection::class, $cached);
+        $this->assertInstanceOf(SiteSetting::class, $cached->first());
+        $this->assertSame('+32 111', $cached->first()->resolvedValue());
+    }
+
+    public function test_cached_announcements_survive_the_serializable_classes_lockdown(): void
+    {
+        config(['cache.default' => 'database']);
+        Cache::store('database')->flush();
+
+        Announcement::factory()->published()->create(['message' => ['en' => 'Cache lockdown test']]);
+
+        Announcement::cachedActiveForCurrentSite();
+        $cached = Announcement::cachedActiveForCurrentSite();
+
+        $this->assertInstanceOf(Collection::class, $cached);
+        $this->assertInstanceOf(Announcement::class, $cached->first());
+        $this->assertSame('Cache lockdown test', $cached->first()->message);
     }
 
     protected function tearDown(): void

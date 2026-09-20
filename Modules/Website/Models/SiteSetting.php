@@ -80,6 +80,17 @@ class SiteSetting extends Model
      * through BelongsToSite's global scope on the underlying query — the
      * site id is only read here to build a cache key that never mixes two
      * sites' settings under the same key.
+     *
+     * CLA-522 pattern, applied here for the same reason: this app's real
+     * cache store is 'database' (config/cache.php's serializable_classes
+     * => false, a Laravel 13 default) and unserialize()s with
+     * allowed_classes => false, which can never reconstruct an Eloquent
+     * Collection — Cache::remember()-ing one directly comes back as
+     * __PHP_Incomplete_Class on the very next request. Caching the plain
+     * array form and rehydrating to a real Collection on read survives
+     * that lockdown; PHPUnit's 'array' cache store never round-trips
+     * through real serialization, which is why this was invisible to
+     * every test in CLA-469's original closure.
      */
     public static function cachedForCurrentSite(): Collection
     {
@@ -89,11 +100,13 @@ class SiteSetting extends Model
             return static::query()->get();
         }
 
-        return Cache::remember(
+        $rows = Cache::remember(
             self::cacheKeyFor($siteId),
             3600,
-            fn () => static::query()->get()
+            fn () => static::query()->get()->map->getAttributes()->all()
         );
+
+        return static::hydrate($rows);
     }
 
     public function getActivitylogOptions(): LogOptions

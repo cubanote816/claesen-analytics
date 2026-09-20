@@ -82,6 +82,11 @@ class Announcement extends Model
      * settings' longer one) bounds how stale a starts_at/ends_at window
      * edge can appear without needing a scheduled cache-clear job — any
      * save/delete already forgets it immediately regardless.
+     *
+     * CLA-522 pattern — see SiteSetting::cachedForCurrentSite()'s docblock
+     * for the full explanation: this app's real cache store can never
+     * unserialize an Eloquent Collection back correctly, so the plain
+     * array form is what actually gets cached, rehydrated on read.
      */
     public static function cachedActiveForCurrentSite(): Collection
     {
@@ -91,11 +96,13 @@ class Announcement extends Model
             return static::query()->active()->get();
         }
 
-        return Cache::remember(
+        $rows = Cache::remember(
             self::cacheKeyFor($siteId),
             300,
-            fn () => static::query()->active()->get()
+            fn () => static::query()->active()->get()->map->getAttributes()->all()
         );
+
+        return static::hydrate($rows);
     }
 
     public function getActivitylogOptions(): LogOptions

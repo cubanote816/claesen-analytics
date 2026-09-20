@@ -8,6 +8,7 @@ use Modules\Website\Http\Controllers\SiteContentController;
 Route::prefix('v1/website')->middleware([
     \Modules\Core\Http\Middleware\ResolveRequestSite::class,
     \App\Http\Middleware\SetPanelLocale::class,
+    \Modules\Core\Http\Middleware\SetPublicApiCacheHeaders::class,
 ])->group(function () {
     Route::get('/', function () {
         return response()->json(['status' => 'Claesen Website API is running', 'version' => '1.0']);
