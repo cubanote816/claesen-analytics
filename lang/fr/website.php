@@ -104,6 +104,10 @@ return [
             'high' => 'Élevé',
             'urgent' => 'Urgent',
         ],
+        'actions' => [
+            'export' => 'Exporter en CSV',
+            'erase' => 'Effacer (RGPD)',
+        ],
     ],
     'activities' => [
         'label' => 'Activité',

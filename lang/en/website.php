@@ -110,6 +110,10 @@ return [
             'high' => 'High',
             'urgent' => 'Urgent',
         ],
+        'actions' => [
+            'export' => 'Export CSV',
+            'erase' => 'Erase (GDPR)',
+        ],
     ],
     'activities' => [
         'label' => 'Activity',

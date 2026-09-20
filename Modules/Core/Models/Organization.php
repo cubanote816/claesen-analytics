@@ -52,6 +52,19 @@ class Organization extends Model
     }
 
     /**
+     * F4/CLA-476 — first real consumer of retention_policy (scaffolding
+     * since CLA-458/P1). Modules\Website\Services\RetentionService reads
+     * 'spam_days'/'closed_anonymize_days' through this; every existing
+     * organization has retention_policy => null, so this always falls
+     * back to the global config('website.retention.*') default — zero
+     * change in behaviour until an organization is given its own override.
+     */
+    public function retentionSetting(string $key, mixed $default = null): mixed
+    {
+        return $this->retention_policy[$key] ?? $default;
+    }
+
+    /**
      * The id of the bootstrap Claesen organization row (phase P1 seed
      * migration). Every user-creation path defaults here until phase P6
      * adds a real organization picker — see ADR phase P2.

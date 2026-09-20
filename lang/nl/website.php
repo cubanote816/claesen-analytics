@@ -110,6 +110,10 @@ return [
             'high' => 'Hoog',
             'urgent' => 'Urgent',
         ],
+        'actions' => [
+            'export' => 'CSV exporteren',
+            'erase' => 'Wissen (AVG)',
+        ],
     ],
     'activities' => [
         'label' => 'Activiteit',

@@ -51,6 +51,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // describes — a failed delivery is retried here, not via
         // Laravel's built-in backoff.
         $schedule->command('website:retry-failed-consultation-emails')->everyFifteenMinutes()->withoutOverlapping();
+        // F4/CLA-476: safe to run unattended before the launch-blocking
+        // Belgian legal review clears config('website.retention.enabled')
+        // — with it off (the default), every run behaves like --dry-run.
+        $schedule->command('website:apply-retention-policy')->dailyAt('05:00')->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // F3/CLA-471: the v1/website/* group is public, unauthenticated,

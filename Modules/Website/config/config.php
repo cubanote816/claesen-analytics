@@ -35,4 +35,35 @@ return [
             'social_links' => 'json',
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Retention policy (F4/CLA-476)
+    |--------------------------------------------------------------------------
+    | Global defaults for Modules\Website\Services\RetentionService — a
+    | Site's own Organization::retention_policy JSON (D7, populated by this
+    | ticket for the first time — inert scaffolding since CLA-458/P1) can
+    | override 'spam_days'/'closed_anonymize_days' per organization.
+    |
+    | 'enabled' gates the destructive part of the mechanism (real delete/
+    | anonymize) behind an explicit opt-in — off by default in every
+    | environment, matching this program's established D4-style pattern.
+    | The ticket's own acceptance criterion ("validación jurídica belga
+    | marcada como requisito de lanzamiento") is exactly why: the command
+    | and its tests exist and are correct, but nothing destructive runs
+    | against real data until that legal review clears it and this flag
+    | is turned on. --dry-run always works regardless of this flag, so an
+    | admin can preview the effect before enabling it for real.
+    */
+    'retention' => [
+        'enabled' => (bool) env('WEBSITE_RETENTION_ENABLED', false),
+        // Spam carries no legitimate business value — short retention,
+        // hard delete (cascades to activities/reminders/notifications/
+        // email deliveries via their own cascadeOnDelete FKs).
+        'spam_days' => (int) env('WEBSITE_RETENTION_SPAM_DAYS', 30),
+        // Closed leads: PII anonymized after this many days: name/email/
+        // phone/company/internal_notes/tags scrubbed, aggregate fields
+        // (status/type/project_type/timestamps) kept for reporting.
+        'closed_anonymize_days' => (int) env('WEBSITE_RETENTION_CLOSED_ANONYMIZE_DAYS', 730),
+    ],
 ];

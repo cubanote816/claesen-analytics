@@ -54,6 +54,7 @@ class ConsultationRequest extends Model
         'internal_notes',
         'contacted_at',
         'first_response_at',
+        'anonymized_at',
         'assigned_to',
         'priority',
         'source',
@@ -71,6 +72,7 @@ class ConsultationRequest extends Model
     protected $casts = [
         'contacted_at' => 'datetime',
         'first_response_at' => 'datetime',
+        'anonymized_at' => 'datetime',
         'follow_up_date' => 'date',
         'last_activity_at' => 'datetime',
         'tags' => 'array',
@@ -121,6 +123,39 @@ class ConsultationRequest extends Model
         if ($oldStatus === self::STATUS_NEW && $newStatus !== self::STATUS_NEW && $this->first_response_at === null) {
             $this->first_response_at = now();
         }
+    }
+
+    /**
+     * F4/CLA-476: GDPR erasure/retention — scrubs the free-text/contact PII
+     * fields, keeps the aggregate fields a reporting dashboard would need
+     * (status/type/project_type/priority/timestamps/tags/custom_fields —
+     * none of those are personal data). Called from both write paths that
+     * can erase a lead: Modules\Website\Services\RetentionService's
+     * automated job (age-based) and an admin's on-demand "Erase" action in
+     * Filament (right-to-erasure request, any age). saveQuietly() —
+     * erasure is not a business status/priority/assignment change, so it
+     * must not fire ConsultationRequestObserver's per-field activity
+     * logging; RetentionService logs its own dedicated audit entry instead.
+     */
+    public function anonymize(): void
+    {
+        if ($this->anonymized_at !== null) {
+            return;
+        }
+
+        $this->forceFill([
+            'name' => "Anonymized Lead #{$this->id}",
+            'email' => "anonymized-{$this->id}@example.invalid",
+            'phone' => null,
+            'company' => null,
+            // message is NOT NULL at the schema level (the original
+            // migration never made it nullable) — an empty string is the
+            // real erasure here, not a placeholder sentence.
+            'message' => '',
+            'internal_notes' => null,
+            'follow_up_notes' => null,
+            'anonymized_at' => now(),
+        ])->saveQuietly();
     }
 
     public function activities()

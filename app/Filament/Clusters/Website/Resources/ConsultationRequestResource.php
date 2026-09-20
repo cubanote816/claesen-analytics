@@ -19,6 +19,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TagsInput;
 use Filament\Schemas\Components as Infolists;
 use Illuminate\Database\Eloquent\Builder;
+use Modules\Website\Services\RetentionService;
 
 class ConsultationRequestResource extends Resource
 {
@@ -102,21 +103,22 @@ class ConsultationRequestResource extends Resource
                     ->schema([
                         Section::make(__('website.consultation_requests.sections.contact'))
                             ->schema([
+                                // F4/CLA-476: "procedimiento para... corrección" — these
+                                // used to be ->disabledOn('edit'), meaning a GDPR
+                                // rectification request (e.g. a typo'd email) had no
+                                // way to be actioned from the panel at all. Editable now;
+                                // still required so a correction can't blank them out.
                                 TextInput::make('name')
                                     ->label(__('website.consultation_requests.fields.name'))
-                                    ->required()
-                                    ->disabledOn('edit'),
+                                    ->required(),
                                 TextInput::make('email')
                                     ->label(__('website.consultation_requests.fields.email'))
                                     ->email()
-                                    ->required()
-                                    ->disabledOn('edit'),
+                                    ->required(),
                                 TextInput::make('phone')
-                                    ->label(__('website.consultation_requests.fields.phone'))
-                                    ->disabledOn('edit'),
+                                    ->label(__('website.consultation_requests.fields.phone')),
                                 TextInput::make('company')
-                                    ->label(__('website.consultation_requests.fields.company'))
-                                    ->disabledOn('edit'),
+                                    ->label(__('website.consultation_requests.fields.company')),
                             ])->columns(2),
 
                         Section::make(__('website.consultation_requests.sections.details'))
@@ -229,15 +231,98 @@ class ConsultationRequestResource extends Resource
                 Tables\Filters\SelectFilter::make('type')
                     ->label(__('website.consultation_requests.fields.type')),
             ])
+            ->headerActions([
+                // F4/CLA-476: "exportaciones limitadas por rol, tenant y
+                // propósito; quedan auditadas" — role via the permission
+                // check, tenant via the resource's own Eloquent query
+                // (BelongsToSite, already scoped), purpose via a single
+                // purpose-built lead-reporting CSV (not a generic dump),
+                // audited via a dedicated activity_log entry per export.
+                \Filament\Actions\Action::make('export')
+                    ->label(__('website.consultation_requests.actions.export'))
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->visible(fn (): bool => auth()->user()?->can('website.export-consultation-requests') ?? false)
+                    ->action(fn () => self::streamCsvExport()),
+            ])
             ->actions([
                 // \Filament\Actions\ViewAction::make(),
                 \Filament\Actions\EditAction::make(),
+                // F4/CLA-476: "procedimiento para... eliminación" — on-demand
+                // GDPR erasure, any lead age, independent of the automated
+                // retention job's cutoffs. Hidden once already anonymized —
+                // nothing left to erase a second time.
+                \Filament\Actions\Action::make('erase')
+                    ->label(__('website.consultation_requests.actions.erase'))
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn (ConsultationRequest $record): bool => $record->anonymized_at === null
+                        && (auth()->user()?->can('website.erase-consultation-pii') ?? false))
+                    ->action(function (ConsultationRequest $record): void {
+                        app(RetentionService::class)->eraseNow($record, auth()->id());
+                    }),
             ])
             ->bulkActions([
                 \Filament\Actions\BulkActionGroup::make([
                     // \Filament\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * F4/CLA-476: plain CSV, not Filament's native export subsystem
+     * (ExportAction/Exporter — never adopted in this codebase, would need
+     * new vendor migrations/queued jobs for a single, modest-volume
+     * resource) — a synchronous streamed download is simpler and
+     * sufficient here. Each text field is passed through
+     * sanitizeCsvValue() — CSV formula injection is a real risk for any
+     * export of free-text fields a public form visitor controls (name/
+     * company are both attacker-controlled input), per Filament\Actions\
+     * Exports\Exporter's own documented warning about this exact class of
+     * vulnerability.
+     */
+    private static function streamCsvExport(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $records = ConsultationRequest::query()->with('assignedUser')->latest()->get();
+
+        activity()
+            ->causedBy(auth()->user())
+            ->log("Exported {$records->count()} consultation request(s) to CSV");
+
+        return response()->streamDownload(function () use ($records): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['ID', 'Name', 'Email', 'Phone', 'Company', 'Type', 'Project type', 'Status', 'Priority', 'Assigned to', 'Created at']);
+
+            foreach ($records as $record) {
+                fputcsv($handle, [
+                    $record->id,
+                    self::sanitizeCsvValue($record->name),
+                    self::sanitizeCsvValue($record->email),
+                    self::sanitizeCsvValue($record->phone),
+                    self::sanitizeCsvValue($record->company),
+                    $record->type,
+                    $record->project_type,
+                    $record->status,
+                    $record->priority,
+                    self::sanitizeCsvValue($record->assignedUser?->name),
+                    $record->created_at?->toDateTimeString(),
+                ]);
+            }
+
+            fclose($handle);
+        }, 'consultation-requests-'.now()->format('Y-m-d-His').'.csv');
+    }
+
+    private static function sanitizeCsvValue(?string $value): string
+    {
+        $value = (string) $value;
+
+        if ($value !== '' && in_array($value[0], ['=', '+', '-', '@'], true)) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 
     public static function infolist(Schema $schema): Schema

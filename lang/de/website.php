@@ -104,6 +104,10 @@ return [
             'high' => 'Hoch',
             'urgent' => 'Dringend',
         ],
+        'actions' => [
+            'export' => 'CSV exportieren',
+            'erase' => 'Löschen (DSGVO)',
+        ],
     ],
     'activities' => [
         'label' => 'Aktivität',

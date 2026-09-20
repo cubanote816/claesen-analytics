@@ -70,6 +70,19 @@ class RolesAndPermissionsSeeder extends Seeder
         Role::findByName('project_manager', 'web')->givePermissionTo($scopedWritePermissions);
         Role::findByName('technician', 'web')->givePermissionTo($scopedWritePermissions);
 
+        // F4/CLA-476: bulk PII export and on-demand GDPR erasure are sensitive
+        // enough to keep to the same two roles CLA-496 already trusted with
+        // FieldOps infrastructure writes.
+        $leadPrivacyPermissions = [
+            'website.export-consultation-requests',
+            'website.erase-consultation-pii',
+        ];
+        foreach ($leadPrivacyPermissions as $permission) {
+            Permission::findOrCreate($permission, 'web');
+        }
+        Role::findByName('super_admin', 'web')->givePermissionTo($leadPrivacyPermissions);
+        Role::findByName('admin', 'web')->givePermissionTo($leadPrivacyPermissions);
+
         $superAdminRole = Role::findByName('super_admin');
 
         // Create a Super Admin User
