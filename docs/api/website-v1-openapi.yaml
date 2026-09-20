@@ -131,16 +131,52 @@ paths:
                     ends_at: "2026-12-31T23:59:59+00:00"
   /consultations:
     post:
-      summary: Submit a consultation request
+      summary: >-
+        Submit a consultation request — F4/CLA-478's canonical intake
+        (Modules\Website\Services\ConsultationService::handlePublicIntake()).
+        Also feeds a Prospects lead (deduped by email) when the resolved
+        site is Claesen (ADR D11 — Prospects/audiences stay 100% Claesen).
+      parameters:
+        - name: utm_source
+          in: query
+          schema: { type: string }
+          description: Whitelisted charset, used verbatim as the stored `source` when present.
+        - name: utm_medium
+          in: query
+          schema: { type: string }
+        - name: utm_campaign
+          in: query
+          schema: { type: string }
+        - name: Idempotency-Key
+          in: header
+          schema: { type: string }
+          description: >-
+            Optional. A repeated request with the same key returns the same
+            201 response instead of creating a second lead (10-minute TTL).
+            Omitted => not idempotent (CLA-532's original guarantee: two
+            deliberate POSTs create two rows).
       responses:
-        "201": { description: Created }
+        "201":
+          description: Created
+          content:
+            application/json:
+              example: { message: "Consultation request created successfully.", data: { id: 42, name: "...", email: "..." } }
         "422":
           description: Validation error — untouched by the sanitized-error renderer (already safe, field-level messages only).
+        "500":
+          description: Never exposes the underlying exception message (F4/CLA-478 — a real prior leak, fixed).
+          content:
+            application/json:
+              example: { message: "Failed to create consultation request." }
   /contact-email:
     post:
-      summary: Submit a simple contact form
+      summary: >-
+        Submit a simple contact form — a thin adapter over the same
+        canonical intake as /consultations (same source/UTM/idempotency/
+        Prospects behaviour), kept for backward compatibility with its
+        simpler name/email/message-only request shape.
       responses:
-        "200": { description: OK }
+        "201": { description: Created }
         "422": { description: Validation error }
 components:
   headers:
