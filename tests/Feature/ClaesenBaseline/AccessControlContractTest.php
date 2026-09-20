@@ -186,7 +186,7 @@ final class AccessControlContractTest extends TestCase
         $this->assertStringContainsString("config('organizations.enforce')", $source);
     }
 
-    public function test_the_public_website_api_is_unauthenticated_unthrottled_and_now_site_aware(): void
+    public function test_the_public_website_api_is_unauthenticated_and_now_site_aware_and_rate_limited(): void
     {
         // F3/CLA-471 declared inversion: the public read path used to have no
         // notion of a site anywhere — a Bertels project would have surfaced
@@ -198,14 +198,23 @@ final class AccessControlContractTest extends TestCase
         // site HTTP requests) and Modules\Core\tests\Feature\
         // BelongsToSiteEnforcementTest (the scope in isolation) — both
         // database-backed, unlike this source-only test.
+        //
+        // F4/CLA-475 declared inversion: the intake endpoints used to have
+        // literally no rate limit — 12 consecutive submissions from the same
+        // IP all succeeded (frozen by the old test name, "…unthrottled…", and
+        // by tests/Feature/ClaesenBaseline/WebsitePublicApiContractTest::
+        // test_the_public_intake_endpoints_are_now_rate_limited_by_ip, which
+        // now asserts the real 429 boundary end-to-end). This source-only
+        // test only checks the middleware is wired at all.
         $routes = $this->source('Modules/Website/Routes/api.php');
 
-        // Still true, unchanged by this ticket: no auth and no throttle on
-        // the public intake/read endpoints (documented gap).
+        // Still true, unchanged: no auth on the public intake/read endpoints
+        // (documented gap, out of scope for CLA-475 — Turnstile/honeypot are
+        // anti-abuse, not authentication).
         $this->assertStringNotContainsString('auth:sanctum', $routes);
-        $this->assertStringNotContainsString('throttle', $routes);
 
         $this->assertStringContainsString('ResolveRequestSite::class', $routes);
+        $this->assertStringContainsString('throttle:', $routes);
     }
 
     public function test_static_site_publication_defaults_to_claesen_and_shares_one_global_webhook(): void

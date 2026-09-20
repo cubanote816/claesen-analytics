@@ -122,6 +122,11 @@ class ConsultationService
                 'status' => ConsultationRequest::STATUS_NEW,
                 'last_activity_at' => now(),
                 'custom_fields' => $utm !== [] ? ['utm' => $utm] : null,
+                // F4/CLA-475: only populated when the caller actually sent a
+                // truthy `consent` — see ConsultationRequest's own docblock
+                // for why this is never made mandatory here.
+                'consent_given_at' => ! empty($data['consent']) ? now() : null,
+                'consent_policy_version' => ! empty($data['consent']) ? ($data['policy_version'] ?? null) : null,
             ]);
 
             $this->logActivity(

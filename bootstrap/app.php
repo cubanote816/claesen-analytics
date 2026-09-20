@@ -55,6 +55,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Belgian legal review clears config('website.retention.enabled')
         // — with it off (the default), every run behaves like --dry-run.
         $schedule->command('website:apply-retention-policy')->dailyAt('05:00')->withoutOverlapping();
+        // F4/CLA-475: hourly, matching the abuse-alert bucket size
+        // (config('website.intake_hardening.abuse_alert.window_minutes')/
+        // 'alert_bucket' in Modules\Website\Models\WebsiteAbuseAlert) —
+        // running it more often than the bucket size would never fire an
+        // earlier alert, only waste a query.
+        $schedule->command('website:check-intake-abuse-alerts')->hourly()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // F3/CLA-471: the v1/website/* group is public, unauthenticated,

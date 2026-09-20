@@ -146,12 +146,17 @@ final class WebsitePublicApiContractTest extends TestCase
             ->assertJsonValidationErrors(['email', 'message']);
     }
 
-    public function test_the_public_intake_endpoints_have_no_rate_limit_today(): void
+    public function test_the_public_intake_endpoints_are_now_rate_limited_by_ip(): void
     {
-        // Documented gap: 12 consecutive submissions all succeed. When antispam
-        // and throttling land (doc F4), this expectation must be replaced by the
-        // new limit — deliberately, in that ticket.
-        for ($i = 0; $i < 12; $i++) {
+        // F4/CLA-475: replaces the documented gap this test used to freeze —
+        // Modules/Website/Routes/api.php now applies a per-IP `throttle:`
+        // middleware, config-driven from
+        // config('website.intake_hardening.rate_limit'). Exactly
+        // max_attempts requests succeed; the next one from the same IP is
+        // rejected before it ever reaches ConsultationController.
+        $maxAttempts = (int) config('website.intake_hardening.rate_limit.max_attempts', 10);
+
+        for ($i = 0; $i < $maxAttempts; $i++) {
             $this->postJson('/v1/website/consultations', [
                 'name' => "Visitor {$i}",
                 'email' => "visitor{$i}@example.test",
@@ -159,6 +164,12 @@ final class WebsitePublicApiContractTest extends TestCase
             ])->assertCreated();
         }
 
-        $this->assertSame(12, ConsultationRequest::query()->count());
+        $this->postJson('/v1/website/consultations', [
+            'name' => 'One request too many',
+            'email' => 'over-limit@example.test',
+            'message' => 'Baseline throttle probe.',
+        ])->assertStatus(429);
+
+        $this->assertSame($maxAttempts, ConsultationRequest::query()->count());
     }
 }

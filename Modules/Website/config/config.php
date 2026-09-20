@@ -66,4 +66,38 @@ return [
         // (status/type/project_type/timestamps) kept for reporting.
         'closed_anonymize_days' => (int) env('WEBSITE_RETENTION_CLOSED_ANONYMIZE_DAYS', 730),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Public intake hardening (F4/CLA-475)
+    |--------------------------------------------------------------------------
+    | Modules\Website\Services\IntakeSpamGuard and the /consultations +
+    | /contact-email route middleware read this. See config('services.turnstile')
+    | for the separate Cloudflare Turnstile credentials/enforcement flag.
+    */
+    'intake_hardening' => [
+        // Hard cap on the free-text message field — this table has never
+        // had one (the original migration left `message` unbounded text).
+        'message_max_length' => (int) env('WEBSITE_INTAKE_MESSAGE_MAX_LENGTH', 5000),
+        // Name of the hidden form field real visitors never fill in. Kept
+        // out of docs/api/website-v1-openapi.yaml on purpose — the exact
+        // value is only meant to reach the one frontend that renders it.
+        'honeypot_field' => env('WEBSITE_INTAKE_HONEYPOT_FIELD', 'website_url'),
+        // Applied to both public intake routes (Modules/Website/Routes/api.php).
+        // Laravel's default ThrottleRequests keys by IP for an unauthenticated
+        // request, matching the "por IP" criterion directly.
+        'rate_limit' => [
+            'max_attempts' => (int) env('WEBSITE_INTAKE_RATE_LIMIT_MAX', 10),
+            'decay_minutes' => (int) env('WEBSITE_INTAKE_RATE_LIMIT_DECAY', 1),
+        ],
+        // Modules\Website\Console\Commands\CheckIntakeAbuseAlertsCommand:
+        // a site with >= 'threshold' recorded spam attempts (honeypot hits
+        // + failed Turnstile checks — never legitimate throttled requests,
+        // those carry no evidence of intent) within the trailing
+        // 'window_minutes' gets one alert per site per hour.
+        'abuse_alert' => [
+            'window_minutes' => (int) env('WEBSITE_INTAKE_ABUSE_WINDOW_MINUTES', 60),
+            'threshold' => (int) env('WEBSITE_INTAKE_ABUSE_THRESHOLD', 20),
+        ],
+    ],
 ];

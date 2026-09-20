@@ -136,6 +136,10 @@ paths:
         (Modules\Website\Services\ConsultationService::handlePublicIntake()).
         Also feeds a Prospects lead (deduped by email) when the resolved
         site is Claesen (ADR D11 — Prospects/audiences stay 100% Claesen).
+        F4/CLA-475: per-IP rate limited (config('website.intake_hardening.
+        rate_limit'), default 10/minute — a limit hit responds 429 before
+        the request body is ever read) and screened by an undocumented
+        honeypot field (see below) before it reaches the database.
       parameters:
         - name: utm_source
           in: query
@@ -155,6 +159,46 @@ paths:
             201 response instead of creating a second lead (10-minute TTL).
             Omitted => not idempotent (CLA-532's original guarantee: two
             deliberate POSTs create two rows).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  maxLength: 5000
+                  description: >-
+                    F4/CLA-475: newly capped — config('website.intake_hardening.message_max_length').
+                turnstile_token:
+                  type: string
+                  nullable: true
+                  description: >-
+                    F4/CLA-475: Cloudflare Turnstile response token. Optional
+                    and currently ignored — verification only runs once
+                    services.turnstile.secret_key AND services.turnstile.enforce
+                    are both set, which they are not in any environment today.
+                consent:
+                  type: boolean
+                  nullable: true
+                  description: >-
+                    F4/CLA-475: when truthy, stamps consent_given_at (and
+                    policy_version, if also sent) on the created lead. Never
+                    required — omitting it still succeeds.
+                policy_version:
+                  type: string
+                  nullable: true
+                  maxLength: 50
+                one_undocumented_honeypot_field:
+                  type: string
+                  nullable: true
+                  description: >-
+                    F4/CLA-475: an anti-bot honeypot field exists on this
+                    endpoint. Its real name (config('website.intake_hardening.
+                    honeypot_field')) is deliberately not published here — a
+                    real visitor never sends it; sending anything non-empty in
+                    it silently drops the submission (still a 201, nothing
+                    persisted).
       responses:
         "201":
           description: Created
@@ -162,7 +206,12 @@ paths:
             application/json:
               example: { message: "Consultation request created successfully.", data: { id: 42, name: "...", email: "..." } }
         "422":
-          description: Validation error — untouched by the sanitized-error renderer (already safe, field-level messages only).
+          description: >-
+            Validation error — untouched by the sanitized-error renderer
+            (already safe, field-level messages only). Also the response
+            when Turnstile is configured+enforced and verification fails.
+        "429":
+          description: F4/CLA-475 — per-IP rate limit exceeded.
         "500":
           description: Never exposes the underlying exception message (F4/CLA-478 — a real prior leak, fixed).
           content:
@@ -173,11 +222,13 @@ paths:
       summary: >-
         Submit a simple contact form — a thin adapter over the same
         canonical intake as /consultations (same source/UTM/idempotency/
-        Prospects behaviour), kept for backward compatibility with its
-        simpler name/email/message-only request shape.
+        Prospects behaviour, and the same F4/CLA-475 rate limit/honeypot/
+        Turnstile/consent handling), kept for backward compatibility with
+        its simpler name/email/message-only request shape.
       responses:
         "201": { description: Created }
         "422": { description: Validation error }
+        "429": { description: F4/CLA-475 — per-IP rate limit exceeded. }
 components:
   headers:
     ETag:

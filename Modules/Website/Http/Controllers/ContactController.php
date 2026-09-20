@@ -6,7 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Modules\Core\Services\OrganizationContext;
+use Modules\Website\Models\WebsiteIntakeSpamAttempt;
 use Modules\Website\Services\ConsultationService;
+use Modules\Website\Services\IntakeSpamGuard;
 
 /**
  * F4/CLA-478 of the multi-organization program — docs/ai/adr-multi-organization.md.
@@ -32,12 +35,34 @@ class ContactController extends Controller
 
     public function store(Request $request)
     {
+        $honeypotField = config('website.intake_hardening.honeypot_field');
+
         try {
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|max:255',
-                'message' => 'required|string',
+                'message' => 'required|string|max:'.config('website.intake_hardening.message_max_length', 5000),
+                // F4/CLA-475: see ConsultationController's own docblock for
+                // why these three are all optional and undocumented.
+                $honeypotField => 'nullable|string|max:255',
+                'turnstile_token' => 'nullable|string',
+                'consent' => 'nullable|boolean',
+                'policy_version' => 'nullable|string|max:50',
             ]);
+
+            $guard = app(IntakeSpamGuard::class);
+            $siteId = app(OrganizationContext::class)->siteId();
+
+            if ($guard->isHoneypotTriggered($validated)) {
+                $guard->recordAttempt($siteId, $request->ip(), WebsiteIntakeSpamAttempt::REASON_HONEYPOT);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Mensaje enviado correctamente',
+                ], 201);
+            }
+
+            $guard->assertTurnstilePasses($request->input('turnstile_token'), $siteId, $request->ip());
 
             $this->consultationService->handlePublicIntake($request, array_merge($validated, [
                 'type' => 'consultation',

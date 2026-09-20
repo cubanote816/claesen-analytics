@@ -371,8 +371,8 @@ POST performances | name=performance.store | action=Modules\Performance\Http\Con
 POST prospects/unsubscribe/{prospect}/{token} | name=prospects.unsubscribe.confirm | action=Modules\Mailing\Http\Controllers\UnsubscribeController@store | middleware=web
 POST resend/webhook | name=resend.webhook | action=Resend\Laravel\Http\Controllers\WebhookController@handleWebhook | middleware=
 POST safeties | name=safety.store | action=Modules\Safety\Http\Controllers\SafetyController@store | middleware=web,auth,verified
-POST v1/website/consultations | name=- | action=Modules\Website\Http\Controllers\ConsultationController@store | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders
-POST v1/website/contact-email | name=- | action=Modules\Website\Http\Controllers\ContactController@store | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders
+POST v1/website/consultations | name=- | action=Modules\Website\Http\Controllers\ConsultationController@store | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders,throttle:10,1
+POST v1/website/contact-email | name=- | action=Modules\Website\Http\Controllers\ContactController@store | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders,throttle:10,1
 PUT api/v1/fieldops/complexes/{complex} | name=api. | action=Modules\FieldOps\Http\Controllers\ComplexController@update | middleware=api,auth:sanctum,SetLocaleFromHeader,EnforceFieldOpsTenantAccess,organization:claesen
 PUT api/v1/fieldops/electrical-boards/{electricalBoard} | name=api. | action=Modules\FieldOps\Http\Controllers\ElectricalBoardController@update | middleware=api,auth:sanctum,SetLocaleFromHeader,EnforceFieldOpsTenantAccess,organization:claesen
 PUT api/v1/fieldops/luminaire-frames/{frame} | name=api. | action=Modules\FieldOps\Http\Controllers\LuminaireFrameController@update | middleware=api,auth:sanctum,SetLocaleFromHeader,EnforceFieldOpsTenantAccess,organization:claesen
