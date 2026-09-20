@@ -43,10 +43,14 @@ class PortfolioService
      */
     public function getProjectGallery(Project $project)
     {
+        // F3/CLA-467: never $media->getUrl() — the original now lives on a
+        // private disk (Project::registerMediaCollections()). Unreachable
+        // from any route today, fixed anyway so it can't become a real leak
+        // if it's ever wired up later.
         return $project->getMedia('gallery')->map(function ($media) {
             return [
-                'url' => $media->getUrl(),
-                'thumb' => $media->getUrl('thumb'), // Assuming thumb conversion exists
+                'url' => $media->getUrl('optimized'),
+                'thumb' => $media->getUrl('thumb'),
                 'caption' => $media->getCustomProperty('caption'),
                 'alt' => $media->getCustomProperty('alt'),
             ];

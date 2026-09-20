@@ -211,6 +211,11 @@ class ProjectResource extends Resource
                                 SpatieMediaLibraryFileUpload::make('featured_image')
                                     ->label(__('website.projects.fields.featured_image'))
                                     ->collection('featured_image')
+                                    // F3/CLA-467: the original lives on the private 'local'
+                                    // disk (Project::registerMediaCollections()) — previewing
+                                    // it directly would resolve no URL at all. The 'thumb'
+                                    // conversion always lives on the public disk.
+                                    ->conversion('thumb')
                                     ->image()
                                     ->imageEditor()
                                     ->imagePreviewHeight('200')
@@ -229,6 +234,7 @@ class ProjectResource extends Resource
                                 SpatieMediaLibraryFileUpload::make('gallery')
                                     ->label(__('website.projects.fields.gallery'))
                                     ->collection('gallery')
+                                    ->conversion('thumb')
                                     ->imagePreviewHeight('150')
                                     ->panelLayout('grid')
                                     ->multiple()
@@ -265,6 +271,7 @@ class ProjectResource extends Resource
                                 SpatieMediaLibraryFileUpload::make('detail_gallery')
                                     ->label(__('website.projects.fields.detail_gallery'))
                                     ->collection('detail_gallery')
+                                    ->conversion('thumb')
                                     ->imagePreviewHeight('150')
                                     ->panelLayout('grid')
                                     ->multiple()

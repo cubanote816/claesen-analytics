@@ -64,7 +64,11 @@ final class WebsitePublicApiContractTest extends TestCase
                         'id', 'slug', 'title', 'description',
                         'work_story', 'challenge', 'solution', 'result',
                         'category', 'location', 'year', 'featured', 'order_index',
-                        'featured_image' => ['original', 'optimized', 'thumb'],
+                        // F3/CLA-467: 'original' deliberately dropped — the
+                        // original file now lives on a private disk
+                        // (Modules\Website\Models\Project::registerMediaCollections())
+                        // and is never exposed by the public API. avif twins added.
+                        'featured_image' => ['optimized', 'thumb', 'optimized_avif', 'thumb_avif'],
                         'gallery', 'detail_gallery',
                     ],
                 ],

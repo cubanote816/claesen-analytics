@@ -31,21 +31,31 @@ class ProjectResource extends JsonResource
             'year' => $this->year,
             'featured' => $this->featured,
             'order_index' => $this->order_index,
+            // F3/CLA-467: the original file lives on a private disk (see
+            // Modules\Website\Models\Project::registerMediaCollections()) —
+            // never $media->getUrl()/getFirstMediaUrl(collection) without a
+            // conversion name. Only conversion URLs (public disk) are ever
+            // serialized, so there is no field here an outsider could use
+            // to reach or enumerate an original.
             'featured_image' => [
-                'original' => $this->getFirstMediaUrl('featured_image'),
-                'optimized' => $this->getFirstMediaUrl('featured_image', 'optimized') ?: $this->getFirstMediaUrl('featured_image'),
+                'optimized' => $this->getFirstMediaUrl('featured_image', 'optimized'),
                 'thumb' => $this->getFirstMediaUrl('featured_image', 'thumb'),
+                'optimized_avif' => $this->getFirstMediaUrl('featured_image', 'optimized_avif'),
+                'thumb_avif' => $this->getFirstMediaUrl('featured_image', 'thumb_avif'),
             ],
             'gallery' => $this->getMedia('gallery')->map(function ($media) {
                 return [
                     'id'        => $media->id,
                     'name'      => $media->name,
-                    'original'  => $media->getUrl(),
-                    'optimized' => $media->getUrl('optimized') ?: $media->getUrl(),
+                    'optimized' => $media->getUrl('optimized'),
                     'gallery'   => $media->getUrl('gallery'),
                     'thumb'     => $media->getUrl('thumb'),
+                    'optimized_avif' => $media->getUrl('optimized_avif'),
+                    'gallery_avif' => $media->getUrl('gallery_avif'),
+                    'thumb_avif' => $media->getUrl('thumb_avif'),
                     'caption'   => $this->resolveLocaleValue($media->getCustomProperty('caption')),
                     'alt'       => $this->resolveLocaleValue($media->getCustomProperty('alt')),
+                    'focal_point' => $media->getCustomProperty('focal_point', ['x' => 0.5, 'y' => 0.5]),
                     'mime_type' => $media->mime_type,
                     'size'      => $media->size,
                 ];
@@ -54,12 +64,15 @@ class ProjectResource extends JsonResource
             'detail_gallery' => $this->getMedia('detail_gallery')->map(function ($media) {
                 return [
                     'id'        => $media->id,
-                    'original'  => $media->getUrl(),
-                    'optimized' => $media->getUrl('optimized') ?: $media->getUrl(),
+                    'optimized' => $media->getUrl('optimized'),
                     'gallery'   => $media->getUrl('gallery'),
                     'thumb'     => $media->getUrl('thumb'),
+                    'optimized_avif' => $media->getUrl('optimized_avif'),
+                    'gallery_avif' => $media->getUrl('gallery_avif'),
+                    'thumb_avif' => $media->getUrl('thumb_avif'),
                     'caption'   => $this->resolveLocaleValue($media->getCustomProperty('caption')),
                     'alt'       => $this->resolveLocaleValue($media->getCustomProperty('alt')),
+                    'focal_point' => $media->getCustomProperty('focal_point', ['x' => 0.5, 'y' => 0.5]),
                     'mime_type' => $media->mime_type,
                     'size'      => $media->size,
                 ];
