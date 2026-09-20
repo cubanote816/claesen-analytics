@@ -46,6 +46,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // CLA-526 but was never scheduled — retention was configured, never
         // enforced.
         $schedule->command('activitylog:clean')->dailyAt('04:30');
+        // F4/CLA-473: recovery for the observable-retries mechanism
+        // Modules\Website\Jobs\SendConsultationEmailJob's own docblock
+        // describes — a failed delivery is retried here, not via
+        // Laravel's built-in backoff.
+        $schedule->command('website:retry-failed-consultation-emails')->everyFifteenMinutes()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // F3/CLA-471: the v1/website/* group is public, unauthenticated,

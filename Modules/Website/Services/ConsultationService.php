@@ -5,14 +5,14 @@ namespace Modules\Website\Services;
 use Modules\Core\Models\Site;
 use Modules\Core\Services\OrganizationContext;
 use Modules\Prospects\Services\LeadService;
+use Modules\Website\Jobs\SendConsultationEmailJob;
+use Modules\Website\Models\ConsultationEmailDelivery;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\ConsultationActivity;
-use Modules\Website\Mail\NewConsultationRequestMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Exception;
 
 class ConsultationService
@@ -146,31 +146,49 @@ class ConsultationService
                 \Illuminate\Support\Facades\Log::error('Failed to send consultation notification: ' . $e->getMessage());
             }
 
-            // Schedule email after transaction commits — avoids sending on rollback
-            // and keeps the DB lock free from external HTTP calls.
-            // CLA-532: recipient from config (was hardcoded); if unset, skip the
-            // notification and log a warning — the consultation is already
-            // persisted and the endpoint still returns 201. A misconfigured
-            // Graph mailer now raises MailConfigurationException (a
-            // RuntimeException), which the catch below handles — it no longer
-            // throws a TypeError that would escape and 500 after the commit.
-            DB::afterCommit(function () use ($request) {
-                $to = config('website.consultation_notification_email');
+            // F4/CLA-473: both e-mails this request can trigger (internal
+            // notice, client confirmation) are recorded as their own
+            // ConsultationEmailDelivery row inside this same transaction —
+            // so they roll back together with $request if anything above
+            // fails — and only *dispatched* after commit
+            // (Modules\Website\Jobs\SendConsultationEmailJob does the
+            // actual send; see its own docblock for why $tries=1 and no
+            // built-in backoff). Recipient still comes from the site
+            // (falling back to the single global config CLA-532
+            // introduced) — empty means "skip the internal notice, log a
+            // warning", the same persist-but-skip behaviour CLA-532
+            // established, never a hard failure. The confirmation to the
+            // client has no such gate: $consultation->email is always
+            // present (a required field).
+            $site = Site::query()->find($request->site_id);
+            $deliveryIds = [];
 
-                if (empty($to)) {
-                    Log::warning('ConsultationService: website.consultation_notification_email is not configured — new-request notification skipped.', [
-                        'consultation_request_id' => $request->id,
-                    ]);
+            $internalRecipient = $site?->notificationEmail();
 
-                    return;
-                }
+            if (empty($internalRecipient)) {
+                Log::warning('ConsultationService: no notification recipient configured for this site — internal notice skipped.', [
+                    'consultation_request_id' => $request->id,
+                    'site_id' => $request->site_id,
+                ]);
+            } else {
+                $deliveryIds[] = ConsultationEmailDelivery::create([
+                    'site_id' => $request->site_id,
+                    'consultation_request_id' => $request->id,
+                    'type' => ConsultationEmailDelivery::TYPE_INTERNAL,
+                    'recipient' => $internalRecipient,
+                ])->id;
+            }
 
-                try {
-                    Mail::mailer('microsoft-graph')
-                        ->to($to)
-                        ->send(new NewConsultationRequestMail($request));
-                } catch (\Exception $e) {
-                    Log::error('Failed to send consultation email: ' . $e->getMessage());
+            $deliveryIds[] = ConsultationEmailDelivery::create([
+                'site_id' => $request->site_id,
+                'consultation_request_id' => $request->id,
+                'type' => ConsultationEmailDelivery::TYPE_CONFIRMATION,
+                'recipient' => $request->email,
+            ])->id;
+
+            DB::afterCommit(function () use ($deliveryIds): void {
+                foreach ($deliveryIds as $deliveryId) {
+                    SendConsultationEmailJob::dispatch($deliveryId);
                 }
             });
 

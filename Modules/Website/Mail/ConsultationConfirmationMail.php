@@ -11,20 +11,22 @@ use Illuminate\Queue\SerializesModels;
 use Modules\Core\Models\Site;
 use Modules\Website\Models\ConsultationRequest;
 
-class NewConsultationRequestMail extends Mailable
+/**
+ * F4/CLA-473 of the multi-organization program — docs/ai/adr-multi-organization.md.
+ *
+ * The client-facing counterpart to NewConsultationRequestMail (the
+ * internal notice) — before this ticket, no confirmation of any kind was
+ * ever sent to the person who submitted the form (confirmed by grep: no
+ * other Mailable in Modules/Website addresses ConsultationRequest::$email).
+ * Deliberately its own Mailable/template/delivery row rather than a second
+ * recipient on the internal one — the two have entirely different
+ * audiences and content (this one carries no internal fields: no message
+ * body, no assigned_to, no internal_notes).
+ */
+class ConsultationConfirmationMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * F4/CLA-473: $site is required, not derived from
-     * $consultation->site — the ADR flagged that this mailable never set
-     * an explicit From before this ticket (fell back to the single global
-     * config('mail.from.*') regardless of which site's consultation
-     * triggered it), and MicrosoftGraphTransport::getPayload() ignored
-     * this Mailable's own From name even when the address was set. Both
-     * fixed together — see Modules\Website\Jobs\SendConsultationEmailJob
-     * for where $site is resolved.
-     */
     public function __construct(
         public readonly ConsultationRequest $consultation,
         public readonly Site $site,
@@ -37,14 +39,14 @@ class NewConsultationRequestMail extends Mailable
                 (string) $this->site->mailFromAddress(),
                 (string) $this->site->mailFromName(),
             ),
-            subject: 'New consultation request — '.$this->consultation->name,
+            subject: 'We received your request',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'website::emails.new-consultation-request',
+            view: 'website::emails.consultation-confirmation',
         );
     }
 }

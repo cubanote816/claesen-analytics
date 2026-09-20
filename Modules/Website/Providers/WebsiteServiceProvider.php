@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Modules\Website\Console\MigrateProjectMediaToPrivateDiskCommand;
 use Modules\Website\Console\RegenerateProjectMediaCommand;
 use Modules\Website\Console\Commands\ProcessConsultationRemindersCommand;
+use Modules\Website\Console\Commands\RetryFailedConsultationEmailsCommand;
 use Modules\Website\Console\Commands\SetMediaFocalPointCommand;
 use Modules\Website\Console\Commands\ConfirmMediaUsageRightsCommand;
 use Modules\Website\Contracts\ProjectRepositoryInterface;
@@ -47,6 +48,7 @@ class WebsiteServiceProvider extends ServiceProvider
                 SetMediaFocalPointCommand::class,
                 ConfirmMediaUsageRightsCommand::class,
                 ProcessConsultationRemindersCommand::class,
+                RetryFailedConsultationEmailsCommand::class,
             ]);
         }
     }
