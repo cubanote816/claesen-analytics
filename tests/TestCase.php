@@ -25,6 +25,15 @@ abstract class TestCase extends BaseTestCase
      * and read by Modules\Website\Models\ProjectCategory — a
      * DatabaseTruncation class truncating it would silently empty Claesen's
      * whole taxonomy for every test that runs after in the same process.
+     *
+     * prospects_regions (F4/CLA-478) — the 11 Belgian regions seeded by
+     * database/migrations/2026_04_03_190000_create_prospects_regions_table.php
+     * — is the same situation again, found the same way: a DatabaseTruncation
+     * class truncating it left Modules\Prospects\Services\LeadService::
+     * persistContactLead()'s `Region::where('slug', 'brussel')->value('id')`
+     * fallback resolving to null for every test running afterward in the
+     * same process, breaking the NOT NULL prospects_prospects.region_id
+     * column CLA-478 fixed it against in the first place.
      */
-    protected array $exceptTables = ['organizations', 'sites', 'website_project_categories'];
+    protected array $exceptTables = ['organizations', 'sites', 'website_project_categories', 'prospects_regions'];
 }

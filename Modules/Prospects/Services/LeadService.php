@@ -4,6 +4,7 @@ namespace Modules\Prospects\Services;
 
 use Modules\Prospects\Models\Prospect;
 use Modules\Prospects\Models\ProspectLocation;
+use Modules\Prospects\Models\Region;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -37,6 +38,19 @@ class LeadService
                 'name' => $data['name'],
                 'type' => 'lead',
                 'channel' => 'website_contact',
+                // F4/CLA-478 bug fix: prospects_prospects.region_id is
+                // NOT NULL (2026_04_03_204632_make_region_id_required_on_
+                // prospects_prospects_table.php, a deliberate decision for
+                // the federation-club domain this table primarily serves)
+                // — a website contact-form lead genuinely has no known
+                // region at creation time. Never reached before this
+                // ticket's own end-to-end test: no prior test exercised
+                // this method through a real, unmocked HTTP request.
+                // 'Brussel' is the same fallback that migration's own
+                // backfill already used (id 11 there; resolved by slug
+                // here, not a hardcoded id, since it's guaranteed seeded
+                // by 2026_04_03_190000_create_prospects_regions_table.php).
+                'region_id' => Region::where('slug', 'brussel')->value('id'),
             ]);
 
             try {

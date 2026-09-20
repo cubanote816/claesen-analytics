@@ -14,9 +14,12 @@ use Tests\TestCase;
  * persist exactly one row per request even when the microsoft-graph mailer is
  * unconfigured or when website.consultation_notification_email is null. The
  * notification is sent in DB::afterCommit; a failure there is logged, never a
- * 500 after the row is already committed. (The endpoint is NOT idempotent —
- * two deliberate POSTs create two rows; the guarantee is only "each 201 == one
- * row, no post-commit 500".)
+ * 500 after the row is already committed. (Without an Idempotency-Key header
+ * — this file never sends one — two deliberate POSTs create two rows; the
+ * guarantee is only "each 201 == one row, no post-commit 500". CLA-478 added
+ * opt-in idempotency via that header; see
+ * Modules/Website/tests/Feature/LeadIntakeConsolidationTest.php for that
+ * behaviour.)
  *
  * DatabaseTruncation (like ConsultationEmailTest) so DB::afterCommit actually
  * fires. Authored here; executed in CI (no local MySQL).
