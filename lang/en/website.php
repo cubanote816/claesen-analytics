@@ -76,6 +76,8 @@ return [
             'assigned_to' => 'Assigned To',
             'follow_up_date' => 'Follow-up Date',
             'internal_notes' => 'Internal Notes',
+            'tags' => 'Tags',
+            'first_response_sla' => 'First response',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -95,11 +97,12 @@ return [
             'other' => 'Other',
         ],
         'status_options' => [
-            'pending' => 'Pending',
-            'contacted' => 'Contacted',
+            'new' => 'New',
+            'assigned' => 'Assigned',
             'in_progress' => 'In Progress',
-            'completed' => 'Completed',
-            'cancelled' => 'Cancelled',
+            'waiting_client' => 'Waiting on Client',
+            'closed' => 'Closed',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Low',

@@ -122,9 +122,12 @@ final class WebsitePublicApiContractTest extends TestCase
 
         $response->assertCreated()->assertJsonStructure(['message', 'data']);
 
+        // F4/CLA-477 declared inversion: the lead-inbox workflow replaced
+        // the old pending/contacted/in_progress/completed/cancelled status
+        // set — a fresh lead now starts 'new', not 'pending'.
         $this->assertDatabaseHas('website_consultation_requests', [
             'email' => 'baseline@example.test',
-            'status' => 'pending',
+            'status' => 'new',
         ]);
 
         // Phase P3a (CLA-547) gave a lead an explicit site. The intake endpoint

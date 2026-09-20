@@ -175,11 +175,15 @@ final class AccessControlContractTest extends TestCase
             $this->assertStringNotContainsString('function canAccess', $this->source($file));
         }
 
-        // The assignee picker lists every user in the database.
-        $this->assertStringContainsString(
-            "->relationship('assignedUser', 'name')",
-            $this->source('app/Filament/Clusters/Website/Resources/ConsultationRequestResource.php')
-        );
+        // F4/CLA-477 declared inversion: the assignee picker used to list
+        // every user in the database unconditionally. It now narrows to the
+        // record's own site's organization once config('organizations.enforce')
+        // is on (D4) — inert today (the flag's default everywhere), so this
+        // assigns-any-user behaviour still holds in practice, but via the
+        // scoped query rather than an unconditional relationship() call.
+        $source = $this->source('app/Filament/Clusters/Website/Resources/ConsultationRequestResource.php');
+        $this->assertStringContainsString('assignableUsersQuery', $source);
+        $this->assertStringContainsString("config('organizations.enforce')", $source);
     }
 
     public function test_the_public_website_api_is_unauthenticated_unthrottled_and_now_site_aware(): void

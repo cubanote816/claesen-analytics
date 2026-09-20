@@ -119,7 +119,7 @@ class ConsultationService
                 'project_type' => $data['project_type'] ?? null,
                 'preferred_contact' => $data['preferred_contact'] ?? 'email',
                 'source' => $data['source'] ?? 'website',
-                'status' => 'pending',
+                'status' => ConsultationRequest::STATUS_NEW,
                 'last_activity_at' => now(),
                 'custom_fields' => $utm !== [] ? ['utm' => $utm] : null,
             ]);
@@ -206,7 +206,11 @@ class ConsultationService
         }
 
         $oldStatus = $request->status;
-        $request->updateQuietly(['status' => $newStatus]);
+        $request->maybeStampFirstResponse($oldStatus, $newStatus);
+        $request->updateQuietly([
+            'status' => $newStatus,
+            'first_response_at' => $request->first_response_at,
+        ]);
 
         $this->logActivity(
             $request,

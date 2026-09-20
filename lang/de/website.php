@@ -70,6 +70,8 @@ return [
             'assigned_to' => 'Zugewiesen an',
             'follow_up_date' => 'Folgetermin',
             'internal_notes' => 'Interne Notizen',
+            'tags' => 'Tags',
+            'first_response_sla' => 'Erste Antwort',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -89,11 +91,12 @@ return [
             'other' => 'Sonstige',
         ],
         'status_options' => [
-            'pending' => 'Ausstehend',
-            'contacted' => 'Kontaktiert',
+            'new' => 'Neu',
+            'assigned' => 'Zugewiesen',
             'in_progress' => 'In Bearbeitung',
-            'completed' => 'Abgeschlossen',
-            'cancelled' => 'Abgebrochen',
+            'waiting_client' => 'Wartet auf Kunde',
+            'closed' => 'Geschlossen',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Niedrig',

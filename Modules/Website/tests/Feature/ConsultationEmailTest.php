@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Mail;
 use Modules\Website\Mail\ConsultationConfirmationMail;
 use Modules\Website\Mail\NewConsultationRequestMail;
 use Modules\Website\Models\ConsultationEmailDelivery;
+use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Services\ConsultationService;
 use Tests\TestCase;
 
@@ -134,7 +135,7 @@ class ConsultationEmailTest extends TestCase
             'email' => 'marie@example.com',
             'type' => 'quote',
             'project_type' => 'industrial',
-            'status' => 'pending',
+            'status' => ConsultationRequest::STATUS_NEW,
         ]);
     }
 }

@@ -76,6 +76,8 @@ return [
             'assigned_to' => 'Toegewezen aan',
             'follow_up_date' => 'Opvolgdatum',
             'internal_notes' => 'Interne opmerkingen',
+            'tags' => 'Labels',
+            'first_response_sla' => 'Eerste reactie',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -95,11 +97,12 @@ return [
             'other' => 'Overig',
         ],
         'status_options' => [
-            'pending' => 'In afwachting',
-            'contacted' => 'Gecontacteerd',
+            'new' => 'Nieuw',
+            'assigned' => 'Toegewezen',
             'in_progress' => 'In behandeling',
-            'completed' => 'Voltooid',
-            'cancelled' => 'Geannuleerd',
+            'waiting_client' => 'Wacht op klant',
+            'closed' => 'Gesloten',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Laag',
