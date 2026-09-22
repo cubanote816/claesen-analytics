@@ -7,6 +7,7 @@ namespace Modules\Core\Filament\Resources\Users\Schemas;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -102,6 +103,18 @@ class CreateUserForm
                             ->preload()
                             ->required(fn (Get $get): bool => $get('account_type') === 'client')
                             ->minItems(1)
+                            ->visible(fn (Get $get): bool => $get('account_type') === 'client'),
+
+                        // CLA-553: bootstrap point for the client-managed contacts feature —
+                        // ClientContactInvitationService::assertCanManageContacts() already
+                        // authorizes a client user with can_manage_contacts=true to invite more
+                        // contacts for their own FoClient; before this field, no creation path
+                        // in the codebase ever set that flag to true, so the capability was
+                        // built but unreachable without a manual SQL edit.
+                        Toggle::make('client_can_manage_contacts')
+                            ->label(__('users/resource.fields.client_can_manage_contacts'))
+                            ->helperText(__('users/resource.fields.client_can_manage_contacts_hint'))
+                            ->default(false)
                             ->visible(fn (Get $get): bool => $get('account_type') === 'client'),
 
                         // role_ids: plain array, NOT using relationship() so that

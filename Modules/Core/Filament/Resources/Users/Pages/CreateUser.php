@@ -46,6 +46,7 @@ class CreateUser extends CreateRecord
                 'password' => null,
                 'password_set_at' => null,
                 'client_ids' => $clientIds,
+                'client_can_manage_contacts' => (bool) ($data['client_can_manage_contacts'] ?? false),
                 'role_ids' => [Role::findByName('client')->id],
             ];
         }
@@ -90,13 +91,14 @@ class CreateUser extends CreateRecord
     {
         $roleIds = $data['role_ids'] ?? [];
         $clientIds = $data['client_ids'] ?? [];
-        unset($data['role_ids'], $data['client_ids'], $data['account_type']);
+        $canManageContacts = (bool) ($data['client_can_manage_contacts'] ?? false);
+        unset($data['role_ids'], $data['client_ids'], $data['account_type'], $data['client_can_manage_contacts']);
 
         if (empty($roleIds)) {
             throw new DomainException('At least one role is required.');
         }
 
-        return DB::transaction(function () use ($data, $roleIds, $clientIds): User {
+        return DB::transaction(function () use ($data, $roleIds, $clientIds, $canManageContacts): User {
             $user = User::create($data);
             $user->syncRoles($roleIds);     // failure here rolls back the User::create
 
@@ -105,7 +107,7 @@ class CreateUser extends CreateRecord
                     'is_active' => true,
                     'can_view' => true,
                     'can_report' => true,
-                    'can_manage_contacts' => false,
+                    'can_manage_contacts' => $canManageContacts,
                 ]);
             }
 
