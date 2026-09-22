@@ -4,6 +4,7 @@ namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Modules\FieldOps\Http\Requests\StoreLuminaireFrameRequest;
 use Modules\FieldOps\Http\Requests\UpdateLuminaireFrameRequest;
 use Modules\FieldOps\Http\Resources\LuminaireFrameResource;
@@ -46,11 +47,15 @@ class LuminaireFrameController extends Controller
             ['created_by_user_id' => $request->user()->id],
         );
 
-        $frame = LuminaireFrame::create($frameData);
+        $frame = DB::transaction(function () use ($frameData, $structureIds) {
+            $frame = LuminaireFrame::create($frameData);
 
-        if ($structureIds !== null) {
-            $frame->structures()->attach($structureIds);
-        }
+            if ($structureIds !== null) {
+                $frame->structures()->attach($structureIds);
+            }
+
+            return $frame;
+        });
 
         $frame->load('frameType', 'structures', 'createdBy');
 
@@ -63,12 +68,15 @@ class LuminaireFrameController extends Controller
     public function update(UpdateLuminaireFrameRequest $request, LuminaireFrame $frame): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validated();
-        $frame->update(collect($validated)->except('structure_ids')->all());
 
-        // Three explicit cases — $request->has() distinguishes absent from null
-        if ($request->has('structure_ids')) {
-            $frame->structures()->sync($validated['structure_ids'] ?? []);
-        }
+        DB::transaction(function () use ($frame, $validated, $request) {
+            $frame->update(collect($validated)->except('structure_ids')->all());
+
+            // Three explicit cases — $request->has() distinguishes absent from null
+            if ($request->has('structure_ids')) {
+                $frame->structures()->sync($validated['structure_ids'] ?? []);
+            }
+        });
 
         $frame->load('frameType', 'structures', 'createdBy');
 

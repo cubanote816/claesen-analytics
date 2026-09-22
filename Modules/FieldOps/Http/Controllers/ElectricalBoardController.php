@@ -4,6 +4,7 @@ namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Modules\FieldOps\Http\Requests\StoreElectricalBoardRequest;
 use Modules\FieldOps\Http\Requests\UpdateElectricalBoardRequest;
 use Modules\FieldOps\Http\Resources\ElectricalBoardResource;
@@ -46,17 +47,21 @@ class ElectricalBoardController extends Controller
             ['created_by_user_id' => $request->user()->id],
         );
 
-        $board = ElectricalBoard::create($boardData);
+        $board = DB::transaction(function () use ($boardData, $pivotIds) {
+            $board = ElectricalBoard::create($boardData);
 
-        if ($pivotIds->get('complex_ids') !== null) {
-            $board->complexes()->attach($pivotIds->get('complex_ids'));
-        }
-        if ($pivotIds->get('terrain_ids') !== null) {
-            $board->terrains()->attach($pivotIds->get('terrain_ids'));
-        }
-        if ($pivotIds->get('structure_ids') !== null) {
-            $board->structures()->attach($pivotIds->get('structure_ids'));
-        }
+            if ($pivotIds->get('complex_ids') !== null) {
+                $board->complexes()->attach($pivotIds->get('complex_ids'));
+            }
+            if ($pivotIds->get('terrain_ids') !== null) {
+                $board->terrains()->attach($pivotIds->get('terrain_ids'));
+            }
+            if ($pivotIds->get('structure_ids') !== null) {
+                $board->structures()->attach($pivotIds->get('structure_ids'));
+            }
+
+            return $board;
+        });
 
         $board->load(self::RELATIONS);
 
@@ -78,19 +83,21 @@ class ElectricalBoardController extends Controller
             );
         }
 
-        $electricalBoard->update($boardData);
+        DB::transaction(function () use ($electricalBoard, $boardData, $validated, $request) {
+            $electricalBoard->update($boardData);
 
-        // Three distinct cases per relation — must check hasKey, not truthiness:
-        // absent → leave pivot untouched | null → detach all | array → sync
-        if ($request->has('complex_ids')) {
-            $electricalBoard->complexes()->sync($validated['complex_ids'] ?? []);
-        }
-        if ($request->has('terrain_ids')) {
-            $electricalBoard->terrains()->sync($validated['terrain_ids'] ?? []);
-        }
-        if ($request->has('structure_ids')) {
-            $electricalBoard->structures()->sync($validated['structure_ids'] ?? []);
-        }
+            // Three distinct cases per relation — must check hasKey, not truthiness:
+            // absent → leave pivot untouched | null → detach all | array → sync
+            if ($request->has('complex_ids')) {
+                $electricalBoard->complexes()->sync($validated['complex_ids'] ?? []);
+            }
+            if ($request->has('terrain_ids')) {
+                $electricalBoard->terrains()->sync($validated['terrain_ids'] ?? []);
+            }
+            if ($request->has('structure_ids')) {
+                $electricalBoard->structures()->sync($validated['structure_ids'] ?? []);
+            }
+        });
 
         $electricalBoard->load(self::RELATIONS);
 
