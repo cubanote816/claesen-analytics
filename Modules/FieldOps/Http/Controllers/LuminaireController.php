@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
+use Modules\FieldOps\Http\Requests\IndexLuminaireRequest;
 use Modules\FieldOps\Http\Requests\ReplaceLuminaireRequest;
 use Modules\FieldOps\Http\Requests\StoreLuminaireRequest;
 use Modules\FieldOps\Http\Requests\UpdateLuminaireRequest;
@@ -16,6 +17,7 @@ use Modules\FieldOps\Http\Resources\MaintenanceRecordResource;
 use Modules\FieldOps\Http\Resources\LuminaireResource;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminairePosition;
+use Modules\FieldOps\Services\FieldOpsTenantService;
 use Modules\FieldOps\Services\LuminaireReplacementService;
 
 class LuminaireController extends Controller
@@ -49,6 +51,82 @@ class LuminaireController extends Controller
         $this->authorizeBackofficeEditor($request);
 
         return $this->replace($request, $luminaire, $replacementService);
+    }
+
+    /**
+     * Luminaire index (CLA-578). The route only accepted POST before, so the
+     * Assets screen had nothing to read. Tenant-scoped through
+     * FieldOpsTenantService, like every other FieldOps listing.
+     */
+    public function index(IndexLuminaireRequest $request, FieldOpsTenantService $tenants): JsonResponse
+    {
+        $query = Luminaire::query()->with(['luminaireType', 'subgroup', 'position', 'luminaireFrame']);
+
+        $tenants->scopeForUser($query, $request->user(), Luminaire::class);
+
+        $query->when(
+            $request->filled('search'),
+            fn ($builder) => $builder->where('serial_number', 'like', '%'.$request->string('search').'%')
+        );
+
+        $query->when(
+            $request->filled('luminaire_frame_id'),
+            fn ($builder) => $builder->where('luminaire_frame_id', $request->integer('luminaire_frame_id'))
+        );
+
+        $query->when(
+            $request->filled('luminaire_type_id'),
+            fn ($builder) => $builder->where('luminaire_type_id', $request->integer('luminaire_type_id'))
+        );
+
+        $query->when(
+            $request->filled('structure_id'),
+            fn ($builder) => $builder->whereHas(
+                'luminaireFrame.structures',
+                fn ($related) => $related->where('fo_structures.id', $request->integer('structure_id'))
+            )
+        );
+
+        $query->when(
+            $request->filled('terrain_id'),
+            fn ($builder) => $builder->whereHas(
+                'luminaireFrame.structures.terrains',
+                fn ($related) => $related->where('fo_terrains.id', $request->integer('terrain_id'))
+            )
+        );
+
+        $query->when(
+            $request->filled('complex_id'),
+            fn ($builder) => $builder->whereHas(
+                'luminaireFrame.structures.terrains.complex',
+                fn ($related) => $related->where('fo_complexes.id', $request->integer('complex_id'))
+            )
+        );
+
+        // "Equipment I serviced": anything this user's employee has an assigned
+        // work order for, which is what the Assets screen actually lists.
+        $query->when(
+            $request->boolean('serviced_by_me'),
+            function ($builder) use ($request) {
+                $employeeId = $request->user()->employee_id;
+
+                return $builder->whereHas(
+                    'maintenanceWorkOrders',
+                    fn ($related) => $related->where('assigned_employee_id', $employeeId ?: '__unlinked__')
+                );
+            }
+        );
+
+        $query->when(
+            $request->has('is_current'),
+            fn ($builder) => $builder->where('is_current', $request->boolean('is_current'))
+        );
+
+        $luminaires = $query->latest('fo_luminaires.id')->paginate($request->perPage())->withQueryString();
+
+        return LuminaireResource::collection($luminaires)
+            ->additional(['success' => true])
+            ->response();
     }
 
     public function show(Luminaire $luminaire): \Illuminate\Http\JsonResponse
