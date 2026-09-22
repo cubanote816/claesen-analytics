@@ -292,6 +292,32 @@ class MaintenanceRequestTest extends TestCase
         $this->withToken($adminToken)->get("/api/v1/fieldops/maintenance-request-attachments/{$internalId}")->assertOk();
     }
 
+    // CLA-503: attachmentPayload() used url(), absolute against this server's
+    // own internal Host (the tunnel), not the client's real public domain.
+    // Relative now — Claesen-Client's resolveAttachmentUrl() prepends the
+    // correct origin at read time (Claesen-Client doesn't render photos/
+    // documents/videos from HasMediaPayload, only this one).
+    public function test_attachment_url_is_relative(): void
+    {
+        $topology = $this->topology('Attachment URL Client');
+        [, $clientToken] = $this->clientUser($topology['client']);
+        $requestId = $this->createRequest($clientToken, $topology['luminaire']);
+
+        $attachmentId = $this->withToken($clientToken)
+            ->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/attachments", [
+                'file' => UploadedFile::fake()->image('failure.jpg'),
+                'visibility' => 'public',
+            ])->assertCreated()->json('data.id');
+
+        $url = $this->withToken($clientToken)
+            ->getJson("/api/v1/fieldops/maintenance-requests/{$requestId}")
+            ->assertOk()
+            ->json('data.attachments.0.url');
+
+        $this->assertSame("/api/v1/fieldops/maintenance-request-attachments/{$attachmentId}", $url);
+        $this->assertStringStartsNotWith('http', $url);
+    }
+
     public function test_resolution_confirmation_reopening_and_second_work_order_preserve_history(): void
     {
         $topology = $this->topology('Lifecycle Client');

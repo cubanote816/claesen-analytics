@@ -70,6 +70,8 @@ class FieldOpsMediaController extends Controller
         abort_unless(in_array($media->model_type, self::MODEL_MAP, true), 404);
     }
 
+    // CLA-503 (2/2): relative, not url() — see HasMediaPayload for the full
+    // rationale (same root cause, frontend resolver already deployed first).
     private function mediaPayload(Media $media): array
     {
         return [
@@ -77,9 +79,9 @@ class FieldOpsMediaController extends Controller
             'name'      => $media->file_name,
             'mime_type' => $media->mime_type,
             'size'      => $media->size,
-            'url'       => url("/api/v1/fieldops/media/{$media->id}"),
+            'url'       => "/api/v1/fieldops/media/{$media->id}",
             'thumb_url' => $media->hasGeneratedConversion('thumb')
-                ? url("/api/v1/fieldops/media/{$media->id}?conversion=thumb")
+                ? "/api/v1/fieldops/media/{$media->id}?conversion=thumb"
                 : null,
         ];
     }

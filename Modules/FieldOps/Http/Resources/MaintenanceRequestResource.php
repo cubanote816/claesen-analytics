@@ -72,7 +72,12 @@ class MaintenanceRequestResource extends JsonResource
             'size' => $media->size,
             'visibility' => $media->getCustomProperty('visibility', FoMaintenanceRequestMessage::VISIBILITY_PUBLIC),
             'message_id' => $media->getCustomProperty('message_id'),
-            'url' => url("/api/v1/fieldops/maintenance-request-attachments/{$media->id}"),
+            // CLA-503 (2/2): relative, not url() — resolves against the tunnel's
+            // internal Host (backoffice.claesen.local), not the public domain.
+            // Claesen-Client's portal-data.ts already accepts a relative URL as-is
+            // (it never re-resolves it against a different origin), so this is
+            // safe for that consumer too, not just Claesen-Sport's resolver.
+            'url' => "/api/v1/fieldops/maintenance-request-attachments/{$media->id}",
         ];
     }
 }

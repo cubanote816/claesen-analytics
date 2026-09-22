@@ -75,6 +75,31 @@ class FieldOpsMediaTest extends TestCase
         $this->assertCount(1, $complex->fresh()->getMedia('photos'));
     }
 
+    // CLA-503: url()/thumb_url() used to build absolute URLs from this server's
+    // own internal Host (the tunnel's backoffice.claesen.local), never the
+    // client's real public domain. Relative now — the frontend resolver
+    // (Claesen-Sport's resolveApiAssetUrl(), Claesen-Client's
+    // resolveAttachmentUrl()) prepends the correct origin at read time.
+    public function test_store_response_and_persisted_payload_use_relative_urls(): void
+    {
+        [, $token] = $this->user();
+        $complex = Complex::factory()->create();
+
+        $response = $this->withToken($token)->postJson("/api/v1/fieldops/complexes/{$complex->id}/media", [
+            'collection' => 'photos',
+            'file'       => UploadedFile::fake()->image('photo.jpg'),
+        ]);
+
+        $url = $response->json('data.url');
+        $this->assertSame("/api/v1/fieldops/media/{$response->json('data.id')}", $url);
+        $this->assertStringStartsNotWith('http', $url);
+
+        $payload = $this->withToken($token)
+            ->getJson("/api/v1/fieldops/complexes/{$complex->id}")
+            ->json('data.photos.0');
+        $this->assertStringStartsNotWith('http', $payload['url']);
+    }
+
     public function test_store_uploads_photo_to_terrain(): void
     {
         [, $token] = $this->user();
