@@ -26,6 +26,14 @@ class ProjectResource extends Resource
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-presentation-chart-bar';
 
+    // CLA-581: no Policy is registered for Project, so Filament's default canAccess()
+    // allows any panel user — fine for the existing roster (super_admin/admin/financial_manager/
+    // hr_manager/viewer, all trusted staff), but technician must not inherit it.
+    public static function canAccess(): bool
+    {
+        return ! (auth()->user()?->hasRole('technician') ?? false);
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return __('navigation.groups.workforce_performance');

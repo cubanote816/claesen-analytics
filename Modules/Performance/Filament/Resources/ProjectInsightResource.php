@@ -28,6 +28,12 @@ class ProjectInsightResource extends Resource
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-sparkles';
 
+    // CLA-581: see ProjectResource — same reasoning, exclude technician from the default-allow.
+    public static function canAccess(): bool
+    {
+        return ! (auth()->user()?->hasRole('technician') ?? false);
+    }
+
     protected static bool $shouldRegisterNavigation = false;
 
     public static function getNavigationBadge(): ?string

@@ -28,6 +28,12 @@ class EmployeeResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
+    // CLA-581: see Performance\ProjectResource — same reasoning, exclude technician from the default-allow.
+    public static function canAccess(): bool
+    {
+        return ! (auth()->user()?->hasRole('technician') ?? false);
+    }
+
     protected static ?SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
     protected static ?string $recordTitleAttribute = 'name';
