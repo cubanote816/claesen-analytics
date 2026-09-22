@@ -6,6 +6,7 @@ navigation_groups=Workforce & Performance,Growth & Acquisition,Mailing,Safety & 
 resource App\Filament\Clusters\Website\Resources\AnnouncementResource | model=Modules\Website\Models\Announcement | slug=announcements | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\ConsultationRequestResource | model=Modules\Website\Models\ConsultationRequest | slug=consultation-requests | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\ProjectResource | model=Modules\Website\Models\Project | slug=projects | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\Core\Filament\Resources\ActivityLogResource | model=Modules\Core\Models\ActivityLogEntry | slug=activity-logs | navigation=yes | record_title=- | globally_searchable=no
 resource Modules\Core\Filament\Resources\Permissions\PermissionResource | model=Modules\Core\Models\Permission | slug=permissions | navigation=yes | record_title=name | globally_searchable=yes
 resource Modules\Core\Filament\Resources\Roles\RoleResource | model=Modules\Core\Models\Role | slug=roles | navigation=yes | record_title=name | globally_searchable=yes
 resource Modules\Core\Filament\Resources\Users\UserResource | model=Modules\Core\Models\User | slug=users | navigation=yes | record_title=name | globally_searchable=yes

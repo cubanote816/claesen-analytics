@@ -238,11 +238,19 @@ class ConsultationRequestResource extends Resource
                 // (BelongsToSite, already scoped), purpose via a single
                 // purpose-built lead-reporting CSV (not a generic dump),
                 // audited via a dedicated activity_log entry per export.
+                // F2/CLA-464: "reautenticación para... exportación" — a
+                // fresh MFA challenge on top of the permission check above.
                 \Filament\Actions\Action::make('export')
                     ->label(__('website.consultation_requests.actions.export'))
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('gray')
                     ->visible(fn (): bool => auth()->user()?->can('website.export-consultation-requests') ?? false)
+                    ->mountUsing(function (): void {
+                        if ($user = auth()->user()) {
+                            app(\Modules\Core\Services\StepUpAuthenticator::class)->sendChallengeIfNeeded($user);
+                        }
+                    })
+                    ->schema(fn (): array => app(\Modules\Core\Services\StepUpAuthenticator::class)->guardedSchema(auth()->user(), []))
                     ->action(fn () => self::streamCsvExport()),
             ])
             ->actions([
@@ -252,6 +260,9 @@ class ConsultationRequestResource extends Resource
                 // GDPR erasure, any lead age, independent of the automated
                 // retention job's cutoffs. Hidden once already anonymized —
                 // nothing left to erase a second time.
+                // F2/CLA-464: "reautenticación para... acciones
+                // destructivas" — a fresh MFA challenge before an
+                // irreversible GDPR erasure.
                 \Filament\Actions\Action::make('erase')
                     ->label(__('website.consultation_requests.actions.erase'))
                     ->icon('heroicon-o-trash')
@@ -259,6 +270,12 @@ class ConsultationRequestResource extends Resource
                     ->requiresConfirmation()
                     ->visible(fn (ConsultationRequest $record): bool => $record->anonymized_at === null
                         && (auth()->user()?->can('website.erase-consultation-pii') ?? false))
+                    ->mountUsing(function (): void {
+                        if ($user = auth()->user()) {
+                            app(\Modules\Core\Services\StepUpAuthenticator::class)->sendChallengeIfNeeded($user);
+                        }
+                    })
+                    ->schema(fn (): array => app(\Modules\Core\Services\StepUpAuthenticator::class)->guardedSchema(auth()->user(), []))
                     ->action(function (ConsultationRequest $record): void {
                         app(RetentionService::class)->eraseNow($record, auth()->id());
                     }),
@@ -285,10 +302,27 @@ class ConsultationRequestResource extends Resource
     private static function streamCsvExport(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $records = ConsultationRequest::query()->with('assignedUser')->latest()->get();
+        $actor = auth()->user();
 
         activity()
-            ->causedBy(auth()->user())
+            ->causedBy($actor)
             ->log("Exported {$records->count()} consultation request(s) to CSV");
+
+        // F2/CLA-465: "alertas por exportaciones" — see
+        // Modules\Website\Notifications\ConsultationExportPerformedNotification's
+        // own docblock for why this criterion stopped being vacuous.
+        if ($actor) {
+            $roleIds = \Spatie\Permission\Models\Role::whereIn('name', ['super_admin', 'admin'])->pluck('id');
+            $recipients = \Modules\Core\Models\User::query()
+                ->whereHas('roles', fn ($query) => $query->whereIn('id', $roleIds))
+                ->inOrganization($actor->organization_id)
+                ->get();
+
+            \Illuminate\Support\Facades\Notification::send(
+                $recipients,
+                new \Modules\Website\Notifications\ConsultationExportPerformedNotification($actor, $records->count())
+            );
+        }
 
         return response()->streamDownload(function () use ($records): void {
             $handle = fopen('php://output', 'w');

@@ -24,6 +24,9 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Modules\Core\Http\Middleware\AssignCorrelationId;
+use Modules\Core\Http\Middleware\ResolveOrganizationContext;
+use Modules\Core\Http\Middleware\UpdateUserActivity;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -229,6 +232,17 @@ HTML
                 \Modules\Core\Http\Middleware\BrowserLocaleMiddleware::class,
                 \Modules\Core\Http\Middleware\EnsurePasswordIsSet::class,
                 \Modules\Core\Http\Middleware\EnsurePanelAccess::class,
+                // F2/CLA-465 real fix, found while building it: this panel
+                // builds its OWN explicit middleware list rather than the
+                // 'web' group alias, so bootstrap/app.php's
+                // $middleware->web(append: [...]) NEVER reached this panel's
+                // routes — confirmed with a real request (Cache::has() proof
+                // for UpdateUserActivity's own side effect returned false
+                // before this fix). AssignCorrelationId/UpdateUserActivity/
+                // ResolveOrganizationContext all belong here explicitly.
+                AssignCorrelationId::class,
+                UpdateUserActivity::class,
+                ResolveOrganizationContext::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

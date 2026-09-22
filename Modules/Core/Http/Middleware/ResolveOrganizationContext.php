@@ -27,6 +27,19 @@ use Symfony\Component\HttpFoundation\Response;
  * A guest request is a no-op: OrganizationContext::resolve() already
  * returns null for Auth::user() === null, so there's nothing this
  * middleware needs to guard against beyond calling it.
+ *
+ * CORRECTION (F2/CLA-465, found while building AssignCorrelationId): the
+ * "covers both ordinary panel requests..." claim above was never actually
+ * true for the real admin/bertels panels — both PanelProviders build their
+ * OWN explicit ->middleware([...]) array rather than referencing the `web`
+ * group alias, so bootstrap/app.php's $middleware->web(append: [...]) never
+ * reached them. Proven with a real request (UpdateUserActivity's own
+ * Cache::put() side effect was absent after hitting a panel route before
+ * this fix). This class is now ALSO registered directly in both
+ * AdminPanelProvider and BertelsPanelProvider's ->middleware([...]) arrays —
+ * that registration, not this one, is what actually executes it on panel
+ * requests. This entry in bootstrap/app.php's `web` group is kept for any
+ * plain (non-panel) route under that group (e.g. routes/web.php).
  */
 class ResolveOrganizationContext
 {

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use Modules\Core\Http\Middleware\AssignCorrelationId;
 use Modules\Core\Http\Middleware\RequireOrganization;
 use Modules\Core\Http\Middleware\ResolveOrganizationContext;
 use Modules\Core\Http\Middleware\ResolveSessionCookieDomain;
@@ -34,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'organization' => RequireOrganization::class,
         ]);
         $middleware->web(append: [
+            AssignCorrelationId::class,
             UpdateUserActivity::class,
             ResolveOrganizationContext::class,
         ]);

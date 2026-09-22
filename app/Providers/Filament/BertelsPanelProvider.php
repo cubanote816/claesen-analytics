@@ -20,8 +20,11 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Modules\Core\Filament\Pages\Auth\Login;
+use Modules\Core\Http\Middleware\AssignCorrelationId;
 use Modules\Core\Http\Middleware\BrowserLocaleMiddleware;
 use Modules\Core\Http\Middleware\EnsurePasswordIsSet;
+use Modules\Core\Http\Middleware\ResolveOrganizationContext;
+use Modules\Core\Http\Middleware\UpdateUserActivity;
 
 /**
  * F1/P6 spike (CLA-549) — docs/ai/adr-multi-organization.md.
@@ -113,6 +116,17 @@ class BertelsPanelProvider extends PanelProvider
                 // allowlist is Claesen's role list. User::canAccessPanel()
                 // already gates this panel to super_admin via Filament's own
                 // Authenticate middleware (authMiddleware, below).
+                // F2/CLA-465 real fix, found while building it: this panel
+                // builds its OWN explicit middleware list rather than the
+                // 'web' group alias, so bootstrap/app.php's
+                // $middleware->web(append: [...]) NEVER reached this panel's
+                // routes — confirmed with a real request (Cache::has() proof
+                // for UpdateUserActivity's own side effect returned false
+                // before this fix). AssignCorrelationId/UpdateUserActivity/
+                // ResolveOrganizationContext all belong here explicitly.
+                AssignCorrelationId::class,
+                UpdateUserActivity::class,
+                ResolveOrganizationContext::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

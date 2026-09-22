@@ -16,13 +16,18 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Modules\Core\Models\AccessEvent;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Notification;
 use Modules\Cafca\Models\Employee;
+use Modules\Core\Models\AccessEvent;
+use Modules\Core\Notifications\SuperAdminGrantedNotification;
 use Modules\FieldOps\Models\FoClient;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Traits\HasRoles;
 
 /**
  * CLA-464 (ADR D8): implements Filament 5's native MFA contracts (App/TOTP +
@@ -34,7 +39,16 @@ use Modules\FieldOps\Models\FoClient;
  */
 class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasEmailAuthentication
 {
-    use HasFactory, \Laravel\Sanctum\HasApiTokens, Notifiable, \Spatie\Permission\Traits\HasRoles;
+    use HasFactory, \Laravel\Sanctum\HasApiTokens, Notifiable;
+
+    // F2/CLA-465: aliased so assignRole()/syncRoles() can be overridden below
+    // to detect a super_admin grant — Spatie Permission itself never fires a
+    // domain event for this (model_has_roles is written via attach()/sync(),
+    // no Eloquent events involved).
+    use HasRoles {
+        assignRole as private baseAssignRole;
+        syncRoles as private baseSyncRoles;
+    }
     use InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, InteractsWithEmailAuthentication;
 
     protected static function newFactory(): Factory
@@ -117,6 +131,87 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         return $query->where('organization_id', $organizationId ?? Organization::claesenId());
     }
 
+    /**
+     * F2/CLA-465: "alertas por creación de super_admin" — the only two real
+     * call sites (Modules\Core\Filament\Resources\Users\Pages\CreateUser::
+     * handleRecordCreation() and EditUser's "changeRoles" action) both use
+     * syncRoles(); assignRole() is overridden too for any future/other
+     * caller. Both funnel through maybeNotifySuperAdminGranted() so the
+     * detection logic lives in exactly one place.
+     *
+     * $isInsideRoleMutation guards against a real re-entrancy bug found
+     * while testing this: Spatie's own syncRoles() body (vendor/spatie/
+     * laravel-permission/src/Traits/HasRoles.php) detaches every current
+     * role and THEN calls `$this->assignRole($roles)` to re-add them —
+     * that inner call is dispatched dynamically on $this, so PHP resolves
+     * it to THIS class's own assignRole() override below, not the trait's
+     * original (aliasing a trait method never rewrites the trait's own
+     * internal self-calls). Without this guard, re-syncing the SAME roles
+     * a user already had would still fire a spurious "granted" alert,
+     * because the inner assignRole() call would see the mid-flight
+     * "just detached, has no roles yet" state as its own "before" snapshot.
+     */
+    private bool $isInsideRoleMutation = false;
+
+    public function assignRole(...$roles): static
+    {
+        if ($this->isInsideRoleMutation) {
+            return $this->baseAssignRole(...$roles);
+        }
+
+        $hadSuperAdminBefore = $this->exists && $this->fresh()->hasRole('super_admin');
+        $this->isInsideRoleMutation = true;
+
+        try {
+            $result = $this->baseAssignRole(...$roles);
+        } finally {
+            $this->isInsideRoleMutation = false;
+        }
+
+        $this->maybeNotifySuperAdminGranted($hadSuperAdminBefore);
+
+        return $result;
+    }
+
+    public function syncRoles(...$roles): static
+    {
+        $hadSuperAdminBefore = $this->exists && $this->fresh()->hasRole('super_admin');
+        $this->isInsideRoleMutation = true;
+
+        try {
+            $result = $this->baseSyncRoles(...$roles);
+        } finally {
+            $this->isInsideRoleMutation = false;
+        }
+
+        $this->maybeNotifySuperAdminGranted($hadSuperAdminBefore);
+
+        return $result;
+    }
+
+    private function maybeNotifySuperAdminGranted(bool $hadSuperAdminBefore): void
+    {
+        if ($hadSuperAdminBefore || (! $this->exists)) {
+            return;
+        }
+
+        if (! $this->fresh()->hasRole('super_admin')) {
+            return;
+        }
+
+        $roleIds = Role::whereIn('name', ['super_admin', 'admin'])->pluck('id');
+        $recipients = static::query()
+            ->whereHas('roles', fn ($query) => $query->whereIn('id', $roleIds))
+            ->where('id', '!=', $this->id)
+            ->inOrganization($this->organization_id)
+            ->get();
+
+        Notification::send(
+            $recipients,
+            new SuperAdminGrantedNotification($this)
+        );
+    }
+
     public function fieldOpsClients(): BelongsToMany
     {
         return $this->belongsToMany(FoClient::class, 'fo_client_user', 'user_id', 'fo_client_id')
@@ -194,6 +289,6 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
 
     public function isOnline(): bool
     {
-        return \Illuminate\Support\Facades\Cache::has('user-is-online-'.$this->id);
+        return Cache::has('user-is-online-'.$this->id);
     }
 }

@@ -29,4 +29,15 @@ return [
         'online' => 'Online',
         'offline' => 'Offline',
     ],
+    'step_up' => [
+        'description' => 'Bevestig deze actie voor je veiligheid met je authenticator-app of e-mailcode.',
+    ],
+    'actions' => [
+        'change_roles' => 'Rollen wijzigen',
+        'change_roles_saved' => 'Rollen bijgewerkt.',
+        'revoke_sessions' => 'Sessies intrekken',
+        'revoke_sessions_confirm_title' => 'Alle actieve sessies intrekken?',
+        'revoke_sessions_confirm_body' => 'Dit logt deze gebruiker onmiddellijk uit op elk apparaat. Ze moeten opnieuw inloggen.',
+        'revoke_sessions_done' => 'Alle actieve sessies van deze gebruiker zijn ingetrokken.',
+    ],
 ];

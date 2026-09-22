@@ -29,4 +29,15 @@ return [
         'online' => 'Online',
         'offline' => 'Offline',
     ],
+    'step_up' => [
+        'description' => 'For your security, confirm this action with your authenticator app or e-mail code.',
+    ],
+    'actions' => [
+        'change_roles' => 'Change roles',
+        'change_roles_saved' => 'Roles updated.',
+        'revoke_sessions' => 'Revoke sessions',
+        'revoke_sessions_confirm_title' => 'Revoke all active sessions?',
+        'revoke_sessions_confirm_body' => 'This immediately logs this user out of every device. They will need to sign in again.',
+        'revoke_sessions_done' => 'All active sessions for this user were revoked.',
+    ],
 ];
