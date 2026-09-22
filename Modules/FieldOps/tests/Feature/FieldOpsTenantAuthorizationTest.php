@@ -557,15 +557,31 @@ class FieldOpsTenantAuthorizationTest extends TestCase
         $this->assertCount(1, $a['luminaire']->fresh()->getMedia('photos'));
     }
 
-    // fieldops.ai is created as foundation by CLA-496 but is deliberately not
-    // enforced anywhere yet — CLA-502 is the ticket that will actually gate on it.
-    // This test pins today's (pre-CLA-502) behavior so that whoever implements that
-    // ticket sees this assertion flip and knows to update/remove it, instead of it
-    // silently passing for the wrong reason.
-    public function test_vision_endpoint_is_not_yet_gated_by_fieldops_ai_permission_pending_cla502(): void
+    // CLA-502: fieldops.ai was created as foundation by CLA-496 but was left
+    // deliberately unenforced — this test used to pin that pre-CLA-502 behavior
+    // (asserted 200 even without the permission) and is inverted here now that
+    // the gate is real, same pattern as the CLA-498 media test above.
+    public function test_vision_endpoint_requires_fieldops_ai_permission_even_when_scoped_to_the_right_client(): void
     {
-        $a = $this->topology('Vision inert CLA-502');
-        // technician scoped to their own client, WITHOUT fieldops.ai granted.
+        $a = $this->topology('Vision gated CLA-502');
+        // Migration 2026_08_29_037 backfills the real `technician` role with
+        // fieldops.ai on every migrate:fresh — revoke it here, scoped to this
+        // test's own transaction only, to isolate the permission dimension.
+        [, $token] = $this->internalUser('technician', $a['client']);
+        Role::findByName('technician', 'web')->revokePermissionTo('fieldops.ai');
+
+        $response = $this->withToken($token)->postJson(
+            "/api/v1/fieldops/luminaire-frames/{$a['frame']->id}/vision-suggestions",
+            ['photo' => \Illuminate\Http\UploadedFile::fake()->image('frame.jpg')],
+        );
+
+        $response->assertForbidden();
+    }
+
+    public function test_vision_endpoint_succeeds_for_a_technician_with_fieldops_ai(): void
+    {
+        $a = $this->topology('Vision allowed CLA-502');
+        // technician role carries fieldops.ai via the migration backfill (see above).
         [, $token] = $this->internalUser('technician', $a['client']);
 
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
@@ -578,7 +594,33 @@ class FieldOpsTenantAuthorizationTest extends TestCase
             ['photo' => \Illuminate\Http\UploadedFile::fake()->image('frame.jpg')],
         );
 
-        $response->assertStatus(200); // pending CLA-502: will require fieldops.ai
+        $response->assertStatus(200);
+    }
+
+    // CLA-502: the 6 vision/generation routes had no throttle at all — any
+    // authorized actor could hammer the endpoint with unlimited real Claude/
+    // OpenAI calls. 10 requests/minute per user, enforced per route.
+    public function test_vision_endpoint_is_throttled_per_user(): void
+    {
+        $a = $this->topology('Vision throttle CLA-502');
+        [, $token] = $this->internalUser('technician', $a['client']);
+
+        $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
+        $this->mock(ClaudeVisionService::class, function ($mock): void {
+            $mock->shouldReceive('identifyLuminaires')->andReturn(['status' => 'unknown', 'candidates' => []]);
+        });
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->withToken($token)->postJson(
+                "/api/v1/fieldops/luminaire-frames/{$a['frame']->id}/vision-suggestions",
+                ['photo' => \Illuminate\Http\UploadedFile::fake()->image('frame.jpg')],
+            )->assertStatus(200);
+        }
+
+        $this->withToken($token)->postJson(
+            "/api/v1/fieldops/luminaire-frames/{$a['frame']->id}/vision-suggestions",
+            ['photo' => \Illuminate\Http\UploadedFile::fake()->image('frame.jpg')],
+        )->assertStatus(429);
     }
 
     // ============================================================

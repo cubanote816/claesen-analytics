@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Models\LuminaireFrameType;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 /**
@@ -19,6 +20,12 @@ class LuminaireFrameTypeFromGeneratedControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    // CLA-502: a minimal real 1x1 transparent PNG, base64-encoded — the same
+    // shape OpenAiImageGenerationService would actually produce. Using genuine
+    // image bytes here (not an arbitrary string) is what exercises the new
+    // getimagesizefromstring() check as a pass-through, not just skip it.
+    private const VALID_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
     private User $user;
 
     protected function setUp(): void
@@ -27,6 +34,8 @@ class LuminaireFrameTypeFromGeneratedControllerTest extends TestCase
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
 
         $this->user = User::factory()->create();
+        // CLA-502: the endpoint now requires this explicitly.
+        $this->user->givePermissionTo(Permission::findOrCreate('fieldops.ai', 'web'));
     }
 
     public function test_store_requires_auth(): void
@@ -48,7 +57,7 @@ class LuminaireFrameTypeFromGeneratedControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/v1/fieldops/luminaire-frame-types/from-generated', [
                 'name' => 'Custom lowering headframe',
-                'image_base64' => base64_encode('fake-png-bytes'),
+                'image_base64' => self::VALID_PNG_BASE64,
             ]);
 
         $response->assertCreated()
@@ -67,5 +76,34 @@ class LuminaireFrameTypeFromGeneratedControllerTest extends TestCase
         // server's own APP_URL at write time.
         $this->assertNotNull($frameType->image);
         $this->assertStringStartsWith('/storage/', $frameType->image);
+    }
+
+    // CLA-502: base64_decode() alone only rejects invalid base64 characters —
+    // it happily "decodes" arbitrary text into arbitrary bytes. This is the
+    // exact gap the ticket flagged: non-image bytes must be rejected before
+    // ever reaching Storage::put().
+    public function test_store_rejects_non_image_bytes(): void
+    {
+        $this->actingAs($this->user)
+            ->postJson('/api/v1/fieldops/luminaire-frame-types/from-generated', [
+                'name' => 'Not actually an image',
+                'image_base64' => base64_encode('this is definitely not a PNG'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['image_base64']);
+
+        $this->assertDatabaseMissing('fo_luminaire_frame_types', ['name' => 'Not actually an image']);
+    }
+
+    public function test_store_rejects_undecodable_base64(): void
+    {
+        $this->actingAs($this->user)
+            ->postJson('/api/v1/fieldops/luminaire-frame-types/from-generated', [
+                'name' => 'Invalid base64',
+                // '!!!' is not valid base64 alphabet — base64_decode(..., true) fails outright.
+                'image_base64' => '!!!not-valid-base64!!!',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['image_base64']);
     }
 }

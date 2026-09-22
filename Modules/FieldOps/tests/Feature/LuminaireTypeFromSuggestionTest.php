@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Models\LuminaireSubgroup;
 use Modules\FieldOps\Models\LuminaireType;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 /**
@@ -27,6 +28,7 @@ class LuminaireTypeFromSuggestionTest extends TestCase
     public function test_store_requires_brand_and_model_name(): void
     {
         $user = User::factory()->create();
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.ai', 'web'));
 
         $this->actingAs($user)
             ->postJson('/api/v1/fieldops/luminaire-types/from-suggestion', [])
@@ -37,6 +39,7 @@ class LuminaireTypeFromSuggestionTest extends TestCase
     public function test_store_creates_a_new_subgroup_and_type_when_the_brand_is_unknown(): void
     {
         $user = User::factory()->create();
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.ai', 'web'));
 
         $response = $this->actingAs($user)
             ->postJson('/api/v1/fieldops/luminaire-types/from-suggestion', [
@@ -69,6 +72,7 @@ class LuminaireTypeFromSuggestionTest extends TestCase
     public function test_store_reuses_an_existing_subgroup_case_insensitively(): void
     {
         $user = User::factory()->create();
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.ai', 'web'));
         $existing = LuminaireSubgroup::factory()->create(['brand' => 'Thorn', 'source' => 'manual']);
 
         $this->actingAs($user)
@@ -88,6 +92,7 @@ class LuminaireTypeFromSuggestionTest extends TestCase
     public function test_store_deduplicates_the_same_model_suggested_twice(): void
     {
         $user = User::factory()->create();
+        $user->givePermissionTo(Permission::findOrCreate('fieldops.ai', 'web'));
 
         $this->actingAs($user)->postJson('/api/v1/fieldops/luminaire-types/from-suggestion', [
             'brand' => 'Musco',

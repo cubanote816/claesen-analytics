@@ -667,6 +667,9 @@ return [
             'tool_circle' => 'Cirkel',
             'tool_hint' => 'Kies een hulpmiddel, sleep over het canvas en sla het resultaat op.',
         ],
+        'validation' => [
+            'invalid_generated_image' => 'De gegenereerde afbeeldingsgegevens zijn geen geldige afbeelding.',
+        ],
     ],
 
     'media' => [
