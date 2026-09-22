@@ -19,7 +19,7 @@ class ClientContactInvitationService
 
     public function invite(FoClient $client, User $actor, array $data): User
     {
-        $this->assertCanManageContacts($client, $actor);
+        $this->tenants->assertCanManageContacts($client, $actor);
         $email = strtolower(trim($data['email']));
         $activationCode = null;
 
@@ -69,24 +69,38 @@ class ClientContactInvitationService
         return $user->fresh('fieldOpsClients');
     }
 
-    private function assertCanManageContacts(FoClient $client, User $actor): void
+    // CLA-554: updates an EXISTING fo_client_user row only — it never attaches a
+    // new one. Attaching new memberships is invite()'s job alone; without the
+    // existing-membership check below, this endpoint would double as an
+    // undocumented, unaudited way to attach a user to a client, or (BOLA) let an
+    // actor mutate an arbitrary (client_id, user_id) pair by guessing both ids.
+    public function updateMembership(FoClient $client, User $actor, User $target, array $data): void
     {
-        if (! $this->tenants->isClientUser($actor)) {
-            if (! $actor->hasAnyRole(['admin', 'super_admin'])) {
-                throw new AuthorizationException;
-            }
+        $this->tenants->assertCanManageContacts($client, $actor);
 
-            return;
+        // A manager can't lock themselves out by mistake; recovery for that case
+        // already exists via the backoffice (CLA-553's EditUser), not this endpoint.
+        if ($target->id === $actor->id) {
+            throw new AuthorizationException;
         }
 
-        $allowed = $actor->fieldOpsClients()
+        // Defense in depth — fo_client_user should only ever hold client-role
+        // users (invite() already enforces this on creation), but this endpoint
+        // must not become a way to attach pivot capabilities to a non-client account.
+        abort_unless($target->hasRole('client'), 404);
+
+        $membershipExists = $target->fieldOpsClients()
             ->where('fo_clients.id', $client->id)
-            ->wherePivot('is_active', true)
-            ->wherePivot('can_view', true)
-            ->wherePivot('can_manage_contacts', true)
             ->exists();
-        if (! $allowed) {
-            throw new AuthorizationException;
+        abort_unless($membershipExists, 404);
+
+        $pivot = collect($data)
+            ->only(['is_active', 'can_view', 'can_report', 'can_manage_contacts'])
+            ->map(fn ($value): bool => (bool) $value)
+            ->all();
+
+        if ($pivot !== []) {
+            $target->fieldOpsClients()->updateExistingPivot($client->id, $pivot);
         }
     }
 }

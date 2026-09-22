@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\FieldOps\Services;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -24,6 +25,35 @@ class FieldOpsTenantService
     public function isClientUser(User $user): bool
     {
         return $user->hasRole('client');
+    }
+
+    // CLA-554: extracted from ClientContactInvitationService (which owned this
+    // check alone before CLA-553/554 added more contact-management endpoints) so
+    // every endpoint that manages a FoClient's contacts shares one rule instead
+    // of re-implementing it. Intentionally stricter than canView()/allowedClientIds()
+    // above: seeing *who else* has access and what they can do is management
+    // information, not general read access, so a plain can_view=true contact
+    // without can_manage_contacts is correctly rejected here.
+    public function assertCanManageContacts(FoClient $client, User $actor): void
+    {
+        if (! $this->isClientUser($actor)) {
+            if (! $actor->hasAnyRole(['admin', 'super_admin'])) {
+                throw new AuthorizationException;
+            }
+
+            return;
+        }
+
+        $allowed = $actor->fieldOpsClients()
+            ->where('fo_clients.id', $client->id)
+            ->wherePivot('is_active', true)
+            ->wherePivot('can_view', true)
+            ->wherePivot('can_manage_contacts', true)
+            ->exists();
+
+        if (! $allowed) {
+            throw new AuthorizationException;
+        }
     }
 
     // CLA-364: distinct from isClientUser() — this is about *scope*, not the

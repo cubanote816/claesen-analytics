@@ -384,6 +384,128 @@ class MaintenanceRequestTest extends TestCase
         ])->assertForbidden();
     }
 
+    // -------------------------------------------------------------------
+    // CLA-554: listing / editing existing contacts
+    // -------------------------------------------------------------------
+    public function test_contact_manager_can_list_contacts_of_their_client(): void
+    {
+        $client = FoClient::factory()->create();
+        [$manager, $managerToken] = $this->clientUser($client, canManageContacts: true);
+        [$viewer] = $this->clientUser($client, canManageContacts: false);
+
+        $this->withToken($managerToken)->getJson("/api/v1/fieldops/clients/{$client->id}/contacts")
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $ids = collect(
+            $this->withToken($managerToken)->getJson("/api/v1/fieldops/clients/{$client->id}/contacts")->json('data'),
+        )->pluck('id');
+        self::assertEqualsCanonicalizing([$manager->id, $viewer->id], $ids->all());
+    }
+
+    public function test_listing_contacts_requires_manage_contacts(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $viewerToken] = $this->clientUser($client, canManageContacts: false);
+
+        $this->withToken($viewerToken)->getJson("/api/v1/fieldops/clients/{$client->id}/contacts")
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_list_and_update_client_contacts(): void
+    {
+        $client = FoClient::factory()->create();
+        [$contact] = $this->clientUser($client, canManageContacts: false);
+        [, $adminToken] = $this->adminUser();
+
+        $this->withToken($adminToken)->getJson("/api/v1/fieldops/clients/{$client->id}/contacts")
+            ->assertOk()->assertJsonCount(1, 'data');
+
+        $this->withToken($adminToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$contact->id}", [
+                'can_manage_contacts' => true,
+            ])->assertOk()->assertJsonPath('data.can_manage_contacts', true);
+    }
+
+    public function test_contact_manager_can_update_capabilities_of_existing_contact(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $managerToken] = $this->clientUser($client, canManageContacts: true);
+        [$contact] = $this->clientUser($client, canManageContacts: false);
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$contact->id}", [
+                'can_manage_contacts' => true,
+                'can_report' => false,
+            ])->assertOk()
+            ->assertJsonPath('data.can_manage_contacts', true)
+            ->assertJsonPath('data.can_report', false)
+            ->assertJsonPath('data.can_view', true); // untouched field survives the partial update
+
+        $this->assertDatabaseHas('fo_client_user', [
+            'fo_client_id' => $client->id,
+            'user_id' => $contact->id,
+            'can_manage_contacts' => true,
+            'can_report' => false,
+            'can_view' => true,
+        ]);
+    }
+
+    public function test_contact_manager_can_revoke_a_contact(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $managerToken] = $this->clientUser($client, canManageContacts: true);
+        [$contact] = $this->clientUser($client, canManageContacts: false);
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$contact->id}", [
+                'is_active' => false,
+            ])->assertOk()->assertJsonPath('data.is_active', false);
+
+        $this->assertDatabaseHas('fo_client_user', [
+            'fo_client_id' => $client->id,
+            'user_id' => $contact->id,
+            'is_active' => false,
+        ]);
+    }
+
+    public function test_updating_contact_rejects_user_without_existing_membership(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $managerToken] = $this->clientUser($client, canManageContacts: true);
+
+        $otherClient = FoClient::factory()->create();
+        [$strangerContact] = $this->clientUser($otherClient, canManageContacts: false);
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$strangerContact->id}", [
+                'can_view' => false,
+            ])->assertNotFound();
+    }
+
+    public function test_manager_cannot_edit_their_own_membership(): void
+    {
+        $client = FoClient::factory()->create();
+        [$manager, $managerToken] = $this->clientUser($client, canManageContacts: true);
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$manager->id}", [
+                'can_manage_contacts' => false,
+            ])->assertForbidden();
+    }
+
+    public function test_updating_contact_rejects_non_client_target(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $managerToken] = $this->clientUser($client, canManageContacts: true);
+        [$admin] = $this->adminUser();
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$admin->id}", [
+                'can_view' => false,
+            ])->assertNotFound();
+    }
+
     public function test_client_can_cancel_their_own_request_before_it_is_converted(): void
     {
         $topology = $this->topology('Cancel Client');
