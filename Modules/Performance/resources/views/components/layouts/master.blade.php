@@ -19,6 +19,7 @@
 
         {{-- Vite CSS --}}
         {{-- {{ module_vite('build-performance', 'resources/assets/sass/app.scss') }} --}}
+    @include('core::partials.head-icons')
     </head>
 
     <body>
