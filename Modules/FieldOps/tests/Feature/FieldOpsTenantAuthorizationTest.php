@@ -9,12 +9,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Modules\Cafca\Models\Employee;
+use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoardType;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceRequest;
+use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
@@ -774,6 +776,133 @@ class FieldOpsTenantAuthorizationTest extends TestCase
             'luminaire_frame_type_id' => LuminaireFrameType::factory()->create()->id,
             'structure_ids' => [$a['structure']->id],
         ])->assertCreated();
+    }
+
+    // ============================================================
+    // CLA-500: hardening of the CLA-375 assigned-work-order grant. Before this,
+    // ANY work order ever assigned to an employee (regardless of status) granted
+    // canView() over the client's ENTIRE equipment, not just the order's own
+    // maintainable + ancestors, and also leaked visibility into every other
+    // work order/record for that client, not just the employee's own.
+    // ============================================================
+
+    public function test_technician_with_active_assigned_work_order_can_view_its_equipment_chain_but_not_unrelated_equipment_of_the_same_client(): void
+    {
+        $a = $this->topology('CLA-500 chain');
+        // A second, unrelated structure/terrain in the SAME client/complex —
+        // not part of the assigned order's maintainable chain.
+        $unrelatedTerrain = Terrain::factory()->create(['complex_id' => $a['complex']->id]);
+        $unrelatedStructure = Structure::factory()->create();
+        $unrelatedStructure->terrains()->attach($unrelatedTerrain);
+
+        $employee = Employee::create(['id' => 'CLA500-CHAIN', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id, 'status' => MaintenanceWorkOrderStatus::ASSIGNED]);
+
+        // In the chain: the luminaire itself and every ancestor.
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaire-frames/{$a['frame']->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/structures/{$a['structure']->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/terrains/{$a['terrain']->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/complexes/{$a['complex']->id}")->assertOk();
+
+        // Not in the chain, even though it's the same client: must stay 403.
+        $this->withToken($token)->getJson("/api/v1/fieldops/structures/{$unrelatedStructure->id}")->assertForbidden();
+        $this->withToken($token)->getJson("/api/v1/fieldops/terrains/{$unrelatedTerrain->id}")->assertForbidden();
+    }
+
+    public function test_technician_loses_equipment_access_once_the_assigned_work_order_is_completed(): void
+    {
+        $a = $this->topology('CLA-500 expiry');
+        $employee = Employee::create(['id' => 'CLA500-EXPIRY', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        $order = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id, 'status' => MaintenanceWorkOrderStatus::ASSIGNED]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")->assertOk();
+
+        $order->update(['status' => MaintenanceWorkOrderStatus::COMPLETED]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")->assertForbidden();
+    }
+
+    public function test_technician_can_still_view_their_own_closed_work_order_and_its_record_after_equipment_access_expires(): void
+    {
+        $a = $this->topology('CLA-500 own record');
+        $employee = Employee::create(['id' => 'CLA500-OWNRECORD', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        $order = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id, 'status' => MaintenanceWorkOrderStatus::COMPLETED]);
+        $record = FoMaintenanceRecord::factory()->forMaintainable($a['luminaire'])->create([
+            'client_id' => $a['client']->id,
+            'employee_id' => $employee->id,
+        ]);
+
+        // Equipment access is gone (order is already closed)...
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")->assertForbidden();
+        // ...but the order and record are theirs and stay visible regardless.
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-work-orders/{$order->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-records/{$record->id}")->assertOk();
+    }
+
+    public function test_technician_cannot_view_a_colleagues_other_work_order_for_the_same_client(): void
+    {
+        $a = $this->topology('CLA-500 colleague');
+        $employee = Employee::create(['id' => 'CLA500-SELF', 'name' => 'Technician', 'fl_active' => true]);
+        $colleague = Employee::create(['id' => 'CLA500-COLLEAGUE', 'name' => 'Colleague', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        // Both orders share one maintenance type — the factory's default
+        // preventive() state would otherwise collide on the unique code column
+        // when built twice in the same test.
+        $type = FoMaintenanceType::factory()->preventive()->create();
+
+        // This technician has their own assigned order for this client...
+        FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id, 'status' => MaintenanceWorkOrderStatus::ASSIGNED, 'fo_maintenance_type_id' => $type->id]);
+
+        // ...but must not see a colleague's own order for the same client, even
+        // though before CLA-500 having any order for that client granted the
+        // whole client's work orders.
+        $colleagueOrder = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $colleague->id, 'status' => MaintenanceWorkOrderStatus::ASSIGNED, 'fo_maintenance_type_id' => $type->id]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-work-orders/{$colleagueOrder->id}")->assertForbidden();
+    }
+
+    public function test_technician_can_view_their_own_maintenance_record_via_employee_id_even_outside_client_scope(): void
+    {
+        $a = $this->topology('CLA-500 record scope');
+        $employee = Employee::create(['id' => 'CLA500-RECORD', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        // No fieldOpsClients assignment and no work order at all — only the
+        // record's own employee_id should grant this.
+        $record = FoMaintenanceRecord::factory()->forMaintainable($a['luminaire'])->create([
+            'client_id' => $a['client']->id,
+            'employee_id' => $employee->id,
+        ]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-records/{$record->id}")->assertOk();
     }
 
     private function terrainPayload(int $complexId): array
