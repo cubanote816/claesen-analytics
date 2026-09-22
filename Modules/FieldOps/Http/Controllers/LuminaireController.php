@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 use Modules\FieldOps\Http\Requests\ReplaceLuminaireRequest;
 use Modules\FieldOps\Http\Requests\StoreLuminaireRequest;
 use Modules\FieldOps\Http\Requests\UpdateLuminaireRequest;
@@ -64,7 +65,7 @@ class LuminaireController extends Controller
     {
         $data = $request->validated();
         $data['serial_number'] = $this->resolveSerialNumber($data['serial_number'] ?? null);
-        $data = $this->applyPositionAuditMetadata($data, $request->header('X-FieldOps-Editor', 'backoffice'), null, $request->user()?->id);
+        $data = $this->applyPositionAuditMetadata($data, $this->resolveEditorSource($request), null, $request->user()?->id);
 
         $create = function () use ($data, $request): Luminaire {
             return Luminaire::create(array_merge(
@@ -98,34 +99,10 @@ class LuminaireController extends Controller
     {
         $data = $request->validated();
         $touchesPosition = array_key_exists('frame_x', $data) || array_key_exists('frame_y', $data);
-        $editorSource = $request->header('X-FieldOps-Editor', 'backoffice');
-        $currentPositionVersion = $this->normalizePositionVersion(
-            $luminaire->position?->position_version ?? $luminaire->position_version,
-        );
 
         // Merge info translations locale-by-locale to avoid overwriting untouched locales
         if (isset($data['info'])) {
             $data['info'] = array_merge($luminaire->getTranslations('info'), $data['info']);
-        }
-
-        if ($touchesPosition) {
-            if ($editorSource !== 'frontend') {
-                $expectedVersion = (int) ($request->input('position_version') ?? $currentPositionVersion);
-
-                if ($expectedVersion !== $currentPositionVersion) {
-                    return response()->json([
-                        'message' => __('fieldops::resource.luminaires.position_conflict'),
-                        'current_position_version' => $currentPositionVersion,
-                    ], 409);
-                }
-            }
-
-            $data = $this->applyPositionAuditMetadata(
-                $data,
-                $editorSource,
-                $luminaire,
-                $request->user()?->id,
-            );
         }
 
         // When moving to a different frame without an explicit frame_position,
@@ -138,7 +115,52 @@ class LuminaireController extends Controller
             $data['frame_position'] = $max ? $max + 1 : 1;
         }
 
-        $luminaire->update($data);
+        if (! $touchesPosition) {
+            $luminaire->update($data);
+            $luminaire->load('luminaireType', 'subgroup', 'createdBy', 'position');
+
+            return response()->json([
+                'success' => true,
+                'data'    => new LuminaireResource($luminaire),
+            ]);
+        }
+
+        // CLA-501: editorSource is derived from the server's own auth context
+        // (see resolveEditorSource()), never from the client-supplied
+        // X-FieldOps-Editor header. The version check below now runs
+        // unconditionally — it used to be skipped entirely whenever the
+        // (spoofable) header claimed 'frontend', which defeated the guard for
+        // exactly the client most exposed to lost updates (poor field
+        // connectivity). Locking the row inside a transaction (mirroring
+        // store()'s existing pattern) closes the remaining TOCTOU: without it,
+        // two near-simultaneous requests could both read the same version and
+        // both write, each unaware of the other.
+        $editorSource = $this->resolveEditorSource($request);
+        $expectedVersion = (int) ($request->input('position_version') ?? $this->normalizePositionVersion(
+            $luminaire->position?->position_version ?? $luminaire->position_version,
+        ));
+
+        $result = DB::transaction(function () use ($luminaire, $data, $editorSource, $request, $expectedVersion) {
+            $locked = Luminaire::query()->lockForUpdate()->findOrFail($luminaire->getKey());
+            $currentVersion = $this->normalizePositionVersion($locked->position?->position_version ?? $locked->position_version);
+
+            if ($expectedVersion !== $currentVersion) {
+                return ['conflict' => true, 'current_version' => $currentVersion];
+            }
+
+            $locked->update($this->applyPositionAuditMetadata($data, $editorSource, $locked, $request->user()?->id));
+
+            return ['conflict' => false, 'luminaire' => $locked];
+        });
+
+        if ($result['conflict']) {
+            return response()->json([
+                'message' => __('fieldops::resource.luminaires.position_conflict'),
+                'current_position_version' => $result['current_version'],
+            ], 409);
+        }
+
+        $luminaire = $result['luminaire'];
         $luminaire->load('luminaireType', 'subgroup', 'createdBy', 'position');
 
         return response()->json([
@@ -193,6 +215,25 @@ class LuminaireController extends Controller
         }
 
         return $data;
+    }
+
+    // CLA-501: the previous X-FieldOps-Editor request header was entirely
+    // client-supplied and trivially spoofable — any caller could claim
+    // 'frontend' and have their position marked field-verified, or bypass the
+    // optimistic-concurrency check outright (it only ran for non-'frontend').
+    // The field app (Claesen-Sport-updateing) authenticates cross-origin via a
+    // Sanctum bearer token; the Filament backoffice's own positioning UI is a
+    // same-origin browser fetch authenticated via the session cookie (Sanctum
+    // stateful guard), which resolves to a TransientToken, not a real
+    // PersonalAccessToken (same distinction already used in
+    // Modules/Safety/Http/Middleware/EnsureSafetyAccess.php). Neither path can
+    // be forged by simply setting a header — a caller must actually
+    // authenticate through the corresponding channel.
+    private function resolveEditorSource(Request $request): string
+    {
+        return $request->user()?->currentAccessToken() instanceof PersonalAccessToken
+            ? 'frontend'
+            : 'backoffice';
     }
 
     private function normalizePositionVersion(mixed $version): int
