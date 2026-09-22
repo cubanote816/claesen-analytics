@@ -55,7 +55,9 @@ class PanelAccessTest extends TestCase
 
     public function test_explicit_internal_roles_have_panel_access(): void
     {
-        foreach (['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer'] as $role) {
+        Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'web']);
+
+        foreach (['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer', 'technician'] as $role) {
             $user = $this->activeUser();
             $user->assignRole($role);
             $this->assertTrue($user->hasPanelAccess(), "{$role} should have panel access.");
@@ -115,31 +117,31 @@ class PanelAccessTest extends TestCase
         $this->assertGuest();
     }
 
-    // CLA-363: the login attempt itself must fail for client/technician (no session
+    // CLA-363: the login attempt itself must fail for client (no session
     // established at all) — unlike hasPanelAccess()/EnsurePanelAccess above, which
     // only redirect an *already authenticated* user away from panel resources.
     // canAccessPanel() intentionally stays permissive (tests above), so this is
     // exercised through Modules\Core\Filament\Pages\Auth\Login instead.
-    public function test_client_and_technician_login_attempts_fail_without_establishing_a_session(): void
+    // CLA-581: technician moved out of this test — it now logs in like any other
+    // hasPanelAccess() role, see test_other_existing_roles_can_still_log_in_through_the_panel.
+    public function test_client_login_attempt_fails_without_establishing_a_session(): void
     {
-        Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'web']);
+        $user = $this->activeUser();
+        $user->assignRole('client');
 
-        foreach (['client', 'technician'] as $role) {
-            $user = $this->activeUser();
-            $user->assignRole($role);
+        Livewire::test(\Modules\Core\Filament\Pages\Auth\Login::class)
+            ->fillForm(['email' => $user->email, 'password' => 'Secret1234!'])
+            ->call('authenticate')
+            ->assertHasFormErrors();
 
-            Livewire::test(\Modules\Core\Filament\Pages\Auth\Login::class)
-                ->fillForm(['email' => $user->email, 'password' => 'Secret1234!'])
-                ->call('authenticate')
-                ->assertHasFormErrors();
-
-            $this->assertGuest();
-        }
+        $this->assertGuest();
     }
 
     public function test_other_existing_roles_can_still_log_in_through_the_panel(): void
     {
-        foreach (['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer', 'project_manager'] as $role) {
+        Role::firstOrCreate(['name' => 'technician', 'guard_name' => 'web']);
+
+        foreach (['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer', 'project_manager', 'technician'] as $role) {
             $user = $this->activeUser();
             $user->assignRole($role);
 

@@ -47,7 +47,8 @@ class CampaignResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->check();
+        // CLA-581: exclude technician from the otherwise-open `auth()->check()` gate.
+        return auth()->check() && ! (auth()->user()?->hasRole('technician') ?? false);
     }
 
     public static function form(Schema $schema): Schema
