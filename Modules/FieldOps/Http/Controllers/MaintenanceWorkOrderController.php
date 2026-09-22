@@ -7,7 +7,6 @@ namespace Modules\FieldOps\Http\Controllers;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Illuminate\Validation\ValidationException;
 use Modules\FieldOps\Http\Requests\CloseMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\ExecuteMaintenanceWorkOrderRequest;
@@ -15,11 +14,14 @@ use Modules\FieldOps\Http\Requests\ReturnMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\StoreMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\SubmitMaintenanceWorkOrderRequest;
 use Modules\FieldOps\Http\Requests\TransitionMaintenanceWorkOrderRequest;
+use Modules\FieldOps\Http\Requests\WorkOrderQueryRequest;
 use Modules\FieldOps\Http\Resources\MaintenanceWorkOrderResource;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Services\MaintenanceWorkOrderService;
+use Modules\FieldOps\Services\WorkOrderReportingService;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MaintenanceWorkOrderController extends Controller
 {
@@ -28,42 +30,84 @@ class MaintenanceWorkOrderController extends Controller
         'returnedBy', 'events.actor', 'maintenanceRecord',
     ];
 
-    public function __construct(private readonly MaintenanceWorkOrderService $service) {}
+    public function __construct(
+        private readonly MaintenanceWorkOrderService $service,
+        private readonly WorkOrderReportingService $reporting,
+    ) {}
 
-    public function assigned(): JsonResponse
+    public function assigned(WorkOrderQueryRequest $request): JsonResponse
     {
-        $user = request()->user();
-        $query = FoMaintenanceWorkOrder::query()
+        $orders = $this->reporting
+            ->query($request->user(), $request->filters(), WorkOrderReportingService::BUCKET_OPEN)
             ->with(self::RELATIONS)
-            ->whereNotIn('status', [MaintenanceWorkOrderStatus::COMPLETED->value, MaintenanceWorkOrderStatus::CANCELLED->value])
-            ->latest('scheduled_for');
+            ->latest('scheduled_for')
+            ->get();
 
-        if (! $user->hasAnyRole(['super_admin', 'admin'])) {
-            $query->where('assigned_employee_id', $user->employee_id ?: '__unlinked__');
-        }
-
-        $orders = $query->get();
         $this->loadEquipmentContext($orders);
 
         return response()->json(['success' => true, 'data' => MaintenanceWorkOrderResource::collection($orders)]);
     }
 
-    public function history(): JsonResponse
+    /**
+     * Closed work orders. Paginated since CLA-578: the response keeps "data" as
+     * a plain array, so existing consumers that ignore "meta" keep working.
+     */
+    public function history(WorkOrderQueryRequest $request): JsonResponse
     {
-        $user = request()->user();
-        $query = FoMaintenanceWorkOrder::query()
+        $orders = $this->reporting
+            ->query($request->user(), $request->filters(), WorkOrderReportingService::BUCKET_CLOSED)
             ->with(self::RELATIONS)
-            ->whereIn('status', [MaintenanceWorkOrderStatus::COMPLETED->value, MaintenanceWorkOrderStatus::CANCELLED->value])
+            ->latest('scheduled_for')
+            ->paginate($request->perPage())
+            ->withQueryString();
+
+        $this->loadEquipmentContext($orders->getCollection());
+
+        return MaintenanceWorkOrderResource::collection($orders)
+            ->additional(['success' => true])
+            ->response();
+    }
+
+    /**
+     * Aggregates for the Reports screen (CLA-578). Exposes nothing beyond what
+     * history() already returns for the same caller.
+     */
+    public function stats(WorkOrderQueryRequest $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->reporting->stats($request->user(), $request->filters()),
+        ]);
+    }
+
+    /**
+     * CSV export of the same rows history() would return, streamed in chunks so
+     * a wide date range does not build the whole file in memory.
+     */
+    public function export(WorkOrderQueryRequest $request): StreamedResponse
+    {
+        $query = $this->reporting
+            ->query($request->user(), $request->filters(), WorkOrderReportingService::BUCKET_CLOSED)
+            ->with(['maintenanceType', 'client', 'maintainable'])
             ->latest('scheduled_for');
 
-        if (! $user->hasAnyRole(['super_admin', 'admin'])) {
-            $query->where('assigned_employee_id', $user->employee_id ?: '__unlinked__');
-        }
+        $filename = 'werkorders-'.now()->format('Y-m-d').'.csv';
 
-        $orders = $query->get();
-        $this->loadEquipmentContext($orders);
+        return response()->streamDownload(function () use ($query): void {
+            $handle = fopen('php://output', 'wb');
 
-        return response()->json(['success' => true, 'data' => MaintenanceWorkOrderResource::collection($orders)]);
+            fputcsv($handle, $this->reporting->exportHeadings());
+
+            $query->chunkById(500, function (EloquentCollection $orders) use ($handle): void {
+                foreach ($orders as $order) {
+                    fputcsv($handle, $this->reporting->exportRow($order));
+                }
+            });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function show(FoMaintenanceWorkOrder $workOrder): JsonResponse

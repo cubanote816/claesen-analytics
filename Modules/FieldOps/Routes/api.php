@@ -75,6 +75,8 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::post('/luminaire-frames/{frame}/vision-luminaire-detections', [LuminaireVisionController::class, 'detectLuminaires']);
 
         // Luminaires
+        // Luminaire index (CLA-578) — tenant-scoped listing for the Assets screen.
+        Route::get('/luminaires', [LuminaireController::class, 'index']);
         Route::post('/luminaires', [LuminaireController::class, 'store']);
         Route::get('/luminaires/{luminaire}', [LuminaireController::class, 'show']);
         Route::put('/luminaires/{luminaire}', [LuminaireController::class, 'update']);
@@ -128,6 +130,10 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         // registered after a wildcard is never reached (CLA-405: this route was missing
         // entirely, and "history" was silently swallowed by {workOrder} as a bogus ID).
         Route::get('/maintenance-work-orders/history', [MaintenanceWorkOrderController::class, 'history']);
+        // Reporting (CLA-578). Like /history above, these literal paths must stay
+        // registered before the {workOrder} wildcard or they are never reached.
+        Route::get('/maintenance-work-orders/stats', [MaintenanceWorkOrderController::class, 'stats']);
+        Route::get('/maintenance-work-orders/export', [MaintenanceWorkOrderController::class, 'export']);
         Route::get('/maintenance-work-orders/{workOrder}', [MaintenanceWorkOrderController::class, 'show']);
         Route::post('/maintenance-work-orders/{workOrder}/start', [MaintenanceWorkOrderController::class, 'start']);
         Route::post('/maintenance-work-orders/{workOrder}/submit', [MaintenanceWorkOrderController::class, 'submit']);
