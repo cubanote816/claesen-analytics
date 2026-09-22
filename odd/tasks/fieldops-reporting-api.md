@@ -60,4 +60,5 @@ Decisión: extraer el scope **existente** (`super_admin`/`admin` ven todo; el re
 - T1–T6 implementados. `--filter=WorkOrderReportingTest`: **13/13 en verde, 51 assertions** (observado 2026-09-22).
 - Gotcha encontrado al escribir los tests: `fo_maintenance_types.code` es único y `FoMaintenanceWorkOrderFactory` crea un tipo nuevo (`preventive`) por cada orden — cualquier test que cree 2+ órdenes revienta con 1062 salvo que se pase `fo_maintenance_type_id` explícito. Resuelto con un helper `typeId()` que reutiliza el tipo por código.
 - T7 observado 2026-09-22: `--testsuite=Modules --filter=FieldOps` → **553 passed, 2269 assertions, 0 fallos** (baseline previa 540/2218; el delta son exactamente los 13 tests nuevos). CLAUDE.md actualizado con la fila de CLA-578.
-- **Pendiente: GO técnico del usuario antes de commitear** (paso 7 del flujo de CLAUDE.md). Nada comiteado todavía.
+- GO técnico dado por el usuario 2026-09-22. Commit dedicado **`546d274`** en `cla-578-fieldops-reporting-api` (9 archivos, +1094/−22). **Sin push** — la rama solo existe en local, por la política de no empujar hasta verificación explícita.
+- Siguiente: cerrar CLA-578 en Linear con el hash y decidir si el checkout vuelve a `cla-507`.
