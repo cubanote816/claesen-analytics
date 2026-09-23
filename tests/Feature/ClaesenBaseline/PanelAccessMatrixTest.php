@@ -75,8 +75,15 @@ final class PanelAccessMatrixTest extends TestCase
     /** Roles allowed into the Filament panel today (User::hasPanelAccess()). */
     private const PANEL_ROLES = ['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer'];
 
+    /**
+     * Declared change (CLA-581, merged from main): technician may enter the panel
+     * but only to reach Modules/FieldOps/Filament/Pages/MyWorkOrders. Every resource
+     * and page in the matrices below still excludes it, so it is not in PANEL_ROLES.
+     */
+    private const SCOPED_PANEL_ROLES = ['technician'];
+
     /** Roles that authenticate but use the dedicated apps instead of the panel. */
-    private const NON_PANEL_ROLES = ['project_manager', 'technician', 'client'];
+    private const NON_PANEL_ROLES = ['project_manager', 'client'];
 
     protected function setUp(): void
     {
@@ -88,7 +95,7 @@ final class PanelAccessMatrixTest extends TestCase
         // CLA-525), which would say nothing about Claesen's permissions.
         $this->withoutVite();
 
-        foreach ([...self::PANEL_ROLES, ...self::NON_PANEL_ROLES] as $role) {
+        foreach ([...self::PANEL_ROLES, ...self::SCOPED_PANEL_ROLES, ...self::NON_PANEL_ROLES] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
 
@@ -101,6 +108,13 @@ final class PanelAccessMatrixTest extends TestCase
             $this->assertTrue(
                 $this->userWithRole($role)->hasPanelAccess(),
                 "[{$role}] is expected to have panel access"
+            );
+        }
+
+        foreach (self::SCOPED_PANEL_ROLES as $role) {
+            $this->assertTrue(
+                $this->userWithRole($role)->hasPanelAccess(),
+                "[{$role}] is expected to have (scoped) panel access"
             );
         }
 
@@ -121,6 +135,15 @@ final class PanelAccessMatrixTest extends TestCase
             $this->actingAs($this->userWithRole($role))
                 ->get('/')
                 ->assertSuccessful();
+        }
+
+        foreach (self::SCOPED_PANEL_ROLES as $role) {
+            $response = $this->actingAs($this->userWithRole($role))->get('/');
+
+            $this->assertFalse(
+                $response->isRedirect(route('auth.no-access')),
+                "[{$role}] must pass the panel gate (it is redirected only by page-level rules)"
+            );
         }
 
         foreach (self::NON_PANEL_ROLES as $role) {

@@ -61,6 +61,8 @@ final class MultiFactorAuthenticationEnforcementTest extends TestCase
     {
         parent::setUp();
 
+        config(['core.panel_mfa_enforced' => true]);
+
         $this->withoutVite();
 
         foreach (['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer'] as $role) {

@@ -34,7 +34,7 @@ final class AccessControlContractTest extends TestCase
         $this->assertStringContainsString("if (\$this->hasRole('client')) {", $user);
         $this->assertStringContainsString(
             "return \$this->hasAnyRole([\n            'super_admin',\n            'admin',\n"
-            ."            'financial_manager',\n            'hr_manager',\n            'viewer',\n        ]);",
+            ."            'financial_manager',\n            'hr_manager',\n            'viewer',\n            'technician',\n        ]);",
             $user
         );
 
@@ -83,8 +83,10 @@ final class AccessControlContractTest extends TestCase
             $this->source('Modules/Safety/Http/Middleware/EnsureSafetyAccess.php')
         );
 
+        // Declared change (CLA-581, merged from main): technician may now log in to
+        // the panel (scoped to MyWorkOrders); only `client` stays denied at login.
         $this->assertStringContainsString(
-            "hasAnyRole(['client', 'technician']",
+            "hasRole('client')",
             $this->source('Modules/Core/Filament/Pages/Auth/Login.php')
         );
     }

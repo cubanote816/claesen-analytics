@@ -7,6 +7,19 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
     /**
+     * The admin/super_admin MFA gate (CLA-464) redirects every panel request
+     * of a user without a second factor, which would turn every panel test
+     * that isn't about MFA into a 302. Tests about the gate itself re-enable
+     * it after parent::setUp().
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['core.panel_mfa_enforced' => false]);
+    }
+
+    /**
      * F1/P3a of the multi-organization program — docs/ai/adr-multi-organization.md.
      *
      * Only consulted by tests using Illuminate\Foundation\Testing\DatabaseTruncation
