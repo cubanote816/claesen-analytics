@@ -32,6 +32,15 @@ class InspectionResource extends Resource
     protected static ?string $model = Inspection::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-shield-check';
+
+    // CLA-581: InspectionPolicy is registered but has no viewAny() method, so Filament still
+    // falls through to its default-allow for any panel user — same gap as Performance\ProjectResource
+    // et al., just via a different code path. Exclude technician from the default-allow.
+    public static function canAccess(): bool
+    {
+        return ! (auth()->user()?->hasRole('technician') ?? false);
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('safety::inspections.navigation');

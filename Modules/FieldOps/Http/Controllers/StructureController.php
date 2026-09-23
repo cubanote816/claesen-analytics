@@ -4,6 +4,7 @@ namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Modules\FieldOps\Http\Requests\StoreStructureRequest;
 use Modules\FieldOps\Http\Requests\UpdateStructureRequest;
 use Modules\FieldOps\Http\Resources\StructureResource;
@@ -46,11 +47,15 @@ class StructureController extends Controller
             ['created_by_user_id' => $request->user()->id],
         );
 
-        $structure = Structure::create($structureData);
+        $structure = DB::transaction(function () use ($structureData, $terrainIds) {
+            $structure = Structure::create($structureData);
 
-        if ($terrainIds !== null) {
-            $structure->terrains()->attach($terrainIds);
-        }
+            if ($terrainIds !== null) {
+                $structure->terrains()->attach($terrainIds);
+            }
+
+            return $structure;
+        });
 
         $structure->load('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy', 'media');
 
@@ -72,15 +77,17 @@ class StructureController extends Controller
             );
         }
 
-        $structure->update($structureData);
+        DB::transaction(function () use ($structure, $structureData, $request, $validated) {
+            $structure->update($structureData);
 
-        // Three distinct cases — must check hasKey, not truthiness:
-        // absent  → $request->has() is false  → leave pivot untouched
-        // null    → explicit null sent         → detach all
-        // array   → sync to the given IDs
-        if ($request->has('terrain_ids')) {
-            $structure->terrains()->sync($validated['terrain_ids'] ?? []);
-        }
+            // Three distinct cases — must check hasKey, not truthiness:
+            // absent  → $request->has() is false  → leave pivot untouched
+            // null    → explicit null sent         → detach all
+            // array   → sync to the given IDs
+            if ($request->has('terrain_ids')) {
+                $structure->terrains()->sync($validated['terrain_ids'] ?? []);
+            }
+        });
 
         $structure->load('structureType', 'accessType', 'safetyType', 'terrains', 'createdBy', 'media');
 

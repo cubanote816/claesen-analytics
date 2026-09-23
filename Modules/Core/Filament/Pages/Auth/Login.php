@@ -15,7 +15,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Modules\Core\Models\User;
 
 /**
- * CLA-363: client/technician must fail the backoffice login itself, not just lose
+ * CLA-363: client must fail the backoffice login itself, not just lose
  * access to resources after authenticating (which is what
  * User::canAccessPanel()/hasPanelAccess() already do). This lives here — instead
  * of in canAccessPanel() — because Filament's Authenticate middleware also calls
@@ -91,8 +91,10 @@ class Login extends BaseLogin
                 return false;
             }
 
-            // CLA-363
-            if (($user instanceof User) && $user->hasAnyRole(['client', 'technician'])) {
+            // CLA-363. CLA-581: technician removed from this denylist — hasPanelAccess()
+            // now grants it restricted access (Modules/FieldOps/Filament/Pages/MyWorkOrders
+            // only, every other resource explicitly excludes it, see that ticket).
+            if (($user instanceof User) && $user->hasRole('client')) {
                 return false;
             }
 

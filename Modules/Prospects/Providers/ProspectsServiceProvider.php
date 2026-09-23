@@ -9,6 +9,12 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Filament\Support\Facades\FilamentView;
 use Filament\Tables\View\TablesRenderHook;
+use Modules\Prospects\Console\Commands\SyncAftClubsCommand;
+use Modules\Prospects\Console\Commands\SyncBrusselsClubsCommand;
+use Modules\Prospects\Console\Commands\SyncRbfaGraphqlCommand;
+use Modules\Prospects\DataSource\AfttPdfSource;
+use Modules\Prospects\DataSource\BrusselsCadastreSource;
+use Modules\Prospects\DataSource\RbfaGraphqlSource;
 use Modules\Prospects\Filament\Resources\Prospects\Pages\ManageProspects;
 
 
@@ -40,6 +46,18 @@ class ProspectsServiceProvider extends ServiceProvider
     {
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
+
+        $this->app->when(SyncRbfaGraphqlCommand::class)
+            ->needs(RbfaGraphqlSource::class)
+            ->give(fn () => new RbfaGraphqlSource);
+
+        $this->app->when(SyncAftClubsCommand::class)
+            ->needs(AfttPdfSource::class)
+            ->give(fn () => new AfttPdfSource);
+
+        $this->app->when(SyncBrusselsClubsCommand::class)
+            ->needs(BrusselsCadastreSource::class)
+            ->give(fn () => new BrusselsCadastreSource);
     }
 
     /**
@@ -54,6 +72,7 @@ class ProspectsServiceProvider extends ServiceProvider
             \Modules\Prospects\Console\Commands\SyncTpvClubsCommand::class,
             \Modules\Prospects\Console\Commands\SyncHockeyClubsCommand::class,
             \Modules\Prospects\Console\Commands\SyncRbfaGraphqlCommand::class,
+            \Modules\Prospects\Console\Commands\SyncBrusselsClubsCommand::class,
             \Modules\Prospects\Console\Commands\SyncMasterCommand::class,
         ]);
     }
@@ -73,6 +92,7 @@ class ProspectsServiceProvider extends ServiceProvider
              $schedule->command('prospects:sync-tpv-clubs')->monthlyOn(1, '02:30');
              $schedule->command('prospects:sync-hockey-clubs')->monthlyOn(1, '03:00');
              $schedule->command('prospects:sync-rbfa-graphql')->monthlyOn(1, '03:30');
+             $schedule->command('prospects:sync-brussels-clubs')->monthlyOn(1, '04:00');
          });
     }
 

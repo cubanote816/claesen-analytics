@@ -54,6 +54,15 @@ class AdminPanelProvider extends PanelProvider
                 static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
 
+            // CLA-580 — split-screen brand panel, scoped to the login page only
+            // (never on other fi-simple-layout pages) via the login route name.
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::SIMPLE_LAYOUT_START,
+                static fn(): string => request()?->routeIs('filament.admin.auth.login')
+                    ? view('core::filament.auth.brand-panel')->render()
+                    : '',
+            );
+
             FilamentView::registerRenderHook(
                 PanelsRenderHook::HEAD_END,
                 static fn (): string => <<<'HTML'

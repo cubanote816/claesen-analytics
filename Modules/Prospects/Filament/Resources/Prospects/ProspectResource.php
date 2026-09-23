@@ -44,6 +44,12 @@ class ProspectResource extends Resource
 {
     protected static ?string $model = Prospect::class;
 
+    // CLA-581: see Performance\ProjectResource — same reasoning, exclude technician from the default-allow.
+    public static function canAccess(): bool
+    {
+        return ! (auth()->user()?->hasRole('technician') ?? false);
+    }
+
     public static function getModelLabel(): string
     {
         return __('prospects::resource.model_label');

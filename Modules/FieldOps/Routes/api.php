@@ -33,6 +33,12 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/clients', [FoClientController::class, 'index']);
         Route::get('/clients/{foClient}', [FoClientController::class, 'show']);
         Route::post('/clients/{foClient}/contacts/invitations', [ClientContactController::class, 'invite']);
+        // CLA-554 — list/update an existing contact of this client. {user} must
+        // never be reachable without an existing fo_client_user row for this
+        // exact $foClient — enforced in ClientContactInvitationService::
+        // updateMembership(), not by the route itself.
+        Route::get('/clients/{foClient}/contacts', [ClientContactController::class, 'index']);
+        Route::patch('/clients/{foClient}/contacts/{user}', [ClientContactController::class, 'update']);
 
         // Complexes
         Route::get('/complexes', [ComplexController::class, 'index']);
@@ -70,9 +76,12 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::delete('/luminaire-frames/{frame}', [LuminaireFrameController::class, 'destroy']);
         Route::get('/luminaire-frames/{frame}/luminaires', [LuminaireFrameController::class, 'luminaires']);
         // Vision-assisted identification (CLA-386) — read-only suggestion, never persists.
-        Route::post('/luminaire-frames/{frame}/vision-suggestions', [LuminaireVisionController::class, 'suggest']);
+        // CLA-502: throttled per user — real Claude Sonnet 5 calls, real cost.
+        Route::post('/luminaire-frames/{frame}/vision-suggestions', [LuminaireVisionController::class, 'suggest'])
+            ->middleware('throttle:10,1');
         // Vision-assisted multi-luminaire detection (CLA-391 / CLA-390 Fase 2) — read-only, never persists.
-        Route::post('/luminaire-frames/{frame}/vision-luminaire-detections', [LuminaireVisionController::class, 'detectLuminaires']);
+        Route::post('/luminaire-frames/{frame}/vision-luminaire-detections', [LuminaireVisionController::class, 'detectLuminaires'])
+            ->middleware('throttle:10,1');
 
         // Luminaires
         Route::post('/luminaires', [LuminaireController::class, 'store']);
@@ -152,12 +161,17 @@ Route::middleware(['auth:sanctum', \Modules\Core\Http\Middleware\SetLocaleFromHe
         Route::get('/electrical-board-types', [CatalogController::class, 'electricalBoardTypes']);
         Route::get('/luminaire-frame-types', [CatalogController::class, 'luminaireFrameTypes']);
         Route::post('/luminaire-frame-types/custom', [CatalogController::class, 'storeCustomLuminaireFrameType']);
-        Route::post('/luminaire-frame-types/vision-suggestions', [LuminaireVisionController::class, 'suggestFrameType']);
+        // CLA-502: throttled per user — real Claude Sonnet 5 / OpenAI calls, real cost.
+        Route::post('/luminaire-frame-types/vision-suggestions', [LuminaireVisionController::class, 'suggestFrameType'])
+            ->middleware('throttle:10,1');
         // CLA-409 (CLA-390 Fase 3) — read-only generation preview + creation from an accepted preview.
-        Route::post('/luminaire-frame-types/vision-generate', [LuminaireVisionController::class, 'generateFrameType']);
-        Route::post('/luminaire-frame-types/from-generated', [CatalogController::class, 'storeGeneratedLuminaireFrameType']);
+        Route::post('/luminaire-frame-types/vision-generate', [LuminaireVisionController::class, 'generateFrameType'])
+            ->middleware('throttle:10,1');
+        Route::post('/luminaire-frame-types/from-generated', [CatalogController::class, 'storeGeneratedLuminaireFrameType'])
+            ->middleware('throttle:10,1');
         Route::get('/luminaire-types', [CatalogController::class, 'luminaireTypes']);
-        Route::post('/luminaire-types/from-suggestion', [CatalogController::class, 'storeLuminaireTypeFromSuggestion']);
+        Route::post('/luminaire-types/from-suggestion', [CatalogController::class, 'storeLuminaireTypeFromSuggestion'])
+            ->middleware('throttle:10,1');
         Route::get('/luminaire-subgroups', [CatalogController::class, 'luminaireSubgroups']);
 
         // Media (photos/videos/documents attached to complexes, terrains, structures, electrical boards, luminaires)

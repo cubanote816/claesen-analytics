@@ -5,10 +5,17 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
+use Modules\FieldOps\Http\Requests\Concerns\ValidatesTenantScopedIds;
+use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 
 class StoreElectricalBoardRequest extends FormRequest
 {
+    use ValidatesTenantScopedIds;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', ElectricalBoard::class) ?? false;
@@ -32,5 +39,14 @@ class StoreElectricalBoardRequest extends FormRequest
             'structure_ids'               => ['nullable', 'array'],
             'structure_ids.*'             => ['integer', 'distinct', 'exists:fo_structures,id'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $this->assertTenantScopedIds($validator, 'complex_ids', Complex::class, $this->input('complex_ids'));
+            $this->assertTenantScopedIds($validator, 'terrain_ids', Terrain::class, $this->input('terrain_ids'));
+            $this->assertTenantScopedIds($validator, 'structure_ids', Structure::class, $this->input('structure_ids'));
+        });
     }
 }

@@ -25,6 +25,7 @@ php artisan test --testsuite=Modules --filter=Performance
 php artisan test --testsuite=Modules --filter=Prospects
 php artisan test --testsuite=Modules --filter=Website
 php artisan test --testsuite=Modules --filter=Cafca
+php artisan test --testsuite=Modules --filter=FieldOps
 
 # Un archivo concreto
 php artisan test Modules/Mailing/tests/Feature/CampaignWorkflowTest.php
@@ -45,6 +46,18 @@ php artisan test --testsuite=Feature
 - `MAIL_MAILER=array` (correos en memoria)
 
 **Nota:** los tests de módulos requieren MySQL (no SQLite). Necesita `sail up -d mysql` o un servidor MySQL disponible.
+
+**Bajo Sail, correr siempre como el usuario `sail`, nunca `docker exec` a secas (CLA-507, 2026-09-20).** `docker exec <container> ...` sin `-u` cae por defecto en `root` (no hay `USER` en la imagen ni override — verificado con `docker inspect`), mientras que el proceso real de Laravel dentro del contenedor corre como `sail` (uid 1000, verificado con `ps aux`). Un test que escribe a disco real (no `Storage::fake()`) durante una corrida como `root` deja directorios `root:root` bajo `storage/framework/testing/disks/`; `sail` no puede borrarlos ni sobrescribirlos después (confirmado empíricamente — el padre tiene 777 pero eso no basta), así que cualquier test posterior que reutilice ese mismo path/ID falla con un permission-denied que parece intermitente y no reproducible. Esto es la causa raíz real (no especulativa) de buena parte de los 162 fallos que motivaron CLA-507 — no hacía falta ningún cambio de código en los tests, solo dejar de invocar `phpunit` como root:
+```bash
+# Correcto — usa el wrapper de Sail, que ya antepone -u sail automáticamente
+# (sail phpunit, no sail test: el binario de PHPUnit directo da salida más
+# limpia que "php artisan test"):
+./vendor/bin/sail phpunit --testsuite=Modules --filter=FieldOps
+
+# Equivalente explícito si se prefiere docker exec directo:
+docker exec -u sail -w /var/www/html <container>-laravel.test-1 ./vendor/bin/phpunit --testsuite=Modules --filter=FieldOps
+```
+Si aparecen fallos de permisos en `storage/framework/testing/disks/`, limpiar los directorios `root:root` (`docker exec <container> bash -c "find storage/framework/testing/disks -user root -exec rm -rf {} +"`, como `root` para poder borrarlos) y volver a correr como `sail` en adelante.
 
 ---
 

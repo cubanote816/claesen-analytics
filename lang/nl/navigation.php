@@ -10,7 +10,7 @@ return [
         'analyse_intelligentie' => 'Analyse & Intelligentie',
         'safety_vca' => 'Veiligheid & VCA',
         'mailing' => 'Mailing',
-        'field_operations' => 'Field Operations (Demo)',
+        'field_operations' => 'Field Operations',
     ],
     'switch_to_bertels' => 'Wissel naar Electro Bertels',
     'switch_to_claesen' => 'Wissel naar Claesen',

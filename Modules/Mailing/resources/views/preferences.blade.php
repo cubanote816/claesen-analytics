@@ -18,6 +18,7 @@
         .toggle-checkbox:checked { right: 0; border-color: #d97706; }
         .toggle-checkbox:checked + .toggle-label { background-color: #d97706; }
     </style>
+@include('core::partials.head-icons')
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
     <div class="max-w-lg w-full glass-card rounded-3xl p-8 space-y-6">

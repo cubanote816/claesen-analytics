@@ -96,28 +96,28 @@ return [
             'CHP_123869', // Vrouwen 3 Prov Wvl
         ],
         'Vlaams-Brabant' => [
-            // 'CHP_123323', // 1ste Prov (VV)
-            // 'CHP_123335',
-            // 'CHP_123336', // 2de Prov
-            // 'CHP_123355',
-            // 'CHP_123356',
-            // 'CHP_123357', // 3de Prov
-            // 'CHP_123395',
-            // 'CHP_123396',
-            // 'CHP_123397',
-            // 'CHP_123398', // 4de Prov
-            // 'CHP_123329',
-            // 'CHP_123330',
-            // 'CHP_123998',
-            // 'CHP_123999',
-            // 'CHP_124000',
-            // 'CHP_124001',
-            // 'CHP_125633',
-            // 'CHP_125634',
-            // 'CHP_125635',
-            // 'CHP_125636',
-            // 'CHP_125637',
-            // 'CHP_125638',
+            'CHP_123323', // 1ste Prov (VV)
+            'CHP_123335',
+            'CHP_123336', // 2de Prov
+            'CHP_123355',
+            'CHP_123356',
+            'CHP_123357', // 3de Prov
+            'CHP_123395',
+            'CHP_123396',
+            'CHP_123397',
+            'CHP_123398', // 4de Prov
+            'CHP_123329',
+            'CHP_123330',
+            'CHP_123998',
+            'CHP_123999',
+            'CHP_124000',
+            'CHP_124001',
+            'CHP_125633',
+            'CHP_125634',
+            'CHP_125635',
+            'CHP_125636',
+            'CHP_125637',
+            'CHP_125638',
         ],
         'Brabant Wallon' => [
             'CHP_127764', // 3 Prov. A
@@ -192,10 +192,18 @@ return [
             'CHP_127475', // DAMES 2 PROV B
         ],
         'Brussel' => [
-            // 'CHP_123321',
-            // 'CHP_123333',
-            // 'CHP_123335',
+            'CHP_123321',
+            'CHP_123333',
+            'CHP_123335',
         ],
+    ],
+
+    'flemish_regions' => [
+        'Antwerpen',
+        'Limburg',
+        'Oost-Vlaanderen',
+        'Vlaams-Brabant',
+        'West-Vlaanderen',
     ],
 
     /*

@@ -25,3 +25,5 @@ Homestead.yaml
 Thumbs.db
 .env.remote
 /docs/local
+# Local Pi runtime state
+.atl/

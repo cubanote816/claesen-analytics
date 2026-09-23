@@ -406,6 +406,19 @@ return [
         'plural_label' => 'Werkorders',
         'order_number' => 'Werkorder #:id',
         'no_client' => 'Voor deze uitrusting kon geen eenduidige klant worden afgeleid.',
+        'my_work_orders' => [
+            'navigation' => 'Mijn werkorders',
+            'title' => 'Mijn werkorders',
+            'equipment' => 'Uitrusting',
+            'start' => 'Starten',
+            'complete' => 'Afronden',
+            'started_notification' => 'Werkorder gestart.',
+            'completed_notification' => 'Werkorder ingediend ter beoordeling.',
+            'completed_at' => 'Afgerond op',
+            'photos_step' => "Foto's",
+            'photos' => "Foto's",
+            'forbidden' => 'Deze werkorder is niet aan u toegewezen.',
+        ],
         'sections' => [
             'context' => 'Uitrustingscontext',
             'context_copy' => 'Uitrusting, klant, site en fysieke positie komen uit FieldOps en kunnen hier niet opnieuw worden toegewezen.',
@@ -667,6 +680,9 @@ return [
             'tool_circle' => 'Cirkel',
             'tool_hint' => 'Kies een hulpmiddel, sleep over het canvas en sla het resultaat op.',
         ],
+        'validation' => [
+            'invalid_generated_image' => 'De gegenereerde afbeeldingsgegevens zijn geen geldige afbeelding.',
+        ],
     ],
 
     'media' => [
@@ -677,5 +693,9 @@ return [
         'no_photos' => "Nog geen foto's geüpload.",
         'no_videos' => "Nog geen video's geüpload.",
         'no_documents' => 'Nog geen documenten geüpload.',
+    ],
+
+    'validation' => [
+        'out_of_tenant_scope' => 'Het geselecteerde item behoort niet tot een klant waartoe u toegang heeft.',
     ],
 ];

@@ -301,5 +301,8 @@
             @endif
         </x-filament::section>
 
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            Source: Infrastructures sportives — Région de Bruxelles-Capitale (CC-BY 2.0, backend.datastore.brussels)
+        </p>
     </div>
 </x-filament-panels::page>

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\FieldOps\Services;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
@@ -24,6 +26,38 @@ class FieldOpsTenantService
     public function isClientUser(User $user): bool
     {
         return $user->hasRole('client');
+    }
+
+    // CLA-554: extracted from ClientContactInvitationService (which owned this
+    // check alone before CLA-553/554 added more contact-management endpoints) so
+    // every endpoint that manages a FoClient's contacts shares one rule instead
+    // of re-implementing it. Intentionally stricter than canView()/allowedClientIds()
+    // above: seeing *who else* has access and what they can do is management
+    // information, not general read access, so a plain can_view=true contact
+    // without can_manage_contacts is correctly rejected here.
+    // CLA-556: split from assertCanManageContacts() so the client-portal frontend
+    // can DISCOVER the capability (via FoClientResource) without first needing
+    // it — calling assertCanManageContacts() to check would 403 exactly the
+    // sessions that don't have it yet, which is the case this exists to answer.
+    public function canManageContacts(FoClient $client, User $actor): bool
+    {
+        if (! $this->isClientUser($actor)) {
+            return $actor->hasAnyRole(['admin', 'super_admin']);
+        }
+
+        return $actor->fieldOpsClients()
+            ->where('fo_clients.id', $client->id)
+            ->wherePivot('is_active', true)
+            ->wherePivot('can_view', true)
+            ->wherePivot('can_manage_contacts', true)
+            ->exists();
+    }
+
+    public function assertCanManageContacts(FoClient $client, User $actor): void
+    {
+        if (! $this->canManageContacts($client, $actor)) {
+            throw new AuthorizationException;
+        }
     }
 
     // CLA-364: distinct from isClientUser() — this is about *scope*, not the
@@ -128,21 +162,42 @@ class FieldOpsTenantService
             return $this->allowedClientIds($user)->contains((int) $model->client_id);
         }
 
-        $allowed = $this->allowedClientIds($user)->merge($this->assignedWorkOrderClientIds($user))->unique();
+        // CLA-500: a work order or maintenance record assigned/attributed to this
+        // employee is theirs to view permanently, regardless of status — this is
+        // ownership of one specific record, not equipment access, so it never
+        // expires. Before CLA-500 this instead merged the employee's client_id
+        // into the general allowed set, which also (incorrectly) let them view
+        // every other work order/record for that client, not just their own.
+        if ($model instanceof FoMaintenanceWorkOrder) {
+            return $this->allowedClientIds($user)->contains((int) $model->client_id)
+                || ($user->employee_id && (string) $model->assigned_employee_id === (string) $user->employee_id);
+        }
+
+        if ($model instanceof FoMaintenanceRecord) {
+            return $this->allowedClientIds($user)->contains((int) $model->client_id)
+                || ($user->employee_id && (string) $model->employee_id === (string) $user->employee_id);
+        }
+
+        $allowed = $this->allowedClientIds($user);
         $owners = $this->ownerClientIds($model);
 
-        return $owners->count() === 1 && $allowed->contains($owners->first());
+        if ($owners->count() === 1 && $allowed->contains($owners->first())) {
+            return true;
+        }
+
+        // CLA-500: equipment linked to an ACTIVE assigned work order stays
+        // viewable outside the technician's client scope (the original CLA-375
+        // need), narrowed to that order's own maintainable + ancestor chain
+        // instead of the whole client, and only while the order is open —
+        // closing it revokes this grant. The FoMaintenanceWorkOrder/
+        // FoMaintenanceRecord ownership checks above are separate and never
+        // expire.
+        return $this->assignedWorkOrderEquipmentTargets($user)
+            ->contains(fn (array $target): bool => $target['class'] === $model::class && $target['id'] === $model->getKey());
     }
 
-    // CLA-375: assigning a work order (MaintenanceWorkOrderService) never grants
-    // fieldOpsClients scope — only checks the employee has an active linked User.
-    // Without this, an assigned technician can list their own task (assigned()
-    // filters by assigned_employee_id only) but gets 403 opening it or any
-    // linked equipment, because allowedClientIds() alone stays empty. This widens
-    // canView() only — scopeForUser() (listing endpoints) is untouched on purpose,
-    // this is about detail access to a technician's own assignment, not browsing.
-    /** @return Collection<int, int> */
-    private function assignedWorkOrderClientIds(User $user): Collection
+    /** @return Collection<int, array{class: class-string, id: int}> */
+    private function assignedWorkOrderEquipmentTargets(User $user): Collection
     {
         if (! $user->employee_id) {
             return collect();
@@ -150,11 +205,68 @@ class FieldOpsTenantService
 
         return FoMaintenanceWorkOrder::query()
             ->where('assigned_employee_id', $user->employee_id)
-            ->pluck('client_id')
-            ->filter()
-            ->map(fn ($id): int => (int) $id)
-            ->unique()
+            ->whereNotIn('status', [MaintenanceWorkOrderStatus::COMPLETED, MaintenanceWorkOrderStatus::CANCELLED])
+            ->with('maintainable')
+            ->get()
+            ->flatMap(fn (FoMaintenanceWorkOrder $order) => $this->maintainableChain($order->maintainable))
+            ->unique(fn (array $target): string => $target['class'].':'.$target['id'])
             ->values();
+    }
+
+    /** @return Collection<int, array{class: class-string, id: int}> */
+    private function maintainableChain(?Model $maintainable): Collection
+    {
+        if (! $maintainable) {
+            return collect();
+        }
+
+        $chain = collect([['class' => $maintainable::class, 'id' => $maintainable->getKey()]]);
+
+        if ($maintainable instanceof Luminaire) {
+            return $maintainable->luminaireFrame
+                ? $chain->merge($this->maintainableChain($maintainable->luminaireFrame))
+                : $chain;
+        }
+
+        if ($maintainable instanceof LuminaireFrame) {
+            foreach ($maintainable->structures as $structure) {
+                $chain->push(['class' => Structure::class, 'id' => $structure->id]);
+                $chain = $chain->merge($this->terrainAndComplexChain($structure));
+            }
+
+            return $chain;
+        }
+
+        if ($maintainable instanceof ElectricalBoard) {
+            foreach ($maintainable->complexes as $complex) {
+                $chain->push(['class' => Complex::class, 'id' => $complex->id]);
+            }
+            foreach ($maintainable->terrains as $terrain) {
+                $chain->push(['class' => Terrain::class, 'id' => $terrain->id]);
+                $chain->push(['class' => Complex::class, 'id' => $terrain->complex_id]);
+            }
+            foreach ($maintainable->structures as $structure) {
+                $chain->push(['class' => Structure::class, 'id' => $structure->id]);
+                $chain = $chain->merge($this->terrainAndComplexChain($structure));
+            }
+
+            return $chain;
+        }
+
+        return $chain;
+    }
+
+    /** @return Collection<int, array{class: class-string, id: int}> */
+    private function terrainAndComplexChain(Structure $structure): Collection
+    {
+        $chain = collect();
+
+        foreach ($structure->terrains as $terrain) {
+            $chain->push(['class' => Terrain::class, 'id' => $terrain->id]);
+            $chain->push(['class' => Complex::class, 'id' => $terrain->complex_id]);
+        }
+
+        return $chain;
     }
 
     /** @return Collection<int, int> */

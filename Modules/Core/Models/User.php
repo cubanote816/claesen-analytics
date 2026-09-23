@@ -233,7 +233,9 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     }
 
     // Single source of truth for "can use the Filament backoffice".
-    // Field workers and external client contacts use dedicated applications.
+    // External client contacts use a dedicated application (Claesen-Client).
+    // CLA-581: technician gets panel access too, but only to Modules/FieldOps/Filament/Pages/MyWorkOrders —
+    // every other FieldOps resource still gates on hasAnyRole(['super_admin','admin']) and stays hidden.
     public function hasPanelAccess(): bool
     {
         if ($this->hasRole('client')) {
@@ -246,6 +248,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             'financial_manager',
             'hr_manager',
             'viewer',
+            'technician',
         ]);
     }
 

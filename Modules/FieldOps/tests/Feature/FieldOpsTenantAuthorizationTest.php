@@ -9,12 +9,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Modules\Cafca\Models\Employee;
+use Modules\FieldOps\Enums\MaintenanceWorkOrderStatus;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\ElectricalBoardType;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceRequest;
+use Modules\FieldOps\Models\FoMaintenanceType;
 use Modules\FieldOps\Models\FoMaintenanceWorkOrder;
 use Modules\FieldOps\Models\Luminaire;
 use Modules\FieldOps\Models\LuminaireFrame;
@@ -503,30 +505,85 @@ class FieldOpsTenantAuthorizationTest extends TestCase
         $this->assertInstanceOf(FieldOpsTenantPolicy::class, Gate::getPolicyFor(FoMaintenanceRequest::class));
     }
 
-    // fieldops.media/fieldops.ai are created as foundation by CLA-496 but are
-    // deliberately not enforced anywhere yet — CLA-498 (media) and CLA-502 (ai) are
-    // the tickets that will actually gate on them. These two tests pin today's
-    // (pre-CLA-498/CLA-502) behavior so that whoever implements those tickets sees
-    // this assertion flip and knows to update/remove it, instead of it silently
-    // passing for the wrong reason.
-    public function test_media_upload_is_not_yet_gated_by_fieldops_media_permission_pending_cla498(): void
+    // CLA-498: fieldops.media is now enforced by FieldOpsMediaController::store()
+    // (via FieldOpsInfrastructurePolicy::media()). Even a technician correctly
+    // scoped to the model's own client (canView() passes) is blocked without the
+    // capability permission itself — this was previously asserted as 201
+    // ("pending CLA-498"); inverted here now that the gate is real, and no media
+    // may persist when it's denied.
+    public function test_media_upload_requires_fieldops_media_permission_even_when_scoped_to_the_right_client(): void
     {
-        $a = $this->topology('Media inert CLA-498');
-        // technician scoped to their own client, WITHOUT fieldops.media granted.
+        $a = $this->topology('Media gated CLA-498');
+        // Migration 2026_08_29_037 unconditionally backfills the real `technician`
+        // role with fieldops.media (matches the approved production matrix) on every
+        // migrate:fresh, including the one RefreshDatabase runs for this test process
+        // — so the role already carries it before setUp()'s Role::firstOrCreate() even
+        // runs. Revoke it here, scoped to this test's own transaction only (rolled
+        // back afterwards, other tests still see the real baseline), to isolate the
+        // permission-check dimension from the ownership dimension this test is about.
         [, $token] = $this->internalUser('technician', $a['client']);
+        Role::findByName('technician', 'web')->revokePermissionTo('fieldops.media');
 
         $response = $this->withToken($token)->postJson(
             "/api/v1/fieldops/complexes/{$a['complex']->id}/media",
             ['collection' => 'photos', 'file' => \Illuminate\Http\UploadedFile::fake()->image('site.jpg')],
         );
 
-        $response->assertStatus(201); // pending CLA-498: will require fieldops.media
+        $response->assertForbidden();
+        $this->assertCount(0, $a['complex']->fresh()->getMedia('photos'));
     }
 
-    public function test_vision_endpoint_is_not_yet_gated_by_fieldops_ai_permission_pending_cla502(): void
+    // CLA-498: the actual cross-tenant exploit traced in the ticket — a technician
+    // scoped only to Client A could upload media to Client B's equipment because
+    // the route had no Eloquent-bound parameter for the middleware to authorize.
+    public function test_technician_scoped_to_one_client_cannot_upload_media_to_another_clients_luminaire(): void
     {
-        $a = $this->topology('Vision inert CLA-502');
-        // technician scoped to their own client, WITHOUT fieldops.ai granted.
+        $a = $this->topology('Media A');
+        $b = $this->topology('Media B');
+        [, $tokenA] = $this->internalUser('technician', $a['client'], false, ['fieldops.media']);
+
+        // Denied cross-tenant: uploading to Client B's luminaire.
+        $denied = $this->withToken($tokenA)->postJson(
+            "/api/v1/fieldops/luminaires/{$b['luminaire']->id}/media",
+            ['collection' => 'photos', 'file' => \Illuminate\Http\UploadedFile::fake()->image('site.jpg')],
+        );
+        $denied->assertForbidden();
+        $this->assertCount(0, $b['luminaire']->fresh()->getMedia('photos'));
+
+        // Allowed within scope: the same technician uploading to their own client's luminaire.
+        $allowed = $this->withToken($tokenA)->postJson(
+            "/api/v1/fieldops/luminaires/{$a['luminaire']->id}/media",
+            ['collection' => 'photos', 'file' => \Illuminate\Http\UploadedFile::fake()->image('site.jpg')],
+        );
+        $allowed->assertStatus(201);
+        $this->assertCount(1, $a['luminaire']->fresh()->getMedia('photos'));
+    }
+
+    // CLA-502: fieldops.ai was created as foundation by CLA-496 but was left
+    // deliberately unenforced — this test used to pin that pre-CLA-502 behavior
+    // (asserted 200 even without the permission) and is inverted here now that
+    // the gate is real, same pattern as the CLA-498 media test above.
+    public function test_vision_endpoint_requires_fieldops_ai_permission_even_when_scoped_to_the_right_client(): void
+    {
+        $a = $this->topology('Vision gated CLA-502');
+        // Migration 2026_08_29_037 backfills the real `technician` role with
+        // fieldops.ai on every migrate:fresh — revoke it here, scoped to this
+        // test's own transaction only, to isolate the permission dimension.
+        [, $token] = $this->internalUser('technician', $a['client']);
+        Role::findByName('technician', 'web')->revokePermissionTo('fieldops.ai');
+
+        $response = $this->withToken($token)->postJson(
+            "/api/v1/fieldops/luminaire-frames/{$a['frame']->id}/vision-suggestions",
+            ['photo' => \Illuminate\Http\UploadedFile::fake()->image('frame.jpg')],
+        );
+
+        $response->assertForbidden();
+    }
+
+    public function test_vision_endpoint_succeeds_for_a_technician_with_fieldops_ai(): void
+    {
+        $a = $this->topology('Vision allowed CLA-502');
+        // technician role carries fieldops.ai via the migration backfill (see above).
         [, $token] = $this->internalUser('technician', $a['client']);
 
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
@@ -539,7 +596,313 @@ class FieldOpsTenantAuthorizationTest extends TestCase
             ['photo' => \Illuminate\Http\UploadedFile::fake()->image('frame.jpg')],
         );
 
-        $response->assertStatus(200); // pending CLA-502: will require fieldops.ai
+        $response->assertStatus(200);
+    }
+
+    // CLA-502: the 6 vision/generation routes had no throttle at all — any
+    // authorized actor could hammer the endpoint with unlimited real Claude/
+    // OpenAI calls. 10 requests/minute per user, enforced per route.
+    public function test_vision_endpoint_is_throttled_per_user(): void
+    {
+        $a = $this->topology('Vision throttle CLA-502');
+        [, $token] = $this->internalUser('technician', $a['client']);
+
+        $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
+        $this->mock(ClaudeVisionService::class, function ($mock): void {
+            $mock->shouldReceive('identifyLuminaires')->andReturn(['status' => 'unknown', 'candidates' => []]);
+        });
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->withToken($token)->postJson(
+                "/api/v1/fieldops/luminaire-frames/{$a['frame']->id}/vision-suggestions",
+                ['photo' => \Illuminate\Http\UploadedFile::fake()->image('frame.jpg')],
+            )->assertStatus(200);
+        }
+
+        $this->withToken($token)->postJson(
+            "/api/v1/fieldops/luminaire-frames/{$a['frame']->id}/vision-suggestions",
+            ['photo' => \Illuminate\Http\UploadedFile::fake()->image('frame.jpg')],
+        )->assertStatus(429);
+    }
+
+    // ============================================================
+    // CLA-499: tenant-scope validation for relation IDs sent in the request
+    // body (not just the route-bound model) — a technician scoped to one
+    // client could otherwise attach infrastructure to another client's
+    // objects by simply sending that client's ids in the payload, since
+    // EnforceFieldOpsTenantAccess only authorizes the Eloquent-bound route
+    // parameter, never body-only relation ids on create endpoints.
+    // ============================================================
+
+    public function test_technician_cannot_create_terrain_referencing_another_clients_complex(): void
+    {
+        $a = $this->topology('CLA-499 terrain A');
+        $b = $this->topology('CLA-499 terrain B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/terrains', [
+            'complex_id' => $b['complex']->id,
+            'terrain_type_id' => TerrainType::factory()->create()->id,
+        ])->assertStatus(422)->assertJsonValidationErrors('complex_id');
+    }
+
+    public function test_technician_cannot_create_structure_referencing_another_clients_terrain(): void
+    {
+        $a = $this->topology('CLA-499 structure A');
+        $b = $this->topology('CLA-499 structure B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/structures', [
+            'structure_type_id' => StructureType::factory()->create()->id,
+            'terrain_ids' => [$b['terrain']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('terrain_ids');
+    }
+
+    public function test_technician_cannot_update_structure_to_reference_another_clients_terrain(): void
+    {
+        $a = $this->topology('CLA-499 structure update A');
+        $b = $this->topology('CLA-499 structure update B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.update']);
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/structures/{$a['structure']->id}", [
+            'terrain_ids' => [$b['terrain']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('terrain_ids');
+    }
+
+    public function test_technician_cannot_create_luminaire_frame_referencing_another_clients_structure(): void
+    {
+        $a = $this->topology('CLA-499 frame A');
+        $b = $this->topology('CLA-499 frame B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/luminaire-frames', [
+            'luminaire_frame_type_id' => LuminaireFrameType::factory()->create()->id,
+            'structure_ids' => [$b['structure']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('structure_ids');
+    }
+
+    public function test_technician_cannot_update_luminaire_frame_to_reference_another_clients_structure(): void
+    {
+        $a = $this->topology('CLA-499 frame update A');
+        $b = $this->topology('CLA-499 frame update B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.update']);
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/luminaire-frames/{$a['frame']->id}", [
+            'structure_ids' => [$b['structure']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('structure_ids');
+    }
+
+    public function test_technician_cannot_create_luminaire_referencing_another_clients_frame(): void
+    {
+        $a = $this->topology('CLA-499 luminaire A');
+        $b = $this->topology('CLA-499 luminaire B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+        $type = LuminaireType::factory()->create();
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/luminaires', [
+            'luminaire_frame_id' => $b['frame']->id,
+            'luminaire_type_id' => $type->id,
+            'luminaire_subgroup_id' => $type->luminaire_subgroup_id,
+        ])->assertStatus(422)->assertJsonValidationErrors('luminaire_frame_id');
+    }
+
+    public function test_technician_cannot_update_luminaire_to_reference_another_clients_frame(): void
+    {
+        $a = $this->topology('CLA-499 luminaire update A');
+        $b = $this->topology('CLA-499 luminaire update B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.update']);
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}", [
+            'luminaire_frame_id' => $b['frame']->id,
+        ])->assertStatus(422)->assertJsonValidationErrors('luminaire_frame_id');
+    }
+
+    public function test_technician_cannot_create_electrical_board_referencing_another_clients_objects(): void
+    {
+        $a = $this->topology('CLA-499 board A');
+        $b = $this->topology('CLA-499 board B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/electrical-boards', [
+            'electrical_board_type_id' => ElectricalBoardType::factory()->create()->id,
+            'complex_ids' => [$b['complex']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('complex_ids');
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/electrical-boards', [
+            'electrical_board_type_id' => ElectricalBoardType::factory()->create()->id,
+            'terrain_ids' => [$b['terrain']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('terrain_ids');
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/electrical-boards', [
+            'electrical_board_type_id' => ElectricalBoardType::factory()->create()->id,
+            'structure_ids' => [$b['structure']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('structure_ids');
+    }
+
+    public function test_technician_cannot_update_electrical_board_to_reference_another_clients_objects(): void
+    {
+        $a = $this->topology('CLA-499 board update A');
+        $b = $this->topology('CLA-499 board update B');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.update']);
+
+        $this->withToken($token)->patchJson("/api/v1/fieldops/electrical-boards/{$a['board']->id}", [
+            'complex_ids' => [$b['complex']->id],
+        ])->assertStatus(422)->assertJsonValidationErrors('complex_ids');
+    }
+
+    // Regression: broad-access actors (hasBroadAccess()) must stay unaffected —
+    // scopeForUser() no-ops for them, exactly like every other tenant-scoping
+    // check in this module.
+    public function test_admin_with_broad_access_can_reference_any_clients_objects_when_creating_electrical_board(): void
+    {
+        $a = $this->topology('CLA-499 broad A');
+        $b = $this->topology('CLA-499 broad B');
+        [, $token] = $this->internalUser('admin', broadAccess: true, permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/electrical-boards', [
+            'electrical_board_type_id' => ElectricalBoardType::factory()->create()->id,
+            'complex_ids' => [$a['complex']->id, $b['complex']->id],
+        ])->assertCreated();
+    }
+
+    // Regression: referencing objects within the technician's own scope must
+    // keep working — the new check must not be a blanket rejection.
+    public function test_technician_can_still_create_luminaire_frame_within_their_own_scope(): void
+    {
+        $a = $this->topology('CLA-499 in-scope');
+        [, $token] = $this->internalUser('technician', $a['client'], permissions: ['fieldops.create']);
+
+        $this->withToken($token)->postJson('/api/v1/fieldops/luminaire-frames', [
+            'luminaire_frame_type_id' => LuminaireFrameType::factory()->create()->id,
+            'structure_ids' => [$a['structure']->id],
+        ])->assertCreated();
+    }
+
+    // ============================================================
+    // CLA-500: hardening of the CLA-375 assigned-work-order grant. Before this,
+    // ANY work order ever assigned to an employee (regardless of status) granted
+    // canView() over the client's ENTIRE equipment, not just the order's own
+    // maintainable + ancestors, and also leaked visibility into every other
+    // work order/record for that client, not just the employee's own.
+    // ============================================================
+
+    public function test_technician_with_active_assigned_work_order_can_view_its_equipment_chain_but_not_unrelated_equipment_of_the_same_client(): void
+    {
+        $a = $this->topology('CLA-500 chain');
+        // A second, unrelated structure/terrain in the SAME client/complex —
+        // not part of the assigned order's maintainable chain.
+        $unrelatedTerrain = Terrain::factory()->create(['complex_id' => $a['complex']->id]);
+        $unrelatedStructure = Structure::factory()->create();
+        $unrelatedStructure->terrains()->attach($unrelatedTerrain);
+
+        $employee = Employee::create(['id' => 'CLA500-CHAIN', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id, 'status' => MaintenanceWorkOrderStatus::ASSIGNED]);
+
+        // In the chain: the luminaire itself and every ancestor.
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaire-frames/{$a['frame']->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/structures/{$a['structure']->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/terrains/{$a['terrain']->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/complexes/{$a['complex']->id}")->assertOk();
+
+        // Not in the chain, even though it's the same client: must stay 403.
+        $this->withToken($token)->getJson("/api/v1/fieldops/structures/{$unrelatedStructure->id}")->assertForbidden();
+        $this->withToken($token)->getJson("/api/v1/fieldops/terrains/{$unrelatedTerrain->id}")->assertForbidden();
+    }
+
+    public function test_technician_loses_equipment_access_once_the_assigned_work_order_is_completed(): void
+    {
+        $a = $this->topology('CLA-500 expiry');
+        $employee = Employee::create(['id' => 'CLA500-EXPIRY', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        $order = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id, 'status' => MaintenanceWorkOrderStatus::ASSIGNED]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")->assertOk();
+
+        $order->update(['status' => MaintenanceWorkOrderStatus::COMPLETED]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")->assertForbidden();
+    }
+
+    public function test_technician_can_still_view_their_own_closed_work_order_and_its_record_after_equipment_access_expires(): void
+    {
+        $a = $this->topology('CLA-500 own record');
+        $employee = Employee::create(['id' => 'CLA500-OWNRECORD', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        $order = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id, 'status' => MaintenanceWorkOrderStatus::COMPLETED]);
+        $record = FoMaintenanceRecord::factory()->forMaintainable($a['luminaire'])->create([
+            'client_id' => $a['client']->id,
+            'employee_id' => $employee->id,
+        ]);
+
+        // Equipment access is gone (order is already closed)...
+        $this->withToken($token)->getJson("/api/v1/fieldops/luminaires/{$a['luminaire']->id}")->assertForbidden();
+        // ...but the order and record are theirs and stay visible regardless.
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-work-orders/{$order->id}")->assertOk();
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-records/{$record->id}")->assertOk();
+    }
+
+    public function test_technician_cannot_view_a_colleagues_other_work_order_for_the_same_client(): void
+    {
+        $a = $this->topology('CLA-500 colleague');
+        $employee = Employee::create(['id' => 'CLA500-SELF', 'name' => 'Technician', 'fl_active' => true]);
+        $colleague = Employee::create(['id' => 'CLA500-COLLEAGUE', 'name' => 'Colleague', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        // Both orders share one maintenance type — the factory's default
+        // preventive() state would otherwise collide on the unique code column
+        // when built twice in the same test.
+        $type = FoMaintenanceType::factory()->preventive()->create();
+
+        // This technician has their own assigned order for this client...
+        FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $employee->id, 'status' => MaintenanceWorkOrderStatus::ASSIGNED, 'fo_maintenance_type_id' => $type->id]);
+
+        // ...but must not see a colleague's own order for the same client, even
+        // though before CLA-500 having any order for that client granted the
+        // whole client's work orders.
+        $colleagueOrder = FoMaintenanceWorkOrder::factory()
+            ->forMaintainable($a['luminaire'])
+            ->create(['client_id' => $a['client']->id, 'assigned_employee_id' => $colleague->id, 'status' => MaintenanceWorkOrderStatus::ASSIGNED, 'fo_maintenance_type_id' => $type->id]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-work-orders/{$colleagueOrder->id}")->assertForbidden();
+    }
+
+    public function test_technician_can_view_their_own_maintenance_record_via_employee_id_even_outside_client_scope(): void
+    {
+        $a = $this->topology('CLA-500 record scope');
+        $employee = Employee::create(['id' => 'CLA500-RECORD', 'name' => 'Technician', 'fl_active' => true]);
+        $user = UserFactory::new()->create(['employee_id' => $employee->id]);
+        $user->assignRole('technician');
+        $token = $user->createToken('field')->plainTextToken;
+
+        // No fieldOpsClients assignment and no work order at all — only the
+        // record's own employee_id should grant this.
+        $record = FoMaintenanceRecord::factory()->forMaintainable($a['luminaire'])->create([
+            'client_id' => $a['client']->id,
+            'employee_id' => $employee->id,
+        ]);
+
+        $this->withToken($token)->getJson("/api/v1/fieldops/maintenance-records/{$record->id}")->assertOk();
     }
 
     private function terrainPayload(int $complexId): array

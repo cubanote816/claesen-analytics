@@ -22,6 +22,7 @@ use Modules\FieldOps\Filament\Resources\MaintenanceRequests\Pages\ViewMaintenanc
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
 use Modules\FieldOps\Models\FoClient;
+use Modules\FieldOps\Models\FoMaintenanceRecord;
 use Modules\FieldOps\Models\FoMaintenanceRequest;
 use Modules\FieldOps\Models\FoMaintenanceRequestMessage;
 use Modules\FieldOps\Models\FoMaintenanceType;
@@ -291,6 +292,32 @@ class MaintenanceRequestTest extends TestCase
         $this->withToken($adminToken)->get("/api/v1/fieldops/maintenance-request-attachments/{$internalId}")->assertOk();
     }
 
+    // CLA-503: attachmentPayload() used url(), absolute against this server's
+    // own internal Host (the tunnel), not the client's real public domain.
+    // Relative now — Claesen-Client's resolveAttachmentUrl() prepends the
+    // correct origin at read time (Claesen-Client doesn't render photos/
+    // documents/videos from HasMediaPayload, only this one).
+    public function test_attachment_url_is_relative(): void
+    {
+        $topology = $this->topology('Attachment URL Client');
+        [, $clientToken] = $this->clientUser($topology['client']);
+        $requestId = $this->createRequest($clientToken, $topology['luminaire']);
+
+        $attachmentId = $this->withToken($clientToken)
+            ->postJson("/api/v1/fieldops/maintenance-requests/{$requestId}/attachments", [
+                'file' => UploadedFile::fake()->image('failure.jpg'),
+                'visibility' => 'public',
+            ])->assertCreated()->json('data.id');
+
+        $url = $this->withToken($clientToken)
+            ->getJson("/api/v1/fieldops/maintenance-requests/{$requestId}")
+            ->assertOk()
+            ->json('data.attachments.0.url');
+
+        $this->assertSame("/api/v1/fieldops/maintenance-request-attachments/{$attachmentId}", $url);
+        $this->assertStringStartsNotWith('http', $url);
+    }
+
     public function test_resolution_confirmation_reopening_and_second_work_order_preserve_history(): void
     {
         $topology = $this->topology('Lifecycle Client');
@@ -382,6 +409,128 @@ class MaintenanceRequestTest extends TestCase
             'name' => 'Blocked Contact',
             'email' => 'blocked@example.com',
         ])->assertForbidden();
+    }
+
+    // -------------------------------------------------------------------
+    // CLA-554: listing / editing existing contacts
+    // -------------------------------------------------------------------
+    public function test_contact_manager_can_list_contacts_of_their_client(): void
+    {
+        $client = FoClient::factory()->create();
+        [$manager, $managerToken] = $this->clientUser($client, canManageContacts: true);
+        [$viewer] = $this->clientUser($client, canManageContacts: false);
+
+        $this->withToken($managerToken)->getJson("/api/v1/fieldops/clients/{$client->id}/contacts")
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $ids = collect(
+            $this->withToken($managerToken)->getJson("/api/v1/fieldops/clients/{$client->id}/contacts")->json('data'),
+        )->pluck('id');
+        self::assertEqualsCanonicalizing([$manager->id, $viewer->id], $ids->all());
+    }
+
+    public function test_listing_contacts_requires_manage_contacts(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $viewerToken] = $this->clientUser($client, canManageContacts: false);
+
+        $this->withToken($viewerToken)->getJson("/api/v1/fieldops/clients/{$client->id}/contacts")
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_list_and_update_client_contacts(): void
+    {
+        $client = FoClient::factory()->create();
+        [$contact] = $this->clientUser($client, canManageContacts: false);
+        [, $adminToken] = $this->adminUser();
+
+        $this->withToken($adminToken)->getJson("/api/v1/fieldops/clients/{$client->id}/contacts")
+            ->assertOk()->assertJsonCount(1, 'data');
+
+        $this->withToken($adminToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$contact->id}", [
+                'can_manage_contacts' => true,
+            ])->assertOk()->assertJsonPath('data.can_manage_contacts', true);
+    }
+
+    public function test_contact_manager_can_update_capabilities_of_existing_contact(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $managerToken] = $this->clientUser($client, canManageContacts: true);
+        [$contact] = $this->clientUser($client, canManageContacts: false);
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$contact->id}", [
+                'can_manage_contacts' => true,
+                'can_report' => false,
+            ])->assertOk()
+            ->assertJsonPath('data.can_manage_contacts', true)
+            ->assertJsonPath('data.can_report', false)
+            ->assertJsonPath('data.can_view', true); // untouched field survives the partial update
+
+        $this->assertDatabaseHas('fo_client_user', [
+            'fo_client_id' => $client->id,
+            'user_id' => $contact->id,
+            'can_manage_contacts' => true,
+            'can_report' => false,
+            'can_view' => true,
+        ]);
+    }
+
+    public function test_contact_manager_can_revoke_a_contact(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $managerToken] = $this->clientUser($client, canManageContacts: true);
+        [$contact] = $this->clientUser($client, canManageContacts: false);
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$contact->id}", [
+                'is_active' => false,
+            ])->assertOk()->assertJsonPath('data.is_active', false);
+
+        $this->assertDatabaseHas('fo_client_user', [
+            'fo_client_id' => $client->id,
+            'user_id' => $contact->id,
+            'is_active' => false,
+        ]);
+    }
+
+    public function test_updating_contact_rejects_user_without_existing_membership(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $managerToken] = $this->clientUser($client, canManageContacts: true);
+
+        $otherClient = FoClient::factory()->create();
+        [$strangerContact] = $this->clientUser($otherClient, canManageContacts: false);
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$strangerContact->id}", [
+                'can_view' => false,
+            ])->assertNotFound();
+    }
+
+    public function test_manager_cannot_edit_their_own_membership(): void
+    {
+        $client = FoClient::factory()->create();
+        [$manager, $managerToken] = $this->clientUser($client, canManageContacts: true);
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$manager->id}", [
+                'can_manage_contacts' => false,
+            ])->assertForbidden();
+    }
+
+    public function test_updating_contact_rejects_non_client_target(): void
+    {
+        $client = FoClient::factory()->create();
+        [, $managerToken] = $this->clientUser($client, canManageContacts: true);
+        [$admin] = $this->adminUser();
+
+        $this->withToken($managerToken)
+            ->patchJson("/api/v1/fieldops/clients/{$client->id}/contacts/{$admin->id}", [
+                'can_view' => false,
+            ])->assertNotFound();
     }
 
     public function test_client_can_cancel_their_own_request_before_it_is_converted(): void
@@ -541,6 +690,63 @@ class MaintenanceRequestTest extends TestCase
             'id' => $workOrderId,
             'priority' => 'medium',
         ]);
+    }
+
+    // -------------------------------------------------------------------
+    // CLA-561: MaintenanceRecordResource redacts internal fields for a
+    // client actor on the per-asset history endpoints, which were already
+    // reachable by a client before this ticket (tenant-scoped GET on the
+    // asset itself — no route/middleware change here).
+    // -------------------------------------------------------------------
+    public function test_client_sees_maintenance_history_with_internal_fields_redacted(): void
+    {
+        $topology = $this->topology('History Client');
+        [, $clientToken] = $this->clientUser($topology['client']);
+        [$internalActor] = $this->adminUser();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        FoMaintenanceRecord::factory()->forMaintainable($topology['luminaire'])->create([
+            'fo_maintenance_type_id' => $type->id,
+            'created_by_user_id' => $internalActor->id,
+            'notes' => 'Internal-only note',
+            'root_cause' => 'Internal diagnostic shorthand',
+            'solution_applied' => 'Replaced the ballast',
+        ]);
+
+        Auth::forgetGuards();
+        $response = $this->withToken($clientToken)
+            ->getJson("/api/v1/fieldops/luminaires/{$topology['luminaire']->id}/maintenance-records")
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $response->assertJsonPath('data.0.employee', null)
+            ->assertJsonPath('data.0.created_by', null)
+            ->assertJsonPath('data.0.notes', null)
+            ->assertJsonPath('data.0.root_cause', null)
+            // client-facing fields survive untouched
+            ->assertJsonPath('data.0.solution_applied', 'Replaced the ballast');
+
+        $response->assertDontSee('Internal-only note')
+            ->assertDontSee('Internal diagnostic shorthand');
+    }
+
+    public function test_internal_actor_sees_full_maintenance_history_unredacted(): void
+    {
+        $topology = $this->topology('Internal History Client');
+        [$internalActor, $adminToken] = $this->adminUser();
+        $type = FoMaintenanceType::factory()->preventive()->create();
+        FoMaintenanceRecord::factory()->forMaintainable($topology['luminaire'])->create([
+            'fo_maintenance_type_id' => $type->id,
+            'created_by_user_id' => $internalActor->id,
+            'notes' => 'Internal-only note',
+            'root_cause' => 'Internal diagnostic shorthand',
+        ]);
+
+        $this->withToken($adminToken)
+            ->getJson("/api/v1/fieldops/luminaires/{$topology['luminaire']->id}/maintenance-records")
+            ->assertOk()
+            ->assertJsonPath('data.0.notes', 'Internal-only note')
+            ->assertJsonPath('data.0.root_cause', 'Internal diagnostic shorthand')
+            ->assertJsonPath('data.0.created_by.id', $internalActor->id);
     }
 
     private function createRequest(string $token, Luminaire|ElectricalBoard $equipment): int
