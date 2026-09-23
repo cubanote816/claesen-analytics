@@ -21,6 +21,7 @@ class ComplexResource extends JsonResource
             'lng'        => $this->lng,
             'zoom'       => $this->zoom ?? 17.0,
             'client'     => $this->whenLoaded('client', fn () => new FoClientResource($this->client)),
+            'counts'     => $this->when($this->getAttribute('counts') !== null, fn () => $this->getAttribute('counts')),
             'photos'     => $this->photosPayload(),
             'documents'  => $this->documentsPayload(),
             'created_by' => $this->whenLoaded('createdBy', fn () => [
