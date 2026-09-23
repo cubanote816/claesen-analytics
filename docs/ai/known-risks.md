@@ -1,7 +1,7 @@
 # Riesgos conocidos y deuda técnica — CAFCA Intelligence Hub
 
 > Riesgos abiertos, bloqueantes, deuda técnica y decisiones pendientes.
-> Última actualización: 2026-09-01 (FASE 0 del plan de despliegue Laravel 13)
+> Última actualización: 2026-09-17 (F0/P0 del programa multiempresa Electro Bertels)
 
 ---
 
@@ -24,6 +24,25 @@
 ---
 
 ## Riesgos abiertos — Módulo Mailing
+
+### De Mailing se comparte el transporte transaccional, no la plataforma de campañas (decisión 2026-09-17)
+
+**Estado:** decidido a nivel de arquitectura (ADR D11), sin implementar. Mailing sigue funcionando como hoy, 100 % Claesen.
+
+**Alcance real:** Bertels usará el mailer `microsoft-graph` + `MicrosoftGraphTransport` + Laravel Mail para su correo transaccional (aviso interno de lead y confirmación al cliente). **No** usará campañas, audiencias, supresión, plantillas versionadas, A/B ni follow-ups. Por eso **ninguna tabla `mailing_*` recibe `organization_id`**, y en P5b Mailing **sí** entra en la lista de módulos con middleware `organization:claesen` (sus rutas públicas por token son de prospects de Claesen por construcción).
+
+**Trabajo pendiente, en F4/CLA-473:** remitente y nombre visible por sitio — `NewConsultationRequestMail::envelope()` no fija From, así que cae a `config('mail.from.address')`, y `MicrosoftGraphTransport::getPayload()` toma `'name'` de `config('mail.from.name')` **siempre**, de modo que un correo de Bertels mostraría el nombre de Claesen incluso con la dirección corregida; destinatario interno por sitio (`config('website.consultation_notification_email')` es único global, CLA-532); plantilla y marca propias; **la confirmación al cliente no existe todavía**; y permiso de Graph para enviar como el buzón de Bertels (`POST /users/{buzón}/sendMail`).
+
+**Tenant de Microsoft 365 compartido (2026-09-17):** `electrobertels.be` está en el mismo tenant que Claesen, así que el envío transaccional de Bertels usa la misma app registration — sin credenciales por organización ni ESP. Pero eleva dos riesgos reales:
+- **`Mail.Send` de aplicación sin acotar permite enviar como cualquier buzón del tenant.** Preexistente, pero con dos empresas dentro un error en la resolución del From mandaría correo *como Claesen* desde un flujo de Bertels. Mitigación: Application Access Policy de Exchange limitada a los buzones previstos; From siempre desde configuración del sitio, nunca desde entrada del usuario. Verificar el permiso actual antes de añadir el buzón de Bertels.
+- **`AzureRoleService` asigna `viewer` cuando ningún grupo de Azure coincide, y `viewer` está en la allowlist del panel.** Con el tenant compartido, un empleado de Bertels que entre por Microsoft aterrizaría hoy en el panel de **Claesen**: deja de ser hipotético. P5a (`canAccessPanel` por organización + redirección al panel propio) pasa a ser prerrequisito duro del alta de usuarios de Bertels.
+
+**Riesgo condicional — solo si algún día se aprueban campañas para Bertels.** Entonces vuelven íntegros estos bloqueantes, todos verificados en código:
+- **Audiencia.** `SegmentResolverService` está cableado a `prospects_prospects` (CRM de federaciones de Claesen) y `mailing_messages.prospect_id` apunta ahí: enviar desde Bertels a esa lista sería fuga de datos y uso de un consentimiento ajeno (RGPD).
+- **Baja y supresión.** `mailing_suppression_list.email` es UNIQUE global y `config('mailing.unsubscribe_domain')` tiene un único valor (`claesen-verlichting.be`, usado en el `mailto:afmelden@…` de `ProspectCampaignMail`): una baja de Claesen daría de baja de Bertels y al revés.
+- **Marca y plantillas.** `campaign.blade.php`/`unsubscribe.blade.php`/`preferences.blade.php` embeden `brand-logo-dark.png` con el alt «Claesen Outdoor Lighting»; `email_templates.name` es UNIQUE global.
+- **Acceso.** `CampaignResource::canAccess()` es `auth()->check()`: cualquier usuario con panel vería las campañas de ambas empresas.
+- **Destinatarios de alertas.** `CheckDeliverabilityAlertsCommand` notifica por roles globales `super_admin`/`admin`/`campaign_manager`, y `campaign_manager` **no existe** en `RolesAndPermissionsSeeder` (hoy benigno: alcanza solo a los dos primeros).
 
 ### Ciclos indirectos en follow-ups
 
@@ -149,7 +168,74 @@ php artisan website:regenerate-media
 
 ---
 
+## Riesgos abiertos — Programa multiempresa (Electro Bertels)
+
+> Hallazgos de la auditoría F0/P0 (2026-09-17). Diseño y secuencia: `docs/ai/adr-multi-organization.md`.
+> **Regla de hierro:** hasta que la fase P5 (enforcement) esté completa y verificada, **no debe existir ningún usuario real de Electro Bertels**. Los riesgos 1 y 4 se materializan en el momento en que un usuario de Bertels recibe cualquiera de los roles actuales.
+
+### 1. CRÍTICO — Los roles de Spatie son globales, así que un rol basta para entrar a Claesen
+
+`config/permission.php` tiene `teams => false` y los permisos cuelgan de los roles. `User::hasPanelAccess()` decide el acceso al backoffice solo por rol (`super_admin`, `admin`, `financial_manager`, `hr_manager`, `viewer`), y `admin` arrastra `fieldops.view-all-clients`. Un usuario de Bertels con rol `admin` vería el panel de Claesen, `/api/v1/fieldops/*` completo, `/api/v1/safety/*` y `/api/v1/employees/*`.
+**Control:** organización explícita en el usuario + `canAccessPanel`/`EnsurePanelAccess` por panel + middleware de organización en las rutas de los módulos de Claesen (fases P2/P5a/P5b).
+
+### 2. CRÍTICO — La API pública de Website no conoce el sitio
+
+`/v1/website/projects`, `/categories`, `/years` y `/{slug}` devuelven todos los `website_projects` publicados, sin noción de sitio (verificado: no hay ninguna referencia a `site_id` en rutas, controlador, `PortfolioService` ni repositorio). Un proyecto de Bertels aparecería en la web de Claesen.
+**Control:** `site_id` + rutas legacy ligadas explícitamente al sitio de Claesen (P3) antes de crear el primer proyecto de Bertels.
+
+### 3. CRÍTICO — `Gate::before` concede todo a `super_admin`
+
+`app/Providers/AppServiceProvider.php:46` devuelve `true` para cualquier ability. En Laravel 13, un valor no nulo en `Gate::before` **es** el resultado: ninguna policy puede denegar acceso cruzado a `super_admin`.
+**Control:** frontera de organización antes del privilegio, y lista explícita de abilities de plataforma (P5c, decisión D5 del ADR).
+
+### 4. CRÍTICO — Los destinatarios de notificaciones se eligen por rol global
+
+Siete puntos sin filtro de organización: `MaintenanceRequestService.php:514`, `MaintenanceRequestAlertService.php:131`, `CheckSafetyComplianceCommand.php:32`, `ChecklistObserver.php:26`, `InspectionReminderService.php:39`, `InspectionController.php:138`, `CheckDeliverabilityAlertsCommand.php:156`. Datos operativos de Claesen llegarían por email y en la campana a usuarios de Bertels con esos roles.
+**Control:** filtro por organización en cada consulta de destinatarios (P5d).
+
+### 5. CRÍTICO — La publicación del sitio estático sigue teniendo un único webhook global
+
+**Actualizado (CLA-548, 2026-09-18):** `website_publication_states` ya tiene `site_id` (`UNIQUE`) y `PublicationState::current(?int $siteId = null)` ya no usa `find(1)` — resuelve por `firstOrCreate(['site_id' => ...])`, default a Claesen. El riesgo real no está cerrado por esto: `config/static_site.php` sigue definiendo un único `webhook_url`/`webhook_secret` para toda la instalación, así que publicar un registro de Bertels seguiría reconstruyendo el sitio estático de Claesen — el estado ya es direccionable por sitio, pero el destino del webhook todavía no lo es.
+**Control:** webhook y secreto por sitio, jobs con `siteId` explícito (F3/F4, según el ticket CLA-548 lo deja documentado como fuera de su alcance).
+
+### 6. CRÍTICO — Media privada de FieldOps accesible solo con rol de panel
+
+`GET /fieldops/media/{media}` está protegida por `auth` + `EnsurePanelAccess` (rol), sin comprobar propietario. Los ids son secuenciales.
+**Control:** middleware de organización + resolución del propietario (P5b/P5c).
+
+### 7. ALTO — `/api/v1/employees/*` solo exige `auth:sanctum`
+
+**Preexistente, no introducido por el programa multiempresa:** cualquier token válido (incluido el de una cuenta `client`) puede leer horas, rankings y detalles de proyectos del ERP. Con usuarios de Bertels el alcance empeora.
+**Control:** organización + rol en ese grupo de rutas (P5b). Conviene un ticket propio por ser un gap actual de Claesen.
+
+### 8. ALTO — Otros vectores pendientes de cierre
+
+- Los recursos Website (`ProjectResource`, `ConsultationRequestResource`) no declaran `canAccess()`: cualquier rol con panel edita proyectos públicos y leads (preexistente).
+- El selector «Asignado a» de las solicitudes lista todos los usuarios de la base de datos.
+- `AzureRoleService` asigna `viewer` como fallback, y `viewer` está en la lista de acceso al panel.
+- `POST /v1/website/consultations` y `/contact-email` no tienen throttle ni antispam, y el segundo crea además un `Prospect` en el CRM de Claesen.
+- Fuga de contexto entre jobs en workers de larga vida si `OrganizationContext` se registrara como `singleton` (el ADR lo fija como `scoped`).
+- Viabilidad del doble panel (login compartido, callback de Azure, SPA entre paneles, middleware persistente de Livewire): requiere spike en P6.
+
+### 9. MEDIO — Constraints y datos a revisar antes del enforcement
+
+- `website_projects.slug` es único global: debe pasar a `UNIQUE(site_id, slug)`, junto con la regla `->unique()` y el auto-slug de `ProjectResource`.
+- `WEBSITE_CONSULTATION_EMAIL` es un único destinatario global de avisos de lead.
+- Los originales de media de Website viven en el disco `public`; el plan exige original privado y variantes publicadas para Bertels.
+- `website_messages` no tiene ningún consumidor enrutado (`WebsiteController` no está en rutas): clasificado como **UNCERTAIN**, no se toca sin decisión.
+- No hay MFA configurado en el panel (Filament 5 lo soporta de forma nativa); es gate previo al primer login real de Bertels.
+
+---
+
 ## Deuda técnica
+
+### ~~`OrganizationsSchemaTest` afirma que Website no tiene `site_id` — quedó desactualizado por CLA-547~~ RESUELTO (2026-09-18)
+
+**Encontrado en CLA-549, corregido el mismo día por instrucción explícita del usuario, commit `00fc2f4`.** `Modules/Core/tests/Feature/OrganizationsSchemaTest::test_no_website_data_is_touched_by_this_migration` (CLA-458/P1, commit `4c3288a`) afirmaba `assertFalse(Schema::hasColumn('website_projects', 'site_id'))` (y lo mismo para `website_consultation_requests`) — cierto en P1, pero **CLA-547 (P3a) agregó exactamente esa columna** a ambas tablas sin que nadie actualizara este test, porque el cierre de CLA-547 solo corrió `Modules/Website/tests` + `ClaesenBaseline`, no la suite completa de `Modules/Core/tests` donde vive este archivo. Renombrado a `test_this_migration_never_added_an_organization_id_column_to_website` y las 2 aserciones sobre `site_id` invertidas a `assertTrue` (declarado); las 2 sobre `organization_id` se conservan sin cambios, siguen siendo ciertas (D3: nunca se agrega a tablas site-owned). Verificado: `OrganizationsSchemaTest` 14/14; `Modules/Core/tests` completo **158/158, 0 fallos** (antes 156/158 — el otro fallo, `AccessAnalyticsTest`/`ViteManifestNotFoundException`, se resolvió de paso al construir los assets de Vite en la misma sesión, `npm ci && npm run build`).
+
+### `core:link-users-to-employees` nunca estuvo registrado como comando real (encontrado en CLA-459, 2026-09-18)
+
+`Modules/Core/Providers/CoreServiceProvider.php::registerCommands()` no tiene auto-discovery de directorios — cada comando de consola debe listarse explícitamente en `$this->commands([...])`. Antes de CLA-459 esa lista solo tenía `QaResetEnvironmentCommand`. `LinkUsersToEmployeesCommand.php` (CLA-171, documentado en `CLAUDE.md` → "Sprint User Provisioning" con el comando `php artisan core:link-users-to-employees --dry-run`) **nunca se agregó a esa lista** — `php artisan list` confirma que no existe como comando invocable, desde que se creó. El backfill de producción documentado en `CLAUDE.md` nunca pudo haberse ejecutado tal como está escrito. Encontrado al registrar `BackfillUserOrganizationsCommand` (CLA-459) y verificar primero que el patrón de registro explícito seguía siendo necesario. **No corregido en CLA-459** (fuera de su alcance) — fix trivial: una línea en `registerCommands()`. Sin ticket todavía.
 
 ### ~~`env()` en runtime fuera de `config/*.php` — incompatible con `config:cache`~~ RESUELTO (CLA-532, 2026-09-09)
 
@@ -208,6 +294,17 @@ Los resources de Website (`ConsultationRequestResource`, `ProjectResource`) est�
 | Enforcement de preferencias de categoría en envío | Actualmente no bloqueado técnicamente | Equipo técnico |
 | Añadir monitoreo de NotifyAstroFrontendJob | Fallos silenciosos si token GitHub expira | Equipo técnico |
 | Confirmar hostname del portal cliente | Configuración OAuth/CORS/Sanctum de `CLIENT_PORTAL_URL` | Orelvys |
+| ~~¿Electro Bertels usa algún módulo hoy de Claesen?~~ **Resuelta 2026-09-17: solo Mailing, como sistema de envío** (ADR D11) | Mailing pasa a propiedad por fila; el resto sigue exclusivo de Claesen | — |
+| ~~¿Campañas o solo transaccional?~~ **Resuelta 2026-09-17: solo transaccional por ahora** (ADR D11) | El tramo Mailing se reduce a F4/CLA-473 | — |
+| ¿Fuente de audiencia de Bertels? **Aparcada** mientras no haya campañas; no puede ser `prospects` | Solo una futura decisión de campañas (ADR D11) | Orelvys |
+| ~~¿`electrobertels.be` en el mismo tenant de Microsoft 365?~~ **Resuelta 2026-09-17: sí, lo comparten** (ADR D11) | Sin credenciales por organización ni ESP; exige Application Access Policy y confirmar si los usuarios de Bertels también están en ese tenant | — |
+| Proveedor de identidad de los usuarios de Bertels (mismo tenant Azure, otro tenant o email/contraseña) | Bloquea P5a y la decisión de MFA | Orelvys |
+| Vía de acceso del personal de Bertels al backoffice (hoy LAN + túnel) | Bloquea P6 | Orelvys |
+| Roles y responsable de administrar los usuarios de Bertels en la primera entrega | Bloquea P6 | Orelvys |
+| Identidad remitente y proveedor de correo de Bertels (SPF/DKIM/DMARC) | Bloquea F4 | Orelvys |
+| MFA del panel: Azure SSO/MFA, MFA nativo de Filament o ambos | Gate previo al primer login real de Bertels (ADR D8) | Orelvys |
+| Autorizar consulta de conteo de solo lectura en producción | Dimensionar los backfills de P2/P3 | Orelvys |
+| Assets de marca aprobados para el panel de Bertels | Bloquea P6 | Orelvys |
 
 ---
 

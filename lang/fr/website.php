@@ -70,6 +70,8 @@ return [
             'assigned_to' => 'Attribué à',
             'follow_up_date' => 'Date de suivi',
             'internal_notes' => 'Notes internes',
+            'tags' => 'Étiquettes',
+            'first_response_sla' => 'Première réponse',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -89,17 +91,22 @@ return [
             'other' => 'Autre',
         ],
         'status_options' => [
-            'pending' => 'En attente',
-            'contacted' => 'Contacté',
+            'new' => 'Nouveau',
+            'assigned' => 'Attribué',
             'in_progress' => 'En cours',
-            'completed' => 'Terminé',
-            'cancelled' => 'Annulé',
+            'waiting_client' => 'En attente du client',
+            'closed' => 'Clôturé',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Faible',
             'medium' => 'Moyen',
             'high' => 'Élevé',
             'urgent' => 'Urgent',
+        ],
+        'actions' => [
+            'export' => 'Exporter en CSV',
+            'erase' => 'Effacer (RGPD)',
         ],
     ],
     'activities' => [
@@ -140,6 +147,30 @@ return [
             'new_request_body' => ':name a soumis une nouvelle demande.',
             'reminder_due_title' => 'Rappel échu',
             'reminder_due_body' => ':title — :name',
+        ],
+    ],
+    'announcements' => [
+        'label' => 'Annonce',
+        'plural_label' => 'Annonces',
+        'message_helper' => 'Affiché dans la langue actuelle de cette vue d\'administration.',
+        'starts_at_helper' => 'Vide = actif immédiatement une fois publié.',
+        'ends_at_helper' => 'Vide = reste actif jusqu\'à archivage manuel.',
+        'status' => [
+            'draft' => 'Brouillon',
+            'published' => 'Publié',
+            'archived' => 'Archivé',
+        ],
+    ],
+    'site_settings' => [
+        'label' => 'Paramètres du site',
+        'save' => 'Enregistrer',
+        'saved' => 'Paramètres enregistrés',
+        'fields' => [
+            'hours' => 'Horaires d\'ouverture',
+            'phone' => 'Téléphone',
+            'email' => 'E-mail',
+            'address' => 'Adresse',
+            'social_links' => 'Liens réseaux sociaux (JSON)',
         ],
     ],
 ];

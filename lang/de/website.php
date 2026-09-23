@@ -70,6 +70,8 @@ return [
             'assigned_to' => 'Zugewiesen an',
             'follow_up_date' => 'Folgetermin',
             'internal_notes' => 'Interne Notizen',
+            'tags' => 'Tags',
+            'first_response_sla' => 'Erste Antwort',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -89,17 +91,22 @@ return [
             'other' => 'Sonstige',
         ],
         'status_options' => [
-            'pending' => 'Ausstehend',
-            'contacted' => 'Kontaktiert',
+            'new' => 'Neu',
+            'assigned' => 'Zugewiesen',
             'in_progress' => 'In Bearbeitung',
-            'completed' => 'Abgeschlossen',
-            'cancelled' => 'Abgebrochen',
+            'waiting_client' => 'Wartet auf Kunde',
+            'closed' => 'Geschlossen',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Niedrig',
             'medium' => 'Mittel',
             'high' => 'Hoch',
             'urgent' => 'Dringend',
+        ],
+        'actions' => [
+            'export' => 'CSV exportieren',
+            'erase' => 'Löschen (DSGVO)',
         ],
     ],
     'activities' => [
@@ -140,6 +147,30 @@ return [
             'new_request_body' => ':name hat eine neue Anfrage gestellt.',
             'reminder_due_title' => 'Erinnerung fällig',
             'reminder_due_body' => ':title — :name',
+        ],
+    ],
+    'announcements' => [
+        'label' => 'Ankündigung',
+        'plural_label' => 'Ankündigungen',
+        'message_helper' => 'Wird in der aktuellen Sprache dieser Admin-Ansicht angezeigt.',
+        'starts_at_helper' => 'Leer = sofort aktiv nach Veröffentlichung.',
+        'ends_at_helper' => 'Leer = bleibt aktiv bis manuell archiviert.',
+        'status' => [
+            'draft' => 'Entwurf',
+            'published' => 'Veröffentlicht',
+            'archived' => 'Archiviert',
+        ],
+    ],
+    'site_settings' => [
+        'label' => 'Website-Einstellungen',
+        'save' => 'Speichern',
+        'saved' => 'Einstellungen gespeichert',
+        'fields' => [
+            'hours' => 'Öffnungszeiten',
+            'phone' => 'Telefon',
+            'email' => 'E-Mail',
+            'address' => 'Adresse',
+            'social_links' => 'Social-Media-Links (JSON)',
         ],
     ],
 ];

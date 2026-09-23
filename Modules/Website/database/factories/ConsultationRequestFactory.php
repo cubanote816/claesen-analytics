@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Website\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Modules\Core\Models\Site;
 use Modules\Website\Models\ConsultationRequest;
 
 class ConsultationRequestFactory extends Factory
@@ -14,29 +15,41 @@ class ConsultationRequestFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'              => $this->faker->name(),
-            'email'             => $this->faker->safeEmail(),
-            'phone'             => $this->faker->phoneNumber(),
-            'company'           => $this->faker->company(),
-            'type'              => $this->faker->randomElement(['consultation', 'quote', 'project']),
-            'project_type'      => $this->faker->randomElement(['sport', 'industrial', 'public', 'masts', 'other']),
-            'message'           => $this->faker->paragraph(),
+            // F1/P3a — see ProjectFactory for the rationale.
+            'site_id' => fn () => Site::query()->where('key', Site::CLAESEN_KEY)->value('id')
+                ?? Site::factory()->create(['key' => Site::CLAESEN_KEY])->id,
+            'name' => $this->faker->name(),
+            'email' => $this->faker->safeEmail(),
+            'phone' => $this->faker->phoneNumber(),
+            'company' => $this->faker->company(),
+            'type' => $this->faker->randomElement(['consultation', 'quote', 'project']),
+            'project_type' => $this->faker->randomElement(['sport', 'industrial', 'public', 'masts', 'other']),
+            'message' => $this->faker->paragraph(),
             'preferred_contact' => 'email',
-            'status'            => 'pending',
-            'source'            => 'website',
-            'priority'          => 'medium',
-            'last_activity_at'  => now(),
-            'activity_count'    => 0,
+            'status' => ConsultationRequest::STATUS_NEW,
+            'source' => 'website',
+            'priority' => 'medium',
+            'last_activity_at' => now(),
+            'activity_count' => 0,
         ];
     }
 
-    public function pending(): static
+    public function newLead(): static
     {
-        return $this->state(['status' => 'pending']);
+        return $this->state(['status' => ConsultationRequest::STATUS_NEW]);
     }
 
-    public function completed(): static
+    public function assigned(): static
     {
-        return $this->state(['status' => 'completed', 'contacted_at' => now()]);
+        return $this->state(['status' => ConsultationRequest::STATUS_ASSIGNED]);
+    }
+
+    public function closed(): static
+    {
+        return $this->state([
+            'status' => ConsultationRequest::STATUS_CLOSED,
+            'contacted_at' => now(),
+            'first_response_at' => now(),
+        ]);
     }
 }

@@ -3,13 +3,18 @@
 namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Modules\Core\Models\Concerns\BelongsToSite;
+use Modules\Core\Models\Site;
 use Modules\Website\App\Enums\PublicationStatus;
 
 class PublicationState extends Model
 {
+    use BelongsToSite;
+
     protected $table = 'website_publication_states';
 
     protected $fillable = [
+        'site_id',
         'status',
         'dispatch_key',
         'dispatched_at',
@@ -27,20 +32,33 @@ class PublicationState extends Model
         'last_error_at'    => 'datetime',
     ];
 
-    // ─── Singleton access ────────────────────────────────────────────────────
+    // ─── Singleton-per-site access ──────────────────────────────────────────
+    //
+    // F1/P3b (docs/ai/adr-multi-organization.md): one row per site (D3),
+    // addressed by site_id rather than a hardcoded id = 1. Every caller today
+    // omits $siteId, so nothing about the observed behaviour for Claesen
+    // changes — there is still, and will remain until a second site exists,
+    // exactly one row.
+    //
+    // F3/CLA-472: withoutGlobalScope('site') is deliberate, not a bypass of
+    // isolation — $siteId is already an explicit argument naming exactly the
+    // row this call wants, so BelongsToSite's ambient-context scope (which
+    // filters by whatever OrganizationContext::siteId() currently resolves
+    // to) has nothing left to add. Applying both would AND them together:
+    // called for Bertels' site from a request/job whose ambient context
+    // resolves to Claesen (or none at all under organizations.enforce)
+    // would either silently look at the wrong site or throw
+    // MissingOrganizationContext despite the caller supplying an exact,
+    // valid site id.
 
-    public static function current(): static
+    public static function current(?int $siteId = null): static
     {
-        $state = static::find(1);
+        $siteId ??= Site::claesenId();
 
-        if (!$state) {
-            $state = new static();
-            $state->id = 1;
-            $state->status = PublicationStatus::IDLE;
-            $state->save();
-        }
-
-        return $state;
+        return static::withoutGlobalScope('site')->firstOrCreate(
+            ['site_id' => $siteId],
+            ['status' => PublicationStatus::IDLE]
+        );
     }
 
     // ─── State transitions ────────────────────────────────────────────────────

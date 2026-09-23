@@ -76,6 +76,8 @@ return [
             'assigned_to' => 'Toegewezen aan',
             'follow_up_date' => 'Opvolgdatum',
             'internal_notes' => 'Interne opmerkingen',
+            'tags' => 'Labels',
+            'first_response_sla' => 'Eerste reactie',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -95,17 +97,22 @@ return [
             'other' => 'Overig',
         ],
         'status_options' => [
-            'pending' => 'In afwachting',
-            'contacted' => 'Gecontacteerd',
+            'new' => 'Nieuw',
+            'assigned' => 'Toegewezen',
             'in_progress' => 'In behandeling',
-            'completed' => 'Voltooid',
-            'cancelled' => 'Geannuleerd',
+            'waiting_client' => 'Wacht op klant',
+            'closed' => 'Gesloten',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Laag',
             'medium' => 'Gemiddeld',
             'high' => 'Hoog',
             'urgent' => 'Urgent',
+        ],
+        'actions' => [
+            'export' => 'CSV exporteren',
+            'erase' => 'Wissen (AVG)',
         ],
     ],
     'activities' => [
@@ -169,6 +176,30 @@ return [
             'publish_now_confirm_title'  => 'Publicatie starten',
             'publish_now_confirm_body'   => 'Dit vraagt een volledige herbouw van de website aan. De huidige versie blijft actief tot de bouw klaar is.',
             'publish_now_success'        => 'Publicatie aangevraagd',
+        ],
+    ],
+    'announcements' => [
+        'label' => 'Mededeling',
+        'plural_label' => 'Mededelingen',
+        'message_helper' => 'Wordt getoond in de huidige taal van deze beheerdersweergave.',
+        'starts_at_helper' => 'Leeg = direct actief zodra gepubliceerd.',
+        'ends_at_helper' => 'Leeg = blijft actief tot handmatig gearchiveerd.',
+        'status' => [
+            'draft' => 'Concept',
+            'published' => 'Gepubliceerd',
+            'archived' => 'Gearchiveerd',
+        ],
+    ],
+    'site_settings' => [
+        'label' => 'Site-instellingen',
+        'save' => 'Opslaan',
+        'saved' => 'Instellingen opgeslagen',
+        'fields' => [
+            'hours' => 'Openingstijden',
+            'phone' => 'Telefoon',
+            'email' => 'E-mail',
+            'address' => 'Adres',
+            'social_links' => 'Social media links (JSON)',
         ],
     ],
 ];

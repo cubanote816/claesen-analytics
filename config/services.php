@@ -39,6 +39,27 @@ return [
         'key' => env('GOOGLE_GEOCODING_API_KEY'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cloudflare Turnstile (F4/CLA-475)
+    |--------------------------------------------------------------------------
+    | Two-step activation, same D4-style pattern as organizations.enforce
+    | elsewhere in this program: setting 'secret_key' alone changes nothing.
+    | Modules\Website\Services\IntakeSpamGuard::assertTurnstilePasses() only
+    | calls out to Cloudflare when BOTH a secret key is configured AND
+    | 'enforce' is explicitly true — so a public form can go on submitting
+    | without a token indefinitely until this is a deliberate two-step
+    | decision (get real site/secret keys from Cloudflare, wire the widget
+    | into the separate Astro frontend, then flip 'enforce'). Until then the
+    | honeypot field (config('website.intake_hardening.honeypot_field')) and
+    | the IP rate limit are the only active anti-spam layers.
+    */
+    'turnstile' => [
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+        'enforce' => (bool) env('TURNSTILE_ENFORCE', false),
+        'verify_url' => env('TURNSTILE_VERIFY_URL', 'https://challenges.cloudflare.com/turnstile/v0/siteverify'),
+    ],
+
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'url' => env('GEMINI_API_URL'),

@@ -42,6 +42,7 @@ Lectura opcional, solo a demanda (no cargar por defecto): `docs/ai/decisions-log
 | Preparar deploy / staging | `docs/ai/production-readiness.md` |
 | Migración a Laravel 13 (programa cerrado, consulta puntual) | `docs/ai/archive/laravel-13-readiness.md` |
 | Historial de cierres técnicos Laravel 13 (CLA-515→532) | `docs/ai/decisions-log.md` |
+| **Multiempresa Claesen/Electro Bertels (cualquier fase P0–P7)** | **`docs/ai/adr-multi-organization.md` ← leer antes de tocar organización, sitio, contexto o enforcement** |
 | Riesgos y deuda técnica | `docs/ai/known-risks.md` |
 | Comandos Artisan | `docs/ai/commands-runbook.md` |
 | Prompts reutilizables | `docs/ai/prompt-templates.md` |
@@ -62,6 +63,8 @@ Lectura opcional, solo a demanda (no cargar por defecto): `docs/ai/decisions-log
 | `testing-checklists.md` | Checklists técnicos por tipo de cambio y módulo (referenciados desde el test-gate) |
 | `production-readiness.md` | Checklist de staging y producción; migraciones, scheduler, smoke tests |
 | `decisions-log.md` | Historial detallado de cierres técnicos por ticket (Laravel 13, CLA-515→532) — no es lectura obligatoria |
+| `adr-multi-organization.md` | ADR de separación multiempresa Claesen/Electro Bertels: decisiones, secuencia de fases, enforcement, rollback y preguntas abiertas |
+| `multiorg-decisions-log.md`, `multiorg-handoff-log.md` | Historial detallado por ticket del programa multiempresa (CLA-451→478, 547→560) — no es lectura obligatoria |
 | `archive/laravel-13-readiness.md`, `archive/laravel-13-compatibility-matrix.md`, `archive/laravel-13-staging-certification.md` | Programa Laravel 13 (CLA-514) — núcleo cerrado; consultar solo si el ticket activo es CLA-523/525/530/531 |
 | `code-review-rubric.md` | Cómo revisar un PR: prioridades, severidades, Testing Gate, reglas por módulo |
 | `known-risks.md` | Riesgos abiertos, deuda técnica, bloqueantes y decisiones pendientes |

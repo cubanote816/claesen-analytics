@@ -24,6 +24,7 @@ class GenerateGalleryMediaMetadataJob implements ShouldQueue
     public function handle(GeminiService $gemini): void
     {
         $notifyFrontend = false;
+        $siteId = null;
 
         try {
             $media = Media::find($this->mediaId);
@@ -31,10 +32,20 @@ class GenerateGalleryMediaMetadataJob implements ShouldQueue
                 return;
             }
 
-            $project = $media->model;
+            // F3/CLA-472: a queued job has no HTTP-resolved or authenticated
+            // site context (unlike Modules\Website\Observers\MediaObserver,
+            // which always runs inline within an authenticated admin
+            // request) — the magic $media->model accessor would otherwise
+            // throw Modules\Core\Exceptions\MissingOrganizationContext once
+            // organizations.enforce is on. Bypassing the scope here is safe:
+            // $media->model_id already names the exact row, a lookup by
+            // primary key has nothing left for site isolation to protect.
+            $project = $media->model()->withoutGlobalScope('site')->first();
             if (!$project instanceof Project) {
                 return;
             }
+
+            $siteId = $project->site_id;
 
             // Media confirmed as a Project gallery item — frontend must be notified regardless of outcome
             $notifyFrontend = true;
@@ -80,7 +91,7 @@ class GenerateGalleryMediaMetadataJob implements ShouldQueue
             Log::error("GenerateGalleryMediaMetadataJob failed for media #{$this->mediaId}: " . $e->getMessage());
         } finally {
             if ($notifyFrontend) {
-                app(StaticSitePublicationService::class)->requestRebuild('content_changed');
+                app(StaticSitePublicationService::class)->requestRebuild($siteId, 'content_changed');
             }
         }
     }

@@ -1,0 +1,67 @@
+panel_id=admin
+panel_path=<root>
+panel_is_default=yes
+spa_mode=yes
+navigation_groups=Workforce & Performance,Growth & Acquisition,Mailing,Safety & VCA,Content & Website,Intelligence Hub,Field Operations,User Management
+resource App\Filament\Clusters\Website\Resources\AnnouncementResource | model=Modules\Website\Models\Announcement | slug=announcements | navigation=yes | record_title=- | globally_searchable=no
+resource App\Filament\Clusters\Website\Resources\ConsultationRequestResource | model=Modules\Website\Models\ConsultationRequest | slug=consultation-requests | navigation=yes | record_title=- | globally_searchable=no
+resource App\Filament\Clusters\Website\Resources\ProjectResource | model=Modules\Website\Models\Project | slug=projects | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\Core\Filament\Resources\ActivityLogResource | model=Modules\Core\Models\ActivityLogEntry | slug=activity-logs | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\Core\Filament\Resources\Permissions\PermissionResource | model=Modules\Core\Models\Permission | slug=permissions | navigation=yes | record_title=name | globally_searchable=yes
+resource Modules\Core\Filament\Resources\Roles\RoleResource | model=Modules\Core\Models\Role | slug=roles | navigation=yes | record_title=name | globally_searchable=yes
+resource Modules\Core\Filament\Resources\Users\UserResource | model=Modules\Core\Models\User | slug=users | navigation=yes | record_title=name | globally_searchable=yes
+resource Modules\Employee\Filament\Resources\EmployeeResource | model=Modules\Cafca\Models\Employee | slug=employees | navigation=yes | record_title=name | globally_searchable=yes
+resource Modules\FieldOps\Filament\Resources\Catalogs\AccessTypeResource | model=Modules\FieldOps\Models\AccessType | slug=catalogs/access-types | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\Catalogs\ElectricalBoardTypeResource | model=Modules\FieldOps\Models\ElectricalBoardType | slug=catalogs/electrical-board-types | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\Catalogs\FoMaintenanceTypeResource | model=Modules\FieldOps\Models\FoMaintenanceType | slug=catalogs/fo-maintenance-types | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\Catalogs\LuminaireFrameTypeResource | model=Modules\FieldOps\Models\LuminaireFrameType | slug=catalogs/luminaire-frame-types | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\Catalogs\LuminaireSubgroupResource | model=Modules\FieldOps\Models\LuminaireSubgroup | slug=catalogs/luminaire-subgroups | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\Catalogs\LuminaireTypeResource | model=Modules\FieldOps\Models\LuminaireType | slug=catalogs/luminaire-types | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\Catalogs\SafetyTypeResource | model=Modules\FieldOps\Models\SafetyType | slug=catalogs/safety-types | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\Catalogs\StructureTypeResource | model=Modules\FieldOps\Models\StructureType | slug=catalogs/structure-types | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\Catalogs\TerrainTypeResource | model=Modules\FieldOps\Models\TerrainType | slug=catalogs/terrain-types | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\ComplexResource | model=Modules\FieldOps\Models\Complex | slug=complexes | navigation=yes | record_title=name | globally_searchable=yes
+resource Modules\FieldOps\Filament\Resources\ElectricalBoardResource | model=Modules\FieldOps\Models\ElectricalBoard | slug=electrical-boards | navigation=no | record_title=location_description | globally_searchable=yes
+resource Modules\FieldOps\Filament\Resources\FoClientResource | model=Modules\FieldOps\Models\FoClient | slug=fo-clients | navigation=yes | record_title=name | globally_searchable=yes
+resource Modules\FieldOps\Filament\Resources\FoMaintenancePlanResource | model=Modules\FieldOps\Models\FoMaintenancePlan | slug=fo-maintenance-plans | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\FoMaintenanceRecordResource | model=Modules\FieldOps\Models\FoMaintenanceRecord | slug=fo-maintenance-records | navigation=no | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\FoMaintenanceRequestResource | model=Modules\FieldOps\Models\FoMaintenanceRequest | slug=fo-maintenance-requests | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\FoMaintenanceWorkOrderResource | model=Modules\FieldOps\Models\FoMaintenanceWorkOrder | slug=fo-maintenance-work-orders | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\LuminaireFrameResource | model=Modules\FieldOps\Models\LuminaireFrame | slug=luminaire-frames | navigation=no | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\LuminaireResource | model=Modules\FieldOps\Models\Luminaire | slug=luminaires | navigation=no | record_title=serial_number | globally_searchable=yes
+resource Modules\FieldOps\Filament\Resources\StructureResource | model=Modules\FieldOps\Models\Structure | slug=structures | navigation=no | record_title=- | globally_searchable=no
+resource Modules\FieldOps\Filament\Resources\TerrainResource | model=Modules\FieldOps\Models\Terrain | slug=terrains | navigation=no | record_title=name | globally_searchable=yes
+resource Modules\Mailing\Filament\Resources\CampaignResource | model=Modules\Mailing\Models\Campaign | slug=campaigns | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\Mailing\Filament\Resources\EmailTemplates\EmailTemplateResource | model=Modules\Mailing\Models\EmailTemplate | slug=email-templates | navigation=yes | record_title=name | globally_searchable=yes
+resource Modules\Performance\Filament\Resources\ProjectInsightResource | model=Modules\Performance\Models\ProjectInsight | slug=project-insights | navigation=no | record_title=- | globally_searchable=no
+resource Modules\Performance\Filament\Resources\ProjectResource | model=Modules\Cafca\Models\Project | slug=projects | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\Prospects\Filament\Resources\Prospects\ProspectResource | model=Modules\Prospects\Models\Prospect | slug=prospects | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\Prospects\Filament\Resources\SyncHistoryResource | model=Modules\Prospects\Models\SyncHistory | slug=sync-histories | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\Safety\Filament\Resources\ChecklistResource | model=Modules\Safety\Models\Checklist | slug=checklists | navigation=yes | record_title=- | globally_searchable=no
+resource Modules\Safety\Filament\Resources\InspectionResource | model=Modules\Safety\Models\Inspection | slug=inspections | navigation=yes | record_title=- | globally_searchable=no
+page App\Filament\Clusters\Website\Pages\SiteSettingsPage
+page App\Filament\Clusters\Website\WebsiteCluster
+page Filament\Pages\Dashboard
+page Modules\Core\Filament\Pages\AccessAnalyticsPage
+page Modules\Employee\Filament\Pages\EmployeeDayStats
+page Modules\Employee\Filament\Pages\EmployeeHoursDashboard
+page Modules\Employee\Filament\Pages\EmployeeMonthStats
+page Modules\Employee\Filament\Pages\EmployeeWeekStats
+page Modules\Employee\Filament\Pages\ProjectsWorkedHoursPage
+page Modules\FieldOps\Filament\Pages\MyWorkOrders
+page Modules\Intelligence\Filament\Pages\BiConfigPage
+page Modules\Intelligence\Filament\Pages\MirrorSyncStatusPage
+page Modules\Intelligence\Filament\Pages\MonthlyBillingControlPage
+page Modules\Intelligence\Filament\Pages\OfferSimulator
+page Modules\Intelligence\Filament\Pages\ProjectIntelligenceDetail
+page Modules\Performance\Filament\Pages\EmployeeInsight
+page Modules\Prospects\Filament\Pages\SyncDashboardPage
+widget Modules\Employee\Filament\Widgets\EmployeeHoursSummaryWidget
+widget Modules\FieldOps\Filament\Widgets\MaintenanceRequestLifecycleWidget
+widget Modules\Mailing\Filament\Widgets\CampaignMetricsWidget
+widget Modules\Performance\Filament\Widgets\CashFlowWatchdogWidget
+widget Modules\Performance\Filament\Widgets\EmployeePerformanceChartWidget
+widget Modules\Performance\Filament\Widgets\EmployeePerformanceStatsWidget
+widget Modules\Safety\Filament\Widgets\InspectionsTrendChartWidget
+widget Modules\Safety\Filament\Widgets\SafetyAdoptionOverviewWidget
+widget Modules\Safety\Filament\Widgets\SafetyStatsWidget

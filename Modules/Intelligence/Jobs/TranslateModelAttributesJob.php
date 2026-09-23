@@ -28,8 +28,19 @@ class TranslateModelAttributesJob implements ShouldQueue
 
     public function handle(GeminiService $gemini): void
     {
+        // F3/CLA-471 (docs/ai/adr-multi-organization.md): this job is generic
+        // across every translatable model in the app, most of which never use
+        // Modules\Core\Models\Concerns\BelongsToSite — and the one that does
+        // (Website\Project) is looked up here by primary key from a trusted,
+        // internally-dispatched job payload, never user input. Site scoping
+        // exists to stop a request from seeing another site's rows by
+        // accident; a lookup that already names the exact row it wants has
+        // nothing left for that scope to protect, so it's excluded rather
+        // than requiring every job dispatch site to carry a resolved site
+        // just to read it back a moment later. withoutGlobalScope('site') is
+        // a no-op for the (majority of) models that never registered it.
         /** @var \Illuminate\Database\Eloquent\Model&\Spatie\Translatable\HasTranslations $model */
-        $model = ($this->modelClass)::find($this->modelId);
+        $model = ($this->modelClass)::query()->withoutGlobalScope('site')->find($this->modelId);
         if (!$model) {
             return;
         }

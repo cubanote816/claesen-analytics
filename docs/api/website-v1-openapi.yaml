@@ -1,0 +1,239 @@
+openapi: 3.0.3
+info:
+  title: Claesen Website Public API (v1)
+  version: "1.0"
+  description: >-
+    Public, unauthenticated, unthrottled read/write surface consumed by the
+    Astro frontend(s). One site is resolved per request
+    (Modules\Core\Http\Middleware\ResolveRequestSite — ?site=<key> query
+    param, then Host domain match, then the Claesen site as the default
+    fallback) before any handler runs; every response below is scoped to
+    that resolved site. Cross-site data leakage is covered by
+    Modules/Website/tests/Feature/PublicApiSiteScopingTest.php and
+    SiteContentApiTest.php, not by this document — this file freezes shape
+    and examples, the tests freeze behaviour.
+    F3/CLA-471 of docs/ai/adr-multi-organization.md.
+servers:
+  - url: /v1/website
+paths:
+  /:
+    get:
+      summary: Liveness/version probe
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example: { status: "Claesen Website API is running", version: "1.0" }
+  /projects:
+    get:
+      summary: Paginated, published-only project listing for the resolved site
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: year
+          in: query
+          schema: { type: integer }
+        - name: featured
+          in: query
+          schema: { type: boolean }
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 12 }
+        - name: site
+          in: query
+          schema: { type: string }
+          description: Site key override — see ResolveRequestSite above.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                data:
+                  - id: 1
+                    slug: "sports-hall-lighting"
+                    title: "Sports hall lighting"
+                    description: "..."
+                    category: "sport"
+                    year: 2026
+                    featured: true
+                    order_index: 0
+                    featured_image:
+                      optimized: "https://.../conversions/1-optimized.webp"
+                      thumb: "https://.../conversions/1-thumb.webp"
+                      optimized_avif: "https://.../conversions/1-optimized_avif.avif"
+                      thumb_avif: "https://.../conversions/1-thumb_avif.avif"
+                    gallery: []
+                    detail_gallery: []
+                links: { first: "...", last: "...", prev: null, next: null }
+                meta: { current_page: 1, per_page: 12, total: 1 }
+  /projects/categories:
+    get:
+      summary: Distinct categories among the resolved site's published projects
+      responses:
+        "200":
+          content:
+            application/json:
+              example: { data: ["sport", "industrial"] }
+  /projects/years:
+    get:
+      summary: Distinct years among the resolved site's published projects
+      responses:
+        "200":
+          content:
+            application/json:
+              example: { data: [2025, 2026] }
+  /projects/{slug}:
+    get:
+      summary: A single published project, scoped to the resolved site (unique per site, not globally)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK — same media shape as the index's featured_image/gallery, plus 'related' (up to 3 same-category projects).
+        "404":
+          description: Not published, wrong site, or does not exist — sanitized regardless of APP_DEBUG (see bootstrap/app.php's exceptions renderer).
+          content:
+            application/json:
+              example: { message: "Not found." }
+  /settings:
+    get:
+      summary: Whitelisted site settings (hours/phone/email/address/social_links) — F3/CLA-469
+      description: >-
+        Only config('website.site_settings.allowed_keys') keys ever appear.
+        Never exposes id/site_id/type or any Site model field.
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                data:
+                  phone: "+32 123 45 67"
+                  hours: "Mon-Fri: 9am-5pm"
+                  social_links: [{ platform: "facebook", url: "https://..." }]
+  /announcements:
+    get:
+      summary: Currently-active announcements (published AND within their date window) — F3/CLA-469
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                data:
+                  - id: 3
+                    message: "Closed for the holidays"
+                    starts_at: null
+                    ends_at: "2026-12-31T23:59:59+00:00"
+  /consultations:
+    post:
+      summary: >-
+        Submit a consultation request — F4/CLA-478's canonical intake
+        (Modules\Website\Services\ConsultationService::handlePublicIntake()).
+        Also feeds a Prospects lead (deduped by email) when the resolved
+        site is Claesen (ADR D11 — Prospects/audiences stay 100% Claesen).
+        F4/CLA-475: per-IP rate limited (config('website.intake_hardening.
+        rate_limit'), default 10/minute — a limit hit responds 429 before
+        the request body is ever read) and screened by an undocumented
+        honeypot field (see below) before it reaches the database.
+      parameters:
+        - name: utm_source
+          in: query
+          schema: { type: string }
+          description: Whitelisted charset, used verbatim as the stored `source` when present.
+        - name: utm_medium
+          in: query
+          schema: { type: string }
+        - name: utm_campaign
+          in: query
+          schema: { type: string }
+        - name: Idempotency-Key
+          in: header
+          schema: { type: string }
+          description: >-
+            Optional. A repeated request with the same key returns the same
+            201 response instead of creating a second lead (10-minute TTL).
+            Omitted => not idempotent (CLA-532's original guarantee: two
+            deliberate POSTs create two rows).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  maxLength: 5000
+                  description: >-
+                    F4/CLA-475: newly capped — config('website.intake_hardening.message_max_length').
+                turnstile_token:
+                  type: string
+                  nullable: true
+                  description: >-
+                    F4/CLA-475: Cloudflare Turnstile response token. Optional
+                    and currently ignored — verification only runs once
+                    services.turnstile.secret_key AND services.turnstile.enforce
+                    are both set, which they are not in any environment today.
+                consent:
+                  type: boolean
+                  nullable: true
+                  description: >-
+                    F4/CLA-475: when truthy, stamps consent_given_at (and
+                    policy_version, if also sent) on the created lead. Never
+                    required — omitting it still succeeds.
+                policy_version:
+                  type: string
+                  nullable: true
+                  maxLength: 50
+                one_undocumented_honeypot_field:
+                  type: string
+                  nullable: true
+                  description: >-
+                    F4/CLA-475: an anti-bot honeypot field exists on this
+                    endpoint. Its real name (config('website.intake_hardening.
+                    honeypot_field')) is deliberately not published here — a
+                    real visitor never sends it; sending anything non-empty in
+                    it silently drops the submission (still a 201, nothing
+                    persisted).
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              example: { message: "Consultation request created successfully.", data: { id: 42, name: "...", email: "..." } }
+        "422":
+          description: >-
+            Validation error — untouched by the sanitized-error renderer
+            (already safe, field-level messages only). Also the response
+            when Turnstile is configured+enforced and verification fails.
+        "429":
+          description: F4/CLA-475 — per-IP rate limit exceeded.
+        "500":
+          description: Never exposes the underlying exception message (F4/CLA-478 — a real prior leak, fixed).
+          content:
+            application/json:
+              example: { message: "Failed to create consultation request." }
+  /contact-email:
+    post:
+      summary: >-
+        Submit a simple contact form — a thin adapter over the same
+        canonical intake as /consultations (same source/UTM/idempotency/
+        Prospects behaviour, and the same F4/CLA-475 rate limit/honeypot/
+        Turnstile/consent handling), kept for backward compatibility with
+        its simpler name/email/message-only request shape.
+      responses:
+        "201": { description: Created }
+        "422": { description: Validation error }
+        "429": { description: F4/CLA-475 — per-IP rate limit exceeded. }
+components:
+  headers:
+    ETag:
+      description: >-
+        Present on every successful GET (Modules\Core\Http\Middleware\SetPublicApiCacheHeaders).
+        A matching If-None-Match request header gets a bodyless 304.
+    Cache-Control:
+      description: "public, max-age=60 on every successful GET; never set on POST or non-2xx responses."

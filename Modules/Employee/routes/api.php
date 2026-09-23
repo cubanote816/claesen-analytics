@@ -11,7 +11,7 @@ use Modules\Employee\App\Http\Controllers\WorkHoursAnalyticsController;
 
 Route::group(['prefix' => 'v1', 'middleware' => ['api']], function () {
 
-    Route::group(['prefix' => 'employees', 'middleware' => ['auth:sanctum']], function () {
+    Route::group(['prefix' => 'employees', 'middleware' => ['auth:sanctum', 'organization:claesen']], function () {
 
         Route::get('/',          [EmployeeModuleController::class,   'getAllEmployees']);
         Route::get('/rankings',  [EmployeeDashboardController::class, 'getEmployeeRankings']);

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Modules\Cafca\Models\Employee;
 use Modules\Core\Filament\Resources\Users\Schemas\CreateUserForm;
 use Modules\Core\Filament\Resources\Users\UserResource;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Models\FoClient;
 use Spatie\Permission\Models\Role;
@@ -99,6 +100,11 @@ class CreateUser extends CreateRecord
         }
 
         return DB::transaction(function () use ($data, $roleIds, $clientIds, $canManageContacts): User {
+            // F1/P2 (docs/ai/adr-multi-organization.md): no organization picker
+            // exists yet (lands in phase P6) — every backoffice user created
+            // here belongs to Claesen until then.
+            $data['organization_id'] = Organization::claesenId();
+
             $user = User::create($data);
             $user->syncRoles($roleIds);     // failure here rolls back the User::create
 

@@ -76,6 +76,8 @@ return [
             'assigned_to' => 'Assigned To',
             'follow_up_date' => 'Follow-up Date',
             'internal_notes' => 'Internal Notes',
+            'tags' => 'Tags',
+            'first_response_sla' => 'First response',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -95,17 +97,22 @@ return [
             'other' => 'Other',
         ],
         'status_options' => [
-            'pending' => 'Pending',
-            'contacted' => 'Contacted',
+            'new' => 'New',
+            'assigned' => 'Assigned',
             'in_progress' => 'In Progress',
-            'completed' => 'Completed',
-            'cancelled' => 'Cancelled',
+            'waiting_client' => 'Waiting on Client',
+            'closed' => 'Closed',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Low',
             'medium' => 'Medium',
             'high' => 'High',
             'urgent' => 'Urgent',
+        ],
+        'actions' => [
+            'export' => 'Export CSV',
+            'erase' => 'Erase (GDPR)',
         ],
     ],
     'activities' => [
@@ -169,6 +176,30 @@ return [
             'publish_now_confirm_title'  => 'Start publication',
             'publish_now_confirm_body'   => 'This will request a full rebuild of the website. The current version stays live until the build completes.',
             'publish_now_success'        => 'Publication requested',
+        ],
+    ],
+    'announcements' => [
+        'label' => 'Announcement',
+        'plural_label' => 'Announcements',
+        'message_helper' => 'Shown in the current language of this admin view.',
+        'starts_at_helper' => 'Empty = active immediately once published.',
+        'ends_at_helper' => 'Empty = stays active until manually archived.',
+        'status' => [
+            'draft' => 'Draft',
+            'published' => 'Published',
+            'archived' => 'Archived',
+        ],
+    ],
+    'site_settings' => [
+        'label' => 'Site settings',
+        'save' => 'Save',
+        'saved' => 'Settings saved',
+        'fields' => [
+            'hours' => 'Opening hours',
+            'phone' => 'Phone',
+            'email' => 'Email',
+            'address' => 'Address',
+            'social_links' => 'Social media links (JSON)',
         ],
     ],
 ];

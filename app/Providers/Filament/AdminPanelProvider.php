@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Auth\MultiFactor\Email\EmailAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -22,6 +24,9 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Modules\Core\Http\Middleware\AssignCorrelationId;
+use Modules\Core\Http\Middleware\ResolveOrganizationContext;
+use Modules\Core\Http\Middleware\UpdateUserActivity;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -123,6 +128,21 @@ HTML
             ->login(\Modules\Core\Filament\Pages\Auth\Login::class)
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
+            // CLA-464 (ADR D8): required only for super_admin/admin, not every
+            // internal role with panel access — see the middleware's own
+            // docblock for why the role gate lives there and not in a Closure
+            // passed to requiresMultiFactorAuthentication() (evaluated once at
+            // boot, no per-request user). Only covers the local-password login
+            // path (Modules\Core\Filament\Pages\Auth\Login already carries
+            // Filament's MFA challenge verbatim, CLA-363); Azure OAuth logins
+            // (MicrosoftAuthController) bypass this entirely — that path would
+            // need Azure Conditional Access, outside this repo.
+            ->multiFactorAuthentication([
+                AppAuthentication::make(),
+                EmailAuthentication::make(),
+            ])
+            ->multiFactorAuthenticationRequiredMiddlewareName(\Modules\Core\Http\Middleware\EnsureAdminRoleMultiFactorAuthenticationIsEnabled::class)
+            ->requiresMultiFactorAuthentication()
             ->navigationGroups([
                 NavigationGroup::make('Workforce & Performance')
                     ->label(fn () => __('navigation.groups.workforce_performance'))
@@ -221,6 +241,17 @@ HTML
                 \Modules\Core\Http\Middleware\BrowserLocaleMiddleware::class,
                 \Modules\Core\Http\Middleware\EnsurePasswordIsSet::class,
                 \Modules\Core\Http\Middleware\EnsurePanelAccess::class,
+                // F2/CLA-465 real fix, found while building it: this panel
+                // builds its OWN explicit middleware list rather than the
+                // 'web' group alias, so bootstrap/app.php's
+                // $middleware->web(append: [...]) NEVER reached this panel's
+                // routes — confirmed with a real request (Cache::has() proof
+                // for UpdateUserActivity's own side effect returned false
+                // before this fix). AssignCorrelationId/UpdateUserActivity/
+                // ResolveOrganizationContext all belong here explicitly.
+                AssignCorrelationId::class,
+                UpdateUserActivity::class,
+                ResolveOrganizationContext::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -238,6 +269,15 @@ HTML
                     ->icon('heroicon-o-shield-check')
                     ->group(fn () => __('navigation.groups.content_website'))
                     ->sort(11),
+                // F1/P4+P6 (CLA-460 cont.): audited panel-switch selector.
+                // Ungrouped on purpose — a cross-cutting super_admin action,
+                // not Website content. No real Bertels user exists yet (D10),
+                // so this stays gated to super_admin until P5/P7.
+                NavigationItem::make(fn () => __('navigation.switch_to_bertels'))
+                    ->url(fn () => route('core.switch-panel', ['panel' => 'bertels', 'from' => 'admin']))
+                    ->icon('heroicon-o-building-office-2')
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin'))
+                    ->sort(100),
             ]);
     }
 }

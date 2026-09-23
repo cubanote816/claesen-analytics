@@ -3,8 +3,14 @@
 namespace Modules\Website\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Website\Console\MigrateProjectMediaToPrivateDiskCommand;
 use Modules\Website\Console\RegenerateProjectMediaCommand;
+use Modules\Website\Console\Commands\ApplyRetentionPolicyCommand;
+use Modules\Website\Console\Commands\CheckIntakeAbuseAlertsCommand;
 use Modules\Website\Console\Commands\ProcessConsultationRemindersCommand;
+use Modules\Website\Console\Commands\RetryFailedConsultationEmailsCommand;
+use Modules\Website\Console\Commands\SetMediaFocalPointCommand;
+use Modules\Website\Console\Commands\ConfirmMediaUsageRightsCommand;
 use Modules\Website\Contracts\ProjectRepositoryInterface;
 use Modules\Website\Repositories\EloquentProjectRepository;
 use Modules\Website\Contracts\MessageRepositoryInterface;
@@ -40,7 +46,13 @@ class WebsiteServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 RegenerateProjectMediaCommand::class,
+                MigrateProjectMediaToPrivateDiskCommand::class,
+                SetMediaFocalPointCommand::class,
+                ConfirmMediaUsageRightsCommand::class,
                 ProcessConsultationRemindersCommand::class,
+                RetryFailedConsultationEmailsCommand::class,
+                ApplyRetentionPolicyCommand::class,
+                CheckIntakeAbuseAlertsCommand::class,
             ]);
         }
     }

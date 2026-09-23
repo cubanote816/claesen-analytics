@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Website\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Modules\Core\Models\Site;
 use Modules\Website\Models\Project;
 
 class ProjectFactory extends Factory
@@ -14,6 +15,12 @@ class ProjectFactory extends Factory
     public function definition(): array
     {
         return [
+            // F1/P3a (docs/ai/adr-multi-organization.md): resolves the seeded
+            // Claesen site so the existing Website tests keep working unchanged;
+            // falls back to creating it only for isolated tests that skip the
+            // phase P1 seed migration.
+            'site_id'     => fn () => Site::query()->where('key', Site::CLAESEN_KEY)->value('id')
+                ?? Site::factory()->create(['key' => Site::CLAESEN_KEY])->id,
             'slug'        => $this->faker->unique()->slug(),
             'title'       => ['nl' => $this->faker->sentence(3), 'en' => $this->faker->sentence(3)],
             'description' => ['nl' => $this->faker->paragraph(), 'en' => $this->faker->paragraph()],

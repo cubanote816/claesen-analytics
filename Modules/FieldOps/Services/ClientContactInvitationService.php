@@ -8,6 +8,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Models\FoClient;
 use Modules\FieldOps\Notifications\ClientContactInvitationNotification;
@@ -38,6 +39,10 @@ class ClientContactInvitationService
                     'password' => null,
                     'password_set_at' => null,
                     'language' => $data['language'] ?? $client->language ?? 'nl',
+                    // F1/P2 (docs/ai/adr-multi-organization.md): all client
+                    // contacts belong to Claesen until Bertels' own client
+                    // portal exists (F3/F4, still behind the iron rule of D10).
+                    'organization_id' => Organization::claesenId(),
                 ]);
                 $user->forceFill([
                     'activation_code_hash' => hash('sha256', $activationCode),

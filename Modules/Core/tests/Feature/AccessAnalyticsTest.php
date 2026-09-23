@@ -282,7 +282,10 @@ class AccessAnalyticsTest extends TestCase
 
     public function test_super_admin_can_open_access_analytics_page(): void
     {
-        $user = $this->activeUser();
+        // CLA-464 (ADR D8): super_admin is now forced to set up MFA before
+        // reaching any panel page — a concern separate from what this test
+        // isolates (page access itself).
+        $user = $this->activeUser(['has_email_authentication' => true]);
         $user->assignRole('super_admin');
 
         $this->actingAs($user)

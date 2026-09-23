@@ -26,7 +26,7 @@ class ListProjects extends ListRecords
                 ->modalDescription(__('website.publication.actions.publish_now_confirm_body'))
                 ->action(function () {
                     app(StaticSitePublicationService::class)
-                        ->requestRebuild('manual', force: true);
+                        ->requestRebuild(reason: 'manual', force: true);
 
                     Notification::make()
                         ->title(__('website.publication.actions.publish_now_success'))

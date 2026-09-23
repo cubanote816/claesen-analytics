@@ -1,0 +1,23 @@
+php artisan analytics:send-watchdog-report | expression=0 8 * * 1 | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan fieldops:check-request-alerts | expression=0 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
+php artisan fieldops:generate-maintenance-work-orders | expression=0 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
+php artisan intelligence:billing-guardian --previous-month | expression=0 7 2 * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
+php artisan intelligence:sync-mirror | expression=0 4 * * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan mailing:ab-select-winner | expression=*/5 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
+php artisan mailing:check-deliverability-alerts | expression=*/30 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
+php artisan mailing:dispatch-followups | expression=*/5 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
+php artisan mailing:dispatch-scheduled | expression=* * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
+php artisan mailing:parse-bounces | expression=*/30 * * * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan performance:populate-insights | expression=0 9 * * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan performance:send-watchdog-report | expression=0 8 * * 1 | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan performance:sync-all | expression=0 2 * * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan prospects:sync-aft-clubs | expression=0 2 1 * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan prospects:sync-brussels-clubs | expression=0 4 1 * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan prospects:sync-hockey-clubs | expression=0 3 1 * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan prospects:sync-lbfa-clubs | expression=30 1 1 * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan prospects:sync-rbfa-graphql | expression=30 3 1 * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan prospects:sync-tpv-clubs | expression=30 2 1 * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan prospects:sync-val-clubs | expression=0 1 1 * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan safety:aggregate-adoption | expression=0 1 * * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan safety:check-compliance | expression=0 8 * * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan safety:notify-inactive-managers | expression=0 9 * * 1 | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no

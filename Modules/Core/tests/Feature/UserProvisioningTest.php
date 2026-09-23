@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use Modules\Cafca\Models\Employee;
 use Modules\Core\Filament\Resources\Users\Pages\CreateUser;
 use Modules\Core\Filament\Resources\Users\Pages\EditUser;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Models\FoClient;
 use Spatie\Permission\Models\Role;
@@ -275,6 +276,31 @@ class UserProvisioningTest extends TestCase
             'client_email' => 'client@example.com',
             'client_ids' => [999999],
         ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // F1/P2 (docs/ai/adr-multi-organization.md): the panel has no organization
+    // picker yet (lands in phase P6) — every backoffice user created here
+    // belongs to Claesen until then.
+    // -----------------------------------------------------------------------
+    public function test_created_backoffice_user_is_assigned_to_the_claesen_organization(): void
+    {
+        $employee = $this->makeEmployee();
+
+        $page = app(CreateUser::class);
+        $method = new \ReflectionMethod($page, 'handleRecordCreation');
+        $method->setAccessible(true);
+
+        $user = $method->invoke($page, [
+            'employee_id' => $employee->id,
+            'name' => $employee->name,
+            'email' => $employee->email,
+            'password' => null,
+            'password_set_at' => null,
+            'role_ids' => [$this->pmRole->id],
+        ]);
+
+        $this->assertSame(Organization::claesenId(), $user->fresh()->organization_id);
     }
 
     // -----------------------------------------------------------------------

@@ -43,8 +43,49 @@ class AppServiceProvider extends ServiceProvider
         }
 
 
-        Gate::before(function ($user, $ability) {
-            return $user->hasRole('super_admin') ? true : null;
+        // F1/P5c of the multi-organization program (ADR D5,
+        // docs/ai/adr-multi-organization.md). With the flag off (the
+        // default in every environment today) this is byte-for-byte the
+        // original rule: super_admin bypasses every ability, unconditionally.
+        //
+        // With the flag on: (1) a subject registered in
+        // organizations.owned_models only grants the bypass if it belongs to
+        // the super_admin's own organization — a mismatch defers to the
+        // model's own scope/policy (null), which deny; (2) an unregistered
+        // subject is deliberately left untouched (keeps the old unconditional
+        // bypass) — the registry is an allowlist that grows deliberately, see
+        // config/organizations.php; (3) no subject at all only bypasses for
+        // an ability explicitly listed in platform_abilities (empty today,
+        // so this branch is currently unreachable in practice).
+        Gate::before(function ($user, string $ability, array $arguments = []) {
+            if (! $user->hasRole('super_admin')) {
+                return null;
+            }
+
+            if (! config('organizations.enforce')) {
+                return true;
+            }
+
+            $subject = $arguments[0] ?? null;
+            $subjectClass = is_object($subject) ? get_class($subject) : (is_string($subject) ? $subject : null);
+
+            if ($subjectClass === null) {
+                return in_array($ability, config('organizations.platform_abilities'), true) ? true : null;
+            }
+
+            $ownedModules = config('organizations.owned_models');
+
+            if (! isset($ownedModules[$subjectClass])) {
+                return true;
+            }
+
+            $moduleKey = $ownedModules[$subjectClass];
+            $owningOrgSlug = collect(config('organizations.owned_modules'))
+                ->filter(fn (array $modules) => in_array($moduleKey, $modules, true))
+                ->keys()
+                ->first();
+
+            return $owningOrgSlug !== null && $user->organization?->slug === $owningOrgSlug ? true : null;
         });
 
         // El backoffice no tiene salida a internet. Las peticiones directas de LAN a

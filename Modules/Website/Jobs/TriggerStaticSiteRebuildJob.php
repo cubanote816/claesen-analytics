@@ -8,6 +8,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Modules\Core\Models\Site;
+use Modules\Core\Services\OrganizationContext;
 use Modules\Website\Models\PublicationState;
 use Modules\Website\Services\StaticSitePublicationService;
 
@@ -21,6 +23,7 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
     public array $backoff = [30, 60, 120];
 
     public function __construct(
+        public readonly int    $siteId,
         public readonly string $dispatchKey,
         public readonly string $reason,
         public readonly bool   $force,
@@ -28,7 +31,16 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
 
     public function handle(StaticSitePublicationService $service): void
     {
-        $state = PublicationState::current();
+        // F3/CLA-472 (ADR D6): this job is the first real consumer that
+        // needs BelongsToSite-scoped queries to resolve correctly inside a
+        // background job — PublicationState::current($this->siteId) below
+        // would otherwise throw MissingOrganizationContext (no HTTP
+        // middleware or authenticated user exists here to have set one).
+        // Setting it explicitly from the job's own scalar payload is exactly
+        // what D6 already prescribed for this situation.
+        app(OrganizationContext::class)->setSite(Site::query()->find($this->siteId));
+
+        $state = PublicationState::current($this->siteId);
 
         // Debounce: a newer requestRebuild() generated a different dispatch_key.
         // This job is stale — abort silently. The newer job will handle the rebuild.
@@ -40,7 +52,7 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
             return;
         }
 
-        $result = $service->sendWebhook($this->reason, $this->force);
+        $result = $service->sendWebhook($this->siteId, $this->reason, $this->force);
 
         if ($result->success) {
             // Re-check before marking accepted: another admin save may have
@@ -73,7 +85,9 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        $state = PublicationState::current();
+        app(OrganizationContext::class)->setSite(Site::query()->find($this->siteId));
+
+        $state = PublicationState::current($this->siteId);
 
         if ($state->dispatch_key !== $this->dispatchKey) {
             Log::info('Static site rebuild failed but was superseded — not marking error.', [
