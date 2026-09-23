@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Modules\FieldOps\Http\Requests\UpdateComplexRequest;
 use Modules\FieldOps\Http\Resources\ComplexResource;
 use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Services\ComplexCountsService;
 use Modules\FieldOps\Services\FieldOpsTenantService;
 
 class ComplexController extends Controller
@@ -31,15 +32,18 @@ class ComplexController extends Controller
             ->orderBy('name')
             ->paginate(50);
 
+        $this->attachCounts($complexes->getCollection(), $request);
+
         return response()->json([
             'success' => true,
             'data' => ComplexResource::collection($complexes),
         ]);
     }
 
-    public function show(Complex $complex): \Illuminate\Http\JsonResponse
+    public function show(Request $request, Complex $complex): \Illuminate\Http\JsonResponse
     {
         $complex->load('client', 'createdBy', 'media', 'terrains.terrainType', 'terrains.structures.structureType');
+        $this->attachCounts(collect([$complex]), $request);
 
         return response()->json([
             'success' => true,
@@ -66,5 +70,15 @@ class ComplexController extends Controller
         $complex->delete();
 
         return response()->noContent();
+    }
+
+    /** Conteos para la UI (CLA-594): una tanda de consultas agrupadas por página, no por fila. */
+    private function attachCounts(\Illuminate\Support\Collection $complexes, Request $request): void
+    {
+        $counts = app(ComplexCountsService::class)->forComplexes($complexes->pluck('id')->all(), $request->user());
+
+        foreach ($complexes as $complex) {
+            $complex->setAttribute('counts', $counts[$complex->id]);
+        }
     }
 }
