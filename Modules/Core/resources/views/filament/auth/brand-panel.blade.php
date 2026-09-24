@@ -204,8 +204,16 @@
         }
 
         .fi-simple-main-ctn {
+            /* Pre-existing bug from CLA-580, only now visible: this container
+               keeps Filament's own width:100% while also getting a 30rem
+               margin-left, so its right edge sits 30rem past the viewport —
+               a horizontal (and, once the card grows past the fold,
+               vertical) scrollbar neither side of the layout ever needed.
+               box-sizing here is Tailwind's global border-box reset, so
+               width has to shrink by the same 30rem the margin adds. */
             padding-top: 0;
             margin-left: 30rem;
+            width: calc(100% - 30rem);
         }
     }
 </style>
