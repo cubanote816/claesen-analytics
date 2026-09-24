@@ -12,6 +12,7 @@ return [
         'mailing' => 'Mailing',
         'field_operations' => 'Field Operations',
     ],
+    'knx' => 'KNX',
     'switch_to_bertels' => 'Wissel naar Electro Bertels',
     'organization_indicator_hint' => 'Bedrijf waarin dit paneel werkt',
     'switch_to_claesen' => 'Wissel naar Claesen',
