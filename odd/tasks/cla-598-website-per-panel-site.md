@@ -28,8 +28,14 @@ Aislamiento en ambos sentidos (listado + URL directa); creación fija `site_id` 
 - T6: sin ruta de medios de Website en el admin (conversiones públicas por diseño, originales privados sin ruta). Hueco menor cerrado: el reordenado de galería buscaba media por uuid globalmente; ahora solo entre los medios del propio registro.
 - T7: fixture Bertels (org+sitio) solo en `core:qa-reset-environment` (guardado local/testing); `QaBertelsFixtureTest` 2/2. Ninguna migración crea la fila de Bertels.
 - Snapshots `ClaesenBaseline` regenerados: diff verificado = middleware nuevo en rutas de panel + 12 rutas `/bertels/website/*` (399→411); test del panel Bertels actualizado (antes "vacío").
-- Suite completa: 1899 tests; único fallo (test del panel Bertels vacío) corregido y re-ejecutado en verde. **No verificado visualmente en navegador** (sin arrancar servidor/sesión con MFA); solo HTTP/Livewire.
+- Suite completa: 1899 tests; único fallo (test del panel Bertels vacío) corregido y re-ejecutado en verde. **Verificado visualmente en navegador real** (Playwright + Chromium, servidor local sobre BD aislada, login con MFA TOTP real, 2026-09-24): panel admin lista solo el proyecto/lead de Claesen; panel bertels solo los de Bertels, marca naranja, badge de organización, botón «Wissel naar Claesen», ajustes del sitio vacíos para el sitio nuevo. Capturas descartadas (scratchpad).
 
 ## Siguiente paso
-Revisión del diff, push de la rama y PR contra `electrobertels/trunk-merge-main` (requiere autorización). Pendiente fuera de alcance: selector de organización en usuarios, nombre de organización en cabecera, grupo Azure de Bertels, P7.
+Revisión del diff; push de las ramas `website-per-panel-site` → `org-in-users-ui` → `org-indicator` (apiladas) y PR (requiere autorización explícita). Pendiente fuera de alcance: selector de organización en usuarios, nombre de organización en cabecera, grupo Azure de Bertels, P7.
 
+
+## Continuación (2026-09-24, autorizada en secuencia, sin push)
+- CLA-599 (`6ffe614`, `fd3d820`): columna/filtro de organización y campo solo lectura en Usuarios; verificado en navegador (columna movida junto al nombre tras verla cortada).
+- CLA-600 (`6e9bf1d`): badge de organización en la cabecera de ambos paneles + brandName Bertels.
+- Suite completa tras CLA-600: 1904 tests, 0 fallos. Ramas apiladas: website-per-panel-site -> org-in-users-ui -> org-indicator.
+- Decisión de producto pendiente: crear usuarios de Bertels desde el formulario (hoy exige Employee del ERP y dominio corporativo).
