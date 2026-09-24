@@ -21,6 +21,12 @@ class UsersTable
                     ->label(__('users/resource.fields.name'))
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('organization.name')
+                    ->label(__('users/resource.fields.organization'))
+                    ->badge()
+                    ->color(fn ($record) => $record->organization_id === Organization::claesenId() ? 'gray' : 'warning')
+                    ->placeholder('—')
+                    ->sortable(),
                 TextColumn::make('status')
                     ->label(__('users/resource.fields.status'))
                     ->getStateUsing(fn($record) => $record->isOnline() ? __('users/resource.fields.online') : __('users/resource.fields.offline'))
@@ -50,12 +56,6 @@ class UsersTable
                 TextColumn::make('email')
                     ->label(__('users/resource.fields.email'))
                     ->searchable()
-                    ->sortable(),
-                TextColumn::make('organization.name')
-                    ->label(__('users/resource.fields.organization'))
-                    ->badge()
-                    ->color(fn ($record) => $record->organization_id === Organization::claesenId() ? 'gray' : 'warning')
-                    ->placeholder('—')
                     ->sortable(),
                 TextColumn::make('roles.name')
                     ->label(__('users/resource.fields.roles'))
