@@ -13,5 +13,6 @@ return [
         'field_operations' => 'Field Operations',
     ],
     'switch_to_bertels' => 'Wissel naar Electro Bertels',
+    'organization_indicator_hint' => 'Bedrijf waarin dit paneel werkt',
     'switch_to_claesen' => 'Wissel naar Claesen',
 ];

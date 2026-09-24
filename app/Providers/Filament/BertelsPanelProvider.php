@@ -10,6 +10,7 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
+use Filament\View\PanelsRenderHook;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -80,6 +81,11 @@ class BertelsPanelProvider extends PanelProvider
             // equivalent among the assets handed over for this spike, so light mode
             // uses the square icon-only mark instead (472x452, same file as the
             // favicon) rather than stretching a badly-fitted asset.
+            ->brandName('Electro Bertels')
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => view('core::filament.organization-indicator')->render(),
+            )
             ->brandLogo(asset('img/bertels-favicon.jpg'))
             ->darkModeBrandLogo(asset('img/bertels-brand-logo-dark.png'))
             ->brandLogoHeight('2.5rem')

@@ -180,6 +180,10 @@ HTML
             ->font('Outfit')
             ->sidebarCollapsibleOnDesktop()
             ->collapsibleNavigationGroups()
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => view('core::filament.organization-indicator')->render(),
+            )
             ->brandLogo(asset('img/brand-logo-light.png'))
             ->darkModeBrandLogo(asset('img/brand-logo-dark.png'))
             ->brandLogoHeight('3rem')
