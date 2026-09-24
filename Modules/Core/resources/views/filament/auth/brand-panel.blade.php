@@ -216,4 +216,69 @@
             width: calc(100% - 30rem);
         }
     }
+
+    /* CLA-601 (exact-match pass): the mockup's right pane is flush with the
+       page background — no boxed/shadowed card at all — and its accent is a
+       specific blue (oklch(0.55 0.16 255)), not Claesen Cyan. Scoped to this
+       page only; the rest of the app keeps its real Cyan primary and its
+       real card styling elsewhere. */
+    .fi-simple-main {
+        background: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+
+    /* Filament generates its whole primary-{50..950} OKLCH ramp from one seed
+       color (Cyan, hue 234.363) and every themed control — button fill,
+       hover, focus ring, checkbox accent — reads those custom properties
+       rather than a single hardcoded color. Re-declaring the same 11 steps
+       with the mockup's hue (255) keeps Filament's own lightness/chroma
+       progression (so contrast/hover/focus states stay coherent) while
+       recoloring everything that already depends on --primary-*, without
+       hunting down each individual utility class by hand. --primary-600 is
+       the one confirmed by measuring the actual rendered button background
+       (oklch(0.598 0.169 234.363) before this rule) — its recolored value
+       (oklch(0.598 0.169 255)) reads as the same blue as the mockup's own
+       oklch(0.55 0.16 255), close enough that the difference isn't visible. */
+    /* The --primary-* ramp override above recolors the focus ring correctly
+       (wrapper.css reads --primary-600 for that), but Filament's light-mode
+       button convention is a pastel bg (--primary-400) with dark text —
+       the opposite of the mockup's solid, saturated button with white text.
+       That's a real design-language mismatch, not just a wrong hue, so the
+       ramp swap alone can't fix it: the button itself needs a direct
+       override to the mockup's literal color. */
+    .fi-simple-page button[type='submit'] {
+        background-color: oklch(0.55 0.16 255) !important;
+        color: #fff !important;
+    }
+
+    .fi-simple-page button[type='submit']:hover {
+        background-color: oklch(0.48 0.16 255) !important;
+    }
+
+    /* Same story as the button above: measured the actual ring color after
+       focusing the email field (rgb(0, 155, 214), still Cyan) — the
+       --primary-* ramp override isn't what this ring reads from in
+       practice, so it gets the same direct-override treatment. */
+    .fi-simple-page .fi-input-wrp:focus-within {
+        box-shadow: 0 0 0 2px oklch(0.55 0.16 255), 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .fi-simple-page input[type='checkbox'] {
+        accent-color: oklch(0.55 0.16 255);
+    }
+
+    .fi-simple-page {
+        --primary-50: oklch(0.97717647058824 0.01395454545455 255);
+        --primary-100: oklch(0.95035294117647 0.03272727272727 255);
+        --primary-200: oklch(0.90547058823529 0.06318181818182 255);
+        --primary-300: oklch(0.84047058823529 0.10604545454546 255);
+        --primary-400: oklch(0.75352941176471 0.15027272727273 255);
+        --primary-500: oklch(0.68270588235294 0.17009090909091 255);
+        --primary-600: oklch(0.59782352941176 0.16913636363636 255);
+        --primary-700: oklch(0.51494117647059 0.14940909090909 255);
+        --primary-800: oklch(0.44611764705882 0.12331818181818 255);
+        --primary-900: oklch(0.39458823529412 0.09963636363636 255);
+        --primary-950: oklch(0.27788235294118 0.07136363636364 255);
+    }
 </style>
