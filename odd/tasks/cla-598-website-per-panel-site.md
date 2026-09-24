@@ -1,0 +1,35 @@
+# CLA-598 — Website por panel (Bertels gestiona su propio sitio)
+
+- **Rama:** `electrobertels/website-per-panel-site` (sobre `electrobertels/trunk-merge-main`, PR #26). Worktree: `/home/totti/claesen/electrobertels-merge`.
+- **Linear:** CLA-598 (In Progress). Engram mirror: `odd/cla-598-website-per-panel-site/tasks`.
+- **Objetivo:** el panel `bertels` gestiona proyectos, leads, anuncios y ajustes de su propio sitio; el panel `admin` nunca muestra filas de Bertels.
+- **Alcance autorizado:** T1–T7 de abajo. Sin push, sin producción, sin tocar `main`.
+- **TDD:** no habilitado por configuración (no hay fuente de proyecto/sesión que lo active); checks funcionales por tarea. Runner: `./vendor/bin/phpunit` con `DB_HOST=127.0.0.1 DB_PORT=3308 DB_DATABASE=testing_merge_main DB_USERNAME=sail DB_PASSWORD=<de main .env>`.
+- **Heurística de tamaño:** ~400 líneas por tarea (solo planificación).
+
+## Tareas
+- [x] T1 Mapa panel→sitio (`config/organizations.php`) + `Site::forPanel()`
+- [x] T2 Middleware de panel que fija el sitio en `OrganizationContext` (+403 cross-org)
+- [x] T3 Trait `ScopedToPanelSite` en 3 recursos + `SiteSettingsPage`
+- [x] T4 Registrar el clúster en `BertelsPanelProvider`; adaptar `PublicationStatusWidget`
+- [x] T5 Leads: asignación por organización; correo interno por sitio
+- [x] T6 Verificar medios del admin de Website (sin acceso cross-site)
+- [x] T7 Fixture de Bertels solo tests/QA
+
+## Criterios de aceptación
+Aislamiento en ambos sentidos (listado + URL directa); creación fija `site_id` del panel; sin sitio no rompe (oculta); suite completa verde; snapshots regenerados solo por rutas `/bertels/...`; verificación visual real.
+
+## Progreso / evidencia
+- T1: `config('organizations.panel_sites')`, `Site::forPanel()`/`forPanelOrFail()` (sin panel explícito usa el actual o el default de Filament; nunca cae a Claesen si el sitio mapeado no existe). `PanelSiteResolutionTest` 5/5.
+- T2: `OrganizationContext::site()` decide por panel dentro de Filament; `EnsureUserBelongsToPanelSite` (403 cross-org, tras el flag) en middleware y `persistentMiddleware` (Livewire) de ambos paneles. `PanelSiteContextTest` 9/9.
+- T3: trait `App\Filament\Concerns\ScopedToPanelSite` en Project/Announcement/ConsultationRequest resources (query filtrada, `canAccess` false sin sitio); 6 usos de `Site::claesenId()` reemplazados; export CSV de leads y unicidad de slug ahora filtran por sitio (huecos reales encontrados: ambos dependían del scope inerte).
+- T4: `discoverClusters` en `BertelsPanelProvider`; `PublicationStatusWidget` usa el sitio y health URL del panel (la URL global de config solo para Claesen). Test `WebsitePanelSiteScopingTest` 5/5 (listado, URL directa, creación, sin sitio).
+- T5: `assignableUsersQuery` usa el sitio del panel también al crear (antes solo con registro existente).
+- T6: sin ruta de medios de Website en el admin (conversiones públicas por diseño, originales privados sin ruta). Hueco menor cerrado: el reordenado de galería buscaba media por uuid globalmente; ahora solo entre los medios del propio registro.
+- T7: fixture Bertels (org+sitio) solo en `core:qa-reset-environment` (guardado local/testing); `QaBertelsFixtureTest` 2/2. Ninguna migración crea la fila de Bertels.
+- Snapshots `ClaesenBaseline` regenerados: diff verificado = middleware nuevo en rutas de panel + 12 rutas `/bertels/website/*` (399→411); test del panel Bertels actualizado (antes "vacío").
+- Suite completa: 1899 tests; único fallo (test del panel Bertels vacío) corregido y re-ejecutado en verde. **No verificado visualmente en navegador** (sin arrancar servidor/sesión con MFA); solo HTTP/Livewire.
+
+## Siguiente paso
+Revisión del diff, push de la rama y PR contra `electrobertels/trunk-merge-main` (requiere autorización). Pendiente fuera de alcance: selector de organización en usuarios, nombre de organización en cabecera, grupo Azure de Bertels, P7.
+

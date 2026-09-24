@@ -23,6 +23,8 @@ use Modules\Website\Services\RetentionService;
 
 class ConsultationRequestResource extends Resource
 {
+    use \App\Filament\Concerns\ScopedToPanelSite;
+
     protected static ?string $model = ConsultationRequest::class;
 
     public static function getNavigationLabel(): string
@@ -88,11 +90,13 @@ class ConsultationRequestResource extends Resource
      */
     protected static function assignableUsersQuery(?ConsultationRequest $record, Builder $query): Builder
     {
-        if (! config('organizations.enforce') || ! $record?->site) {
+        if (! config('organizations.enforce')) {
             return $query;
         }
 
-        return $query->where('organization_id', $record->site->organization_id);
+        $site = $record?->site ?? \Modules\Core\Models\Site::forPanel();
+
+        return $site === null ? $query->whereRaw('1 = 0') : $query->where('organization_id', $site->organization_id);
     }
 
     public static function form(Schema $schema): Schema
@@ -301,7 +305,7 @@ class ConsultationRequestResource extends Resource
      */
     private static function streamCsvExport(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $records = ConsultationRequest::query()->with('assignedUser')->latest()->get();
+        $records = ConsultationRequest::query()->where('site_id', \Modules\Core\Models\Site::forPanelOrFail()->id)->with('assignedUser')->latest()->get();
         $actor = auth()->user();
 
         activity()

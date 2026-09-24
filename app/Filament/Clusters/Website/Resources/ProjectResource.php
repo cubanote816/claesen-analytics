@@ -27,6 +27,8 @@ use Filament\Schemas\Components\Utilities\Get;
 
 class ProjectResource extends Resource
 {
+    use \App\Filament\Concerns\ScopedToPanelSite;
+
     // CLA-470: 10 MB matches the precedent already established for photo
     // uploads elsewhere in the app (Modules\FieldOps's photos collections,
     // e.g. LuminaireResource) — the previous 100/500 MB limits here had no
@@ -52,7 +54,7 @@ class ProjectResource extends Resource
     private static function categoryOptions(): array
     {
         return ProjectCategory::query()
-            ->where('site_id', Site::claesenId())
+            ->where('site_id', Site::forPanelOrFail()->id)
             ->ordered()
             ->get()
             ->mapWithKeys(fn (ProjectCategory $category) => [$category->slug => $category->name])
@@ -106,7 +108,7 @@ class ProjectResource extends Resource
                                         $originalSlug = $slug;
                                         $count = 1;
 
-                                        $query = Project::where('slug', $slug);
+                                        $query = Project::where('site_id', Site::forPanelOrFail()->id)->where('slug', $slug);
                                         if ($record) {
                                             $query->where('id', '!=', $record->id);
                                         }
@@ -114,7 +116,7 @@ class ProjectResource extends Resource
                                         while ($query->exists()) {
                                             $slug = $originalSlug . '-' . $count;
                                             $count++;
-                                            $query = Project::where('slug', $slug);
+                                            $query = Project::where('site_id', Site::forPanelOrFail()->id)->where('slug', $slug);
                                             if ($record) {
                                                 $query->where('id', '!=', $record->id);
                                             }
@@ -252,7 +254,7 @@ class ProjectResource extends Resource
 
                                         if (!empty($activeUuids)) {
                                             $mediaClass = config('media-library.media_model', \Spatie\MediaLibrary\MediaCollections\Models\Media::class);
-                                            $mappedIds = $mediaClass::query()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
+                                            $mappedIds = $record->media()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
 
                                             $orderedIds = collect($activeUuids)
                                                 ->map(fn($uuid) => $mappedIds[$uuid] ?? null)
@@ -289,7 +291,7 @@ class ProjectResource extends Resource
 
                                         if (!empty($activeUuids)) {
                                             $mediaClass = config('media-library.media_model', \Spatie\MediaLibrary\MediaCollections\Models\Media::class);
-                                            $mappedIds = $mediaClass::query()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
+                                            $mappedIds = $record->media()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
 
                                             $orderedIds = collect($activeUuids)
                                                 ->map(fn($uuid) => $mappedIds[$uuid] ?? null)

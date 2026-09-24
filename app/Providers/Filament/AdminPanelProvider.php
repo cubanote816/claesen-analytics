@@ -252,6 +252,10 @@ HTML
                 AssignCorrelationId::class,
                 UpdateUserActivity::class,
                 ResolveOrganizationContext::class,
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
+            ])
+            ->persistentMiddleware([
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

@@ -3,6 +3,7 @@
 namespace Modules\Core\Models;
 
 use Database\Factories\SiteFactory;
+use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -84,6 +85,29 @@ class Site extends Model
     {
         return static::query()->where('key', self::CLAESEN_KEY)->value('id')
             ?? throw new \RuntimeException('The Claesen bootstrap site row is missing — run migrations.');
+    }
+
+    /**
+     * CLA-598: the site a Filament panel manages, from config('organizations.panel_sites').
+     * Null when the panel has no mapping or its site row does not exist yet
+     * (Bertels' row is only created at P7) — callers must treat that as "no
+     * content to show", never fall back to Claesen. Without an explicit panel it
+     * uses the current one, or the default panel (admin) as Filament itself does.
+     */
+    public static function forPanel(?string $panelId = null): ?self
+    {
+        $panelId ??= Filament::getCurrentOrDefaultPanel()?->getId();
+        $key = $panelId === null ? null : config("organizations.panel_sites.{$panelId}");
+
+        return $key === null ? null : static::query()->where('key', $key)->first();
+    }
+
+    /**
+     * @see forPanel() — 404 when the panel's site does not exist (never Claesen).
+     */
+    public static function forPanelOrFail(?string $panelId = null): self
+    {
+        return static::forPanel($panelId) ?? abort(404);
     }
 
     /**

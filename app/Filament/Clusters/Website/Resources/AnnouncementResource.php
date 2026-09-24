@@ -28,6 +28,8 @@ use Modules\Website\Models\Announcement;
  */
 class AnnouncementResource extends Resource
 {
+    use \App\Filament\Concerns\ScopedToPanelSite;
+
     protected static ?string $model = Announcement::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';

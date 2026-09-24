@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Modules\Core\Models\Organization;
+use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Database\Seeders\FieldOpsDemoDataSeeder;
 use Modules\FieldOps\Database\Seeders\QaFieldWorkerSeeder;
@@ -56,6 +57,7 @@ class QaResetEnvironmentCommand extends Command
             Artisan::call('db:seed', ['--class' => FieldOpsDemoDataSeeder::class, '--force' => true]);
         });
 
+        $this->createBertelsFixture();
         $this->createQaUsers();
 
         $this->components->task('Field worker QA seed (5 active employees, QA Técnico linked)', function () {
@@ -106,6 +108,25 @@ class QaResetEnvironmentCommand extends Command
                 }
             }
         }
+    }
+
+    /**
+     * CLA-598: Electro Bertels' organization/site row for local QA of the Bertels
+     * panel. Local/testing only (guarded in handle()) — the real alta happens at P7,
+     * never through this command or a migration.
+     */
+    private function createBertelsFixture(): void
+    {
+        $organization = Organization::updateOrCreate(
+            ['slug' => 'electro-bertels'],
+            ['name' => 'Electro Bertels', 'status' => 'active'],
+        );
+        Site::updateOrCreate(
+            ['key' => 'electro-bertels'],
+            ['organization_id' => $organization->id, 'default_locale' => 'nl', 'locales' => ['nl', 'en', 'fr', 'de'], 'status' => Site::STATUS_ACTIVE],
+        );
+
+        $this->summaryRows[] = ['Electro Bertels organization + site', '✅ (local QA fixture)'];
     }
 
     private function createQaUsers(): void

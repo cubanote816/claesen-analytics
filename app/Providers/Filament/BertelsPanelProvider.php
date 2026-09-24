@@ -86,6 +86,10 @@ class BertelsPanelProvider extends PanelProvider
             ->favicon(asset('img/bertels-favicon.jpg'))
             // No discoverResources/Pages/Widgets on purpose — F3/F4 give
             // Bertels its own resources once P5 enforcement exists.
+            // CLA-598: the Website cluster (projects, leads, announcements, site settings)
+            // is the only cluster under app/Filament/Clusters; every resource in it is
+            // scoped to the panel's own site (App\Filament\Concerns\ScopedToPanelSite).
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
             ->pages([
                 Dashboard::class,
             ])
@@ -127,6 +131,10 @@ class BertelsPanelProvider extends PanelProvider
                 AssignCorrelationId::class,
                 UpdateUserActivity::class,
                 ResolveOrganizationContext::class,
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
+            ])
+            ->persistentMiddleware([
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

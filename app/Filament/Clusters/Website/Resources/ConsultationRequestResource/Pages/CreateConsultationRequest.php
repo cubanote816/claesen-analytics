@@ -16,7 +16,7 @@ class CreateConsultationRequest extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['site_id'] = Site::claesenId();
+        $data['site_id'] = Site::forPanelOrFail()->id;
 
         return $data;
     }
