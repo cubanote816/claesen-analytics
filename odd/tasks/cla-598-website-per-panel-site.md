@@ -39,3 +39,7 @@ Revisión del diff; push de las ramas `website-per-panel-site` → `org-in-users
 - CLA-600 (`6e9bf1d`): badge de organización en la cabecera de ambos paneles + brandName Bertels.
 - Suite completa tras CLA-600: 1904 tests, 0 fallos. Ramas apiladas: website-per-panel-site -> org-in-users-ui -> org-indicator.
 - Decisión de producto pendiente: crear usuarios de Bertels desde el formulario (hoy exige Employee del ERP y dominio corporativo).
+
+## CLA-601/602 (2026-09-24, en el repo principal y esta rama respectivamente)
+- CLA-601 (login dual-brand): implementado en `/home/totti/claesen_api_web_oficial` (main), commit `2d98b8c`. No es parte de esta rama/worktree.
+- CLA-602 (KNX punto de entrada, Fase 1): `electrobertels/knx-entry-point` (sobre `org-indicator`), commit `3a68244`. Ambos verificados visualmente y con suite completa en verde.
