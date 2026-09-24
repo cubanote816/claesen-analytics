@@ -5,6 +5,14 @@
     fi-simple-layout screens (password reset / MFA challenge share the same
     Login page+route, so they inherit it too, which is intentional).
 
+    CLA-601: dual-brand redesign from the user-supplied mockup. Keeps CLA-580's
+    proven background treatment (dark gradient + dot grid + decorative SVG
+    rays, already DESIGN.md-token colors) — only the content changes: both
+    companies' logos side by side, and a headline/intro/bullet copy block
+    replacing the single Claesen wordmark, since this backoffice now serves
+    both Claesen and Electro Bertels (mockup's own generic client-portal copy
+    was replaced with each company's actual trade, per the user).
+
     Uses a scoped <style> block instead of Tailwind utility classes for the
     gradient/dot-grid background: this view is compiled under
     resources/css/filament/admin/theme.css, which does NOT import
@@ -22,12 +30,21 @@
     </svg>
 
     <div class="cafca-login-brand__content">
-        <img src="{{ asset('img/brand-logo-dark.png') }}" alt="Claesen" class="cafca-login-brand__logo">
+        <div class="cafca-login-brand__logos">
+            <img src="{{ asset('img/brand-logo-dark.png') }}" alt="Claesen" class="cafca-login-brand__logo">
+            <span class="cafca-login-brand__logo-divider" aria-hidden="true"></span>
+            <img src="{{ asset('img/bertels-logo-dark.png') }}" alt="Electro Bertels" class="cafca-login-brand__logo cafca-login-brand__logo--bertels">
+        </div>
 
         <div class="cafca-login-brand__copy">
-            <div class="cafca-login-brand__wordmark">Claesen</div>
-            <div class="cafca-login-brand__subwordmark">Outdoor Lighting Platform</div>
-            <p class="cafca-login-brand__tagline">{{ __('core::auth.brand_tagline') }}</p>
+            <h1 class="cafca-login-brand__headline">{{ __('core::auth.brand_headline') }}</h1>
+            <p class="cafca-login-brand__intro">{{ __('core::auth.brand_intro') }}</p>
+
+            <ul class="cafca-login-brand__bullets">
+                <li><span class="cafca-login-brand__dot cafca-login-brand__dot--cyan"></span>{{ __('core::auth.brand_bullet_claesen') }}</li>
+                <li><span class="cafca-login-brand__dot cafca-login-brand__dot--orange"></span>{{ __('core::auth.brand_bullet_bertels') }}</li>
+                <li><span class="cafca-login-brand__dot cafca-login-brand__dot--cyan"></span>{{ __('core::auth.brand_bullet_shared') }}</li>
+            </ul>
         </div>
     </div>
 </div>
@@ -66,35 +83,51 @@
         padding: 1.5rem;
     }
 
+    .cafca-login-brand__logos {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+    }
+
     .cafca-login-brand__logo {
-        height: 1.65rem;
+        height: 1.5rem;
         width: auto;
         object-fit: contain;
     }
 
-    .cafca-login-brand__wordmark {
-        font-size: 1.25rem;
+    .cafca-login-brand__logo--bertels {
+        /* Slightly shorter aspect ratio than the Claesen mark (1774x887 vs
+           633x276) — a shade taller keeps both marks reading as the same
+           visual weight instead of Bertels looking smaller. */
+        height: 1.375rem;
+    }
+
+    .cafca-login-brand__logo-divider {
+        width: 1px;
+        height: 1.5rem;
+        background: rgba(248, 250, 252, 0.2);
+        flex: none;
+    }
+
+    .cafca-login-brand__headline {
+        margin: 0 0 0.375rem;
+        font-size: 1.0625rem;
         font-weight: 700;
         color: #f8fafc;
         letter-spacing: -0.01em;
+        line-height: 1.3;
     }
 
-    .cafca-login-brand__subwordmark {
-        margin-top: 0.25rem;
-        font-size: 0.6875rem;
-        font-weight: 500;
-        color: rgba(248, 250, 252, 0.55);
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
+    .cafca-login-brand__intro {
+        margin: 0;
+        max-width: 20rem;
+        font-size: 0.8125rem;
+        line-height: 1.55;
+        color: rgba(248, 250, 252, 0.6);
     }
 
-    .cafca-login-brand__tagline {
+    .cafca-login-brand__bullets {
         display: none;
-        margin: 1.25rem 0 0;
-        max-width: 18.5rem;
-        font-size: 0.875rem;
-        line-height: 1.6;
-        color: rgba(248, 250, 252, 0.5);
     }
 
     /* Pushes the real Filament form below the top band on mobile. */
@@ -115,8 +148,59 @@
             height: 22.5rem;
         }
 
-        .cafca-login-brand__tagline {
-            display: block;
+        .cafca-login-brand__logo {
+            height: 2.25rem;
+        }
+
+        .cafca-login-brand__logo--bertels {
+            height: 2.0625rem;
+        }
+
+        .cafca-login-brand__logo-divider {
+            height: 2.25rem;
+        }
+
+        .cafca-login-brand__headline {
+            font-size: 1.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .cafca-login-brand__intro {
+            font-size: 0.875rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .cafca-login-brand__bullets {
+            display: flex;
+            flex-direction: column;
+            gap: 0.875rem;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .cafca-login-brand__bullets li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.8125rem;
+            line-height: 1.4;
+            color: rgba(248, 250, 252, 0.85);
+        }
+
+        .cafca-login-brand__dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex: none;
+        }
+
+        .cafca-login-brand__dot--cyan {
+            background: #00aeef;
+        }
+
+        .cafca-login-brand__dot--orange {
+            background: #f97316;
         }
 
         .fi-simple-main-ctn {
