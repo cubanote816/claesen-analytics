@@ -23,6 +23,7 @@ return [
         'client_can_manage_contacts_hint' => 'Allows this contact to invite and manage other contacts for the same client, without going through the backoffice.',
         'password' => 'Password',
         'roles' => 'Roles',
+        'organization' => 'Organization',
         'is_active' => 'Active account',
         'is_active_hint' => 'Deactivating blocks all logins immediately.',
         'status' => 'Status',

@@ -5,7 +5,9 @@ namespace Modules\Core\Filament\Resources\Users\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Modules\Core\Models\Organization;
 
 use Filament\Tables\Columns\TextColumn;
 
@@ -49,6 +51,12 @@ class UsersTable
                     ->label(__('users/resource.fields.email'))
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('organization.name')
+                    ->label(__('users/resource.fields.organization'))
+                    ->badge()
+                    ->color(fn ($record) => $record->organization_id === Organization::claesenId() ? 'gray' : 'warning')
+                    ->placeholder('—')
+                    ->sortable(),
                 TextColumn::make('roles.name')
                     ->label(__('users/resource.fields.roles'))
                     ->formatStateUsing(fn($state) => \Illuminate\Support\Str::headline($state))
@@ -59,7 +67,9 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('organization_id')
+                    ->label(__('users/resource.fields.organization'))
+                    ->options(fn (): array => Organization::query()->orderBy('name')->pluck('name', 'id')->all()),
             ])
             ->recordActions([
                 EditAction::make(),

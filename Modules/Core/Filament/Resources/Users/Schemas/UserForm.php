@@ -28,6 +28,12 @@ class UserForm
                             ->email()
                             ->required()
                             ->unique(ignoreRecord: true),
+                        // CLA-599: shown, never editable here — moving a user between
+                        // organizations is a sensitive operation of its own (audit + step-up).
+                        Placeholder::make('organization')
+                            ->label(__('users/resource.fields.organization'))
+                            ->content(fn (?User $record) => $record?->organization?->name ?? '—')
+                            ->visible(fn (?User $record) => $record !== null),
                         Toggle::make('is_active')
                             ->label(__('users/resource.fields.is_active'))
                             ->helperText(__('users/resource.fields.is_active_hint'))
