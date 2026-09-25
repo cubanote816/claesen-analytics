@@ -39,3 +39,15 @@ Revisión del diff; push de las ramas `website-per-panel-site` → `org-in-users
 - CLA-600 (`6e9bf1d`): badge de organización en la cabecera de ambos paneles + brandName Bertels.
 - Suite completa tras CLA-600: 1904 tests, 0 fallos. Ramas apiladas: website-per-panel-site -> org-in-users-ui -> org-indicator.
 - Decisión de producto pendiente: crear usuarios de Bertels desde el formulario (hoy exige Employee del ERP y dominio corporativo).
+
+## Verificación independiente (2026-09-25, Pi)
+- Worktree aislado `/home/totti/claesen/electrobertels-cla599-600` sobre `electrobertels/org-indicator` (HEAD `fed0eec`). El checkout `main` no se tocó.
+- Suite completa reproducida de cero: **1902 passed, 2 skipped, 0 failed (6103 assertions)**, 2589.80s. Los 5 tests de CLA-599/CLA-600 pasan.
+- Arnés requerido para reproducir (son condiciones del entorno, no defectos del branch):
+  - `public/build` debe existir — los tests de paneles Filament compilan el theme. Un worktree nuevo no lo tiene y 87 tests caen con 500 por Vite manifest ausente.
+  - `APP_LOCALE=en` — los snapshots `ClaesenBaseline` capturan etiquetas de grupos de navegación en inglés; el `.env` de `main` es `nl`.
+  - `MICROSOFT_GRAPH_CLIENT_ID/TENANT_ID/CLIENT_SECRET` sin definir (= intención de CI), ver hallazgo 1.
+- Hallazgos pre-existentes, ajenos a CLA-599/600 (no corregidos aquí):
+  1. `Modules/Website/tests/Feature/ConsultationEndpoint201Test` — `Http::assertNothingSent()` quedó obsoleto al añadir CLA-473 el email de confirmación al cliente: con el mailer `microsoft-graph` configurado en local se envía esa confirmación y el assert falla. En CI (sin credenciales) pasa; en `main` pasa porque ese email no existe todavía. Procede de `trunk-merge-main`.
+  2. `Tests/Feature/ClaesenBaseline/PanelRegistrySnapshotTest` — acoplado al locale: solo pasa con `APP_LOCALE=en` (snapshot con etiquetas inglesas). Procede del arnés multiempresa.
+- Diff de CLA-599/CLA-600 revisado: sin hallazgos bloqueantes. El `Placeholder` de solo lectura replica el patrón ya existente del campo `roles`; el badge usa el componente nativo de Filament a propósito (el panel Bertels no tiene theme Vite propio).
