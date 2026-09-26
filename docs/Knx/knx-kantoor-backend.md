@@ -263,6 +263,13 @@ Dos decisiones:
 
 **Autenticación: Bearer, no token en la query.** Un token en la URL acaba en logs de acceso y en el historial del navegador — y por eso el cliente **no puede usar el `EventSource` nativo**, que no manda cabeceras: tiene que leer el stream con `fetch()`.
 
+## Handover al frontend
+
+**`docs/Knx/handover-frontend.md`** es el documento para el equipo de frontend:
+cómo apuntar los fronts al backend real, checklist de cambios en su código, catálogo
+de endpoints con respuestas reales, los huecos declarados, la situación de Veld y las
+trampas conocidas. Mantenedlo actualizado al cerrar cada slice.
+
 ## Entorno local
 
 - BD propia: `electrobertels_knx` (aislada de los demás stacks).
