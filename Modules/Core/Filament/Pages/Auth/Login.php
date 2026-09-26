@@ -32,6 +32,38 @@ use Modules\Core\Models\User;
  */
 class Login extends BaseLogin
 {
+    /** CLA-601: the mockup promises "Remember me for 30 days" — make that literally true. */
+    private const REMEMBER_MINUTES = 60 * 24 * 30;
+
+    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        return filled($this->userUndertakingMultiFactorAuthentication)
+            ? parent::getHeading()
+            : __('core::auth.heading');
+    }
+
+    public function getSubheading(): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        return filled($this->userUndertakingMultiFactorAuthentication)
+            ? parent::getSubheading()
+            : __('core::auth.subheading');
+    }
+
+    protected function getEmailFormComponent(): \Filament\Schemas\Components\Component
+    {
+        return parent::getEmailFormComponent()->placeholder(__('core::auth.email_placeholder'));
+    }
+
+    protected function getPasswordFormComponent(): \Filament\Schemas\Components\Component
+    {
+        return parent::getPasswordFormComponent()->placeholder(__('core::auth.password_placeholder'));
+    }
+
+    protected function getRememberFormComponent(): \Filament\Schemas\Components\Component
+    {
+        return parent::getRememberFormComponent()->label(__('core::auth.remember'));
+    }
+
     public function authenticate(): ?LoginResponse
     {
         try {
@@ -85,6 +117,8 @@ class Login extends BaseLogin
                 return null;
             }
         }
+
+        $authGuard->setRememberDuration(self::REMEMBER_MINUTES);
 
         if (! $authGuard->attemptWhen($credentials, function (Authenticatable $user): bool {
             if (($user instanceof FilamentUser) && (! $user->canAccessPanel(Filament::getCurrentOrDefaultPanel()))) {
