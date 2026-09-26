@@ -193,6 +193,13 @@ HTML
             ->id('admin')
             ->path('')
             ->login(\Modules\Core\Filament\Pages\Auth\Login::class)
+            // CLA-603: the mockup's forgot/reset screens, backed by this
+            // project's own reset mechanism (PasswordResetService) instead of
+            // Filament's password_reset_tokens broker — see the pages' docblocks.
+            ->passwordReset(
+                \Modules\Core\Filament\Pages\Auth\RequestPasswordReset::class,
+                \Modules\Core\Filament\Pages\Auth\ResetPassword::class,
+            )
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
             // CLA-464 (ADR D8): required only for super_admin/admin, not every

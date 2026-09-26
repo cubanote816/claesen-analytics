@@ -12,6 +12,9 @@ use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use Modules\Core\Models\User;
 
 /**
@@ -56,7 +59,19 @@ class Login extends BaseLogin
 
     protected function getPasswordFormComponent(): \Filament\Schemas\Components\Component
     {
-        return parent::getPasswordFormComponent()->placeholder(__('core::auth.password_placeholder'));
+        $component = parent::getPasswordFormComponent()
+            ->placeholder(__('core::auth.password_placeholder'));
+
+        // CLA-603: the mockup puts "Forgot password?" on the password label.
+        // Filament renders that link only when the panel has password reset
+        // enabled and with its own label — point it at ours.
+        if (! filament()->hasPasswordReset()) {
+            return $component;
+        }
+
+        return $component->hint(new HtmlString(Blade::render(
+            '<x-filament::link :href="filament()->getRequestPasswordResetUrl()" tabindex="-1">{{ __(\'core::auth.forgot_password_link\') }}</x-filament::link>'
+        )));
     }
 
     protected function getRememberFormComponent(): \Filament\Schemas\Components\Component

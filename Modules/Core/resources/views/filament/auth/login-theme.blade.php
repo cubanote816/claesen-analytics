@@ -381,4 +381,117 @@
        panel's own ->colors()['primary'] and scopes it to the panel, so every
        themed control (checkbox checked, links) is brand-coloured per company
        without any override — and without a second place to keep in sync. */
+
+    /* ---------- Password screens (mockup: forgot / sent / reset / done) ---------- */
+    /* Notice tile: 44px, accent at 12% on the sent screen and solid on the
+       success one (mockup's own two treatments). */
+    .cafca-login-notice {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: color-mix(in oklab, var(--cafca-login-accent) 12%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+    }
+
+    .cafca-login-notice--done {
+        border-radius: 50%;
+        background: var(--cafca-login-accent);
+    }
+
+    .cafca-login-notice__envelope {
+        width: 16px;
+        height: 12px;
+        border: 2px solid var(--cafca-login-accent);
+        border-radius: 2px;
+    }
+
+    .cafca-login-notice__check {
+        width: 14px;
+        height: 9px;
+        border-left: 2.5px solid #fff;
+        border-bottom: 2.5px solid #fff;
+        transform: rotate(-45deg) translate(1px, -1px);
+    }
+
+    .cafca-login-panel__aside {
+        font-size: 13px;
+        color: oklch(0.5 0.008 255);
+        margin: 0;
+        text-align: center;
+    }
+
+    .cafca-login-linkbutton {
+        background: none;
+        border: 0;
+        padding: 0;
+        font: inherit;
+        font-weight: 600;
+        color: var(--cafca-login-accent);
+        cursor: pointer;
+    }
+
+    .cafca-login-linkbutton:hover {
+        text-decoration: underline;
+    }
+
+    .cafca-login-back {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 24px;
+        font-size: 13px;
+        font-weight: 600;
+        color: oklch(0.5 0.008 255);
+    }
+
+    .cafca-login-primary-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 46px;
+        border-radius: 8px;
+        background: var(--cafca-login-accent);
+        color: #fff !important;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .cafca-login-primary-button:hover {
+        background: var(--cafca-login-accent-strong);
+        color: #fff !important;
+    }
+
+    /* One line per requirement, each with a 6px dot that turns green once met. */
+    .cafca-login-requirements {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 14px 16px;
+        border-radius: 8px;
+        background: oklch(0.97 0.003 255);
+    }
+
+    .cafca-login-requirement {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: oklch(0.6 0.008 255);
+    }
+
+    .cafca-login-requirement__dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        flex: none;
+    }
+
+    .cafca-login-requirement.is-met {
+        color: oklch(0.55 0.14 150);
+    }
 </style>

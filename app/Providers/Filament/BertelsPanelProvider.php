@@ -21,6 +21,8 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Modules\Core\Filament\Pages\Auth\Login;
+use Modules\Core\Filament\Pages\Auth\RequestPasswordReset;
+use Modules\Core\Filament\Pages\Auth\ResetPassword;
 use Modules\Core\Http\Middleware\AssignCorrelationId;
 use Modules\Core\Http\Middleware\BrowserLocaleMiddleware;
 use Modules\Core\Http\Middleware\EnsurePasswordIsSet;
@@ -54,6 +56,9 @@ class BertelsPanelProvider extends PanelProvider
             ->id('bertels')
             ->path('bertels')
             ->login(Login::class)
+            // CLA-603: same mockup forgot/reset screens as `admin`, and the same
+            // project-owned reset mechanism behind them.
+            ->passwordReset(RequestPasswordReset::class, ResetPassword::class)
             // CLA-464 (ADR D8) — same MFA configuration as `admin`, see its
             // provider for the full rationale. Only super_admin can reach
             // this panel at all (CLA-549), so the role gate in
