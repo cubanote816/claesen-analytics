@@ -100,10 +100,13 @@ class RequestPasswordReset extends BaseRequestPasswordReset
     {
         return $schema
             ->components([
+                // Closures, not the plain booleans: Filament memoizes the content
+                // schema per component instance, so a value captured here would
+                // stay at its first-render state.
                 $this->getFormContentComponent()
-                    ->visible(! $this->sent),
+                    ->visible(fn (): bool => ! $this->sent),
                 View::make('core::filament.auth.password-reset-sent')
-                    ->visible($this->sent),
+                    ->visible(fn (): bool => $this->sent),
             ]);
     }
 }

@@ -126,6 +126,22 @@ final class BackofficePasswordResetTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_the_sent_screen_replaces_the_form_instead_of_stacking_on_it(): void
+    {
+        // CLA-603: Filament memoizes the page's content schema, so the swap has to
+        // be driven by a Closure (->visible(fn () => ...)). With a plain boolean the
+        // form stayed visible and the sent block never rendered — this is the
+        // regression that pins it.
+        Notification::fake();
+
+        Livewire::test(RequestPasswordReset::class)
+            ->fillForm(['email' => 'nobody@example.com'])
+            ->call('request')
+            ->assertSet('sent', true)
+            ->assertSee('cafca-login-panel')
+            ->assertDontSee('fi-sc-form');
+    }
+
     public function test_a_microsoft_only_account_never_receives_a_link(): void
     {
         Notification::fake();
@@ -156,6 +172,23 @@ final class BackofficePasswordResetTest extends TestCase
 
         $this->assertTrue(Hash::check('BrandNew123!', $fresh->password));
         $this->assertNull($fresh->activation_code_hash);
+    }
+
+    public function test_the_success_screen_replaces_the_form_instead_of_stacking_on_it(): void
+    {
+        // @see test_the_sent_screen_replaces_the_form_instead_of_stacking_on_it
+        $user = $this->activeUser();
+        $code = $this->issueResetCode($user);
+
+        Livewire::test(ResetPassword::class, ['email' => $user->email, 'token' => $code])
+            ->fillForm([
+                'password' => 'BrandNew123!',
+                'passwordConfirmation' => 'BrandNew123!',
+            ])
+            ->call('resetPassword')
+            ->assertSet('done', true)
+            ->assertSee('cafca-login-panel')
+            ->assertDontSee('fi-sc-form');
     }
 
     public function test_an_expired_code_is_rejected_and_the_password_is_untouched(): void
