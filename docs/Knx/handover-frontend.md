@@ -234,19 +234,35 @@ crear funciones, aprobar, revisiones, crear pruebas, adjuntar evidencia.
 ### 4.1 Qué funciona YA
 
 - **`GET /zones?project=CODE`** → **el mismo serializador que Kantoor** (idéntico, sin
-  duplicar contrato). Veld puede cablear el aviso de zona no preparada hoy.
-- `POST /auth/login` sirve para obtener el token, **pero `/field/session` no existe**: la
-  sesión de campo es parte del slice pendiente.
+  duplicar contrato).
+- **`GET /field/session`** → `{id, name, initials, domain}` (sin `role` ni `email`, a
+  propósito).
+- **`GET /field/today`** → un trabajo por asignación de hoy, con `room`/`zoneStatus`/
+  `blockingReason` de la zona que **necesita atención** y `tasks` derivadas.
+- `POST /auth/login` para el token (el mismo endpoint que Kantoor).
+
+**Cuentas de campo sembradas** (solo local): `jan.van.dyck@electrobertels.be` y
+`mira.claes@electrobertels.be`, ambas con `Veld123!`. **Solo dos de los cinco técnicos
+tienen cuenta, a propósito**: la regla de alcance ("solo los proyectos donde estás
+asignado hoy") no se puede demostrar ni con todos ni con ninguno, y Jan y Mira están en
+proyectos distintos.
+
+⚠️ **Las dos apps están separadas:** un token de oficina (`knx_office`) **no** vale en
+`/field/*` y viceversa — responde `401`. Es deliberado.
+
+⚠️ **`tasks` es el único campo de esta API con texto de presentación** (holandés, como en
+vuestra fixture) porque vuestra pantalla lo pinta tal cual. Va **derivado de los datos**
+(aparatos por registrar, pruebas abiertas), no es una lista fija. Si queréis traducirlo,
+decidlo y paso a enviar *task kinds*.
 
 ### 4.2 Qué NO existe todavía
 
-Ninguno de los endpoints de `veld/docs/BACKEND-API-VELD.md` está implementado:
-`/field/session`, `/field/today`, `/field/projects/{code}`,
-`POST /field/projects/{code}/devices`, `POST /field/projects/{code}/visits`,
-`/field/projects/{code}/plans`, `POST /field/projects/{code}/issues`.
+Ya están hechos `GET /field/session` y `GET /field/today` (V11.a). **Pendientes**:
+`GET /field/projects/{code}`, `GET /field/projects/{code}/plans`,
+`POST /field/projects/{code}/devices`, `POST /field/projects/{code}/issues` y
+`POST /field/projects/{code}/visits` (V11.b–e).
 
-Estaba declarado como fuera de alcance del ticket de K0 ("la app Veld y sus endpoints
-van en su propio esfuerzo"), y sigue siéndolo: es un slice propio, no un añadido.
+Era un slice propio (CLA-609), ahora en curso: V11.a cerrado, V11.b–e pendientes.
 
 ### 4.3 Qué necesita el backend para ese slice (propuesta, sin decidir)
 

@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 use Modules\Knx\Http\Resources\ZoneResource;
 use Modules\Knx\Models\KnxZone;
 use Modules\Knx\Models\KnxZoneCheck;
-use Modules\Knx\Services\KantoorAuthService;
+use Modules\Knx\Services\KnxAuthService;
 use Modules\Knx\Services\ZoneService;
 
 /**
@@ -58,7 +58,7 @@ class ZoneController extends Controller
         string $id,
         string $key,
         ZoneService $zones,
-        KantoorAuthService $auth,
+        KnxAuthService $auth,
     ): ZoneResource {
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(KnxZoneCheck::STATUSES)],

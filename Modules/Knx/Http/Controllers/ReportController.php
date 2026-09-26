@@ -12,7 +12,7 @@ use Modules\Knx\Http\Resources\ExportRecordResource;
 use Modules\Knx\Jobs\GenerateKnxExportJob;
 use Modules\Knx\Models\KnxExport;
 use Modules\Knx\Models\KnxProject;
-use Modules\Knx\Services\KantoorAuthService;
+use Modules\Knx\Services\KnxAuthService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -35,7 +35,7 @@ class ReportController extends Controller
      * Queues the report and answers `202` straight away: §4.9 is explicit that the
      * request must not wait for the file.
      */
-    public function store(Request $request, KantoorAuthService $auth): JsonResponse
+    public function store(Request $request, KnxAuthService $auth): JsonResponse
     {
         $validated = $request->validate([
             'projectCode' => ['required', 'string', Rule::exists('knx_projects', 'code')],

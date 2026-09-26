@@ -72,6 +72,11 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K8** | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ✅ cerrado |
 | **K9** | Fichas funcionales y pruebas de aceptación | ✅ cerrado |
 | **K10** | (Opcional) `GET /events` SSE | ✅ cerrado |
+| **V11.a** | **Veld**: cuentas de campo, `GET /field/session`, `GET /field/today` | ✅ cerrado |
+| V11.b | Veld: `GET /field/projects/{code}`, `…/plans` (offline) | ⏳ |
+| V11.c | Veld: `POST …/devices` (idempotente, `409 address_in_use`) | ⏳ |
+| V11.d | Veld: `POST …/issues` (contextualizada, idempotente) | ⏳ |
+| V11.e | Veld: `POST …/visits` (3 fases — **decisión de producto pendiente**) | ⏳ |
 
 **El contrato está completo:** los 36 endpoints de `/api/v1/knx` cubren las 32 llamadas que hace el cliente real del front (`src/api/real/index.ts`), incluidos login/refresh/logout y las descargas firmadas, que el front todavía no consume.
 
@@ -269,6 +274,35 @@ Dos decisiones:
 cómo apuntar los fronts al backend real, checklist de cambios en su código, catálogo
 de endpoints con respuestas reales, los huecos declarados, la situación de Veld y las
 trampas conocidas. Mantenedlo actualizado al cerrar cada slice.
+
+## Veld — campo (V11)
+
+### V11.a — sesión y trabajo del día
+
+`GET /field/session` → `{id, name, initials, domain}` (a propósito **sin** `role` ni `email`: el móvil solo pinta un nombre, y darle el payload de oficina invitaría a la app a pedir cosas de oficina).
+
+`GET /field/today` → un trabajo por asignación **de hoy**, con la zona que necesita atención (no la primera sin más), su estado derivado y su blocker, más `tasks`.
+
+**Las dos apps ahora están separadas por un guard** (`EnsureKnxApp:office|field`). Antes de esto, `auth:sanctum` solo decía "alguien entró", no *para qué*: un token de técnico podía leer **todo** el API de oficina (clientes, proyectos, conflictos, documentos) porque el middleware de tenant es un no-op con `organizations.enforce` en `false`. Responde **401** (no 403) porque para ese cliente es indistinguible de un token caducado, que es justo lo que ya sabe manejar.
+
+**`room`/`zoneStatus`/`blockingReason`** describen la zona que necesita atención: la primera que no está lista, o la primera si todo está listo. Un trabajo es "ve a este espacio", así que apuntar a una zona lista en un proyecto con una bloqueada no serviría de nada.
+
+**`tasks` es el único sitio de esta API que devuelve texto de presentación.** El front lo pinta tal cual (`job.tasks.join(' · ')`) y su fixture trae etiquetas en holandés, así que van en holandés — pero **derivadas de los datos** (aparatos aún por registrar, pruebas aún abiertas), no una lista fija. Si algún día quieren traducirlas, la forma a enviar es una lista de *kinds* y son dos líneas.
+
+**Alcance = la asignación, no la empresa.** Un técnico solo ve los proyectos que planificación le puso **hoy**. `FieldTodayService::isAssignedToday()` es la única respuesta a esa pregunta y la usarán V11.b/c/d también.
+
+### Cuentas de campo sembradas
+
+| Email | Contraseña | Técnico |
+|---|---|---|
+| `jan.van.dyck@electrobertels.be` | `Veld123!` | Jan Van Dyck (JV) |
+| `mira.claes@electrobertels.be` | `Veld123!` | Mira Claes (MC) |
+
+**Solo dos de los cinco técnicos tienen cuenta, a propósito**: la regla de alcance no se puede demostrar ni con todos ni con ninguno, y Jan y Mira están en proyectos distintos.
+
+### Bug del fixture corregido por el camino
+
+El sembrador usaba `now()->setTime(9, 42)` para "hoy"; sembrando **antes de las 09:42** eso genera un timestamp **en el futuro**. No se notaba hasta que el reloj pasó de medianoche y el histórico de conflictos salió ordenado al revés (la entrada nueva quedaba *antes* de la de origen). Ahora un helper `at()` garantiza pasado, y los tests dejan de depender de la hora a la que se ejecuten.
 
 ## Entorno local
 

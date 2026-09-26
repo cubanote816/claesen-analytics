@@ -9,7 +9,16 @@ use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Support\KnxTenant;
 
 /**
- * Who may sign into the office app, and as whom.
+ * Who may sign into each KNX app, and as whom.
+ *
+ * Two profiles, two roles, one tenant rule:
+ *   - **office** (`knx_office`) → Kantoor: project leads, planners, document authors.
+ *   - **field**  (`knx_field`)  → Veld: the technicians the planning sends out.
+ *
+ * The two must not be interchangeable: a technician opening the office app would
+ * see every project's data, and an office user on a phone would see a work list
+ * that is not theirs. So each app asks for its own role AND its own kind of person
+ * row, and `authorize*()` is the only place that decides.
  *
  * Two conditions, both required, and they answer different questions:
  *
@@ -36,7 +45,7 @@ use Modules\Knx\Support\KnxTenant;
  * endpoint cannot be used to find out which accounts exist or which of the two
  * conditions failed.
  */
-class KantoorAuthService
+class KnxAuthService
 {
     /**
      * @return array{0: User, 1: KnxEmployee}|null
@@ -71,30 +80,58 @@ class KantoorAuthService
      */
     public function authorize(User $user): ?KnxEmployee
     {
-        if (! $user->is_active || ! $user->hasRole('knx_office')) {
+        return $this->authorizeOffice($user);
+    }
+
+    /** Kantoor: an active account with the office role and an office person row. */
+    public function authorizeOffice(User $user): ?KnxEmployee
+    {
+        return $this->authorizeFor($user, 'knx_office', KnxEmployee::KIND_OFFICE);
+    }
+
+    /** Veld: an active account with the field role and a field person row. */
+    public function authorizeField(User $user): ?KnxEmployee
+    {
+        return $this->authorizeFor($user, 'knx_field', KnxEmployee::KIND_FIELD);
+    }
+
+    private function authorizeFor(User $user, string $role, string $kind): ?KnxEmployee
+    {
+        if (! $user->is_active || ! $user->hasRole($role)) {
             return null;
         }
 
         // Strict on purpose: no super_admin exception. The multi-organization ADR
-        // is explicit that even a super_admin works inside one company, and the
-        // office app must never show Claesen's site data to a Bertels login.
+        // is explicit that even a super_admin works inside one company, and neither
+        // app may ever show Claesen's data to a Bertels login.
         if ($user->organization_id !== KnxTenant::organizationId()) {
             return null;
         }
 
-        return $this->officeEmployee($user);
+        return $this->employeeFor($user, $kind);
     }
 
     /**
-     * The office person behind an account, in this tenant. Null when the account
-     * has no person row (or it is a field technician, or it is inactive).
+     * The office person behind an account, in this tenant. Null when the account has
+     * no person row (or it is a field technician, or it is inactive).
      */
     public function officeEmployee(User $user): ?KnxEmployee
     {
+        return $this->employeeFor($user, KnxEmployee::KIND_OFFICE);
+    }
+
+    /** @see officeEmployee() */
+    public function fieldEmployee(User $user): ?KnxEmployee
+    {
+        return $this->employeeFor($user, KnxEmployee::KIND_FIELD);
+    }
+
+    private function employeeFor(User $user, string $kind): ?KnxEmployee
+    {
         return KnxEmployee::query()
-            ->where('user_id', $user->id)
+            ->where('user_id', $user->getKey())
             ->where('organization_id', KnxTenant::organizationId())
-            ->office()
+            ->where('kind', $kind)
             ->active()
             ->first();
     }

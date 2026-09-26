@@ -9,7 +9,7 @@ use Modules\Knx\Http\Resources\AcceptanceTestResource;
 use Modules\Knx\Models\KnxAcceptanceTest;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Services\AcceptanceTestService;
-use Modules\Knx\Services\KantoorAuthService;
+use Modules\Knx\Services\KnxAuthService;
 
 /**
  * Pruebas de aceptación (§4.C, contrato en BACKEND-API-ZONES.md §3).
@@ -35,7 +35,7 @@ class AcceptanceTestController extends Controller
         Request $request,
         string $id,
         AcceptanceTestService $tests,
-        KantoorAuthService $auth,
+        KnxAuthService $auth,
     ): AcceptanceTestResource {
         $validated = $request->validate([
             'status' => ['sometimes', 'string', Rule::in(KnxAcceptanceTest::STATUSES)],

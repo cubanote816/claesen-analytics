@@ -9,6 +9,9 @@ use Modules\Knx\Http\Controllers\DashboardController;
 use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\DocumentController;
 use Modules\Knx\Http\Controllers\EventStreamController;
+use Modules\Knx\Http\Controllers\Field\FieldSessionController;
+use Modules\Knx\Http\Controllers\Field\FieldTodayController;
+use Modules\Knx\Http\Middleware\EnsureKnxApp;
 use Modules\Knx\Http\Controllers\FunctionSpecController;
 use Modules\Knx\Http\Controllers\ReportController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
@@ -41,6 +44,16 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         ->middleware('auth:sanctum')
         ->name('auth.logout');
 
+    // Veld: same tenant and same token machinery, a different app. The guard is what
+    // stops a technician's token from reading the office API and vice versa.
+    Route::middleware(['auth:sanctum', 'organization:electro-bertels', EnsureKnxApp::class.':'.EnsureKnxApp::FIELD])
+        ->prefix('field')
+        ->name('field.')
+        ->group(function (): void {
+            Route::get('session', [FieldSessionController::class, 'show'])->name('session');
+            Route::get('today', [FieldTodayController::class, 'index'])->name('today');
+        });
+
     // Signed downloads live outside the authenticated group on purpose: an `<a href>`
     // from the browser cannot carry a bearer token. The signature IS the credential,
     // and it expires (see DocumentResource / ExportRecordResource).
@@ -49,7 +62,8 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         Route::get('exports/{id}/download', [ReportController::class, 'download'])->name('exports.download');
     });
 
-    Route::middleware(['auth:sanctum', 'organization:electro-bertels'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'organization:electro-bertels', EnsureKnxApp::class.':'.EnsureKnxApp::OFFICE])
+        ->group(function (): void {
         Route::get('me/session', [SessionController::class, 'show'])->name('me.session');
 
         // K7b — the dashboard aggregate (its inputs all exist now).

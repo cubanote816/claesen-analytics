@@ -5,7 +5,7 @@ namespace Modules\Knx\Http\Controllers\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Knx\Http\Resources\SessionResource;
-use Modules\Knx\Services\KantoorAuthService;
+use Modules\Knx\Services\KnxAuthService;
 
 /**
  * `GET /me/session` — what the office app calls to validate its stored token on
@@ -13,7 +13,7 @@ use Modules\Knx\Services\KantoorAuthService;
  */
 class SessionController extends Controller
 {
-    public function __construct(private readonly KantoorAuthService $auth) {}
+    public function __construct(private readonly KnxAuthService $auth) {}
 
     public function show(Request $request): SessionResource
     {

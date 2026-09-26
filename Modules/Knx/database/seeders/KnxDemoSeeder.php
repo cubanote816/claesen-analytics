@@ -61,10 +61,18 @@ class KnxDemoSeeder extends Seeder
      */
     public const DEMO_PASSWORD = 'Kantoor123!';
 
+    /**
+     * Password of the seeded Veld accounts (field technicians). Separate from the
+     * office one so that using the wrong app is obvious rather than confusing.
+     */
+    public const DEMO_FIELD_PASSWORD = 'Veld123!';
+
     /** The accounts this seeder owns; removed on re-run like the rows are. */
     private const DEMO_EMAILS = [
         'lien.smet@electrobertels.be',
         'pieter.aerts@electrobertels.be',
+        'jan.van.dyck@electrobertels.be',
+        'mira.claes@electrobertels.be',
     ];
 
     /** @var array<string, KnxEmployee> keyed by display short name ("L. Smet") */
@@ -92,6 +100,22 @@ class KnxDemoSeeder extends Seeder
         $functions = $this->seedFunctionSpecs($zones);
         $this->seedAcceptanceTests($functions);
         $this->seedExports();
+    }
+
+    /**
+     * A fixture timestamp in the past, whatever the hour.
+     *
+     * `now()->setTime(9, 42)` looks harmless and is a trap: seeding at 00:30 would
+     * stamp "today 09:42", nine hours in the future. Harmless-looking fixtures then
+     * break things that sort by time — exactly what happened to the conflict history,
+     * where the new entry landed *before* the "reported" one. So a timestamp that
+     * would fall in the future is moved a day back.
+     */
+    private function at(int $daysAgo, int $hour, int $minute): \Illuminate\Support\Carbon
+    {
+        $at = now()->subDays($daysAgo)->setTime($hour, $minute);
+
+        return $at->isFuture() ? $at->subDay() : $at;
     }
 
     /**
@@ -140,19 +164,24 @@ class KnxDemoSeeder extends Seeder
     {
         // Office people get an account, because without one nobody can sign into
         // Kantoor at all — a seed that leaves the app unreachable is not a demo.
-        // The technicians stay account-less on purpose: they are planned work,
-        // not logins (Veld will give them accounts when it ships).
+        //
+        // Two technicians get one too, and the other three do not, on purpose: the
+        // field app's whole rule is "a technician only sees the projects the
+        // planning put them on today", and that cannot be demonstrated with either
+        // everyone or nobody having an account. Jan and Mira are on different
+        // projects, so the rule is visible in one request.
         $people = [
             ['name' => 'Lien Smet', 'kind' => KnxEmployee::KIND_OFFICE, 'role' => 'lead', 'email' => 'lien.smet@electrobertels.be'],
             ['name' => 'Pieter Aerts', 'kind' => KnxEmployee::KIND_OFFICE, 'role' => 'planner', 'email' => 'pieter.aerts@electrobertels.be'],
-            ['name' => 'Jan Van Dyck', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
-            ['name' => 'Mira Claes', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
+            ['name' => 'Jan Van Dyck', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => 'jan.van.dyck@electrobertels.be'],
+            ['name' => 'Mira Claes', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => 'mira.claes@electrobertels.be'],
             ['name' => 'Stijn Wouters', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
             ['name' => 'Tom Janssens', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
             ['name' => 'Kobe Peeters', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
         ];
 
         Role::findOrCreate('knx_office', 'web');
+        Role::findOrCreate('knx_field', 'web');
 
         foreach ($people as $person) {
             $employee = KnxEmployee::create([
@@ -164,17 +193,21 @@ class KnxDemoSeeder extends Seeder
             ]);
 
             if ($person['email'] !== null) {
+                $isOffice = $person['kind'] === KnxEmployee::KIND_OFFICE;
+
                 $user = User::updateOrCreate(
                     ['email' => $person['email']],
                     [
                         'name' => $person['name'],
-                        'password' => Hash::make(self::DEMO_PASSWORD),
+                        'password' => Hash::make($isOffice ? self::DEMO_PASSWORD : self::DEMO_FIELD_PASSWORD),
                         'password_set_at' => now(),
                         'is_active' => true,
                         'organization_id' => $organization->id,
                     ],
                 );
-                $user->syncRoles(['knx_office']);
+                // The app role follows the person's kind: an office account cannot
+                // open Veld and a field account cannot open Kantoor.
+                $user->syncRoles([$isOffice ? 'knx_office' : 'knx_field']);
 
                 $employee->update(['user_id' => $user->id]);
             }
@@ -348,7 +381,7 @@ class KnxDemoSeeder extends Seeder
                 'device_existing' => $existing,
                 'device_field' => $field,
                 'reported_by_employee_id' => $this->people[$by]->id,
-                'reported_at' => now()->subDays($daysAgo)->setTime($hour, $minute),
+                'reported_at' => $this->at($daysAgo, $hour, $minute),
                 'note' => $note,
                 'status' => $status,
                 'proposal' => $proposal,
@@ -357,7 +390,7 @@ class KnxDemoSeeder extends Seeder
             foreach ($history as [$action, $logDaysAgo, [$logHour, $logMinute]]) {
                 KnxConflictLog::create([
                     'conflict_id' => $conflict->id,
-                    'at' => now()->subDays($logDaysAgo)->setTime($logHour, $logMinute),
+                    'at' => $this->at($logDaysAgo, $logHour, $logMinute),
                     'action' => $action,
                     'address' => $action === 'reported' ? null : $proposal,
                 ]);
@@ -405,7 +438,7 @@ class KnxDemoSeeder extends Seeder
                 'serial' => $serial,
                 'source' => KnxDevice::SOURCE_FIELD,
                 'registered_by_employee_id' => $this->people[$by]->id,
-                'registered_at' => now()->setTime($hour, $minute),
+                'registered_at' => $this->at(0, $hour, $minute),
                 'acknowledged_at' => $acked ? now() : null,
             ]);
 
@@ -418,7 +451,7 @@ class KnxDemoSeeder extends Seeder
                 'room' => $roomName,
                 'serial' => $serial,
                 'reported_by_employee_id' => $this->people[$by]->id,
-                'reported_at' => now()->setTime($hour, $minute),
+                'reported_at' => $this->at(0, $hour, $minute),
                 'acknowledged_at' => $acked ? now() : null,
             ]);
         }
@@ -523,7 +556,7 @@ class KnxDemoSeeder extends Seeder
                     'updated_by_employee_id' => isset($spec['by']) ? $this->people[$spec['by']]->id : null,
                     'updated_at' => $spec['status'] === KnxZoneCheck::STATUS_PENDING
                         ? null
-                        : now()->subDays(1)->setTime(14, 0),
+                        : $this->at(1, 14, 0),
                 ]);
             }
 

@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 use Modules\Knx\Http\Resources\FunctionSpecResource;
 use Modules\Knx\Models\KnxFunctionSpec;
 use Modules\Knx\Models\KnxProject;
-use Modules\Knx\Services\KantoorAuthService;
+use Modules\Knx\Services\KnxAuthService;
 
 /**
  * Fichas funcionales (§4.B, contrato en BACKEND-API-ZONES.md §2).
@@ -34,7 +34,7 @@ class FunctionSpecController extends Controller
         return FunctionSpecResource::list($specs, $request);
     }
 
-    public function update(Request $request, string $id, KantoorAuthService $auth): FunctionSpecResource
+    public function update(Request $request, string $id, KnxAuthService $auth): FunctionSpecResource
     {
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(KnxFunctionSpec::STATUSES)],

@@ -11,7 +11,7 @@ use Laravel\Sanctum\PersonalAccessToken;
 use Modules\Core\Models\User;
 use Modules\Knx\Http\Requests\LoginRequest;
 use Modules\Knx\Http\Resources\SessionResource;
-use Modules\Knx\Services\KantoorAuthService;
+use Modules\Knx\Services\KnxAuthService;
 
 /**
  * Session endpoints of docs/BACKEND-API.md §7.
@@ -29,7 +29,7 @@ use Modules\Knx\Services\KantoorAuthService;
  */
 class AuthController extends Controller
 {
-    public function __construct(private readonly KantoorAuthService $auth) {}
+    public function __construct(private readonly KnxAuthService $auth) {}
 
     public function login(LoginRequest $request): JsonResponse
     {
