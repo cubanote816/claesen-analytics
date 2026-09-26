@@ -142,4 +142,18 @@ class Site extends Model
     {
         return $this->mail_notification_email ?? config('website.consultation_notification_email');
     }
+
+    /**
+     * CLA-603: the brand identity the auth screens use for this site's panel —
+     * the company logo plus the accent hue of the login's primary colour.
+     * Null when the site has no mapped brand, so callers fall back to the
+     * mockup's own neutral/blue defaults rather than to another company's
+     * identity (same rule as forPanel()).
+     *
+     * @return array{accent_hue: float|int, logo: string, logo_alt: string, logo_height: int}|null
+     */
+    public function loginBrand(): ?array
+    {
+        return config("organizations.login_brand.{$this->key}");
+    }
 }

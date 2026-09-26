@@ -54,12 +54,79 @@ class AdminPanelProvider extends PanelProvider
                 static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
 
-            // CLA-580 — split-screen brand panel, scoped to the login page only
-            // (never on other fi-simple-layout pages) via the login route name.
+            // CLA-603 — split-screen login from the approved mockup. Registered
+            // here because FilamentView::registerRenderHook is global and this
+            // provider is already where the backoffice's cross-panel render hooks
+            // live: the gate below covers EVERY panel's auth screens (login,
+            // logout, password reset, MFA challenge) — admin *and* bertels. The
+            // theme restyles .fi-simple-layout itself, so it and the brand column
+            // must share the exact same gate.
+            $isAuthScreen = static fn (): bool => (bool) request()?->routeIs('filament.*.auth.*');
+
             FilamentView::registerRenderHook(
                 PanelsRenderHook::SIMPLE_LAYOUT_START,
-                static fn(): string => request()?->routeIs('filament.admin.auth.login')
+                static fn(): string => $isAuthScreen()
                     ? view('core::filament.auth.brand-panel')->render()
+                    : '',
+            );
+
+            // Plain <style> instead of Tailwind utilities on purpose: the bertels
+            // panel has no ->viteTheme(), so utilities used only by the login views
+            // are never generated there — the 416px Microsoft icon of CLA-603 was
+            // exactly that (h-5 w-5 resolved to nothing).
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::HEAD_END,
+                static fn(): string => $isAuthScreen()
+                    ? view('core::filament.auth.login-theme')->render()
+                    : '',
+            );
+
+            // CLA-601 — the mockup's sign-in column is deliberately light
+            // regardless of the panel's own dark default (admin sets
+            // ->defaultThemeMode(Dark)): a real two-tone split (dark brand / light
+            // functional form), not a uniformly dark page. Filament's own base
+            // (non-dark) theme is already a coherent, accessible light design.
+            //
+            // Two narrower fixes were tried first and empirically failed (kept here
+            // so the next person doesn't retry them): a one-shot
+            // classList.remove('dark') at HEAD_END, and overriding the
+            // --default-theme-mode CSS custom property the base layout also sets.
+            // Both lose the race against vendor/filament/filament/resources/js/
+            // dark-mode.js, which re-adds the class from an Alpine.effect()
+            // reacting to Alpine.store('theme') — that effect (re)runs once Alpine
+            // initialises, which in this app's HTML only happens once livewire.js's
+            // own <script src> tag executes, itself emitted by Livewire AFTER any
+            // renderHook content (verified via curl on the raw response: our hook's
+            // markup is on an earlier line than that script tag, in every hook
+            // position tried, including BODY_END) — so nothing we render can run
+            // its own classList mutation later than Alpine's.
+            // A MutationObserver sidesteps the ordering fight entirely: it fires on
+            // every future mutation of <html>'s class attribute, however many times
+            // something else re-adds 'dark', for as long as this page lives —
+            // correct regardless of exactly when Alpine boots. Never touches
+            // localStorage/Alpine.store, so it's a display-only override scoped to
+            // the auth screens; the rest of the app keeps whatever the user's own
+            // theme preference actually is.
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::HEAD_END,
+                static fn(): string => $isAuthScreen()
+                    ? <<<'HTML'
+                        <script>
+                            (function () {
+                                var html = document.documentElement;
+                                var strip = function () {
+                                    if (html.classList.contains('dark')) {
+                                        html.classList.remove('dark');
+                                    }
+                                };
+                                strip();
+                                new MutationObserver(strip).observe(html, {
+                                    attributes: true,
+                                    attributeFilter: ['class'],
+                                });
+                            })();
+                        </script>
+                        HTML
                     : '',
             );
 

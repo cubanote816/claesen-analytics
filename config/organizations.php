@@ -147,6 +147,36 @@ return [
         'bertels' => 'electro-bertels',
     ],
 
+    /*
+    | CLA-603 — brand identity of the login screens, per site (the site a panel
+    | manages, same keys as `panel_sites` above). The login is one design for
+    | both companies; what changes per company is the logo and the brand accent.
+    |
+    | `accent_hue` is the OKLCH hue Filament itself derives for that panel's
+    | own ->colors()['primary'] (Claesen #00aeef → 234.363, Electro Bertels
+    | #EE7203 → 50.626) — keep the two in sync. Lightness/chroma stay at the
+    | approved mockup's 0.55/0.16, so every login keeps the mockup's exact
+    | contrast and only the brand hue changes.
+    |
+    | `logo` is relative to public/. Never add a fallback to Claesen here: a
+    | panel whose site has no entry must render the mockup's neutral defaults,
+    | not another company's logo (same rule as Site::forPanel()).
+    */
+    'login_brand' => [
+        'claesen-verlichting' => [
+            'accent_hue' => 234.363,
+            'logo' => 'img/claesen-logo-login.png',
+            'logo_alt' => 'Claesen',
+            'logo_height' => 65,
+        ],
+        'electro-bertels' => [
+            'accent_hue' => 50.626,
+            'logo' => 'img/bertels-brand-logo-dark.png',
+            'logo_alt' => 'Electro Bertels',
+            'logo_height' => 60,
+        ],
+    ],
+
     'owned_modules' => [
         'claesen' => [
             'fieldops',
