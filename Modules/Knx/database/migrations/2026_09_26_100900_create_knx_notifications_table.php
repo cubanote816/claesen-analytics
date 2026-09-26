@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('address', 32);
             $table->string('room')->nullable();
             $table->string('serial')->nullable();
-            $table->string('reported_by_name')->nullable();
+            $table->foreignId('reported_by_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
             $table->timestamp('reported_at');
             $table->timestamp('acknowledged_at')->nullable();
             $table->timestamps();

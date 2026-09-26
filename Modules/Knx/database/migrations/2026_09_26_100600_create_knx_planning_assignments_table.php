@@ -16,12 +16,12 @@ return new class extends Migration
         Schema::create('knx_planning_assignments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained('organizations')->restrictOnDelete();
-            $table->foreignId('technician_id')->constrained('knx_technicians')->cascadeOnDelete();
+            $table->foreignId('employee_id')->constrained('knx_employees')->cascadeOnDelete();
             $table->foreignId('project_id')->constrained('knx_projects')->cascadeOnDelete();
             $table->date('date');
             $table->timestamps();
 
-            $table->unique(['technician_id', 'date']);
+            $table->unique(['employee_id', 'date']);
             $table->index(['organization_id', 'date']);
         });
     }

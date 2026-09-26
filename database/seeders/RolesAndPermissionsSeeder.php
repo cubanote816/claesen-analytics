@@ -25,6 +25,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'viewer' => 6,
             'client' => 7,
             'technician' => 8,
+            // CLA-604: app access for the Electro Bertels KNX domain. These grant
+            // NO Filament panel access on purpose — User::hasPanelAccess() does
+            // not list them, so a Bertels employee gets no panel access
+            // (→ /auth/no-access): Kantoor and Veld are their own apps. What someone *is*
+            // inside that domain (lead/planner/technician) is
+            // knx_employees.knx_role, a business role, not a permission.
+            'knx_office' => 9,
+            'knx_field' => 10,
         ];
 
         foreach ($roles as $roleName => $sort) {

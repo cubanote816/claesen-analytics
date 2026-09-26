@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('key', 30);
             $table->string('status', 12)->default('pending');
             $table->text('note')->nullable();
-            $table->string('updated_by_name')->nullable();
+            $table->foreignId('updated_by_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
             $table->timestamp('updated_at')->nullable();
 
             $table->unique(['zone_id', 'key']);

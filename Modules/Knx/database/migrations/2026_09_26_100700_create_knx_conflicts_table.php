@@ -31,7 +31,7 @@ return new class extends Migration
             $table->string('address', 32);
             $table->text('device_existing')->nullable();
             $table->text('device_field')->nullable();
-            $table->string('reported_by_name')->nullable();
+            $table->foreignId('reported_by_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
             $table->timestamp('reported_at');
             $table->text('note')->nullable();
             $table->string('photo_path')->nullable();

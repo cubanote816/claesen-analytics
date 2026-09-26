@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('type', 20);
             $table->string('status', 20)->default('queued');
             $table->string('path')->nullable();
-            $table->string('created_by_name')->nullable();
+            $table->foreignId('created_by_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
             $table->timestamps();
 
             $table->index(['organization_id', 'created_at']);

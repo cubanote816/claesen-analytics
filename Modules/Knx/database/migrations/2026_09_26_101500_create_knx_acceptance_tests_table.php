@@ -28,7 +28,7 @@ return new class extends Migration
             $table->string('status', 20)->default('pending');
             $table->text('note')->nullable();
             $table->boolean('physical_check')->default(false);
-            $table->string('executor_name')->nullable();
+            $table->foreignId('executor_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
             $table->timestamp('executed_at')->nullable();
             $table->json('evidence_urls')->nullable();
             $table->string('issue_id')->nullable();

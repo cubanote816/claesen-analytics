@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('code', 32);
             $table->string('name');
             $table->string('city')->nullable();
-            $table->string('lead_name')->nullable();
+            $table->foreignId('lead_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
             $table->unsignedInteger('devices_planned')->default(0);
             $table->unsignedInteger('devices_done')->default(0);
             $table->unsignedInteger('photos')->default(0);

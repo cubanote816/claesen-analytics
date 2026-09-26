@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('address', 32);
             $table->string('serial')->nullable();
             $table->string('source', 10)->default('ets');
-            $table->string('registered_by_name')->nullable();
+            $table->foreignId('registered_by_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
             $table->timestamp('registered_at')->nullable();
             $table->timestamp('acknowledged_at')->nullable();
             $table->timestamps();

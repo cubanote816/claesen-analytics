@@ -31,8 +31,8 @@ return new class extends Migration
             $table->string('path')->nullable();
             $table->string('revision', 20)->nullable();
             $table->boolean('is_current')->default(true);
-            $table->string('approved_by_name')->nullable();
-            $table->string('uploaded_by_name')->nullable();
+            $table->foreignId('approved_by_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
+            $table->foreignId('uploaded_by_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
             $table->date('uploaded_at');
             $table->timestamps();
 

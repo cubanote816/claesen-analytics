@@ -37,8 +37,8 @@ return new class extends Migration
             $table->json('knx_objects')->nullable();
             $table->string('status', 12)->default('draft');
             $table->unsignedInteger('version')->default(1);
-            $table->string('author_name')->nullable();
-            $table->string('approved_by_name')->nullable();
+            $table->foreignId('author_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
+            $table->foreignId('approved_by_employee_id')->nullable()->constrained('knx_employees')->nullOnDelete();
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
 
