@@ -45,6 +45,7 @@ Lectura opcional, solo a demanda (no cargar por defecto): `docs/ai/decisions-log
 | **Multiempresa Claesen/Electro Bertels (cualquier fase P0–P7)** | **`docs/ai/adr-multi-organization.md` ← leer antes de tocar organización, sitio, contexto o enforcement** |
 | Riesgos y deuda técnica | `docs/ai/known-risks.md` |
 | Comandos Artisan | `docs/ai/commands-runbook.md` |
+| Cuentas de prueba locales (email/contraseña, MFA, límites) | `docs/qa-test-users.md` |
 | Prompts reutilizables | `docs/ai/prompt-templates.md` |
 | Protocolo de trabajo | `docs/ai/project-protocol.md` |
 | Estrategia de handoff | `docs/ai/handoff-strategy.md` |
