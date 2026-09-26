@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
+use Modules\Knx\Http\Controllers\ClientController;
+use Modules\Knx\Http\Controllers\ProjectController;
 
 /*
  * KNX installation API — the contract consumed by Kantoor (office) and Veld
@@ -32,7 +34,20 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
     Route::middleware(['auth:sanctum', 'organization:electro-bertels'])->group(function (): void {
         Route::get('me/session', [SessionController::class, 'show'])->name('me.session');
 
-        // K2: clients, projects (+stats)
+        // K2 — clients and projects.
+        Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::get('clients/{id}', [ClientController::class, 'show'])->name('clients.show');
+
+        Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+        // {code} is a string ("C1618"), not a numeric id: constrain it so it can
+        // never swallow the nested routes below (stats, devices, activity...).
+        Route::get('projects/{code}', [ProjectController::class, 'show'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.show');
+        Route::get('projects/{code}/stats', [ProjectController::class, 'stats'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.stats');
+
         // K3: projects/{code}/devices|activity
         // K4: notifications (+ack)
         // K5: technicians, planning

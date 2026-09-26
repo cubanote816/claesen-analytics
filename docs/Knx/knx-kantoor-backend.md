@@ -62,7 +62,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 |---|---------|--------|
 | **K0** | Módulo, 16 tablas, modelos, personas, envelope de errores, seed del mock | ✅ cerrado |
 | **K1** | Sesión: `POST /auth/login\|refresh\|logout`, `GET /me/session` | ✅ cerrado |
-| K2 | Clientes y proyectos: `/clients`, `/clients/{id}`, `/projects`, `/projects/{code}`, `/stats` | ⏳ |
+| **K2** | Clientes y proyectos: `/clients`, `/clients/{id}`, `/projects`, `/projects/{code}`, `/stats` | ✅ cerrado |
 | K3 | Dossier: `/projects/{code}/devices`, `/projects/{code}/activity` | ⏳ |
 | K4 | Entrada de campo: `/notifications`, `ack`, `ack-all` | ⏳ |
 | K5 | Planificación: `/technicians`, `GET/PUT/DELETE /planning` | ⏳ |
@@ -101,6 +101,15 @@ Un `401` de `/me/session` es lo que el front usa para saber que debe borrar el t
 | `pieter.aerts@electrobertels.be` | `Kantoor123!` | Pieter Aerts | `planner` |
 
 Las crea `KnxDemoSeeder` (`KnxDemoSeeder::DEMO_PASSWORD`) junto con la persona de oficina enlazada. Los técnicos se siembran **sin cuenta** a propósito: son trabajo planificado, no logins (Veld les dará cuenta cuando exista).
+
+## Payloads: sin envoltorio
+
+El contrato describe los objetos y arrays **tal cual** (`{id, name, …}`, `[{code, …}]`), nunca dentro de `{data: …}`. Para lograrlo hay dos piezas, y por eso existe `Http/Resources/KnxResource`:
+
+- `$wrap = null` cubre un **recurso suelto** (la respuesta lee el estático de esa clase);
+- `KnxResource::list()` cubre una **lista**, porque `ResourceResponse` lee el envoltorio de la clase *colección* — que es de Laravel y dice `data` siempre, aunque el recurso interno lo desactive.
+
+Cualquier recurso nuevo del módulo debe extender `KnxResource`, y cualquier endpoint que devuelva una lista debe usar `::list()`.
 
 ## Entorno local
 

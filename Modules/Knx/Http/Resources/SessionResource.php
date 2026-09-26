@@ -3,7 +3,7 @@
 namespace Modules\Knx\Http\Resources;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
+
 use Modules\Knx\Models\KnxEmployee;
 
 /**
@@ -20,15 +20,8 @@ use Modules\Knx\Models\KnxEmployee;
  *
  * @property-read KnxEmployee $resource
  */
-class SessionResource extends JsonResource
+class SessionResource extends KnxResource
 {
-    /**
-     * The contract describes the object itself, not an envelope: `GET /me/session`
-     * returns `{id, name, initials, role, email, domain}`, and the front reads
-     * `name` at the top level.
-     */
-    public static $wrap = null;
-
     public function toArray(Request $request): array
     {
         return [
