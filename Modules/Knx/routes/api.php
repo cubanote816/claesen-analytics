@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\ClientController;
+use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\ProjectController;
@@ -68,7 +69,10 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
         Route::put('planning', [PlanningController::class, 'store'])->name('planning.store');
         Route::delete('planning', [PlanningController::class, 'destroy'])->name('planning.destroy');
-        // K6: conflicts
+        // K6 — the Conflictencentrum.
+        Route::get('conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
+        Route::get('conflicts/{id}', [ConflictController::class, 'show'])->name('conflicts.show');
+        Route::patch('conflicts/{id}', [ConflictController::class, 'update'])->name('conflicts.update');
         // K7: zones
         // K8: documents, reports
         // K9: functions, tests

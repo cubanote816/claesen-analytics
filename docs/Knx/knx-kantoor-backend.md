@@ -66,7 +66,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K3** | Dossier: `/projects/{code}/devices`, `/projects/{code}/activity` | ✅ cerrado |
 | **K4** | Entrada de campo: `/notifications`, `ack`, `ack-all` | ✅ cerrado |
 | **K5** | Planificación: `/technicians`, `GET/PUT/DELETE /planning` | ✅ cerrado |
-| K6 | Conflictos: lista/detalle/`PATCH` con histórico y `409 address_in_use` | ⏳ |
+| **K6** | Conflictos: lista/detalle/`PATCH` con histórico y `409 address_in_use` | ✅ cerrado |
 | K7 | Zonas: estado **derivado en servidor** + `zonesNotReady` | ⏳ |
 | K8 | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ⏳ |
 | K9 | Fichas funcionales y pruebas de aceptación | ⏳ |
@@ -166,6 +166,15 @@ para triar, no un error.
 - `abort(422, …)` **no** produce `errors` por campo: para fallos que el front debe señalar en un control hay que lanzar `ValidationException`.
 
 ⚠️ **§1.6 pendiente de decisión de producto:** el contrato sugiere que `PUT /planning` responda con un *warning* estructurado cuando el proyecto tenga zonas sin preparar. No se implementa aún (definido como decisión abierta) y el aviso de momento es cliente. El endpoint devuelve el `PlanningAssignment` plano que el contrato tipa.
+
+## Conflictos (K6)
+
+`GET /conflicts?status&project&q` · `GET /conflicts/{id}` · `PATCH /conflicts/{id}`.
+
+- Orden del contrato: severidad (`critical` → `info`) y después fecha descendente. `status=active` = `open`+`in_review` (el conjunto de trabajo de oficina, que **no** es un estado almacenado).
+- **El histórico es append-only.** Cada cambio de estado escribe una fila en la misma transacción, con la dirección que estaba en juego en ese momento: ese log **es** la lista de corrección ETS, así que no puede ser un efecto secundario que se pueda saltar. Mandar el mismo estado **no** añade línea (el front manda la propuesta junto al estado en su botón "siguiente paso"; eso tampoco ensucia el log).
+- **Ninguna máquina de estados**, a propósito: el contrato dice que las transiciones son reversibles y que documentar una es opcional. Inventar una aquí impediría deshacer un clic equivocado; lo que el backend garantiza es que **todo** cambio queda registrado.
+- **`409 address_in_use`** (`conflict` + `errors.proposal`) cuando la propuesta **cambia** hacia una dirección ocupada. `takenAddresses` = los aparatos del proyecto + las propuestas de los conflictos que aún la mantienen (liberan al pasar a `closed`/`rejected`), **excluyendo siempre la propuesta del propio conflicto** — si no, nunca podría cambiarla. Un conflicto cuya dirección ya es la de un aparato (el fixture tiene uno) **sí** puede avanzar: solo se valida cuando la dirección cambia de verdad.
 
 ## Entorno local
 
