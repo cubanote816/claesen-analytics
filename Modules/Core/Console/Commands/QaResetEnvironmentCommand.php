@@ -114,6 +114,12 @@ class QaResetEnvironmentCommand extends Command
      * CLA-598: Electro Bertels' organization/site row for local QA of the Bertels
      * panel. Local/testing only (guarded in handle()) — the real alta happens at P7,
      * never through this command or a migration.
+     *
+     * CLA-603: it also creates Bertels' QA users, because without one there is no
+     * way to actually sign into that panel: a user must belong to Bertels'
+     * organization to be a real Bertels user, and User::canAccessPanel() only lets
+     * super_admin reach the panel until P6 gives it resources and roles of its own
+     * (ADR D10, the "regla de hierro").
      */
     private function createBertelsFixture(): void
     {
@@ -125,8 +131,32 @@ class QaResetEnvironmentCommand extends Command
             ['key' => 'electro-bertels'],
             ['organization_id' => $organization->id, 'default_locale' => 'nl', 'locales' => ['nl', 'en', 'fr', 'de'], 'status' => Site::STATUS_ACTIVE],
         );
+        $this->createBertelsQaUsers($organization);
 
         $this->summaryRows[] = ['Electro Bertels organization + site', '✅ (local QA fixture)'];
+    }
+
+    /**
+     * CLA-603: the Bertels-side QA accounts. Deliberately a different domain from
+     * the Claesen QA users so it is obvious at a glance which company a row in the
+     * Users list belongs to (and so the column/filter added in CLA-599 has
+     * something real to show).
+     */
+    private function createBertelsQaUsers(Organization $organization): void
+    {
+        $bertels = User::updateOrCreate(
+            ['email' => 'qa.bertels@electro-bertels.test'],
+            [
+                'name' => 'QA Bertels',
+                'password' => Hash::make('QaBertels123!'),
+                'password_set_at' => now(),
+                'is_active' => true,
+                'organization_id' => $organization->id,
+            ]
+        );
+        $bertels->syncRoles(['super_admin']);
+
+        $this->summaryRows[] = ['qa.bertels@electro-bertels.test', '✅ super_admin · Electro Bertels'];
     }
 
     private function createQaUsers(): void
