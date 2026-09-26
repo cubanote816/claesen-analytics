@@ -8,6 +8,7 @@ use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\DashboardController;
 use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\DocumentController;
+use Modules\Knx\Http\Controllers\EventStreamController;
 use Modules\Knx\Http\Controllers\FunctionSpecController;
 use Modules\Knx\Http\Controllers\ReportController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
@@ -100,6 +101,9 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
 
         Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
         Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
+        // K10 — server-sent events (optional per §6; polling keeps working without it).
+        Route::get('events', [EventStreamController::class, 'stream'])->name('events.stream');
+
         // K9 — functional specs and acceptance tests.
         Route::get('projects/{code}/functions', [FunctionSpecController::class, 'index'])
             ->where('code', '[A-Za-z0-9._-]+')

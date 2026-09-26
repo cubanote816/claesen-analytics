@@ -53,6 +53,21 @@ return [
     | the FIRST failed check.
     |
     */
+    /*
+    |--------------------------------------------------------------------------
+    | Server-sent events (§6)
+    |--------------------------------------------------------------------------
+    |
+    | How long one `/events` connection may live before closing politely, and how
+    | often it looks for something new. The cap exists so a stream cannot hold a PHP
+    | worker hostage: the browser reconnects by itself.
+    |
+    */
+    'events' => [
+        'stream_seconds' => env('KNX_EVENTS_STREAM_SECONDS', 55),
+        'poll_seconds' => env('KNX_EVENTS_POLL_SECONDS', 2),
+    ],
+
     'zone_check_keys' => [
         'installed',
         'power',

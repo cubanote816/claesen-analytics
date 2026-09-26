@@ -71,7 +71,9 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K7b** | `/dashboard` (todos sus agregados ya existen) | ✅ cerrado |
 | **K8** | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ✅ cerrado |
 | **K9** | Fichas funcionales y pruebas de aceptación | ✅ cerrado |
-| K10 | (Opcional) `GET /events` SSE | ⏳ |
+| **K10** | (Opcional) `GET /events` SSE | ✅ cerrado |
+
+**El contrato está completo:** los 36 endpoints de `/api/v1/knx` cubren las 32 llamadas que hace el cliente real del front (`src/api/real/index.ts`), incluidos login/refresh/logout y las descargas firmadas, que el front todavía no consume.
 
 ## Sesión (K1)
 
@@ -242,6 +244,24 @@ Desviación declarada: §4.9 describe la *presentación* (dossier y entrega en P
 1. **`failed`, `blocked` y `not_applicable` exigen `note`** (422 en `errors.note`): un fallo sin motivo es inservible en la entrega.
 2. **Un fallo crea (o vincula) una incidencia** sin perder contexto: la prueba ya sabe su función, su zona y la acción, así que solo faltaba la referencia. Si ya había `issueId`, **no se sobrescribe nunca**.
 3. **Repetir una prueba corregida no borra el fallo anterior** → tabla `knx_test_executions`, append-only. Una sola columna `status` no puede cumplir eso (la segunda pasada borraría la evidencia de la primera), y esa evidencia es parte de lo que el cliente firma en la entrega. La fila de la prueba mantiene el estado actual; la tabla es el rastro detrás. **No se expone todavía** (el tipo del front no la tiene); el informe de entrega de K8 es su primer consumidor natural.
+
+## Eventos en tiempo real (K10)
+
+`GET /events` (`text/event-stream`), opcional según §6: sin él, el polling de 5–15 s sigue funcionando. Dos eventos, los dos sobre algo que *aparece*:
+
+```
+event: field.device.created
+data: {"notificationId":"7","projectCode":"239870","address":"1.2.047","room":"Zaal 2.07"}
+event: conflict.created
+data: {"conflictId":"16","projectCode":"C1618","address":"1.1.116"}
+```
+
+Dos decisiones:
+
+- **El cursor son dos "mayor id ya enviado"**, no timestamps: los ids son monótonos y no los reordena un desfase de reloj. Y una conexión nueva empieza **en el presente**, no en el principio: quien acaba de abrir la pestaña ya se trajo el estado actual y no quiere que le repitan el historial.
+- **La conexión es acotada** (`config('knx.events.stream_seconds')`, 55 s por defecto) y cierra con un comentario; el navegador reconecta solo. Un worker de PHP retenido para siempre es un worker que no tiene el resto de oficina. En tests se pone a 0 para poder verificar los headers sin esperar.
+
+**Autenticación: Bearer, no token en la query.** Un token en la URL acaba en logs de acceso y en el historial del navegador — y por eso el cliente **no puede usar el `EventSource` nativo**, que no manda cabeceras: tiene que leer el stream con `fetch()`.
 
 ## Entorno local
 
