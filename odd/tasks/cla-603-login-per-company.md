@@ -56,11 +56,19 @@ Portado el WIP de CLA-601: `Login.php`, `lang/{en,nl}/auth.php`, `brand-panel.bl
 
 ## Evidencia
 
-- Suite completa: pendiente (ver abajo).
-- `Modules/Core/tests/Feature/BackofficePasswordResetTest.php` — **8/8**, 32 aserciones (rutas de ambos paneles, brand column propio, enlace del email apuntando al panel correcto, mismo trato para email desconocido, cuenta Microsoft excluida, reset feliz, código caducado, URL sin firma → 403).
+- Suite completa: **1916 passed, 2 skipped, 0 failed** (6159 aserciones).
+- `Modules/Core/tests/Feature/BackofficePasswordResetTest.php` — **10/10**, 40 aserciones (rutas de ambos paneles, brand column propio, enlace del email apuntando al panel correcto, mismo trato para email desconocido, cuenta Microsoft excluida, reset feliz, código caducado, URL sin firma → 403).
 - `Modules/Core/tests` + `tests/Feature/ClaesenBaseline` — **374 verde** antes de regenerar snapshots.
 - `PasswordResetFlowTest` + `PasswordSetupFlowTest` (API existente) — **23/23** tras extraer el servicio.
 - Playwright (1440×900) con el stack aislado: icono Microsoft **14 × 14** y botón **46 px** en ambos paneles (antes 416 px en bertels); acento `oklch(0.55 0.16 234.363)` (cyan) en admin y `oklch(0.55 0.16 50.626)` (naranja) en bertels; logo correcto por panel; forgot/reset/done con el diseño del mockup.
+
+### Gotcha de implementación (para el siguiente)
+
+Filament **memoiza el schema de `content()`** por instancia de componente (`InteractsWithSchemas::$cachedSchemas`). `->visible($this->sent)` con un booleano queda congelado en el primer render: el formulario seguía visible y el bloque sent/done no se pintaba nunca. La solución es pasar un **closure** (`->visible(fn (): bool => $this->sent)`), que sí se evalúa al renderizar; hay 2 tests que lo fijan. Además, `php artisan view:clear` es necesario tras tocar estas vistas dentro del contenedor.
+
+### Rate limiting al verificar a mano
+
+`request()` limita a 2 intentos/minuto por componente+IP (`rateLimit(2)`) y el reset a 2 por email (`isResetPasswordRateLimited`). Al repetir el flujo a mano con Playwright varias veces seguidas, el tercer intento **no** cambia de pantalla (es correcto): hay que limpiar caché (`php artisan cache:clear`) entre pasadas o esperar al minuto.
 
 ## Arnés para reproducir (condiciones del entorno, no del branch)
 
