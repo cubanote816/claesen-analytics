@@ -65,7 +65,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K2** | Clientes y proyectos: `/clients`, `/clients/{id}`, `/projects`, `/projects/{code}`, `/stats` | ✅ cerrado |
 | **K3** | Dossier: `/projects/{code}/devices`, `/projects/{code}/activity` | ✅ cerrado |
 | **K4** | Entrada de campo: `/notifications`, `ack`, `ack-all` | ✅ cerrado |
-| K5 | Planificación: `/technicians`, `GET/PUT/DELETE /planning` | ⏳ |
+| **K5** | Planificación: `/technicians`, `GET/PUT/DELETE /planning` | ✅ cerrado |
 | K6 | Conflictos: lista/detalle/`PATCH` con histórico y `409 address_in_use` | ⏳ |
 | K7 | Zonas: estado **derivado en servidor** + `zonesNotReady` | ⏳ |
 | K8 | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ⏳ |
@@ -155,6 +155,17 @@ front que hace polling cada 5 s lo hará).
 siga viendo lo que acaba de limpiar tras el siguiente poll. Un cuadro desconocido
 llega como `board: null` + `boardName: null` — es el caso que la bandeja existe
 para triar, no un error.
+
+## Planificación (K5)
+
+`GET /technicians` · `GET /planning?from&to` · `PUT /planning` · `DELETE /planning`.
+
+- **Solo los `field` son técnicos**: el personal de oficina nunca se planifica, y mandar un id de oficina responde 422 con el error en `technicianId` (un `abort(422)` no lleva errores por campo, así que el front no podría señalarlo).
+- **`PUT` es idempotente en (technicianId, date)**: la misma llamada dos veces deja una fila, y con otro proyecto **reemplaza** (es lo que hace un planificador al arrastrar la fila). Lo garantizan `updateOrCreate` **y** el índice único de la tabla, así que dos peticiones concurrentes tampoco crean dos filas.
+- **`DELETE` de un día vacío no es error** (204): el estado que pide el llamante ya es el que hay.
+- `abort(422, …)` **no** produce `errors` por campo: para fallos que el front debe señalar en un control hay que lanzar `ValidationException`.
+
+⚠️ **§1.6 pendiente de decisión de producto:** el contrato sugiere que `PUT /planning` responda con un *warning* estructurado cuando el proyecto tenga zonas sin preparar. No se implementa aún (definido como decisión abierta) y el aviso de momento es cliente. El endpoint devuelve el `PlanningAssignment` plano que el contrato tipa.
 
 ## Entorno local
 

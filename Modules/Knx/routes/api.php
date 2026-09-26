@@ -5,6 +5,7 @@ use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
+use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\ProjectController;
 
 /*
@@ -61,7 +62,12 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         Route::post('notifications/ack-all', [FieldNotificationController::class, 'ackAll'])->name('notifications.ack-all');
         Route::get('notifications', [FieldNotificationController::class, 'index'])->name('notifications.index');
         Route::post('notifications/{id}/ack', [FieldNotificationController::class, 'ack'])->name('notifications.ack');
-        // K5: technicians, planning
+        // K5 — technicians and planning.
+        Route::get('technicians', [PlanningController::class, 'technicians'])->name('technicians.index');
+
+        Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
+        Route::put('planning', [PlanningController::class, 'store'])->name('planning.store');
+        Route::delete('planning', [PlanningController::class, 'destroy'])->name('planning.destroy');
         // K6: conflicts
         // K7: zones
         // K8: documents, reports
