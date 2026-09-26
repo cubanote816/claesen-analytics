@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Factories\KnxEmployeeFactory;
+use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
 
 /**
  * A person of the KNX domain: office staff (Kantoor) or field technician (Veld).
@@ -34,6 +34,7 @@ use Modules\Knx\Database\Factories\KnxEmployeeFactory;
  */
 class KnxEmployee extends Model
 {
+    use BelongsToKnxTenant;
     use HasFactory;
 
     /** Office staff — the Kantoor app. */
@@ -70,11 +71,6 @@ class KnxEmployee extends Model
     protected static function newFactory(): KnxEmployeeFactory
     {
         return KnxEmployeeFactory::new();
-    }
-
-    public function organization(): BelongsTo
-    {
-        return $this->belongsTo(Organization::class);
     }
 
     /**

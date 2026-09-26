@@ -65,6 +65,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('website:check-intake-abuse-alerts')->hourly()->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // CLA-604: the KNX API (Kantoor/Veld) promises a uniform error body —
+        // {message, code, errors} — that Laravel does not produce on its own
+        // (`code` is missing everywhere, and a 422 only carries `errors`).
+        // Scoped to /api/v1/knx/* so Claesen's APIs and the Filament panels keep
+        // their current behaviour untouched.
+        $exceptions->render(fn (Throwable $e, Request $request) => \Modules\Knx\Http\ApiErrorEnvelope::render($e, $request));
+
         // F3/CLA-471: the v1/website/* group is public, unauthenticated,
         // and unthrottled by design (see
         // tests/Feature/ClaesenBaseline/AccessControlContractTest) — the
