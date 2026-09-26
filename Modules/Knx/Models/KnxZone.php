@@ -71,6 +71,24 @@ class KnxZone extends Model
     }
 
     /**
+     * The eight checks in display order — ALWAYS. The contract promises "always
+     * the 8 keys, in order", and neither the database nor the relation
+     * guarantees it (MySQL returns them however the unique index happens to be
+     * read), so the ordering is applied here once and every reader
+     * (derivation, blocking reason, API resource) goes through this method.
+     *
+     * @return Collection<int, KnxZoneCheck>
+     */
+    public function orderedChecks(): Collection
+    {
+        $order = array_flip(KnxZoneCheck::keys());
+
+        return $this->checks
+            ->sortBy(fn (KnxZoneCheck $check): int => $order[$check->key] ?? 99)
+            ->values();
+    }
+
+    /**
      * The applicable checks, in display order — `na` means "does not apply here"
      * and is excluded from the derivation.
      *
@@ -78,14 +96,9 @@ class KnxZone extends Model
      */
     public function applicableChecks(): Collection
     {
-        $order = array_flip(KnxZoneCheck::keys());
-
-        return $this->relationLoaded('checks')
-            ? $this->checks
-                ->filter(fn (KnxZoneCheck $check): bool => $check->status !== KnxZoneCheck::STATUS_NA)
-                ->sortBy(fn (KnxZoneCheck $check): int => $order[$check->key] ?? 99)
-                ->values()
-            : collect();
+        return $this->orderedChecks()
+            ->filter(fn (KnxZoneCheck $check): bool => $check->status !== KnxZoneCheck::STATUS_NA)
+            ->values();
     }
 
     /**
@@ -123,12 +136,8 @@ class KnxZone extends Model
      */
     public function blockingCheck(): ?KnxZoneCheck
     {
-        $order = array_flip(KnxZoneCheck::keys());
-
-        return $this->checks
-            ->filter(fn (KnxZoneCheck $check): bool => $check->status === KnxZoneCheck::STATUS_FAILED)
-            ->sortBy(fn (KnxZoneCheck $check): int => $order[$check->key] ?? 99)
-            ->first();
+        return $this->orderedChecks()
+            ->first(fn (KnxZoneCheck $check): bool => $check->status === KnxZoneCheck::STATUS_FAILED);
     }
 
     public function isReady(): bool
