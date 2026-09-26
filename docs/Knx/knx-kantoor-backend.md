@@ -70,7 +70,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K7** | Zonas: `GET /zones`, `GET /zones/{id}`, `PATCH /zones/{id}/checks/{key}` con estado derivado | ✅ cerrado |
 | **K7b** | `/dashboard` (todos sus agregados ya existen) | ✅ cerrado |
 | **K8** | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ✅ cerrado |
-| K9 | Fichas funcionales y pruebas de aceptación | ⏳ |
+| **K9** | Fichas funcionales y pruebas de aceptación | ✅ cerrado |
 | K10 | (Opcional) `GET /events` SSE | ⏳ |
 
 ## Sesión (K1)
@@ -228,6 +228,20 @@ Desviación declarada: §4.9 describe la *presentación* (dossier y entrega en P
 | `hours` | — | ❌ **422**: nada en este dominio registra horas (Veld aún no las reporta). Se rechaza en vez de inventar números |
 
 `ExportRecord` incluye además `downloadUrl` (extensión que §4.9 recomienda): el tipo del contrato no tiene enlace, así que la app solo podría decir que el informe existe, nunca abrirlo.
+
+## Fichas funcionales y pruebas (K9)
+
+`GET /projects/{code}/functions` · `PATCH /functions/{id}` · `GET /projects/{code}/tests` · `PATCH /tests/{id}`.
+
+**Solo lo que consume el front.** §2.2 propone además `POST /projects/{code}/functions`, `POST /functions/{id}/approve` y `GET /functions/{id}/revisions`, y §3.2 `POST /projects/{code}/tests` y `POST /tests/{id}/evidence`. **Ninguno lo usa la app de oficina**, y construirlos ahora significaría inventar el flujo de edición (y con él la regla "editar siempre incrementa `version`"). Quedan pendientes y declarados.
+
+`PATCH /functions/{id}` marca quién aprueba: aprobar fija `approvedBy` + `approvedAt`, y salir de `approved` los borra — "aprobado por X" en un borrador sería engañoso.
+
+### Las tres reglas de una prueba que no pueden perderse
+
+1. **`failed`, `blocked` y `not_applicable` exigen `note`** (422 en `errors.note`): un fallo sin motivo es inservible en la entrega.
+2. **Un fallo crea (o vincula) una incidencia** sin perder contexto: la prueba ya sabe su función, su zona y la acción, así que solo faltaba la referencia. Si ya había `issueId`, **no se sobrescribe nunca**.
+3. **Repetir una prueba corregida no borra el fallo anterior** → tabla `knx_test_executions`, append-only. Una sola columna `status` no puede cumplir eso (la segunda pasada borraría la evidencia de la primera), y esa evidencia es parte de lo que el cliente firma en la entrega. La fila de la prueba mantiene el estado actual; la tabla es el rastro detrás. **No se expone todavía** (el tipo del front no la tiene); el informe de entrega de K8 es su primer consumidor natural.
 
 ## Entorno local
 

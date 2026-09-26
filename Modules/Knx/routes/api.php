@@ -6,7 +6,9 @@ use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\DashboardController;
+use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\DocumentController;
+use Modules\Knx\Http\Controllers\FunctionSpecController;
 use Modules\Knx\Http\Controllers\ReportController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\PlanningController;
@@ -98,6 +100,15 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
 
         Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
         Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
-        // K9: functions, tests
+        // K9 — functional specs and acceptance tests.
+        Route::get('projects/{code}/functions', [FunctionSpecController::class, 'index'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.functions');
+        Route::patch('functions/{id}', [FunctionSpecController::class, 'update'])->name('functions.update');
+
+        Route::get('projects/{code}/tests', [AcceptanceTestController::class, 'index'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.tests');
+        Route::patch('tests/{id}', [AcceptanceTestController::class, 'update'])->name('tests.update');
     });
 });

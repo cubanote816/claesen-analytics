@@ -5,6 +5,7 @@ namespace Modules\Knx\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
 use Modules\Knx\Database\Factories\KnxAcceptanceTestFactory;
 
@@ -64,5 +65,14 @@ class KnxAcceptanceTest extends Model
     public function executor(): BelongsTo
     {
         return $this->belongsTo(KnxEmployee::class, 'executor_employee_id');
+    }
+
+    /**
+     * Every run of this test, oldest first. The current state lives on the test
+     * itself; this is the trail that must survive a corrected failure (§3.2).
+     */
+    public function executions(): HasMany
+    {
+        return $this->hasMany(KnxTestExecution::class, 'acceptance_test_id')->orderBy('executed_at');
     }
 }
