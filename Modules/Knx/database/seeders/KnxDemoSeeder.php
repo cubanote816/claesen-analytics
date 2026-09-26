@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Modules\Knx\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Modules\Core\Models\Organization;
+use Modules\Core\Models\User;
+use Spatie\Permission\Models\Role;
 use Modules\Knx\Models\KnxAcceptanceTest;
 use Modules\Knx\Models\KnxBoard;
 use Modules\Knx\Models\KnxClient;
@@ -51,6 +54,18 @@ class KnxDemoSeeder extends Seeder
 
     /** The mock's TAKEN_ADDRESSES. */
     private const TAKEN_ADDRESSES = ['1.1.100', '1.1.101', '1.1.102'];
+
+    /**
+     * Password of the seeded Kantoor accounts, documented in
+     * docs/Knx/knx-kantoor-backend.md. Demo fixture only.
+     */
+    public const DEMO_PASSWORD = 'Kantoor123!';
+
+    /** The accounts this seeder owns; removed on re-run like the rows are. */
+    private const DEMO_EMAILS = [
+        'lien.smet@electrobertels.be',
+        'pieter.aerts@electrobertels.be',
+    ];
 
     /** @var array<string, KnxEmployee> keyed by display short name ("L. Smet") */
     private array $people = [];
@@ -112,6 +127,7 @@ class KnxDemoSeeder extends Seeder
         KnxProject::query()->where('organization_id', $organization->id)->delete();
         KnxClient::query()->where('organization_id', $organization->id)->delete();
         KnxEmployee::query()->where('organization_id', $organization->id)->delete();
+        User::query()->whereIn('email', self::DEMO_EMAILS)->delete();
     }
 
     /**
@@ -122,15 +138,21 @@ class KnxDemoSeeder extends Seeder
      */
     private function seedPeople(Organization $organization): void
     {
+        // Office people get an account, because without one nobody can sign into
+        // Kantoor at all — a seed that leaves the app unreachable is not a demo.
+        // The technicians stay account-less on purpose: they are planned work,
+        // not logins (Veld will give them accounts when it ships).
         $people = [
-            ['name' => 'Lien Smet', 'kind' => KnxEmployee::KIND_OFFICE, 'role' => 'lead', 'job' => true],
-            ['name' => 'Pieter Aerts', 'kind' => KnxEmployee::KIND_OFFICE, 'role' => 'planner', 'job' => true],
-            ['name' => 'Jan Van Dyck', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'job' => false],
-            ['name' => 'Mira Claes', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'job' => false],
-            ['name' => 'Stijn Wouters', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'job' => false],
-            ['name' => 'Tom Janssens', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'job' => false],
-            ['name' => 'Kobe Peeters', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'job' => false],
+            ['name' => 'Lien Smet', 'kind' => KnxEmployee::KIND_OFFICE, 'role' => 'lead', 'email' => 'lien.smet@electrobertels.be'],
+            ['name' => 'Pieter Aerts', 'kind' => KnxEmployee::KIND_OFFICE, 'role' => 'planner', 'email' => 'pieter.aerts@electrobertels.be'],
+            ['name' => 'Jan Van Dyck', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
+            ['name' => 'Mira Claes', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
+            ['name' => 'Stijn Wouters', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
+            ['name' => 'Tom Janssens', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
+            ['name' => 'Kobe Peeters', 'kind' => KnxEmployee::KIND_FIELD, 'role' => 'technician', 'email' => null],
         ];
+
+        Role::findOrCreate('knx_office', 'web');
 
         foreach ($people as $person) {
             $employee = KnxEmployee::create([
@@ -140,6 +162,22 @@ class KnxDemoSeeder extends Seeder
                 'kind' => $person['kind'],
                 'knx_role' => $person['role'],
             ]);
+
+            if ($person['email'] !== null) {
+                $user = User::updateOrCreate(
+                    ['email' => $person['email']],
+                    [
+                        'name' => $person['name'],
+                        'password' => Hash::make(self::DEMO_PASSWORD),
+                        'password_set_at' => now(),
+                        'is_active' => true,
+                        'organization_id' => $organization->id,
+                    ],
+                );
+                $user->syncRoles(['knx_office']);
+
+                $employee->update(['user_id' => $user->id]);
+            }
 
             $this->people[$employee->shortName()] = $employee;
         }

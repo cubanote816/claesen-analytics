@@ -15,17 +15,29 @@ class KnxEmployeeFactory extends Factory
 
     public function definition(): array
     {
-        $name = fake()->name();
-
         return [
             'organization_id' => Organization::factory(),
             'user_id' => null,
-            'name' => $name,
-            'initials' => KnxEmployee::initialsFromName($name),
+            'name' => fake()->name(),
             'kind' => KnxEmployee::KIND_FIELD,
             'knx_role' => null,
             'active' => true,
         ];
+    }
+
+    /**
+     * `initials` is not set in definition() on purpose: it must be derived from
+     * the name the caller actually passed (`create(['name' => 'Lien Smet'])`), not
+     * from the random one the factory started with — otherwise every seeded person
+     * would carry someone else's initials.
+     */
+    public function configure(): static
+    {
+        return $this->afterMaking(function (KnxEmployee $employee): void {
+            if (blank($employee->initials)) {
+                $employee->initials = KnxEmployee::initialsFromName((string) $employee->name);
+            }
+        });
     }
 
     /** Office staff — the people who appear as project lead, author, updater… */

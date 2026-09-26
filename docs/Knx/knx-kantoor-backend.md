@@ -60,8 +60,8 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 
 | # | Alcance | Estado |
 |---|---------|--------|
-| **K0** | Módulo, 16 tablas, modelos, personas, envelope de errores, seed del mock | 🚧 en curso |
-| K1 | Sesión: `POST /auth/login\|refresh\|logout`, `GET /me/session` | ⏳ |
+| **K0** | Módulo, 16 tablas, modelos, personas, envelope de errores, seed del mock | ✅ cerrado |
+| **K1** | Sesión: `POST /auth/login\|refresh\|logout`, `GET /me/session` | ✅ cerrado |
 | K2 | Clientes y proyectos: `/clients`, `/clients/{id}`, `/projects`, `/projects/{code}`, `/stats` | ⏳ |
 | K3 | Dossier: `/projects/{code}/devices`, `/projects/{code}/activity` | ⏳ |
 | K4 | Entrada de campo: `/notifications`, `ack`, `ack-all` | ⏳ |
@@ -71,6 +71,36 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | K8 | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ⏳ |
 | K9 | Fichas funcionales y pruebas de aceptación | ⏳ |
 | K10 | (Opcional) `GET /events` SSE | ⏳ |
+
+## Sesión (K1)
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `POST` | `/api/v1/knx/auth/login` | email + contraseña → `{access_token, expires_in, user}` (throttle 5/min) |
+| `POST` | `/api/v1/knx/auth/refresh` | rota el token presentado → `{access_token, expires_in}` (throttle 10/min) |
+| `POST` | `/api/v1/knx/auth/logout` | revoca el token presentado, `204` |
+| `GET` | `/api/v1/knx/me/session` | el `Session` del contrato; `401` si el token ya no vale |
+
+**Quién puede entrar** (dos condiciones, ambas en `KantoorAuthService::authorize()`):
+1. la cuenta está activa y tiene el rol `knx_office` → **acceso a la app**;
+2. la cuenta pertenece a **Electro Bertels** y está enlazada a una persona de **oficina** activa → **identidad** (sin esa fila no hay `name`/`initials`/`role` que devolver).
+
+**El tenant se comprueba siempre, sin depender del flag.** `organization:electrobertels` es un no-op mientras `config('organizations.enforce')` esté en `false` (el default en todos los entornos), así que apoyarse solo en él habría dejado entrar a una cuenta de Claesen emparejada con una persona de Bertels. En un módulo mono-tenant no hay motivo para depender de que alguien encienda un flag: la regla vive en el servicio. **Sin excepción para `super_admin`** (el ADR es explícito: incluso el super_admin trabaja dentro de una empresa).
+
+**Desviaciones del §7, las dos a propósito:**
+- **No hay refresh token separado.** El front solo guarda el access token, así que `refresh` acepta el `refresh_token` del documento *o* el Bearer y rota el que reciba. Un segundo credencial habría sido maquinaria sin usar.
+- **`expires_in` = `config('knx.token_expiry_minutes') * 60`** (60 min por defecto; el documento recomienda 15–60).
+
+Un `401` de `/me/session` es lo que el front usa para saber que debe borrar el token. Toda negativa de login responde **igual** (422 `validation_error` con `errors.email`): no se puede averiguar qué cuentas existen, ni cuál de las dos condiciones falló.
+
+### Cuentas del seed (Kantoor)
+
+| Email | Contraseña | Persona | Rol de negocio |
+|---|---|---|---|
+| `lien.smet@electrobertels.be` | `Kantoor123!` | Lien Smet | `lead` |
+| `pieter.aerts@electrobertels.be` | `Kantoor123!` | Pieter Aerts | `planner` |
+
+Las crea `KnxDemoSeeder` (`KnxDemoSeeder::DEMO_PASSWORD`) junto con la persona de oficina enlazada. Los técnicos se siembran **sin cuenta** a propósito: son trabajo planificado, no logins (Veld les dará cuenta cuando exista).
 
 ## Entorno local
 
