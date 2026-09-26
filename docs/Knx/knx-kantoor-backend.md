@@ -67,7 +67,8 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K4** | Entrada de campo: `/notifications`, `ack`, `ack-all` | ✅ cerrado |
 | **K5** | Planificación: `/technicians`, `GET/PUT/DELETE /planning` | ✅ cerrado |
 | **K6** | Conflictos: lista/detalle/`PATCH` con histórico y `409 address_in_use` | ✅ cerrado |
-| K7 | Zonas: estado **derivado en servidor** + `zonesNotReady` | ⏳ |
+| **K7** | Zonas: `GET /zones`, `GET /zones/{id}`, `PATCH /zones/{id}/checks/{key}` con estado derivado | ✅ cerrado |
+| **K7b** | `/dashboard` (todos sus agregados ya existen) | ⏳ el siguiente |
 | K8 | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ⏳ |
 | K9 | Fichas funcionales y pruebas de aceptación | ⏳ |
 | K10 | (Opcional) `GET /events` SSE | ⏳ |
@@ -175,6 +176,20 @@ para triar, no un error.
 - **El histórico es append-only.** Cada cambio de estado escribe una fila en la misma transacción, con la dirección que estaba en juego en ese momento: ese log **es** la lista de corrección ETS, así que no puede ser un efecto secundario que se pueda saltar. Mandar el mismo estado **no** añade línea (el front manda la propuesta junto al estado en su botón "siguiente paso"; eso tampoco ensucia el log).
 - **Ninguna máquina de estados**, a propósito: el contrato dice que las transiciones son reversibles y que documentar una es opcional. Inventar una aquí impediría deshacer un clic equivocado; lo que el backend garantiza es que **todo** cambio queda registrado.
 - **`409 address_in_use`** (`conflict` + `errors.proposal`) cuando la propuesta **cambia** hacia una dirección ocupada. `takenAddresses` = los aparatos del proyecto + las propuestas de los conflictos que aún la mantienen (liberan al pasar a `closed`/`rejected`), **excluyendo siempre la propuesta del propio conflicto** — si no, nunca podría cambiarla. Un conflicto cuya dirección ya es la de un aparato (el fixture tiene uno) **sí** puede avanzar: solo se valida cuando la dirección cambia de verdad.
+
+## Zonas (K7)
+
+`GET /zones?project=` · `GET /zones/{id}` · `PATCH /zones/{id}/checks/{key}`.
+
+El contrato está **cerrado** (`BACKEND-API-ZONES.md` §1) y la derivación vive en el modelo, así que este slice solo expone:
+
+- `status`, `blockingReason` y `blockedBy` **derivados en cada lectura y cada escritura** (no hay columna `status`). `blockingReason`/`blockedBy` salen del **primer** check `failed` en orden de enum: es la causa raíz, el siguiente fallo suele ser la acción de seguimiento. Hay test del caso real (limpiar el primer fallo mueve el blocker al siguiente).
+- Los 8 checks **siempre en orden**, aunque la BD no lo garantice.
+- `PATCH` responde la zona **ya recomputada** (el llamante nunca adivina el efecto), fija `updatedAt = now` y `updatedBy` = la persona de oficina autenticada.
+- `failed` y `na` **exigen `note`** (422 en `errors.note`): una zona bloqueada sin motivo es justo la señal inútil que este modelo evita.
+- `key` desconocida → 422; zona inexistente → 404.
+
+**`zonesNotReady` en `/projects`: NO se implementó.** §1.6 lo *recomienda*, pero el front lo calcula él mismo (`useZones()` + su propio aviso en Planning), así que añadirlo cambiaría una forma ya fijada sin que nadie la consuma. Queda como mejora opcional si algún día se quiere evitar que el front cargue todas las zonas.
 
 ## Entorno local
 

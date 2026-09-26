@@ -7,6 +7,7 @@ use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\PlanningController;
+use Modules\Knx\Http\Controllers\ZoneController;
 use Modules\Knx\Http\Controllers\ProjectController;
 
 /*
@@ -73,7 +74,10 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         Route::get('conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
         Route::get('conflicts/{id}', [ConflictController::class, 'show'])->name('conflicts.show');
         Route::patch('conflicts/{id}', [ConflictController::class, 'update'])->name('conflicts.update');
-        // K7: zones
+        // K7 — site readiness zones.
+        Route::get('zones', [ZoneController::class, 'index'])->name('zones.index');
+        Route::get('zones/{id}', [ZoneController::class, 'show'])->name('zones.show');
+        Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
         // K8: documents, reports
         // K9: functions, tests
     });

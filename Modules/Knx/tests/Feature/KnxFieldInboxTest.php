@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace Modules\Knx\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxDevice;
-use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxNotification;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -29,22 +26,19 @@ final class KnxFieldInboxTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        $organization = Organization::factory()->create(['slug' => 'electro-bertels']);
-
-        Role::findOrCreate('knx_office', 'web');
-        $user = User::factory()->create([
-            'email' => 'lead@electrobertels.be',
-            'password' => Hash::make('Secret1234!'),
-            'is_active' => true,
-            'organization_id' => $organization->id,
-        ]);
-        $user->assignRole('knx_office');
-        KnxEmployee::factory()->office()->forOrganization($organization)->create(['user_id' => $user->id]);
+        // The tenant has to exist before the fixture runs (KnxTenant refuses to
+        // invent one), and it is the fixture that creates the office account:
+        // seeding *after* creating our own person would delete it, because the
+        // demo seed replaces the tenant's rows.
+        Organization::factory()->create(['slug' => 'electro-bertels']);
 
         $this->seed(KnxDemoSeeder::class);
 
-        $this->actingAs($user, 'sanctum');
+        $this->actingAs(
+            User::query()->where('email', 'lien.smet@electrobertels.be')->sole(),
+            'sanctum',
+        );
+
     }
 
     public function test_the_inbox_has_the_contract_shape(): void
