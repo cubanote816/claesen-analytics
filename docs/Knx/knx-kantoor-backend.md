@@ -68,7 +68,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K5** | Planificación: `/technicians`, `GET/PUT/DELETE /planning` | ✅ cerrado |
 | **K6** | Conflictos: lista/detalle/`PATCH` con histórico y `409 address_in_use` | ✅ cerrado |
 | **K7** | Zonas: `GET /zones`, `GET /zones/{id}`, `PATCH /zones/{id}/checks/{key}` con estado derivado | ✅ cerrado |
-| **K7b** | `/dashboard` (todos sus agregados ya existen) | ⏳ el siguiente |
+| **K7b** | `/dashboard` (todos sus agregados ya existen) | ✅ cerrado |
 | K8 | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ⏳ |
 | K9 | Fichas funcionales y pruebas de aceptación | ⏳ |
 | K10 | (Opcional) `GET /events` SSE | ⏳ |
@@ -190,6 +190,17 @@ El contrato está **cerrado** (`BACKEND-API-ZONES.md` §1) y la derivación vive
 - `key` desconocida → 422; zona inexistente → 404.
 
 **`zonesNotReady` en `/projects`: NO se implementó.** §1.6 lo *recomienda*, pero el front lo calcula él mismo (`useZones()` + su propio aviso en Planning), así que añadirlo cambiaría una forma ya fijada sin que nadie la consuma. Queda como mejora opcional si algún día se quiere evitar que el front cargue todas las zonas.
+
+## Dashboard (K7b)
+
+`GET /dashboard` — un agregado, una llamada, porque es lo primero que abre oficina.
+
+Dos de sus números **difieren a propósito del fixture del front**:
+
+- `devicesThisWeek` cuenta los aparatos realmente registrados desde el lunes. El fixture lo tiene hardcodeado a 42.
+- `techniciansScheduledToday` cuenta quién tiene asignación **hoy**, así que en fin de semana es 0 legítimamente (el planificador de la fixture es de lunes a viernes).
+
+⚠️ **`travelling` nunca se emite.** El contrato lo lista y el fixture del front lo produce… por índice (`index === 2 ? 'travelling' : 'on_site'`), no por ningún dato. Nada en este dominio sabe si un técnico está de camino: eso es un *check-in* de campo (Veld), y hasta que exista, emitirlo sería inventar un estado que oficina luego se creería. Hoy `status` solo responde `off` u `on_site`.
 
 ## Entorno local
 

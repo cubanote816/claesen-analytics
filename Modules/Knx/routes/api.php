@@ -5,6 +5,7 @@ use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
+use Modules\Knx\Http\Controllers\DashboardController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\ZoneController;
@@ -37,6 +38,9 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'organization:electro-bertels'])->group(function (): void {
         Route::get('me/session', [SessionController::class, 'show'])->name('me.session');
+
+        // K7b — the dashboard aggregate (its inputs all exist now).
+        Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard.show');
 
         // K2 — clients and projects.
         Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
