@@ -63,7 +63,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K0** | Módulo, 16 tablas, modelos, personas, envelope de errores, seed del mock | ✅ cerrado |
 | **K1** | Sesión: `POST /auth/login\|refresh\|logout`, `GET /me/session` | ✅ cerrado |
 | **K2** | Clientes y proyectos: `/clients`, `/clients/{id}`, `/projects`, `/projects/{code}`, `/stats` | ✅ cerrado |
-| K3 | Dossier: `/projects/{code}/devices`, `/projects/{code}/activity` | ⏳ |
+| **K3** | Dossier: `/projects/{code}/devices`, `/projects/{code}/activity` | ✅ cerrado |
 | K4 | Entrada de campo: `/notifications`, `ack`, `ack-all` | ⏳ |
 | K5 | Planificación: `/technicians`, `GET/PUT/DELETE /planning` | ⏳ |
 | K6 | Conflictos: lista/detalle/`PATCH` con histórico y `409 address_in_use` | ⏳ |
@@ -110,6 +110,33 @@ El contrato describe los objetos y arrays **tal cual** (`{id, name, …}`, `[{co
 - `KnxResource::list()` cubre una **lista**, porque `ResourceResponse` lee el envoltorio de la clase *colección* — que es de Laravel y dice `data` siempre, aunque el recurso interno lo desactive.
 
 Cualquier recurso nuevo del módulo debe extender `KnxResource`, y cualquier endpoint que devuelva una lista debe usar `::list()`.
+
+## Dossier (K3)
+
+`GET /projects/{code}/devices` devuelve **el plan ETS y lo registrado en obra**, con los de campo primero (orden del contrato) y, dentro de cada grupo, por dirección. Dos banderas derivadas, nunca columnas:
+
+- **`isNew`** — registro de campo que oficina **aún no ha confirmado** (`acknowledged_at IS NULL`).
+- **`hasConflict`** — su dirección choca con un conflicto del proyecto todavía en `open`/`in_review`. Las direcciones se cargan **una vez** para toda la lista, no por aparato.
+
+### Notificación ≠ aparato (importante)
+
+La notificación es el **evento** (lo que reportó Veld, con su `acked`), el aparato es el **registro**. Son dos filas enlazadas por `knx_notifications.device_id`, y por eso:
+
+- el dossier muestra el aparato aunque oficina aún no lo haya confirmado (marcado `isNew`), que es lo que el mock hacía;
+- la bandeja de `/notifications` sigue mostrando el elemento pendiente.
+
+Un aparato de campo puede referenciar una **sala o un cuadro que oficina no tenía modelado** ("Zaal 2.07", "Verdeelbord E21"): se crean al vuelo como fila. Sin eso, `Device.room` (que el contrato tipa como string) vendría `null`.
+
+### Actividad derivada, no un log aparte
+
+`GET /projects/{code}/activity` se compone de las filas que ya existen:
+
+| `kind` | De dónde sale |
+|---|---|
+| `conflict_reported` | los conflictos del proyecto |
+| `devices_registered` | aparatos de campo **agrupados por persona y día** (una entrada con `count`, no una por aparato: en un proyecto de 60 aparatos el feed sería ilegible) |
+| `plan_uploaded` | documentos subidos |
+| `photos_uploaded` | **no se emite**: nada modela las fotos como eventos (el proyecto solo lleva un contador). Llega cuando Veld tenga tabla de fotos. |
 
 ## Entorno local
 

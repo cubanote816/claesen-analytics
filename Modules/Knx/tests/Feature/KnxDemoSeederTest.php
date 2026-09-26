@@ -66,17 +66,31 @@ final class KnxDemoSeederTest extends TestCase
 
     public function test_the_devices_reproduce_the_fixtures_generation_formula(): void
     {
-        $devices = KnxDevice::query()
-            ->where('project_id', KnxProject::query()->where('code', 'C1618')->sole()->id)
+        $project = KnxProject::query()->where('code', 'C1618')->sole();
+
+        // The generated devices are the ones the fixture derives from the project's
+        // `devicesDone`; the two pending field registrations are separate rows (the
+        // notification is the event, the device is the registration).
+        $generated = KnxDevice::query()
+            ->where('project_id', $project->id)
+            ->where('address', '!=', '1.1.131')
             ->orderBy('address')
             ->get();
 
-        $this->assertCount(17, $devices);
-        $this->assertSame('1.1.100', $devices->first()->address);
-        $this->assertSame('Aanwezigheidsdetector', $devices->get(1)->type);
-        $this->assertSame(KnxDevice::SOURCE_ETS, $devices->first()->source);
+        $this->assertCount(17, $generated);
+        $this->assertSame('1.1.100', $generated->first()->address);
+        $this->assertSame('Aanwezigheidsdetector', $generated->get(1)->type);
+        $this->assertSame(KnxDevice::SOURCE_ETS, $generated->first()->source);
         // i % 4 === 0 → ets, everything else comes from the field.
-        $this->assertSame(KnxDevice::SOURCE_FIELD, $devices->get(1)->source);
+        $this->assertSame(KnxDevice::SOURCE_FIELD, $generated->get(1)->source);
+
+        // The field registration the office has not confirmed yet is in the dossier
+        // too, flagged as new.
+        $pending = KnxDevice::query()->where('project_id', $project->id)->where('address', '1.1.131')->sole();
+
+        $this->assertSame(KnxDevice::SOURCE_FIELD, $pending->source);
+        $this->assertNull($pending->acknowledged_at);
+        $this->assertTrue($pending->isNew());
     }
 
     public function test_the_zone_checks_derive_the_statuses_the_ui_expects(): void

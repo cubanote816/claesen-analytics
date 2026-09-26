@@ -48,7 +48,13 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             ->where('code', '[A-Za-z0-9._-]+')
             ->name('projects.stats');
 
-        // K3: projects/{code}/devices|activity
+        // K3 — the dossier of a project.
+        Route::get('projects/{code}/devices', [ProjectController::class, 'devices'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.devices');
+        Route::get('projects/{code}/activity', [ProjectController::class, 'activity'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.activity');
         // K4: notifications (+ack)
         // K5: technicians, planning
         // K6: conflicts

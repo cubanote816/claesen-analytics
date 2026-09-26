@@ -374,23 +374,48 @@ class KnxDemoSeeder extends Seeder
             ['1.1.131', 'Drukknop 4-voudig', 'Cafetaria', 'E11', 'Verdeelbord E11', '00B2-4471', 'C1618', 'L. Smet', [8, 31], false],
         ];
 
-        foreach ($rows as [$address, $type, $room, $boardCode, $boardName, $serial, $code, $by, [$hour, $minute], $acked]) {
+        foreach ($rows as [$address, $type, $roomName, $boardCode, $boardName, $serial, $code, $by, [$hour, $minute], $acked]) {
             $project = $this->projects[$code];
 
             // The mock reports a board the project may not have yet; E21 is
             // exactly that case, so it is created on the fly (the office then
-            // sees "Nuevo cuadro").
+            // sees a board it has never seen before).
             $board = KnxBoard::firstOrCreate(
                 ['project_id' => $project->id, 'code' => $boardCode],
                 ['name' => $boardName],
             );
 
-            KnxNotification::create([
+            // Same for the room: the field app reports a name, and a space the
+            // office has not modelled yet becomes a room row. Without it the
+            // device's `room` would be null, and the contract types it as a string.
+            $room = KnxProjectRoom::firstOrCreate(
+                ['project_id' => $project->id, 'name' => $roomName],
+                ['floor' => str_contains($project->name, '2e verdieping') ? '2e verdieping' : 'Gelijkvloers'],
+            );
+
+            // The notification is the *event*; the device is the *registration*.
+            // Both exist, and they are linked, which is what lets the dossier show
+            // the apparatus while the office inbox still shows the item to confirm.
+            $device = KnxDevice::create([
                 'project_id' => $project->id,
+                'room_id' => $room->id,
                 'board_id' => $board->id,
                 'type' => $type,
                 'address' => $address,
-                'room' => $room,
+                'serial' => $serial,
+                'source' => KnxDevice::SOURCE_FIELD,
+                'registered_by_employee_id' => $this->people[$by]->id,
+                'registered_at' => now()->setTime($hour, $minute),
+                'acknowledged_at' => $acked ? now() : null,
+            ]);
+
+            KnxNotification::create([
+                'project_id' => $project->id,
+                'device_id' => $device->id,
+                'board_id' => $board->id,
+                'type' => $type,
+                'address' => $address,
+                'room' => $roomName,
                 'serial' => $serial,
                 'reported_by_employee_id' => $this->people[$by]->id,
                 'reported_at' => now()->setTime($hour, $minute),
