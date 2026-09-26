@@ -64,7 +64,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K1** | Sesión: `POST /auth/login\|refresh\|logout`, `GET /me/session` | ✅ cerrado |
 | **K2** | Clientes y proyectos: `/clients`, `/clients/{id}`, `/projects`, `/projects/{code}`, `/stats` | ✅ cerrado |
 | **K3** | Dossier: `/projects/{code}/devices`, `/projects/{code}/activity` | ✅ cerrado |
-| K4 | Entrada de campo: `/notifications`, `ack`, `ack-all` | ⏳ |
+| **K4** | Entrada de campo: `/notifications`, `ack`, `ack-all` | ✅ cerrado |
 | K5 | Planificación: `/technicians`, `GET/PUT/DELETE /planning` | ⏳ |
 | K6 | Conflictos: lista/detalle/`PATCH` con histórico y `409 address_in_use` | ⏳ |
 | K7 | Zonas: estado **derivado en servidor** + `zonesNotReady` | ⏳ |
@@ -137,6 +137,24 @@ Un aparato de campo puede referenciar una **sala o un cuadro que oficina no ten�
 | `devices_registered` | aparatos de campo **agrupados por persona y día** (una entrada con `count`, no una por aparato: en un proyecto de 60 aparatos el feed sería ilegible) |
 | `plan_uploaded` | documentos subidos |
 | `photos_uploaded` | **no se emite**: nada modela las fotos como eventos (el proyecto solo lleva un contador). Llega cuando Veld tenga tabla de fotos. |
+
+## Bandeja de campo (K4)
+
+`GET /notifications` · `POST /notifications/{id}/ack` · `POST /notifications/ack-all`.
+
+La regla de dominio vive en `FieldNotificationService` y en un solo sitio:
+**confirmar una registración confirma también el aparato que creó.** Eso es lo que
+borra el `isNew` del dossier: notificación y aparato son el mismo hecho visto desde
+dos lados (el evento y el registro), así que dejar el aparato sin confirmar después
+de que oficina haya dicho "visto" mantendría una alerta sobre algo ya triado.
+
+Las dos operaciones son **idempotentes** (confirmar dos veces no es un error: un
+front que hace polling cada 5 s lo hará).
+
+`GET /notifications` incluye los ya confirmados con `acked: true`, para que oficina
+siga viendo lo que acaba de limpiar tras el siguiente poll. Un cuadro desconocido
+llega como `board: null` + `boardName: null` — es el caso que la bandeja existe
+para triar, no un error.
 
 ## Entorno local
 

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\ClientController;
+use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\ProjectController;
 
 /*
@@ -55,7 +56,11 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         Route::get('projects/{code}/activity', [ProjectController::class, 'activity'])
             ->where('code', '[A-Za-z0-9._-]+')
             ->name('projects.activity');
-        // K4: notifications (+ack)
+        // K4 — the field inbox. ack-all is declared first: it would otherwise be
+        // a candidate match for {id} in a stricter route model binding setup.
+        Route::post('notifications/ack-all', [FieldNotificationController::class, 'ackAll'])->name('notifications.ack-all');
+        Route::get('notifications', [FieldNotificationController::class, 'index'])->name('notifications.index');
+        Route::post('notifications/{id}/ack', [FieldNotificationController::class, 'ack'])->name('notifications.ack');
         // K5: technicians, planning
         // K6: conflicts
         // K7: zones
