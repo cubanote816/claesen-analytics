@@ -17,7 +17,16 @@ class KnxExport extends Model
     use BelongsToKnxTenant;
     use HasFactory;
 
-    public const TYPES = ['dossier', 'ets', 'delivery', 'hours'];
+    public const TYPE_DOSSIER = 'dossier';
+
+    public const TYPE_ETS = 'ets';
+
+    public const TYPE_DELIVERY = 'delivery';
+
+    /** Declared as a valid type by §4.9, but with no data source in this domain yet. */
+    public const TYPE_HOURS = 'hours';
+
+    public const TYPES = [self::TYPE_DOSSIER, self::TYPE_ETS, self::TYPE_DELIVERY, self::TYPE_HOURS];
 
     public const STATUS_QUEUED = 'queued';
 

@@ -6,6 +6,8 @@ use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\DashboardController;
+use Modules\Knx\Http\Controllers\DocumentController;
+use Modules\Knx\Http\Controllers\ReportController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\ZoneController;
@@ -35,6 +37,14 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
     Route::post('auth/logout', [AuthController::class, 'logout'])
         ->middleware('auth:sanctum')
         ->name('auth.logout');
+
+    // Signed downloads live outside the authenticated group on purpose: an `<a href>`
+    // from the browser cannot carry a bearer token. The signature IS the credential,
+    // and it expires (see DocumentResource / ExportRecordResource).
+    Route::middleware('signed')->group(function (): void {
+        Route::get('documents/{id}/download', [DocumentController::class, 'download'])->name('documents.download');
+        Route::get('exports/{id}/download', [ReportController::class, 'download'])->name('exports.download');
+    });
 
     Route::middleware(['auth:sanctum', 'organization:electro-bertels'])->group(function (): void {
         Route::get('me/session', [SessionController::class, 'show'])->name('me.session');
@@ -82,7 +92,12 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         Route::get('zones', [ZoneController::class, 'index'])->name('zones.index');
         Route::get('zones/{id}', [ZoneController::class, 'show'])->name('zones.show');
         Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
-        // K8: documents, reports
+        // K8 — documents and reports.
+        Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
+        Route::get('documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
+
+        Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
+        Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
         // K9: functions, tests
     });
 });

@@ -69,7 +69,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K6** | Conflictos: lista/detalle/`PATCH` con histórico y `409 address_in_use` | ✅ cerrado |
 | **K7** | Zonas: `GET /zones`, `GET /zones/{id}`, `PATCH /zones/{id}/checks/{key}` con estado derivado | ✅ cerrado |
 | **K7b** | `/dashboard` (todos sus agregados ya existen) | ✅ cerrado |
-| K8 | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ⏳ |
+| **K8** | Documentos (URLs firmadas) y `POST /reports` en cola + `/reports/exports` | ✅ cerrado |
 | K9 | Fichas funcionales y pruebas de aceptación | ⏳ |
 | K10 | (Opcional) `GET /events` SSE | ⏳ |
 
@@ -201,6 +201,33 @@ Dos de sus números **difieren a propósito del fixture del front**:
 - `techniciansScheduledToday` cuenta quién tiene asignación **hoy**, así que en fin de semana es 0 legítimamente (el planificador de la fixture es de lunes a viernes).
 
 ⚠️ **`travelling` nunca se emite.** El contrato lo lista y el fixture del front lo produce… por índice (`index === 2 ? 'travelling' : 'on_site'`), no por ningún dato. Nada en este dominio sabe si un técnico está de camino: eso es un *check-in* de campo (Veld), y hasta que exista, emitirlo sería inventar un estado que oficina luego se creería. Hoy `status` solo responde `off` u `on_site`.
+
+## Documentos y informes (K8)
+
+`GET /documents?project&q` · `GET /documents/{id}` · `GET /reports/exports` · `POST /reports` · descargas firmadas.
+
+### Por qué las descargas van firmadas y **fuera** del grupo autenticado
+
+Un `<a href>` del navegador **no puede mandar la cabecera Bearer**. Por eso el contrato pide URLs firmadas/temporales: la firma **es** la credencial, y caduca (30 min). Las rutas `documents/{id}/download` y `exports/{id}/download` están detrás de `signed` y **no** de `auth:sanctum` por eso mismo. Si el fichero no está en disco, el `url` sale `null` en lugar de un enlace que devuelve 404.
+
+`url` solo se construye en `GET /documents/{id}` (el listado devuelve `url: null`, igual que la fixture del front): firmar N URLs para pintar una tabla sería tirar trabajo.
+
+### `size`: se guardan bytes y se devuelve texto
+
+`size_bytes` es lo que se almacena y el recurso lo formatea igual que la fixture del front (`4,2 MB`, `860 kB`, `38 MB`). Guardar el texto sería pérdida de información; hay test con esas tres cadenas byte a byte.
+
+### Informes: **los cuatro tipos se generan como CSV por ahora** ⚠️
+
+Desviación declarada: §4.9 describe la *presentación* (dossier y entrega en PDF, horas en XLSX) y esas plantillas no existen todavía. El fichero lleva **datos reales** y dice lo que es; un `.pdf` con contenido CSV sería una mentira.
+
+| Tipo | Contenido | Estado |
+|---|---|---|
+| `ets` | lista de corrección ETS: un conflicto por línea con la dirección en juego y el último paso del flujo | ✅ **completo** (el informe por el que existe el módulo) |
+| `dossier` | todos los aparatos del proyecto | ✅ datos reales, formato CSV |
+| `delivery` | zonas con su estado + recuento de pruebas | ✅ datos reales, formato CSV |
+| `hours` | — | ❌ **422**: nada en este dominio registra horas (Veld aún no las reporta). Se rechaza en vez de inventar números |
+
+`ExportRecord` incluye además `downloadUrl` (extensión que §4.9 recomienda): el tipo del contrato no tiene enlace, así que la app solo podría decir que el informe existe, nunca abrirlo.
 
 ## Entorno local
 
