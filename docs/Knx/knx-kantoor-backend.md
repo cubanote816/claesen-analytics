@@ -374,6 +374,18 @@ Las tres cosas están cubiertas por un test (`test_closing_a_visit_changes_nothi
 
 **La oficina la lee** (`GET /projects/{code}/visits`, más reciente primero): la app de campo solo las envía y **nunca las lee** — su `CloseVisitPage` muestra su propia cola local, no datos del servidor. Ese endpoint es aditivo: el contrato de oficina no lo tenía y nadie está obligado a llamarlo.
 
+### La carrera del `clientId` (y por qué el arreglo vive en un solo sitio)
+
+La app reintenta escrituras encoladas, así que **la misma petición puede llegar mientras la original todavía se está procesando**. Las dos pasan la lectura de «¿ya existe esta clave?» y las dos intentan insertar; el índice único de `client_id` hace perder a una.
+
+Perder **no puede responder `500`**: un `500` es justamente lo que la app reintenta, así que el fallo se alimentaría a sí mismo. Las dos respuestas tienen que ser la misma fila con `200`.
+
+Esto vivía copiado en los tres servicios (aparatos, incidencias, visitas). Lo destapó una **auditoría externa de V11.e**, que lo arregló solo en las visitas. Ahora la regla está **en un único sitio**, `Support/IdempotentWrite::run()`, y los tres lo usan: captura `UniqueConstraintViolationException`, relee **fuera de la transacción** (bajo `REPEATABLE READ` una lectura dentro repetiría el snapshot del perdedor y no vería la fila que ganó) y responde esa fila. Si la relectura no encuentra nada con esa clave, **relanza**: el fallo era otro y taparlo ocultaría un error real.
+
+El `created` de las tres respuestas se deriva de `wasRecentlyCreated`, que es exactamente la pregunta («¿la escribimos nosotros?»): `false` significa que la fila viene del ganador, así que el controlador responde `200` en vez de `201`.
+
+`KnxFieldIdempotencyRaceTest` **simula la carrera de verdad** con una **segunda conexión** a la misma BD (una fila escrita en la conexión del perdedor no sobreviviría a su rollback) y comprueba que las tres respuestas son `200` con la fila del ganador. Necesita `DatabaseMigrations` sin rollback de esquema, porque la migración de `organizations` se niega —a propósito— a borrarse si existe una organización que no sea Claesen, y deja la BD como la encontró.
+
 ### Cuentas de campo sembradas
 
 | Email | Contraseña | Técnico |

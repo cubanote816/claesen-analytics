@@ -400,7 +400,10 @@ fichas de función o documentos sería inventar un vínculo que el técnico nunc
    puede producir la app: `data:image/png;base64,…` (una foto de cámara por canvas) y
    `data:image/svg+xml;utf8,…` (lo que genera vuestra propia fixture). Límite 5 MB ya
    decodificada; formatos aceptados: png, jpeg, webp, gif y svg.
-10. **El `url` de un plano es una firma de una semana** (la del visor de oficina son 30
+10. **Si vuestro reintento llega mientras la original se está procesando, la respuesta es
+    `200` con la misma fila, nunca un `500`.** El backend resuelve esa carrera en el índice
+    único. Un `500` en el reintento de un `POST` idempotente es un bug: reportadlo.
+11. **El `url` de un plano es una firma de una semana** (la del visor de oficina son 30
     minutos). Está pensada para descargar el fichero una vez y abrirlo sin conexión: podéis
     cachearlo.
 

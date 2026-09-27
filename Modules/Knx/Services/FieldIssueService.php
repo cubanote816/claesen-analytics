@@ -12,6 +12,7 @@ use Modules\Knx\Models\KnxConflictLog;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Support\IdempotentWrite;
 
 /**
  * An incident reported from site (V11.d, CLA-609).
@@ -77,7 +78,7 @@ class FieldIssueService
      */
     public function report(KnxEmployee $technician, KnxProject $project, array $input): array
     {
-        $existing = KnxConflict::query()->where('client_id', $input['clientId'])->first();
+        $existing = $this->replayFor($project, $input['clientId']);
 
         if ($existing !== null) {
             // Same key, another project: the app reused a UUID, and answering with the
@@ -111,7 +112,56 @@ class FieldIssueService
             ->where('address', $address)
             ->first();
 
-        $conflict = DB::transaction(function () use ($technician, $project, $input, $type, $address, $registered, $photoPath): KnxConflict {
+        $conflict = IdempotentWrite::run(
+            fn (): KnxConflict => $this->createReportedConflict($technician, $project, $input, $type, $address, $registered, $photoPath),
+            fn (): ?KnxConflict => $this->replayFor($project, $input['clientId']),
+        );
+
+        return [
+            'conflict' => $conflict,
+            // Exact answer to "did we write it?": false means this row came from the
+            // winner of a lost race, so the caller answers 200 instead of 201.
+            'created' => $conflict->wasRecentlyCreated,
+        ];
+    }
+
+    /**
+     * The conflict this `clientId` already produced, if any.
+     *
+     * Same key but another project is a client bug and not idempotency: answering with
+     * the stored incident would hand one project's report to a request about another.
+     * Both the first read and the recovery read after a lost race go through here.
+     */
+    private function replayFor(KnxProject $project, string $clientId): ?KnxConflict
+    {
+        $conflict = KnxConflict::query()->where('client_id', $clientId)->first();
+
+        if ($conflict === null) {
+            return null;
+        }
+
+        if ((int) $conflict->project_id !== (int) $project->getKey()) {
+            throw ValidationException::withMessages(['clientId' => [__('knx::field.client_id_reused')]]);
+        }
+
+        return $conflict;
+    }
+
+    /**
+     * The write itself, in one transaction: the incident and the first line of its
+     * history are one record, and a report without its 'reported' step would be invisible
+     * in the office's worklist.
+     */
+    private function createReportedConflict(
+        KnxEmployee $technician,
+        KnxProject $project,
+        array $input,
+        string $type,
+        string $address,
+        ?KnxDevice $registered,
+        ?string $photoPath,
+    ): KnxConflict {
+        return DB::transaction(function () use ($technician, $project, $input, $type, $address, $registered, $photoPath): KnxConflict {
             $conflict = KnxConflict::create([
                 'project_id' => $project->getKey(),
                 'device_id' => $registered?->getKey(),
@@ -142,8 +192,6 @@ class FieldIssueService
 
             return $conflict;
         });
-
-        return ['conflict' => $conflict, 'created' => true];
     }
 
     /**

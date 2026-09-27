@@ -12,6 +12,7 @@ use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Models\KnxProjectRoom;
 use Modules\Knx\Models\KnxVisit;
 use Modules\Knx\Models\KnxVisitItem;
+use Modules\Knx\Support\IdempotentWrite;
 
 /**
  * Closing a visit from site (V11.e, CLA-609).
@@ -39,20 +40,55 @@ class FieldVisitService
      */
     public function close(KnxEmployee $technician, KnxProject $project, array $input): array
     {
-        $replay = KnxVisit::query()->with('items')->where('client_id', $input['clientId'])->first();
+        $replay = $this->replayFor($project, $input['clientId']);
 
         if ($replay !== null) {
-            // Same key, another project: the app reused a UUID, and answering with the
-            // stored closure would hand one project's delivery to a request about
-            // another.
-            if ((int) $replay->project_id !== (int) $project->getKey()) {
-                throw ValidationException::withMessages(['clientId' => [__('knx::field.client_id_reused')]]);
-            }
-
             return ['visit' => $replay, 'created' => false];
         }
 
-        $visit = DB::transaction(function () use ($technician, $project, $input): KnxVisit {
+        $visit = IdempotentWrite::run(
+            fn (): KnxVisit => $this->createClosedVisit($technician, $project, $input),
+            fn (): ?KnxVisit => $this->replayFor($project, $input['clientId']),
+        );
+
+        return [
+            'visit' => $visit->load('items'),
+            // Exact answer to "did we write it?": false means this row came from the
+            // winner of a lost race, so the caller answers 200 instead of 201.
+            'created' => $visit->wasRecentlyCreated,
+        ];
+    }
+
+    /**
+     * The closure this `clientId` already produced, if any.
+     *
+     * Same key but another project is a client bug and not idempotency: answering with
+     * the stored closure would hand one project's delivery to a request about another.
+     * Both the first read and the recovery read after a lost race go through here, so the
+     * rule cannot drift between them.
+     */
+    private function replayFor(KnxProject $project, string $clientId): ?KnxVisit
+    {
+        $visit = KnxVisit::query()->with('items')->where('client_id', $clientId)->first();
+
+        if ($visit === null) {
+            return null;
+        }
+
+        if ((int) $visit->project_id !== (int) $project->getKey()) {
+            throw ValidationException::withMessages(['clientId' => [__('knx::field.client_id_reused')]]);
+        }
+
+        return $visit;
+    }
+
+    /**
+     * The write itself, in one transaction: the closure and its four lists are one
+     * record, and a closure that lost its lists would be a signature over nothing.
+     */
+    private function createClosedVisit(KnxEmployee $technician, KnxProject $project, array $input): KnxVisit
+    {
+        return DB::transaction(function () use ($technician, $project, $input): KnxVisit {
             $room = $this->roomFor($project, $input['room'] ?? null);
 
             $visit = KnxVisit::create([
@@ -75,8 +111,6 @@ class FieldVisitService
 
             return $visit;
         });
-
-        return ['visit' => $visit->load('items'), 'created' => true];
     }
 
     /**

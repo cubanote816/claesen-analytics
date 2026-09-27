@@ -50,6 +50,16 @@
 - V11.a: `7246b5a` (sesión, hoy, guard por app, login compartido, zonas) y `0be219a` (un login para las dos apps, zonas compartidas, demo usable). 126/126.
 - Hallazgo de V11.a que justifica la verificación HTTP: `actingAs()` en los tests nunca pasaba por `/auth/login`, así que dos bugs reales (técnico sin login, `/zones` detrás del guard de oficina) vivieron hasta la prueba manual.
 
+## Hallazgo de una auditoría externa (2026-09-27): la carrera del `clientId`
+
+Una rama `cla-609-v11e-audit-gaps` auditó V11.e y encontró un defecto real: **dos peticiones con el mismo `clientId` a la vez** (el reintento de la cola offline llegando mientras la original se procesa) pasaban las dos la lectura de idempotencia, y el índice único hacía que una reventara con `UniqueConstraintViolationException` → **`500`**. Y un `500` es lo que la app reintenta: el fallo se alimentaba a sí mismo.
+
+**El mismo patrón estaba en mis tres servicios** (V11.c, V11.d, V11.e) y la auditoría solo lo cubría en V11.e. Arreglado aquí (decisión del usuario) en los tres, sacando la regla a **un solo sitio**: `Support/IdempotentWrite::run()` — captura la violación de unicidad, relee **fuera de la transacción** (bajo `REPEATABLE READ` una lectura dentro repetiría el snapshot del perdedor) y responde la fila del ganador; si la relectura no encuentra esa clave, relanza, porque entonces el fallo era otro.
+
+`created` se deriva ahora de `wasRecentlyCreated` en los tres, que es exactamente la pregunta.
+
+Evidencia: `KnxFieldIdempotencyRaceTest` (simula la carrera con una segunda conexión) + `Modules/Knx` **183/183** (1035 aserciones) + HTTP real: primera escritura `201`, reintento `200` con el mismo id en los tres endpoints.
+
 ## Siguiente paso
 **V11 cerrado entero y las dos decisiones resueltas.**
 

@@ -15,6 +15,7 @@ use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxNotification;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Models\KnxProjectRoom;
+use Modules\Knx\Support\IdempotentWrite;
 
 /**
  * Registering an apparatus from the field (V11.c, CLA-609).
@@ -51,18 +52,9 @@ class FieldDeviceService
      */
     public function register(KnxEmployee $technician, KnxProject $project, array $input): array
     {
-        $replay = $this->withContext()
-            ->where('client_id', $input['clientId'])
-            ->first();
+        $replay = $this->replayFor($project, $input['clientId']);
 
         if ($replay !== null) {
-            // Same key, another project: the app has reused a UUID. Answering with the
-            // stored device would hand one project's apparatus to a request about
-            // another, so this is a bad request and not idempotency.
-            if ((int) $replay->project_id !== (int) $project->getKey()) {
-                throw ValidationException::withMessages(['clientId' => [__('knx::field.client_id_reused')]]);
-            }
-
             return ['device' => $replay, 'created' => false, 'collision' => null];
         }
 
@@ -90,7 +82,37 @@ class FieldDeviceService
 
         $capturedAt = Carbon::parse($input['capturedAt']);
 
-        $device = DB::transaction(function () use ($technician, $project, $room, $input, $photoPath, $capturedAt): KnxDevice {
+        $device = IdempotentWrite::run(
+            fn (): KnxDevice => $this->createRegisteredDevice($technician, $project, $room, $input, $photoPath, $capturedAt),
+            fn (): ?KnxDevice => $this->replayFor($project, $input['clientId']),
+        );
+
+        return [
+            'device' => $device,
+            // Exact answer to "did we write it?": false means this row came from the
+            // winner of a lost race, so the caller answers 200 instead of 201. A lost
+            // race is a replay, never a collision, so `collision` stays null.
+            'created' => $device->wasRecentlyCreated,
+            'collision' => null,
+        ];
+    }
+
+    /**
+     * The write itself, in one transaction.
+     *
+     * The apparatus and its notification are two halves of one event — the registration
+     * the dossier shows and the item the office inbox has to confirm — so they cannot be
+     * half-written.
+     */
+    private function createRegisteredDevice(
+        KnxEmployee $technician,
+        KnxProject $project,
+        KnxProjectRoom $room,
+        array $input,
+        ?string $photoPath,
+        Carbon $capturedAt,
+    ): KnxDevice {
+        return DB::transaction(function () use ($technician, $project, $room, $input, $photoPath, $capturedAt): KnxDevice {
             $board = $this->boardFor($project, $input['boardCode'] ?? null);
 
             $device = KnxDevice::create([
@@ -130,8 +152,29 @@ class FieldDeviceService
 
             return $device;
         });
+    }
 
-        return ['device' => $device, 'created' => true, 'collision' => null];
+    /**
+     * The registration this `clientId` already produced, if any.
+     *
+     * Same key but another project is a client bug and not idempotency: answering with
+     * the stored device would hand one project the apparatus of another, so that case is
+     * a validation error rather than a replay. Both the first read and the recovery read
+     * after a lost race go through here, so the rule cannot drift between them.
+     */
+    private function replayFor(KnxProject $project, string $clientId): ?KnxDevice
+    {
+        $device = $this->withContext()->where('client_id', $clientId)->first();
+
+        if ($device === null) {
+            return null;
+        }
+
+        if ((int) $device->project_id !== (int) $project->getKey()) {
+            throw ValidationException::withMessages(['clientId' => [__('knx::field.client_id_reused')]]);
+        }
+
+        return $device;
     }
 
     private function withContext()
