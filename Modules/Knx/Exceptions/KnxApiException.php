@@ -30,4 +30,18 @@ abstract class KnxApiException extends RuntimeException
     {
         return [];
     }
+
+    /**
+     * Extra keys the contract puts on the error body itself, next to `code`.
+     *
+     * Almost every failure is `{message, code, errors}`. One documented shape is not:
+     * the field app's `address_in_use` carries the device that is in the way as
+     * `existing` beside `code`, because the app shows it directly.
+     *
+     * @return array<string, mixed>
+     */
+    public function context(): array
+    {
+        return [];
+    }
 }

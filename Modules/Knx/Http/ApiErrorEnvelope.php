@@ -74,7 +74,7 @@ final class ApiErrorEnvelope
             // Only the validation shape carries field errors; the key is always
             // present so the front never has to branch on its existence.
             'errors' => (object) $errors,
-        ], $status);
+        ] + ($exception instanceof KnxApiException ? $exception->context() : []), $status);
     }
 
     /**

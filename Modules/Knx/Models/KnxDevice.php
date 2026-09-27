@@ -26,6 +26,7 @@ class KnxDevice extends Model
     protected $table = 'knx_devices';
 
     protected $fillable = [
+        'client_id',
         'project_id',
         'room_id',
         'board_id',
@@ -35,6 +36,8 @@ class KnxDevice extends Model
         'source',
         'registered_by_employee_id',
         'registered_at',
+        'captured_at',
+        'photo_path',
         'acknowledged_at',
     ];
 
@@ -47,6 +50,9 @@ class KnxDevice extends Model
     {
         return [
             'registered_at' => 'datetime',
+            // When the technician captured it, which can be well before the server
+            // saw it (the row's own created_at is the arrival).
+            'captured_at' => 'datetime',
             'acknowledged_at' => 'datetime',
         ];
     }

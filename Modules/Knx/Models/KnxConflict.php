@@ -53,6 +53,7 @@ class KnxConflict extends Model
         'organization_id',
         'project_id',
         'device_id',
+        'client_id',
         'severity',
         'type',
         'address',

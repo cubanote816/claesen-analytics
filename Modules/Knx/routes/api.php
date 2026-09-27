@@ -9,6 +9,7 @@ use Modules\Knx\Http\Controllers\DashboardController;
 use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\DocumentController;
 use Modules\Knx\Http\Controllers\EventStreamController;
+use Modules\Knx\Http\Controllers\Field\FieldDeviceController;
 use Modules\Knx\Http\Controllers\Field\FieldProjectController;
 use Modules\Knx\Http\Controllers\Field\FieldSessionController;
 use Modules\Knx\Http\Controllers\Field\FieldTodayController;
@@ -71,6 +72,12 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::get('projects/{code}/plans', [FieldProjectController::class, 'plans'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans');
+
+            // V11.c — registering an apparatus from site. Idempotent by the app's own
+            // `clientId`, so this is a POST the client may safely repeat.
+            Route::post('projects/{code}/devices', [FieldDeviceController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.devices.store');
         });
 
     // Signed downloads live outside the authenticated group on purpose: an `<a href>`
