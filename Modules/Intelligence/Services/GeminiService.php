@@ -3,6 +3,7 @@
 namespace Modules\Intelligence\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class GeminiService
@@ -25,29 +26,33 @@ class GeminiService
         $token = $this->auth->getAccessToken();
 
         if (empty($token)) {
-            Log::error("Gemini: could not obtain a service account access token.");
+            Log::error('Gemini: could not obtain a service account access token.');
+
             return [];
         }
 
         try {
-            $response = \Illuminate\Support\Facades\Http::withToken($token)->post($this->apiUrl, [
+            $response = Http::withToken($token)->post($this->apiUrl, [
                 'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
                 'generationConfig' => [
                     'response_mime_type' => 'application/json',
                     'temperature' => 0.2,
-                ]
+                ],
             ]);
 
             if ($response->failed()) {
-                Log::error("Gemini API Error: " . $response->body());
+                Log::error('Gemini API Error: '.$response->body());
+
                 return [];
             }
 
             $data = $response->json();
             $content = $data['candidates'][0]['content']['parts'][0]['text'] ?? '{}';
+
             return json_decode($content, true) ?: [];
         } catch (\Exception $e) {
-            Log::error("Gemini Exception: " . $e->getMessage());
+            Log::error('Gemini Exception: '.$e->getMessage());
+
             return [];
         }
     }
@@ -62,11 +67,11 @@ class GeminiService
      * parameters are OPTIONAL — the historical signature and behaviour are
      * unchanged for existing callers.
      *
-     * @param string $text The text to translate.
-     * @param array $targetLocales List of locales to translate to (e.g. ['nl', 'en']).
-     * @param string|null $context Optional translation context for the prompt.
-     * @param array<string, array{translations: array<string,string>, do_not_translate: bool}> $glossary Site glossary terms.
-     * @param int $glossaryVersion Derived glossary version (cache key part).
+     * @param  string  $text  The text to translate.
+     * @param  array  $targetLocales  List of locales to translate to (e.g. ['nl', 'en']).
+     * @param  string|null  $context  Optional translation context for the prompt.
+     * @param  array<string, array{translations: array<string,string>, do_not_translate: bool}>  $glossary  Site glossary terms.
+     * @param  int  $glossaryVersion  Derived glossary version (cache key part).
      * @return array {'detected_locale': string, 'translations': array<string, string>}
      */
     public function translateAndDetect(string $text, array $targetLocales, ?string $context = null, array $glossary = [], int $glossaryVersion = 0): array
@@ -251,7 +256,8 @@ PROMPT;
      */
     public function analyzeEmployee(array $payload, string $locale = 'nl'): array
     {
-        $prompt = "Analyze this employee data: " . json_encode($payload) . ". Return JSON with archetype_label, archetype_icon, manager_insight, analysis in {$locale}.";
+        $prompt = 'Analyze this employee data: '.json_encode($payload).". Return JSON with archetype_label, archetype_icon, manager_insight, analysis in {$locale}.";
+
         return $this->generateStructuredResponse($prompt);
     }
 
@@ -261,8 +267,8 @@ PROMPT;
     public function analyzeProject(array $payload, $context): array
     {
         $locale = $context->locale ?? 'nl';
-        $prompt = "Analyze this project data: " . json_encode($payload) . ". Return JSON: {efficiency_score: int, ai_summary: string, critical_leak: string, golden_rule: string} in {$locale}.";
-        
+        $prompt = 'Analyze this project data: '.json_encode($payload).". Return JSON: {efficiency_score: int, ai_summary: string, critical_leak: string, golden_rule: string} in {$locale}.";
+
         $result = $this->generateStructuredResponse($prompt);
         $result['full_dna'] = $payload;
 
@@ -272,10 +278,10 @@ PROMPT;
     /**
      * Generate caption and alt text for a gallery image in all target locales.
      *
-     * @param array       $projectContext title, category, client, location, year, description
-     * @param string|null $userCaption    manual caption source — translated if set; generated if null
-     * @param string|null $userAlt        manual alt source — translated if set; generated if null
-     * @param array       $locales        target locales, e.g. ['nl','en','fr','de']
+     * @param  array  $projectContext  title, category, client, location, year, description
+     * @param  string|null  $userCaption  manual caption source — translated if set; generated if null
+     * @param  string|null  $userAlt  manual alt source — translated if set; generated if null
+     * @param  array  $locales  target locales, e.g. ['nl','en','fr','de']
      * @return array{caption: array<string,string>, alt: array<string,string>}
      */
     public function generateMediaMetadata(
@@ -286,14 +292,14 @@ PROMPT;
     ): array {
         $empty = array_fill_keys($locales, '');
 
-        $contextStr  = json_encode($projectContext, JSON_UNESCAPED_UNICODE);
+        $contextStr = json_encode($projectContext, JSON_UNESCAPED_UNICODE);
         $localesList = implode(', ', $locales);
 
-        $captionInstruction = !empty(trim((string) $userCaption))
+        $captionInstruction = ! empty(trim((string) $userCaption))
             ? "Caption source (translate only, do not change meaning): \"{$userCaption}\""
             : 'Generate a concise, descriptive caption (max 15 words) based on the project context.';
 
-        $altInstruction = !empty(trim((string) $userAlt))
+        $altInstruction = ! empty(trim((string) $userAlt))
             ? "Alt text source (translate only, do not change meaning): \"{$userAlt}\""
             : 'Generate a concise SEO-friendly alt text (max 12 words) based on the project context.';
 

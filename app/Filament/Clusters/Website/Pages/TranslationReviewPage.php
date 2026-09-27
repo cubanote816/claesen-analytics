@@ -18,6 +18,7 @@ use Modules\Core\Models\Site;
 use Modules\Intelligence\Jobs\TranslateModelAttributesJob;
 use Modules\Intelligence\Models\TranslationState;
 use Modules\Intelligence\Services\TranslationStateService;
+use Spatie\Activitylog\Facades\Activity;
 
 /**
  * CLA-611 (gap G8): the human translation review screen — origin side info
@@ -255,7 +256,7 @@ class TranslationReviewPage extends Page implements HasTable
 
     private function audit(TranslationState $record, string $from, string $to, string $event): void
     {
-        \Spatie\Activitylog\Facades\Activity::causedBy(auth()->user())
+        Activity::causedBy(auth()->user())
             ->performedOn($record)
             ->withProperties([
                 'translatable' => $record->translatable_type.'#'.$record->translatable_id,

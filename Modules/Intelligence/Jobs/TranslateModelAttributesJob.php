@@ -6,6 +6,7 @@ namespace Modules\Intelligence\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -15,6 +16,7 @@ use Modules\Intelligence\Models\TranslationState;
 use Modules\Intelligence\Services\GeminiService;
 use Modules\Intelligence\Services\GlossaryService;
 use Modules\Intelligence\Services\TranslationStateService;
+use Spatie\Translatable\HasTranslations;
 
 /**
  * CLA-611: translate the translatable attributes of one model record.
@@ -44,8 +46,8 @@ class TranslateModelAttributesJob implements ShouldQueue
 
     public function __construct(
         private readonly string $modelClass,
-        private readonly int    $modelId,
-        private readonly array  $attributes,
+        private readonly int $modelId,
+        private readonly array $attributes,
         private readonly string $sourceLocale
     ) {}
 
@@ -62,9 +64,9 @@ class TranslateModelAttributesJob implements ShouldQueue
         // than requiring every job dispatch site to carry a resolved site
         // just to read it back a moment later. withoutGlobalScope('site') is
         // a no-op for the (majority of) models that never registered it.
-        /** @var \Illuminate\Database\Eloquent\Model&\Spatie\Translatable\HasTranslations $model */
+        /** @var Model&HasTranslations $model */
         $model = ($this->modelClass)::query()->withoutGlobalScope('site')->find($this->modelId);
-        if (!$model) {
+        if (! $model) {
             return;
         }
 
@@ -81,7 +83,7 @@ class TranslateModelAttributesJob implements ShouldQueue
 
         foreach ($this->attributes as $attribute) {
             $translations = $model->getTranslations($attribute);
-            $sourceText   = $translations[$this->sourceLocale] ?? null;
+            $sourceText = $translations[$this->sourceLocale] ?? null;
 
             if (empty($sourceText)) {
                 continue;
@@ -112,7 +114,7 @@ class TranslateModelAttributesJob implements ShouldQueue
                 $translationsReturned = $result['translations'] ?? [];
 
                 foreach ($translationsReturned as $locale => $text) {
-                    if (in_array($locale, $missingLocales, true) && !empty($text)) {
+                    if (in_array($locale, $missingLocales, true) && ! empty($text)) {
                         $model->setTranslation($attribute, $locale, $text);
                         $changed = true;
 
@@ -168,7 +170,7 @@ class TranslateModelAttributesJob implements ShouldQueue
         }
 
         $allComplete = $this->allLocalesComplete($model);
-        $newStatus   = $allComplete ? 'complete' : 'pending';
+        $newStatus = $allComplete ? 'complete' : 'pending';
 
         // The legacy ROW-level column only exists on the FieldOps tables
         // that introduced it — the Website CLA-611 tables track per-locale

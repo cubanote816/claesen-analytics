@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\Intelligence\Services;
 
 use Illuminate\Database\Eloquent\Model;
-use Modules\Intelligence\Models\Glossary;
 use Modules\Intelligence\Models\TranslationState;
 
 /**

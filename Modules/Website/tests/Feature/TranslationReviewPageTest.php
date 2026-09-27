@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Modules\Website\Tests\Feature;
 
+use App\Filament\Clusters\Website\Pages\TranslationReviewPage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Livewire\Livewire;
 use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
 use Modules\Intelligence\Jobs\TranslateModelAttributesJob;
 use Modules\Intelligence\Models\TranslationState;
 use Modules\Intelligence\Services\GeminiService;
 use Modules\Intelligence\Services\TranslationStateService;
-use Livewire\Livewire;
 use Modules\Website\Models\LegalDocument;
-use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -41,7 +42,7 @@ final class TranslationReviewPageTest extends TestCase
 
         $this->states = app(TranslationStateService::class);
 
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         $user = User::factory()->create(['is_active' => true]);
         $user->assignRole('super_admin');
         $this->actingAs($user);
@@ -70,7 +71,7 @@ final class TranslationReviewPageTest extends TestCase
         $doc = $this->makeDocWithState(TranslationState::STATUS_MACHINE);
         $state = $this->states->stateFor($doc, 'title', 'fr');
 
-        Livewire::test(\App\Filament\Clusters\Website\Pages\TranslationReviewPage::class)
+        Livewire::test(TranslationReviewPage::class)
             ->callTableAction('approve', $state);
 
         $this->assertSame(
@@ -90,7 +91,7 @@ final class TranslationReviewPageTest extends TestCase
         $doc = $this->makeDocWithState(TranslationState::STATUS_REVIEWED);
         $state = $this->states->stateFor($doc, 'title', 'fr');
 
-        Livewire::test(\App\Filament\Clusters\Website\Pages\TranslationReviewPage::class)
+        Livewire::test(TranslationReviewPage::class)
             ->callTableAction('publish', $state);
 
         $this->assertSame(
@@ -104,7 +105,7 @@ final class TranslationReviewPageTest extends TestCase
         $doc = $this->makeDocWithState(TranslationState::STATUS_REVIEWED);
         $state = $this->states->stateFor($doc, 'title', 'fr');
 
-        Livewire::test(\App\Filament\Clusters\Website\Pages\TranslationReviewPage::class)
+        Livewire::test(TranslationReviewPage::class)
             ->callTableAction('retranslate', $state);
 
         $this->assertSame(
@@ -121,7 +122,7 @@ final class TranslationReviewPageTest extends TestCase
         $doc = $this->makeDocWithState(TranslationState::STATUS_MACHINE);
         $state = $this->states->stateFor($doc, 'title', 'fr');
 
-        Livewire::test(\App\Filament\Clusters\Website\Pages\TranslationReviewPage::class)
+        Livewire::test(TranslationReviewPage::class)
             ->callTableAction('edit', $state, data: ['value' => 'Déclaration (corrigée)']);
 
         $doc->refresh();
@@ -156,7 +157,7 @@ final class TranslationReviewPageTest extends TestCase
 
         // Table query-level scoping: the resolved panel site (Claesen) is
         // the only source of rows.
-        Livewire::test(\App\Filament\Clusters\Website\Pages\TranslationReviewPage::class)
+        Livewire::test(TranslationReviewPage::class)
             ->assertSuccessful();
 
         $visible = TranslationState::query()
