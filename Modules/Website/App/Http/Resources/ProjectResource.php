@@ -3,6 +3,7 @@
 namespace Modules\Website\App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\Website\Services\PublicLocalePolicy;
 
 class ProjectResource extends JsonResource
 {
@@ -84,7 +85,13 @@ class ProjectResource extends JsonResource
 
     /**
      * Resolve a translatable custom property value for the current locale.
-     * Fallback chain: requested locale → nl → en → first available → null.
+     *
+     * Site-scoped policy (CLA-611 G9, approver decision 3): strict sites
+     * (config('website.public_api.strict_locale_site_keys'), e.g. Electro
+     * Bertels) get ONLY the requested locale — a missing translation is
+     * null, never Dutch/English. Claesen keeps the historical tolerant
+     * chain locale → nl → en → first available, frozen by
+     * PortfolioApiTest, byte-identical.
      */
     private function resolveLocaleValue(mixed $value): ?string
     {
@@ -93,6 +100,10 @@ class ProjectResource extends JsonResource
         }
 
         $locale = app()->getLocale();
+
+        if (PublicLocalePolicy::isStrict()) {
+            return PublicLocalePolicy::resolve($value, $locale);
+        }
 
         foreach ([$locale, 'nl', 'en'] as $candidate) {
             if (!empty($value[$candidate])) {
