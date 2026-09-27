@@ -40,4 +40,14 @@ class FieldOpsInfrastructurePolicy
     {
         return $this->tenants->canView($user, $model) && $user->can('fieldops.delete-infrastructure');
     }
+
+    // CLA-498: gates FieldOpsMediaController::store() before addMedia() runs — the
+    // route resolves $modelType/$modelId as plain scalars (not an Eloquent binding),
+    // so EnforceFieldOpsTenantAccess never sees a Model instance to authorize for
+    // this route. Same shape as update()/delete(): ownership via canView() plus the
+    // capability permission created (and left inert on purpose) by CLA-496.
+    public function media(User $user, Model $model): bool
+    {
+        return $this->tenants->canView($user, $model) && $user->can('fieldops.media');
+    }
 }

@@ -18,6 +18,8 @@ class SyncHockeyClubsCommand extends Command
     protected $signature = 'prospects:sync-hockey-clubs {--user= : User ID who triggered the sync} {--history= : Existing sync history record ID}';
     protected $description = 'Synchronize Hockey clubs from hockey.be with full details';
 
+    protected Client $client;
+
     protected $clubsData = [
         ["Aalst", "CC6VG4O", "Vlaamse Hockey Liga"],
         ["Ambistix", "CF9QR9N", "Vlaamse Hockey Liga"],
@@ -119,8 +121,6 @@ class SyncHockeyClubsCommand extends Command
         ["Stix", "CC6VK97", "Vlaamse Hockey Liga"],
         ["Sukkelweg", "CC6VB27", "Ligue Francophone de Hockey"],
         ["Taxandria", "CC6VJ1U", "Vlaamse Hockey Liga"],
-        ["Testvereniging 1", "CD7MX2C", "Vlaamse Hockey Liga"],
-        ["Testvereniging 2", "CD7MX4E", "Ligue Francophone de Hockey"],
         ["Tournai", "CC6VD6H", "Ligue Francophone de Hockey"],
         ["Uccle Sport", "CC6VB38", "Ligue Francophone de Hockey"],
         ["Urban Hockey", "CG0CN8Q", "Vlaamse Hockey Liga"],
@@ -139,17 +139,23 @@ class SyncHockeyClubsCommand extends Command
         ["Zaid", "CC6VB6B", "Ligue Francophone de Hockey"],
     ];
 
-    public function handle()
+    public function __construct(?Client $client = null)
     {
-        $this->startSyncLog($this->option('user'), $this->option('history'));
-        $this->info('Starting Hockey clubs enhancement sync...');
-        
-        $client = new Client([
-            'verify' => false,
+        parent::__construct();
+
+        $this->client = $client ?? new Client([
+            'verify' => true,
             'headers' => [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             ]
         ]);
+    }
+
+    public function handle(): int
+    {
+        return $this->guardedSync(function (): int {
+            $this->startSyncLog($this->option('user'), $this->option('history'));
+            $this->info('Starting Hockey clubs enhancement sync...');
 
         $count = count($this->clubsData);
         $this->logSyncEvent("Found {$count} clubs to process.", 'info', '🔍');
@@ -170,10 +176,10 @@ class SyncHockeyClubsCommand extends Command
                     default => 'ARBH-KBHB',
                 };
 
-                $language = ($federation === 'LFH') ? 'fr' : 'nl';
+                $language = $federation === 'FR-LFH' ? 'fr' : 'nl';
                 
                 $detailUrl = "https://hockey.be/nl/nl-club/?id=" . $externalId;
-                $response = $client->get($detailUrl);
+                $response = $this->client->get($detailUrl);
                 $html = (string) $response->getBody();
                 $crawler = new Crawler($html);
 
@@ -205,7 +211,13 @@ class SyncHockeyClubsCommand extends Command
                     if ($allImages->count()) {
                         $scraped['logo'] = $allImages->first()->attr('src');
                     }
-                } catch (\Exception $e) { }
+                } catch (\Exception $e) {
+                    $this->logSyncEvent(
+                        "Hockey logo parsing failed for {$name}: {$e->getMessage()}",
+                        'warning',
+                        '⚠️'
+                    );
+                }
 
                 $crawler->filter('table.sl-table tr')->each(function (Crawler $node) use (&$scraped) {
                     $labelNode = $node->filter('td')->first();
@@ -237,7 +249,7 @@ class SyncHockeyClubsCommand extends Command
                 $regionId = $this->getRegionIdFromPostalCode($postalCode);
 
                 $prospect = Prospect::updateOrCreate(
-                    ['external_id' => (Str::startsWith($federation, 'VL-') || Str::startsWith($federation, 'FR-') ? Str::before($federation, '-') . '-' : '') . 'HOCKEY-' . $externalId],
+                    ['external_id' => $this->buildExternalId($federation, $externalId)],
                     [
                         'name' => $name,
                         'type' => 'hockey_club',
@@ -260,15 +272,31 @@ class SyncHockeyClubsCommand extends Command
                     );
                 }
 
+                $this->markPersisted();
                 usleep(700000); 
 
             } catch (\Exception $e) {
-                $this->error("\nError syncing club " . ($club[0] ?? 'Unknown') . ": " . $e->getMessage());
+                $this->markFailed();
+                $clubName = $club[0] ?? 'Unknown';
+                $this->error("\nError syncing club {$clubName}: {$e->getMessage()}");
+                $this->logSyncEvent(
+                    "Error syncing Hockey club {$clubName}: {$e->getMessage()}",
+                    'error',
+                    '❌'
+                );
             }
         }
 
         $this->newLine();
-        $this->info('Hockey enhancement synchronization completed.');
-        $this->finishSyncLog($count);
+            $this->info('Hockey enhancement synchronization completed.');
+            $this->finishSyncLog($this->persistedCount);
+
+            return self::SUCCESS;
+        });
+    }
+
+    private function buildExternalId(string $federation, string $sourceId): string
+    {
+        return Str::before($federation, '-') . '-HOCKEY-' . $sourceId;
     }
 }

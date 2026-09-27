@@ -406,6 +406,19 @@ return [
         'plural_label' => 'Work orders',
         'order_number' => 'Work order #:id',
         'no_client' => 'No unambiguous client could be derived from this equipment.',
+        'my_work_orders' => [
+            'navigation' => 'My work orders',
+            'title' => 'My work orders',
+            'equipment' => 'Equipment',
+            'start' => 'Start',
+            'complete' => 'Complete',
+            'started_notification' => 'Work order started.',
+            'completed_notification' => 'Work order submitted for review.',
+            'completed_at' => 'Completed at',
+            'photos_step' => 'Photos',
+            'photos' => 'Photos',
+            'forbidden' => 'This work order is not assigned to you.',
+        ],
         'sections' => [
             'context' => 'Equipment context',
             'context_copy' => 'Equipment, client, site and physical position come from FieldOps and cannot be reassigned here.',
@@ -670,6 +683,9 @@ return [
             'tool_circle' => 'Circle',
             'tool_hint' => 'Choose a tool, drag on the canvas, and save the result.',
         ],
+        'validation' => [
+            'invalid_generated_image' => 'The generated image data is not a valid image.',
+        ],
     ],
 
     'media' => [
@@ -680,5 +696,9 @@ return [
         'no_photos' => 'No photos uploaded yet.',
         'no_videos' => 'No videos uploaded yet.',
         'no_documents' => 'No documents uploaded yet.',
+    ],
+
+    'validation' => [
+        'out_of_tenant_scope' => 'The selected item does not belong to a client you have access to.',
     ],
 ];

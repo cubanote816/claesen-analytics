@@ -78,6 +78,34 @@
 
 ---
 
+## Riesgos abiertos — Módulo Prospects
+
+### Fuentes de datos de federaciones sin API oficial (Hockey/TPV/VAL/LBFA)
+
+**Riesgo:** a diferencia de RBFA (GraphQL oficial), AFT/AFTT (PDF publicado) y Bruselas (CSV open-data, CLA-535), las federaciones Hockey belga, TPV, VAL y LBFA no tienen ninguna API pública — sus comandos (`SyncHockeyClubsCommand`/`SyncTpvClubsCommand`/`SyncValClubsCommand`/`SyncLbfaClubsCommand`) siguen haciendo scraping HTML inline, sin adapter `FederationDataSource` propio. Un cambio de layout en cualquiera de esos sitios rompe el sync correspondiente sin aviso más allá de los logs de `SyncHistory`.
+**Mitigación actual:** CLA-535 Slice A/B añadió logging de error por-club y `guardedSync()` (ciclo de vida instrumentado) a los 4 comandos, así que un fallo ya no queda silencioso — pero no resuelve la fragilidad estructural del scraping en sí.
+**Pendiente:** no hay ticket abierto para migrar estos 4 a un adapter propio — evaluar solo si el negocio confirma degradación real de estas fuentes.
+
+### AFPadel (padel valón) no cubierto — mezclado históricamente con AFT/AFTT
+
+**Riesgo:** `AfttPdfSource` (CLA-535 Slice C) cubre tenis (AFTT) vía el annuaire PDF oficial, pero el padel valón (AFPadel, `afpadel.be`) es una federación separada, solo accesible vía scrape HTML — nunca tuvo un adapter ni un comando propio; el comando `prospects:sync-aft` histórico solo cubría tenis pese al nombre genérico "AFT".
+**Estado:** documentado como gap conocido, sin ticket — investigado en la research de CLA-535 (`openspec/changes/prospects-federation-refactor/research.md`), fuera de alcance de la implementación (7 slices ya cerrados).
+**Acción requerida:** ticket nuevo si el negocio prioriza cobertura de padel; requeriría un adapter HTML dedicado (mismo patrón de `FederationDataSource`).
+
+### Verenigingsregister (Flandes) requiere API key — no es un bloqueador de código
+
+**Riesgo:** la API oficial de clubes de Flandes (`publiek.verenigingen.vlaanderen.be`) es JSON-LD y pública en su documentación, pero el acceso completo requiere una API key con integración MAGDA (gubernamental) — no se puede automatizar sin gestión administrativa externa al equipo técnico.
+**Estado:** verificado en la research de CLA-535, no implementado — es trabajo operativo (solicitar la key), no una tarea de desarrollo bloqueada por código.
+**Pendiente:** decisión de negocio sobre si vale la pena tramitar el acceso; sin eso, Flandes sigue cubierta solo por RBFA/Hockey/TPV/VAL.
+
+### Sport Vlaanderen open-data sin URL de descarga directa confirmada
+
+**Riesgo:** el portal `sport.vlaanderen/kennisplatform/open-data/` existe como fuente secundaria potencial para Flandes, pero no expone una URL de descarga directa en su landing page (a diferencia del CSV de Bruselas o el PDF de AFTT) — requeriría investigación adicional para confirmar si el dataset es descargable de forma estable/programática.
+**Estado:** verificado como "portal existe, sin URL confirmada" en la research de CLA-535 — no implementado, no bloqueante para el trabajo ya cerrado (RBFA/AFTT/Bruselas cubren la cadena actual).
+**Pendiente:** revisitar solo si Verenigingsregister no es viable y se necesita una fuente alternativa para Flandes.
+
+---
+
 ## Riesgos abiertos — Módulo Cafca / ERP
 
 ### Dependencia de SQL Server legacy
@@ -115,12 +143,11 @@ php artisan website:regenerate-media
 
 ## Riesgos abiertos — Módulo FieldOps
 
-### Alpine registrado vía @push('scripts')/@once muerto bajo wire:navigate en 4 location-pickers
+### Alpine en 4 location-pickers — RESUELTO, ver CLA-506
 
-**Riesgo:** `complex-location-picker.blade.php`, `terrain-location-picker.blade.php`, `structure-location-picker.blade.php` y `electrical-board-location-picker.blade.php` registran su componente Alpine vía `@push('scripts')`/`@once` + `document.addEventListener('alpine:init', ...)`. **Confirmado en vivo (Selenium, no solo por lectura de código) en 2/2 archivos con este mismo anti-patrón auditados hasta ahora**: `luminaire-frame-type-image-editor.blade.php` (CLA-278, commit `a935834`) y `luminaire-frame-spatial-layout.blade.php` (CLA-278, commit `9f2ef37`, este último sin el wrapper `alpine:init` pero con el mismo `@push('scripts')`/`@once` roto). Ambos quedaban completamente inertes (sin datos reactivos, sin listeners, botones/drag/zoom sin responder) al llegar por click dentro del panel (`wire:navigate`, default de Filament) — solo funcionaban con una carga dura de la URL. Con 2/2 confirmados rotos, es razonable asumir que los 4 pickers restantes tienen el mismo problema.
-**Estado:** Documentado, sin corregir — decisión explícita del usuario de acotar el alcance de CLA-278 a los archivos que fue encontrando en su propio testing, no a una auditoría preventiva completa. `luminaire-type-gallery-selector.blade.php` se auditó y confirmó que NO tiene este problema (usa `x-data="{...}"` inline, no depende de `alpine:init` ni de un script empujado).
-**Fix de referencia:** migrar `@push('scripts')`/`@once` a `@script`/`@endscript` (Livewire) y registrar `Alpine.data(...)` directo (sin envolver en `addEventListener('alpine:init', ...)` si lo tuviera) — ver diffs de los commits `a935834` y `9f2ef37`.
-**Acción requerida:** ticket nuevo para auditar y corregir los 4 archivos — dada la tasa de confirmación (2/2), tratar como "muy probablemente roto", no como riesgo especulativo.
+**Estado (corregido, verificado 2026-09-20, CLA-506):** el riesgo descrito abajo (conservado como referencia histórica) ya no describe el código actual. Los 4 archivos — `complex-location-picker.blade.php`, `terrain-location-picker.blade.php`, `structure-location-picker.blade.php` y `electrical-board-location-picker.blade.php` — usan `@script`/`@endscript` con `Alpine.data(...)` registrado directo (sin `alpine:init`), el mismo mecanismo ya confirmado en vivo para `luminaire-frame-type-image-editor.blade.php` y `luminaire-frame-spatial-layout.blade.php`. El fix real llegó en el commit `32ef563` (CLA-342, "Electrical Board hereda coordenadas del padre..."), sin ticket dedicado ni mención en su mensaje de commit — por eso este documento quedó desactualizado y CLA-506 se abrió creyendo que el problema seguía vigente. Verificado por lectura completa de los 4 archivos (sin `@push('scripts')`, sin `@once`, sin `addEventListener('alpine:init', ...)` en ninguno) — no se hizo una nueva pasada de Selenium en vivo porque el patrón es idéntico, carácter por carácter, al ya verificado dos veces; se recomienda un click-through manual antes de tratarlo como blindado al 100%.
+
+**Descripción original (histórica, ya no aplica):** `@push('scripts')`/`@once` + `document.addEventListener('alpine:init', ...)`, confirmado roto en vivo (Selenium) en `luminaire-frame-type-image-editor.blade.php` (CLA-278, commit `a935834`) y `luminaire-frame-spatial-layout.blade.php` (CLA-278, commit `9f2ef37`) — ambos quedaban inertes al llegar por click dentro del panel (`wire:navigate`), solo funcionaban con carga dura de la URL. `luminaire-type-gallery-selector.blade.php` se había auditado y confirmado que NO tenía este problema (usa `x-data="{...}"` inline).
 
 ### Acceso amplio de roles internos no-cliente a rutas genéricas de FieldOps — DESACTUALIZADO, ver CLA-364/369/377/496
 
@@ -220,11 +247,15 @@ Siete puntos sin filtro de organización: `MaintenanceRequestService.php:514`, `
 
 **Detectado en CLA-517, resuelto en CLA-527.** `FieldOps` y `Website` usaban `Database/{Migrations,Factories,Seeders}` (mayúscula) frente a los otros 9 en minúscula; `Safety` tenía además un `Database/Seeders/` residual con un `SafetyDatabaseSeeder` duplicado (stub muerto). CLA-527 renombró los 3 árboles a minúscula (`git mv`, ~96 renames, timestamps intactos → orden de migración idéntico), añadió los mapeos PSR-4 explícitos en `composer.json` (`Modules\FieldOps\Database\Factories\` etc. → rutas minúscula; namespaces `Database\` studly sin cambio), corrigió los 2 providers y 3 tests con rutas hardcodeadas, y borró el stub duplicado. Post-rename los 11 módulos son consistentes: el `auto-discover.migrations` (default nwidart, activo) encuentra a los 11 y el `loadMigrationsFrom` manual apunta a la misma ruta → el migrator deduplica, sin doble registro para nadie. Verificado: `migrate` completo 179 migraciones / 0 duplicados; autoload resuelve todas las clases `Database\*` desde las rutas minúscula. Consolidar a un único call site (quitar los 11 `loadMigrationsFrom` manuales o desactivar auto-discover) sigue siendo un refactor aparte, no hecho en CLA-527.
 
-### Suite FieldOps amplia contaminada entre clases
+### Suite FieldOps amplia contaminada entre clases — RESUELTO, ver CLA-507
 
-La ejecución conjunta de toda la suite FieldOps mantiene dos fallos de harness preexistentes: varios `setUp()` usan `Role::create('super_admin')` y chocan con estado compartido (`RoleAlreadyExists`), y los tests de media pueden encontrar directorios de `storage/framework/testing/disks` creados con permisos incompatibles. En el hardening de CLA-267 la corrida amplia terminó con **209 passed / 649 assertions y 93 fallos** de esas dos familias; la regresión integrada aislada pasó **42/42 con 301 assertions** y los tests nuevos también pasan dentro de la corrida amplia. Pendiente normalizar roles con `firstOrCreate`/limpieza del PermissionRegistrar y los permisos del storage de testing en un ticket de infraestructura de pruebas; no mezclar ese refactor con tickets funcionales.
+**Estado (corregido y verificado 2026-09-20, CLA-507):** el riesgo descrito abajo (conservado como referencia histórica) ya no describe el estado real. `--testsuite=Modules --filter=FieldOps` corre **540/540, 2218 assertions**, en 3 corridas seriales consecutivas (2 como root vía `docker exec` sin `-u`, 1 como `sail` vía el wrapper de Sail) — sin un solo fallo de `RoleAlreadyExists` ni de otro tipo. Los 28 archivos de test del módulo ya usan `Role::firstOrCreate(...)` (verificado por grep, cero usos de `Role::create(...)` sin protección) — este ítem del alcance original ya estaba resuelto antes de este ticket, probablemente de forma incremental en tickets posteriores a CLA-267 sin que se actualizara esta nota.
 
-Además, no pasar varios paths de test a `sail artisan test` en este harness: pueden ejecutarse como procesos separados contra la misma base MySQL `testing` y competir durante `RefreshDatabase`. Usar un único proceso con `--filter='(ClaseA|ClaseB)'` o ejecutar cada archivo de forma serial.
+**Causa raíz real encontrada (no la que asumía el ticket):** no era contención de roles ni de `RefreshDatabase` — era que las corridas de `phpunit` vía `docker exec <container> ...` sin `-u sail` caen por defecto en `root` (la imagen no fija `USER`, verificado con `docker inspect`), mientras el proceso real de Laravel dentro del contenedor corre como `sail`. Un test que escribe a disco real durante una corrida como root deja directorios `root:root` bajo `storage/framework/testing/disks/`, que `sail` ya no puede borrar ni sobrescribir en una corrida posterior — permission-denied que parece intermitente. Se encontraron y limpiaron 2 directorios así (`local/2`, `public/luminaire-frame-types`) al iniciar este ticket. Fix real: siempre invocar `phpunit` como `sail` (`./vendor/bin/sail phpunit ...`, nunca `docker exec` a secas) — documentado en `docs/ai/testing-checklists.md`.
+
+**Descripción original (histórica, causa raíz ya no vigente):** se asumía contención de `Role::create('super_admin')` sin protección (`RoleAlreadyExists`) más permisos incompatibles en `storage/framework/testing/disks`. En el hardening de CLA-267 la corrida amplia había terminado con 209 passed / 649 assertions y 93 fallos de esas dos familias.
+
+Nota que sigue vigente: no pasar varios paths de test a `sail artisan test` en este harness — pueden ejecutarse como procesos separados contra la misma base MySQL `testing` y competir durante `RefreshDatabase`. Usar un único proceso con `--filter='(ClaseA|ClaseB)'` o ejecutar cada archivo de forma serial.
 
 ### Infraestructura del portal cliente pendiente
 

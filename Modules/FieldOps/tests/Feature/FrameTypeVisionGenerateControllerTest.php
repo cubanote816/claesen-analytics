@@ -7,6 +7,7 @@ use Illuminate\Http\UploadedFile;
 use Modules\Core\Models\User;
 use Modules\Intelligence\Services\OpenAiImageGenerationService;
 use Modules\Intelligence\Services\GeminiService;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 /**
@@ -26,6 +27,8 @@ class FrameTypeVisionGenerateControllerTest extends TestCase
         $this->mock(GeminiService::class, fn ($m) => $m->shouldReceive('translateAndDetect')->andReturn(['translations' => [], 'detected_locale' => 'nl']));
 
         $this->user = User::factory()->create();
+        // CLA-502: the endpoint now requires this explicitly.
+        $this->user->givePermissionTo(Permission::findOrCreate('fieldops.ai', 'web'));
     }
 
     public function test_generate_requires_auth(): void

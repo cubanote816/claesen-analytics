@@ -6,10 +6,14 @@ namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Modules\FieldOps\Http\Requests\Concerns\ValidatesTenantScopedIds;
+use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminaireType;
 
 class UpdateLuminaireRequest extends FormRequest
 {
+    use ValidatesTenantScopedIds;
+
     public function authorize(): bool
     {
         return true;
@@ -45,6 +49,10 @@ class UpdateLuminaireRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($v) {
+            if ($this->has('luminaire_frame_id')) {
+                $this->assertTenantScopedIds($v, 'luminaire_frame_id', LuminaireFrame::class, $this->input('luminaire_frame_id'));
+            }
+
             $luminaire  = $this->route('luminaire');
 
             // Resolve effective type and subgroup — use sent value or fall back to current model

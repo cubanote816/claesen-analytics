@@ -103,16 +103,10 @@ class CatalogController extends Controller
      */
     public function storeGeneratedLuminaireFrameType(StoreLuminaireFrameTypeFromGeneratedRequest $request): \Illuminate\Http\JsonResponse
     {
+        // CLA-502: image_base64 is already confirmed to decode to real image
+        // bytes by the FormRequest's withValidator() — no need to re-check here.
         $validated = $request->validated();
-
         $decoded = base64_decode($validated['image_base64'], true);
-
-        if ($decoded === false) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid image data.',
-            ], 422);
-        }
 
         $path = 'luminaire-frame-types/'.uniqid('generated_', true).'.png';
         Storage::disk('public')->put($path, $decoded);

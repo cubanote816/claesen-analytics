@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
+use Modules\FieldOps\Http\Requests\Concerns\ValidatesTenantScopedIds;
 use Modules\FieldOps\Models\LuminaireFrame;
+use Modules\FieldOps\Models\Structure;
 use Modules\FieldOps\Rules\StructureHasFrameCapacity;
 
 class StoreLuminaireFrameRequest extends FormRequest
 {
+    use ValidatesTenantScopedIds;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', LuminaireFrame::class) ?? false;
@@ -25,5 +30,12 @@ class StoreLuminaireFrameRequest extends FormRequest
             'structure_ids'           => ['required', 'array', 'min:1'],
             'structure_ids.*'         => ['integer', 'distinct', 'exists:fo_structures,id', new StructureHasFrameCapacity],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $this->assertTenantScopedIds($validator, 'structure_ids', Structure::class, $this->input('structure_ids'));
+        });
     }
 }

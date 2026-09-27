@@ -4,12 +4,14 @@ namespace Modules\Prospects\Services;
 
 use Modules\Prospects\Models\Prospect;
 use Modules\Prospects\Models\ProspectLocation;
-use Modules\Prospects\Models\Region;
+use Modules\Prospects\Traits\HandlesClubRegions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class LeadService
 {
+    use HandlesClubRegions;
+
     /**
      * Persists a contact lead from the public website into the Prospects domain.
      *
@@ -25,7 +27,7 @@ class LeadService
             // Check or create prospect safely using a lock or firstOrCreate pattern
             // To properly avoid race conditions, firstOrCreate is executed on the location.
             // Wait, we need to ensure the prospect exists first if creating.
-            
+
             $existingLocation = ProspectLocation::where('email', $email)->lockForUpdate()->first();
 
             if ($existingLocation) {
@@ -34,46 +36,43 @@ class LeadService
                 return $prospect;
             }
 
-            $prospect = Prospect::create([
-                'name' => $data['name'],
-                'type' => 'lead',
-                'channel' => 'website_contact',
-                // F4/CLA-478 bug fix: prospects_prospects.region_id is
-                // NOT NULL (2026_04_03_204632_make_region_id_required_on_
-                // prospects_prospects_table.php, a deliberate decision for
-                // the federation-club domain this table primarily serves)
-                // — a website contact-form lead genuinely has no known
-                // region at creation time. Never reached before this
-                // ticket's own end-to-end test: no prior test exercised
-                // this method through a real, unmocked HTTP request.
-                // 'Brussel' is the same fallback that migration's own
-                // backfill already used (id 11 there; resolved by slug
-                // here, not a hardcoded id, since it's guaranteed seeded
-                // by 2026_04_03_190000_create_prospects_regions_table.php).
-                'region_id' => Region::where('slug', 'brussel')->value('id'),
-            ]);
-
             try {
-                ProspectLocation::create([
-                    'prospect_id' => $prospect->id,
-                    'contact_type' => 'primary',
-                    'contact_name' => $data['name'],
-                    'email' => $email,
-                ]);
+                // Nested inside the outer transaction: Laravel issues a SAVEPOINT
+                // here, so a unique-violation catch below rolls back only the
+                // Prospect + ProspectLocation pair created in this block, never
+                // the outer lockForUpdate read.
+                return DB::transaction(function () use ($data, $email) {
+                    $prospect = Prospect::create([
+                        'name' => $data['name'],
+                        'type' => 'lead',
+                        'channel' => 'website_contact',
+                        'region_id' => $this->getFallbackRegionId(),
+                    ]);
+
+                    ProspectLocation::create([
+                        'prospect_id' => $prospect->id,
+                        'contact_type' => 'primary',
+                        'contact_name' => $data['name'],
+                        'email' => $email,
+                    ]);
+
+                    Log::info('New prospect lead persisted.', ['prospect_id' => $prospect->id, 'email' => $email]);
+
+                    return $prospect;
+                });
             } catch (\Illuminate\Database\QueryException $e) {
-                // Handle unique constraint violation gracefully due to race condition
+                // Handle unique constraint violation gracefully due to race condition.
+                // The savepoint rollback above already undid the orphan Prospect insert.
+                // lockForUpdate() forces a current read so the just-committed winner
+                // from another connection is visible despite our snapshot isolation.
                 if ($e->getCode() === '23000') {
-                    $existingLocation = ProspectLocation::where('email', $email)->first();
+                    $existingLocation = ProspectLocation::where('email', $email)->lockForUpdate()->first();
                     if ($existingLocation) {
                         return $existingLocation->prospect;
                     }
                 }
                 throw $e;
             }
-
-            Log::info('New prospect lead persisted.', ['prospect_id' => $prospect->id, 'email' => $email]);
-
-            return $prospect;
         });
     }
 }

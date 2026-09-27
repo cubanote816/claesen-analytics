@@ -10,8 +10,9 @@ return [
         'analyse_intelligentie' => 'Analyse & Intelligence',
         'safety_vca' => 'Safety & VCA',
         'mailing' => 'Mailing',
-        'field_operations' => 'Field Operations (Demo)',
+        'field_operations' => 'Field Operations',
     ],
     'switch_to_bertels' => 'Switch to Electro Bertels',
+    'organization_indicator_hint' => 'Company this panel is working on',
     'switch_to_claesen' => 'Switch to Claesen',
 ];

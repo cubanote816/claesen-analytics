@@ -4,7 +4,7 @@
         <div class="w-full border-t border-gray-200 dark:border-white/10"></div>
     </div>
     <div class="relative px-3 text-sm bg-white dark:bg-gray-900 text-gray-500 font-medium uppercase tracking-wider">
-        Of
+        {{ __('core::auth.divider_or') }}
     </div>
 </div>
 
@@ -19,6 +19,6 @@
             <path fill="#00a4ef" d="M1 12h10v10H1z"/>
             <path fill="#ffb900" d="M12 12h10v10H12z"/>
         </svg>
-        <span class="text-sm font-medium">Aanmelden met Microsoft</span>
+        <span class="text-sm font-medium">{{ __('core::auth.microsoft_login') }}</span>
     </a>
 </div>

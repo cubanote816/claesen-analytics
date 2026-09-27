@@ -22,7 +22,7 @@ use Modules\Website\Models\SiteSetting;
  *
  * A settings FORM (fixed slots from config('website.site_settings.allowed_keys')),
  * not a CRUD resource — same "no page builder" boundary the ticket draws
- * explicitly. Hardcoded to Claesen's site (Site::claesenId()), same rationale
+ * explicitly. Hardcoded to Claesen's site (Site::forPanelOrFail()->id), same rationale
  * as ProjectResource::categoryOptions()/CreateAnnouncement — Bertels has no
  * panel yet (F3/F4).
  *
@@ -52,6 +52,11 @@ class SiteSettingsPage extends Page implements HasForms
         return __('website.site_settings.label');
     }
 
+    public static function canAccess(): bool
+    {
+        return parent::canAccess() && Site::forPanel() !== null;
+    }
+
     public function getTitle(): string
     {
         return __('website.site_settings.label');
@@ -59,7 +64,7 @@ class SiteSettingsPage extends Page implements HasForms
 
     public function mount(): void
     {
-        $siteId = Site::claesenId();
+        $siteId = Site::forPanelOrFail()->id;
         $settings = SiteSetting::query()
             ->where('site_id', $siteId)
             ->get()
@@ -125,7 +130,7 @@ class SiteSettingsPage extends Page implements HasForms
 
     public function save(): void
     {
-        $siteId = Site::claesenId();
+        $siteId = Site::forPanelOrFail()->id;
         $state = $this->form->getState();
 
         foreach (SiteSetting::allowedKeys() as $key => $type) {

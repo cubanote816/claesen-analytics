@@ -326,6 +326,11 @@ class LuminaireCrudTest extends TestCase
         ]);
     }
 
+    // CLA-501: 'frontend' classification now comes from the server's own auth
+    // context (a real Sanctum bearer token — see LuminaireController::
+    // resolveEditorSource()), not the X-FieldOps-Editor header, so these two
+    // tests authenticate via withToken() instead of actingAs(). The header is
+    // no longer read at all; sending it here would be a no-op, so it's dropped.
     public function test_update_frame_coordinates_from_frontend_marks_verified(): void
     {
         $luminaire = Luminaire::factory()->create([
@@ -333,9 +338,9 @@ class LuminaireCrudTest extends TestCase
             'luminaire_type_id'     => $this->type->id,
             'luminaire_subgroup_id' => $this->subgroup->id,
         ]);
+        $token = $this->user->createToken('field')->plainTextToken;
 
-        $this->actingAs($this->user)
-            ->withHeader('X-FieldOps-Editor', 'frontend')
+        $this->withToken($token)
             ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
                 'frame_x' => 18.5,
                 'frame_y' => 27.25,
@@ -359,9 +364,13 @@ class LuminaireCrudTest extends TestCase
             'luminaire_subgroup_id' => $this->subgroup->id,
             'position_version'      => 4,
         ]);
+        $token = $this->user->createToken('field')->plainTextToken;
 
-        $this->actingAs($this->user)
-            ->withHeader('X-FieldOps-Editor', 'frontend')
+        // No position_version sent at all — the fallback treats that as "trust
+        // the caller has the current version" (falls back to it), so this is
+        // not the CLA-501 bypass: the check still runs, it just trivially
+        // passes because expected == current by construction.
+        $this->withToken($token)
             ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
                 'frame_x' => 0.42,
                 'frame_y' => 0.63,
@@ -376,6 +385,100 @@ class LuminaireCrudTest extends TestCase
         $this->assertSame('frontend', $fresh->position_source);
         $this->assertNotNull($fresh->position_verified_at);
         $this->assertEquals(5, $fresh->position_version);
+    }
+
+    public function test_x_fieldops_editor_header_alone_does_not_grant_frontend_verification(): void
+    {
+        $luminaire = Luminaire::factory()->create([
+            'luminaire_frame_id'    => $this->frame->id,
+            'luminaire_type_id'     => $this->type->id,
+            'luminaire_subgroup_id' => $this->subgroup->id,
+        ]);
+
+        // Session-authenticated (actingAs(), no real bearer token) but spoofing
+        // the header a real field-app request would send — must be classified
+        // 'backoffice' regardless, since the header carries no trust anymore.
+        $this->actingAs($this->user)
+            ->withHeader('X-FieldOps-Editor', 'frontend')
+            ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
+                'frame_x' => 18.5,
+                'frame_y' => 27.25,
+                'position_version' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.position_source', 'backoffice');
+
+        $fresh = $luminaire->fresh();
+        $this->assertSame('backoffice', $fresh->position_source);
+        $this->assertNull($fresh->position_verified_at);
+        $this->assertNull($fresh->position_verified_by_user_id);
+    }
+
+    public function test_frontend_authenticated_update_with_stale_version_still_returns_409(): void
+    {
+        $luminaire = Luminaire::factory()->create([
+            'luminaire_frame_id'    => $this->frame->id,
+            'luminaire_type_id'     => $this->type->id,
+            'luminaire_subgroup_id' => $this->subgroup->id,
+            'frame_x'               => 0.2,
+            'frame_y'               => 0.3,
+            'position_version'      => 3,
+        ]);
+        $token = $this->user->createToken('field')->plainTextToken;
+
+        // Before CLA-501, the version check only ran when editorSource wasn't
+        // 'frontend' — a real field-app request with a stale version would
+        // have silently overwritten a newer position. It must conflict now,
+        // exactly like a backoffice request would.
+        $this->withToken($token)
+            ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", [
+                'frame_x' => 12,
+                'frame_y' => 34,
+                'position_version' => 1,
+            ])
+            ->assertStatus(409)
+            ->assertJsonPath('current_position_version', 3)
+            ->assertJsonPath('message', __('fieldops::resource.luminaires.position_conflict'));
+
+        $this->assertDatabaseHas('fo_luminaires', [
+            'id' => $luminaire->id,
+            'frame_x' => 0.2,
+            'frame_y' => 0.3,
+            'position_version' => 3,
+        ]);
+    }
+
+    public function test_concurrent_updates_with_the_same_expected_version_only_the_first_succeeds(): void
+    {
+        $luminaire = Luminaire::factory()->create([
+            'luminaire_frame_id'    => $this->frame->id,
+            'luminaire_type_id'     => $this->type->id,
+            'luminaire_subgroup_id' => $this->subgroup->id,
+            'position_version'      => 1,
+        ]);
+
+        // Simulates two clients that both read position_version = 1 before
+        // either wrote — the second request's payload is built before the
+        // first one is sent, so it still carries the now-stale version.
+        $firstPayload = ['frame_x' => 10, 'frame_y' => 10, 'position_version' => 1];
+        $secondPayload = ['frame_x' => 20, 'frame_y' => 20, 'position_version' => 1];
+
+        $this->actingAs($this->user)
+            ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", $firstPayload)
+            ->assertOk()
+            ->assertJsonPath('data.position_version', 2);
+
+        $this->actingAs($this->user)
+            ->patchJson("/api/v1/fieldops/luminaires/{$luminaire->id}", $secondPayload)
+            ->assertStatus(409)
+            ->assertJsonPath('current_position_version', 2);
+
+        $this->assertDatabaseHas('fo_luminaires', [
+            'id' => $luminaire->id,
+            'frame_x' => 10,
+            'frame_y' => 10,
+            'position_version' => 2,
+        ]);
     }
 
     public function test_update_frame_coordinates_conflict_returns_409(): void

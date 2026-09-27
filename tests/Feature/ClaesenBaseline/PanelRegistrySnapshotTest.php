@@ -73,19 +73,34 @@ final class PanelRegistrySnapshotTest extends TestCase
         );
     }
 
-    public function test_the_bertels_panel_has_no_resources_pages_or_widgets_of_its_own(): void
+    public function test_the_bertels_panel_registers_only_the_website_cluster_of_its_own_site(): void
     {
-        // F1/P6 spike (CLA-549): the panel exists only to prove the technical
-        // assumptions (shared auth guard, Azure login, per-panel authorization)
-        // before any real Bertels resource exists — F3/F4 own that.
+        // Declared inversion (CLA-598, supersedes the CLA-549 spike's empty panel):
+        // Bertels manages its own Website content — exactly the Website cluster's
+        // three resources and its site-settings page — and nothing else. Any other
+        // resource appearing here without a phase ticket is the regression this guards.
         $panel = Filament::getPanel('bertels');
 
         $this->assertSame('bertels', $panel->getId());
         $this->assertSame('bertels', $panel->getPath());
         $this->assertFalse($panel->isDefault());
-        $this->assertSame([], $panel->getResources());
-        $this->assertSame([Dashboard::class], array_values($panel->getPages()));
-        $this->assertSame([], $panel->getWidgets());
+        $this->assertSame(
+            $this->sorted([
+                \App\Filament\Clusters\Website\Resources\AnnouncementResource::class,
+                \App\Filament\Clusters\Website\Resources\ConsultationRequestResource::class,
+                \App\Filament\Clusters\Website\Resources\ProjectResource::class,
+            ]),
+            $this->sorted($panel->getResources()),
+        );
+        $this->assertSame(
+            $this->sorted([
+                Dashboard::class,
+                \App\Filament\Clusters\Website\Pages\SiteSettingsPage::class,
+                \App\Filament\Clusters\Website\WebsiteCluster::class, // a cluster is itself a page
+            ]),
+            $this->sorted($panel->getPages()),
+        );
+        $this->assertSame([\App\Filament\Clusters\Website\WebsiteCluster::class], array_values($panel->getClusters()));
     }
 
     /**

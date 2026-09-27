@@ -43,6 +43,7 @@
         }
         button:hover { border-color: #00aeef; color: #00aeef; }
     </style>
+@include('core::partials.head-icons')
 </head>
 <body>
 <div class="card">

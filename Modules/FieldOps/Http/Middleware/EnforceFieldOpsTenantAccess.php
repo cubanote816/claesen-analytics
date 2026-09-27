@@ -112,6 +112,15 @@ class EnforceFieldOpsTenantAccess
 
     private function isAllowedClientMutation(Request $request): bool
     {
+        if ($request->isMethod('patch')) {
+            // CLA-554 — editing an existing contact's capabilities. The real
+            // authorization (assertCanManageContacts + the existing-membership
+            // check) lives in ClientContactInvitationService::updateMembership();
+            // this only decides the request is allowed past the client-portal
+            // POST-only default, same as the invitations route below.
+            return $request->is('api/v1/fieldops/clients/*/contacts/*');
+        }
+
         if (! $request->isMethod('post')) {
             return false;
         }

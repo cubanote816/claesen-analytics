@@ -2,7 +2,7 @@ panel_id=admin
 panel_path=<root>
 panel_is_default=yes
 spa_mode=yes
-navigation_groups=Workforce & Performance,Growth & Acquisition,Mailing,Safety & VCA,Content & Website,Intelligence Hub,Field Operations (Demo),User Management
+navigation_groups=Workforce & Performance,Growth & Acquisition,Mailing,Safety & VCA,Content & Website,Intelligence Hub,Field Operations,User Management
 resource App\Filament\Clusters\Website\Resources\AnnouncementResource | model=Modules\Website\Models\Announcement | slug=announcements | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\ConsultationRequestResource | model=Modules\Website\Models\ConsultationRequest | slug=consultation-requests | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\ProjectResource | model=Modules\Website\Models\Project | slug=projects | navigation=yes | record_title=- | globally_searchable=no
@@ -48,6 +48,7 @@ page Modules\Employee\Filament\Pages\EmployeeHoursDashboard
 page Modules\Employee\Filament\Pages\EmployeeMonthStats
 page Modules\Employee\Filament\Pages\EmployeeWeekStats
 page Modules\Employee\Filament\Pages\ProjectsWorkedHoursPage
+page Modules\FieldOps\Filament\Pages\MyWorkOrders
 page Modules\Intelligence\Filament\Pages\BiConfigPage
 page Modules\Intelligence\Filament\Pages\MirrorSyncStatusPage
 page Modules\Intelligence\Filament\Pages\MonthlyBillingControlPage

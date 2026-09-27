@@ -24,6 +24,13 @@ class ChecklistResource extends Resource
     protected static ?string $model = Checklist::class;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clipboard-document-check';
+
+    // CLA-581: see Performance\ProjectResource — same reasoning, exclude technician from the default-allow.
+    public static function canAccess(): bool
+    {
+        return ! (auth()->user()?->hasRole('technician') ?? false);
+    }
+
     public static function getNavigationLabel(): string
     {
         return __('safety::checklists.navigation');

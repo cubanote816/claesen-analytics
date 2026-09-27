@@ -54,6 +54,15 @@ class AdminPanelProvider extends PanelProvider
                 static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
 
+            // CLA-580 — split-screen brand panel, scoped to the login page only
+            // (never on other fi-simple-layout pages) via the login route name.
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::SIMPLE_LAYOUT_START,
+                static fn(): string => request()?->routeIs('filament.admin.auth.login')
+                    ? view('core::filament.auth.brand-panel')->render()
+                    : '',
+            );
+
             FilamentView::registerRenderHook(
                 PanelsRenderHook::HEAD_END,
                 static fn (): string => <<<'HTML'
@@ -171,6 +180,10 @@ HTML
             ->font('Outfit')
             ->sidebarCollapsibleOnDesktop()
             ->collapsibleNavigationGroups()
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => view('core::filament.organization-indicator')->render(),
+            )
             ->brandLogo(asset('img/brand-logo-light.png'))
             ->darkModeBrandLogo(asset('img/brand-logo-dark.png'))
             ->brandLogoHeight('3rem')
@@ -243,6 +256,10 @@ HTML
                 AssignCorrelationId::class,
                 UpdateUserActivity::class,
                 ResolveOrganizationContext::class,
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
+            ])
+            ->persistentMiddleware([
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

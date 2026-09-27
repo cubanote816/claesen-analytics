@@ -19,15 +19,14 @@ class SyncLbfaClubsCommand extends Command
     protected $signature = 'prospects:sync-lbfa-clubs {--limit= : Limit the number of clubs to sync} {--user= : User ID who triggered the sync} {--history= : Existing sync history record ID}';
     protected $description = 'Sync athletics clubs from Ligue Belge Francophone d\'Athlétisme (LBFA) - lbfa.be';
 
-    public function handle(): void
+    public function handle(): int
     {
-        $this->startSyncLog($this->option('user'), $this->option('history'));
-        $this->info('Starting LBFA athletics clubs synchronization...');
+        return $this->guardedSync(function (): int {
+            $this->startSyncLog($this->option('user'), $this->option('history'));
+            $this->info('Starting LBFA athletics clubs synchronization...');
 
-        $baseUrl = 'https://www.lbfa.be';
-        $listUrl = "{$baseUrl}/fr/liste-des-clubs";
-
-        try {
+            $baseUrl = 'https://www.lbfa.be';
+            $listUrl = "{$baseUrl}/fr/liste-des-clubs";
             $response = Http::withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             ])->get($listUrl);
@@ -36,7 +35,7 @@ class SyncLbfaClubsCommand extends Command
                 $errorMessage = "Failed to fetch club list from LBFA: " . $response->status();
                 $this->error($errorMessage);
                 $this->failSyncLog($errorMessage);
-                return;
+                return self::FAILURE;
             }
 
             $crawler = new Crawler($response->body());
@@ -119,8 +118,9 @@ class SyncLbfaClubsCommand extends Command
                 $syncedCount++;
                 $this->logSyncEvent("Syncing [{$syncedCount}/{$count}]: {$item['name']}", 'info', '🔄');
                 
-                $prospect = Prospect::updateOrCreate(
-                    ['external_id' => $item['external_id'], 'federation' => 'FR-LBFA'],
+                try {
+                    $prospect = Prospect::updateOrCreate(
+                        ['external_id' => $item['external_id'], 'federation' => 'FR-LBFA'],
                     [
                         'name' => $item['name'],
                         'type' => 'athletics_club',
@@ -131,23 +131,31 @@ class SyncLbfaClubsCommand extends Command
                     ]
                 );
 
-                ProspectLocation::updateOrCreate(
-                    ['prospect_id' => $prospect->id, 'contact_type' => 'headquarters'],
-                    [
-                        'contact_name' => $item['contact_person'],
-                        'email' => $item['email'],
-                        'phone' => $item['phone'],
-                        'address' => $item['address'],
-                    ]
-                );
+                    ProspectLocation::updateOrCreate(
+                        ['prospect_id' => $prospect->id, 'contact_type' => 'headquarters'],
+                        [
+                            'contact_name' => $item['contact_person'],
+                            'email' => $item['email'],
+                            'phone' => $item['phone'],
+                            'address' => $item['address'],
+                        ]
+                    );
+                    $this->markPersisted();
+                } catch (\Exception $e) {
+                    $this->markFailed();
+                    $this->logSyncEvent(
+                        "Error syncing LBFA club {$item['name']}: {$e->getMessage()}",
+                        'error',
+                        '❌'
+                    );
+                    $this->error("Error syncing LBFA club {$item['name']}: {$e->getMessage()}");
+                }
             }
 
             $this->info('LBFA Synchronization completed.');
-            $this->finishSyncLog($count);
+            $this->finishSyncLog($this->persistedCount);
 
-        } catch (\Exception $e) {
-            $this->error("Error during LBFA synchronization: {$e->getMessage()}");
-            $this->failSyncLog($e->getMessage());
-        }
+            return self::SUCCESS;
+        });
     }
 }

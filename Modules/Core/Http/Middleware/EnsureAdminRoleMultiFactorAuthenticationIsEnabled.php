@@ -33,6 +33,10 @@ class EnsureAdminRoleMultiFactorAuthenticationIsEnabled
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if (! config('core.panel_mfa_enforced', true)) {
+            return $next($request);
+        }
+
         $user = Filament::auth()->user();
 
         if (! $user?->hasAnyRole(['super_admin', 'admin'])) {

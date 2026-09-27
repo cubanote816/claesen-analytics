@@ -34,6 +34,7 @@ class SyncTpvClubsCommandTest extends TestCase
             </div>
             HTML;
         }
+
         return "<html><body>{$cards}</body></html>";
     }
 
@@ -47,9 +48,9 @@ class SyncTpvClubsCommandTest extends TestCase
         $items = '';
         foreach ($data as $label => $value) {
             $val = match ($label) {
-                'Email'   => "<a href=\"mailto:{$value}\">{$value}</a>",
+                'Email' => "<a href=\"mailto:{$value}\">{$value}</a>",
                 'Website' => "<a href=\"{$value}\">{$value}</a>",
-                default   => $value,
+                default => $value,
             };
             $items .= <<<HTML
             <li class="clearfix">
@@ -58,6 +59,7 @@ class SyncTpvClubsCommandTest extends TestCase
             </li>
             HTML;
         }
+
         return "<html><body><ul>{$items}</ul></body></html>";
     }
 
@@ -72,8 +74,9 @@ class SyncTpvClubsCommandTest extends TestCase
 
     private function makeClient(array $responses): Client
     {
-        $mock  = new MockHandler($responses);
+        $mock = new MockHandler($responses);
         $stack = HandlerStack::create($mock);
+
         return new Client(['handler' => $stack]);
     }
 
@@ -81,6 +84,41 @@ class SyncTpvClubsCommandTest extends TestCase
     {
         $this->app->bind(SyncTpvClubsCommand::class, fn () => new SyncTpvClubsCommand($client));
         $this->artisan('prospects:sync-tpv-clubs');
+    }
+
+    public function test_default_client_uses_verified_tls(): void
+    {
+        $command = new SyncTpvClubsCommand;
+        $property = new \ReflectionProperty($command, 'client');
+        $property->setAccessible(true);
+
+        /** @var Client $client */
+        $client = $property->getValue($command);
+
+        $this->assertNotFalse($client->getConfig('verify'));
+    }
+
+    public function test_list_exception_returns_failure_and_marks_history_failed(): void
+    {
+        $client = $this->makeClient([
+            new ConnectException('list timeout', new Request('GET', 'test')),
+        ]);
+        $this->app->bind(SyncTpvClubsCommand::class, fn () => new SyncTpvClubsCommand($client));
+
+        try {
+            $this->artisan('prospects:sync-tpv-clubs')->run();
+            $this->fail('Expected the list exception to propagate.');
+        } catch (ConnectException $e) {
+            $this->assertSame('list timeout', $e->getMessage());
+        }
+
+        $history = SyncHistory::where('command', 'prospects:sync-tpv-clubs')->firstOrFail();
+        $this->assertSame('failed', $history->status);
+        $this->assertNotNull($history->finished_at);
+        $this->assertStringContainsString(
+            'list timeout',
+            implode("\n", array_column($history->logs ?? [], 'message'))
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -97,9 +135,9 @@ class SyncTpvClubsCommandTest extends TestCase
             new Response(200, [], $this->emptyListPageHtml()),   // terminates pagination
             new Response(200, [], $this->detailPageHtml([
                 'Adres (hoofdlocatie)' => 'Teststraat 1 1000 Brussel',
-                'Email'                => 'info@testclub.be',
-                'Telefoonnummer'       => '02 123 45 67',
-                'Website'              => 'https://www.testclub.be',
+                'Email' => 'info@testclub.be',
+                'Telefoonnummer' => '02 123 45 67',
+                'Website' => 'https://www.testclub.be',
             ])),
         ]);
 
@@ -172,7 +210,7 @@ class SyncTpvClubsCommandTest extends TestCase
             // Club 2222: full data
             new Response(200, [], $this->detailPageHtml([
                 'Adres (hoofdlocatie)' => 'Kerkstraat 5 2000 Antwerpen',
-                'Website'              => 'https://www.tcok.be',
+                'Website' => 'https://www.tcok.be',
             ])),
         ]);
 
@@ -187,8 +225,36 @@ class SyncTpvClubsCommandTest extends TestCase
         $this->assertNotEmpty($errorLogs);
         $this->assertStringContainsString('TC Timeout', array_values($errorLogs)[0]['message']);
 
-        // Sync completed (not failed)
+        // Sync completed (not failed) and records only successful writes.
         $this->assertSame('completed', $history->status);
+        $this->assertSame(1, $history->records_count);
+
+        $messages = implode("\n", array_column($history->logs ?? [], 'message'));
+        $this->assertStringContainsString('processed 2 | persisted 1 | failed 1', $messages);
+    }
+
+    public function test_pagination_cap_logs_truncation_warning(): void
+    {
+        $responses = [];
+        for ($page = 0; $page < 10; $page++) {
+            $responses[] = new Response(200, [], $this->listPageHtml([
+                ['title' => "TC Page {$page} (PAGE{$page})", 'clubId' => (string) (6000 + $page)],
+            ]));
+        }
+        for ($page = 0; $page < 10; $page++) {
+            $responses[] = new Response(200, [], $this->emptyDetailPageHtml());
+        }
+
+        $this->runCommand($this->makeClient($responses));
+
+        $history = SyncHistory::where('command', 'prospects:sync-tpv-clubs')->firstOrFail();
+        $warningLogs = array_filter(
+            $history->logs ?? [],
+            fn ($log) => $log['type'] === 'warning'
+                && str_contains($log['message'], 'pagination safety cap reached')
+        );
+
+        $this->assertNotEmpty($warningLogs);
     }
 
     // -------------------------------------------------------------------------
@@ -205,7 +271,7 @@ class SyncTpvClubsCommandTest extends TestCase
             new Response(200, [], $this->emptyListPageHtml()),
             new Response(200, [], $this->detailPageHtml([
                 'Adres (hoofdlocatie)' => 'Wetstraat 10 1000 Brussel',
-                'Website'              => 'https://www.tcmetriek.be',
+                'Website' => 'https://www.tcmetriek.be',
             ])),
         ]);
 

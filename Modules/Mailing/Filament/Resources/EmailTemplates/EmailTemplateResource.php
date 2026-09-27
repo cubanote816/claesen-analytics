@@ -20,6 +20,12 @@ class EmailTemplateResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    // CLA-581: see Performance\ProjectResource — same reasoning, exclude technician from the default-allow.
+    public static function canAccess(): bool
+    {
+        return ! (auth()->user()?->hasRole('technician') ?? false);
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return __('mailing::resource.navigation_group');

@@ -6,10 +6,13 @@ namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use Modules\FieldOps\Http\Requests\Concerns\ValidatesTenantScopedIds;
 use Modules\FieldOps\Models\Terrain;
 
 class UpdateStructureRequest extends FormRequest
 {
+    use ValidatesTenantScopedIds;
+
     public function authorize(): bool
     {
         return true;
@@ -44,6 +47,8 @@ class UpdateStructureRequest extends FormRequest
             if (! $this->has('terrain_ids')) {
                 return;
             }
+
+            $this->assertTenantScopedIds($validator, 'terrain_ids', Terrain::class, $this->input('terrain_ids'));
 
             $terrainIds = collect($this->input('terrain_ids', []))
                 ->filter(fn ($value) => is_numeric($value))

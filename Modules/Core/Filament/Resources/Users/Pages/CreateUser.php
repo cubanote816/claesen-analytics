@@ -47,6 +47,7 @@ class CreateUser extends CreateRecord
                 'password' => null,
                 'password_set_at' => null,
                 'client_ids' => $clientIds,
+                'client_can_manage_contacts' => (bool) ($data['client_can_manage_contacts'] ?? false),
                 'role_ids' => [Role::findByName('client')->id],
             ];
         }
@@ -91,13 +92,14 @@ class CreateUser extends CreateRecord
     {
         $roleIds = $data['role_ids'] ?? [];
         $clientIds = $data['client_ids'] ?? [];
-        unset($data['role_ids'], $data['client_ids'], $data['account_type']);
+        $canManageContacts = (bool) ($data['client_can_manage_contacts'] ?? false);
+        unset($data['role_ids'], $data['client_ids'], $data['account_type'], $data['client_can_manage_contacts']);
 
         if (empty($roleIds)) {
             throw new DomainException('At least one role is required.');
         }
 
-        return DB::transaction(function () use ($data, $roleIds, $clientIds): User {
+        return DB::transaction(function () use ($data, $roleIds, $clientIds, $canManageContacts): User {
             // F1/P2 (docs/ai/adr-multi-organization.md): no organization picker
             // exists yet (lands in phase P6) — every backoffice user created
             // here belongs to Claesen until then.
@@ -111,7 +113,7 @@ class CreateUser extends CreateRecord
                     'is_active' => true,
                     'can_view' => true,
                     'can_report' => true,
-                    'can_manage_contacts' => false,
+                    'can_manage_contacts' => $canManageContacts,
                 ]);
             }
 

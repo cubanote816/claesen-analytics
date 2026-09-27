@@ -5,9 +5,16 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
+use Modules\FieldOps\Http\Requests\Concerns\ValidatesTenantScopedIds;
+use Modules\FieldOps\Models\Complex;
+use Modules\FieldOps\Models\Structure;
+use Modules\FieldOps\Models\Terrain;
 
 class UpdateElectricalBoardRequest extends FormRequest
 {
+    use ValidatesTenantScopedIds;
+
     public function authorize(): bool
     {
         return true;
@@ -32,5 +39,17 @@ class UpdateElectricalBoardRequest extends FormRequest
             'structure_ids'               => ['sometimes', 'nullable', 'array'],
             'structure_ids.*'             => ['integer', 'distinct', 'exists:fo_structures,id'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            // absent and explicit null both resolve to a no-op check (nothing to
+            // scope-validate for "no touch" or "detach all") — no separate has()
+            // guard needed, unlike the min:1 fields elsewhere in this domain.
+            $this->assertTenantScopedIds($validator, 'complex_ids', Complex::class, $this->input('complex_ids'));
+            $this->assertTenantScopedIds($validator, 'terrain_ids', Terrain::class, $this->input('terrain_ids'));
+            $this->assertTenantScopedIds($validator, 'structure_ids', Structure::class, $this->input('structure_ids'));
+        });
     }
 }

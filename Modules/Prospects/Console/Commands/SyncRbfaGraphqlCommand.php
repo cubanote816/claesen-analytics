@@ -3,218 +3,84 @@
 namespace Modules\Prospects\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
-use Modules\Prospects\Models\Prospect;
-use Modules\Prospects\Models\ProspectLocation;
+use Modules\Prospects\DataSource\RbfaGraphqlSource;
+use Modules\Prospects\Exceptions\DataSourceException;
+use Modules\Prospects\Services\ClubPersister;
 use Modules\Prospects\Traits\LogsSyncEvents;
-use Modules\Prospects\Traits\HandlesClubRegions;
+use Throwable;
 
 class SyncRbfaGraphqlCommand extends Command
 {
-    use LogsSyncEvents, HandlesClubRegions;
+    use LogsSyncEvents;
 
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'prospects:sync-rbfa-graphql 
-                            {--province=all : Sync a specific province or all} 
+    protected $signature = 'prospects:sync-rbfa-graphql
+                            {--province=all : Sync a specific province or all}
                             {--limit= : Limit the number of clubs to sync}
                             {--user= : User ID who triggered the sync}
                             {--history= : Existing sync history record ID}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Sync RBFA GraphQL data for the Prospects Module (No CAFCA)';
+    protected $description = 'Sync RBFA GraphQL data for the Prospects Module (independent of CAFCA ERP)';
 
-    /**
-     * Execute the console command.
-     */
-    public function handle()
+    public function __construct(private RbfaGraphqlSource $source, private ClubPersister $persister)
     {
-        $this->startSyncLog($this->option('user'), $this->option('history'));
-        $this->info("Starting RBFA Discovery Phase...");
-        $this->logSyncEvent("Iniciando fase de descubrimiento RBFA...", 'info', '🔍');
+        parent::__construct();
+    }
 
-        $provinceOption = $this->option('province');
-        $provincesConfig = config('rbfa.provinces');
+    public function handle(): int
+    {
+        return $this->guardedSync(function (): int {
+            $this->startSyncLog($this->option('user'), $this->option('history'));
+            $this->info('Starting RBFA synchronization...');
 
-        if ($provinceOption !== 'all') {
-            if (!isset($provincesConfig[$provinceOption])) {
-                $errorMessage = "Province '{$provinceOption}' not found in configuration.";
-                $this->error($errorMessage);
-                $this->failSyncLog($errorMessage);
-                return 1;
+            try {
+                $limit = $this->option('limit');
+                $source = $this->source->selected(
+                    (string) $this->option('province'),
+                    $limit !== null ? (int) $limit : null,
+                );
+                $clubs = $source->fetchClubs();
+            } catch (DataSourceException $exception) {
+                $this->error($exception->getMessage());
+                $this->failSyncLog($exception->getMessage());
+
+                return self::FAILURE;
             }
-            $activeProvinces = [$provinceOption => $provincesConfig[$provinceOption]];
-        } else {
-            $activeProvinces = $provincesConfig;
-        }
 
-        $apiUrl = 'https://datalake-prod2018.rbfa.be/graphql';
-        $headers = [
-            'Referrer-Policy' => 'strict-origin-when-cross-origin',
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ];
-
-        $uniqueClubs = [];
-
-        foreach ($activeProvinces as $provinceName => $leagueIds) {
-            foreach ($leagueIds as $seriesId) {
-                $this->info("Fetching data for series: {$seriesId} ({$provinceName})");
-                sleep(1); // Respect API rate limits
-
-                $payload = [
-                    "operationName" => "GetSeriesRankings",
-                    "variables" => [
-                        "seriesId" => $seriesId,
-                        "language" => "en"
-                    ],
-                    "extensions" => [
-                        "persistedQuery" => [
-                            "version" => 1,
-                            "sha256Hash" => "0a53124a9bc8872b686f22d80fd545622dbaf4b27a7596e1207b097b92c87953"
-                        ]
-                    ]
-                ];
-
-                $response = Http::withHeaders($headers)
-                    ->timeout(60)
-                    ->retry(3, 5000)
-                    ->post($apiUrl, $payload);
-
-                if ($response->successful()) {
-                    $data = $response->json();
-                    $seriesRankings = $data['data']['seriesRankings'] ?? null;
-
-                    if (!$seriesRankings) continue;
-
-                    $channel = $seriesRankings['channel'] ?? null;
-                    $rankings = $seriesRankings['rankings'] ?? [];
-
-                    foreach ($rankings as $ranking) {
-                        foreach ($ranking['teams'] ?? [] as $team) {
-                            $clubId = $team['clubId'] ?? null;
-                            if ($clubId && !isset($uniqueClubs[$clubId])) {
-                                $uniqueClubs[$clubId] = [
-                                    'clubId' => $clubId,
-                                    'logo' => $team['logo'] ?? null,
-                                    'region' => $provinceName,
-                                    'channel' => $channel,
-                                ];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if ($this->option('limit')) {
-            $uniqueClubs = array_slice($uniqueClubs, 0, (int) $this->option('limit'), true);
-        }
-
-        $count = count($uniqueClubs);
-        $this->info("Found {$count} unique clubs. Starting Enrichment...");
-        $this->logSyncEvent("Encontrados {$count} clubes únicos. Iniciando enriquecimiento...", 'info', '📊');
-
-        $processed = 0;
-        foreach ($uniqueClubs as $clubId => $clubData) {
-            $processed++;
-            $this->info("Processing [{$processed}/{$count}]: {$clubId}");
-            
-            $payload = [
-                "operationName" => "getClubInfo",
-                "variables" => [
-                    "clubId" => $clubId,
-                    "language" => "en"
-                ],
-                "extensions" => [
-                    "persistedQuery" => [
-                        "version" => 1,
-                        "sha256Hash" => "7c1bd99f0001a20d60208c60d4fb7c99aefdb810b9ee1c4de21a6d6ba4804b58"
-                    ]
-                ]
-            ];
-
-            $response = Http::withHeaders($headers)->post($apiUrl, $payload);
-
-            if ($response->successful()) {
-                $clubInfo = $response->json()['data']['clubInfo'] ?? null;
-                if (!$clubInfo) continue;
-
-                DB::beginTransaction();
+            foreach ($clubs as $club) {
                 try {
-                    $name = $clubInfo['name'] ?? 'Unknown Club';
-                    $this->logSyncEvent("Sincronizando: {$name}", 'info', '🔄');
-
-                    $isFlanders = in_array($clubData['region'], ['Antwerpen', 'Limburg', 'Oost-Vlaanderen', 'West-Vlaanderen', 'Vlaams-Brabant']);
-                    $federation = $isFlanders ? 'VL-VV' : 'FR-ACFF';
-                    $prefix = $isFlanders ? 'VL-' : 'FR-';
-
-                    $prospect = Prospect::updateOrCreate(
-                        ['external_id' => $prefix . 'RBFA-' . $clubId],
-                        [
-                            'name' => $name,
-                            'type' => 'football_club',
-                            'federation' => $federation,
-                            'language' => $isFlanders ? 'nl' : 'fr',
-                            'logo_url' => $clubData['logo'] ?? null,
-                            'website' => $clubInfo['website'] ?? null,
-                            'vat_number' => $clubInfo['vatNumber'] ?? null,
-                            'region_id' => $this->getRegionIdFromPostalCode($clubInfo['postalCode'] ?? null),
-                        ]
+                    $this->persister->persist($club);
+                    $this->markPersisted();
+                } catch (Throwable $exception) {
+                    $this->markFailed();
+                    $this->logSyncEvent(
+                        "Error persisting RBFA club {$club->externalId}: {$exception->getMessage()}",
+                        'error',
+                        '❌',
                     );
-
-                    // Map contacts
-                    $emails = [];
-                    $phones = [];
-                    $contactNames = [];
-                    foreach ($clubInfo['contacts'] ?? [] as $contact) {
-                        if (!empty($contact['mail'])) $emails = array_merge($emails, (array)$contact['mail']);
-                        if (!empty($contact['phone'])) $phones = array_merge($phones, (array)$contact['phone']);
-                        
-                        $fullName = trim(($contact['firstName'] ?? '') . ' ' . ($contact['lastName'] ?? ''));
-                        if (!empty($fullName)) {
-                            $contactNames[] = $fullName;
-                        }
-                    }
-
-                    $emailStr = substr(implode(', ', array_unique(array_filter($emails))), 0, 250);
-                    $phoneStr = substr(implode(', ', array_unique(array_filter($phones))), 0, 250);
-                    $primaryContactName = !empty($contactNames) ? $contactNames[0] : null;
-
-                    // Address
-                    $addrParts = array_filter([$clubInfo['streetName'] ?? null, $clubInfo['postalCode'] ?? null, $clubInfo['localityName'] ?? null]);
-                    $hqAddress = implode(', ', $addrParts);
-
-                    if ($hqAddress || $emailStr || $phoneStr || $primaryContactName) {
-                        ProspectLocation::updateOrCreate(
-                            ['prospect_id' => $prospect->id, 'contact_type' => 'headquarters'],
-                            [
-                                'contact_name' => $primaryContactName,
-                                'email' => $emailStr ?: null, 
-                                'phone' => $phoneStr ?: null, 
-                                'address' => $hqAddress
-                            ]
-                        );
-                    }
-
-                    DB::commit();
-                } catch (\Exception $e) {
-                    DB::rollBack();
-                    $this->error("Error: " . $e->getMessage());
                 }
             }
-            sleep(1);
-        }
 
-        $this->info("Sync completed.");
-        $this->finishSyncLog($processed);
+            $failures = $source->failures();
+            foreach ($failures as $failure) {
+                $this->markFailed();
+                $this->logSyncEvent(
+                    "Series {$failure['series']} ({$failure['province']}) failed: {$failure['status']}",
+                    'error',
+                    '❌',
+                );
+            }
+
+            if ($failures !== []) {
+                $this->syncHistory?->update(['records_count' => $this->persistedCount]);
+                $this->failSyncLog('RBFA source completed with '.count($failures).' failure(s).');
+
+                return self::FAILURE;
+            }
+
+            $this->finishSyncLog($this->persistedCount);
+            $this->info('RBFA synchronization completed.');
+
+            return self::SUCCESS;
+        });
     }
 }

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Modules\Cafca\Models\Employee;
 use Modules\Core\Filament\Resources\Users\Pages\CreateUser;
+use Modules\Core\Filament\Resources\Users\Pages\EditUser;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Models\FoClient;
@@ -300,5 +301,145 @@ class UserProvisioningTest extends TestCase
         ]);
 
         $this->assertSame(Organization::claesenId(), $user->fresh()->organization_id);
+    }
+
+    // -----------------------------------------------------------------------
+    // CLA-553: bootstrap can_manage_contacts on creation
+    // -----------------------------------------------------------------------
+    public function test_client_contact_can_be_created_as_contact_manager(): void
+    {
+        $client = FoClient::factory()->create();
+        $page = app(CreateUser::class);
+
+        $mutate = new \ReflectionMethod($page, 'mutateFormDataBeforeCreate');
+        $mutate->setAccessible(true);
+        $create = new \ReflectionMethod($page, 'handleRecordCreation');
+        $create->setAccessible(true);
+
+        $data = $mutate->invoke($page, [
+            'account_type' => 'client',
+            'client_name' => 'Contact Manager',
+            'client_email' => 'manager@example.com',
+            'client_ids' => [$client->id],
+            'client_can_manage_contacts' => true,
+            'role_ids' => [$this->adminRole->id],
+        ]);
+
+        /** @var User $user */
+        $user = $create->invoke($page, $data);
+
+        $this->assertDatabaseHas('fo_client_user', [
+            'user_id' => $user->id,
+            'fo_client_id' => $client->id,
+            'is_active' => true,
+            'can_view' => true,
+            'can_report' => true,
+            'can_manage_contacts' => true,
+        ]);
+    }
+
+    public function test_client_contact_defaults_to_no_manage_contacts_when_toggle_omitted(): void
+    {
+        $client = FoClient::factory()->create();
+        $page = app(CreateUser::class);
+
+        $mutate = new \ReflectionMethod($page, 'mutateFormDataBeforeCreate');
+        $mutate->setAccessible(true);
+        $create = new \ReflectionMethod($page, 'handleRecordCreation');
+        $create->setAccessible(true);
+
+        $data = $mutate->invoke($page, [
+            'account_type' => 'client',
+            'client_name' => 'Plain Contact',
+            'client_email' => 'plain@example.com',
+            'client_ids' => [$client->id],
+            'role_ids' => [$this->adminRole->id],
+        ]);
+
+        /** @var User $user */
+        $user = $create->invoke($page, $data);
+
+        $this->assertDatabaseHas('fo_client_user', [
+            'user_id' => $user->id,
+            'fo_client_id' => $client->id,
+            'can_manage_contacts' => false,
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // CLA-553: regression — editing a client user's fieldOpsClients used to wipe
+    // can_manage_contacts back to the migration default on every save, because
+    // UserForm's plain ->relationship() sync() reattaches with column defaults.
+    // -----------------------------------------------------------------------
+    public function test_editing_client_user_preserves_can_manage_contacts(): void
+    {
+        $client = FoClient::factory()->create();
+        $user = UserFactory::new()->create(['employee_id' => null]);
+        $user->syncRoles([$this->clientRole->id]);
+        $user->fieldOpsClients()->attach($client->id, [
+            'is_active' => true,
+            'can_view' => true,
+            'can_report' => true,
+            'can_manage_contacts' => true,
+        ]);
+
+        $page = app(EditUser::class);
+        $page->record = $user;
+
+        $fill = new \ReflectionMethod($page, 'mutateFormDataBeforeFill');
+        $fill->setAccessible(true);
+        $update = new \ReflectionMethod($page, 'handleRecordUpdate');
+        $update->setAccessible(true);
+
+        // Simulate the admin opening the edit form (hydrates the toggles from the
+        // current pivot state) and saving without touching anything.
+        $formData = $fill->invoke($page, $user->attributesToArray());
+        $formData['name'] = $user->name;
+        $formData['email'] = $user->email;
+        $formData['is_active'] = $user->is_active;
+
+        $update->invoke($page, $user, $formData);
+
+        $this->assertDatabaseHas('fo_client_user', [
+            'user_id' => $user->id,
+            'fo_client_id' => $client->id,
+            'can_manage_contacts' => true,
+        ]);
+    }
+
+    public function test_editing_client_user_can_revoke_can_manage_contacts(): void
+    {
+        $client = FoClient::factory()->create();
+        $user = UserFactory::new()->create(['employee_id' => null]);
+        $user->syncRoles([$this->clientRole->id]);
+        $user->fieldOpsClients()->attach($client->id, [
+            'is_active' => true,
+            'can_view' => true,
+            'can_report' => true,
+            'can_manage_contacts' => true,
+        ]);
+
+        $page = app(EditUser::class);
+        $page->record = $user;
+
+        $update = new \ReflectionMethod($page, 'handleRecordUpdate');
+        $update->setAccessible(true);
+
+        $update->invoke($page, $user, [
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_active' => true,
+            'client_ids' => [$client->id],
+            'client_pivot_is_active' => true,
+            'client_can_view' => true,
+            'client_can_report' => true,
+            'client_can_manage_contacts' => false,
+        ]);
+
+        $this->assertDatabaseHas('fo_client_user', [
+            'user_id' => $user->id,
+            'fo_client_id' => $client->id,
+            'can_manage_contacts' => false,
+        ]);
     }
 }

@@ -18,6 +18,7 @@
             background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
         }
     </style>
+@include('core::partials.head-icons')
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
     <div class="max-w-md w-full glass-card rounded-3xl p-8 text-center space-y-6">

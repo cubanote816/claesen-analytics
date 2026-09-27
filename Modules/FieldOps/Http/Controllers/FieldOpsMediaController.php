@@ -3,6 +3,7 @@
 namespace Modules\FieldOps\Http\Controllers;
 
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Gate;
 use Modules\FieldOps\Http\Requests\StoreFieldOpsMediaRequest;
 use Modules\FieldOps\Models\Complex;
 use Modules\FieldOps\Models\ElectricalBoard;
@@ -26,6 +27,12 @@ class FieldOpsMediaController extends Controller
     {
         $modelClass = self::MODEL_MAP[$modelType];
         $model      = $modelClass::findOrFail($modelId);
+
+        // CLA-498: this route has no Eloquent-bound route parameter, so
+        // EnforceFieldOpsTenantAccess never authorizes it — the check has to happen
+        // here, once the model is resolved, and strictly before addMediaFromRequest()
+        // so no file/row persists when authorization fails.
+        Gate::authorize('media', $model);
 
         $media = $model
             ->addMediaFromRequest('file')
@@ -63,6 +70,8 @@ class FieldOpsMediaController extends Controller
         abort_unless(in_array($media->model_type, self::MODEL_MAP, true), 404);
     }
 
+    // CLA-503 (2/2): relative, not url() — see HasMediaPayload for the full
+    // rationale (same root cause, frontend resolver already deployed first).
     private function mediaPayload(Media $media): array
     {
         return [
@@ -70,9 +79,9 @@ class FieldOpsMediaController extends Controller
             'name'      => $media->file_name,
             'mime_type' => $media->mime_type,
             'size'      => $media->size,
-            'url'       => url("/api/v1/fieldops/media/{$media->id}"),
+            'url'       => "/api/v1/fieldops/media/{$media->id}",
             'thumb_url' => $media->hasGeneratedConversion('thumb')
-                ? url("/api/v1/fieldops/media/{$media->id}?conversion=thumb")
+                ? "/api/v1/fieldops/media/{$media->id}?conversion=thumb"
                 : null,
         ];
     }

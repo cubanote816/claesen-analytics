@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Modules\FieldOps\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Modules\FieldOps\Http\Requests\Concerns\ValidatesTenantScopedIds;
 use Modules\FieldOps\Models\Luminaire;
+use Modules\FieldOps\Models\LuminaireFrame;
 use Modules\FieldOps\Models\LuminairePosition;
 use Modules\FieldOps\Models\LuminaireType;
 
 class StoreLuminaireRequest extends FormRequest
 {
+    use ValidatesTenantScopedIds;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', Luminaire::class) ?? false;
@@ -42,6 +46,8 @@ class StoreLuminaireRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($v) {
+            $this->assertTenantScopedIds($v, 'luminaire_frame_id', LuminaireFrame::class, $this->input('luminaire_frame_id'));
+
             $typeId     = $this->integer('luminaire_type_id');
             $subgroupId = $this->integer('luminaire_subgroup_id');
 
