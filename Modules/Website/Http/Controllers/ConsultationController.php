@@ -23,6 +23,19 @@ class ConsultationController extends Controller
     {
         $honeypotField = config('website.intake_hardening.honeypot_field');
 
+        // CLA-484: the Electro Bertels form sends fields the intake used to
+        // discard. All optional so the current Claesen frontend's request
+        // shape keeps working unchanged — except `consent_version`, which is
+        // REQUIRED only for sites that require it (config-declared site-key
+        // list, resolved from this request's site — approver decision 1A,
+        // never a hardcoded id check).
+        $siteKey = app(OrganizationContext::class)->site()?->key;
+        $consentVersionRequired = in_array(
+            $siteKey,
+            (array) config('website.intake_hardening.consent_version_required_site_keys', ['electrobertels']),
+            true
+        );
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -32,6 +45,14 @@ class ConsultationController extends Controller
             'type' => 'nullable|string|in:consultation,free,quote,project',
             'project_type' => 'nullable|string|max:255',
             'preferred_contact' => 'nullable|string|in:email,phone',
+            // CLA-484: Bertels form fields — segment mirrors the form's
+            // radiogroup, postal_code/subject are informational, locale is
+            // the language the visitor wrote in (reply language).
+            'segment' => 'nullable|string|in:particulier,bedrijf,industrie',
+            'postal_code' => 'nullable|string|max:16',
+            'subject' => 'nullable|string|max:255',
+            'locale' => 'nullable|string|in:nl,fr,en,de',
+            'consent_version' => ($consentVersionRequired ? 'required' : 'nullable').'|string|max:50',
             // F4/CLA-475: none of these three are advertised in
             // docs/api/website-v1-openapi.yaml (the honeypot field
             // deliberately, Turnstile/consent because the separate Astro

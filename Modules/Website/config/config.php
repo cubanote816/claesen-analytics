@@ -138,5 +138,11 @@ return [
             'window_minutes' => (int) env('WEBSITE_INTAKE_ABUSE_WINDOW_MINUTES', 60),
             'threshold' => (int) env('WEBSITE_INTAKE_ABUSE_THRESHOLD', 20),
         ],
+        // CLA-484 (approver decision 1A): sites whose intake REQUIRES
+        // `consent_version` (version of the accepted consent text). Resolved
+        // from the request's site key — never a hardcoded id check. Claesen
+        // stays off this list: its live form doesn't send the field and its
+        // payload/behaviour stays byte-identical.
+        'consent_version_required_site_keys' => ['electrobertels'],
     ],
 ];
