@@ -30,28 +30,36 @@ class FieldIssueService
     /**
      * The app's `kind` → the office's conflict `type`.
      *
-     * Three of the four map one to one, because both contracts are describing the
-     * same four findings. `other` has **no counterpart**: the office's `ConflictType`
-     * is `duplicate_address | missing_device | plan_mismatch | damaged`, and its label
-     * map is a `Record<ConflictType, …>` with no fallback, so storing `other` would
-     * render as `undefined` in the Conflictencentrum.
-     *
-     * Rather than mislabel the technician's finding as one of the three, the fourth is
-     * refused with a field error: that is a declared gap in the office contract, not an
-     * incident that can be filed. See docs/Knx/knx-kantoor-backend.md.
+     * All four map one to one, because both contracts are describing the same findings.
+     * The office's `ConflictType` did **not** have an `other` at first, and its label map
+     * is a `Record<ConflictType, …>` with no fallback, so storing it would have rendered
+     * as `undefined` in the Conflictencentrum. The office contract was extended with that
+     * value on 2026-09-27 (`types.ts` + `constants.ts` + both `ct` dictionaries, checked
+     * by the compiler) precisely so a technician can report a finding that fits none of
+     * the three — refusing it would have left them choosing the nearest wrong type, which
+     * is worse for the office than an honest "other".
      */
     private const KIND_TO_TYPE = [
         'damaged' => 'damaged',
         'missing' => 'missing_device',
         'plan_mismatch' => 'plan_mismatch',
+        'other' => 'other',
     ];
 
-    /** The severity the office fixture already uses for each type. */
+    /**
+     * The severity per type.
+     *
+     * The first four come from the office fixture, which already uses exactly these.
+     * `other` has no fixture entry because it did not exist there: it lands on `warning`
+     * deliberately — an undefined finding has to be looked at, so it must not be buried at
+     * `info`, and calling it `critical` would cry wolf on every unknown note.
+     */
     private const TYPE_SEVERITY = [
         'duplicate_address' => 'critical',
         'missing_device' => 'warning',
         'plan_mismatch' => 'warning',
         'damaged' => 'info',
+        'other' => 'warning',
     ];
 
     /**
@@ -85,6 +93,8 @@ class FieldIssueService
         $type = self::KIND_TO_TYPE[$input['kind']] ?? null;
 
         if ($type === null) {
+            // Unreachable through the HTTP layer: the controller validates the app's own
+            // union. It stays as the guard for a caller that skips that validation.
             throw ValidationException::withMessages(['kind' => [__('knx::field.kind_unsupported')]]);
         }
 

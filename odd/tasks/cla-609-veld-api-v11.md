@@ -51,10 +51,11 @@
 - Hallazgo de V11.a que justifica la verificación HTTP: `actingAs()` en los tests nunca pasaba por `/auth/login`, así que dos bugs reales (técnico sin login, `/zones` detrás del guard de oficina) vivieron hasta la prueba manual.
 
 ## Siguiente paso
-**V11 cerrado entero.** Queda una decisión de contrato de oficina: `kind: other` de las incidencias.
-Impacto medido de ampliar `ConflictType` con `other`: **3 ficheros, 6 líneas** en el front de Kantoor
-(`src/api/types.ts` unión · `src/lib/constants.ts` `CONFLICT_TYPE_LABEL_KEY` · `src/i18n/translations.ts`
-las dos entradas `ct`) y el **compilador lo verifica**, porque el `Record<ConflictType, …>` obliga a
-añadir la etiqueta. No hay ningún `switch` ni comparación sobre el tipo en todo su `src`, así que no se
-rompe nada más. Alternativa: quitar `other` del formulario de campo y que el técnico elija entre los tres.
-En backend son dos líneas (`KIND_TO_TYPE` + `TYPE_SEVERITY`).
+**V11 cerrado entero y las dos decisiones resueltas.**
+
+`kind: other` de las incidencias: **se amplió el contrato de oficina** (decisión del usuario,
+2026-09-27), en vez de rechazarlo con 422 o de obligar al técnico a elegir el tipo más parecido.
+El impacto se midió antes: 3 ficheros y 6 líneas en el front de Kantoor, verificado con `tsc`
+(quitando la etiqueta falla con TS2741, porque `CONFLICT_TYPE_LABEL_KEY` es un
+`Record<ConflictType, …>`); ningún `switch` sobre `conflict.type` en todo su `src`. En backend,
+dos líneas. Severidad de `other`: `warning`, decidida y documentada.

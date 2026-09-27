@@ -196,6 +196,7 @@ final class KnxFieldIssueTest extends TestCase
             'damaged' => ['damaged', 'info'],
             'missing' => ['missing_device', 'warning'],
             'plan_mismatch' => ['plan_mismatch', 'warning'],
+            'other' => ['other', 'warning'],
         ];
 
         foreach ($expected as $kind => [$type, $severity]) {
@@ -213,20 +214,27 @@ final class KnxFieldIssueTest extends TestCase
         }
     }
 
-    public function test_the_kind_other_is_refused_because_the_office_has_no_such_type(): void
+    public function test_the_kind_other_reaches_the_office_as_its_own_type(): void
     {
         $this->planToday('Jan Van Dyck');
         $this->actingAs($this->fieldUser(), 'sanctum');
 
-        // Declared gap: the office's ConflictType has four values and its label map has
-        // no fallback, so storing "other" would render as `undefined` in the
-        // Conflictencentrum. Mislabeling the finding as one of the three would be worse
-        // than refusing it, so the refusal is explicit and names the alternatives.
-        $this->report(['kind' => 'other'])
-            ->assertStatus(422)
-            ->assertJsonPath('errors.kind.0', __('knx::field.kind_unsupported'));
+        $this->report([
+            'kind' => 'other',
+            'note' => 'Iets dat de technieker niet kon plaatsen.',
+        ])->assertCreated();
 
-        $this->assertSame(0, KnxConflict::query()->where('client_id', self::CLIENT_ID)->count());
+        $conflict = $this->storedConflict();
+
+        // The office contract grew this value for the field (CLA-609). Before that the
+        // endpoint refused it, because the office's label map is a `Record<ConflictType,
+        // …>` with no fallback and `other` would have rendered as `undefined`.
+        $this->assertSame('other', $conflict->type);
+
+        // Undefined severity lands on `warning`: not buried at `info`, not crying wolf
+        // at `critical`.
+        $this->assertSame('warning', $conflict->severity);
+        $this->assertSame('Iets dat de technieker niet kon plaatsen.', $conflict->note);
     }
 
     public function test_a_kind_outside_the_contract_is_a_plain_field_error(): void

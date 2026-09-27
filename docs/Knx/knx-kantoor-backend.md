@@ -325,7 +325,11 @@ Una incidencia **es** un conflicto: el Conflictencentrum ya es esa lista, y dupl
 
 **El contexto no se pierde.** El contrato insiste en que una incidencia siempre lleva ubicación y, cuando se conoce, equipo y canal; los cuatro valores se conservan en `device_field` (`espacio · dirección · cuadro · canal`), que es exactamente la «descripción humana del registro que viene de campo» en el vocabulario de la fixture. `device_existing` dice qué hay registrado en esa dirección, o la frase de la fixture (`— niet gevonden ter plaatse`) cuando no hay nada. Cuando hay un aparato registrado ahí, el conflicto se ancla a él (`device_id`).
 
-**⚠️ `kind: other` → `422` (`errors.kind`).** El tipo `other` de Veld **no existe** en el contrato de oficina: `ConflictType` son cuatro valores y `CONFLICT_TYPE_LABEL_KEY` es un `Record<ConflictType, …>` **sin fallback**, así que guardarlo daría `undefined` en el Conflictencentrum. Etiquetar el hallazgo como uno de los tres sería mentir sobre lo que vio el técnico; se rechaza con un mensaje que dice las alternativas. Es un hueco del contrato de oficina, no una incidencia que se pueda registrar — ver decisiones abiertas.
+**`kind: other` se resolvió ampliando el contrato de oficina** (2026-09-27). Al principio respondía `422` con un mensaje que decía las alternativas, porque `ConflictType` tenía cuatro valores y `CONFLICT_TYPE_LABEL_KEY` es un `Record<ConflictType, …>` **sin fallback**: guardarlo habría dado `undefined` en pantalla, y etiquetar el hallazgo como uno de los tres habría mentido sobre lo que vio el técnico.
+
+El impacto se midió **antes** de decidir: 3 ficheros y 6 líneas en el front de oficina (`types.ts` la unión, `constants.ts` el mapa, `translations.ts` las dos entradas `ct`), y **el compilador lo verifica** — quitando la etiqueta, `tsc` falla con `TS2741`. No hay ningún `switch` ni comparación sobre `conflict.type` en todo su `src`, así que no se rompe nada más. En backend fueron dos líneas.
+
+**Severidad de `other`: `warning`, decidida.** La fixture fija las otras cuatro (`duplicate_address`→critical, `plan_mismatch`/`missing_device`→warning, `damaged`→info) y `other` no estaba allí: un hallazgo sin clasificar tiene que mirarse, así que no puede enterrarse en `info`, y llamarlo `critical` sería gritar lobo en cada nota rara.
 
 ### V11.e — cierre de visita en 3 fases (`POST /field/projects/{code}/visits`)
 
@@ -370,4 +374,4 @@ El sembrador usaba `now()->setTime(9, 42)` para "hoy"; sembrando **antes de las 
 1. **Alta de personas** desde Kantoor (arriba).
 2. ¿El aviso de zona no preparada bloquea `PUT /planning` o solo advierte? (§1.6 recomienda warning estructurado; el front ya avisa en cliente).
 3. ¿Fichas funcionales y pruebas se validan con negocio antes de exponerlas? (`ROADMAP.md` §9.2; el front ya las tiene hechas).
-4. **`kind: other` de Veld** (V11.d): hoy responde `422` porque `ConflictType` de oficina no lo tiene y su etiqueta no tiene fallback. Las dos salidas son ampliar el contrato de oficina (un valor más en la unión + su entrada en el mapa de etiquetas + el texto en nl/en: tres líneas) o dejar que el técnico elija entre los tres tipos existentes. Mientras no se decida, el hueco está declarado y es reversible en una línea.
+4. ~~**`kind: other` de Veld**~~ **Resuelto** (2026-09-27): el contrato de oficina se amplió con `other` y el backend ya lo acepta, con severidad `warning`.

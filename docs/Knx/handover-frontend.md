@@ -230,7 +230,25 @@ oficina es su única lectora.
 `dossier` · `ets` · `delivery` · `hours`. **Los cuatro se generan** (ver §3 para el
 formato y para el histórico de pruebas de aceptación, que sigue sin exponerse).
 
-### 2.4 Las tres reglas que veréis en el flujo
+### 2.4 Un cambio en **vuestro propio** contrato (2026-09-27)
+
+`ConflictType` tiene **cinco** valores ahora: se le añadió `other` para que un técnico
+pueda reportar un hallazgo que no encaja en los otros cuatro. Lo hicimos nosotros, en
+vuestro repo, y está en tres sitios:
+
+| Fichero | Cambio |
+|---|---|
+| `src/api/types.ts` | `\| 'other'` en la unión `ConflictType` |
+| `src/lib/constants.ts` | `other: 'other'` en `CONFLICT_TYPE_LABEL_KEY` |
+| `src/i18n/translations.ts` | `other: 'Overig'` (nl) y `other: 'Otro'` (es) |
+
+**No tenéis nada que hacer**: `tsc --noEmit` pasa limpio y el mapa es un
+`Record<ConflictType, …>`, así que si algún día se añade otro tipo el compilador os lo
+recuerda. Si preferís otra etiqueta (`Overig`, `Anders`, `Varia`…), es una línea — decidlo.
+Sin este valor, el backend tenía que rechazar esas incidencias con un `422`, porque no
+había etiqueta que pintar.
+
+### 2.5 Las tres reglas que veréis en el flujo
 
 1. **Confirmar una notificación confirma el aparato.** No hace falta una segunda llamada.
 2. **Mover un conflicto escribe historia.** El `history` que devuelve `PATCH` ya trae la
@@ -438,8 +456,8 @@ fichas de función o documentos sería inventar un vínculo que el técnico nunc
    Conflictencentrum como `duplicate_address` **con vuestra foto**. Si la oficina no lo ve,
    el aparato está a medias y quiero saberlo.
 10. **Incidencia** (`POST …/issues`) → `201` con `{id, clientId}`; en el Conflictencentrum
-    debe conservar espacio, equipo y canal en `deviceField`. Con `kind: "other"` → **`422`**
-    con `errors.kind`: el contrato de oficina no tiene ese tipo (§4.3).
+    debe conservar espacio, equipo y canal en `deviceField`. Los cuatro `kind` funcionan,
+    `other` incluido (§3).
 11. **Alcance, también al escribir**: un `POST` sobre un proyecto que no es vuestro hoy →
     `403`; sobre un código que no existe → `404`.
 12. **Cierre de visita** (`POST …/visits`): `201` con `{id, clientId}`; el mismo `clientId`
