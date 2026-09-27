@@ -26,8 +26,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 class MediaSlot extends Model
 {
-    use HasFactory;
     use BelongsToSite;
+    use HasFactory;
 
     protected $table = 'website_media_slots';
 
