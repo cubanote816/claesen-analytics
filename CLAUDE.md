@@ -311,9 +311,10 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 
 ---
 
-## Programa multiempresa Electro Bertels — F0–F4 + P1–P6 hechos, P7 pendiente (rama `electrobertels/trunk`)
+## Programa multiempresa Electro Bertels — F0–F4 + P1–P6 hechos, P7 pendiente (rama de trabajo: `electrobertels/site-content-api`, cortada de `origin/electrobertels/org-indicator`)
 
 > Diseño y reglas de secuencia: `docs/ai/adr-multi-organization.md` (leer antes de tocar organización, sitio, contexto o enforcement). Detalle por ticket: `docs/ai/multiorg-decisions-log.md`.
+> **Rama (corregido 2026-09-27):** el trabajo multiempresa continúa en `electrobertels/site-content-api`, cortada de `origin/electrobertels/org-indicator` (que contiene CLA-598/599/600). La rama local `electrobertels/trunk` está **obsoleta**: solo-local, sin upstream, 0 commits propios, 29 commits por detrás de `origin/electrobertels/trunk-merge-main` — no cortar trabajo nuevo de ahí. Las dos ramas publicadas (`trunk-merge-main`, `org-indicator`) están **5 commits por detrás de `origin/main`** (faltan CLA-578 y CLA-594) — reconciliar antes del PR.
 
 - Una app Laravel, una BD, **un panel Filament por organización** (`admin` = Claesen, `bertels`). `users.organization_id` define la pertenencia; `site_id` es la fuente de verdad del dominio compartido de Website.
 - Secuencia no negociable: estructura → contexto → autorización → enforcement. El enforcement se gobierna con `ORGANIZATIONS_ENFORCE` (`config('organizations.enforce')`); rollback = `false` + `infrastructure/scripts/reload-config.sh`.
