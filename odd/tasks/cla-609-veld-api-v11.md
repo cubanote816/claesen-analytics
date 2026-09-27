@@ -58,3 +58,81 @@ las dos entradas `ct`) y el **compilador lo verifica**, porque el `Record<Confli
 añadir la etiqueta. No hay ningún `switch` ni comparación sobre el tipo en todo su `src`, así que no se
 rompe nada más. Alternativa: quitar `other` del formulario de campo y que el técnico elija entre los tres.
 En backend son dos líneas (`KIND_TO_TYPE` + `TYPE_SEVERITY`).
+
+## Cierre de auditoría de V11.e — rama aislada `cla-609-v11e-audit-gaps`
+
+Auditoría del commit `d273d24` contra el contrato congelado de Veld
+(`electro-bertels-veld/src/api/types.ts` §Visit closing). La forma del contrato **coincide**:
+el POST responde exactamente `{id, clientId}`, con `201` en la creación y `200` en el reintento.
+Los tres puntos de abajo no rompen el contrato, pero son deuda declarada.
+
+Trabajo en **rama aislada** a propósito: el worktree compartido tenía una verificación en
+vuelo de la instancia que lo posee, y escribir ahí habría contaminado su corrida. Base `d273d24`.
+
+- [x] **A1 — Carrera de idempotencia.** `FieldVisitService::close()` obtuvo el `clientId` con un
+  `first()` y recién después inserta: dos reintentos concurrentes pasan ambos el chequeo y el
+  segundo `INSERT` viola el índice único de `client_id` → **`500` en vez de `200`**. El contrato
+  dice que un reintento devuelve el mismo resultado, así que un `500` es una respuesta
+  **incorrecta**, no un caso raro: el cliente encola cierres sin conexión y reintenta por diseño.
+  El mismo patrón existe en V11.c; arreglarlo ahí queda **fuera de alcance** de esta rama.
+- [x] **A2 — `workDone` sin asertar.** Viaja en el payload y ningún test comprueba su valor, ni en
+  `work_done` ni en el JSON de respuesta. Es el único campo que el técnico escribe con sus
+  palabras y el contrato lo describe como "trabajo realizado / alcance entregado / resumen".
+- [x] **A3 — `404` sin test.** `/visits` con un `code` inexistente (`resolveAuthorized` →
+  `ModelNotFoundException`) no está cubierto; sólo el `403` de "no asignado hoy".
+
+Evidencia de cierre se anota acá al terminar cada punto.
+
+### Cierre y evidencia
+
+**A1 — arreglado.** `close()` ahora relee a través de un único helper `replayFor()` (sin duplicar el
+chequeo de proyecto ajeno) y captura `UniqueConstraintViolationException` alrededor de la
+transacción. La recuperación relee **fuera** de la transacción a propósito: bajo el
+`REPEATABLE READ` por defecto, una lectura dentro de la transacción fallida repetiría la foto
+vieja y nunca vería la fila que ganó. Si no encuentra ganador, relanza en vez de inventar un
+cierre. El contrato de `close()` (`created: bool`) no cambió, así que el 201/200 del controlador
+quedó intacto.
+
+Dos tests nuevos, y la violación es real, no simulada: la fila ganadora se escribe por una
+**segunda conexión** dentro de un hook `creating`, la pre-consulta del servicio falla de verdad y
+el `INSERT` choca contra el índice único real.
+
+**RED (sin el arreglo, verificado que el `catch` no estaba en el código que corría):**
+
+```
+⨯ a retry that loses the insert race answers with the row that won
+    Failed asserting that 500 is identical to 200.
+⨯ a retry that won the race in another project is rejected
+    Failed asserting that 500 is identical to 422.
+Tests: 2 failed (2 assertions)
+```
+
+**GREEN (con el arreglo):** `Modules/Knx` **185 passed (1031 assertions)**, 0 fallos.
+
+**A2 — cubierto.** `work_done` se asevera al crear, y además se comprueba que un reintento con
+otro texto **no reemplaza** el parte guardado: la idempotencia vale para el contenido, no sólo
+para el `id`.
+
+**A3 — cubierto.** `test_an_unknown_project_code_is_not_found` afirma `404` con el sobre del
+módulo (`code: not_found`), y de paso que el alcance corre **antes** de la validación (un código
+desconocido no es un error de `projectCode` del cuerpo).
+
+### Trampa del banco de pruebas (costó dos corridas falsas)
+
+El worktree aislado tenía `vendor` como **symlink** al del worktree compartido. PHP resuelve
+`__DIR__` al destino del symlink, así que `vendor/composer/autoload_static.php` calculaba su
+`baseDir` en **aquel** directorio y las clases `Modules\Knx\*` se cargaban desde el worktree
+compartido. Consecuencia: las corridas ejecutaban el código de la otra sesión, se veían dos
+fallos que no eran míos (un test de `kind: other` recibiendo `201` cuando en `d273d24` debe dar
+`422`) y mi arreglo no se ejercitaba nunca. La comprobación barata que lo delata:
+
+```
+php -r 'require "vendor/autoload.php"; echo (new ReflectionClass("Modules\\Knx\\Models\\KnxVisit"))->getFileName();'
+```
+
+Arreglo: `vendor` real dentro del worktree (copiado, no enlazado) más `composer dump-autoload`
+ejecutado **dentro** del worktree. Regla para la próxima: en un worktree enlazado, nunca compartir
+`vendor` por symlink si se va a ejecutar código.
+
+La base de datos sí quedó aislada de verdad desde el principio (`knx_v11e_testing` en el mysql
+propio del repo, puerto 3308), así que nada de esto tocó los datos de la otra sesión.
