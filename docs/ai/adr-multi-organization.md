@@ -4,7 +4,7 @@
 > **Tickets Linear:** **CLA-451** (auditoría), **CLA-452** (plan de migración/backfill/rollback) y **CLA-453** (este ADR) — los tres `In Progress`, hito «Fase 0 — Descubrimiento y ADR». **CLA-454** (requisitos no funcionales, RGPD y Definition of Done) sigue en `Backlog`, fuera de este entregable.
 > **Fase entregada:** F0 / P0 — auditoría y baseline de regresión. Ninguna fase posterior está autorizada todavía.
 > **Fuente de requisitos:** `Plan de implementacion web y backoffice Electro Bertels.docx` (28-08-2026) y el proyecto Linear «Electro Bertels — Web y backoffice multisite».
-> **Fuente de verdad sobre la implementación:** este repositorio (`electrobertels/trunk`, base técnica `ef2bc6e`).
+> **Fuente de verdad sobre la implementación:** este repositorio (rama de trabajo actual: `electrobertels/site-content-api`, cortada de `origin/electrobertels/org-indicator`; corregido 2026-09-27 — este ADR nombraba antes `electrobertels/trunk`, rama local obsoleta: sin upstream, sin commits propios, 29 commits por detrás de su continuación publicada `origin/electrobertels/trunk-merge-main`). Las dos ramas publicadas están 5 commits por detrás de `origin/main` (faltan CLA-578 y CLA-594) — reconciliar antes del PR. Las decisiones D1–D11 no cambian.
 > **Baseline de código verificado:** Laravel 13.29.0 · PHP 8.4 · Filament 5.7.6 · Livewire 4.4.2 · Sanctum 4.3.3 · spatie/laravel-permission 8.3.0 (`teams => false`) · MediaLibrary 11.23.5 · Activitylog 5.1.0 · nwidart/laravel-modules 13.0.0 · PHPUnit 12.5.34. CI de referencia: **1355 passed / 0 failed / 2 skipped** (run `34358992599`).
 
 ---
