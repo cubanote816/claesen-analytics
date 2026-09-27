@@ -1,15 +1,31 @@
 # Handover backend → frontend (Kantoor y Veld)
 
 > **Estado:** API de **Kantoor completa** (36 rutas, contrato de `BACKEND-API.md` +
-> `BACKEND-API-ZONES.md`). API de **Veld pendiente** (ver §4).
-> **Rama:** `electrobertels/knx-api` · **Ticket:** CLA-604 · **Doc del módulo:** `docs/Knx/knx-kantoor-backend.md`
+> `BACKEND-API-ZONES.md`). API de **Veld en curso**: `GET /field/session`, `GET /field/today`
+> y `GET /zones` ya responden (§4).
+> **Rama:** `electrobertels/knx-api` · **Tickets:** CLA-604 (oficina) y CLA-609 (campo)
+> · **Doc del módulo:** `docs/Knx/knx-kantoor-backend.md`
+> **Instrucciones paso a paso para vuestro código:** §7 en Kantoor / §5 en Veld, al final de
+> vuestra copia de `docs/handover-backend.md`.
 
 ---
 
 ## 0. Resumen en una línea
 
-Kantoor puede trabajar **entera** contra el backend real hoy mismo; Veld puede
-cablear **`GET /zones`** y espera al slice `/field/*` para el resto.
+Kantoor puede trabajar **entera** contra el backend real hoy mismo; Veld puede cablear
+**sesión, trabajo de hoy y zonas**, y espera al slice `/field/*` (V11.b–e) para el resto.
+
+**Orden acordado — no hace falta coordinarlo conmigo:**
+
+1. **Kantoor:** `login`/`logout` tipados + `getSession()` como guard al arrancar +
+   `clearToken()` en el `401`. Los **tres juntos**, porque se sostienen entre sí (sin el
+   tercero, un token caducado deja la app en bucle; sin el primero no hay forma de obtener
+   token). Después cambiar a `VITE_API_MODE=real` y recorrer las pantallas en el orden de
+   §7.
+2. **Veld:** primero la **capa de token**, que hoy **no existe** (paso 1 de §5). Hasta
+   entonces *todas* las llamadas al backend responden `401 unauthenticated`.
+3. **`/events` (Kantoor) queda al final**: el polling actual funciona y el contrato lo
+   permite, así que no debe ocupar camino crítico.
 
 ---
 
@@ -81,6 +97,10 @@ GET  /me/session    → Session   (401 si el token ya no vale)
 | 3 | **Manejar `ApiError.code`** | `unauthenticated` → limpiar token. `validation_error` → pintar `errors` por campo. `address_in_use` → el mensaje ya viene en `errors.proposal`. `rate_limited` → no reintentar en bucle. |
 | 4 | **`/events` con `fetch()`, no `EventSource`** | `EventSource` **no puede mandar la cabecera Bearer**. Hay que leer el stream con `fetch()` + reader, o seguir con el polling actual (el contrato lo permite). |
 | 5 | **Quitar la dependencia del orden del mock** | La lista de proyectos/funciones/pruebas viene por id (orden de inserción); la de conflictos, por severidad y fecha; la de actividad, de más reciente a más antiguo. Ya viene ordenado: no reordenéis por vuestro criterio o cambiará respecto al mock. |
+
+**El detalle de cómo hacer cada uno (ficheros, esquemas de código y en qué orden) está en
+§7 de vuestra copia.** Los puntos 1–3 van juntos en un solo PR: son los que se sostienen
+entre sí.
 
 ### 2.2 Catálogo (lo que ya responde)
 
@@ -257,35 +277,41 @@ decidlo y paso a enviar *task kinds*.
 
 ### 4.2 Qué NO existe todavía
 
-Ya están hechos `GET /field/session` y `GET /field/today` (V11.a). **Pendientes**:
-`GET /field/projects/{code}`, `GET /field/projects/{code}/plans`,
-`POST /field/projects/{code}/devices`, `POST /field/projects/{code}/issues` y
-`POST /field/projects/{code}/visits` (V11.b–e).
+`GET /field/session`, `GET /field/today` y `GET /zones` (V11.a) **ya responden**. El resto
+es el slice **V11.b–e** (CLA-609), en curso:
 
-Era un slice propio (CLA-609), ahora en curso: V11.a cerrado, V11.b–e pendientes.
+| Endpoint | Estado | Qué tiene ya el backend detrás |
+|---|---|---|
+| `GET /field/projects/{code}` | ⏳ V11.b | `GET /projects/{code}` ya existe: es el mismo dossier con alcance de campo |
+| `GET /field/projects/{code}/plans` | ⏳ V11.b | `knx_documents` ya tiene `revision`, `is_current` y `size_bytes`, y la descarga firmada ya existe |
+| `POST /field/projects/{code}/devices` | ⏳ V11.c | `clientId` encaja con `knx_devices`; el flujo notificación↔aparato ya está hecho y se reutiliza |
+| `POST /field/projects/{code}/issues` | ⏳ V11.d | el modelo de conflicto y el histórico de zonas ya existen |
+| `POST /field/projects/{code}/visits` | ⏳ V11.e · **bloqueado** | requiere decidir las 3 fases del cierre (§4.3) |
+| `POST /field/projects/{code}/photos` | ⏳ | vuestro propio documento ya lo marca "próximamente" |
 
-### 4.3 Qué necesita el backend para ese slice (propuesta, sin decidir)
+**Mientras tanto, mantenedlos en mock**: vuestra arquitectura ya separa las dos
+implementaciones, así que no hay que tocar ninguna pantalla.
 
-1. **Auth de campo.** `GET /field/session` no es `/me/session`: el técnico entra al
-   proyecto donde está asignado **hoy**. Decidir si reutiliza `knx_employees` con
-   `user_id` (la tabla ya lo soporta: los 5 técnicos sembrados **no tienen cuenta** hoy)
-   y qué rol de app (`knx_field`, ya creado).
-2. **Idempotencia.** `clientId` en `POST /devices` y en `POST /issues`. La propuesta del
-   documento (`devices.client_id` + `field_registration_attempts`) encaja con el módulo:
-   `knx_devices` ya tiene `acknowledged_at` y el flujo notificación↔aparato ya está hecho,
-   así que **`POST /devices` puede reutilizarlo** en vez de crear un camino paralelo.
-3. **`409 address_in_use`** ya está resuelto: es la misma excepción que usa
-   `PATCH /conflicts/{id}`. El aparato existente se devuelve con el mismo criterio.
-4. **Planos offline.** `GET /field/projects/{code}/plans` sale de `knx_documents`
-   (que ya tiene `revision`, `is_current`, `size_bytes`) + URLs firmadas con caché larga
-   — el mecanismo de descarga firmada **ya existe** (`documents/{id}/download`).
-5. **Cierre de visita en 3 fases** (roadmap §3.1) necesita decidir el modelo antes
-   (fin de visita / entrega parcial / aceptación final), hoy solo hay `knx_acceptance_tests`.
+### 4.3 Decisiones ya tomadas (y la única que falta)
 
-**Decisión pendiente de negocio, no técnica:** ¿este slice entra ahora o después? Con
-`/field/*` cerrado, el sistema queda completo de punta a punta.
+Ya **decidido e implementado** en V11.a:
 
----
+1. **Auth de campo:** se reutiliza `knx_employees` con `user_id` y el rol `knx_field`.
+   `POST /auth/login` sirve para **las dos apps** y devuelve el `Session` que corresponde
+   al perfil de la cuenta. **Guard por app**: un token de oficina no vale en `/field/*` ni
+   al revés — `401` deliberado.
+2. **Alcance:** un técnico solo ve los proyectos donde planificación le puso **hoy**
+   (`FieldTodayService::isAssignedToday()`), y V11.b–d usan **la misma** regla.
+3. **Idempotencia (`clientId`):** `POST …/devices` **reutilizará** el flujo
+   notificación↔aparato que ya funciona, en vez de abrir un camino paralelo.
+4. **`409 address_in_use`:** la misma excepción y el mismo formato que
+   `PATCH /conflicts/{id}` — el aparato existente se devuelve con el mismo criterio.
+5. **Planos:** salen de `knx_documents` + el mecanismo de descarga firmada que ya existe.
+
+**La única decisión que falta es de negocio, no técnica: el cierre de visita en 3 fases**
+(roadmap §3.1) — fin de visita / entrega parcial / aceptación final. Hoy solo hay
+`knx_acceptance_tests` (append-only). Hasta que se decida, **`POST …/visits` no se
+implementa** y no conviene que Veld lo cablee.
 
 ## 5. Trampas conocidas
 
@@ -306,7 +332,9 @@ Era un slice propio (CLA-609), ahora en curso: V11.a cerrado, V11.b–e pendient
 
 ## 6. Cómo comprobar que quedó bien
 
-1. Con `VITE_API_MODE=real`, **Overzicht** debe mostrar 4 proyectos activos, 4 conflictos
+### 6.1 Kantoor (`VITE_API_MODE=real`)
+
+1. **Overzicht** debe mostrar 4 proyectos activos, 4 conflictos
    abiertos (2 críticos) y 5 técnicos.
 2. **Projecten** debe listar los 5 códigos de la fixture (`C1618`, `239870`, `232146`,
    `240512`, `228104`) — el mismo conjunto que en modo mock.
@@ -318,6 +346,21 @@ Era un slice propio (CLA-609), ahora en curso: V11.a cerrado, V11.b–e pendient
    dossier.
 6. **Plannen**: subir una revisión nueva (`isCurrent: false` en la anterior) debe verse
    como tal.
+
+### 6.2 Veld (en cuanto tengáis la capa de token)
+
+1. Con `jan.van.dyck@electrobertels.be / Veld123!`, **Hoy** debe mostrar **C1618 ·
+   Vergaderzaal · `blocked`** con el motivo del DALI y dos tareas.
+2. Con `mira.claes@electrobertels.be / Veld123!` debe mostrar **239870** y **no** C1618.
+   Los dos técnicos están en proyectos distintos **a propósito**: es la comprobación de
+   alcance.
+3. Un token de **oficina** contra `/field/*` → `401`. Un token de **campo** contra
+   `/projects` → `401`. Es deliberado.
+4. `GET /zones?project=C1618` con el token de campo → `200` (la lectura es de las dos
+   apps). El `PATCH` de un check con ese mismo token → `401` (escribir checks es de
+   oficina).
+5. Tras cada siembra de la BD que haga yo, **volved a hacer login**: las cuentas se
+   recrean y vuestro token deja de valer.
 
 Si algo no encaja con lo que esperáis, decidme el payload que esperabais y lo ajusto:
 **el contrato manda, y `src/api/types.ts` manda sobre los `.md` cuando difieran**.
