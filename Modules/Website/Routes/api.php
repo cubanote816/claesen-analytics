@@ -1,14 +1,19 @@
 <?php
 
+use App\Http\Middleware\SetPanelLocale;
 use Illuminate\Support\Facades\Route;
-use Modules\Website\Http\Controllers\ProjectController;
+use Modules\Core\Http\Middleware\ResolveRequestSite;
+use Modules\Core\Http\Middleware\SetPublicApiCacheHeaders;
 use Modules\Website\Http\Controllers\ConsultationController;
+use Modules\Website\Http\Controllers\ContactController;
+use Modules\Website\Http\Controllers\LegalDocumentController;
+use Modules\Website\Http\Controllers\ProjectController;
 use Modules\Website\Http\Controllers\SiteContentController;
 
 Route::prefix('v1/website')->middleware([
-    \Modules\Core\Http\Middleware\ResolveRequestSite::class,
-    \App\Http\Middleware\SetPanelLocale::class,
-    \Modules\Core\Http\Middleware\SetPublicApiCacheHeaders::class,
+    ResolveRequestSite::class,
+    SetPanelLocale::class,
+    SetPublicApiCacheHeaders::class,
 ])->group(function () {
     Route::get('/', function () {
         return response()->json(['status' => 'Claesen Website API is running', 'version' => '1.0']);
@@ -31,8 +36,11 @@ Route::prefix('v1/website')->middleware([
     );
 
     Route::post('/consultations', [ConsultationController::class, 'store'])->middleware($intakeThrottle);
-    Route::post('/contact-email', [\Modules\Website\Http\Controllers\ContactController::class, 'store'])->middleware($intakeThrottle);
+    Route::post('/contact-email', [ContactController::class, 'store'])->middleware($intakeThrottle);
 
     Route::get('/settings', [SiteContentController::class, 'settings']);
     Route::get('/announcements', [SiteContentController::class, 'announcements']);
+
+    // CLA-479 (dynamic part): per-site legal documents (privacy/cookies/terms).
+    Route::get('/legal/{docId}', [LegalDocumentController::class, 'show']);
 });

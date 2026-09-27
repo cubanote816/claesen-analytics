@@ -129,6 +129,41 @@ paths:
                     message: "Closed for the holidays"
                     starts_at: null
                     ends_at: "2026-12-31T23:59:59+00:00"
+  /legal/{docId}:
+    get:
+      summary: A per-site legal document (privacy | cookies | terms) — CLA-479 dynamic part
+      description: >-
+        doc_id is a stable identifier (slugs are copy and live in the
+        frontend). title/body resolve per request locale under
+        Modules\Website\Services\PublicLocalePolicy: strict sites get null
+        for an untranslated locale (never another locale's text, CLA-611
+        G9); tolerant sites keep the historical locale→nl→en fallback.
+        body is PLAIN TEXT — paragraphs separated by \n\n, no HTML.
+        translation_status ∈ missing|machine|stale|needs_review|reviewed|published;
+        consumers publish a locale only in reviewed|published.
+      parameters:
+        - name: docId
+          in: path
+          required: true
+          schema: { type: string, enum: [privacy, cookies, terms] }
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                data:
+                  doc_id: privacy
+                  version: "2026-10-01"
+                  effective_date: "2026-10-01"
+                  locale: nl
+                  title: "Privacyverklaring"
+                  body: "Paragraph one.\n\nParagraph two."
+                  translation_status: reviewed
+        "404":
+          description: Unknown doc_id, or no such document for the resolved site.
+          content:
+            application/json:
+              example: { message: "Not found." }
   /consultations:
     post:
       summary: >-

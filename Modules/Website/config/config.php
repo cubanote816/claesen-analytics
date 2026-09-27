@@ -16,6 +16,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public API locale policy (CLA-611, gap G9 — site-scoped)
+    |--------------------------------------------------------------------------
+    | Sites listed here serve the public API STRICTLY: a field without a
+    | translation in the requested locale resolves to `null` — never Dutch,
+    | never English (Modules\Website\Services\PublicLocalePolicy). Claesen
+    | stays OFF this list on purpose: its tolerant locale→nl→en fallback is
+    | frozen by PortfolioApiTest and its live Astro frontend may depend on
+    | it. Opting a new site in is a config change, not a migration.
+    */
+    'public_api' => [
+        'strict_locale_site_keys' => ['electrobertels'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Site settings whitelist (CLA-469)
     |--------------------------------------------------------------------------
     | Modules\Website\Models\SiteSetting only accepts a `key` present here —
