@@ -64,7 +64,7 @@ class KnxAuthService
             return null;
         }
 
-        $employee = $this->authorize($user);
+        $employee = $this->authorizeAny($user);
 
         return $employee === null ? null : [$user, $employee];
     }
@@ -81,6 +81,30 @@ class KnxAuthService
     public function authorize(User $user): ?KnxEmployee
     {
         return $this->authorizeOffice($user);
+    }
+
+    /**
+     * Either profile. Used by the endpoints both apps share: the login itself, and
+     * the reads whose payload is identical for both (`GET /zones` is Kantoor's and
+     * Veld's, with the contract saying so in as many words).
+     */
+    public function authorizeAny(User $user): ?KnxEmployee
+    {
+        return $this->authorizeOffice($user) ?? $this->authorizeField($user);
+    }
+
+    /**
+     * Which app this person belongs to, as a string: `office`, `field`, or null when
+     * neither. The login needs it to answer with the right `Session` shape, because
+     * the two apps' payloads differ on purpose.
+     */
+    public function profile(User $user): ?string
+    {
+        return match (true) {
+            $this->authorizeOffice($user) !== null => KnxEmployee::KIND_OFFICE,
+            $this->authorizeField($user) !== null => KnxEmployee::KIND_FIELD,
+            default => null,
+        };
     }
 
     /** Kantoor: an active account with the office role and an office person row. */

@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\PersonalAccessToken;
 use Modules\Core\Models\User;
 use Modules\Knx\Http\Requests\LoginRequest;
+use Modules\Knx\Http\Resources\FieldSessionResource;
 use Modules\Knx\Http\Resources\SessionResource;
 use Modules\Knx\Services\KnxAuthService;
 
@@ -44,10 +45,17 @@ class AuthController extends Controller
 
         [$user, $employee] = $result;
 
+        // One login for both apps: the payload says which one the account belongs to.
+        // The two `Session` shapes differ on purpose (the phone gets no role and no
+        // email), so the account's profile decides which one is sent.
+        $session = $this->auth->profile($user) === \Modules\Knx\Models\KnxEmployee::KIND_FIELD
+            ? FieldSessionResource::make($employee)->resolve()
+            : SessionResource::make($employee)->resolve();
+
         return response()->json([
             'access_token' => $this->issueToken($user),
             'expires_in' => $this->expiresInSeconds(),
-            'user' => SessionResource::make($employee)->resolve(),
+            'user' => $session,
         ]);
     }
 
@@ -75,7 +83,7 @@ class AuthController extends Controller
         // fresh token.
         if (
             ! $user instanceof User
-            || $this->auth->authorize($user) === null
+            || $this->auth->authorizeAny($user) === null
         ) {
             $token->delete();
 

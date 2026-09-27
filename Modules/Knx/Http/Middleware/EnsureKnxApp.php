@@ -28,6 +28,13 @@ class EnsureKnxApp
 
     public const FIELD = 'field';
 
+    /**
+     * For the reads both apps share — today that is `GET /zones`, whose payload the
+     * Veld contract says is Kantoor's serialiser verbatim. Writes stay scoped: a
+     * technician does not update readiness checks from the field (yet).
+     */
+    public const ANY = 'any';
+
     public function __construct(private readonly KnxAuthService $auth) {}
 
     /**
@@ -40,6 +47,7 @@ class EnsureKnxApp
         $employee = match ($app) {
             self::OFFICE => $user === null ? null : $this->auth->authorizeOffice($user),
             self::FIELD => $user === null ? null : $this->auth->authorizeField($user),
+            self::ANY => $user === null ? null : $this->auth->authorizeAny($user),
             default => throw new \InvalidArgumentException("Unknown KNX app [{$app}]."),
         };
 

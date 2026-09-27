@@ -169,6 +169,55 @@ final class KnxFieldSessionTest extends TestCase
         $this->assertFalse($today->isAssignedToday($jan, KnxProject::query()->where('code', 'C1618')->sole()));
     }
 
+    public function test_a_technician_can_actually_log_in_with_their_own_credentials(): void
+    {
+        // The gap that let a real bug through: every other test here uses actingAs(),
+        // which never exercises the login endpoint. The field account has to be able
+        // to sign in and then use the token it got.
+        $response = $this->postJson('/api/v1/knx/auth/login', [
+            'email' => 'jan.van.dyck@electrobertels.be',
+            'password' => KnxDemoSeeder::DEMO_FIELD_PASSWORD,
+        ])->assertOk();
+
+        // The field Session shape, not the office one.
+        $this->assertSame(['id', 'name', 'initials', 'domain'], array_keys($response->json('user')));
+        $this->assertSame('Jan Van Dyck', $response->json('user.name'));
+
+        $token = $response->json('access_token');
+
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($token)->getJson('/api/v1/knx/field/session')->assertOk();
+        $this->withToken($token)->getJson('/api/v1/knx/field/today')->assertOk();
+    }
+
+    public function test_an_office_login_still_answers_with_the_office_session(): void
+    {
+        $response = $this->postJson('/api/v1/knx/auth/login', [
+            'email' => 'lien.smet@electrobertels.be',
+            'password' => KnxDemoSeeder::DEMO_PASSWORD,
+        ])->assertOk();
+
+        $this->assertSame(
+            ['id', 'name', 'initials', 'role', 'email', 'domain'],
+            array_keys($response->json('user')),
+        );
+    }
+
+    public function test_the_shared_zone_read_works_for_both_apps_but_writes_do_not(): void
+    {
+        // Veld's contract uses Kantoor's zone payload verbatim, so the read is shared.
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $this->getJson('/api/v1/knx/zones?project=C1618')->assertOk()->assertJsonCount(4);
+
+        // Changing a readiness check stays an office action.
+        $zone = \Modules\Knx\Models\KnxZone::query()->where('name', 'Vergaderzaal')->sole();
+
+        $this->patchJson("/api/v1/knx/zones/{$zone->getKey()}/checks/loads", ['status' => 'passed'])
+            ->assertUnauthorized();
+    }
+
     public function test_the_field_endpoints_require_a_token(): void
     {
         $this->app['auth']->forgetGuards();

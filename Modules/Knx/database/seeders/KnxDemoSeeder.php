@@ -356,6 +356,23 @@ class KnxDemoSeeder extends Seeder
                 'date' => $monday->copy()->addDays($dayIndex)->format('Y-m-d'),
             ]);
         }
+
+        // The map mirrors the office app's planner: Monday to Friday. A demo run on a
+        // weekend would then answer an empty `GET /field/today`, which is correct and
+        // useless — the field app's whole first screen. So the two technicians who
+        // have an account also get today, whatever day it is.
+        $today = now()->toDateString();
+
+        // Keyed by the *short* display name, which is how `$this->people` is indexed.
+        foreach ([
+            'J. Van Dyck' => 'C1618',
+            'M. Claes' => '239870',
+        ] as $name => $code) {
+            KnxPlanningAssignment::updateOrCreate(
+                ['employee_id' => $this->people[$name]->id, 'date' => $today],
+                ['project_id' => $this->projects[$code]->id],
+            );
+        }
     }
 
     private function seedConflicts(): void

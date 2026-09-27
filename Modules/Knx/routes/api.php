@@ -44,6 +44,14 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         ->middleware('auth:sanctum')
         ->name('auth.logout');
 
+    // Shared reads: one payload, both apps. Kept deliberately small — anything that
+    // mutates office data stays in the office group.
+    Route::middleware(['auth:sanctum', 'organization:electro-bertels', EnsureKnxApp::class.':'.EnsureKnxApp::ANY])
+        ->group(function (): void {
+            Route::get('zones', [ZoneController::class, 'index'])->name('zones.index');
+            Route::get('zones/{id}', [ZoneController::class, 'show'])->name('zones.show');
+        });
+
     // Veld: same tenant and same token machinery, a different app. The guard is what
     // stops a technician's token from reading the office API and vice versa.
     Route::middleware(['auth:sanctum', 'organization:electro-bertels', EnsureKnxApp::class.':'.EnsureKnxApp::FIELD])
@@ -105,9 +113,8 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         Route::get('conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
         Route::get('conflicts/{id}', [ConflictController::class, 'show'])->name('conflicts.show');
         Route::patch('conflicts/{id}', [ConflictController::class, 'update'])->name('conflicts.update');
-        // K7 — site readiness zones.
-        Route::get('zones', [ZoneController::class, 'index'])->name('zones.index');
-        Route::get('zones/{id}', [ZoneController::class, 'show'])->name('zones.show');
+        // K7 — readiness writes. The reads live in the shared group below: Veld uses
+        // the same payload (its contract says so), but only the office changes checks.
         Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
         // K8 — documents and reports.
         Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');

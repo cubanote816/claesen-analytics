@@ -283,7 +283,11 @@ trampas conocidas. Mantenedlo actualizado al cerrar cada slice.
 
 `GET /field/today` → un trabajo por asignación **de hoy**, con la zona que necesita atención (no la primera sin más), su estado derivado y su blocker, más `tasks`.
 
-**Las dos apps ahora están separadas por un guard** (`EnsureKnxApp:office|field`). Antes de esto, `auth:sanctum` solo decía "alguien entró", no *para qué*: un token de técnico podía leer **todo** el API de oficina (clientes, proyectos, conflictos, documentos) porque el middleware de tenant es un no-op con `organizations.enforce` en `false`. Responde **401** (no 403) porque para ese cliente es indistinguible de un token caducado, que es justo lo que ya sabe manejar.
+**Un solo login para las dos apps.** `POST /auth/login` acepta cuenta de oficina **o** de campo y responde el `Session` que le corresponde a cada perfil (el payload del móvil no lleva `role` ni `email`). El contrato de Veld no define endpoint de login propio, así que el compartido tiene que servir para los dos — y `refresh`/`logout` también.
+
+**`GET /zones` es compartido** (el contrato de Veld dice explícitamente que usa el serializador de Kantoor): va en un grupo aparte con guard `any`, y sigue siendo legible por ambos perfiles. `PATCH /zones/{id}/checks/{key}` **no**: cambiar una comprobación es acción de oficina.
+
+**Las dos apps están separadas por un guard** (`EnsureKnxApp:office|field`). Antes de esto, `auth:sanctum` solo decía "alguien entró", no *para qué*: un token de técnico podía leer **todo** el API de oficina (clientes, proyectos, conflictos, documentos) porque el middleware de tenant es un no-op con `organizations.enforce` en `false`. Responde **401** (no 403) porque para ese cliente es indistinguible de un token caducado, que es justo lo que ya sabe manejar.
 
 **`room`/`zoneStatus`/`blockingReason`** describen la zona que necesita atención: la primera que no está lista, o la primera si todo está listo. Un trabajo es "ve a este espacio", así que apuntar a una zona lista en un proyecto con una bloqueada no serviría de nada.
 
