@@ -7,7 +7,6 @@ namespace App\Filament\Clusters\Website\Pages;
 use App\Filament\Clusters\Website\WebsiteCluster;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -15,6 +14,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Lang;
 use Modules\Core\Models\Site;
 use Modules\Website\Models\SiteSetting;
 
@@ -143,7 +143,7 @@ class SiteSettingsPage extends Page implements HasForms
     {
         $translationKey = "website.site_settings.hints.{$key}";
 
-        return \Illuminate\Support\Facades\Lang::has($translationKey)
+        return Lang::has($translationKey)
             ? __($translationKey)
             : null;
     }
