@@ -22,10 +22,10 @@ class ProjectResource extends JsonResource
 
             // Work Details — translatable (nl/en/fr/de via Gemini auto-translate).
             // Null means the field was never filled on this project.
-            'work_story'  => $this->resolveLocaleValue($this->getTranslations('work_story')),
-            'challenge'   => $this->resolveLocaleValue($this->getTranslations('challenge')),
-            'solution'    => $this->resolveLocaleValue($this->getTranslations('solution')),
-            'result'      => $this->resolveLocaleValue($this->getTranslations('result')),
+            'work_story' => $this->resolveLocaleValue($this->getTranslations('work_story')),
+            'challenge' => $this->resolveLocaleValue($this->getTranslations('challenge')),
+            'solution' => $this->resolveLocaleValue($this->getTranslations('solution')),
+            'result' => $this->resolveLocaleValue($this->getTranslations('result')),
 
             'category' => $this->category,
             'location' => $this->resolveLocaleValue($this->getTranslations('location')),
@@ -46,36 +46,36 @@ class ProjectResource extends JsonResource
             ],
             'gallery' => $this->getMedia('gallery')->map(function ($media) {
                 return [
-                    'id'        => $media->id,
-                    'name'      => $media->name,
+                    'id' => $media->id,
+                    'name' => $media->name,
                     'optimized' => $media->getUrl('optimized'),
-                    'gallery'   => $media->getUrl('gallery'),
-                    'thumb'     => $media->getUrl('thumb'),
+                    'gallery' => $media->getUrl('gallery'),
+                    'thumb' => $media->getUrl('thumb'),
                     'optimized_avif' => $media->getUrl('optimized_avif'),
                     'gallery_avif' => $media->getUrl('gallery_avif'),
                     'thumb_avif' => $media->getUrl('thumb_avif'),
-                    'caption'   => $this->resolveLocaleValue($media->getCustomProperty('caption')),
-                    'alt'       => $this->resolveLocaleValue($media->getCustomProperty('alt')),
+                    'caption' => $this->resolveLocaleValue($media->getCustomProperty('caption')),
+                    'alt' => $this->resolveLocaleValue($media->getCustomProperty('alt')),
                     'focal_point' => $media->getCustomProperty('focal_point', ['x' => 0.5, 'y' => 0.5]),
                     'mime_type' => $media->mime_type,
-                    'size'      => $media->size,
+                    'size' => $media->size,
                 ];
             }),
             // Always an array — empty [] when no images have been uploaded yet.
             'detail_gallery' => $this->getMedia('detail_gallery')->map(function ($media) {
                 return [
-                    'id'        => $media->id,
+                    'id' => $media->id,
                     'optimized' => $media->getUrl('optimized'),
-                    'gallery'   => $media->getUrl('gallery'),
-                    'thumb'     => $media->getUrl('thumb'),
+                    'gallery' => $media->getUrl('gallery'),
+                    'thumb' => $media->getUrl('thumb'),
                     'optimized_avif' => $media->getUrl('optimized_avif'),
                     'gallery_avif' => $media->getUrl('gallery_avif'),
                     'thumb_avif' => $media->getUrl('thumb_avif'),
-                    'caption'   => $this->resolveLocaleValue($media->getCustomProperty('caption')),
-                    'alt'       => $this->resolveLocaleValue($media->getCustomProperty('alt')),
+                    'caption' => $this->resolveLocaleValue($media->getCustomProperty('caption')),
+                    'alt' => $this->resolveLocaleValue($media->getCustomProperty('alt')),
                     'focal_point' => $media->getCustomProperty('focal_point', ['x' => 0.5, 'y' => 0.5]),
                     'mime_type' => $media->mime_type,
-                    'size'      => $media->size,
+                    'size' => $media->size,
                 ];
             })->values(),
             'related' => ProjectResource::collection($this->whenLoaded('related')),
@@ -95,7 +95,7 @@ class ProjectResource extends JsonResource
      */
     private function resolveLocaleValue(mixed $value): ?string
     {
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             return $value ?: null;
         }
 
@@ -106,13 +106,13 @@ class ProjectResource extends JsonResource
         }
 
         foreach ([$locale, 'nl', 'en'] as $candidate) {
-            if (!empty($value[$candidate])) {
+            if (! empty($value[$candidate])) {
                 return $value[$candidate];
             }
         }
 
         foreach ($value as $text) {
-            if (!empty($text)) {
+            if (! empty($text)) {
                 return $text;
             }
         }
