@@ -275,6 +275,30 @@ cómo apuntar los fronts al backend real, checklist de cambios en su código, ca
 de endpoints con respuestas reales, los huecos declarados, la situación de Veld y las
 trampas conocidas. Mantenedlo actualizado al cerrar cada slice.
 
+### Dónde vive cada copia, y quién la escribe
+
+| Copia | Cómo se produce |
+|---|---|
+| `electro-bertels-kantoor/docs/handover-backend.md` | **fuente + el §7 de instrucciones** (se regenera) |
+| `electro-bertels-veld/docs/handover-backend.md` | documento propio de Veld (misma información, redactado para esa app) |
+| ambos `docs/next-prompt.md` | el prompt listo para pegar en la sesión de ese repo |
+
+**El backend es el único que escribe esas copias.** Los repos de frontend llevan el aviso en
+la cabecera de su handover y la regla en su prompt: si algo no cuadra, se reporta y se
+corrige aquí. La razón es concreta y ya pasó: mientras dos sesiones escribieron el mismo
+fichero, una reescritura estuvo a punto de pisar la otra (Veld `024ccc7` frente a la mía).
+
+### Procedimiento para regenerar la copia de Kantoor
+
+1. Actualizar `docs/Knx/handover-frontend.md` (esta es la fuente).
+2. Reconstruir la copia como **cabecera + fuente + §7**:
+   - el bloque `>` del aviso de propiedad (el que dice que la mantiene el backend);
+   - el contenido de la fuente;
+   - el `## 7. Instrucciones de implementación (Kantoor)` que **solo existe en la copia**,
+     separado con un `---`.
+3. Conservar el §7 intacto: es lo único que no está en la fuente, y perderlo deja al front sin
+   sus pasos.
+
 ## Veld — campo (V11)
 
 ### V11.a — sesión y trabajo del día
