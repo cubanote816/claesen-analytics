@@ -98,16 +98,26 @@ class SiteSettingsPage extends Page implements HasForms
         $fields = [];
 
         foreach (SiteSetting::allowedKeys() as $key => $type) {
-            $fields[] = match ($type) {
-                SiteSetting::TYPE_TRANSLATABLE => Section::make(__("website.site_settings.fields.{$key}"))
+            if ($type === SiteSetting::TYPE_TRANSLATABLE) {
+                $fields[] = Section::make(__("website.site_settings.fields.{$key}"))
                     ->schema([
                         TextInput::make("{$key}.nl")->label('NL'),
                         TextInput::make("{$key}.en")->label('EN'),
                         TextInput::make("{$key}.fr")->label('FR'),
                         TextInput::make("{$key}.de")->label('DE'),
                     ])
-                    ->columns(2),
-                SiteSetting::TYPE_JSON && $key === 'social_links' => Section::make(__("website.site_settings.fields.{$key}"))
+                    ->columns(2);
+
+                continue;
+            }
+
+            // 'social_links' keeps its dedicated Repeater (CLA-469 shape,
+            // frozen for the Claesen panel); all other JSON keys get a
+            // raw-JSON editor validated server-side. Explicit branching —
+            // a `TYPE_JSON && $key === 'social_links'` MATCH arm evaluates
+            // to bool and can never match $type.
+            if ($type === SiteSetting::TYPE_JSON && $key === 'social_links') {
+                $fields[] = Section::make(__("website.site_settings.fields.{$key}"))
                     ->schema([
                         Repeater::make($key)
                             ->label('')
@@ -117,17 +127,25 @@ class SiteSettingsPage extends Page implements HasForms
                             ])
                             ->columns(2)
                             ->addActionLabel(__('website.site_settings.fields.social_links')),
-                    ]),
-                SiteSetting::TYPE_JSON => TextInput::make($key)
+                    ]);
+
+                continue;
+            }
+
+            if ($type === SiteSetting::TYPE_JSON) {
+                $fields[] = TextInput::make($key)
                     ->label(__("website.site_settings.fields.{$key}"))
                     ->hint(self::hintFor($key))
                     ->hintIcon('heroicon-m-information-circle')
-                    ->rule('json'),
-                default => TextInput::make($key)
-                    ->label(__("website.site_settings.fields.{$key}"))
-                    ->hint(self::hintFor($key))
-                    ->hintIcon('heroicon-m-information-circle'),
-            };
+                    ->rule('json');
+
+                continue;
+            }
+
+            $fields[] = TextInput::make($key)
+                ->label(__("website.site_settings.fields.{$key}"))
+                ->hint(self::hintFor($key))
+                ->hintIcon('heroicon-m-information-circle');
         }
 
         return $schema->schema($fields)->statePath('data');

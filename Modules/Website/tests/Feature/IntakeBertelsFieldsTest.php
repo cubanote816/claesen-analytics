@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Website\Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\Http;
 use Modules\Core\Models\Site;
 use Modules\Intelligence\Services\GeminiService;
@@ -23,7 +23,12 @@ use Tests\TestCase;
  */
 final class IntakeBertelsFieldsTest extends TestCase
 {
-    use RefreshDatabase;
+    // DatabaseTruncation, not RefreshDatabase (same rationale as
+    // ConsultationEndpoint201Test): the file asserts ABSOLUTE row counts
+    // (201 ⇒ one row) and RefreshDatabase-based files that ran earlier in
+    // the suite commit their final rows for good — a leftover lead would
+    // make every count assert see two rows.
+    use DatabaseTruncation;
 
     protected function setUp(): void
     {
