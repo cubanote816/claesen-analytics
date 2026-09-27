@@ -7,6 +7,7 @@ namespace App\Filament\Clusters\Website\Pages;
 use App\Filament\Clusters\Website\WebsiteCluster;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -78,7 +79,13 @@ class SiteSettingsPage extends Page implements HasForms
 
             $state[$key] = match ($type) {
                 SiteSetting::TYPE_TRANSLATABLE => is_array($value) ? $value : [],
-                SiteSetting::TYPE_JSON => is_array($value) ? $value : [],
+                // 'social_links' keeps its structured Repeater; every other
+                // JSON key is edited as raw JSON text (CLA-479 company facts
+                // are heterogeneous shapes — scalar `founded_year`, object
+                // `address_structured`, array `opening_hours`).
+                SiteSetting::TYPE_JSON => $key === 'social_links'
+                    ? (is_array($value) ? $value : [])
+                    : (isset($value) ? json_encode($value, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : null),
                 default => is_string($value) ? $value : null,
             };
         }
@@ -100,7 +107,7 @@ class SiteSettingsPage extends Page implements HasForms
                         TextInput::make("{$key}.de")->label('DE'),
                     ])
                     ->columns(2),
-                SiteSetting::TYPE_JSON => Section::make(__("website.site_settings.fields.{$key}"))
+                SiteSetting::TYPE_JSON && $key === 'social_links' => Section::make(__("website.site_settings.fields.{$key}"))
                     ->schema([
                         Repeater::make($key)
                             ->label('')
@@ -111,11 +118,34 @@ class SiteSettingsPage extends Page implements HasForms
                             ->columns(2)
                             ->addActionLabel(__('website.site_settings.fields.social_links')),
                     ]),
-                default => TextInput::make($key)->label(__("website.site_settings.fields.{$key}")),
+                SiteSetting::TYPE_JSON => TextInput::make($key)
+                    ->label(__("website.site_settings.fields.{$key}"))
+                    ->hint(self::hintFor($key))
+                    ->hintIcon('heroicon-m-information-circle')
+                    ->rule('json'),
+                default => TextInput::make($key)
+                    ->label(__("website.site_settings.fields.{$key}"))
+                    ->hint(self::hintFor($key))
+                    ->hintIcon('heroicon-m-information-circle'),
             };
         }
 
         return $schema->schema($fields)->statePath('data');
+    }
+
+    /**
+     * Optional per-key hint text (e.g. the address/address_structured
+     * consumer note required by approver decision 2A). Rendered only when
+     * the translation key actually exists — __() would otherwise leak the
+     * raw key string into the UI.
+     */
+    private static function hintFor(string $key): ?string
+    {
+        $translationKey = "website.site_settings.hints.{$key}";
+
+        return \Illuminate\Support\Facades\Lang::has($translationKey)
+            ? __($translationKey)
+            : null;
     }
 
     protected function getFormActions(): array
@@ -138,6 +168,13 @@ class SiteSettingsPage extends Page implements HasForms
 
             if ($type === SiteSetting::TYPE_TRANSLATABLE) {
                 $value = array_filter($value ?? [], fn ($v) => filled($v));
+            }
+
+            // Raw-JSON editor keys arrive as a JSON string — decode before
+            // persisting so the `value` column keeps its array-cast contract
+            // (the field's ->rule('json') already rejected invalid input).
+            if ($type === SiteSetting::TYPE_JSON && $key !== 'social_links') {
+                $value = json_decode((string) $value, true);
             }
 
             SiteSetting::query()->updateOrCreate(

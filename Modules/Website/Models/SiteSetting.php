@@ -76,10 +76,14 @@ class SiteSetting extends Model
     }
 
     /**
-     * Cached-per-site read for the public API. Site scoping still happens
-     * through BelongsToSite's global scope on the underlying query — the
-     * site id is only read here to build a cache key that never mixes two
-     * sites' settings under the same key.
+     * Cached-per-site read for the public API. Site scoping happens BOTH
+     * through BelongsToSite's global scope (inert while
+     * config('organizations.enforce') is off, ADR D4) AND an explicit
+     * `site_id` filter keyed to the resolved site — the resolved site id is
+     * already needed for the cache key, so the read never mixes two sites'
+     * settings under one key NOR under one result set, regardless of the
+     * enforcement flag (CLA-479 dynamic part: a ?site= request resolves a
+     * second site today even with enforcement off).
      *
      * CLA-522 pattern, applied here for the same reason: this app's real
      * cache store is 'database' (config/cache.php's serializable_classes
@@ -103,7 +107,10 @@ class SiteSetting extends Model
         $rows = Cache::remember(
             self::cacheKeyFor($siteId),
             3600,
-            fn () => static::query()->get()->map->getAttributes()->all()
+            fn () => static::query()
+                ->where('site_id', $siteId)
+                ->get()
+                ->map->getAttributes()->all()
         );
 
         return static::hydrate($rows);

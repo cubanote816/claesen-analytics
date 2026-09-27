@@ -48,6 +48,30 @@ return [
             'email' => 'text',
             'address' => 'text',
             'social_links' => 'json',
+
+            // CLA-479 (dynamic part) — company facts & opening hours for the
+            // Electro Bertels frontend (backend-requirements.md §7.2). The
+            // pre-existing Claesen keys above are UNTOUCHED — adding keys is
+            // additive; no existing key's type or serialization changes.
+            // 'address' deliberately stays a verbatim Claesen string; the
+            // structured variant for Electro Bertels is the separate
+            // 'address_structured' key below (two representations of one
+            // fact, kept explicit in the Filament UI instead of silent in
+            // the DB — approver decision 2A, 2026-09-27).
+            'legal_name' => 'text',
+            'founded_year' => 'json',
+            'phone_display' => 'text',
+            'phone_tel' => 'text',
+            'whatsapp_display' => 'text',
+            'whatsapp_url' => 'text',
+            'address_structured' => 'json',
+            'address_country' => 'translatable',
+            'maps_embed_url' => 'text',
+            'maps_directions_url' => 'text',
+            'maps_consent_mode' => 'text',
+            'vat_number' => 'text',
+            'opening_hours' => 'json',
+            'contact_consent_version' => 'text',
         ],
     ],
 
