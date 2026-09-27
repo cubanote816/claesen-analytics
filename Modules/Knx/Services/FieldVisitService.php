@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Services;
 
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,44 +40,81 @@ class FieldVisitService
      */
     public function close(KnxEmployee $technician, KnxProject $project, array $input): array
     {
-        $replay = KnxVisit::query()->with('items')->where('client_id', $input['clientId'])->first();
+        $replay = $this->replayFor($project, $input['clientId']);
 
         if ($replay !== null) {
-            // Same key, another project: the app reused a UUID, and answering with the
-            // stored closure would hand one project's delivery to a request about
-            // another.
-            if ((int) $replay->project_id !== (int) $project->getKey()) {
-                throw ValidationException::withMessages(['clientId' => [__('knx::field.client_id_reused')]]);
+            return ['visit' => $replay, 'created' => false];
+        }
+
+        try {
+            $visit = DB::transaction(function () use ($technician, $project, $input): KnxVisit {
+                $room = $this->roomFor($project, $input['room'] ?? null);
+
+                $visit = KnxVisit::create([
+                    'project_id' => $project->getKey(),
+                    'room_id' => $room?->getKey(),
+                    // Only when the office has no room by that name: the room row is the
+                    // authority when it exists, and the technician's own word is kept when
+                    // it does not.
+                    'room_label' => $room === null ? ($input['room'] ?? null) : null,
+                    'client_id' => $input['clientId'],
+                    'type' => $input['type'],
+                    'work_done' => $input['workDone'],
+                    'minutes' => $input['minutes'] ?? null,
+                    'signed_by' => $input['signedBy'] ?? null,
+                    'captured_at' => Carbon::parse($input['capturedAt']),
+                    'closed_by_employee_id' => $technician->getKey(),
+                ]);
+
+                $this->storeItems($visit, $input);
+
+                return $visit;
+            });
+        } catch (UniqueConstraintViolationException $e) {
+            // A queued retry with the same `clientId` won the insert between our
+            // read and our write. Outside the transaction (and rolled back) is
+            // where the recovery read must happen: under REPEATABLE READ a read
+            // inside it would replay our old snapshot and never see the row that
+            // beat us. The key is idempotent, so the winner's row is our answer
+            // too — answering 500 would turn the field app's retry by design
+            // into a failure.
+            $replay = $this->replayFor($project, $input['clientId']);
+
+            if ($replay === null) {
+                // The violation was not the retry we expect: fail loudly rather
+                // than invent a closure the database does not hold.
+                throw $e;
             }
 
             return ['visit' => $replay, 'created' => false];
         }
 
-        $visit = DB::transaction(function () use ($technician, $project, $input): KnxVisit {
-            $room = $this->roomFor($project, $input['room'] ?? null);
-
-            $visit = KnxVisit::create([
-                'project_id' => $project->getKey(),
-                'room_id' => $room?->getKey(),
-                // Only when the office has no room by that name: the room row is the
-                // authority when it exists, and the technician's own word is kept when
-                // it does not.
-                'room_label' => $room === null ? ($input['room'] ?? null) : null,
-                'client_id' => $input['clientId'],
-                'type' => $input['type'],
-                'work_done' => $input['workDone'],
-                'minutes' => $input['minutes'] ?? null,
-                'signed_by' => $input['signedBy'] ?? null,
-                'captured_at' => Carbon::parse($input['capturedAt']),
-                'closed_by_employee_id' => $technician->getKey(),
-            ]);
-
-            $this->storeItems($visit, $input);
-
-            return $visit;
-        });
-
         return ['visit' => $visit->load('items'), 'created' => true];
+    }
+
+    /**
+     * The closure already stored for the app's `clientId`, when there is one.
+     *
+     * Shared by the ordinary replay and by recovering from a lost insert race:
+     * both must produce the same answer, including the rejection when the key
+     * was reused for another project.
+     */
+    private function replayFor(KnxProject $project, string $clientId): ?KnxVisit
+    {
+        $replay = KnxVisit::query()->with('items')->where('client_id', $clientId)->first();
+
+        if ($replay === null) {
+            return null;
+        }
+
+        // Same key, another project: the app reused a UUID, and answering with the
+        // stored closure would hand one project's delivery to a request about
+        // another.
+        if ((int) $replay->project_id !== (int) $project->getKey()) {
+            throw ValidationException::withMessages(['clientId' => [__('knx::field.client_id_reused')]]);
+        }
+
+        return $replay;
     }
 
     /**
