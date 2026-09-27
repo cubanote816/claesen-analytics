@@ -97,6 +97,7 @@ final class PanelRegistrySnapshotTest extends TestCase
             $this->sorted([
                 Dashboard::class,
                 \App\Filament\Clusters\Website\Pages\SiteSettingsPage::class,
+                \App\Filament\Clusters\Website\Pages\TranslationReviewPage::class,
                 \App\Filament\Clusters\Website\WebsiteCluster::class, // a cluster is itself a page
             ]),
             $this->sorted($panel->getPages()),

@@ -178,6 +178,29 @@ return [
             'publish_now_success'        => 'Publication requested',
         ],
     ],
+    'translation_review' => [
+        'label' => 'Translation review',
+        'fields' => [
+            'subject' => 'Subject',
+            'attribute' => 'Field',
+            'locale' => 'Locale',
+            'status' => 'Status',
+            'error' => 'Error',
+            'updated_at' => 'Updated',
+        ],
+        'actions' => [
+            'edit' => 'Edit',
+            'edit_value' => 'Translation (:locale)',
+            'approve' => 'Approve',
+            'publish' => 'Publish',
+            'retranslate' => 'Retranslate (AI)',
+            'retranslate_confirm' => 'The approved value will be overwritten by a fresh AI translation and must be approved again. Continue?',
+        ],
+        'notifications' => [
+            'updated' => 'Translation status updated',
+        ],
+    ],
+
     'announcements' => [
         'label' => 'Announcement',
         'plural_label' => 'Announcements',

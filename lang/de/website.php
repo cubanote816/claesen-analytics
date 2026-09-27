@@ -149,6 +149,29 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    'translation_review' => [
+        'label' => 'Übersetzungsprüfung',
+        'fields' => [
+            'subject' => 'Objekt',
+            'attribute' => 'Feld',
+            'locale' => 'Sprache',
+            'status' => 'Status',
+            'error' => 'Fehler',
+            'updated_at' => 'Aktualisiert',
+        ],
+        'actions' => [
+            'edit' => 'Bearbeiten',
+            'edit_value' => 'Übersetzung (:locale)',
+            'approve' => 'Genehmigen',
+            'publish' => 'Veröffentlichen',
+            'retranslate' => 'Neu übersetzen (KI)',
+            'retranslate_confirm' => 'Der genehmigte Wert wird durch eine neue KI-Übersetzung überschrieben und muss erneut genehmigt werden. Fortfahren?',
+        ],
+        'notifications' => [
+            'updated' => 'Übersetzungsstatus aktualisiert',
+        ],
+    ],
+
     'announcements' => [
         'label' => 'Ankündigung',
         'plural_label' => 'Ankündigungen',

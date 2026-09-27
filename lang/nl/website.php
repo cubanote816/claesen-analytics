@@ -178,6 +178,29 @@ return [
             'publish_now_success'        => 'Publicatie aangevraagd',
         ],
     ],
+    'translation_review' => [
+        'label' => 'Vertaalreview',
+        'fields' => [
+            'subject' => 'Onderwerp',
+            'attribute' => 'Veld',
+            'locale' => 'Taal',
+            'status' => 'Status',
+            'error' => 'Fout',
+            'updated_at' => 'Bijgewerkt',
+        ],
+        'actions' => [
+            'edit' => 'Bewerken',
+            'edit_value' => 'Vertaling (:locale)',
+            'approve' => 'Goedkeuren',
+            'publish' => 'Publiceren',
+            'retranslate' => 'Opnieuw vertalen (AI)',
+            'retranslate_confirm' => 'De goedgekeurde waarde wordt overschreven door een nieuwe AI-vertaling en moet opnieuw worden goedgekeurd. Doorgaan?',
+        ],
+        'notifications' => [
+            'updated' => 'Vertaalstatus bijgewerkt',
+        ],
+    ],
+
     'announcements' => [
         'label' => 'Mededeling',
         'plural_label' => 'Mededelingen',

@@ -41,6 +41,7 @@ resource Modules\Prospects\Filament\Resources\SyncHistoryResource | model=Module
 resource Modules\Safety\Filament\Resources\ChecklistResource | model=Modules\Safety\Models\Checklist | slug=checklists | navigation=yes | record_title=- | globally_searchable=no
 resource Modules\Safety\Filament\Resources\InspectionResource | model=Modules\Safety\Models\Inspection | slug=inspections | navigation=yes | record_title=- | globally_searchable=no
 page App\Filament\Clusters\Website\Pages\SiteSettingsPage
+page App\Filament\Clusters\Website\Pages\TranslationReviewPage
 page App\Filament\Clusters\Website\WebsiteCluster
 page Filament\Pages\Dashboard
 page Modules\Core\Filament\Pages\AccessAnalyticsPage

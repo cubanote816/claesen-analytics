@@ -149,6 +149,29 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    'translation_review' => [
+        'label' => 'Révision des traductions',
+        'fields' => [
+            'subject' => 'Sujet',
+            'attribute' => 'Champ',
+            'locale' => 'Langue',
+            'status' => 'Statut',
+            'error' => 'Erreur',
+            'updated_at' => 'Mis à jour',
+        ],
+        'actions' => [
+            'edit' => 'Modifier',
+            'edit_value' => 'Traduction (:locale)',
+            'approve' => 'Approuver',
+            'publish' => 'Publier',
+            'retranslate' => 'Retraduire (IA)',
+            'retranslate_confirm' => "La valeur approuvée sera remplacée par une nouvelle traduction IA et devra être approuvée à nouveau. Continuer ?",
+        ],
+        'notifications' => [
+            'updated' => 'Statut de traduction mis à jour',
+        ],
+    ],
+
     'announcements' => [
         'label' => 'Annonce',
         'plural_label' => 'Annonces',
