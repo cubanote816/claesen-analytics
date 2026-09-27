@@ -288,6 +288,7 @@ GET|HEAD users/{record}/edit | name=filament.admin.resources.users.edit | action
 GET|HEAD v1/website | name=- | action=Closure | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders
 GET|HEAD v1/website/announcements | name=- | action=Modules\Website\Http\Controllers\SiteContentController@announcements | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders
 GET|HEAD v1/website/legal/{docId} | name=- | action=Modules\Website\Http\Controllers\LegalDocumentController@show | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders
+GET|HEAD v1/website/media/slots | name=- | action=Modules\Website\Http\Controllers\MediaSlotController@index | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders
 GET|HEAD v1/website/projects | name=- | action=Modules\Website\Http\Controllers\ProjectController@index | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders
 GET|HEAD v1/website/projects/categories | name=- | action=Modules\Website\Http\Controllers\ProjectController@categories | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders
 GET|HEAD v1/website/projects/years | name=- | action=Modules\Website\Http\Controllers\ProjectController@years | middleware=ResolveRequestSite,SetPanelLocale,SetPublicApiCacheHeaders

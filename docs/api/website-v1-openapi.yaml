@@ -164,6 +164,36 @@ paths:
           content:
             application/json:
               example: { message: "Not found." }
+  /media/slots:
+    get:
+      summary: Named media slots for the resolved site — CLA-481
+      description: >-
+        Slots bind stable keys (home.hero, over-ons.team, ...) to site media
+        items. Only PUBLIC conversion URLs are served — the original file is
+        private (CLA-467) and never serialized. width/height describe the
+        optimized conversion (CLS-safe); checksum is sha256 of that file
+        (stable per file version — the build skips re-downloading unchanged
+        binaries). alt/caption are per-locale maps containing ONLY locales
+        with an actual value — a missing locale is absent, never coalesced
+        (CLA-611 G9). Slots whose media lacks a confirmed usage-rights
+        record (website:confirm-media-usage-rights) are omitted.
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                data:
+                  - slot: over-ons.team
+                    url: "https://.../conversions/7-optimized.webp"
+                    width: 1200
+                    height: 800
+                    checksum: "sha256:..."
+                    mime_type: image/webp
+                    alt:
+                      nl: "Het team van Electro Bertels"
+                      fr: "L'équipe d'Electro Bertels"
+                    caption:
+                      nl: "Ons team op kantoor"
   /consultations:
     post:
       summary: >-

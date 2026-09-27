@@ -7,6 +7,7 @@ use Modules\Core\Http\Middleware\SetPublicApiCacheHeaders;
 use Modules\Website\Http\Controllers\ConsultationController;
 use Modules\Website\Http\Controllers\ContactController;
 use Modules\Website\Http\Controllers\LegalDocumentController;
+use Modules\Website\Http\Controllers\MediaSlotController;
 use Modules\Website\Http\Controllers\ProjectController;
 use Modules\Website\Http\Controllers\SiteContentController;
 
@@ -43,4 +44,8 @@ Route::prefix('v1/website')->middleware([
 
     // CLA-479 (dynamic part): per-site legal documents (privacy/cookies/terms).
     Route::get('/legal/{docId}', [LegalDocumentController::class, 'show']);
+
+    // CLA-481: named media slots with dimensions, checksums and per-locale
+    // alt/caption for the frontend build.
+    Route::get('/media/slots', [MediaSlotController::class, 'index']);
 });
