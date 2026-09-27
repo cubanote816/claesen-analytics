@@ -10,6 +10,7 @@ use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\DocumentController;
 use Modules\Knx\Http\Controllers\EventStreamController;
 use Modules\Knx\Http\Controllers\Field\FieldDeviceController;
+use Modules\Knx\Http\Controllers\Field\FieldIssueController;
 use Modules\Knx\Http\Controllers\Field\FieldProjectController;
 use Modules\Knx\Http\Controllers\Field\FieldSessionController;
 use Modules\Knx\Http\Controllers\Field\FieldTodayController;
@@ -78,6 +79,11 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::post('projects/{code}/devices', [FieldDeviceController::class, 'store'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.devices.store');
+
+            // V11.d — an incident reported from site. Also idempotent by `clientId`.
+            Route::post('projects/{code}/issues', [FieldIssueController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.issues.store');
         });
 
     // Signed downloads live outside the authenticated group on purpose: an `<a href>`

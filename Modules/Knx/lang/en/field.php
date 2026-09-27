@@ -7,4 +7,5 @@ return [
     'photo_invalid' => 'The photo is not a valid data URL.',
     'photo_unsupported' => 'That image format is not supported.',
     'photo_too_large' => 'The photo is too large (5 MB maximum).',
+    'kind_unsupported' => 'The office’s conflict centre has no such kind of report; choose damaged, missing or plan mismatch.',
 ];

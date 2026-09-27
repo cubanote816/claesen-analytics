@@ -73,9 +73,9 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | **K9** | Fichas funcionales y pruebas de aceptación | ✅ cerrado |
 | **K10** | (Opcional) `GET /events` SSE | ✅ cerrado |
 | **V11.a** | **Veld**: cuentas de campo, `GET /field/session`, `GET /field/today` | ✅ cerrado |
-| V11.b | Veld: `GET /field/projects/{code}`, `…/plans` (offline) | ⏳ |
-| V11.c | Veld: `POST …/devices` (idempotente, `409 address_in_use`) | ⏳ |
-| V11.d | Veld: `POST …/issues` (contextualizada, idempotente) | ⏳ |
+| V11.b | Veld: `GET /field/projects/{code}`, `…/plans` (offline) | ✅ cerrado |
+| V11.c | Veld: `POST …/devices` (idempotente, `409 address_in_use`) | ✅ cerrado |
+| V11.d | Veld: `POST …/issues` (contextualizada, idempotente) | ✅ cerrado |
 | V11.e | Veld: `POST …/visits` (3 fases — **decisión de producto pendiente**) | ⏳ |
 
 **El contrato está completo:** los 36 endpoints de `/api/v1/knx` cubren las 32 llamadas que hace el cliente real del front (`src/api/real/index.ts`), incluidos login/refresh/logout y las descargas firmadas, que el front todavía no consume.
@@ -295,6 +295,38 @@ trampas conocidas. Mantenedlo actualizado al cerrar cada slice.
 
 **Alcance = la asignación, no la empresa.** Un técnico solo ve los proyectos que planificación le puso **hoy**. `FieldTodayService::isAssignedToday()` es la única respuesta a esa pregunta y la usarán V11.b/c/d también.
 
+### V11.b — proyecto y planos (`GET /field/projects/{code}`, `…/plans`)
+
+Lo que la app cachea para registrar sin cobertura: salas (con `id`, que es lo que devuelve al registrar), cuadros, plantas y tipos de aparato.
+
+**`deviceTypes` se deriva de los aparatos del proyecto.** No hay tabla de catálogo en el dominio y no se inventa: la lista son los tipos que ese proyecto ya usa. Consecuencia declarada: un proyecto sin aparatos devuelve `[]` y el selector de la app se queda sin opciones.
+
+**`/plans` solo sirve dibujos** (`kind` ∈ `Plan`, `Schema`) **que tengan fichero en disco** y cuyo tipo se pueda nombrar. La app descarga el fichero y lo abre sin conexión, así que un plano que no puede abrir es peor que uno que no ve. El `mimeType` sale de la extensión (el documento de oficina no guarda tipo de contenido) y la `url` es una **firma de una semana** (`knx.plans.url_minutes`): los 30 minutos del visor de oficina caducarían antes de que el técnico llegue a la obra.
+
+Columnas nuevas en `knx_documents`: `mime_type` y `pages`. El contrato de oficina no tiene ninguna de las dos (solo lista documentos); `pages = 1` está corroborado por la propia fixture de Veld para esos mismos documentos. El sembrador escribe **PDFs reales de una página** para los planos, rellenados hasta el tamaño que declara la fixture de oficina: sin fichero no hay nada que cachear, y así el tamaño que muestra la oficina sigue siendo cierto sobre el fichero que hay.
+
+### V11.c — registro de aparatos (`POST /field/projects/{code}/devices`)
+
+La app puede estar horas sin conexión, así que el mismo registro puede llegar dos veces o llegar cuando la dirección ya no está libre. Tres reglas:
+
+1. **El `clientId` de la app decide la identidad.** Único **global** en `knx_devices` (un UUID hecho en el teléfono no colisiona entre proyectos). Reintento → `200` con el mismo aparato, nunca una fila nueva.
+2. **Mismo `clientId` en otro proyecto → 422** en `clientId`. Devolver el aparato guardado le daría a un proyecto el aparato de otro.
+3. **Dirección ocupada → `409 address_in_use`** con el aparato que molesta, **y además se escribe un conflicto** `duplicate_address` (critical) con la foto como evidencia y la línea `reported` en el histórico. Sin eso el técnico se queda con un error y la oficina sin enterarse de que ETS y la obra no coinciden. Un reintento de la misma tentativa no duplica el conflicto: para eso está `knx_conflicts.client_id`.
+
+**Un aparato registrado crea DOS cosas**: el aparato (`source = field`, `acknowledged_at = null` → `isNew` en el dossier) y su notificación (el *evento* que confirma la bandeja de oficina). Es la misma pareja que ya usa el fixture; no se abre un camino paralelo.
+
+`registered_at` = la hora de captura del técnico (`created_at` ya guarda la llegada), y `captured_at` la conserva explícitamente. La sala tiene que ser del proyecto (el id sale de `GET /field/projects/{code}`): adivinar por el nombre libre pondría aparatos en el sitio equivocado. Un cuadro que la oficina no tiene modelado **se crea sin nombre**: sabemos el código, no cómo lo llama ella.
+
+**El `409` lleva el aparato dos veces a propósito**: en `existing` arriba del cuerpo (como pide el documento de Veld) y dentro de `errors` — porque el parser de la app construye `details` como `data.errors ?? payload`, y como el sobre **siempre** emite `errors`, si no estuviera dentro no lo encontraría nunca. Verificado contra su `http.ts`.
+
+### V11.d — incidencias (`POST /field/projects/{code}/issues`)
+
+Una incidencia **es** un conflicto: el Conflictencentrum ya es esa lista, y duplicar el concepto daría dos listas de trabajo que mantener sincronizadas. El `kind` de la app se mapea a los tipos que la oficina ya tiene (`damaged`, `missing` → `missing_device`, `plan_mismatch`) con la severidad que su fixture ya usa por tipo.
+
+**El contexto no se pierde.** El contrato insiste en que una incidencia siempre lleva ubicación y, cuando se conoce, equipo y canal; los cuatro valores se conservan en `device_field` (`espacio · dirección · cuadro · canal`), que es exactamente la «descripción humana del registro que viene de campo» en el vocabulario de la fixture. `device_existing` dice qué hay registrado en esa dirección, o la frase de la fixture (`— niet gevonden ter plaatse`) cuando no hay nada. Cuando hay un aparato registrado ahí, el conflicto se ancla a él (`device_id`).
+
+**⚠️ `kind: other` → `422` (`errors.kind`).** El tipo `other` de Veld **no existe** en el contrato de oficina: `ConflictType` son cuatro valores y `CONFLICT_TYPE_LABEL_KEY` es un `Record<ConflictType, …>` **sin fallback**, así que guardarlo daría `undefined` en el Conflictencentrum. Etiquetar el hallazgo como uno de los tres sería mentir sobre lo que vio el técnico; se rechaza con un mensaje que dice las alternativas. Es un hueco del contrato de oficina, no una incidencia que se pueda registrar — ver decisiones abiertas.
+
 ### Cuentas de campo sembradas
 
 | Email | Contraseña | Técnico |
@@ -319,3 +351,4 @@ El sembrador usaba `now()->setTime(9, 42)` para "hoy"; sembrando **antes de las 
 1. **Alta de personas** desde Kantoor (arriba).
 2. ¿El aviso de zona no preparada bloquea `PUT /planning` o solo advierte? (§1.6 recomienda warning estructurado; el front ya avisa en cliente).
 3. ¿Fichas funcionales y pruebas se validan con negocio antes de exponerlas? (`ROADMAP.md` §9.2; el front ya las tiene hechas).
+4. **`kind: other` de Veld** (V11.d): hoy responde `422` porque `ConflictType` de oficina no lo tiene y su etiqueta no tiene fallback. Las dos salidas son ampliar el contrato de oficina (un valor más en la unión + su entrada en el mapa de etiquetas + el texto en nl/en: tres líneas) o dejar que el técnico elija entre los tres tipos existentes. Mientras no se decida, el hueco está declarado y es reversible en una línea.

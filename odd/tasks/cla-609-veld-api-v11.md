@@ -10,9 +10,9 @@
 ## Tareas
 
 - [x] **V11.a** Sesión de campo y trabajo del día — `GET /field/session`, `GET /field/today` (+ guard por app `EnsureKnxApp`, login compartido, zonas de lectura compartida). `7246b5a`, `0be219a`
-- [ ] **V11.b** Proyecto y planos — `GET /field/projects/{code}`, `GET /field/projects/{code}/plans`
-- [ ] **V11.c** Registro de aparatos — `POST /field/projects/{code}/devices` (idempotente por `clientId`, 409 + conflicto `duplicate_address`)
-- [ ] **V11.d** Incidencias — `POST /field/projects/{code}/issues` (idempotente por `clientId`, contextualizada)
+- [x] **V11.b** Proyecto y planos — `GET /field/projects/{code}`, `GET /field/projects/{code}/plans`
+- [x] **V11.c** Registro de aparatos — `POST /field/projects/{code}/devices` (idempotente por `clientId`, 409 + conflicto `duplicate_address`)
+- [x] **V11.d** Incidencias — `POST /field/projects/{code}/issues` (idempotente por `clientId`, contextualizada)
 - [ ] **V11.e** Cierre de visita en 3 fases — `POST /field/projects/{code}/visits` — **BLOQUEADO por decisión de producto** (no se inventa el modelo)
 
 ## Decisiones tomadas (y su porqué)
@@ -40,6 +40,13 @@
 - Documentos actualizados: módulo + handover de los dos repos de frontend.
 
 ## Progreso / evidencia
+- V11.b: `e5ae254` (proyecto y planos; columnas `mime_type`/`pages`; PDFs reales de fixture).
+- V11.c: `7d0b027` (registro de aparatos; `client_id` global en `knx_devices` y en `knx_conflicts`; 409 + conflicto con foto).
+- V11.d: incidencias (mapeo de `kind`, contexto conservado, `other` → 422 declarado).
+- Tests: `Modules/Knx` **168/168** (959 aserciones). Verificación HTTP real de los tres endpoints, incluido lo que ve la oficina.
+- **Dos bugs reales encontrados por el camino** (ninguno visible con los tests en verde):
+  1. El orden de las salas: el índice `(project_id, name)` hacía que MySQL las devolviera alfabéticamente, no en el orden de modelado que espera la fixture de Veld.
+  2. `Collection::mapInto()` pasa la **clave** de la colección como segundo argumento del constructor: `DocumentResource` recibía `bool $withUrl` ahí, así que del segundo ítem en adelante salía `true` y `GET /documents` construía una URL firmada por fila. No se veía porque la fixture no tenía ficheros; al empezar a escribir planos reales apareció. Arreglado de raíz en `KnxResource::list()` + `withUrl()` fluido.
 - V11.a: `7246b5a` (sesión, hoy, guard por app, login compartido, zonas) y `0be219a` (un login para las dos apps, zonas compartidas, demo usable). 126/126.
 - Hallazgo de V11.a que justifica la verificación HTTP: `actingAs()` en los tests nunca pasaba por `/auth/login`, así que dos bugs reales (técnico sin login, `/zones` detrás del guard de oficina) vivieron hasta la prueba manual.
 

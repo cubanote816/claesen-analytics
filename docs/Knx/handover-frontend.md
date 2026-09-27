@@ -1,8 +1,9 @@
 # Handover backend → frontend (Kantoor y Veld)
 
 > **Estado:** API de **Kantoor completa** (36 rutas, contrato de `BACKEND-API.md` +
-> `BACKEND-API-ZONES.md`). API de **Veld en curso**: `GET /field/session`, `GET /field/today`
-> y `GET /zones` ya responden (§4).
+> `BACKEND-API-ZONES.md`). API de **Veld casi completa**: V11.a–d cerrados (sesión, trabajo
+> de hoy, zonas, proyecto, planos, registro de aparatos e incidencias); solo falta el cierre
+> de visita, bloqueado por una decisión de producto (§4).
 > **Rama:** `electrobertels/knx-api` · **Tickets:** CLA-604 (oficina) y CLA-609 (campo)
 > · **Doc del módulo:** `docs/Knx/knx-kantoor-backend.md`
 > **Instrucciones paso a paso para vuestro código:** §7 en Kantoor / §5 en Veld, al final de
@@ -12,8 +13,8 @@
 
 ## 0. Resumen en una línea
 
-Kantoor puede trabajar **entera** contra el backend real hoy mismo; Veld puede cablear
-**sesión, trabajo de hoy y zonas**, y espera al slice `/field/*` (V11.b–e) para el resto.
+Kantoor puede trabajar **entera** contra el backend real hoy mismo; a Veld solo le falta el
+cierre de visita, que espera una decisión de producto.
 
 **Orden acordado — no hace falta coordinarlo conmigo:**
 
@@ -23,7 +24,9 @@ Kantoor puede trabajar **entera** contra el backend real hoy mismo; Veld puede c
    token). Después cambiar a `VITE_API_MODE=real` y recorrer las pantallas en el orden de
    §7.
 2. **Veld:** primero la **capa de token**, que hoy **no existe** (paso 1 de §5). Hasta
-   entonces *todas* las llamadas al backend responden `401 unauthenticated`.
+   entonces *todas* las llamadas al backend responden `401 unauthenticated`. Después ya
+   podéis cambiar a `VITE_API_MODE=real` **todo el flujo** menos el cierre de visita, que
+   sigue en mock.
 3. **`/events` (Kantoor) queda al final**: el polling actual funciona y el contrato lo
    permite, así que no debe ocupar camino crítico.
 
@@ -253,12 +256,21 @@ crear funciones, aprobar, revisiones, crear pruebas, adjuntar evidencia.
 
 ### 4.1 Qué funciona YA
 
+**V11.a–d están cerrados.** Todo lo que necesita la app salvo el cierre de visita:
+
 - **`GET /zones?project=CODE`** → **el mismo serializador que Kantoor** (idéntico, sin
   duplicar contrato).
 - **`GET /field/session`** → `{id, name, initials, domain}` (sin `role` ni `email`, a
   propósito).
 - **`GET /field/today`** → un trabajo por asignación de hoy, con `room`/`zoneStatus`/
   `blockingReason` de la zona que **necesita atención** y `tasks` derivadas.
+- **`GET /field/projects/{code}`** → salas (con `id`), cuadros, plantas y tipos de aparato.
+- **`GET /field/projects/{code}/plans`** → los dibujos del proyecto con una URL firmada de
+  **una semana**, para que la app los cachee y los abra sin cobertura.
+- **`POST /field/projects/{code}/devices`** → idempotente por `clientId`; `201` (o `200` en un
+  reintento), `409 address_in_use` si la dirección ya está tomada.
+- **`POST /field/projects/{code}/issues`** → idempotente por `clientId`; `201` con
+  `{id, clientId}`.
 - `POST /auth/login` para el token (el mismo endpoint que Kantoor).
 
 **Cuentas de campo sembradas** (solo local): `jan.van.dyck@electrobertels.be` y
@@ -277,36 +289,42 @@ decidlo y paso a enviar *task kinds*.
 
 ### 4.2 Qué NO existe todavía
 
-`GET /field/session`, `GET /field/today` y `GET /zones` (V11.a) **ya responden**. El resto
-es el slice **V11.b–e** (CLA-609), en curso:
+Solo queda **V11.e** (CLA-609), y está **bloqueado por una decisión de producto**:
 
-| Endpoint | Estado | Qué tiene ya el backend detrás |
-|---|---|---|
-| `GET /field/projects/{code}` | ⏳ V11.b | `GET /projects/{code}` ya existe: es el mismo dossier con alcance de campo |
-| `GET /field/projects/{code}/plans` | ⏳ V11.b | `knx_documents` ya tiene `revision`, `is_current` y `size_bytes`, y la descarga firmada ya existe |
-| `POST /field/projects/{code}/devices` | ⏳ V11.c | `clientId` encaja con `knx_devices`; el flujo notificación↔aparato ya está hecho y se reutiliza |
-| `POST /field/projects/{code}/issues` | ⏳ V11.d | el modelo de conflicto y el histórico de zonas ya existen |
-| `POST /field/projects/{code}/visits` | ⏳ V11.e · **bloqueado** | requiere decidir las 3 fases del cierre (§4.3) |
-| `POST /field/projects/{code}/photos` | ⏳ | vuestro propio documento ya lo marca "próximamente" |
+| Endpoint | Estado |
+|---|---|
+| `POST /field/projects/{code}/visits` | ⏳ **bloqueado**: requiere decidir las 3 fases del cierre (§4.3) |
+| `POST /field/projects/{code}/photos` | ⏳ vuestro propio documento ya lo marca "próximamente" |
 
-**Mientras tanto, mantenedlos en mock**: vuestra arquitectura ya separa las dos
-implementaciones, así que no hay que tocar ninguna pantalla.
+**Mantened `visits` en mock**: vuestra arquitectura ya separa las dos implementaciones,
+así que no hay que tocar ninguna pantalla.
 
 ### 4.3 Decisiones ya tomadas (y la única que falta)
 
-Ya **decidido e implementado** en V11.a:
+**Ya decidido e implementado** en V11.a–d:
 
 1. **Auth de campo:** se reutiliza `knx_employees` con `user_id` y el rol `knx_field`.
    `POST /auth/login` sirve para **las dos apps** y devuelve el `Session` que corresponde
    al perfil de la cuenta. **Guard por app**: un token de oficina no vale en `/field/*` ni
    al revés — `401` deliberado.
-2. **Alcance:** un técnico solo ve los proyectos donde planificación le puso **hoy**
-   (`FieldTodayService::isAssignedToday()`), y V11.b–d usan **la misma** regla.
-3. **Idempotencia (`clientId`):** `POST …/devices` **reutilizará** el flujo
-   notificación↔aparato que ya funciona, en vez de abrir un camino paralelo.
-4. **`409 address_in_use`:** la misma excepción y el mismo formato que
-   `PATCH /conflicts/{id}` — el aparato existente se devuelve con el mismo criterio.
-5. **Planos:** salen de `knx_documents` + el mecanismo de descarga firmada que ya existe.
+2. **Alcance:** un técnico solo ve y toca los proyectos donde planificación le puso **hoy**
+   (`FieldTodayService::isAssignedToday()`). Código desconocido → `404`; proyecto que
+   existe pero no es suyo hoy → `403`.
+3. **Idempotencia:** el `clientId` de la app es la identidad de la operación, en `devices`
+   y en `issues`. Un reintento devuelve **el mismo resultado** (`200` con el mismo `id`),
+   nunca una fila nueva. El `clientId` es único **global**: si lo reutilizáis para otro
+   proyecto, la respuesta es `422` en `clientId` (devolveros el aparato del otro proyecto
+   os daría datos ajenos).
+4. **`409 address_in_use`:** el aparato que ocupa la dirección viaja en `existing`, arriba
+   del cuerpo **y dentro de `errors`** (vuestro cliente lee `details = data.errors ?? payload`,
+   así que dentro de `errors` es donde lo encuentra).
+5. **Planos:** los dibujos (`kind` `Plan`/`Schema`) cuyo fichero existe, con `mimeType`
+   derivado de la extensión y `pages` registrado por el documento. Un plano que no se puede
+   abrir no se ofrece: la app cachea el fichero, no la fila.
+6. **`deviceTypes` se deriva de los aparatos del proyecto** (no hay catálogo en el dominio).
+   Consecuencia: un proyecto sin aparatos devuelve `[]` y el selector se queda sin opciones.
+
+**La única decisión que falta es de negocio, no técnica: el cierre de visita en 3 fases**
 
 **La única decisión que falta es de negocio, no técnica: el cierre de visita en 3 fases**
 (roadmap §3.1) — fin de visita / entrega parcial / aceptación final. Hoy solo hay
@@ -327,6 +345,21 @@ implementa** y no conviene que Veld lo cablee.
    los 30 min. No le añadáis la cabecera Authorization ni la guardéis en caché larga.
 6. **`GET /events` mantiene la conexión 55 s** y luego cierra; el navegador reconecta
    solo. No lo tratéis como un error.
+7. **El `409` de `POST /field/projects/{code}/devices` trae el aparato que ocupa la
+   dirección en `existing`**: arriba del cuerpo y también dentro de `errors`. Vuestro
+   `http.ts` construye `details` como `data.errors ?? payload`, así que leedlo de `details`
+   como hacéis ahora: funciona. **Un `409` no se reintenta** (es una respuesta final, no un
+   fallo de red): reintentarlo no crea nada nuevo, pero llena la lista de trabajo de oficina.
+8. **Los dos `POST` son idempotentes por `clientId`.** Reintentad con el mismo id sin miedo:
+   la respuesta es `200` con el mismo `id`, nunca una fila nueva. Guardad el `clientId` en la
+   cola offline y **no** generéis uno nuevo al reintentar, o crearéis un aparato duplicado.
+9. **La foto va como data URL en `photoDataUrl`** y se aceptan las dos codificaciones que
+   puede producir la app: `data:image/png;base64,…` (una foto de cámara por canvas) y
+   `data:image/svg+xml;utf8,…` (lo que genera vuestra propia fixture). Límite 5 MB ya
+   decodificada; formatos aceptados: png, jpeg, webp, gif y svg.
+10. **El `url` de un plano es una firma de una semana** (la del visor de oficina son 30
+    minutos). Está pensada para descargar el fichero una vez y abrirlo sin conexión: podéis
+    cachearlo.
 
 ---
 
@@ -361,6 +394,25 @@ implementa** y no conviene que Veld lo cablee.
    oficina).
 5. Tras cada siembra de la BD que haga yo, **volved a hacer login**: las cuentas se
    recrean y vuestro token deja de valer.
+6. **Proyecto** (`GET /field/projects/C1618`): la lista de salas debe venir en el orden en
+   que se modelaron (Inkomhal, Gang gelijkvloers, Vergaderzaal…) y `floors` con las plantas
+   de esas salas. `deviceTypes` son los tipos que **ese proyecto ya usa**.
+7. **Planos** (`…/plans`): el Wayfinding debe venir con `mimeType: application/pdf`,
+   `sizeBytes: 4404019`, `pages: 1` y una `url` que descarga un PDF de verdad. Los documentos
+   que no son dibujos (el export ETS, el informe de inspección, el zip de fotos) **no**
+   aparecen: la lista es de planos, no un explorador de documentos.
+8. **Registrar un aparato** (`POST …/devices`) con una dirección libre → `201` con la forma
+   `FieldDevice`; el mismo `clientId` otra vez → `200` con el mismo `id`; una dirección ya
+   ocupada (p. ej. `1.1.111` en C1618) → `409 address_in_use` con `existing`.
+9. **Y comprobad el otro lado**: cada registro vuestro tiene que aparecer en el dossier de
+   oficina marcado como nuevo (`isNew`), y un `409` tiene que aparecer en el
+   Conflictencentrum como `duplicate_address` **con vuestra foto**. Si la oficina no lo ve,
+   el aparato está a medias y quiero saberlo.
+10. **Incidencia** (`POST …/issues`) → `201` con `{id, clientId}`; en el Conflictencentrum
+    debe conservar espacio, equipo y canal en `deviceField`. Con `kind: "other"` → **`422`**
+    con `errors.kind`: el contrato de oficina no tiene ese tipo (§4.3).
+11. **Alcance, también al escribir**: un `POST` sobre un proyecto que no es vuestro hoy →
+    `403`; sobre un código que no existe → `404`.
 
 Si algo no encaja con lo que esperáis, decidme el payload que esperabais y lo ajusto:
 **el contrato manda, y `src/api/types.ts` manda sobre los `.md` cuando difieran**.

@@ -7,4 +7,5 @@ return [
     'photo_invalid' => 'De foto is geen geldige data-URL.',
     'photo_unsupported' => 'Dit afbeeldingsformaat wordt niet ondersteund.',
     'photo_too_large' => 'De foto is te groot (maximaal 5 MB).',
+    'kind_unsupported' => 'Het Conflictcentrum van kantoor kent dit type melding niet; kies beschadigd, ontbrekend of planafwijking.',
 ];

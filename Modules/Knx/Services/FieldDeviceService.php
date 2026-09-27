@@ -6,7 +6,6 @@ namespace Modules\Knx\Services;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Modules\Knx\Models\KnxBoard;
 use Modules\Knx\Models\KnxConflict;
@@ -38,23 +37,7 @@ use Modules\Knx\Models\KnxProjectRoom;
  */
 class FieldDeviceService
 {
-    /** What one photo may weigh once decoded. Cameras rarely exceed this. */
-    private const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
-
-    /**
-     * The image types we accept, and the extension to store them under.
-     *
-     * `svg+xml` is here because the app's own fixture generates its photos as inline
-     * SVG data URLs; a camera produces the other three.
-     */
-    private const PHOTO_EXTENSIONS = [
-        'png' => 'png',
-        'jpeg' => 'jpg',
-        'jpg' => 'jpg',
-        'webp' => 'webp',
-        'gif' => 'gif',
-        'svg+xml' => 'svg',
-    ];
+    public function __construct(private readonly FieldPhotoService $photos) {}
 
     /**
      * Register (or recognise) one apparatus.
@@ -87,7 +70,7 @@ class FieldDeviceService
         // not leave a photo behind.
         $room = $this->roomFor($project, $input);
 
-        $photoPath = $this->storePhoto($input['clientId'], $input['photoDataUrl'] ?? null);
+        $photoPath = $this->photos->store($input['clientId'], $input['photoDataUrl'] ?? null);
 
         $collision = $this->withContext()
             ->where('project_id', $project->getKey())
@@ -193,55 +176,6 @@ class FieldDeviceService
             ['project_id' => $project->getKey(), 'code' => trim($code)],
             ['name' => null],
         );
-    }
-
-    /**
-     * Decode the app's photo and put it on disk.
-     *
-     * Both encodings the app can produce are accepted — `;base64,` (what a camera
-     * gives through a canvas) and the percent-encoded form its own fixture uses.
-     * The file is named after the `clientId`, so a replay can never store the same
-     * photo twice under two names.
-     */
-    private function storePhoto(string $clientId, ?string $dataUrl): ?string
-    {
-        if ($dataUrl === null || $dataUrl === '') {
-            return null;
-        }
-
-        // The header may carry parameters between the subtype and the comma:
-        // `;base64` from a canvas, `;utf8` / `;charset=utf-8` from the app's own
-        // inline-SVG fixture. Parsing the three parts beats a regex per encoding.
-        if (! preg_match('#^data:image/([a-z0-9.+-]+)(;[^,]*)?,(.*)$#is', $dataUrl, $matches)) {
-            throw ValidationException::withMessages(['photoDataUrl' => [__('knx::field.photo_invalid')]]);
-        }
-
-        $extension = self::PHOTO_EXTENSIONS[strtolower($matches[1])] ?? null;
-
-        if ($extension === null) {
-            throw ValidationException::withMessages(['photoDataUrl' => [__('knx::field.photo_unsupported')]]);
-        }
-
-        $parameters = strtolower($matches[2] ?? '');
-        $payload = $matches[3];
-
-        $bytes = str_contains($parameters, 'base64')
-            ? base64_decode($payload, true)
-            : rawurldecode($payload);
-
-        if ($bytes === false || $bytes === '') {
-            throw ValidationException::withMessages(['photoDataUrl' => [__('knx::field.photo_invalid')]]);
-        }
-
-        if (strlen($bytes) > self::MAX_PHOTO_BYTES) {
-            throw ValidationException::withMessages(['photoDataUrl' => [__('knx::field.photo_too_large')]]);
-        }
-
-        $path = 'knx/devices/'.$clientId.'.'.$extension;
-
-        Storage::disk('local')->put($path, $bytes);
-
-        return $path;
     }
 
     /**
