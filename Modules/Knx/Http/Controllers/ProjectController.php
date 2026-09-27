@@ -7,9 +7,11 @@ use Illuminate\Routing\Controller;
 use Modules\Knx\Http\Resources\DeviceResource;
 use Modules\Knx\Http\Resources\ProjectResource;
 use Modules\Knx\Http\Resources\ProjectStatsResource;
+use Modules\Knx\Http\Resources\VisitResource;
 use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxVisit;
 use Modules\Knx\Services\ProjectActivityService;
 
 /**
@@ -48,6 +50,27 @@ class ProjectController extends Controller
     public function stats(string $code): ProjectStatsResource
     {
         return ProjectStatsResource::make($this->resolve($code));
+    }
+
+    /**
+     * The closures signed off from site (V11.e, CLA-609), newest first.
+     *
+     * The office is the reader of a closure, never its author: the field app sends
+     * them and never reads them back. A `final` here does NOT change the project's
+     * status — that stays an office decision about its own records.
+     */
+    public function visits(Request $request, string $code): array
+    {
+        $project = $this->resolve($code);
+
+        $visits = KnxVisit::query()
+            ->where('project_id', $project->getKey())
+            ->with(['room', 'closedBy', 'items', 'project'])
+            ->orderByDesc('captured_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return VisitResource::list($visits, $request);
     }
 
     /**

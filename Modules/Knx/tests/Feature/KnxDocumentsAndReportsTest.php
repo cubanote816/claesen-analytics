@@ -13,6 +13,7 @@ use Modules\Knx\Http\Resources\DocumentResource;
 use Modules\Knx\Models\KnxDocument;
 use Modules\Knx\Models\KnxExport;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxVisit;
 use Tests\TestCase;
 
 /**
@@ -213,16 +214,49 @@ final class KnxDocumentsAndReportsTest extends TestCase
         $this->assertStringContainsString('field', $csv);
     }
 
-    public function test_the_hours_report_is_refused_because_there_is_no_source_for_it(): void
+    public function test_the_hours_report_is_produced_from_the_visits_closed_on_site(): void
     {
-        // §4.9 lists it, and it is the one type this domain cannot produce: nothing
-        // tracks time. Refusing loudly beats a file of invented numbers.
-        $this->postJson('/api/v1/knx/reports', ['projectCode' => 'C1618', 'type' => 'hours'])
-            ->assertStatus(422)
-            ->assertJsonPath('code', 'validation_error')
-            ->assertJsonStructure(['errors' => ['type']]);
+        // V11.e: the closures are what made this report possible. Before them the type
+        // was refused rather than filled with invented numbers (§4.9).
+        $project = KnxProject::query()->where('code', 'C1618')->sole();
 
-        $this->assertSame(0, KnxExport::query()->where('type', 'hours')->count());
+        KnxVisit::factory()->create([
+            'project_id' => $project->getKey(),
+            'type' => KnxVisit::TYPE_VISIT_END,
+            'minutes' => 180,
+            'captured_at' => now()->subDay(),
+        ]);
+
+        // A closure whose time was never reported is still listed, with the time columns
+        // empty: hiding it would make the report quietly incomplete.
+        KnxVisit::factory()->withoutMinutes()->create([
+            'project_id' => $project->getKey(),
+            'type' => KnxVisit::TYPE_FINAL,
+            'captured_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/v1/knx/reports', ['projectCode' => 'C1618', 'type' => 'hours'])
+            ->assertStatus(202);
+
+        $export = KnxExport::query()->whereKey($response->json('id'))->sole();
+
+        $this->assertSame(KnxExport::STATUS_READY, $export->status);
+
+        $csv = Storage::disk('local')->get($export->path);
+
+        $this->assertStringContainsString('date;type;room;minutes;hours;closed_by;work_done', $csv);
+
+        // 180 minutes, and the same value in hours with a comma decimal: the file is
+        // opened in Excel on a Belgian machine.
+        $this->assertStringContainsString('visit_end', $csv);
+        $this->assertStringContainsString('180;3,00', $csv);
+
+        // The closure with no time is there, with empty columns rather than hidden.
+        $lines = array_filter(explode("\r\n", trim($csv)));
+        $final = collect($lines)->first(fn (string $line): bool => str_contains($line, 'final'));
+
+        $this->assertNotNull($final, 'the closure without reported time is still listed');
+        $this->assertStringContainsString(';;;', (string) $final);
     }
 
     public function test_generating_rejects_an_unknown_project_or_type(): void

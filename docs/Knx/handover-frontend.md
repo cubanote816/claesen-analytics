@@ -1,9 +1,9 @@
 # Handover backend → frontend (Kantoor y Veld)
 
 > **Estado:** API de **Kantoor completa** (36 rutas, contrato de `BACKEND-API.md` +
-> `BACKEND-API-ZONES.md`). API de **Veld casi completa**: V11.a–d cerrados (sesión, trabajo
-> de hoy, zonas, proyecto, planos, registro de aparatos e incidencias); solo falta el cierre
-> de visita, bloqueado por una decisión de producto (§4).
+> `BACKEND-API-ZONES.md`). API de **Veld completa**: V11.a–e cerrados (sesión, trabajo de
+> hoy, zonas, proyecto, planos, registro de aparatos, incidencias y cierre de visita en sus
+> 3 fases). Solo quedan las fotos adicionales, que su propio documento marca como próximas.
 > **Rama:** `electrobertels/knx-api` · **Tickets:** CLA-604 (oficina) y CLA-609 (campo)
 > · **Doc del módulo:** `docs/Knx/knx-kantoor-backend.md`
 > **Instrucciones paso a paso para vuestro código:** §7 en Kantoor / §5 en Veld, al final de
@@ -13,8 +13,8 @@
 
 ## 0. Resumen en una línea
 
-Kantoor puede trabajar **entera** contra el backend real hoy mismo; a Veld solo le falta el
-cierre de visita, que espera una decisión de producto.
+**Los dos fronts pueden trabajar enteros contra el backend real**: el contrato de Kantoor
+está completo, y el de Veld también salvo las fotos adicionales.
 
 **Orden acordado — no hace falta coordinarlo conmigo:**
 
@@ -25,8 +25,7 @@ cierre de visita, que espera una decisión de producto.
    §7.
 2. **Veld:** primero la **capa de token**, que hoy **no existe** (paso 1 de §5). Hasta
    entonces *todas* las llamadas al backend responden `401 unauthenticated`. Después ya
-   podéis cambiar a `VITE_API_MODE=real` **todo el flujo** menos el cierre de visita, que
-   sigue en mock.
+   podéis cambiar a `VITE_API_MODE=real` **el flujo entero**, cierre de visita incluido.
 3. **`/events` (Kantoor) queda al final**: el polling actual funciona y el contrato lo
    permite, así que no debe ocupar camino crítico.
 
@@ -119,6 +118,7 @@ GET    /dashboard
 GET    /projects?status=&q=             GET  /projects/{code}
 GET    /projects/{code}/stats           GET  /projects/{code}/devices
 GET    /projects/{code}/activity        GET  /projects/{code}/functions
+GET    /projects/{code}/visits          (cierres de visita enviados desde Veld)
 GET    /projects/{code}/tests
 
 GET    /clients?q=                      GET  /clients/{id}
@@ -218,12 +218,17 @@ conflicto `open`/`in_review` · `board: null` = cuadro desconocido · `room` es 
 `/projects/{code}/devices` desaparece. Refrescade esa lista tras un ack.
 
 `GET /reports/exports` / `POST /reports`
+
+`GET /projects/{code}/visits` es **aditivo**: no estaba en `BACKEND-API.md` y nadie está
+obligado a llamarlo. Existe porque el cierre de visita se firma desde el móvil y la
+oficina es su única lectora.
 ```json
 [{"id":"14","type":"ets","projectCode":"C1618","projectName":"UV Campus · Gelijkvloers",
   "createdAt":"2026-09-25T18:10:00Z","downloadUrl":"http://…/exports/14/download?expires=…&signature=…"}]
 ```
 `POST /reports` `{projectCode, type}` → **202** con el registro. `type` ∈
-`dossier` · `ets` · `delivery` · **`hours` → 422** (ver §3).
+`dossier` · `ets` · `delivery` · `hours`. **Los cuatro se generan** (ver §3 para el
+formato y para el histórico de pruebas de aceptación, que sigue sin exponerse).
 
 ### 2.4 Las tres reglas que veréis en el flujo
 
@@ -241,7 +246,7 @@ conflicto `open`/`in_review` · `board: null` = cuadro desconocido · `room` es 
 | # | Hueco | Qué veréis | Motivo |
 |---|---|---|---|
 | 1 | **Informes como CSV**, no PDF/XLSX | `downloadUrl` apunta a un `.csv` | §4.9 describe la presentación (PDF/XLSX) y esas plantillas no existen. El de `ets` **está completo** (lista de corrección ETS); `dossier` y `delivery` llevan datos reales en CSV |
-| 2 | `POST /reports` con `type=hours` | **422** | Nada en el dominio registra horas (Veld aún no las reporta): se rechaza antes que inventar números |
+| 2 | Histórico de `PATCH /tests` | **no expuesto** | El tipo del front no tiene campo para él; las ejecuciones se guardan append-only pero no se devuelven |
 | 3 | `techniciansToday[].status` | solo `off` u `on_site` | `travelling` no se emite: vuestro fixture lo inventa por índice (`index === 2`). Llegará cuando Veld reporte llegadas |
 | 4 | `projects/{code}/activity` | sin entradas `photos_uploaded` | Nada modela fotos como eventos (el proyecto solo lleva un contador) |
 | 5 | `GET /projects` no trae `zonesNotReady` | — | §1.6 lo *recomienda*, pero vosotros lo calculáis con `useZones()`; añadirlo cambiaría una forma que nadie consume. **Se puede añadir si lo preferís** (evitaría cargar todas las zonas) |
@@ -256,7 +261,7 @@ crear funciones, aprobar, revisiones, crear pruebas, adjuntar evidencia.
 
 ### 4.1 Qué funciona YA
 
-**V11.a–d están cerrados.** Todo lo que necesita la app salvo el cierre de visita:
+**V11.a–e están cerrados: el contrato de Veld está completo** (salvo las fotos adicionales, que su propio documento marca como próximas):
 
 - **`GET /zones?project=CODE`** → **el mismo serializador que Kantoor** (idéntico, sin
   duplicar contrato).
@@ -271,6 +276,9 @@ crear funciones, aprobar, revisiones, crear pruebas, adjuntar evidencia.
   reintento), `409 address_in_use` si la dirección ya está tomada.
 - **`POST /field/projects/{code}/issues`** → idempotente por `clientId`; `201` con
   `{id, clientId}`.
+- **`POST /field/projects/{code}/visits`** → idempotente por `clientId`; `201` con
+  `{id, clientId}`. Las tres fases (`visit_end`, `partial`, `final`), y `minutes` es lo
+  que por fin da datos al informe de horas de la oficina.
 - `POST /auth/login` para el token (el mismo endpoint que Kantoor).
 
 **Cuentas de campo sembradas** (solo local): `jan.van.dyck@electrobertels.be` y
@@ -289,19 +297,19 @@ decidlo y paso a enviar *task kinds*.
 
 ### 4.2 Qué NO existe todavía
 
-Solo queda **V11.e** (CLA-609), y está **bloqueado por una decisión de producto**:
+Solo las fotos adicionales, que vuestro propio documento ya marca como "próximamente":
 
 | Endpoint | Estado |
 |---|---|
-| `POST /field/projects/{code}/visits` | ⏳ **bloqueado**: requiere decidir las 3 fases del cierre (§4.3) |
-| `POST /field/projects/{code}/photos` | ⏳ vuestro propio documento ya lo marca "próximamente" |
+| `POST /field/projects/{code}/photos` | ⏳ vuestro documento lo marca así; hoy la foto va dentro de cada registro/incidencia |
 
-**Mantened `visits` en mock**: vuestra arquitectura ya separa las dos implementaciones,
-así que no hay que tocar ninguna pantalla.
+Ya **no queda nada bloqueado** por una decisión de producto: las 3 fases del cierre se
+implementaron siguiendo la recomendación del propio `VELD-PLAN.md` §7.4 ("las 3, porque
+condiciona el modelo de datos").
 
-### 4.3 Decisiones ya tomadas (y la única que falta)
+### 4.3 Decisiones ya tomadas
 
-**Ya decidido e implementado** en V11.a–d:
+**Decidido e implementado** en V11.a–e:
 
 1. **Auth de campo:** se reutiliza `knx_employees` con `user_id` y el rol `knx_field`.
    `POST /auth/login` sirve para **las dos apps** y devuelve el `Session` que corresponde
@@ -310,11 +318,11 @@ así que no hay que tocar ninguna pantalla.
 2. **Alcance:** un técnico solo ve y toca los proyectos donde planificación le puso **hoy**
    (`FieldTodayService::isAssignedToday()`). Código desconocido → `404`; proyecto que
    existe pero no es suyo hoy → `403`.
-3. **Idempotencia:** el `clientId` de la app es la identidad de la operación, en `devices`
-   y en `issues`. Un reintento devuelve **el mismo resultado** (`200` con el mismo `id`),
-   nunca una fila nueva. El `clientId` es único **global**: si lo reutilizáis para otro
-   proyecto, la respuesta es `422` en `clientId` (devolveros el aparato del otro proyecto
-   os daría datos ajenos).
+3. **Idempotencia:** el `clientId` de la app es la identidad de la operación, en
+   `devices`, `issues` **y `visits`**. Un reintento devuelve **el mismo resultado** (`200`
+   con el mismo `id`), nunca una fila nueva. El `clientId` es único **global**: si lo
+   reutilizáis para otro proyecto, la respuesta es `422` en `clientId` (devolveros el
+   aparato del otro proyecto os daría datos ajenos).
 4. **`409 address_in_use`:** el aparato que ocupa la dirección viaja en `existing`, arriba
    del cuerpo **y dentro de `errors`** (vuestro cliente lee `details = data.errors ?? payload`,
    así que dentro de `errors` es donde lo encuentra).
@@ -324,12 +332,29 @@ así que no hay que tocar ninguna pantalla.
 6. **`deviceTypes` se deriva de los aparatos del proyecto** (no hay catálogo en el dominio).
    Consecuencia: un proyecto sin aparatos devuelve `[]` y el selector se queda sin opciones.
 
-**La única decisión que falta es de negocio, no técnica: el cierre de visita en 3 fases**
+7. **Las 3 fases del cierre están implementadas** (§4.4), siguiendo la recomendación del
+   propio `VELD-PLAN.md` §7.4. **Un cierre no cambia nada más**: no cierra el proyecto, no
+   abre conflictos desde `pending` ni marca pruebas desde `verifiedFunctions`. Son
+   etiquetas de texto libre, y la oficina decide qué hace con ellas — si esperabais que un
+   `final` cerrara el proyecto, decidlo y lo hablamos antes de inventarlo.
 
-**La única decisión que falta es de negocio, no técnica: el cierre de visita en 3 fases**
-(roadmap §3.1) — fin de visita / entrega parcial / aceptación final. Hoy solo hay
-`knx_acceptance_tests` (append-only). Hasta que se decida, **`POST …/visits` no se
-implementa** y no conviene que Veld lo cablee.
+### 4.4 El cierre de visita, en detalle
+
+Las tres fases del contrato (`visit_end`, `partial`, `final`) se guardan y la oficina las
+lee como **una sola historia** del proyecto (`GET /projects/{code}/visits`, más reciente
+primero). Las cuatro listas se conservan **en el orden en que las escribisteis** y **tal
+como las enviasteis**: son etiquetas, no referencias, y emparejarlas por su texto con
+fichas de función o documentos sería inventar un vínculo que el técnico nunca hizo.
+
+- **`minutes` alimenta el informe de horas de la oficina**, que hasta ahora respondía `422`.
+  Un cierre sin tiempo declarado aparece en ese informe **con las columnas vacías**, no se
+  esconde.
+- **La ubicación**: si el nombre coincide con una sala del proyecto manda la sala; si no, se
+  guarda vuestra palabra (`Zolder boven de keuken`). Nunca las dos.
+- **`type` es obligatorio y son los tres del contrato**; un cuarto valor es `422 errors.type`.
+- Las listas se aceptan **para cualquier tipo** aunque la tabla de vuestro documento diga
+  cuáles aplican: prefiero guardar una lista inesperada antes que perder lo que escribió un
+  técnico. Vuestro `type` es lo que le dice a la oficina cómo leerlas.
 
 ## 5. Trampas conocidas
 
@@ -379,6 +404,10 @@ implementa** y no conviene que Veld lo cablee.
    dossier.
 6. **Plannen**: subir una revisión nueva (`isCurrent: false` en la anterior) debe verse
    como tal.
+7. **Informes**: los **cuatro** tipos se generan, incluido `hours` (antes respondía `422`
+   porque nada registraba tiempo). `hours` sale de los cierres de visita: una línea por
+   cierre, con `hours` en decimal con coma. Un proyecto sin cierres da un CSV con solo la
+   cabecera — que es la respuesta honesta.
 
 ### 6.2 Veld (en cuanto tengáis la capa de token)
 
@@ -413,6 +442,10 @@ implementa** y no conviene que Veld lo cablee.
     con `errors.kind`: el contrato de oficina no tiene ese tipo (§4.3).
 11. **Alcance, también al escribir**: un `POST` sobre un proyecto que no es vuestro hoy →
     `403`; sobre un código que no existe → `404`.
+12. **Cierre de visita** (`POST …/visits`): `201` con `{id, clientId}`; el mismo `clientId`
+    otra vez → `200` con el mismo `id`. Cerrad un `final` con `verifiedFunctions` y
+    `documents` y comprobad que **el proyecto no cambia de estado** ni aparecen conflictos
+    nuevos: un cierre registra lo que firmasteis, no decide nada por la oficina.
 
 Si algo no encaja con lo que esperáis, decidme el payload que esperabais y lo ajusto:
 **el contrato manda, y `src/api/types.ts` manda sobre los `.md` cuando difieran**.

@@ -44,14 +44,9 @@ class ReportController extends Controller
             'projectCode.exists' => __('knx::reports.unknown_project'),
         ]);
 
-        if ($validated['type'] === KnxExport::TYPE_HOURS) {
-            // The contract lists it, and it is the one type this domain cannot
-            // produce: nothing tracks hours (Veld does not report time yet).
-            // Refusing loudly beats shipping a file full of invented numbers.
-            throw ValidationException::withMessages([
-                'type' => __('knx::reports.hours_unavailable'),
-            ]);
-        }
+        // `hours` used to be refused here: it was the one type this domain could not
+        // produce, because nothing tracked time. Visits do now
+        // (`knx_visits.minutes`), so it is generated from them like the rest.
 
         $project = KnxProject::query()->where('code', $validated['projectCode'])->sole();
         $user = $request->user();

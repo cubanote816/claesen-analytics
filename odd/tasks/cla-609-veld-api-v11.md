@@ -13,7 +13,7 @@
 - [x] **V11.b** Proyecto y planos — `GET /field/projects/{code}`, `GET /field/projects/{code}/plans`
 - [x] **V11.c** Registro de aparatos — `POST /field/projects/{code}/devices` (idempotente por `clientId`, 409 + conflicto `duplicate_address`)
 - [x] **V11.d** Incidencias — `POST /field/projects/{code}/issues` (idempotente por `clientId`, contextualizada)
-- [ ] **V11.e** Cierre de visita en 3 fases — `POST /field/projects/{code}/visits` — **BLOQUEADO por decisión de producto** (no se inventa el modelo)
+- [x] **V11.e** Cierre de visita en 3 fases — `POST /field/projects/{code}/visits` (siguiendo `VELD-PLAN.md` §7.4) + informe `hours` real
 
 ## Decisiones tomadas (y su porqué)
 
@@ -51,4 +51,10 @@
 - Hallazgo de V11.a que justifica la verificación HTTP: `actingAs()` en los tests nunca pasaba por `/auth/login`, así que dos bugs reales (técnico sin login, `/zones` detrás del guard de oficina) vivieron hasta la prueba manual.
 
 ## Siguiente paso
-V11.b (proyecto + planos) → V11.c (aparatos) → V11.d (incidencias). V11.e espera decisión de producto.
+**V11 cerrado entero.** Queda una decisión de contrato de oficina: `kind: other` de las incidencias.
+Impacto medido de ampliar `ConflictType` con `other`: **3 ficheros, 6 líneas** en el front de Kantoor
+(`src/api/types.ts` unión · `src/lib/constants.ts` `CONFLICT_TYPE_LABEL_KEY` · `src/i18n/translations.ts`
+las dos entradas `ct`) y el **compilador lo verifica**, porque el `Record<ConflictType, …>` obliga a
+añadir la etiqueta. No hay ningún `switch` ni comparación sobre el tipo en todo su `src`, así que no se
+rompe nada más. Alternativa: quitar `other` del formulario de campo y que el técnico elija entre los tres.
+En backend son dos líneas (`KIND_TO_TYPE` + `TYPE_SEVERITY`).

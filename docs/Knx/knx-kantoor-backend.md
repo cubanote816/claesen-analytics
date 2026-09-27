@@ -76,7 +76,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | V11.b | Veld: `GET /field/projects/{code}`, `…/plans` (offline) | ✅ cerrado |
 | V11.c | Veld: `POST …/devices` (idempotente, `409 address_in_use`) | ✅ cerrado |
 | V11.d | Veld: `POST …/issues` (contextualizada, idempotente) | ✅ cerrado |
-| V11.e | Veld: `POST …/visits` (3 fases — **decisión de producto pendiente**) | ⏳ |
+| V11.e | Veld: `POST …/visits` (3 fases) | ✅ cerrado |
 
 **El contrato está completo:** los 36 endpoints de `/api/v1/knx` cubren las 32 llamadas que hace el cliente real del front (`src/api/real/index.ts`), incluidos login/refresh/logout y las descargas firmadas, que el front todavía no consume.
 
@@ -232,7 +232,7 @@ Desviación declarada: §4.9 describe la *presentación* (dossier y entrega en P
 | `ets` | lista de corrección ETS: un conflicto por línea con la dirección en juego y el último paso del flujo | ✅ **completo** (el informe por el que existe el módulo) |
 | `dossier` | todos los aparatos del proyecto | ✅ datos reales, formato CSV |
 | `delivery` | zonas con su estado + recuento de pruebas | ✅ datos reales, formato CSV |
-| `hours` | — | ❌ **422**: nada en este dominio registra horas (Veld aún no las reporta). Se rechaza en vez de inventar números |
+| `hours` | ✅ **real desde V11.e** | Una línea por cierre de visita con sus minutos (y las horas en decimal con coma). Un cierre sin tiempo declarado aparece con las columnas vacías en vez de esconderse |
 
 `ExportRecord` incluye además `downloadUrl` (extensión que §4.9 recomienda): el tipo del contrato no tiene enlace, así que la app solo podría decir que el informe existe, nunca abrirlo.
 
@@ -326,6 +326,25 @@ Una incidencia **es** un conflicto: el Conflictencentrum ya es esa lista, y dupl
 **El contexto no se pierde.** El contrato insiste en que una incidencia siempre lleva ubicación y, cuando se conoce, equipo y canal; los cuatro valores se conservan en `device_field` (`espacio · dirección · cuadro · canal`), que es exactamente la «descripción humana del registro que viene de campo» en el vocabulario de la fixture. `device_existing` dice qué hay registrado en esa dirección, o la frase de la fixture (`— niet gevonden ter plaatse`) cuando no hay nada. Cuando hay un aparato registrado ahí, el conflicto se ancla a él (`device_id`).
 
 **⚠️ `kind: other` → `422` (`errors.kind`).** El tipo `other` de Veld **no existe** en el contrato de oficina: `ConflictType` son cuatro valores y `CONFLICT_TYPE_LABEL_KEY` es un `Record<ConflictType, …>` **sin fallback**, así que guardarlo daría `undefined` en el Conflictencentrum. Etiquetar el hallazgo como uno de los tres sería mentir sobre lo que vio el técnico; se rechaza con un mensaje que dice las alternativas. Es un hueco del contrato de oficina, no una incidencia que se pueda registrar — ver decisiones abiertas.
+
+### V11.e — cierre de visita en 3 fases (`POST /field/projects/{code}/visits`)
+
+`VELD-PLAN.md` §7.4 dejaba abierto "¿las 3 fases ya, o solo fin de visita?" y su propia recomendación era **las tres, «porque condiciona el modelo de datos»**. Se implementan las tres, y por eso van en **una tabla** (`knx_visits` con `type` ∈ `visit_end|partial|final`): son el mismo acto —alguien cerró algo desde obra— y la oficina las lee como **una sola historia** del proyecto.
+
+`knx_visit_items` guarda las cuatro listas (`pending`, `reservations`, `verifiedFunctions`, `documents`) **como el técnico las escribió**: son etiquetas de texto libre, no referencias, y con `position` porque una lista leída en otro orden es otra lista para quien la escribió. Emparejarlas por su texto con fichas de función o documentos sería inventar un vínculo que la app nunca envió.
+
+**La ubicación sigue la regla de V11.c**: si el nombre coincide con una sala del proyecto, manda la sala (`room_id`); si no, se guarda la palabra del técnico (`room_label`). Nunca las dos, para que no existan dos copias de un nombre que puedan contradecirse.
+
+**Lo que un cierre NO hace, a propósito** — es la parte que tienta y que se decide no tomar:
+- **No cambia el estado del proyecto.** Que un `final` sea la aceptación del cliente es una decisión de oficina sobre su propio registro, no algo que deba deducirse de un formulario.
+- **No abre conflictos desde `pending`.** La lista es texto libre; convertirla en la lista de trabajo del Conflictencentrum pondría palabras en boca de la oficina.
+- **No cierra pruebas de aceptación desde `verifiedFunctions`.** Son etiquetas, no resultados de prueba.
+
+Las tres cosas están cubiertas por un test (`test_closing_a_visit_changes_nothing_else_in_the_office_records`) para que no se "mejoren" por accidente.
+
+**`minutes` es la primera cosa de este dominio que registra tiempo**, y por eso **el informe `hours` dejó de ser un 422**: se genera desde los cierres, una línea por visita en orden de captura, con `hours` en decimal con coma (el CSV es para Excel en una máquina belga). Un cierre sin tiempo declarado **aparece con las columnas vacías**, no se esconde: la oficina necesita ver que hubo visita y que nadie apuntó cuánto duró.
+
+**La oficina la lee** (`GET /projects/{code}/visits`, más reciente primero): la app de campo solo las envía y **nunca las lee** — su `CloseVisitPage` muestra su propia cola local, no datos del servidor. Ese endpoint es aditivo: el contrato de oficina no lo tenía y nadie está obligado a llamarlo.
 
 ### Cuentas de campo sembradas
 

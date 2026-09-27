@@ -12,6 +12,7 @@ use Modules\Knx\Http\Controllers\EventStreamController;
 use Modules\Knx\Http\Controllers\Field\FieldDeviceController;
 use Modules\Knx\Http\Controllers\Field\FieldIssueController;
 use Modules\Knx\Http\Controllers\Field\FieldProjectController;
+use Modules\Knx\Http\Controllers\Field\FieldVisitController;
 use Modules\Knx\Http\Controllers\Field\FieldSessionController;
 use Modules\Knx\Http\Controllers\Field\FieldTodayController;
 use Modules\Knx\Http\Middleware\EnsureKnxApp;
@@ -84,6 +85,11 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::post('projects/{code}/issues', [FieldIssueController::class, 'store'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.issues.store');
+
+            // V11.e — closing a visit, in one of the three phases. Idempotent too.
+            Route::post('projects/{code}/visits', [FieldVisitController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.visits.store');
         });
 
     // Signed downloads live outside the authenticated group on purpose: an `<a href>`
@@ -122,6 +128,11 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         Route::get('projects/{code}/activity', [ProjectController::class, 'activity'])
             ->where('code', '[A-Za-z0-9._-]+')
             ->name('projects.activity');
+        // V11.e — the closures signed off from site. The office is the reader: the
+        // field app only ever sends them.
+        Route::get('projects/{code}/visits', [ProjectController::class, 'visits'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.visits');
         // K4 — the field inbox. ack-all is declared first: it would otherwise be
         // a candidate match for {id} in a stricter route model binding setup.
         Route::post('notifications/ack-all', [FieldNotificationController::class, 'ackAll'])->name('notifications.ack-all');

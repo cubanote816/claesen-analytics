@@ -6,6 +6,7 @@ use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxExport;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxVisit;
 use Modules\Knx\Models\KnxZone;
 
 /**
@@ -22,9 +23,11 @@ use Modules\Knx\Models\KnxZone;
  *                  reason to exist, and it is complete.
  *   - `dossier`  → every registered apparatus of the project.
  *   - `delivery` → the zones and their readiness, plus the acceptance-test counts.
- *   - `hours`    → **not produced**: nothing in this domain tracks time (Veld does
- *                  not report it yet), so the endpoint refuses the type instead of
- *                  inventing numbers. See KnxReportType.
+ *   - `hours`    → one line per visit closure, with the minutes the technician
+ *                  reported and the same value in hours. Visits are what made this
+ *                  report possible (V11.e, CLA-609); before them the type was refused
+ *                  rather than filled with invented numbers. A closure with no
+ *                  reported time is listed with empty columns, not hidden.
  */
 class ExportService
 {
@@ -40,6 +43,7 @@ class ExportService
             KnxExport::TYPE_ETS => $this->etsWorklist($project),
             KnxExport::TYPE_DOSSIER => $this->dossier($project),
             KnxExport::TYPE_DELIVERY => $this->delivery($project),
+            KnxExport::TYPE_HOURS => $this->hours($project),
             default => '',
         };
     }
@@ -124,6 +128,44 @@ class ExportService
                 $device->source,
                 $device->registeredBy?->shortName(),
                 $device->registered_at?->format('Y-m-d'),
+            ]),
+        );
+    }
+
+    /**
+     * The hours report (§4.9).
+     *
+     * This is the type the module used to refuse: nothing in the domain recorded time.
+     * Visits do (`knx_visits.minutes`), so the report is produced from them — one row
+     * per closure, in capture order.
+     *
+     * A closure whose time was never reported is still listed, with the columns empty.
+     * Hiding it would make the report quietly incomplete: the office needs to see that
+     * the visit happened AND that nobody wrote down how long it took.
+     *
+     * `hours` is a comma-decimal number because the file is opened in Excel on a
+     * Belgian machine, where the semicolon is the separator and the comma the decimal
+     * mark — the same reason the whole file is semicolon-separated.
+     */
+    private function hours(KnxProject $project): string
+    {
+        $visits = KnxVisit::query()
+            ->where('project_id', $project->getKey())
+            ->with(['room', 'closedBy'])
+            ->orderBy('captured_at')
+            ->orderBy('id')
+            ->get();
+
+        return $this->csv(
+            ['date', 'type', 'room', 'minutes', 'hours', 'closed_by', 'work_done'],
+            $visits->map(fn (KnxVisit $visit): array => [
+                $visit->captured_at->format('Y-m-d'),
+                $visit->type,
+                $visit->location(),
+                $visit->minutes,
+                $visit->minutes === null ? '' : number_format($visit->minutes / 60, 2, ',', ''),
+                $visit->closedBy?->shortName(),
+                $visit->work_done,
             ]),
         );
     }
