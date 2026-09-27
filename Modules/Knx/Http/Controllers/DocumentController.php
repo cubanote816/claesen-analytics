@@ -45,10 +45,9 @@ class DocumentController extends Controller
 
     public function show(string $id): DocumentResource
     {
-        return new DocumentResource(
+        return DocumentResource::make(
             KnxDocument::query()->with(['project', 'uploadedBy', 'approvedBy'])->findOrFail($id),
-            withUrl: true,
-        );
+        )->withUrl();
     }
 
     /**

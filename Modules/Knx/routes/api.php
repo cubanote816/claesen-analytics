@@ -9,6 +9,7 @@ use Modules\Knx\Http\Controllers\DashboardController;
 use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\DocumentController;
 use Modules\Knx\Http\Controllers\EventStreamController;
+use Modules\Knx\Http\Controllers\Field\FieldProjectController;
 use Modules\Knx\Http\Controllers\Field\FieldSessionController;
 use Modules\Knx\Http\Controllers\Field\FieldTodayController;
 use Modules\Knx\Http\Middleware\EnsureKnxApp;
@@ -60,6 +61,16 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         ->group(function (): void {
             Route::get('session', [FieldSessionController::class, 'show'])->name('session');
             Route::get('today', [FieldTodayController::class, 'index'])->name('today');
+
+            // V11.b — the project the app caches to work offline. `{code}` is
+            // constrained for the same reason as the office routes: it must never
+            // swallow the nested paths below it.
+            Route::get('projects/{code}', [FieldProjectController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.show');
+            Route::get('projects/{code}/plans', [FieldProjectController::class, 'plans'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans');
         });
 
     // Signed downloads live outside the authenticated group on purpose: an `<a href>`

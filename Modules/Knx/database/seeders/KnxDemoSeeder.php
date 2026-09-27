@@ -6,6 +6,7 @@ namespace Modules\Knx\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Spatie\Permission\Models\Role;
@@ -485,22 +486,88 @@ class KnxDemoSeeder extends Seeder
             ['Linde_app21_foto’s_oplevering.zip', '240512', 'Foto’s', '38 MB', '2026-09-23', 'T. Janssens', null, true, null],
         ];
 
+        $drawingKinds = ['Plan', 'Schema'];
+
         foreach ($rows as [$name, $code, $kind, $size, $uploadedAt, $uploadedBy, $revision, $isCurrent, $approvedBy]) {
-            KnxDocument::create([
+            $path = 'knx/documents/'.$name;
+            $bytes = $this->parseSize($size);
+
+            $document = [
                 'project_id' => $this->projects[$code]->id,
                 'name' => $name,
                 'kind' => $kind,
+                // The office never stores a content type; the extension is the only
+                // fact there is, and it is enough for the app that has to render it.
+                'mime_type' => KnxDocument::mimeTypeForName($name),
                 // The mock stores display text; the API re-formats from bytes, so
                 // the seed converts the same way the contract documents.
-                'size_bytes' => $this->parseSize($size),
-                'path' => 'knx/documents/'.$name,
+                'size_bytes' => $bytes,
+                'path' => $path,
                 'revision' => $revision,
                 'is_current' => $isCurrent,
                 'uploaded_by_employee_id' => $this->people[$uploadedBy]->id,
                 'approved_by_employee_id' => $approvedBy === null ? null : $this->people[$approvedBy]->id,
                 'uploaded_at' => $uploadedAt,
-            ]);
+            ];
+
+            // Only the drawings carry a page count, and they carry the one the field
+            // app's own fixture declares for these very files.
+            if (in_array($kind, $drawingKinds, true)) {
+                $document['pages'] = 1;
+            }
+
+            KnxDocument::create($document);
+
+            // Drawings get real bytes. The field app downloads a plan once and opens
+            // it offline, so a plan whose file does not exist is a feature nobody can
+            // test — and the office page would show a preview it cannot serve. Every
+            // other document stays metadata-only, exactly like the office fixture.
+            if (in_array($kind, $drawingKinds, true)) {
+                $this->writePlaceholderPdf($path, $bytes, $name);
+            }
         }
+    }
+
+    /**
+     * A real, single-page PDF of exactly `$bytes` bytes.
+     *
+     * The page names the file so a demo is never mistaken for a real drawing, and
+     * the file is padded up to the size the office fixture declares ("4,2 MB") so
+     * the number the office shows is true of the file actually on disk. Padding
+     * after `%%EOF` keeps the PDF valid: that is how incremental PDF updates work.
+     */
+    private function writePlaceholderPdf(string $path, int $bytes, string $title): void
+    {
+        $text = 'Demo plan - '.preg_replace('/[^\x20-\x7E]/', '', $title);
+        $stream = sprintf('BT /F1 18 Tf 72 760 Td (%s) Tj ET', str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text));
+
+        $objects = [
+            '<< /Type /Catalog /Pages 2 0 R >>',
+            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+            "<< /Length ".strlen($stream)." >>\nstream\n".$stream."\nendstream",
+            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+        ];
+
+        $pdf = "%PDF-1.4\n";
+        $offsets = [];
+
+        foreach ($objects as $index => $object) {
+            $offsets[] = strlen($pdf);
+            $pdf .= ($index + 1)." 0 obj\n".$object."\nendobj\n";
+        }
+
+        $xref = strlen($pdf);
+        $pdf .= 'xref'."\n".'0 '.(count($objects) + 1)."\n"."0000000000 65535 f \n";
+
+        foreach ($offsets as $offset) {
+            $pdf .= sprintf("%010d 00000 n \n", $offset);
+        }
+
+        $pdf .= 'trailer'."\n".'<< /Size '.(count($objects) + 1).' /Root 1 0 R >>'."\n"
+            .'startxref'."\n".$xref."\n".'%%EOF'."\n";
+
+        Storage::disk('local')->put($path, $pdf.str_repeat("\n", max(0, $bytes - strlen($pdf))));
     }
 
     /** "4,2 MB" → bytes, so the API can render the same text back. */

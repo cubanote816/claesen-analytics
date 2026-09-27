@@ -78,6 +78,21 @@ return [
         'poll_seconds' => env('KNX_EVENTS_POLL_SECONDS', 2),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Plan downloads (BACKEND-API-VELD.md §2)
+    |--------------------------------------------------------------------------
+    |
+    | How long the signed URL of a plan stays valid. A week on purpose: the field
+    | app downloads the drawing once and opens it on site without a connection, so
+    | the office viewer's 30 minutes would be gone before the technician arrives.
+    | It is still a signature with an expiry, never a public file.
+    |
+    */
+    'plans' => [
+        'url_minutes' => env('KNX_PLAN_URL_MINUTES', 60 * 24 * 7),
+    ],
+
     'zone_check_keys' => [
         'installed',
         'power',

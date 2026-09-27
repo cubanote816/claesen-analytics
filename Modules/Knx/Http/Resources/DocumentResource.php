@@ -28,9 +28,21 @@ use Modules\Knx\Models\KnxDocument;
  */
 class DocumentResource extends KnxResource
 {
-    public function __construct(KnxDocument $resource, private readonly bool $withUrl = false)
+    private bool $withUrl = false;
+
+    /**
+     * Ask for a signed download URL.
+     *
+     * A fluent method and NOT a constructor argument on purpose: Laravel passes the
+     * collection key as the second constructor argument when it builds a list, so a
+     * `bool $withUrl` parameter was silently set by the collection's own keys (see
+     * `KnxResource::list()`). The parameter is gone so the trap cannot come back.
+     */
+    public function withUrl(): static
     {
-        parent::__construct($resource);
+        $this->withUrl = true;
+
+        return $this;
     }
 
     public function toArray(Request $request): array

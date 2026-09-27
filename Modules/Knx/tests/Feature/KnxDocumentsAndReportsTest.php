@@ -54,7 +54,10 @@ final class KnxDocumentsAndReportsTest extends TestCase
         );
 
         // A list never carries signed URLs: building N of them to draw a table would
-        // be wasteful, and the fixture's own list has `url: null` too.
+        // be wasteful, and the fixture's own list has `url: null` too. Three of these
+        // six documents DO have a file on disk, so this is now a real assertion —
+        // before, every URL was skipped for a missing file and the test passed for
+        // the wrong reason (see KnxResource::list()).
         $this->assertSame([null], array_values(array_unique(array_column($documents, 'url'))));
 
         // Human size, rendered from the stored bytes.
@@ -78,14 +81,30 @@ final class KnxDocumentsAndReportsTest extends TestCase
 
     public function test_a_document_without_a_file_gets_no_link_instead_of_a_broken_one(): void
     {
-        // The fixture describes documents that live in the Filament backoffice, so
-        // their files are not on this disk.
-        $document = KnxDocument::query()->where('name', 'like', '%Wayfinding%')->sole();
+        // Not every fixture document has bytes: the ETS export, the inspection report
+        // and the photo archive live in the Filament backoffice, so their files are
+        // not on this disk, and a link to them would be a 404.
+        $document = KnxDocument::query()->where('name', 'like', '%knxproj%')->sole();
 
         $payload = $this->getJson("/api/v1/knx/documents/{$document->getKey()}")->assertOk()->json();
 
-        $this->assertSame('4,2 MB', $payload['size']);
+        $this->assertSame('860 kB', $payload['size']);
         $this->assertNull($payload['url']);
+    }
+
+    public function test_a_document_with_a_file_gets_its_link_in_the_detail_and_not_in_the_list(): void
+    {
+        // The drawings ship real bytes (the field app downloads and caches them), so
+        // the detail view must hand out a working link while the table still gets none.
+        $document = KnxDocument::query()->where('name', 'like', '%Wayfinding%')->sole();
+
+        $detail = $this->getJson("/api/v1/knx/documents/{$document->getKey()}")->assertOk()->json();
+
+        $this->assertStringContainsString('signature=', (string) $detail['url']);
+
+        $list = $this->getJson('/api/v1/knx/documents')->assertOk()->json();
+
+        $this->assertSame([null], array_values(array_unique(array_column($list, 'url'))));
     }
 
     public function test_a_document_that_exists_gets_a_signed_download_that_works_without_a_token(): void
