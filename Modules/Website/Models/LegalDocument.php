@@ -7,6 +7,7 @@ namespace Modules\Website\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Core\Models\Concerns\BelongsToSite;
+use Modules\Intelligence\Services\TranslationStateService;
 use Modules\Intelligence\Traits\HasAiTranslations;
 use Spatie\Translatable\HasTranslations;
 
@@ -61,27 +62,29 @@ class LegalDocument extends Model
     }
 
     /**
+     * CLA-611 (gap G4): context injected into the translation prompt.
+     * Optional HasAiTranslations hook — models without it translate with
+     * no extra context.
+     */
+    public function getAiTranslationContext(): string
+    {
+        return "Legal document '{$this->doc_id}' (version {$this->version}) for a Belgian electrical contractor's public website. Formal legal tone, plain text output — never HTML or Markdown.";
+    }
+
+    /**
      * Per-locale translation status for the public payload
-     * (missing|machine|stale|needs_review|reviewed|published).
-     * Presence-derived interim; superseded by the CLA-611 state engine.
+     * (missing|machine|stale|needs_review|reviewed|published|failed).
+     *
+     * CLA-611: DERIVED, not declared — the worst per-(attribute, locale)
+     * state across this document's translatable keys. A document is only
+     * publishable in a locale when BOTH title and body are
+     * reviewed|published; one unapproved key keeps the whole locale in
+     * draft. Legacy data without state rows derives from translation
+     * presence (never silently approved).
      */
     public function translationStatusFor(string $locale): string
     {
-        if (! $this->hasTranslationFor($locale)) {
-            return 'missing';
-        }
-
-        return 'machine';
-    }
-
-    private function hasTranslationFor(string $locale): bool
-    {
-        foreach (['title', 'body'] as $attribute) {
-            if (trim((string) ($this->getTranslation($attribute, $locale, false) ?? '')) === '') {
-                return false;
-            }
-        }
-
-        return true;
+        return app(TranslationStateService::class)
+            ->entityStatusForLocale($this, ['title', 'body'], $locale);
     }
 }

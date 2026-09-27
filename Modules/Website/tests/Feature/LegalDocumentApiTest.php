@@ -68,8 +68,11 @@ final class LegalDocumentApiTest extends TestCase
             'effective_date' => '2026-10-01',
         ]);
 
-        // Strict site: an untranslated locale resolves to null AND is
-        // reported as missing (CLA-611 G9 — never another locale's text).
+        // Strict site: an untranslated locale resolves to null AND is not
+        // served as another locale's text (CLA-611 G9). The state engine
+        // recorded the provider failure for the never-translated locales
+        // (the mocked Gemini returns nothing) — an OBSERVABLE failed state
+        // (G3), never a silent gap.
         config(['website.public_api.strict_locale_site_keys' => [Site::find(Site::claesenId())->key]]);
 
         $this->getJson('/v1/website/legal/cookies', ['Accept-Language' => 'fr'])
@@ -77,7 +80,7 @@ final class LegalDocumentApiTest extends TestCase
             ->assertJsonPath('data.locale', 'fr')
             ->assertJsonPath('data.title', null)
             ->assertJsonPath('data.body', null)
-            ->assertJsonPath('data.translation_status', 'missing');
+            ->assertJsonPath('data.translation_status', 'failed');
     }
 
     public function test_a_strict_site_never_serves_dutch_for_a_french_request(): void
