@@ -105,6 +105,19 @@ class BertelsPanelProvider extends PanelProvider
             // panel at all (User::canAccessPanel()) — kept as an explicit
             // ->visible() anyway for defense in depth / symmetry with admin.
             ->navigationItems([
+                // CLA-602 (Fase 1 de la app KNX): punto de entrada deliberadamente
+                // fuera del shell de Filament — abre en pestaña nueva una vista
+                // standalone (Modules\Core\Http\Controllers\KnxLandingController)
+                // con la identidad visual propia de electrobertels.md, no la de
+                // este panel. Sin ->visible() propio: todo usuario que llega a
+                // este panel ya pasó el mismo canAccessPanel('bertels') que la
+                // ruta vuelve a exigir, así que sería una segunda comprobación
+                // redundante (a diferencia del ítem de abajo, cuyo destino es
+                // OTRO panel con una regla de acceso distinta).
+                NavigationItem::make(fn () => __('navigation.knx'))
+                    ->url(fn () => route('bertels.knx'))
+                    ->icon('heroicon-o-bolt')
+                    ->openUrlInNewTab(),
                 NavigationItem::make(fn () => __('navigation.switch_to_claesen'))
                     ->url(fn () => route('core.switch-panel', ['panel' => 'admin', 'from' => 'bertels']))
                     ->icon('heroicon-o-arrow-uturn-left')

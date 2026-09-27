@@ -58,3 +58,12 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/switch-panel/{panel}', \Modules\Core\Http\Controllers\SwitchPanelController::class)
         ->name('core.switch-panel');
 });
+
+// CLA-602 (Fase 1 de la app KNX de Electro Bertels): punto de entrada desde
+// el menú del panel Bertels, deliberadamente fuera del shell de Filament —
+// ver KnxLandingController. Mismo patrón que las rutas anteriores: fuera de
+// cualquier grupo de panel, con la autorización dentro del controller.
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/bertels/knx', \Modules\Core\Http\Controllers\KnxLandingController::class)
+        ->name('bertels.knx');
+});

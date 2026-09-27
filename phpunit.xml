@@ -19,6 +19,11 @@
         </testsuite>
         <testsuite name="Modules">
             <directory suffix="Test.php">Modules</directory>
+            <!-- CLA-604: the KNX domain has a model named after the contract's
+                 `AcceptanceTest`, so Modules/Knx/Models would be swept up by the
+                 *Test.php suffix and reported as a class that does not extend
+                 TestCase. No test ever lives in a module's Models directory. -->
+            <exclude>Modules/Knx/Models</exclude>
         </testsuite>
     </testsuites>
     <source>

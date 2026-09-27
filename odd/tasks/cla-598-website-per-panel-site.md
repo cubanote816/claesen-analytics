@@ -40,6 +40,10 @@ Revisión del diff; push de las ramas `website-per-panel-site` → `org-in-users
 - Suite completa tras CLA-600: 1904 tests, 0 fallos. Ramas apiladas: website-per-panel-site -> org-in-users-ui -> org-indicator.
 - Decisión de producto pendiente: crear usuarios de Bertels desde el formulario (hoy exige Employee del ERP y dominio corporativo).
 
+## CLA-601/602 (2026-09-24, en el repo principal y esta rama respectivamente)
+- CLA-601 (login dual-brand): implementado en `/home/totti/claesen_api_web_oficial` (main), commit `2d98b8c`. No es parte de esta rama/worktree.
+- CLA-602 (KNX punto de entrada, Fase 1): `electrobertels/knx-entry-point` (sobre `org-indicator`), commit `3a68244`. Ambos verificados visualmente y con suite completa en verde.
+
 ## Verificación independiente (2026-09-25, Pi)
 - Worktree aislado `/home/totti/claesen/electrobertels-cla599-600` sobre `electrobertels/org-indicator` (HEAD `fed0eec`). El checkout `main` no se tocó.
 - Suite completa reproducida de cero: **1902 passed, 2 skipped, 0 failed (6103 assertions)**, 2589.80s. Los 5 tests de CLA-599/CLA-600 pasan.

@@ -1,0 +1,29 @@
+{
+    "name": "nwidart/knx",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nwidart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Knx\\": "",
+            "Modules\\Knx\\Database\\Factories\\": "database/factories/",
+            "Modules\\Knx\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Knx\\Tests\\": "tests/"
+        }
+    }
+}
