@@ -39,6 +39,14 @@ use Tests\TestCase;
  *
  * The three services share the pattern (devices, issues, visits), so all three are
  * checked here: fixing one and leaving the others would be a half fix.
+ *
+ * **It is skipped unless `RUN_CONCURRENCY_TESTS=1`.** It is the only test in the suite that
+ * drops and rebuilds the schema, because committed rows are the point of it — and doing that
+ * in the middle of a full run takes the database out from under the classes that come next
+ * (they fail with "Table 'migrations' doesn't exist"). Run it on purpose, against its own
+ * database:
+ *
+ *     RUN_CONCURRENCY_TESTS=1 php artisan test --filter=KnxFieldIdempotencyRaceTest
  */
 final class KnxFieldIdempotencyRaceTest extends TestCase
 {
@@ -46,6 +54,13 @@ final class KnxFieldIdempotencyRaceTest extends TestCase
 
     protected function setUp(): void
     {
+        if (getenv('RUN_CONCURRENCY_TESTS') !== '1') {
+            $this->markTestSkipped(
+                'Rebuilds the schema (it needs committed rows); run it on purpose with '
+                .'RUN_CONCURRENCY_TESTS=1 against its own database.'
+            );
+        }
+
         parent::setUp();
 
         Organization::factory()->create(['slug' => 'electro-bertels']);
@@ -87,10 +102,14 @@ final class KnxFieldIdempotencyRaceTest extends TestCase
      */
     protected function tearDown(): void
     {
-        $this->artisan('migrate:fresh');
+        // Only when the test actually ran: otherwise this would wipe the schema out from
+        // under a suite that is still going.
+        if (getenv('RUN_CONCURRENCY_TESTS') === '1') {
+            $this->artisan('migrate:fresh');
 
-        // And let the next class migrate for itself, like a cold start.
-        RefreshDatabaseState::$migrated = false;
+            // And let the next class migrate for itself, like a cold start.
+            RefreshDatabaseState::$migrated = false;
+        }
 
         parent::tearDown();
     }
