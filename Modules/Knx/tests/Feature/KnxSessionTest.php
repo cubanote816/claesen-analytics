@@ -148,6 +148,36 @@ final class KnxSessionTest extends TestCase
                 ->assertJsonStructure(['message', 'code', 'errors' => ['email']]);
 
             $this->assertNotEmpty($response->json('errors.email'), "no error for [{$email}]");
+
+            // "Exactly the same" has to include the wording. Asserting only the
+            // shape let a per-reason message through, which is the one thing this
+            // endpoint must never do.
+            $seen ??= $response->json();
+            $this->assertSame($seen, $response->json(), "the refusal for [{$email}] is not the same");
+        }
+    }
+
+    public function test_the_refusal_names_neither_of_the_two_apps(): void
+    {
+        // `POST /auth/login` serves Kantoor and Veld. The message used to say
+        // "geen toegang tot Kantoor", so a field technician who mistyped their
+        // password read about an app they were not using (CLA-627). The fix is
+        // wording, so the guard is wording: if either app name comes back, the
+        // message is wrong for one of the two callers by definition.
+        Cache::flush();
+
+        $response = $this->postJson('/api/v1/knx/auth/login', [
+            'email' => 'nobody@electrobertels.be',
+            'password' => 'Secret1234!',
+        ]);
+
+        $message = $response->json('errors.email.0');
+        $this->assertNotEmpty($message);
+
+        $lower = mb_strtolower($message);
+
+        foreach (['kantoor', 'veld'] as $app) {
+            $this->assertStringNotContainsString($app, $lower, "the refusal names [{$app}]");
         }
     }
 
