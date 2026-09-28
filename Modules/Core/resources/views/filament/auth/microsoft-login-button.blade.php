@@ -1,24 +1,16 @@
-{{-- Divider --}}
-<div class="relative flex items-center justify-center my-4">
-    <div class="absolute inset-0 flex items-center">
-        <div class="w-full border-t border-gray-200 dark:border-white/10"></div>
+{{-- CLA-601: divider + Microsoft button, styled 1:1 with the login mockup (classes defined in brand-panel.blade.php, only rendered on the login page).
+     Wrapped in one element on purpose: the parent schema grid adds a 24px gap between items, which would otherwise land between the divider and the button. --}}
+<div class="cafca-login-alt">
+    <div class="cafca-login-divider">
+        <span class="cafca-login-divider__line"></span>
+        <span class="cafca-login-divider__label">{{ __('core::auth.divider_or') }}</span>
+        <span class="cafca-login-divider__line"></span>
     </div>
-    <div class="relative px-3 text-sm bg-white dark:bg-gray-900 text-gray-500 font-medium uppercase tracking-wider">
-        {{ __('core::auth.divider_or') }}
-    </div>
-</div>
 
-{{-- Microsoft Login Button --}}
-<div class="mt-4">
-    <a href="{{ route('auth.microsoft.redirect', ['source' => 'filament']) }}" 
-       class="flex w-full items-center justify-center gap-3 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent dark:bg-white/5 dark:text-white dark:ring-white/20 dark:hover:bg-white/10 transition-all duration-200">
-        <svg class="h-5 w-5" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
-            <path fill="#f25022" d="M1 1h10v10H1z"/>
-            <path fill="#7fba00" d="M12 1h10v10H12z"/>
-            <path fill="#00a4ef" d="M1 12h10v10H1z"/>
-            <path fill="#ffb900" d="M12 12h10v10H12z"/>
-        </svg>
-        <span class="text-sm font-medium">{{ __('core::auth.microsoft_login') }}</span>
+    <a href="{{ route('auth.microsoft.redirect', ['source' => 'filament']) }}" class="cafca-login-microsoft">
+        <span class="cafca-login-microsoft__icon" aria-hidden="true">
+            <span style="background:#F25022"></span><span style="background:#7FBA00"></span><span style="background:#00A4EF"></span><span style="background:#FFB900"></span>
+        </span>
+        {{ __('core::auth.microsoft_login') }}
     </a>
 </div>

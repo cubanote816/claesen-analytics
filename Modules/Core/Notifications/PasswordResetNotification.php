@@ -13,14 +13,19 @@ use Illuminate\Notifications\Notification;
 // approach (plain MailMessage, action link into the frontend) rather than a
 // fully custom Blade template, for consistency with the only other
 // account-lifecycle email in the codebase.
+// CLA-603: `$resetUrl` lets a caller send the same email to a different
+// front door — the backoffice login builds a signed Filament reset URL per
+// panel; leaving it null keeps the original client-portal link verbatim.
 class PasswordResetNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public int $tries = 3;
 
-    public function __construct(private readonly string $resetCode)
-    {
+    public function __construct(
+        private readonly string $resetCode,
+        private readonly ?string $resetUrl = null,
+    ) {
         $this->afterCommit();
     }
 
@@ -46,6 +51,10 @@ class PasswordResetNotification extends Notification implements ShouldQueue
 
     private function resetUrl(): string
     {
+        if ($this->resetUrl !== null) {
+            return $this->resetUrl;
+        }
+
         $portal = rtrim((string) config('fieldops.client_portal_url'), '/');
 
         return $portal.'?'.http_build_query(['reset_code' => $this->resetCode]);

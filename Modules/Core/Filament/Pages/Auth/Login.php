@@ -12,6 +12,9 @@ use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use Modules\Core\Models\User;
 
 /**
@@ -32,6 +35,50 @@ use Modules\Core\Models\User;
  */
 class Login extends BaseLogin
 {
+    /** CLA-601: the mockup promises "Remember me for 30 days" — make that literally true. */
+    private const REMEMBER_MINUTES = 60 * 24 * 30;
+
+    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        return filled($this->userUndertakingMultiFactorAuthentication)
+            ? parent::getHeading()
+            : __('core::auth.heading');
+    }
+
+    public function getSubheading(): string|\Illuminate\Contracts\Support\Htmlable|null
+    {
+        return filled($this->userUndertakingMultiFactorAuthentication)
+            ? parent::getSubheading()
+            : __('core::auth.subheading');
+    }
+
+    protected function getEmailFormComponent(): \Filament\Schemas\Components\Component
+    {
+        return parent::getEmailFormComponent()->placeholder(__('core::auth.email_placeholder'));
+    }
+
+    protected function getPasswordFormComponent(): \Filament\Schemas\Components\Component
+    {
+        $component = parent::getPasswordFormComponent()
+            ->placeholder(__('core::auth.password_placeholder'));
+
+        // CLA-603: the mockup puts "Forgot password?" on the password label.
+        // Filament renders that link only when the panel has password reset
+        // enabled and with its own label — point it at ours.
+        if (! filament()->hasPasswordReset()) {
+            return $component;
+        }
+
+        return $component->hint(new HtmlString(Blade::render(
+            '<x-filament::link :href="filament()->getRequestPasswordResetUrl()" tabindex="-1">{{ __(\'core::auth.forgot_password_link\') }}</x-filament::link>'
+        )));
+    }
+
+    protected function getRememberFormComponent(): \Filament\Schemas\Components\Component
+    {
+        return parent::getRememberFormComponent()->label(__('core::auth.remember'));
+    }
+
     public function authenticate(): ?LoginResponse
     {
         try {
@@ -85,6 +132,8 @@ class Login extends BaseLogin
                 return null;
             }
         }
+
+        $authGuard->setRememberDuration(self::REMEMBER_MINUTES);
 
         if (! $authGuard->attemptWhen($credentials, function (Authenticatable $user): bool {
             if (($user instanceof FilamentUser) && (! $user->canAccessPanel(Filament::getCurrentOrDefaultPanel()))) {
