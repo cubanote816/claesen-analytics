@@ -8,6 +8,7 @@ use Modules\Website\Http\Controllers\ConsultationController;
 use Modules\Website\Http\Controllers\ContactController;
 use Modules\Website\Http\Controllers\LegalDocumentController;
 use Modules\Website\Http\Controllers\MediaSlotController;
+use Modules\Website\Http\Controllers\PagePublicationController;
 use Modules\Website\Http\Controllers\ProjectController;
 use Modules\Website\Http\Controllers\SiteContentController;
 
@@ -41,6 +42,11 @@ Route::prefix('v1/website')->middleware([
 
     Route::get('/settings', [SiteContentController::class, 'settings']);
     Route::get('/announcements', [SiteContentController::class, 'announcements']);
+
+    // CLA-611: what the static site's build may index, per page and locale. The
+    // consumer is the build's sync, which writes the response verbatim to the
+    // snapshot it reads (see the controller for why it is not enveloped).
+    Route::get('/publication-manifest', [PagePublicationController::class, 'manifest']);
 
     // CLA-479 (dynamic part): per-site legal documents (privacy/cookies/terms).
     Route::get('/legal/{docId}', [LegalDocumentController::class, 'show']);
