@@ -321,6 +321,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 - Regla de hierro (D10): no debe existir ningún usuario real de Bertels hasta que P5 esté verificada; el alta de Electro Bertels ocurre al final de P7. MFA (D8) es gate previo al primer login real de Bertels.
 - De Mailing solo se comparte el transporte transaccional (D11), nunca la plataforma de campañas. El tenant de Microsoft 365 es compartido: el From se resuelve desde configuración del sitio, nunca de entrada de usuario.
 - **Pendiente (P7):** `NOT NULL`, flag activo en producción, alta de Bertels y decisión de MFA; bloqueado por staging (CLA-530/531/525).
+- **Integrado (2026-09-28):** las tres líneas del programa están en `electrobertels/trunk` — `org-indicator` (CLA-598/599/600), `knx-api` (CLA-602/604/609) y `login-per-company` (CLA-603) — con la suite completa verde en cada paso (2099 passed / 0 failed al cierre) y empujado a `origin`. `site-content-api` queda **fuera a propósito** (trabajo en vuelo de CLA-481/484/611). Defectos destapados y detalle: `handoff.md`.
 
 ---
 
