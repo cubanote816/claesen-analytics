@@ -56,5 +56,5 @@ Y `PublicationState` (tabla `website_publication_states`) **no sirve para esto**
 ## Fuera de alcance
 
 - El sync que escribe `src/content/publication.json` en el repo del sitio (su sesión, Fase 1/2 del plan).
-- La UI de aprobación con roles (el usuario retiró esa decisión ✗: sigue abierta).
+- La UI de aprobación. **La decisión de responsable ya está tomada (2026-09-29): el cliente que modifica es el responsable automáticamente**, y al aprobar su propio usuario queda registrado — para eso están `reviewed_by_user_id` y `reviewed_at`. Sin roles nuevos y sin aprobador intermedio. Lo que falta es la pantalla que escribe esas filas (nadie escribe `website_page_publications` todavía: el endpoint de este slice sólo lee), y estampar al usuario que actúa.
 - El estado por `(modelo, atributo, locale)` del contenido dinámico: ya existe (CLA-611) ✔.

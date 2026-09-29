@@ -37,6 +37,10 @@ return new class extends Migration
             $table->string('status', 20);
             // Who approved it and when: an approval without an author is an
             // assertion, and this is the record the client's decision lives on.
+            // Who approved it, recorded automatically from the acting client —
+            // the client who moves the state IS the responsible party, so this is
+            // never assigned by hand. Null only for the hand-seeded initial state,
+            // where nobody approved anything.
             $table->foreignId('reviewed_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
