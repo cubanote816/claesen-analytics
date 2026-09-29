@@ -129,6 +129,29 @@ paths:
                     message: "Closed for the holidays"
                     starts_at: null
                     ends_at: "2026-12-31T23:59:59+00:00"
+  /publication-manifest:
+    get:
+      summary: What the static site's build may index, per page and locale — CLA-611
+      description: >-
+        The publication state of the content pages, keyed by page and locale.
+        Only `published` entries appear; an absent (page, locale) pair means
+        nothing has been approved for it, and the site's build emits noindex for
+        it. The body is written VERBATIM to the site's
+        src/content/publication.json by its sync, so it is deliberately not
+        wrapped in the usual `{data: ...}` envelope and carries no timestamps:
+        the committed snapshot should change when the state changes, and not
+        because a build ran at a different minute. An empty `published` map is a
+        valid answer and a dangerous one — the sync must refuse to overwrite a
+        non-empty snapshot with it.
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                version: 1
+                published:
+                  home: ["nl"]
+                  contact: ["nl", "fr"]
   /legal/{docId}:
     get:
       summary: A per-site legal document (privacy | cookies | terms) — CLA-479 dynamic part
