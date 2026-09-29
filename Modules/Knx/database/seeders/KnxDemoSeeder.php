@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Modules\Knx\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use LogicException;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
-use Spatie\Permission\Models\Role;
 use Modules\Knx\Models\KnxAcceptanceTest;
 use Modules\Knx\Models\KnxBoard;
 use Modules\Knx\Models\KnxClient;
@@ -27,6 +28,7 @@ use Modules\Knx\Models\KnxProjectRoom;
 use Modules\Knx\Models\KnxZone;
 use Modules\Knx\Models\KnxZoneCheck;
 use Modules\Knx\Support\KnxTenant;
+use Spatie\Permission\Models\Role;
 
 /**
  * The demo data of the office app, ported 1:1 from Kantoor's own mock
@@ -82,8 +84,40 @@ class KnxDemoSeeder extends Seeder
     /** @var array<string, KnxProject> keyed by code */
     private array $projects = [];
 
+    /**
+     * This fixture deletes the tenant's KNX rows before recreating them, so it
+     * must not be runnable by reflex against a database that holds real work.
+     *
+     * The test suite seeds it on purpose, so `testing` passes without a flag.
+     * Production is refused outright. Everywhere else it takes an explicit
+     * opt-in — deliberately a thrown error rather than the log-and-return the
+     * two FieldOps QA seeders use: a fixture that quietly does nothing still
+     * prints a successful `db:seed`, which is a worse failure mode than no guard
+     * at all for something destructive (CLA-632).
+     */
+    private function guardAgainstWipingLiveData(): void
+    {
+        if (app()->environment('testing')) {
+            return;
+        }
+
+        if (app()->environment('production')) {
+            throw new LogicException(
+                'KnxDemoSeeder replaces the tenant KNX data on every run and must never run in production.',
+            );
+        }
+
+        if (! config('knx.demo_seed_confirm')) {
+            throw new LogicException(
+                'KnxDemoSeeder replaces the tenant KNX data on every run. Set KNX_DEMO_SEED_CONFIRM=true to confirm.',
+            );
+        }
+    }
+
     public function run(): void
     {
+        $this->guardAgainstWipingLiveData();
+
         $organization = KnxTenant::organization();
 
         $this->purge($organization);
@@ -112,7 +146,7 @@ class KnxDemoSeeder extends Seeder
      * where the new entry landed *before* the "reported" one. So a timestamp that
      * would fall in the future is moved a day back.
      */
-    private function at(int $daysAgo, int $hour, int $minute): \Illuminate\Support\Carbon
+    private function at(int $daysAgo, int $hour, int $minute): Carbon
     {
         $at = now()->subDays($daysAgo)->setTime($hour, $minute);
 
@@ -545,7 +579,7 @@ class KnxDemoSeeder extends Seeder
             '<< /Type /Catalog /Pages 2 0 R >>',
             '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
             '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
-            "<< /Length ".strlen($stream)." >>\nstream\n".$stream."\nendstream",
+            '<< /Length '.strlen($stream)." >>\nstream\n".$stream."\nendstream",
             '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
         ];
 

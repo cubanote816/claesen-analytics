@@ -21,6 +21,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo fixture confirmation
+    |--------------------------------------------------------------------------
+    |
+    | KnxDemoSeeder is the demo fixture: it REPLACES the tenant's KNX data on
+    | every run (children first), so it is only safe while the database holds no
+    | real work. It refuses to run outside the test suite unless this is
+    | explicitly enabled, so it can never fire by reflex against a live database
+    | (CLA-632). Set KNX_DEMO_SEED_CONFIRM=true — and only when you actually mean
+    | to wipe the tenant.
+    |
+    | Read through config, never `env()` at runtime: this file is evaluated when
+    | the config is built, which is what makes it survive `config:cache`
+    | (CLA-532).
+    |
+    */
+    'demo_seed_confirm' => env('KNX_DEMO_SEED_CONFIRM', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Access token lifetime
     |--------------------------------------------------------------------------
     |

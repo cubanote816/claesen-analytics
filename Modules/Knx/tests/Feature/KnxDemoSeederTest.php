@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Knx\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use LogicException;
 use Modules\Core\Models\Organization;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxAcceptanceTest;
@@ -173,5 +174,66 @@ final class KnxDemoSeederTest extends TestCase
             KnxZoneCheck::query()->count(),
             KnxConflict::query()->count(),
         ]);
+    }
+
+    public function test_it_refuses_to_run_in_production(): void
+    {
+        $this->app['env'] = 'production';
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('must never run in production');
+
+        (new KnxDemoSeeder)->run();
+    }
+
+    public function test_it_refuses_to_run_outside_the_test_suite_without_an_explicit_confirmation(): void
+    {
+        $this->app['env'] = 'local';
+        config(['knx.demo_seed_confirm' => false]);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Set KNX_DEMO_SEED_CONFIRM=true');
+
+        (new KnxDemoSeeder)->run();
+    }
+
+    /**
+     * The point of the guard is that it fires *before* anything is deleted — a
+     * guard placed after `purge()` would pass the two tests above and still wipe
+     * the tenant.
+     *
+     * Counting fixture rows would not prove that: without the guard the seeder
+     * purges *and* recreates them, so the totals come out the same either way.
+     * The sentinel is a row the fixture never creates, so it can only survive if
+     * the guard really runs first.
+     */
+    public function test_the_refusal_happens_before_it_deletes_anything(): void
+    {
+        $sentinel = KnxProject::factory()->create(['code' => 'SENTINEL-1']);
+
+        $this->app['env'] = 'local';
+        config(['knx.demo_seed_confirm' => false]);
+
+        try {
+            (new KnxDemoSeeder)->run();
+            $this->fail('the seeder wiped the tenant without an explicit confirmation');
+        } catch (LogicException) {
+            // Expected: refused before the purge.
+        }
+
+        $this->assertTrue(
+            KnxProject::query()->whereKey($sentinel->getKey())->exists(),
+            'the sentinel project is gone, so the guard ran after purge()',
+        );
+    }
+
+    public function test_it_runs_outside_the_test_suite_when_the_confirmation_is_explicit(): void
+    {
+        $this->app['env'] = 'local';
+        config(['knx.demo_seed_confirm' => true]);
+
+        $this->seed(KnxDemoSeeder::class);
+
+        $this->assertSame(5, KnxProject::query()->count());
     }
 }
