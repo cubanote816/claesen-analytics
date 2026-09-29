@@ -16,6 +16,15 @@
 /public/build
 /public/hot
 /public/storage
+# Publicados por `php artisan filament:upgrade`, que corre en `post-autoload-dump`
+# y en los dos `deploy.sh`. Trackearlos hacía que cualquier `composer install`
+# local los dejara sucios, y un drift de bundles minificados bloqueaba el review
+# del worktree (CLA-630). NO volver a trackearlos: el deploy los publica desde
+# `vendor/filament/*/dist`, y el paso 7 de `infrastructure/scripts/deploy.sh`
+# ahora falla en voz alta si no aparecen.
+/public/css/filament
+/public/js/filament
+/public/fonts/filament
 /storage/*.key
 /storage/pail
 /tmp

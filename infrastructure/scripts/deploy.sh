@@ -55,7 +55,20 @@ php artisan migrate --force
 # ── 7. ASSETS Y CACHE ────────────────────────
 echo "[ 7/10] Filament + cache..."
 php artisan optimize:clear
-php artisan filament:upgrade --no-interaction 2>/dev/null || true
+# Los assets publicados de Filament NO se trackean en el repo (CLA-630), así que
+# este paso es lo único que los pone en su sitio: un fallo aquí serviría el panel
+# sin JS ni CSS. Sin `|| true`, y con `set -euo pipefail` arriba, el deploy aborta
+# antes del paso 9 y producción se queda en el release anterior en vez de servir
+# un backoffice roto. NO volver a silenciarlo con `|| true` ni con `2>/dev/null`.
+php artisan filament:upgrade --no-interaction
+# La comprobación es imprescindible y no es redundante: `UpgradeCommand::handle()`
+# llama a `filament:assets` pero **ignora su código de salida**, así que
+# `filament:upgrade` puede terminar en 0 sin haber publicado nada. Sin assets
+# trackeados, este `test` es lo único que distingue «publicado» de «silencio».
+for asset in public/js/filament/filament/app.js public/css/filament/filament/app.css; do
+    test -f "$RELEASE_DIR/$asset" \
+        || { echo "ERROR: falta $asset después de filament:upgrade — abortando el deploy"; exit 1; }
+done
 php artisan optimize
 php artisan storage:link 2>/dev/null || true
 
