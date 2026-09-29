@@ -178,6 +178,27 @@ return [
             'publish_now_success'        => 'Publication requested',
         ],
     ],
+    'page_publication_review' => [
+        'label' => 'Page publications',
+        'fields' => [
+            'page' => 'Page',
+            'locale' => 'Locale',
+            'status' => 'Status',
+            'reviewed_at' => 'Reviewed',
+            'reviewed_by' => 'Reviewed by',
+        ],
+        'actions' => [
+            'approve' => 'Approve',
+            'publish' => 'Publish',
+            'retire' => 'Retire',
+            'publish_confirm' => 'This page will become indexable in this locale. Continue?',
+            'retire_confirm' => 'This page will stop being indexable in this locale. Continue?',
+        ],
+        'notifications' => [
+            'updated' => 'Publication status updated',
+        ],
+    ],
+
     'translation_review' => [
         'label' => 'Translation review',
         'fields' => [

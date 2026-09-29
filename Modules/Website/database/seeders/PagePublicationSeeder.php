@@ -9,28 +9,29 @@ use Modules\Core\Models\Site;
 use Modules\Website\Models\PagePublication;
 
 /**
- * The publication state as it actually stands when this slice lands.
+ * Records the publication state of the content pages.
  *
- * It exists because the state is a **decision**, not a schema default: the Dutch
- * copy of the seven content pages is live and approved, and the three legal pages
- * are deliberately not (their gate is their own draft status, not this table).
+ * Two things happen here, and only the first is about "today's truth":
  *
- * Seeding rather than a data migration on purpose: a migration must not decide
- * editorial content, and this is the one row set that has to exist *before* the
- * first sync runs — otherwise the manifest would come back empty and the site
- * would flip itself to draft.
+ *   1. Every `(page, locale)` pair the site declares is **materialised**. The
+ *      client approves pairs, so the pairs have to exist — including the ones
+ *      nobody has translated yet, which is the majority. A row that is absent
+ *      and a row that is unpublished mean the same thing to the build (no index),
+ *      but only the second one can be reviewed and approved.
+ *   2. The site's own default locale starts as `published` — what is live today —
+ *      and every other locale starts as `machine`: it is a draft, it is NOT
+ *      indexable (the manifest only ever publishes `published`), and it is
+ *      therefore exactly the right starting point while those locales have
+ *      neither approved copy nor, in most cases, a slug.
  *
- * Only sets rows that are missing, so it is safe to re-run after a sync: an
- * approval made later by a person is never overwritten.
+ * The three legal pages are deliberately **absent**: their gate is their own
+ * `status: draft` in the content, not this table.
+ *
+ * `firstOrCreate`, never an upsert: a decision a human made in the backoffice
+ * must survive every later run of this seeder.
  */
 class PagePublicationSeeder extends Seeder
 {
-    /**
-     * The content pages whose NL copy is approved, and the locales the site
-     * actually has. fr/en/de stay out until somebody approves them.
-     *
-     * @var list<string>
-     */
     private const PAGES = [
         'home',
         'particulieren',
@@ -40,6 +41,9 @@ class PagePublicationSeeder extends Seeder
         'over-ons',
         'contact',
     ];
+
+    /** Fallback when a site somehow declares no locale at all. */
+    private const FALLBACK_LOCALE = 'nl';
 
     public function run(): void
     {
@@ -51,23 +55,43 @@ class PagePublicationSeeder extends Seeder
             return;
         }
 
-        foreach (self::PAGES as $page) {
-            PagePublication::query()->firstOrCreate(
-                ['site_id' => $site->getKey(), 'page' => $page, 'locale' => 'nl'],
-                [
-                    'status' => PagePublication::STATUS_PUBLISHED,
-                    // No author: nobody clicked approve for this initial state, and
-                    // crediting a user who never did it would be a false record.
-                    'reviewed_by_user_id' => null,
-                    'reviewed_at' => null,
-                ],
-            );
+        $locales = array_values(array_filter((array) $site->locales, 'is_string'));
+
+        if ($locales === []) {
+            $this->command?->warn(sprintf(
+                'PagePublicationSeeder: site "%s" declares no locale; nothing seeded.',
+                $site->key,
+            ));
+
+            return;
+        }
+
+        $publishedLocale = $site->default_locale ?: self::FALLBACK_LOCALE;
+
+        foreach ($locales as $locale) {
+            foreach (self::PAGES as $page) {
+                PagePublication::query()->firstOrCreate(
+                    ['site_id' => $site->getKey(), 'page' => $page, 'locale' => $locale],
+                    [
+                        'status' => $locale === $publishedLocale
+                            ? PagePublication::STATUS_PUBLISHED
+                            : PagePublication::STATUS_MACHINE,
+                        // No author: nobody clicked approve for this initial state, and
+                        // crediting a user who never did it would be a false record.
+                        'reviewed_by_user_id' => null,
+                        'reviewed_at' => null,
+                    ],
+                );
+            }
         }
 
         $this->command?->info(sprintf(
-            'PagePublicationSeeder: %d pages published in nl for site "%s".',
+            'PagePublicationSeeder: %d pairs (%d pages x %d locales) for site "%s"; published in "%s".',
+            count(self::PAGES) * count($locales),
             count(self::PAGES),
+            count($locales),
             $site->key,
+            $publishedLocale,
         ));
     }
 }

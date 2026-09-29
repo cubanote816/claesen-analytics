@@ -178,6 +178,27 @@ return [
             'publish_now_success'        => 'Publicatie aangevraagd',
         ],
     ],
+    'page_publication_review' => [
+        'label' => 'Pagina-publicaties',
+        'fields' => [
+            'page' => 'Pagina',
+            'locale' => 'Taal',
+            'status' => 'Status',
+            'reviewed_at' => 'Nagekeken',
+            'reviewed_by' => 'Nagekeken door',
+        ],
+        'actions' => [
+            'approve' => 'Goedkeuren',
+            'publish' => 'Publiceren',
+            'retire' => 'Terugtrekken',
+            'publish_confirm' => 'Deze pagina wordt indexeerbaar in deze taal. Doorgaan?',
+            'retire_confirm' => 'Deze pagina wordt niet langer indexeerbaar in deze taal. Doorgaan?',
+        ],
+        'notifications' => [
+            'updated' => 'Publicatiestatus bijgewerkt',
+        ],
+    ],
+
     'translation_review' => [
         'label' => 'Vertaalreview',
         'fields' => [

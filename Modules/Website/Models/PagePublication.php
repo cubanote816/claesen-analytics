@@ -35,6 +35,7 @@ use Modules\Core\Models\User;
  */
 class PagePublication extends Model
 {
+
     use BelongsToSite;
 
     /** A draft: it renders, carrying the notice, and is never indexed. */
