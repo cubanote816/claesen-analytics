@@ -49,6 +49,7 @@
             "Modules\\Safety\\Database\\Factories\\": "Modules/Safety/database/factories/",
             "Modules\\Safety\\Database\\Seeders\\": "Modules/Safety/database/seeders/",
             "Modules\\Website\\Database\\Factories\\": "Modules/Website/database/factories/",
+            "Modules\\Website\\Database\\Seeders\\": "Modules/Website/database/seeders/",
             "Modules\\": "Modules/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
