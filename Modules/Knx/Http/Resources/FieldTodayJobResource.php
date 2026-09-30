@@ -38,9 +38,12 @@ class FieldTodayJobResource extends KnxResource
             'projectCode' => $project->code,
             'projectName' => $project->name,
             'city' => $project->city,
-            // The street on its own, next to `city`: the card draws them as one line
-            // and the app decides how to join them. Optional in the schema, so an
-            // unknown one is an empty string, the way `room` is.
+            // The client's own address line, exactly as the office typed it. It is
+            // free text on `knx_clients`, so it may already carry the city and the
+            // postcode (the demo fixture does). The app therefore renders this line
+            // and falls back to `city` only when it is empty — never both joined.
+            // Optional in the schema, so an unknown one is an empty string, the way
+            // `room` is.
             'address' => $project->client->address ?? '',
             'room' => $this->zone?->name ?? '',
             'zoneStatus' => $this->zone?->derivedStatus(),

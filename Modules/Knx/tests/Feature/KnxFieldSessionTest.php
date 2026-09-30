@@ -163,10 +163,11 @@ final class KnxFieldSessionTest extends TestCase
         $this->visitToday($project, $jan, now(), KnxVisit::TYPE_PARTIAL);
         $this->assertFalse($closed(), 'a partial handover does not close the day');
 
-        // Signed by the other technician on the job: a closure is the project's day
-        // and not the signer, so it closes for everyone on it.
+        // Signed by a colleague who is on the job too: a closure is the project's
+        // day and not the signer's, so it closes for everyone on it.
+        $this->planToday($mira, 'C1618');
         $this->visitToday($project, $mira, now());
-        $this->assertTrue($closed(), 'a closure signed by a colleague closes the day for the project');
+        $this->assertTrue($closed(), 'a closure signed by a colleague on the job closes the day for everyone');
     }
 
     private function visitToday(KnxProject $project, KnxEmployee $technician, \DateTimeInterface $capturedAt, string $type = KnxVisit::TYPE_VISIT_END): void
