@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\Core\Http\Controllers;
 
-use Filament\Facades\Filament;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -18,16 +17,18 @@ use Illuminate\Routing\Controller;
  * (expedientes de instalación, dispositivos, conflictos de direcciones de
  * grupo KNX) — decisión explícita del usuario, ver CLA-602.
  *
- * Mismo control de acceso que el panel Bertels (User::canAccessPanel(),
- * ADR D10: hoy solo super_admin, porque no existe ningún usuario real de
- * Bertels todavía). Reutiliza ese método en vez de duplicar la regla, para
- * que ambos sigan la misma fuente de verdad si cambia.
+ * Control de acceso: `User::canOpenKnxOffice()`, no `canAccessPanel('bertels')`.
+ * Reutilizaba ese método «para que ambos sigan la misma fuente de verdad si cambia», y
+ * cambió: desde CLA-611 el panel bertels también admite a los usuarios de la
+ * organización del cliente (entran a aprobar sus páginas), de modo que colgar esta
+ * entrada de aquella comprobación le abría al cliente una app de personal. La fuente de
+ * verdad sigue siendo única; simplemente ahora nombra lo que de verdad se pregunta.
  */
 class KnxLandingController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        abort_unless($request->user()?->canAccessPanel(Filament::getPanel('bertels')), 403);
+        abort_unless($request->user()?->canOpenKnxOffice(), 403);
 
         return view('core::knx.landing');
     }

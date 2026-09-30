@@ -252,6 +252,28 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         ]);
     }
 
+    /**
+     * ¿Puede esta persona abrir la entrada a la app KNX de oficina? (CLA-602)
+     *
+     * Antes era la misma pregunta que `canAccessPanel('bertels')`, y lo era de verdad
+     * mientras a ese panel solo entrara `super_admin`. Desde CLA-611 el panel admite
+     * además a los usuarios de la organización dueña del sitio —el cliente entra ahí a
+     * aprobar sus páginas—, así que las dos preguntas se separaron: entrar al panel ya no
+     * significa ser de la casa, y la app de oficina es de personal de Electro Bertels.
+     *
+     * Existe como método con nombre para que el menú y la ruta pregunten lo mismo: esa
+     * era exactamente la razón por la que KnxLandingController reutilizaba
+     * `canAccessPanel` en lugar de escribir su propia regla.
+     *
+     * Hoy es `super_admin` porque no existe ningún usuario real de Bertels (ADR D10). El
+     * día que existan, esta es la regla a abrir —y el sitio donde decidir si alcanza con
+     * tener ficha de empleado KNX de oficina—, sin tocar el acceso al panel.
+     */
+    public function canOpenKnxOffice(): bool
+    {
+        return $this->is_active && $this->hasRole('super_admin');
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         // CLA-611 (2026-09-29, decisión del usuario: "abrir el panel a los usuarios del

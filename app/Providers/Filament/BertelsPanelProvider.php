@@ -122,7 +122,13 @@ class BertelsPanelProvider extends PanelProvider
                 NavigationItem::make(fn () => __('navigation.knx'))
                     ->url(fn () => route('bertels.knx'))
                     ->icon('heroicon-o-bolt')
-                    ->openUrlInNewTab(),
+                    ->openUrlInNewTab()
+                    // CLA-611: el panel ya no es solo super_admin —también entran los
+                    // usuarios de la organización del cliente, a aprobar sus páginas—,
+                    // así que «puede entrar al panel» dejó de implicar «es de la casa».
+                    // Sin esto, el cliente vería la entrada a una app de personal. La
+                    // ruta vuelve a comprobarlo; aquí solo se evita ofrecérsela.
+                    ->visible(fn (): bool => (bool) auth()->user()?->canOpenKnxOffice()),
                 NavigationItem::make(fn () => __('navigation.switch_to_claesen'))
                     ->url(fn () => route('core.switch-panel', ['panel' => 'admin', 'from' => 'bertels']))
                     ->icon('heroicon-o-arrow-uturn-left')
