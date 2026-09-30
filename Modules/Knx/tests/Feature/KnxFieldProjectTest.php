@@ -153,14 +153,43 @@ final class KnxFieldProjectTest extends TestCase
 
         // Field registrations first, then the ETS plan — the office's own order, so
         // the app's "latest registrations" block is not buried under the plan.
-        $field = KnxDevice::query()
+        //
+        // The claim is a property of the whole list and not of its head: checking
+        // that `$devices[0]` is a field device would still pass with the plan
+        // interleaved between the registrations.
+        $ids = array_column($devices, 'id');
+
+        $fieldIds = KnxDevice::query()
             ->where('project_id', $project->getKey())
             ->where('source', KnxDevice::SOURCE_FIELD)
-            ->pluck('address')
+            ->pluck('id')
             ->all();
 
-        $this->assertNotEmpty($field, 'the fixture registers devices from site on C1618');
-        $this->assertContains($devices[0]['address'], $field);
+        $planIds = KnxDevice::query()
+            ->where('project_id', $project->getKey())
+            ->where('source', KnxDevice::SOURCE_ETS)
+            ->pluck('id')
+            ->all();
+
+        $this->assertNotEmpty($fieldIds, 'the fixture registers devices from site on C1618');
+        $this->assertNotEmpty($planIds, 'the fixture also carries the ETS plan on C1618');
+
+        $fieldPositions = array_keys(array_intersect($ids, $fieldIds));
+        $planPositions = array_keys(array_intersect($ids, $planIds));
+
+        $this->assertGreaterThan(
+            max($fieldPositions),
+            min($planPositions),
+            'every device registered from site comes before the ones from the plan',
+        );
+
+        // And the two groups are the whole list: a device left out of both would
+        // mean the list is answering with something the project does not own.
+        $this->assertCount(
+            count($ids),
+            array_merge($fieldPositions, $planPositions),
+            'every device in the list is either a field registration or part of the plan',
+        );
     }
 
     public function test_the_device_list_respects_the_same_scope_as_the_project(): void
