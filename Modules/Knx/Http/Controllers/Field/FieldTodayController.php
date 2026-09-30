@@ -24,6 +24,7 @@ class FieldTodayController extends Controller
                 $job['zone'],
                 $job['tasks'],
                 $job['openConflicts'],
+                $job['visitClosed'],
             ))->resolve($request))
             ->all();
     }

@@ -22,6 +22,7 @@ class FieldTodayJobResource extends KnxResource
         private readonly ?KnxZone $zone,
         private readonly array $tasks,
         private readonly int $openConflicts = 0,
+        private readonly bool $visitClosed = false,
     ) {
         parent::__construct($assignment);
     }
@@ -37,6 +38,10 @@ class FieldTodayJobResource extends KnxResource
             'projectCode' => $project->code,
             'projectName' => $project->name,
             'city' => $project->city,
+            // The street on its own, next to `city`: the card draws them as one line
+            // and the app decides how to join them. Optional in the schema, so an
+            // unknown one is an empty string, the way `room` is.
+            'address' => $project->client->address ?? '',
             'room' => $this->zone?->name ?? '',
             'zoneStatus' => $this->zone?->derivedStatus(),
             'blockingReason' => $blocker?->note,
@@ -50,6 +55,10 @@ class FieldTodayJobResource extends KnxResource
             'devicesDone' => $project->devices_done,
             'photos' => $project->photos,
             'openConflicts' => $this->openConflicts,
+            // Whether today's visit was already signed off. It comes in the day's
+            // payload for the same reason the counters do: the card and the job it
+            // opens need it, and asking per card would be a request per card.
+            'visitClosed' => $this->visitClosed,
         ];
     }
 }

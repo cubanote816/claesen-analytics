@@ -11,6 +11,7 @@ use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxPlanningAssignment;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxVisit;
 use Modules\Knx\Models\KnxZone;
 use Modules\Knx\Services\FieldTodayService;
 use Tests\TestCase;
@@ -97,8 +98,9 @@ final class KnxFieldSessionTest extends TestCase
         $this->assertNotEmpty($jobs);
         $this->assertSame(
             [
-                'id', 'projectCode', 'projectName', 'city', 'room', 'zoneStatus', 'blockingReason',
-                'tasks', 'devicesPlanned', 'devicesDone', 'photos', 'openConflicts',
+                'id', 'projectCode', 'projectName', 'city', 'address', 'room', 'zoneStatus',
+                'blockingReason', 'tasks', 'devicesPlanned', 'devicesDone', 'photos',
+                'openConflicts', 'visitClosed',
             ],
             array_keys($jobs[0]),
         );
@@ -108,6 +110,9 @@ final class KnxFieldSessionTest extends TestCase
         $this->assertNotNull($job);
         $this->assertSame('UV Campus · Gelijkvloers', $job['projectName']);
         $this->assertSame('Heverlee', $job['city']);
+        // The street next to the city, so the card can draw where the job is without
+        // asking for the project first (CLA-635).
+        $this->assertSame('Kapeldreef 60, 3001 Heverlee', $job['address']);
 
         // The zone that needs attention, not just the first one: C1618 has four and
         // only Vergaderzaal is blocked.
@@ -127,6 +132,50 @@ final class KnxFieldSessionTest extends TestCase
         $this->assertSame(17, $job['devicesDone']);
         $this->assertSame(38, $job['photos']);
         $this->assertSame(2, $job['openConflicts']);
+
+        // The fixture seeds no visits, so the day is open until somebody signs it off.
+        $this->assertFalse($job['visitClosed']);
+    }
+
+    public function test_the_day_is_closed_only_by_a_visit_end_captured_today(): void
+    {
+        $jan = KnxEmployee::query()->where('name', 'Jan Van Dyck')->sole();
+        $mira = KnxEmployee::query()->where('name', 'Mira Claes')->sole();
+        $this->planToday($jan, 'C1618');
+
+        $project = KnxProject::query()->where('code', 'C1618')->sole();
+
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $closed = fn (): bool => (bool) collect($this->getJson('/api/v1/knx/field/today')->json())
+            ->firstWhere('projectCode', 'C1618')['visitClosed'];
+
+        $this->assertFalse($closed(), 'the fixture seeds no visits');
+
+        // `captured_at` and not the day the row was written: the app queues closures
+        // offline and sends them late, so a closure signed yesterday is yesterday's.
+        $this->visitToday($project, $jan, now()->subDay());
+        $this->assertFalse($closed(), 'a closure signed yesterday is not today');
+
+        // A partial handover and a final acceptance are phases of the delivery, not
+        // the day being finished. Only `visit_end` is the one the app sends when the
+        // technician closes the visit.
+        $this->visitToday($project, $jan, now(), KnxVisit::TYPE_PARTIAL);
+        $this->assertFalse($closed(), 'a partial handover does not close the day');
+
+        // Signed by the other technician on the job: a closure is the project's day
+        // and not the signer, so it closes for everyone on it.
+        $this->visitToday($project, $mira, now());
+        $this->assertTrue($closed(), 'a closure signed by a colleague closes the day for the project');
+    }
+
+    private function visitToday(KnxProject $project, KnxEmployee $technician, \DateTimeInterface $capturedAt, string $type = KnxVisit::TYPE_VISIT_END): void
+    {
+        KnxVisit::factory()->ofType($type)->create([
+            'project_id' => $project->getKey(),
+            'closed_by_employee_id' => $technician->getKey(),
+            'captured_at' => $capturedAt,
+        ]);
     }
 
     public function test_a_technician_only_sees_the_projects_they_are_on_today(): void

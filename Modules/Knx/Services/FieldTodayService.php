@@ -8,6 +8,7 @@ use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxPlanningAssignment;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxVisit;
 use Modules\Knx\Models\KnxZone;
 
 /**
@@ -41,7 +42,7 @@ class FieldTodayService
     private const OPEN_TEST_STATUSES = ['pending', 'failed', 'blocked'];
 
     /**
-     * @return Collection<int, array{assignment: KnxPlanningAssignment, project: KnxProject, zone: KnxZone|null, tasks: list<string>, openConflicts: int}>
+     * @return Collection<int, array{assignment: KnxPlanningAssignment, project: KnxProject, zone: KnxZone|null, tasks: list<string>, openConflicts: int, visitClosed: bool}>
      */
     public function jobsFor(KnxEmployee $technician): Collection
     {
@@ -67,12 +68,26 @@ class FieldTodayService
             ->get()
             ->pluck('aggregate', 'project_id');
 
+        // The same shape of query for the same reason. A closure is "a day's work"
+        // for the project and not for the person who signed it (`KnxVisit` has the
+        // three types as phases of one delivery), so it is keyed by project: if a
+        // colleague closed the day, the job is closed for everyone on it.
+        $closedProjects = KnxVisit::query()
+            ->whereIn('project_id', $assignments->pluck('project_id'))
+            ->where('type', KnxVisit::TYPE_VISIT_END)
+            ->whereDate('captured_at', now()->toDateString())
+            ->groupBy('project_id')
+            ->selectRaw('project_id, count(*) as aggregate')
+            ->get()
+            ->pluck('aggregate', 'project_id');
+
         return $assignments->map(fn (KnxPlanningAssignment $assignment): array => [
             'assignment' => $assignment,
             'project' => $assignment->project,
             'zone' => $this->zoneNeedingAttention($assignment->project),
             'tasks' => $this->tasksFor($assignment->project),
             'openConflicts' => (int) $openConflicts->get($assignment->project_id, 0),
+            'visitClosed' => $closedProjects->has($assignment->project_id),
         ]);
     }
 
