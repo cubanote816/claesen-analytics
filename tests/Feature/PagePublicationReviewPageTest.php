@@ -73,6 +73,26 @@ final class PagePublicationReviewPageTest extends TestCase
         ]);
     }
 
+    public function test_it_names_the_states_for_the_client_instead_of_the_backend_vocabulary(): void
+    {
+        $this->row(status: PagePublication::STATUS_MACHINE);
+        $this->row(page: 'contact', status: PagePublication::STATUS_PUBLISHED);
+
+        // La pantalla la lee quien aprueba, no quien programa: `machine` y
+        // `published` son nombres internos, los códigos ISO no le dicen nada a
+        // nadie, y los slugs no son nombres de página.
+        Livewire::test(PagePublicationReviewPage::class)
+            ->assertOk()
+            // Sobre el TEXTO, no sobre el HTML: los valores internos siguen viviendo
+            // en atributos `wire:` (estado de Livewire) y eso no lo ve el cliente.
+            ->assertSeeText(__('website.page_publication_review.statuses.machine'))
+            ->assertSeeText(__('website.page_publication_review.statuses.published'))
+            ->assertSeeText(__('website.page_publication_review.locales.fr'))
+            ->assertSeeText(__('website.page_publication_review.pages.contact'))
+            ->assertDontSeeText('machine')
+            ->assertDontSeeText('__');
+    }
+
     public function test_it_only_lists_rows_of_the_panels_own_site(): void
     {
         $mine = $this->row();

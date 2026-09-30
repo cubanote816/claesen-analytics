@@ -57,3 +57,41 @@ La opción elegida decía "8 páginas × 4 idiomas" ✗. Son **7 páginas de con
 - **`activity('nombre')` es el helper correcto, no `Activity::causedBy()` + `->log('nombre')`**: en `spatie/laravel-activitylog` v5 el nombre de log es el **argumento del helper**; pasarlo a `log()` (como hace la pantalla existente, `TranslationReviewPage`) archiva la entrada bajo `default`. No es un fallo de auditoría — el `causer` se guarda igual — pero **no se puede filtrar por evento**. **No toqué ese fichero** (pertenece a la rama de la otra sesión): lo dejo reportado. Aquí se usa `useLogName`-equivalente vía `activity('page_publication_review')`.
 - La tabla de la pantalla usa la relación **existente** `reviewedBy` del modelo: mi primer intento añadió un `reviewer()` duplicado y se retiró.
 - El baseline tiene una lista **inline** en `PanelRegistrySnapshotTest` que `UPDATE_BASELINE_SNAPSHOTS=1` **no** regenera: hay que añadir la página a mano y en orden.
+
+
+## Pase de claridad de la UI (2026-09-30, pedido del usuario)
+
+La pantalla enseñaba el vocabulario del backend a quien tiene que aprobar: `machine`,
+`published`, los códigos ISO `de/en/fr/nl` y los slugs crudos. Se corrigió **sin tocar el
+flujo** (mismo alcance que pidió el usuario: grupo A, claridad):
+
+| Antes | Ahora |
+| --- | --- |
+| `machine` · `reviewed` · `published` | **Concept · Nagekeken · Gepubliceerd** |
+| `de` · `en` · `fr` · `nl` | **Duits · Engels · Frans · Nederlands** |
+| `bedrijven` · `contact` (slugs) | **Bedrijven & industrie · Contact & prijsaanvraag** |
+| el filtro listaba los valores internos | el filtro usa los mismos nombres que la columna |
+| `sep. 30, 2026 17:43` | **`30 sep. 2026 17:43`** |
+
+**De dónde salen los nombres de página** ✗: **no se inventaron** ✗. Se copiaron del menú del
+propio sitio (`electrobertels-official`, `src/content/chrome/{nl,en}.yaml`), que es copia que
+el cliente ya aprobó. El backend **no** lee ese repositorio, así que es una copia declarada:
+si allí cambian, hay que volver a copiarlos aquí. Está escrito en el propio fichero de
+idioma, junto a las claves. Los nombres de estado sí son de esta pantalla: `Nagekeken` es
+la palabra que ya usaba la columna `reviewed_at`, no una segunda palabra para lo mismo.
+
+**Fallback**: si falta una traducción, se muestra el valor crudo, nunca la clave
+(`__()` devuelve la clave cuando falta, y eso sería peor que el slug).
+
+**Decidido NO hacer** (el usuario eligió solo el grupo A): buscador, filtros por página e
+idioma, y acciones en bloque. Lo último tiene una contra real que conviene no perder de
+vista: aprobar en bloque reduce la deliberación, y esta pantalla existe justo para que
+alguien lea antes de publicar.
+
+**Verificado**: 5/5 tests de la pantalla (29 aserciones, incluida una que afirma que el
+**texto visible** no contiene `machine`), `Modules/Website` 253 passed, baseline 78 passed,
+y comprobación visual en el navegador con la cuenta del cliente.
+
+⚠️ Nota de método: la primera versión del test usaba `assertDontSee`, que mira el **HTML
+fuente** — donde `machine` sigue apareciendo legítimamente en atributos `wire:` (estado
+interno de Livewire, invisible para el cliente). La aserción correcta mira el **texto**.

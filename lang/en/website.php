@@ -187,6 +187,35 @@ return [
             'reviewed_at' => 'Reviewed',
             'reviewed_by' => 'Reviewed by',
         ],
+        // The internal vocabulary, in the words of the person approving: the state
+        // reads «Reviewed» because the `reviewed_at` column already does, instead of
+        // inventing a second word for the same thing.
+        'statuses' => [
+            'machine' => 'Draft',
+            'reviewed' => 'Reviewed',
+            'published' => 'Published',
+        ],
+        // ISO codes mean nothing to the person approving a translation.
+        'locales' => [
+            'nl' => 'Dutch',
+            'fr' => 'French',
+            'en' => 'English',
+            'de' => 'German',
+        ],
+        // Copied from the site's own menu (electrobertels-official,
+        // src/content/chrome/en.yaml): the names the client already approved for those
+        // pages, not names invented by this screen. If they change there, copy them
+        // again: the backend does not read that repository.
+        'pages' => [
+            'home' => 'Home',
+            'particulieren' => 'Residential',
+            'bedrijven' => 'Business & industry',
+            'winkel' => 'Shop',
+            'projecten' => 'Projects',
+            'over-ons' => 'About us',
+            'contact' => 'Contact & quote request',
+        ],
+
         'actions' => [
             'approve' => 'Approve',
             'publish' => 'Publish',

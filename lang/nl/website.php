@@ -187,6 +187,35 @@ return [
             'reviewed_at' => 'Nagekeken',
             'reviewed_by' => 'Nagekeken door',
         ],
+        // El vocabulario interno, dicho como lo dice quien aprueba: «Nagekeken» ya es
+        // la etiqueta de `reviewed_at` en esta misma pantalla, así que el estado usa
+        // la misma palabra en vez de inventar otra.
+        'statuses' => [
+            'machine' => 'Concept',
+            'reviewed' => 'Nagekeken',
+            'published' => 'Gepubliceerd',
+        ],
+        // Los códigos ISO no le dicen nada a quien aprueba una traducción.
+        'locales' => [
+            'nl' => 'Nederlands',
+            'fr' => 'Frans',
+            'en' => 'Engels',
+            'de' => 'Duits',
+        ],
+        // Copiados del menú del propio sitio (electrobertels-official,
+        // src/content/chrome/nl.yaml): son los nombres que el cliente ya aprobó para
+        // esas páginas, no una invención de esta pantalla. Si allí cambian, hay que
+        // volver a copiarlos: el backend no lee ese repositorio.
+        'pages' => [
+            'home' => 'Home',
+            'particulieren' => 'Particulieren',
+            'bedrijven' => 'Bedrijven & industrie',
+            'winkel' => 'Winkel',
+            'projecten' => 'Projecten',
+            'over-ons' => 'Over ons',
+            'contact' => 'Contact & prijsaanvraag',
+        ],
+
         'actions' => [
             'approve' => 'Goedkeuren',
             'publish' => 'Publiceren',

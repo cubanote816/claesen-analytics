@@ -79,13 +79,16 @@ class PagePublicationReviewPage extends Page implements HasTable
             ->columns([
                 TextColumn::make('page')
                     ->label(__('website.page_publication_review.fields.page'))
-                    ->badge(),
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => self::human('pages', $state)),
                 TextColumn::make('locale')
                     ->label(__('website.page_publication_review.fields.locale'))
-                    ->badge(),
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => self::human('locales', $state)),
                 TextColumn::make('status')
                     ->label(__('website.page_publication_review.fields.status'))
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => self::human('statuses', $state))
                     ->color(fn (string $state): string => match ($state) {
                         PagePublication::STATUS_PUBLISHED => 'success',
                         PagePublication::STATUS_REVIEWED => 'info',
@@ -93,8 +96,11 @@ class PagePublicationReviewPage extends Page implements HasTable
                     }),
                 TextColumn::make('reviewed_at')
                     ->label(__('website.page_publication_review.fields.reviewed_at'))
-                    ->dateTime()
                     ->placeholder('—')
+                    // `->dateTime()` trae un formato fijo en inglés: en un panel en
+                    // neerlandés la fecha salía «sep. 30, 2026». Se traduce con el
+                    // idioma del panel, que es el que está leyendo quien aprueba.
+                    ->formatStateUsing(fn ($state): ?string => $state?->locale(app()->getLocale())->translatedFormat('d M Y H:i'))
                     ->sortable(),
                 TextColumn::make('reviewedBy.name')
                     ->label(__('website.page_publication_review.fields.reviewed_by'))
@@ -103,10 +109,12 @@ class PagePublicationReviewPage extends Page implements HasTable
             ->filters([
                 SelectFilter::make('status')
                     ->label(__('website.page_publication_review.fields.status'))
+                    // Los mismos nombres que la columna: el filtro no debe hablar
+                    // el vocabulario interno (`machine`) si la tabla ya no lo hace.
                     ->options([
-                        PagePublication::STATUS_MACHINE => 'machine',
-                        PagePublication::STATUS_REVIEWED => 'reviewed',
-                        PagePublication::STATUS_PUBLISHED => 'published',
+                        PagePublication::STATUS_MACHINE => self::human('statuses', PagePublication::STATUS_MACHINE),
+                        PagePublication::STATUS_REVIEWED => self::human('statuses', PagePublication::STATUS_REVIEWED),
+                        PagePublication::STATUS_PUBLISHED => self::human('statuses', PagePublication::STATUS_PUBLISHED),
                     ]),
             ])
             ->recordActions([
@@ -151,6 +159,22 @@ class PagePublicationReviewPage extends Page implements HasTable
     private function approval(): \Spatie\Activitylog\Support\ActivityLogger
     {
         return activity('page_publication_review');
+    }
+
+    /**
+     * Un nombre para el cliente, en lugar del valor interno.
+     *
+     * `__()` devuelve la propia clave cuando falta la traducción, y soltar
+     * `website.page_publication_review.pages.winkel` delante de quien aprueba es
+     * peor que el slug. Un valor sin etiqueta todavía se muestra tal cual: se ve
+     * raro, pero se entiende, y no engaña a nadie.
+     */
+    private static function human(string $group, string $value): string
+    {
+        $key = "website.page_publication_review.{$group}.{$value}";
+        $label = __($key);
+
+        return $label === $key ? $value : $label;
     }
 
     /**
