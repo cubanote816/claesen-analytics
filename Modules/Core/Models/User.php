@@ -254,28 +254,41 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
 
     public function canAccessPanel(Panel $panel): bool
     {
-        // F1/P6 spike (CLA-549, docs/ai/adr-multi-organization.md): no real
-        // Bertels user exists yet (ADR D10, "regla de hierro") — the panel is
-        // reachable only by super_admin while it has no resources of its own.
-        // Filament's own Authenticate middleware calls this per-panel and
-        // abort_if(403)s on false (vendor/filament/filament/.../Authenticate.php),
-        // so this is the intended extension point rather than a bespoke
-        // middleware duplicating EnsurePanelAccess's Claesen role allowlist.
+        // CLA-611 (2026-09-29, decisión del usuario: "abrir el panel a los usuarios del
+        // cliente"). Hasta ahora el panel bertels era sólo para super_admin porque no
+        // existía ningún usuario real de Bertels (ADR D10). Ahora entra también la
+        // gente **de la organización dueña del sitio del panel** — y nadie más.
+        //
+        // La pertenencia se deriva del sitio del panel (config('organizations.panel_sites'))
+        // y no de un rol: el rol es global, la organización no. Fail-closed: sin sitio,
+        // sin organización en el sitio, o inactivo → fuera.
         if ($panel->getId() === 'bertels') {
-            return $this->is_active && $this->hasRole('super_admin');
+            if (! $this->is_active) {
+                return false;
+            }
+
+            if ($this->hasRole('super_admin')) {
+                return true;
+            }
+
+            $siteOrganizationId = Site::forPanel($panel->getId())?->organization_id;
+
+            return $siteOrganizationId !== null && $this->organization_id === $siteOrganizationId;
         }
 
-        // F1/P5a (CLA-460 cont., docs/ai/adr-multi-organization.md): "paneles
-        // y logins" is the first enforcement layer. Gated by the flag (D4) —
-        // with it off (the default everywhere today) this branch never runs,
-        // so nothing changes for Claesen. With it on, a user outside
-        // Claesen's organization is rejected from the admin panel the same
-        // way the bertels branch above already rejects non-super_admin: via
-        // this method, which Filament's own Authenticate middleware already
-        // calls per-panel and abort_if(403)s on false. No real non-Claesen
-        // user exists yet (D10) — this can only be exercised with a fixture
-        // organization in tests until P7.
-        if (config('organizations.enforce') && $this->organization_id !== Organization::claesenId()) {
+        // CLA-611: el panel admin (y cualquier otro) admite **sólo** a la gente de Claesen
+        // cuando su organización está definida. Esto es incondicional a propósito, y se
+        // desvía del diseño D4, que lo dejaba detrás de config('organizations.enforce'):
+        // la admisión a un panel es una frontera de acceso, no una regla de negocio que
+        // pueda quedarse apagada — y con el flag apagado (el estado de hoy) la única
+        // barrera entre un usuario de Bertels y los datos de Claesen era que todavía no
+        // existía ninguno, que es exactamente lo que el ADR D10 prohíbe.
+        //
+        // `organization_id` nulo sigue permitido: los usuarios sembrados
+        // (DatabaseSeeder) y los anteriores a P2 lo tienen nulo, y el programa trae
+        // `core:backfill-user-organizations` para asignarlos a Claesen. Un usuario de
+        // Bertels nunca es nulo: su alta define la organización primero.
+        if ($this->organization_id !== null && $this->organization_id !== Organization::claesenId()) {
             return false;
         }
 

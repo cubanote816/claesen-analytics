@@ -16,10 +16,16 @@ use Tests\TestCase;
  * F1/P5a of the multi-organization program (CLA-460 cont.) —
  * docs/ai/adr-multi-organization.md.
  *
- * The first enforcement layer the ADR names: "paneles y logins". Gated by
- * config('organizations.enforce') — off (the default everywhere in
- * production today) it changes nothing observable for Claesen; on, a user
- * outside Claesen's organization is rejected from the admin panel.
+ * The first enforcement layer the ADR names: "paneles y logins".
+ *
+ * **CLA-611 (2026-09-29): la frontera del panel admin ya no está detrás del flag.**
+ * Mientras `organizations.enforce` estaba apagado (su valor por defecto), este
+ * archivo fijaba por escrito que un usuario de otra organización *podía* entrar al
+ * panel admin. Eso era el agujero que el ADR D10 señalaba: la única barrera era que
+ * todavía no existía ningún usuario de Bertels. Al abrir el panel `bertels` a la
+ * organización dueña, esa barrera se cierra en el código y no en una configuración
+ * apagable, así que los dos tests que documentaban el hueco ahora documentan la
+ * frontera. El flag sigue gobernando las reglas de negocio por organización (D4).
  *
  * No real non-Claesen user exists (ADR D10, "regla de hierro") — every test
  * here uses a fixture organization created and rolled back within
@@ -49,13 +55,15 @@ final class PanelOrganizationEnforcementTest extends TestCase
         $this->assertFalse(config('organizations.enforce'));
     }
 
-    public function test_with_enforcement_off_a_user_outside_claesens_organization_can_still_use_the_admin_panel(): void
+    public function test_a_user_outside_claesens_organization_is_rejected_from_the_admin_panel_regardless_of_the_flag(): void
     {
         config(['organizations.enforce' => false]);
 
         $user = $this->userInFixtureOrganization();
 
-        $this->assertTrue($user->canAccessPanel(Filament::getPanel('admin')));
+        // CLA-611: la admisión al panel es una frontera de acceso, no una regla de
+        // negocio: no puede depender de un flag que en producción está apagado.
+        $this->assertFalse($user->canAccessPanel(Filament::getPanel('admin')));
     }
 
     public function test_with_enforcement_on_a_user_outside_claesens_organization_is_rejected_from_the_admin_panel(): void
@@ -99,13 +107,13 @@ final class PanelOrganizationEnforcementTest extends TestCase
         $this->actingAs($user)->get('/')->assertForbidden();
     }
 
-    public function test_a_manipulated_url_to_the_admin_panel_still_succeeds_for_another_organization_with_enforcement_off(): void
+    public function test_a_manipulated_url_to_the_admin_panel_is_forbidden_for_another_organization_regardless_of_the_flag(): void
     {
         config(['organizations.enforce' => false]);
 
         $user = $this->userInFixtureOrganization();
 
-        $this->actingAs($user)->get('/')->assertSuccessful();
+        $this->actingAs($user)->get('/')->assertForbidden();
     }
 
     private function userInFixtureOrganization(): User

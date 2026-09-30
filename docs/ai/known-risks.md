@@ -285,6 +285,28 @@ Los resources de Website (`ConsultationRequestResource`, `ProjectResource`) est�
 
 ---
 
+---
+
+## Riesgos abiertos — Programa multiempresa Electro Bertels
+
+### Acceso al panel: usuarios con `organization_id` nulo (CLA-611, 2026-09-29)
+
+**Qué:** `User::canAccessPanel()` rechaza en el panel `admin` a un usuario cuya organización
+esté definida y no sea la de Claesen. Un usuario con `organization_id` **nulo** sigue
+admitido, porque así están los usuarios sembrados (`DatabaseSeeder` nunca lo asignó) y
+porque los anteriores a P2 también lo están.
+
+**Por qué es un riesgo:** nulo es "sin organización conocida", no "de Claesen". Un usuario
+de otra organización con el campo sin rellenar entraría al panel de Claesen. Hoy no existe
+ninguno (ADR D10), y el alta de un usuario de Bertels define su organización primero.
+
+**Mitigación existente:** `php artisan core:backfill-user-organizations --apply` (F1/P2 del
+programa) asigna a Claesen todo usuario sin organización; es idempotente y tiene `--dry-run`
+por defecto. Debe ejecutarse antes de que exista el primer usuario real de Bertels.
+
+**Qué NO se hizo:** cerrar el caso nulo en el código. Habría dejado fuera al equipo actual
+en cualquier entorno recién sembrado, que es un fallo peor que el que se estaba arreglando.
+
 ## Decisiones pendientes
 
 | Decisión | Contexto | Responsable |

@@ -16,6 +16,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public API locale policy (CLA-611, gap G9 — site-scoped)
+    |--------------------------------------------------------------------------
+    | Sites listed here serve the public API STRICTLY: a field without a
+    | translation in the requested locale resolves to `null` — never Dutch,
+    | never English (Modules\Website\Services\PublicLocalePolicy). Claesen
+    | stays OFF this list on purpose: its tolerant locale→nl→en fallback is
+    | frozen by PortfolioApiTest and its live Astro frontend may depend on
+    | it. Opting a new site in is a config change, not a migration.
+    */
+    'public_api' => [
+        'strict_locale_site_keys' => ['electrobertels'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Site settings whitelist (CLA-469)
     |--------------------------------------------------------------------------
     | Modules\Website\Models\SiteSetting only accepts a `key` present here —
@@ -33,6 +48,30 @@ return [
             'email' => 'text',
             'address' => 'text',
             'social_links' => 'json',
+
+            // CLA-479 (dynamic part) — company facts & opening hours for the
+            // Electro Bertels frontend (backend-requirements.md §7.2). The
+            // pre-existing Claesen keys above are UNTOUCHED — adding keys is
+            // additive; no existing key's type or serialization changes.
+            // 'address' deliberately stays a verbatim Claesen string; the
+            // structured variant for Electro Bertels is the separate
+            // 'address_structured' key below (two representations of one
+            // fact, kept explicit in the Filament UI instead of silent in
+            // the DB — approver decision 2A, 2026-09-27).
+            'legal_name' => 'text',
+            'founded_year' => 'json',
+            'phone_display' => 'text',
+            'phone_tel' => 'text',
+            'whatsapp_display' => 'text',
+            'whatsapp_url' => 'text',
+            'address_structured' => 'json',
+            'address_country' => 'translatable',
+            'maps_embed_url' => 'text',
+            'maps_directions_url' => 'text',
+            'maps_consent_mode' => 'text',
+            'vat_number' => 'text',
+            'opening_hours' => 'json',
+            'contact_consent_version' => 'text',
         ],
     ],
 
@@ -99,5 +138,11 @@ return [
             'window_minutes' => (int) env('WEBSITE_INTAKE_ABUSE_WINDOW_MINUTES', 60),
             'threshold' => (int) env('WEBSITE_INTAKE_ABUSE_THRESHOLD', 20),
         ],
+        // CLA-484 (approver decision 1A): sites whose intake REQUIRES
+        // `consent_version` (version of the accepted consent text). Resolved
+        // from the request's site key — never a hardcoded id check. Claesen
+        // stays off this list: its live form doesn't send the field and its
+        // payload/behaviour stays byte-identical.
+        'consent_version_required_site_keys' => ['electrobertels'],
     ],
 ];

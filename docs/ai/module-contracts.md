@@ -165,6 +165,34 @@ Modules/Safety/config/config.php
 - La API solo expone proyectos con `published = true`.
 - Los slugs son la clave pública de los proyectos (no el ID interno).
 - No exponer campos internos (`user_id`, `created_by`, campos de auditoría).
+- **Aislamiento por sitio sin depender del enforcement:** los endpoints
+  nuevos (legales, media slots) filtran explícitamente por el site id
+  resuelto, además del scope de `BelongsToSite` (inerte mientras
+  `organizations.enforce` esté off, ADR D4). No relajar esto.
+- **Política de locale por sitio (`PublicLocalePolicy`, CLA-611 G9):** los
+  sitios en `config('website.public_api.strict_locale_site_keys')`
+  (electrobertels) sirven `null` para un locale sin traducción — **nunca**
+  texto de otro locale. Claesen mantiene la cadena tolerante
+  locale → nl → en, congelada por `PortfolioApiTest` — no tocar ese test
+  ni el fallback.
+- Contenido traducible **solo texto plano** (`\n` para párrafos): el
+  frontend Astro no tiene `set:html`. Nada de HTML/Markdown en
+  `website_legal_documents.body`, `alt`, `caption` ni claves
+  `translatable` nuevas.
+- `docs/api/website-v1-openapi.yaml` se valida bidireccionalmente contra
+  las rutas reales (`OpenApiContractTest`): toda ruta nueva de
+  `/v1/website/*` DEBE documentarse aquí.
+
+### Reglas de documentos legales y media slots (CLA-479/481)
+
+- `website_legal_documents` y `website_media_slots` llevan solo `site_id`
+  (ADR D3); `doc_id` ∈ privacy|cookies|terms, `UNIQUE(site_id, doc_id)`.
+- El endpoint legal expone `translation_status` DERIVADO
+  (peor estado de sus claves; ver Módulo Intelligence) — nunca un flag
+  manual. El frontend solo publica `reviewed|published`.
+- Media slots sirven SOLO URLs de conversiones públicas — el original es
+  privado (CLA-467) y jamás se serializa. Slots sin
+  `usage_rights_confirmed_at` no se sirven.
 
 ### Reglas de media
 
@@ -260,6 +288,33 @@ Modules/FieldOps/Models/FoMaintenanceWorkOrderEvent.php
 - El Semantic Cache usa hash MD5 del payload. Verificar que el payload es determinista antes de llamar.
 - Las operaciones de sync solo deben ejecutarse via commands o jobs, no inline en controllers.
 - `SyncMirrorDataService` escribe en MySQL (tablas mirror). Verificar que no se confunde con las tablas del ERP.
+
+### Reglas del motor de traducción IA (CLA-611, no negociables)
+
+- El estado de traducción es **por (modelo, atributo, locale)** en
+  `ai_translation_states` — nunca volver a un flag por registro.
+- **Nunca sobrescribir** un valor `reviewed|published` sin acción humana
+  explícita de retraducir; un cambio del texto origen los marca
+  `needs_review` (G5). Los valores `machine`/legacy pasan a `stale` y se
+  reencolan (G1).
+- Un fallo del proveedor deja estado `failed` con el error visible (G3);
+  el job reintenta (3 intentos, backoff 30/60/120). El resultado vacío de
+  `generateStructuredResponse` es un fallo observable, no silencio.
+- El estado público de una entidad en un locale se **deriva**
+  (peor estado de todas sus claves — `TranslationStateService`) y nunca
+  se declara a mano; datos legacy sin filas de estado cuentan como
+  `machine`/`missing`, jamás aprobados.
+- El glosario (`website_glossaries`) se inyecta en el prompt junto al
+  contexto opcional (`getAiTranslationContext()`); su versión derivada
+  invalida la caché de traducciones (G4/G6).
+- Batching: máximo `GeminiService::MAX_BATCH_SIZE` (20) textos por llamada
+  (G7); el comando `intelligence:translate-pending` es el camino masivo y
+  reanudable; cada llamada al proveedor se loguea.
+- **Compatibilidad auditable:** 30+ tests de FieldOps congelan el patrón
+  `translateAndDetect(sourceText, missingLocales)` — el trait y el job
+  mantienen ese patrón y los despachos con ids escalares (ADR D6). Cambiar
+  la firma con parámetros obligatorios, o tocar modelos FieldOps, es un
+  cambio multi-módulo que exige decisión humana previa.
 
 ### Archivos clave
 ```

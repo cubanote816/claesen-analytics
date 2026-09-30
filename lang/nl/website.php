@@ -178,6 +178,79 @@ return [
             'publish_now_success'        => 'Publicatie aangevraagd',
         ],
     ],
+    'page_publication_review' => [
+        'label' => 'Pagina-publicaties',
+        'fields' => [
+            'page' => 'Pagina',
+            'locale' => 'Taal',
+            'status' => 'Status',
+            'reviewed_at' => 'Nagekeken',
+            'reviewed_by' => 'Nagekeken door',
+        ],
+        // El vocabulario interno, dicho como lo dice quien aprueba: «Nagekeken» ya es
+        // la etiqueta de `reviewed_at` en esta misma pantalla, así que el estado usa
+        // la misma palabra en vez de inventar otra.
+        'statuses' => [
+            'machine' => 'Concept',
+            'reviewed' => 'Nagekeken',
+            'published' => 'Gepubliceerd',
+        ],
+        // Los códigos ISO no le dicen nada a quien aprueba una traducción.
+        'locales' => [
+            'nl' => 'Nederlands',
+            'fr' => 'Frans',
+            'en' => 'Engels',
+            'de' => 'Duits',
+        ],
+        // Copiados del menú del propio sitio (electrobertels-official,
+        // src/content/chrome/nl.yaml): son los nombres que el cliente ya aprobó para
+        // esas páginas, no una invención de esta pantalla. Si allí cambian, hay que
+        // volver a copiarlos: el backend no lee ese repositorio.
+        'pages' => [
+            'home' => 'Home',
+            'particulieren' => 'Particulieren',
+            'bedrijven' => 'Bedrijven & industrie',
+            'winkel' => 'Winkel',
+            'projecten' => 'Projecten',
+            'over-ons' => 'Over ons',
+            'contact' => 'Contact & prijsaanvraag',
+        ],
+
+        'actions' => [
+            'approve' => 'Goedkeuren',
+            'publish' => 'Publiceren',
+            'retire' => 'Terugtrekken',
+            'publish_confirm' => 'Deze pagina wordt indexeerbaar in deze taal. Doorgaan?',
+            'retire_confirm' => 'Deze pagina wordt niet langer indexeerbaar in deze taal. Doorgaan?',
+        ],
+        'notifications' => [
+            'updated' => 'Publicatiestatus bijgewerkt',
+        ],
+    ],
+
+    'translation_review' => [
+        'label' => 'Vertaalreview',
+        'fields' => [
+            'subject' => 'Onderwerp',
+            'attribute' => 'Veld',
+            'locale' => 'Taal',
+            'status' => 'Status',
+            'error' => 'Fout',
+            'updated_at' => 'Bijgewerkt',
+        ],
+        'actions' => [
+            'edit' => 'Bewerken',
+            'edit_value' => 'Vertaling (:locale)',
+            'approve' => 'Goedkeuren',
+            'publish' => 'Publiceren',
+            'retranslate' => 'Opnieuw vertalen (AI)',
+            'retranslate_confirm' => 'De goedgekeurde waarde wordt overschreven door een nieuwe AI-vertaling en moet opnieuw worden goedgekeurd. Doorgaan?',
+        ],
+        'notifications' => [
+            'updated' => 'Vertaalstatus bijgewerkt',
+        ],
+    ],
+
     'announcements' => [
         'label' => 'Mededeling',
         'plural_label' => 'Mededelingen',
@@ -200,6 +273,27 @@ return [
             'email' => 'E-mail',
             'address' => 'Adres',
             'social_links' => 'Social media links (JSON)',
+            'legal_name' => 'Wettelijke naam',
+            'founded_year' => 'Oprichtingsjaar',
+            'phone_display' => 'Telefoon (weergave)',
+            'phone_tel' => 'Telefoon (tel: link)',
+            'whatsapp_display' => 'WhatsApp (weergave)',
+            'whatsapp_url' => 'WhatsApp (URL)',
+            'address_structured' => 'Adres (gestructureerd)',
+            'address_country' => 'Land (vertaalbaar)',
+            'maps_embed_url' => 'Maps insluiten (URL)',
+            'maps_directions_url' => 'Maps route (URL)',
+            'maps_consent_mode' => 'Maps toestemming',
+            'vat_number' => 'BTW-nummer',
+            'opening_hours' => 'Openingstijden (gestructureerd)',
+            'contact_consent_version' => 'Toestemmingsversie contactformulier',
+        ],
+        'hints' => [
+            'address' => 'Claesen: vrije tekenreeks, ongewijzigd door het Claesen-frontend gelezen. Niet bewerken voor Electro Bertels.',
+            'address_structured' => 'Electro Bertels: gestructureerde bron — JSON met street, postal_code, city, country_code. Het Claesen-frontend leest dit veld niet.',
+            'founded_year' => 'JSON-geheel getal, bijv. 1977',
+            'opening_hours' => 'JSON-array: [{"day_key": "maandag", "hours": [{"open": "09:00", "close": "18:00"}] | null}]',
+            'maps_consent_mode' => 'always | on_consent | never',
         ],
     ],
 ];

@@ -88,6 +88,7 @@ final class PanelRegistrySnapshotTest extends TestCase
             $this->sorted([
                 \App\Filament\Clusters\Website\Resources\AnnouncementResource::class,
                 \App\Filament\Clusters\Website\Resources\ConsultationRequestResource::class,
+                \App\Filament\Clusters\Website\Resources\MediaSlotResource::class,
                 \App\Filament\Clusters\Website\Resources\ProjectResource::class,
             ]),
             $this->sorted($panel->getResources()),
@@ -95,7 +96,9 @@ final class PanelRegistrySnapshotTest extends TestCase
         $this->assertSame(
             $this->sorted([
                 Dashboard::class,
+                \App\Filament\Clusters\Website\Pages\PagePublicationReviewPage::class,
                 \App\Filament\Clusters\Website\Pages\SiteSettingsPage::class,
+                \App\Filament\Clusters\Website\Pages\TranslationReviewPage::class,
                 \App\Filament\Clusters\Website\WebsiteCluster::class, // a cluster is itself a page
             ]),
             $this->sorted($panel->getPages()),

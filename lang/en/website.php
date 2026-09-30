@@ -178,6 +178,79 @@ return [
             'publish_now_success'        => 'Publication requested',
         ],
     ],
+    'page_publication_review' => [
+        'label' => 'Page publications',
+        'fields' => [
+            'page' => 'Page',
+            'locale' => 'Locale',
+            'status' => 'Status',
+            'reviewed_at' => 'Reviewed',
+            'reviewed_by' => 'Reviewed by',
+        ],
+        // The internal vocabulary, in the words of the person approving: the state
+        // reads «Reviewed» because the `reviewed_at` column already does, instead of
+        // inventing a second word for the same thing.
+        'statuses' => [
+            'machine' => 'Draft',
+            'reviewed' => 'Reviewed',
+            'published' => 'Published',
+        ],
+        // ISO codes mean nothing to the person approving a translation.
+        'locales' => [
+            'nl' => 'Dutch',
+            'fr' => 'French',
+            'en' => 'English',
+            'de' => 'German',
+        ],
+        // Copied from the site's own menu (electrobertels-official,
+        // src/content/chrome/en.yaml): the names the client already approved for those
+        // pages, not names invented by this screen. If they change there, copy them
+        // again: the backend does not read that repository.
+        'pages' => [
+            'home' => 'Home',
+            'particulieren' => 'Residential',
+            'bedrijven' => 'Business & industry',
+            'winkel' => 'Shop',
+            'projecten' => 'Projects',
+            'over-ons' => 'About us',
+            'contact' => 'Contact & quote request',
+        ],
+
+        'actions' => [
+            'approve' => 'Approve',
+            'publish' => 'Publish',
+            'retire' => 'Retire',
+            'publish_confirm' => 'This page will become indexable in this locale. Continue?',
+            'retire_confirm' => 'This page will stop being indexable in this locale. Continue?',
+        ],
+        'notifications' => [
+            'updated' => 'Publication status updated',
+        ],
+    ],
+
+    'translation_review' => [
+        'label' => 'Translation review',
+        'fields' => [
+            'subject' => 'Subject',
+            'attribute' => 'Field',
+            'locale' => 'Locale',
+            'status' => 'Status',
+            'error' => 'Error',
+            'updated_at' => 'Updated',
+        ],
+        'actions' => [
+            'edit' => 'Edit',
+            'edit_value' => 'Translation (:locale)',
+            'approve' => 'Approve',
+            'publish' => 'Publish',
+            'retranslate' => 'Retranslate (AI)',
+            'retranslate_confirm' => 'The approved value will be overwritten by a fresh AI translation and must be approved again. Continue?',
+        ],
+        'notifications' => [
+            'updated' => 'Translation status updated',
+        ],
+    ],
+
     'announcements' => [
         'label' => 'Announcement',
         'plural_label' => 'Announcements',
@@ -200,6 +273,27 @@ return [
             'email' => 'Email',
             'address' => 'Address',
             'social_links' => 'Social media links (JSON)',
+            'legal_name' => 'Legal name',
+            'founded_year' => 'Founding year',
+            'phone_display' => 'Phone (display)',
+            'phone_tel' => 'Phone (tel: link)',
+            'whatsapp_display' => 'WhatsApp (display)',
+            'whatsapp_url' => 'WhatsApp (URL)',
+            'address_structured' => 'Address (structured)',
+            'address_country' => 'Country (translatable)',
+            'maps_embed_url' => 'Maps embed (URL)',
+            'maps_directions_url' => 'Maps directions (URL)',
+            'maps_consent_mode' => 'Maps consent',
+            'vat_number' => 'VAT number',
+            'opening_hours' => 'Opening hours (structured)',
+            'contact_consent_version' => 'Contact form consent version',
+        ],
+        'hints' => [
+            'address' => 'Claesen: verbatim string, read unchanged by the Claesen frontend. Do not edit for Electro Bertels.',
+            'address_structured' => 'Electro Bertels: structured source — JSON with street, postal_code, city, country_code. The Claesen frontend does not read this field.',
+            'founded_year' => 'JSON integer, e.g. 1977',
+            'opening_hours' => 'JSON array: [{"day_key": "monday", "hours": [{"open": "09:00", "close": "18:00"}] | null}]',
+            'maps_consent_mode' => 'always | on_consent | never',
         ],
     ],
 ];

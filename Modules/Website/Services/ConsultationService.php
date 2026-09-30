@@ -2,18 +2,22 @@
 
 namespace Modules\Website\Services;
 
-use Modules\Core\Models\Site;
-use Modules\Core\Services\OrganizationContext;
-use Modules\Prospects\Services\LeadService;
-use Modules\Website\Jobs\SendConsultationEmailJob;
-use Modules\Website\Models\ConsultationEmailDelivery;
-use Modules\Website\Models\ConsultationRequest;
-use Modules\Website\Models\ConsultationActivity;
+use App\Filament\Clusters\Website\Resources\ConsultationRequestResource;
+use Exception;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Exception;
+use Modules\Core\Models\Site;
+use Modules\Core\Models\User;
+use Modules\Core\Services\OrganizationContext;
+use Modules\Prospects\Services\LeadService;
+use Modules\Website\Jobs\SendConsultationEmailJob;
+use Modules\Website\Models\ConsultationActivity;
+use Modules\Website\Models\ConsultationEmailDelivery;
+use Modules\Website\Models\ConsultationRequest;
 
 class ConsultationService
 {
@@ -95,10 +99,10 @@ class ConsultationService
     /**
      * Create a new consultation request from public form.
      *
-     * @param array $utm Optional, normalized (LeadSourceNormalizer) —
-     *                    stored under custom_fields['utm'], this table's
-     *                    own established extensibility point (no
-     *                    dedicated utm_* columns exist).
+     * @param  array  $utm  Optional, normalized (LeadSourceNormalizer) —
+     *                      stored under custom_fields['utm'], this table's
+     *                      own established extensibility point (no
+     *                      dedicated utm_* columns exist).
      */
     public function createRequest(array $data, array $utm = []): ConsultationRequest
     {
@@ -117,6 +121,12 @@ class ConsultationService
                 'message' => $data['message'],
                 'type' => ($data['type'] ?? 'consultation') === 'free' ? 'consultation' : ($data['type'] ?? 'consultation'),
                 'project_type' => $data['project_type'] ?? null,
+                // CLA-484: Bertels form fields — all nullable, the Claesen
+                // shape never sends them.
+                'segment' => $data['segment'] ?? null,
+                'postal_code' => $data['postal_code'] ?? null,
+                'subject' => $data['subject'] ?? null,
+                'locale' => $data['locale'] ?? null,
                 'preferred_contact' => $data['preferred_contact'] ?? 'email',
                 'source' => $data['source'] ?? 'website',
                 'status' => ConsultationRequest::STATUS_NEW,
@@ -126,7 +136,10 @@ class ConsultationService
                 // truthy `consent` — see ConsultationRequest's own docblock
                 // for why this is never made mandatory here.
                 'consent_given_at' => ! empty($data['consent']) ? now() : null,
-                'consent_policy_version' => ! empty($data['consent']) ? ($data['policy_version'] ?? null) : null,
+                // CLA-484: 'consent_version' (Bertels form) and 'policy_version'
+                // (CLA-475) are the same fact — the accepted consent-text
+                // version; consent_version wins when both arrive.
+                'consent_policy_version' => $data['consent_version'] ?? (! empty($data['consent']) ? ($data['policy_version'] ?? null) : null),
             ]);
 
             $this->logActivity(
@@ -136,19 +149,19 @@ class ConsultationService
             );
 
             try {
-                \Filament\Notifications\Notification::make()
+                Notification::make()
                     ->title(__('website.activities.notifications.new_request_title'))
                     ->body(__('website.activities.notifications.new_request_body', ['name' => $request->name]))
                     ->success()
                     ->actions([
-                        \Filament\Actions\Action::make('view')
+                        Action::make('view')
                             ->button()
-                            ->url(\App\Filament\Clusters\Website\Resources\ConsultationRequestResource::getUrl('view', ['record' => $request], panel: 'admin')),
+                            ->url(ConsultationRequestResource::getUrl('view', ['record' => $request], panel: 'admin')),
                     ])
-                    ->sendToDatabase(\Modules\Core\Models\User::all());
-            } catch (\Exception $e) {
+                    ->sendToDatabase(User::all());
+            } catch (Exception $e) {
                 // Log notification failure but don't fail the request
-                \Illuminate\Support\Facades\Log::error('Failed to send consultation notification: ' . $e->getMessage());
+                Log::error('Failed to send consultation notification: '.$e->getMessage());
             }
 
             // F4/CLA-473: both e-mails this request can trigger (internal
