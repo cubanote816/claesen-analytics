@@ -19,8 +19,12 @@ class FieldTodayController extends Controller
         $technician = $request->attributes->get('knx_employee');
 
         return $today->jobsFor($technician)
-            ->map(fn (array $job): array => (new FieldTodayJobResource($job['assignment'], $job['zone'], $job['tasks']))
-                ->resolve($request))
+            ->map(fn (array $job): array => (new FieldTodayJobResource(
+                $job['assignment'],
+                $job['zone'],
+                $job['tasks'],
+                $job['openConflicts'],
+            ))->resolve($request))
             ->all();
     }
 }

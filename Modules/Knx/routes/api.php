@@ -1,27 +1,27 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\DashboardController;
-use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\DocumentController;
 use Modules\Knx\Http\Controllers\EventStreamController;
 use Modules\Knx\Http\Controllers\Field\FieldDeviceController;
 use Modules\Knx\Http\Controllers\Field\FieldIssueController;
 use Modules\Knx\Http\Controllers\Field\FieldProjectController;
-use Modules\Knx\Http\Controllers\Field\FieldVisitController;
 use Modules\Knx\Http\Controllers\Field\FieldSessionController;
 use Modules\Knx\Http\Controllers\Field\FieldTodayController;
-use Modules\Knx\Http\Middleware\EnsureKnxApp;
-use Modules\Knx\Http\Controllers\FunctionSpecController;
-use Modules\Knx\Http\Controllers\ReportController;
+use Modules\Knx\Http\Controllers\Field\FieldVisitController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
+use Modules\Knx\Http\Controllers\FunctionSpecController;
 use Modules\Knx\Http\Controllers\PlanningController;
-use Modules\Knx\Http\Controllers\ZoneController;
 use Modules\Knx\Http\Controllers\ProjectController;
+use Modules\Knx\Http\Controllers\ReportController;
+use Modules\Knx\Http\Controllers\ZoneController;
+use Modules\Knx\Http\Middleware\EnsureKnxApp;
 
 /*
  * KNX installation API — the contract consumed by Kantoor (office) and Veld
@@ -75,6 +75,13 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans');
 
+            // V11.f — the project's devices. The card's progress and the plan's
+            // per-room counts come from here, and it answers the same shape the
+            // registration does, so the app has one device shape and not two.
+            Route::get('projects/{code}/devices', [FieldProjectController::class, 'devices'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.devices.index');
+
             // V11.c — registering an apparatus from site. Idempotent by the app's own
             // `clientId`, so this is a POST the client may safely repeat.
             Route::post('projects/{code}/devices', [FieldDeviceController::class, 'store'])
@@ -102,73 +109,73 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'organization:electro-bertels', EnsureKnxApp::class.':'.EnsureKnxApp::OFFICE])
         ->group(function (): void {
-        Route::get('me/session', [SessionController::class, 'show'])->name('me.session');
+            Route::get('me/session', [SessionController::class, 'show'])->name('me.session');
 
-        // K7b — the dashboard aggregate (its inputs all exist now).
-        Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard.show');
+            // K7b — the dashboard aggregate (its inputs all exist now).
+            Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard.show');
 
-        // K2 — clients and projects.
-        Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
-        Route::get('clients/{id}', [ClientController::class, 'show'])->name('clients.show');
+            // K2 — clients and projects.
+            Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
+            Route::get('clients/{id}', [ClientController::class, 'show'])->name('clients.show');
 
-        Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
-        // {code} is a string ("C1618"), not a numeric id: constrain it so it can
-        // never swallow the nested routes below (stats, devices, activity...).
-        Route::get('projects/{code}', [ProjectController::class, 'show'])
-            ->where('code', '[A-Za-z0-9._-]+')
-            ->name('projects.show');
-        Route::get('projects/{code}/stats', [ProjectController::class, 'stats'])
-            ->where('code', '[A-Za-z0-9._-]+')
-            ->name('projects.stats');
+            Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+            // {code} is a string ("C1618"), not a numeric id: constrain it so it can
+            // never swallow the nested routes below (stats, devices, activity...).
+            Route::get('projects/{code}', [ProjectController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.show');
+            Route::get('projects/{code}/stats', [ProjectController::class, 'stats'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.stats');
 
-        // K3 — the dossier of a project.
-        Route::get('projects/{code}/devices', [ProjectController::class, 'devices'])
-            ->where('code', '[A-Za-z0-9._-]+')
-            ->name('projects.devices');
-        Route::get('projects/{code}/activity', [ProjectController::class, 'activity'])
-            ->where('code', '[A-Za-z0-9._-]+')
-            ->name('projects.activity');
-        // V11.e — the closures signed off from site. The office is the reader: the
-        // field app only ever sends them.
-        Route::get('projects/{code}/visits', [ProjectController::class, 'visits'])
-            ->where('code', '[A-Za-z0-9._-]+')
-            ->name('projects.visits');
-        // K4 — the field inbox. ack-all is declared first: it would otherwise be
-        // a candidate match for {id} in a stricter route model binding setup.
-        Route::post('notifications/ack-all', [FieldNotificationController::class, 'ackAll'])->name('notifications.ack-all');
-        Route::get('notifications', [FieldNotificationController::class, 'index'])->name('notifications.index');
-        Route::post('notifications/{id}/ack', [FieldNotificationController::class, 'ack'])->name('notifications.ack');
-        // K5 — technicians and planning.
-        Route::get('technicians', [PlanningController::class, 'technicians'])->name('technicians.index');
+            // K3 — the dossier of a project.
+            Route::get('projects/{code}/devices', [ProjectController::class, 'devices'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.devices');
+            Route::get('projects/{code}/activity', [ProjectController::class, 'activity'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.activity');
+            // V11.e — the closures signed off from site. The office is the reader: the
+            // field app only ever sends them.
+            Route::get('projects/{code}/visits', [ProjectController::class, 'visits'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.visits');
+            // K4 — the field inbox. ack-all is declared first: it would otherwise be
+            // a candidate match for {id} in a stricter route model binding setup.
+            Route::post('notifications/ack-all', [FieldNotificationController::class, 'ackAll'])->name('notifications.ack-all');
+            Route::get('notifications', [FieldNotificationController::class, 'index'])->name('notifications.index');
+            Route::post('notifications/{id}/ack', [FieldNotificationController::class, 'ack'])->name('notifications.ack');
+            // K5 — technicians and planning.
+            Route::get('technicians', [PlanningController::class, 'technicians'])->name('technicians.index');
 
-        Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
-        Route::put('planning', [PlanningController::class, 'store'])->name('planning.store');
-        Route::delete('planning', [PlanningController::class, 'destroy'])->name('planning.destroy');
-        // K6 — the Conflictencentrum.
-        Route::get('conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
-        Route::get('conflicts/{id}', [ConflictController::class, 'show'])->name('conflicts.show');
-        Route::patch('conflicts/{id}', [ConflictController::class, 'update'])->name('conflicts.update');
-        // K7 — readiness writes. The reads live in the shared group below: Veld uses
-        // the same payload (its contract says so), but only the office changes checks.
-        Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
-        // K8 — documents and reports.
-        Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
-        Route::get('documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
+            Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
+            Route::put('planning', [PlanningController::class, 'store'])->name('planning.store');
+            Route::delete('planning', [PlanningController::class, 'destroy'])->name('planning.destroy');
+            // K6 — the Conflictencentrum.
+            Route::get('conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
+            Route::get('conflicts/{id}', [ConflictController::class, 'show'])->name('conflicts.show');
+            Route::patch('conflicts/{id}', [ConflictController::class, 'update'])->name('conflicts.update');
+            // K7 — readiness writes. The reads live in the shared group below: Veld uses
+            // the same payload (its contract says so), but only the office changes checks.
+            Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
+            // K8 — documents and reports.
+            Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
+            Route::get('documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
 
-        Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
-        Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
-        // K10 — server-sent events (optional per §6; polling keeps working without it).
-        Route::get('events', [EventStreamController::class, 'stream'])->name('events.stream');
+            Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
+            Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
+            // K10 — server-sent events (optional per §6; polling keeps working without it).
+            Route::get('events', [EventStreamController::class, 'stream'])->name('events.stream');
 
-        // K9 — functional specs and acceptance tests.
-        Route::get('projects/{code}/functions', [FunctionSpecController::class, 'index'])
-            ->where('code', '[A-Za-z0-9._-]+')
-            ->name('projects.functions');
-        Route::patch('functions/{id}', [FunctionSpecController::class, 'update'])->name('functions.update');
+            // K9 — functional specs and acceptance tests.
+            Route::get('projects/{code}/functions', [FunctionSpecController::class, 'index'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.functions');
+            Route::patch('functions/{id}', [FunctionSpecController::class, 'update'])->name('functions.update');
 
-        Route::get('projects/{code}/tests', [AcceptanceTestController::class, 'index'])
-            ->where('code', '[A-Za-z0-9._-]+')
-            ->name('projects.tests');
-        Route::patch('tests/{id}', [AcceptanceTestController::class, 'update'])->name('tests.update');
-    });
+            Route::get('projects/{code}/tests', [AcceptanceTestController::class, 'index'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.tests');
+            Route::patch('tests/{id}', [AcceptanceTestController::class, 'update'])->name('tests.update');
+        });
 });

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
+use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxDocument;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxPlanningAssignment;
@@ -66,14 +67,31 @@ final class KnxFieldProjectTest extends TestCase
         $payload = $this->getJson('/api/v1/knx/field/projects/C1618')->assertOk()->json();
 
         $this->assertSame(
-            ['code', 'name', 'clientName', 'city', 'floors', 'rooms', 'boards', 'deviceTypes'],
+            [
+                'code', 'name', 'clientName', 'clientAddress', 'clientContact', 'clientPhone',
+                'city', 'devicesPlanned', 'devicesDone', 'photos', 'openConflicts',
+                'floors', 'rooms', 'boards', 'deviceTypes',
+            ],
             array_keys($payload),
         );
 
         $this->assertSame('C1618', $payload['code']);
         $this->assertSame('UV Campus · Gelijkvloers', $payload['name']);
         $this->assertSame('UV Vastgoed', $payload['clientName']);
+        // Where the job is and who to ring, from `knx_clients` — the technician
+        // needs both from site and neither was exposed before CLA-635.
+        $this->assertSame('Kapeldreef 60, 3001 Heverlee', $payload['clientAddress']);
+        $this->assertSame('Dirk Maes', $payload['clientContact']);
+        $this->assertSame('0476 12 34 56', $payload['clientPhone']);
         $this->assertSame('Heverlee', $payload['city']);
+        // The office's own header numbers, from the same source as
+        // `ProjectStatsResource`: the columns it already maintains plus the live
+        // conflict count. C1618 has two conflicts in `open`/`in_review` and one
+        // already `verified`, which must not count.
+        $this->assertSame(24, $payload['devicesPlanned']);
+        $this->assertSame(17, $payload['devicesDone']);
+        $this->assertSame(38, $payload['photos']);
+        $this->assertSame(2, $payload['openConflicts']);
 
         // Rooms carry an id, because that is what the app sends back when it
         // registers a device.
@@ -109,6 +127,50 @@ final class KnxFieldProjectTest extends TestCase
         $this->assertNotEmpty($types);
         $this->assertContains('Drukknop 4-voudig', $types);
         $this->assertSame(array_values(array_unique($types)), $types, 'no duplicates');
+    }
+
+    public function test_the_device_list_answers_the_field_device_shape_without_leaking_other_projects(): void
+    {
+        $this->planToday($this->technician(), 'C1618');
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $project = KnxProject::query()->where('code', 'C1618')->sole();
+        $devices = $this->getJson('/api/v1/knx/field/projects/C1618/devices')->assertOk()->json();
+
+        $this->assertNotEmpty($devices);
+
+        // The same shape the registration answers with, so the app has one device
+        // shape and not two.
+        $this->assertSame(
+            ['id', 'address', 'type', 'roomName', 'boardCode', 'serial', 'registeredBy', 'registeredAt'],
+            array_keys($devices[0]),
+        );
+
+        // Every address belongs to this project. The list is what the app draws its
+        // progress from, so one foreign device would silently inflate the count.
+        $own = KnxDevice::query()->where('project_id', $project->getKey())->pluck('address')->all();
+        $this->assertSame([], array_values(array_diff(array_column($devices, 'address'), $own)));
+
+        // Field registrations first, then the ETS plan — the office's own order, so
+        // the app's "latest registrations" block is not buried under the plan.
+        $field = KnxDevice::query()
+            ->where('project_id', $project->getKey())
+            ->where('source', KnxDevice::SOURCE_FIELD)
+            ->pluck('address')
+            ->all();
+
+        $this->assertNotEmpty($field, 'the fixture registers devices from site on C1618');
+        $this->assertContains($devices[0]['address'], $field);
+    }
+
+    public function test_the_device_list_respects_the_same_scope_as_the_project(): void
+    {
+        // Mira is planned on 239870 today, never on C1618.
+        $this->planToday($this->technician('Mira Claes'), '239870');
+        $this->actingAs($this->fieldUser('mira.claes@electrobertels.be'), 'sanctum');
+
+        $this->getJson('/api/v1/knx/field/projects/C1618/devices')->assertForbidden();
+        $this->getJson('/api/v1/knx/field/projects/NOPE-999/devices')->assertNotFound();
     }
 
     public function test_a_project_the_technician_is_not_on_today_is_forbidden_not_hidden(): void
@@ -232,6 +294,7 @@ final class KnxFieldProjectTest extends TestCase
 
         $this->getJson('/api/v1/knx/field/projects/C1618')->assertUnauthorized();
         $this->getJson('/api/v1/knx/field/projects/C1618/plans')->assertUnauthorized();
+        $this->getJson('/api/v1/knx/field/projects/C1618/devices')->assertUnauthorized();
     }
 
     public function test_the_project_endpoints_require_a_token(): void
@@ -240,5 +303,6 @@ final class KnxFieldProjectTest extends TestCase
 
         $this->getJson('/api/v1/knx/field/projects/C1618')->assertUnauthorized();
         $this->getJson('/api/v1/knx/field/projects/C1618/plans')->assertUnauthorized();
+        $this->getJson('/api/v1/knx/field/projects/C1618/devices')->assertUnauthorized();
     }
 }

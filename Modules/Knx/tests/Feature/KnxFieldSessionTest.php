@@ -11,6 +11,7 @@ use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxPlanningAssignment;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxZone;
 use Modules\Knx\Services\FieldTodayService;
 use Tests\TestCase;
 
@@ -95,7 +96,10 @@ final class KnxFieldSessionTest extends TestCase
 
         $this->assertNotEmpty($jobs);
         $this->assertSame(
-            ['id', 'projectCode', 'projectName', 'city', 'room', 'zoneStatus', 'blockingReason', 'tasks'],
+            [
+                'id', 'projectCode', 'projectName', 'city', 'room', 'zoneStatus', 'blockingReason',
+                'tasks', 'devicesPlanned', 'devicesDone', 'photos', 'openConflicts',
+            ],
             array_keys($jobs[0]),
         );
 
@@ -114,6 +118,15 @@ final class KnxFieldSessionTest extends TestCase
         // Tasks come from the data: C1618 has 17 of 24 devices registered and tests
         // still open.
         $this->assertSame(['Toestellen registreren', 'Verlichting testen'], $job['tasks']);
+
+        // The counters travel in the day's payload so the card needs no request per
+        // job (CLA-635), and they come from the same source as the office's own
+        // project header. C1618 has two conflicts in `open`/`in_review`; the one
+        // already `verified` must not count.
+        $this->assertSame(24, $job['devicesPlanned']);
+        $this->assertSame(17, $job['devicesDone']);
+        $this->assertSame(38, $job['photos']);
+        $this->assertSame(2, $job['openConflicts']);
     }
 
     public function test_a_technician_only_sees_the_projects_they_are_on_today(): void
@@ -212,7 +225,7 @@ final class KnxFieldSessionTest extends TestCase
         $this->getJson('/api/v1/knx/zones?project=C1618')->assertOk()->assertJsonCount(4);
 
         // Changing a readiness check stays an office action.
-        $zone = \Modules\Knx\Models\KnxZone::query()->where('name', 'Vergaderzaal')->sole();
+        $zone = KnxZone::query()->where('name', 'Vergaderzaal')->sole();
 
         $this->patchJson("/api/v1/knx/zones/{$zone->getKey()}/checks/loads", ['status' => 'passed'])
             ->assertUnauthorized();

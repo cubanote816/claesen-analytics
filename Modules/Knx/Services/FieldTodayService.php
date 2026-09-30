@@ -4,6 +4,7 @@ namespace Modules\Knx\Services;
 
 use Illuminate\Support\Collection;
 use Modules\Knx\Models\KnxAcceptanceTest;
+use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxPlanningAssignment;
 use Modules\Knx\Models\KnxProject;
@@ -40,7 +41,7 @@ class FieldTodayService
     private const OPEN_TEST_STATUSES = ['pending', 'failed', 'blocked'];
 
     /**
-     * @return Collection<int, array{assignment: KnxPlanningAssignment, project: KnxProject, zone: KnxZone|null, tasks: list<string>}>
+     * @return Collection<int, array{assignment: KnxPlanningAssignment, project: KnxProject, zone: KnxZone|null, tasks: list<string>, openConflicts: int}>
      */
     public function jobsFor(KnxEmployee $technician): Collection
     {
@@ -54,11 +55,24 @@ class FieldTodayService
             ->orderBy('id')
             ->get();
 
+        // One query for the whole day rather than one per job: the card shows the
+        // open-conflict count for every job, and a day usually has several. `pluck`
+        // is applied to the fetched rows and not to the builder, because on the
+        // builder it would replace the aggregate select.
+        $openConflicts = KnxConflict::query()
+            ->whereIn('project_id', $assignments->pluck('project_id'))
+            ->open()
+            ->groupBy('project_id')
+            ->selectRaw('project_id, count(*) as aggregate')
+            ->get()
+            ->pluck('aggregate', 'project_id');
+
         return $assignments->map(fn (KnxPlanningAssignment $assignment): array => [
             'assignment' => $assignment,
             'project' => $assignment->project,
             'zone' => $this->zoneNeedingAttention($assignment->project),
             'tasks' => $this->tasksFor($assignment->project),
+            'openConflicts' => (int) $openConflicts->get($assignment->project_id, 0),
         ]);
     }
 

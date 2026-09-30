@@ -21,6 +21,7 @@ class FieldTodayJobResource extends KnxResource
         KnxPlanningAssignment $assignment,
         private readonly ?KnxZone $zone,
         private readonly array $tasks,
+        private readonly int $openConflicts = 0,
     ) {
         parent::__construct($assignment);
     }
@@ -40,6 +41,15 @@ class FieldTodayJobResource extends KnxResource
             'zoneStatus' => $this->zone?->derivedStatus(),
             'blockingReason' => $blocker?->note,
             'tasks' => $this->tasks,
+            // The four numbers the card draws its progress and its counters from,
+            // from the same source as the office header (`ProjectStatsResource`):
+            // three columns the office already maintains, plus the live conflict
+            // count. They come in the day's payload on purpose — asking per job would
+            // be a request per card.
+            'devicesPlanned' => $project->devices_planned,
+            'devicesDone' => $project->devices_done,
+            'photos' => $project->photos,
+            'openConflicts' => $this->openConflicts,
         ];
     }
 }

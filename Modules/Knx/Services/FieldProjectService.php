@@ -7,6 +7,7 @@ namespace Modules\Knx\Services;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxDocument;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxProject;
@@ -82,6 +83,32 @@ class FieldProjectService
             ->filter(fn (KnxDocument $document): bool => $document->resolvedMimeType() !== null
                 && $document->path !== null
                 && Storage::disk('local')->exists($document->path))
+            ->values();
+    }
+
+    /**
+     * The project's devices, both the ones registered from site and the plan's own.
+     *
+     * Same two ordering rules as the office list (`ProjectController::devices()`):
+     * field registrations first, then the ETS plan, each group in address order. Done
+     * in PHP rather than in SQL so it does not depend on a database-specific
+     * `ORDER BY FIELD()`.
+     *
+     * Both are returned on purpose. The app draws progress ("17 of 24") and the
+     * per-room counts from this list, and a plan-only list would report zero work
+     * done on a project that is half finished.
+     *
+     * @return Collection<int, KnxDevice>
+     */
+    public function devicesFor(KnxProject $project): Collection
+    {
+        return $project->devices()
+            ->with(['room', 'board', 'registeredBy'])
+            ->get()
+            ->sortBy(fn (KnxDevice $device): array => [
+                $device->source === KnxDevice::SOURCE_FIELD ? 0 : 1,
+                $device->address,
+            ])
             ->values();
     }
 }

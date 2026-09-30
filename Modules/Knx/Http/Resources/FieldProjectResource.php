@@ -23,13 +23,28 @@ class FieldProjectResource extends KnxResource
     public function toArray(Request $request): array
     {
         $project = $this->resource;
+        $client = $project->client;
 
         return [
             'code' => $project->code,
             'name' => $project->name,
             // The relation is non-nullable in the schema, so this cannot be missing.
-            'clientName' => $project->client->name,
+            'clientName' => $client->name,
+            // The technician rings the client from site and the card shows where the
+            // job is; all three live on `knx_clients` already. Strings in the contract,
+            // so an unknown one is an empty string rather than a missing key.
+            'clientAddress' => $client->address ?? '',
+            'clientContact' => $client->contact ?? '',
+            'clientPhone' => $client->phone ?? '',
             'city' => $project->city ?? '',
+            // The four numbers of the office's project header, from the same source
+            // (`ProjectStatsResource`): the columns the office already maintains plus
+            // the live conflict count. Recounting them from the device list would be a
+            // second definition that can disagree with the office's own.
+            'devicesPlanned' => $project->devices_planned,
+            'devicesDone' => $project->devices_done,
+            'photos' => $project->photos,
+            'openConflicts' => $project->openConflicts()->count(),
             'floors' => $this->floors(),
             'rooms' => $project->rooms
                 ->map(fn ($room): array => [
