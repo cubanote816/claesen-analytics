@@ -324,6 +324,7 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 - **Pendiente (P7):** `NOT NULL`, flag activo en producción, alta de Bertels y decisión de MFA; bloqueado por staging (CLA-530/531/525).
 - **Integrado (2026-09-28):** las tres líneas del programa están en `electrobertels/trunk` — `org-indicator` (CLA-598/599/600), `knx-api` (CLA-602/604/609) y `login-per-company` (CLA-603) — con la suite completa verde en cada paso (2099 passed / 0 failed al cierre) y empujado a `origin`. `site-content-api` queda **fuera a propósito** (trabajo en vuelo de CLA-481/484/611). Defectos destapados y detalle: `handoff.md`.
 - **Reconciliado con `main` (2026-09-29):** `main` no tenía solo CLA-601 — había recibido dos PRs con CLA-578 (reporting/scheduling de FieldOps) y CLA-594 (conteos por complejo) que ninguna línea del programa tenía. Mergeados en `electrobertels/trunk` (`0ba65c1`), con los 4 conflictos del área de login resueltos a favor del diseño por-empresa. Suite completa: **2117 passed / 3 skipped / 0 failed**. Detalle en `handoff.md`.
+- **Integrada la línea de contenido web en `trunk` (2026-10-01):** `site-content-api` (media slots, legales, glosario, estados de traducción) + el gate de publicación (manifiesto, seeder, pantalla de aprobación, acceso a paneles). Un defecto que solo aparecía al juntar las dos líneas: la entrada a la app KNX de oficina colgaba de `canAccessPanel('bertels')`, que ahora también admite al cliente — se cerró con `User::canOpenKnxOffice()`. Suite completa: **2181 passed / 3 skipped / 0 failed**.
 
 ---
 
