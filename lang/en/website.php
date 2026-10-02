@@ -178,6 +178,22 @@ return [
             'publish_now_success'        => 'Publication requested',
         ],
     ],
+    // CLA-481 (media slots): this block was missing from every language file, so the panel
+    // printed `website.media_slots.plural_label` verbatim — including in the cluster's tab
+    // bar. The wording follows the code's own vocabulary (a slot is a stable name such as
+    // `home.hero` pointing at a project's media) rather than a free interpretation; if the
+    // team behind that screen prefers other words, this is what to change.
+    'media_slots' => [
+        'label' => 'Media slot',
+        'plural_label' => 'Media slots',
+        'fields' => [
+            'slot' => 'Slot',
+            'slot_helper' => 'The name the website uses, for example home.hero. Changing it means changing the website too.',
+            'media' => 'Media from a project',
+            'media_invalid' => 'This media does not belong to a project of this site.',
+        ],
+    ],
+
     'page_publication_review' => [
         'label' => 'Page publications',
         'fields' => [

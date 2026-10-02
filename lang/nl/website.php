@@ -178,6 +178,23 @@ return [
             'publish_now_success'        => 'Publicatie aangevraagd',
         ],
     ],
+    // CLA-481 (media slots): estas claves no existían en ningún fichero de idioma, así que
+    // la pantalla del panel enseñaba `website.media_slots.plural_label` en crudo, también
+    // en la barra de pestañas del clúster. El texto sigue el vocabulario del propio código
+    // (un slot es un nombre estable —`home.hero`— que apunta a un media de un proyecto),
+    // no una interpretación libre; si el equipo de esa pantalla prefiere otra redacción,
+    // esta es la que hay que cambiar.
+    'media_slots' => [
+        'label' => 'Mediaslot',
+        'plural_label' => 'Mediaslots',
+        'fields' => [
+            'slot' => 'Slot',
+            'slot_helper' => 'Naam die de website gebruikt, bijvoorbeeld home.hero. De website moet mee als je die wijzigt.',
+            'media' => 'Media van een project',
+            'media_invalid' => 'Deze media hoort niet bij een project van deze site.',
+        ],
+    ],
+
     'page_publication_review' => [
         'label' => 'Pagina-publicaties',
         'fields' => [
