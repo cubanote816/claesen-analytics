@@ -2,7 +2,7 @@
 
 - **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
 - **Pedido por el usuario (2026-10-03):** crear varios seeders que pueblen el website, **copiando del sitio actual** (`/home/totti/electrobertel_official`, servido en `127.0.0.1:8080`), y después enlazar el sitio de Astro para que **consuma la data de nuestro API**.
-- **Estado:** en curso — P1 y P2 hechos y verificados; P3–P7 pendientes.
+- **Estado:** en curso — P1, P2 y P3 hechos y verificados; P4–P7 pendientes.
 
 ## Por qué esto es la pieza que falta (y no una idea mía)
 
@@ -25,7 +25,7 @@ Medido antes de escribir, porque el sitio tiene gates propios:
 
 - [x] **P1** Arreglar el defecto de `strict_locale_site_keys`: dice `electrobertels` donde todo lo demás dice `electro-bertels` (dos sitios en `Modules/Website/config/config.php`), así que `PublicLocalePolicy::isStrict()` es false para este sitio y los legales caen a neerlandés en vez de devolver null para un idioma no aprobado. Encontrado por la otra sesión al pinchar el contrato; está en trunk porque el merge trajo su línea
 - [x] **P2** `SiteSettingSeeder`: las claves reales del whitelist con los valores aprobados. Sin `vat_number`
-- [ ] **P3** `ProjectSeeder` (DEMO): los 6 casos con sus imágenes, con la marca de demo **visible**
+- [x] **P3** `ProjectSeeder` (DEMO): los 6 casos con sus imágenes, con la marca de demo **visible**
 - [ ] **P4** `MediaSlotSeeder`: los slots de `MediaSlot::SUGGESTED_SLOTS` apuntando a media de proyecto (la validación lo exige)
 - [ ] **P5** `LegalDocumentSeeder`: los 3 `doc_id`, título real y cuerpo de "en preparación"
 - [ ] **P6** Verificar cada uno **por HTTP** contra el backend servido, no solo con tests
@@ -67,3 +67,34 @@ hacer: **fallar sin tocar el snapshot**. Corregido.
 clave de cuatro días `tuesdayToFriday` con **corte de mediodía** y el sábado solo por la mañana.
 Se reescribió copiando los valores del snapshot. Es exactamente el error que esta tarea existe
 para no cometer.
+
+
+## P3: los proyectos DEMO, sembrados y servidos (2026-10-03)
+
+Los 6 del sitio, copiados de sus YAML (no reescritos a mano): título, descripción, categoría,
+ubicación, el caso completo del que lo trae (`work_story`, `challenge`, `solution`, `result` y sus
+3 imágenes de galería con sus pies de foto) y las 9 imágenes copiadas a
+`Modules/Website/resources/assets/demo-projects/` (344K).
+
+**`year` va nulo y no se inventa** — el YAML tampoco lo trae. Igual los `facts` del caso (segmento,
+técnica, duración…): el modelo no tiene dónde guardarlos, así que se pierden. Declarado, no
+escondido.
+
+**Cómo se marca DEMO, y qué marca de verdad.** El `title` empieza por `DEMO · `, y el `client`
+lleva el aviso completo en neerlandés. **Pero el API no sirve `client`**: el `ProjectResource` no
+lo expone entre sus campos. Así que la marca que ve un visitante es **el título**, y el aviso del
+`client` no llega a ninguna página. Se deja escrito igual porque documenta la intención, pero
+nadie debe creer que es la red de seguridad.
+
+**Verificado por HTTP, con los nombres de campo del resource** (mi primera comprobación pidió
+`client` y `api_featured_image_url`, que **no existen** — el resource sirve `featured_image` como
+objeto con `thumb`/`optimized` y sus variantes AVIF): 6 proyectos, título marcado, imagen hero en
+los seis, 3 imágenes de galería y el caso completo en el destacado, `year` nulo.
+
+**Y lo que pasa en otro idioma es lo correcto:** con `Accept-Language: en`, el título vuelve
+`null`. Es el sitio estricto funcionando —no inventa una traducción que no existe— y lo que
+rellena esos idiomas es el motor de CLA-611.
+
+⚠️ **Detalle observado, no arreglado aquí:** en algunos proyectos la URL del `thumb` apunta al
+original en lugar de a una conversión, porque las conversiones de esas imágenes todavía no se han
+generado (van por la cola). Con el worker en marcha terminan de generarse.
