@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'other_panel' => [
+        'hint' => 'Hoor je bij :company?',
+        'link' => 'Meld je aan via het panel van je eigen bedrijf',
+    ],
     'divider_or' => 'Of',
     'microsoft_login' => 'Aanmelden met Microsoft',
     'brand_headline' => 'Twee vakgebieden, één gedeeld backoffice',

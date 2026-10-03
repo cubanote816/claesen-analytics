@@ -54,6 +54,17 @@ class AdminPanelProvider extends PanelProvider
                 static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
 
+            // CLA-611: el aviso de «este no es tu panel». Sólo en la pantalla de login (no en
+            // reseteo de contraseña ni en el desafío de MFA) y en los dos paneles, porque el
+            // hook es global. Explica lo que hoy no explica nadie: que un usuario de la otra
+            // empresa no puede entrar aquí, en vez de devolverlo al formulario en silencio.
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                static fn(): string => request()?->routeIs('filament.*.auth.login')
+                    ? view('core::filament.auth.other-panel-hint')->render()
+                    : '',
+            );
+
             // CLA-603 — split-screen login from the approved mockup. Registered
             // here because FilamentView::registerRenderHook is global and this
             // provider is already where the backoffice's cross-panel render hooks

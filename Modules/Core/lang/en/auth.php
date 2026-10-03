@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'other_panel' => [
+        'hint' => 'Do you belong to :company?',
+        'link' => 'Sign in through your own company\'s panel',
+    ],
     'divider_or' => 'Or',
     'microsoft_login' => 'Sign in with Microsoft',
     // CLA-601: dual-brand login copy. Claesen and Electro Bertels are two
