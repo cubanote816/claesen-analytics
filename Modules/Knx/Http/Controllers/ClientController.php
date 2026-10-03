@@ -3,11 +3,13 @@
 namespace Modules\Knx\Http\Controllers;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Knx\Http\Resources\ClientDetailResource;
 use Modules\Knx\Http\Resources\ClientResource;
 use Modules\Knx\Models\KnxClient;
+use Modules\Knx\Services\ClientService;
 
 /**
  * Clientes (§4.7).
@@ -44,5 +46,26 @@ class ClientController extends Controller
             ->findOrFail($id);
 
         return ClientDetailResource::make($client);
+    }
+
+    public function store(Request $request, ClientService $clients): JsonResponse
+    {
+        // Everything but `name` is optional: the office starts a client from a
+        // name and fills the rest in later. `organization_id` is never accepted
+        // here — the tenant trait fills it from the session's organization.
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'city' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contact' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'email' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'vat' => ['sometimes', 'nullable', 'string', 'max:40'],
+        ]);
+
+        return response()->json(
+            ClientResource::make($clients->create($validated))->resolve($request),
+            201,
+        );
     }
 }

@@ -117,8 +117,10 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             // K2 — clients and projects.
             Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
             Route::get('clients/{id}', [ClientController::class, 'show'])->name('clients.show');
+            Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
 
             Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+            Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
             // {code} is a string ("C1618"), not a numeric id: constrain it so it can
             // never swallow the nested routes below (stats, devices, activity...).
             Route::get('projects/{code}', [ProjectController::class, 'show'])

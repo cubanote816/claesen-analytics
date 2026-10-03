@@ -2,8 +2,10 @@
 
 namespace Modules\Knx\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\Rule;
 use Modules\Knx\Http\Resources\DeviceResource;
 use Modules\Knx\Http\Resources\ProjectResource;
 use Modules\Knx\Http\Resources\ProjectStatsResource;
@@ -13,6 +15,8 @@ use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Models\KnxVisit;
 use Modules\Knx\Services\ProjectActivityService;
+use Modules\Knx\Services\ProjectService;
+use Modules\Knx\Support\KnxTenant;
 
 /**
  * Proyectos (§4.3). Projects are addressed by their natural key (`code`), never
@@ -39,6 +43,69 @@ class ProjectController extends Controller
             ->get();
 
         return ProjectResource::list($projects, $request);
+    }
+
+    public function store(Request $request, ProjectService $projects): JsonResponse
+    {
+        // `status` and the device/photo counters are deliberately absent: a new
+        // project starts empty and only the field work fills them. `organization_id`
+        // is never accepted either — the tenant trait fills it from the session's
+        // organization, like every other write in this module.
+        // `clientId` and `leadEmployeeId` are scoped to this organization. Without
+        // that scope an office user could attach another tenant's client or employee
+        // to their own project, and the response would load the foreign row — the
+        // message says "unknown client", so the rule has to make it true.
+        $validated = $request->validate([
+            'clientId' => [
+                'required',
+                'integer',
+                Rule::exists('knx_clients', 'id')->where('organization_id', KnxTenant::organizationId()),
+            ],
+            // `code` is the natural key, unique per organization (the DB enforces it
+            // too; this rule is what turns the clash into a field error, not a 500).
+            'code' => [
+                'required',
+                'string',
+                'max:32',
+                Rule::unique('knx_projects', 'code')->where('organization_id', KnxTenant::organizationId()),
+            ],
+            'name' => ['required', 'string', 'max:255'],
+            'city' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'leadEmployeeId' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('knx_employees', 'id')->where('organization_id', KnxTenant::organizationId()),
+            ],
+            'deadline' => ['sometimes', 'nullable', 'date'],
+            'rooms' => ['sometimes', 'array'],
+            'rooms.*.name' => ['required', 'string', 'max:255'],
+            'rooms.*.floor' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ], [
+            'code.unique' => __('knx::projects.duplicate_code'),
+            'clientId.exists' => __('knx::projects.unknown_client'),
+            'leadEmployeeId.exists' => __('knx::projects.unknown_lead'),
+        ]);
+
+        $project = $projects->create(
+            [
+                // Contract keys are camelCase, the columns are snake_case.
+                'client_id' => $validated['clientId'],
+                'code' => $validated['code'],
+                'name' => $validated['name'],
+                'city' => $validated['city'] ?? null,
+                'lead_employee_id' => $validated['leadEmployeeId'] ?? null,
+                'deadline' => $validated['deadline'] ?? null,
+            ],
+            $validated['rooms'] ?? [],
+        );
+
+        // The read shape the office already knows (§4.3), so the front needs no
+        // second parser for a created project.
+        return response()->json(
+            ProjectResource::make($project->load(['client', 'lead']))->resolve($request),
+            201,
+        );
     }
 
     public function show(string $code): ProjectResource
