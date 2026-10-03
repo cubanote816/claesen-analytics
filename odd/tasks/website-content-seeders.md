@@ -2,7 +2,7 @@
 
 - **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
 - **Pedido por el usuario (2026-10-03):** crear varios seeders que pueblen el website, **copiando del sitio actual** (`/home/totti/electrobertel_official`, servido en `127.0.0.1:8080`), y después enlazar el sitio de Astro para que **consuma la data de nuestro API**.
-- **Estado:** en curso.
+- **Estado:** en curso — P1 y P2 hechos y verificados; P3–P7 pendientes.
 
 ## Por qué esto es la pieza que falta (y no una idea mía)
 
@@ -23,8 +23,8 @@ Medido antes de escribir, porque el sitio tiene gates propios:
 
 ## Tareas
 
-- [ ] **P1** Arreglar el defecto de `strict_locale_site_keys`: dice `electrobertels` donde todo lo demás dice `electro-bertels` (dos sitios en `Modules/Website/config/config.php`), así que `PublicLocalePolicy::isStrict()` es false para este sitio y los legales caen a neerlandés en vez de devolver null para un idioma no aprobado. Encontrado por la otra sesión al pinchar el contrato; está en trunk porque el merge trajo su línea
-- [ ] **P2** `SiteSettingSeeder`: las claves reales del whitelist con los valores aprobados. Sin `vat_number`
+- [x] **P1** Arreglar el defecto de `strict_locale_site_keys`: dice `electrobertels` donde todo lo demás dice `electro-bertels` (dos sitios en `Modules/Website/config/config.php`), así que `PublicLocalePolicy::isStrict()` es false para este sitio y los legales caen a neerlandés en vez de devolver null para un idioma no aprobado. Encontrado por la otra sesión al pinchar el contrato; está en trunk porque el merge trajo su línea
+- [x] **P2** `SiteSettingSeeder`: las claves reales del whitelist con los valores aprobados. Sin `vat_number`
 - [ ] **P3** `ProjectSeeder` (DEMO): los 6 casos con sus imágenes, con la marca de demo **visible**
 - [ ] **P4** `MediaSlotSeeder`: los slots de `MediaSlot::SUGGESTED_SLOTS` apuntando a media de proyecto (la validación lo exige)
 - [ ] **P5** `LegalDocumentSeeder`: los 3 `doc_id`, título real y cuerpo de "en preparación"
@@ -34,3 +34,36 @@ Medido antes de escribir, porque el sitio tiene gates propios:
 ## Regla de trabajo de esta feature
 
 Una superficie por vez: se siembra, se **mira el endpoint**, y recién ahí la siguiente. Nada se da por bueno porque el test pase.
+
+
+## P1 y P2: hechos y verificados (2026-10-03)
+
+**P1 — la clave del sitio, corregida.** `strict_locale_site_keys` y
+`consent_version_required_site_keys` listaban `electrobertels` (sin guion) mientras el sitio se
+llama `electro-bertels` en su `key`, su panel, su seeder y los tests. `isStrict()` compara contra
+esa lista, así que nunca coincidía y el idioma estricto quedaba apagado. Corregido en los cuatro
+sitios donde estaba. **Consecuencia declarada:** la misma lista mal escrita dejaba **opcional**
+`consent_version` en el intake de Bertels; ahora es **requerido**, y el formulario del frontend
+todavía no lo envía (lo dice el propio código del controlador). No rompe nada hoy porque el sitio
+no consume la API todavía; rompería el primer formulario real.
+
+**P2 — el seeder de ajustes, con los datos reales.** Trece claves del whitelist con los valores de
+`facts.snapshot.json` del cliente. `vat_number` y `contact_consent_version` **no** se siembran, a
+propósito y con el motivo escrito en el propio seeder.
+
+**Verificado con el juez correcto: el script del sitio.** `node scripts/dynamic/sync-content.mjs
+--surface=settings --check` contra nuestro trunk devuelve **`✔ the snapshot is already up to
+date`** — es decir, nuestro API reproduce **exactamente** el snapshot congelado que el sitio
+considera correcto. En el camino, su validador rechazó el primer intento por un detalle real:
+
+    opening_hours.day_key must be one of sunday, monday, tuesdayToFriday, saturday
+
+El snapshot del sitio llama `dayKey` a ese campo (son sus tipos internos) y **el contrato del API
+usa `day_key`**. Los valores eran correctos; la forma no. Y su `--check` hizo lo que tenía que
+hacer: **fallar sin tocar el snapshot**. Corregido.
+
+**Trampa mía, declarada:** en la primera versión del seeder escribí horarios y URLs de mapas
+**inventados** (09:00-17:00 continuo, una URL de maps fabricada). Los reales son distintos: la
+clave de cuatro días `tuesdayToFriday` con **corte de mediodía** y el sábado solo por la mañana.
+Se reescribió copiando los valores del snapshot. Es exactamente el error que esta tarea existe
+para no cometer.

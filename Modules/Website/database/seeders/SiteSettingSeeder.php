@@ -102,19 +102,21 @@ class SiteSettingSeeder extends Seeder
             'maps_embed_url' => [SiteSetting::TYPE_TEXT, 'https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d593.856105007773!2d5.165231190647068!3d51.16449980918741!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sen!2sbe!4v1732211529092&output=embed'],
             'maps_directions_url' => [SiteSetting::TYPE_TEXT, 'https://www.google.com/maps/dir/?api=1&destination=Benoit+Jansenstraat+4,+2490+Balen,+Belgi%C3%AB'],
 
-            // Copiado del snapshot tal cual, incluida su clave de cuatro días
-            // (`tuesdayToFriday`) y el corte de mediodía: es la forma que el sitio ya consume.
+            // Los VALORES son los del snapshot, pero la clave va en `day_key`, que es la forma
+            // que el contrato del API exige (validado por el propio sync del sitio): el snapshot
+            // los llama `dayKey` porque son sus tipos internos, y aquí no. Se conserva su clave
+            // de cuatro días (`tuesdayToFriday`) y el corte de mediodía, que son los datos.
             'opening_hours' => [SiteSetting::TYPE_JSON, [
                 [
-                    'dayKey' => 'sunday',
+                    'day_key' => 'sunday',
                     'hours' => null,
                 ],
                 [
-                    'dayKey' => 'monday',
+                    'day_key' => 'monday',
                     'hours' => null,
                 ],
                 [
-                    'dayKey' => 'tuesdayToFriday',
+                    'day_key' => 'tuesdayToFriday',
                     'hours' => [
                         [
                             'open' => '09:00',
@@ -127,7 +129,7 @@ class SiteSettingSeeder extends Seeder
                     ],
                 ],
                 [
-                    'dayKey' => 'saturday',
+                    'day_key' => 'saturday',
                     'hours' => [
                         [
                             'open' => '09:00',
