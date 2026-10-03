@@ -45,6 +45,14 @@ class CoreServiceProvider extends ServiceProvider
         // F1/P2 (docs/ai/adr-multi-organization.md, decision D6): scoped, never
         // singleton — the queue worker resets scoped bindings between jobs.
         $this->app->scoped(\Modules\Core\Services\OrganizationContext::class);
+
+        // CLA-611: aterrizar en el panel equivocado redirige al propio, en vez de dejar a la
+        // persona en el formulario con el código de MFA ya gastado. Se ata el **contrato** que
+        // Filament resuelve al final del login (su propio punto de extensión).
+        $this->app->bind(
+            \Filament\Auth\Http\Responses\Contracts\LoginResponse::class,
+            \Modules\Core\Filament\Auth\RedirectToAccessiblePanel::class,
+        );
         // F2/CLA-465: same D6 reasoning — one correlation id per request/job,
         // never leaking into the next one in a persistent queue worker.
         $this->app->scoped(\Modules\Core\Services\CorrelationIdContext::class);

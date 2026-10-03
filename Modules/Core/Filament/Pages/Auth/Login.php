@@ -6,6 +6,7 @@ namespace Modules\Core\Filament\Pages\Auth;
 
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse;
+use Modules\Core\Filament\Auth\RedirectToAccessiblePanel;
 use Filament\Auth\MultiFactor\Contracts\HasBeforeChallengeHook;
 use Filament\Auth\Pages\Login as BaseLogin;
 use Filament\Facades\Filament;
@@ -79,6 +80,30 @@ class Login extends BaseLogin
         return parent::getRememberFormComponent()->label(__('core::auth.remember'));
     }
 
+    /**
+     * Otro panel al que esta persona pueda entrar, o null si no puede entrar a ninguno.
+     *
+     * Se recorren los paneles registrados y se devuelve el primero que la admita, saltándose el
+     * actual (que ya se sabe que no). Sirve para distinguir «no sos de aquí» de «no sos de
+     * ninguna parte», que son la misma respuesta para `canAccessPanel` y no para la persona.
+     */
+    private function accessiblePanelFor(Authenticatable $user): ?string
+    {
+        $currentPanelId = Filament::getCurrentOrDefaultPanel()?->getId();
+
+        foreach (Filament::getPanels() as $panelId => $panel) {
+            if ($panelId === $currentPanelId) {
+                continue;
+            }
+
+            if ($user->canAccessPanel($panel)) {
+                return $panelId;
+            }
+        }
+
+        return null;
+    }
+
     public function authenticate(): ?LoginResponse
     {
         try {
@@ -137,7 +162,20 @@ class Login extends BaseLogin
 
         if (! $authGuard->attemptWhen($credentials, function (Authenticatable $user): bool {
             if (($user instanceof FilamentUser) && (! $user->canAccessPanel(Filament::getCurrentOrDefaultPanel()))) {
-                return false;
+                // No poder entrar AQUÍ no siempre es un rechazo: puede ser haber aterrizado en el
+                // panel equivocado. Como el código de MFA ya se validó y se gastó para llegar
+                // hasta aquí, negarlo ahora deja a la persona con un «código inválido» al
+                // reintentar, sin haber hecho nada mal. Si pertenece a otro panel, se le lleva
+                // allí; si no puede entrar a ninguno, se mantiene la denegación de siempre.
+                $accessiblePanel = $this->accessiblePanelFor($user);
+
+                if ($accessiblePanel === null) {
+                    return false;
+                }
+
+                session()->put(RedirectToAccessiblePanel::SESSION_KEY, $accessiblePanel);
+
+                return true;
             }
 
             // CLA-363. CLA-581: technician removed from this denylist — hasPanelAccess()
