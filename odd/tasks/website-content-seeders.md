@@ -2,7 +2,7 @@
 
 - **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
 - **Pedido por el usuario (2026-10-03):** crear varios seeders que pueblen el website, **copiando del sitio actual** (`/home/totti/electrobertel_official`, servido en `127.0.0.1:8080`), y después enlazar el sitio de Astro para que **consuma la data de nuestro API**.
-- **Estado:** P1, P2, P3 y P5 hechos y verificados. **P4 bloqueado por un hueco de diseño del backend**, declarado abajo. P6/P7 pendientes.
+- **Estado:** P1, P2, P3, **P4 (desbloqueado)** y P5 hechos y verificados. P6/P7 pendientes.
 
 ## Por qué esto es la pieza que falta (y no una idea mía)
 
@@ -26,7 +26,7 @@ Medido antes de escribir, porque el sitio tiene gates propios:
 - [x] **P1** Arreglar el defecto de `strict_locale_site_keys`: dice `electrobertels` donde todo lo demás dice `electro-bertels` (dos sitios en `Modules/Website/config/config.php`), así que `PublicLocalePolicy::isStrict()` es false para este sitio y los legales caen a neerlandés en vez de devolver null para un idioma no aprobado. Encontrado por la otra sesión al pinchar el contrato; está en trunk porque el merge trajo su línea
 - [x] **P2** `SiteSettingSeeder`: las claves reales del whitelist con los valores aprobados. Sin `vat_number`
 - [x] **P3** `ProjectSeeder` (DEMO): los 6 casos con sus imágenes, con la marca de demo **visible**
-- [x] **P4** *(bloqueado: ver abajo)* `MediaSlotSeeder`: los slots de `MediaSlot::SUGGESTED_SLOTS` apuntando a media de proyecto (la validación lo exige)
+- [x] **P4** (desbloqueado: ver abajo) `MediaSlotSeeder`: los slots de `MediaSlot::SUGGESTED_SLOTS` apuntando a media de proyecto (la validación lo exige)
 - [x] **P5** `LegalDocumentSeeder`: los 3 `doc_id`, título real y cuerpo de "en preparación"
 - [ ] **P6** Verificar cada uno **por HTTP** contra el backend servido, no solo con tests
 - [ ] **P7** Enlazar el sitio de Astro para que consuma el API (la superficie `settings` ya está escrita; las demás son el trabajo que el propio documento del sitio lista)
@@ -154,3 +154,45 @@ estricto funcionando, y era el defecto que P1 corrigió —la clave del sitio es
 guion, `isStrict()` nunca coincidía, y con el idioma estricto apagado estos campos caían a
 neerlandés. Ahora mismo, con la clave bien, el comportamiento es el correcto y está comprobado por
 HTTP en los dos idiomas.
+
+
+## P4 desbloqueado: el sitio tiene su propia media (2026-10-03)
+
+Decisión del usuario: *«crea sus propios dueños si es una buena práctica»*. **Lo es**, y por eso se
+hizo: una foto de equipo o un certificado **no** es una foto de obra, así que su dueño natural es el
+**sitio**, no un proyecto. Es aditivo (`media` de Spatie es polimórfico, no toca el esquema) y no
+cambia nada de Claesen.
+
+Lo que se hizo:
+
+1. **`Site` gana media** (`InteractsWithMedia` + colección `imagery`, mismo disco y formatos que las
+   colecciones de proyecto).
+2. Las **conversiones** salen a un trait compartido, `Modules\Core\Models\Concerns\SiteImageConversions`,
+   con los mismos tamaños y calidades que ya tenía `Project`. Vive en **Core** y no en Website
+   porque lo usan los dos, y un modelo de Core no debe depender de Website: la dirección se respeta.
+   ⚠️ El método se llama `registerSiteImageConversions`, **no** `registerMediaConversions`: ese
+   último es el hook de `InteractsWithMedia` y dos traits con el mismo método en la misma clase son
+   un **fatal** (`has not been applied ... because of collision`). Se descubrió rompiendo el
+   arranque de la app, que es una forma cara de aprenderlo.
+3. `Project::MEDIA_MIME_TYPES` **sigue resolviendo** aunque la constante viva en el trait, porque las
+   constantes de trait pasan a ser de la clase. Su test de contrato (`ProjectMediaContractTest`,
+   7/7) es la prueba.
+4. El selector de media del panel (`MediaSlotResource::mediaOptions`) ahora ofrece también la media
+   del sitio, no sólo la de proyectos. Antes era imposible elegirla.
+5. `MediaSlotSeeder`: los **7 slots con imagen** de la tabla S2.1 del sitio. Los **3 hero no se
+   siembran** (no existe imagen suya: su repo los documenta vacíos por diseño) y `winkel.photo`
+   tampoco (*«the API offers a slot the site never renders»*).
+6. **Derechos de uso marcados como lo que son**: el valor dice que **no** están confirmados
+   (imágenes del prototipo), nunca una fecha. El API sólo sirve el slot si esa propiedad está
+   rellena, así que el texto es lo que permite probar el circuito sin afirmar una confirmación.
+
+**Verificado por HTTP**: 7 slots servidos con `url` de conversión (los originales siguen privados),
+`width`, `height` y `checksum` `sha256:…` — exactamente el contrato que su documento fijó.
+
+⚠️ **Defecto encontrado en el controlador del sitio, no arreglado aquí** (es de la otra línea):
+`MediaSlotController::conversionMeta()` cachea el resultado **vacío** durante una hora con una clave
+que incluye el `updated_at` del media pero **no** el hecho de que la conversión ya exista. Consecuencia:
+recién sembrado, mientras la cola genera las conversiones, el endpoint responde `width`/`height`/
+`checksum` en `null` **y los sigue respondiendo hasta una hora después** de que el fichero exista.
+Se comprobó vaciando la caché: los valores aparecen de inmediato. El arreglo natural es no cachear el
+caso vacío, o incluir en la clave la existencia de la conversión.

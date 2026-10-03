@@ -104,9 +104,15 @@ class MediaSlotResource extends Resource
             return [];
         }
 
+        // La media de un slot puede ser de un proyecto o del propio sitio: el sitio es el dueño
+        // de su imaginería (equipo, certificados, diagrama) y antes no había forma de elegirla
+        // desde aquí, aunque el modelo lo permita.
+        $projectIds = Project::query()->select('id')->where('site_id', $siteId);
+
         return Media::query()
-            ->where('model_type', Project::class)
-            ->whereIn('model_id', Project::query()->select('id')->where('site_id', $siteId))
+            ->where(fn ($query) => $query
+                ->where(fn ($inner) => $inner->where('model_type', Project::class)->whereIn('model_id', $projectIds))
+                ->orWhere(fn ($inner) => $inner->where('model_type', Site::class)->where('model_id', $siteId)))
             ->orderBy('id', 'desc')
             ->limit(500)
             ->get()

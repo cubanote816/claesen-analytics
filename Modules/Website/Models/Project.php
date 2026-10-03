@@ -22,9 +22,9 @@ class Project extends Model implements HasMedia
      * diverge again the way they had (the form offered video/mp4 uploads
      * that registerMediaCollections() below always rejected).
      */
-    public const MEDIA_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
     use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia, HasAiTranslations, BelongsToSite;
+    use \Modules\Core\Models\Concerns\SiteImageConversions;
 
     protected static function newFactory(): ProjectFactory
     {
@@ -135,6 +135,11 @@ class Project extends Model implements HasMedia
      * Modules\Website\App\Http\Resources\ProjectResource, which no longer
      * expose $media->getUrl() — the original's URL — at all).
      */
+    public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
+    {
+        $this->registerSiteImageConversions();
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('featured_image')
@@ -162,44 +167,6 @@ class Project extends Model implements HasMedia
      * expected to fall back to the WebP source for any browser/decoder
      * that doesn't support AVIF, so both must exist.
      */
-    public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
-    {
-        $this->addMediaConversion('thumb')
-            ->format('webp')
-            ->width(300)
-            ->height(200)
-            ->quality(85);
-
-        $this->addMediaConversion('thumb_avif')
-            ->format('avif')
-            ->width(300)
-            ->height(200)
-            ->quality(85);
-
-        $this->addMediaConversion('optimized')
-            ->format('webp')
-            ->width(1200)
-            ->height(1200)
-            ->quality(80);
-
-        $this->addMediaConversion('optimized_avif')
-            ->format('avif')
-            ->width(1200)
-            ->height(1200)
-            ->quality(80);
-
-        $this->addMediaConversion('gallery')
-            ->format('webp')
-            ->width(1200)
-            ->height(800)
-            ->quality(80);
-
-        $this->addMediaConversion('gallery_avif')
-            ->format('avif')
-            ->width(1200)
-            ->height(800)
-            ->quality(80);
-    }
 
     /**
      * Never $media->getUrl() (the original, private-disk file — see

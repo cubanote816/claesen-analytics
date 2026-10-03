@@ -6,6 +6,9 @@ use Database\Factories\SiteFactory;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Modules\Core\Models\Concerns\SiteImageConversions;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -20,9 +23,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Not consulted by any authorization or scoping logic yet: as of phase P1
  * this model is pure structure. Enforcement lands in phase P5.
  */
-class Site extends Model
+class Site extends Model implements HasMedia
 {
     use HasFactory;
+    use InteractsWithMedia;
+    use SiteImageConversions;
 
     public const STATUS_ACTIVE = 'active';
 
@@ -117,6 +122,32 @@ class Site extends Model
      * resolves to exactly what NewConsultationRequestMail already sent
      * before this ticket.
      */
+    /**
+     * La imaginería del sitio: sus propias imágenes, no las de un registro suyo.
+     *
+     * Existe porque un slot de media (`website_media_slots`) apunta a una fila de `media`, y
+     * `media` exige dueño. El único modelo con media era `Project`, así que una foto de equipo o
+     * un certificado sólo podían colgarse de un proyecto — y eso las publicaba en la galería de
+     * ese proyecto, que el API sirve. El sitio es el dueño semánticamente correcto de su propia
+     * imaginería, y es aditivo: el `media` de Spatie es polimórfico, así que no toca el esquema
+     * ni cambia nada de Claesen.
+     *
+     * Mismo disco y mismos formatos que las colecciones de proyecto: el original en privado y las
+     * conversiones en público, que es lo único que el API serializa.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('imagery')
+            ->useDisk('local')
+            ->storeConversionsOnDisk('public')
+            ->acceptsMimeTypes(self::MEDIA_MIME_TYPES);
+    }
+
+    public function registerMediaConversions(?\Spatie\MediaLibrary\MediaCollections\Models\Media $media = null): void
+    {
+        $this->registerSiteImageConversions();
+    }
+
     public function mailFromAddress(): ?string
     {
         return $this->mail_from_address ?? config('mail.from.address');
