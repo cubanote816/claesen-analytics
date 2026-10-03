@@ -96,6 +96,56 @@ final class MediaSlotsApiTest extends TestCase
         $this->assertSame(['nl' => 'NL caption'], $data['caption']);
     }
 
+    /**
+     * Regression: `alt` and `caption` must be JSON **objects** even when they
+     * have no entries. `localeMap()` returns a PHP array, and an empty PHP array
+     * serialises as `[]` — a list — which the site's `sync-content.mjs` rejects
+     * with "caption must be an object keyed by locale", refusing the whole
+     * surface. The `(object)` cast in `MediaSlotController::serialize()` is what
+     * keeps them objects; this test fails if it is removed.
+     *
+     * Decoding with `assoc: false` is the point: `{}` yields `stdClass`, `[]`
+     * yields `array`, so the assertion sees the difference the contract cares
+     * about — which `assertSame([], ...)` never could.
+     */
+    public function test_alt_and_caption_are_json_objects_even_when_empty(): void
+    {
+        $site = Site::find(Site::claesenId());
+        $project = Project::factory()->create(['site_id' => $site->id]);
+        $media = $project->addMedia(
+            UploadedFile::fake()->image('slot.png', 1200, 800)
+        )->toMediaCollection('gallery');
+
+        // Rights confirmed, but no alt and no caption set at all.
+        $media->setCustomProperty('usage_rights_confirmed_at', now()->toIso8601String());
+        $media->save();
+
+        MediaSlot::create([
+            'site_id' => $site->id,
+            'slot' => 'home.hero',
+            'media_id' => $media->id,
+        ]);
+
+        $response = $this->getJson('/v1/website/media/slots')->assertOk();
+        $body = $response->getContent();
+
+        // Eyeball-level guarantee: the published bytes really say `{}`.
+        $this->assertStringContainsString('"alt":{}', $body);
+        $this->assertStringContainsString('"caption":{}', $body);
+
+        $objects = json_decode($body);
+        $this->assertInstanceOf(\stdClass::class, $objects->data[0]->alt);
+        $this->assertInstanceOf(\stdClass::class, $objects->data[0]->caption);
+
+        // And the same for a media that does have entries.
+        $media->setCustomProperty('alt', ['nl' => 'NL alt']);
+        $media->save();
+
+        $withEntries = json_decode($this->getJson('/v1/website/media/slots')->assertOk()->getContent());
+        $this->assertInstanceOf(\stdClass::class, $withEntries->data[0]->alt);
+        $this->assertSame('NL alt', $withEntries->data[0]->alt->nl);
+    }
+
     public function test_slots_without_confirmed_usage_rights_are_omitted(): void
     {
         $site = Site::find(Site::claesenId());

@@ -196,3 +196,53 @@ recién sembrado, mientras la cola genera las conversiones, el endpoint responde
 `checksum` en `null` **y los sigue respondiendo hasta una hora después** de que el fichero exista.
 Se comprobó vaciando la caché: los valores aparecen de inmediato. El arreglo natural es no cachear el
 caso vacío, o incluir en la clave la existencia de la conversión.
+
+### El contrato real de `alt` y `caption` (y lo que costó descubrirlo)
+
+El sync del sitio (`scripts/dynamic/sync-content.mjs --surface=media`, escrito por la línea del
+sitio) **valida** el payload antes de tocar su snapshot. La primera corrida contra este backend
+rechazó la superficie entera con `alt must be an object keyed by locale` / `caption must be an
+object keyed by locale` para los 7 slots, y **dejó su snapshot intacto** — que es el comportamiento
+correcto: un snapshot a medias es peor que ninguno.
+
+Dos cosas estaban mal:
+
+1. **Faltaban los textos.** El `alt` tiene que ser un objeto por idioma. Se copió del **contenido
+   real del cliente**, no se inventó: `over-ons.history.photoAlt`, `home.media.knxSchemaAlt`,
+   `home.media.winkelPhotoAlt` y `certifications.slotLabels`, en los cuatro idiomas. El token
+   `{{addressFull}}` de la foto de la tienda se guarda **tal cual**, porque lo resuelve el propio
+   sitio al renderizar. El `caption` va **vacío**: el contenido no tiene pies de foto para estos
+   slots, y un objeto vacío dice «no hay» sin inventar texto.
+2. **Un array vacío no es un objeto.** `localeMap()` devuelve un array de PHP, y un array vacío se
+   serializa como `[]` — una **lista**. El contrato pide un objeto. Se arregló en
+   `MediaSlotController::serialize()` con un cast `(object)`, el mismo defecto que ya había aparecido
+   en el manifiesto de publicación y se había resuelto igual. `MediaSlotsApiTest` gana un test de
+   regresión que **se verificó quitando el cast**: con él `"caption":{}`, sin él `"caption":[]` y el
+   test falla.
+
+De paso: el valor de derechos decía «DEMO — niet bevestigd» con una raya, y al escribirlo a MySQL
+llegaba rota (`DEMO ? niet bevestigd`). Quedó con guion ASCII — el único trabajo de ese texto es
+**no mentir**, así que no puede llegar ilegible.
+
+### Dónde se traba de verdad la superficie `media` (medido, no supuesto)
+
+Con el contrato ya válido, `--check` avanza hasta la descarga y falla ahí:
+
+```
+home.featured-diagram: could not download http://localhost/storage/29/conversions/domotica-optimized.webp (fetch failed)
+```
+
+Son **dos** causas, ambas del lado del backend y ninguna en el sembrador:
+
+1. **La media está en el disco `local`, no en `public`.** `$media->disk` = `local`, y
+   `public/storage` no existe en este worktree. `url()` devuelve entonces una ruta relativa
+   (`/storage/24/…`) que no sirve nadie: pedirla da **403** (rutas `GET|PUT storage/{path}` del
+   propio framework, no de nginx). La media del **sitio web** tiene que ser descargable por un
+   consumidor anónimo; la de KNX es privada **a propósito** (URLs firmadas), así que esto es una
+   decisión de arquitectura, no un detalle. **No se decidió acá.**
+2. **`APP_URL=http://localhost`** (sin puerto) en el entorno local, así que la URL absoluta apunta
+   al puerto 80. Es configuración de entorno; en producción importa que sea el host real.
+
+Ninguna de las dos se arregla desde el sembrador, y las dos bloquean la superficie `media` del sitio.
+**Los tests no las detectan** porque `MediaSlotsApiTest` usa `Storage::fake('public')`: el disco real
+de producción nunca se ejerce. Queda anotado como riesgo, no como algo resuelto.

@@ -69,8 +69,11 @@ class MediaSlotController extends Controller
             'height' => $meta['height'],
             'checksum' => $meta['checksum'],
             'mime_type' => $media->mime_type,
-            'alt' => $this->localeMap($media->getCustomProperty('alt')),
-            'caption' => $this->localeMap($media->getCustomProperty('caption')),
+            // `(object)` y no el array pelado: un mapa vacío serializa como `[]` (una lista), y
+            // el contrato dice que `alt` y `caption` son objetos por idioma. Con un array vacío el
+            // sync del sitio rechaza la superficie entera — que es como se encontró esto.
+            'alt' => (object) $this->localeMap($media->getCustomProperty('alt')),
+            'caption' => (object) $this->localeMap($media->getCustomProperty('caption')),
         ];
     }
 
