@@ -2,7 +2,7 @@
 
 - **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
 - **Pedido por el usuario (2026-10-03):** crear varios seeders que pueblen el website, **copiando del sitio actual** (`/home/totti/electrobertel_official`, servido en `127.0.0.1:8080`), y después enlazar el sitio de Astro para que **consuma la data de nuestro API**.
-- **Estado:** en curso — P1, P2 y P3 hechos y verificados; P4–P7 pendientes.
+- **Estado:** P1, P2 y P3 hechos y verificados. **P4 bloqueado por un hueco de diseño del backend**, declarado abajo. P5–P7 pendientes.
 
 ## Por qué esto es la pieza que falta (y no una idea mía)
 
@@ -26,7 +26,7 @@ Medido antes de escribir, porque el sitio tiene gates propios:
 - [x] **P1** Arreglar el defecto de `strict_locale_site_keys`: dice `electrobertels` donde todo lo demás dice `electro-bertels` (dos sitios en `Modules/Website/config/config.php`), así que `PublicLocalePolicy::isStrict()` es false para este sitio y los legales caen a neerlandés en vez de devolver null para un idioma no aprobado. Encontrado por la otra sesión al pinchar el contrato; está en trunk porque el merge trajo su línea
 - [x] **P2** `SiteSettingSeeder`: las claves reales del whitelist con los valores aprobados. Sin `vat_number`
 - [x] **P3** `ProjectSeeder` (DEMO): los 6 casos con sus imágenes, con la marca de demo **visible**
-- [ ] **P4** `MediaSlotSeeder`: los slots de `MediaSlot::SUGGESTED_SLOTS` apuntando a media de proyecto (la validación lo exige)
+- [x] **P4** *(bloqueado: ver abajo)* `MediaSlotSeeder`: los slots de `MediaSlot::SUGGESTED_SLOTS` apuntando a media de proyecto (la validación lo exige)
 - [ ] **P5** `LegalDocumentSeeder`: los 3 `doc_id`, título real y cuerpo de "en preparación"
 - [ ] **P6** Verificar cada uno **por HTTP** contra el backend servido, no solo con tests
 - [ ] **P7** Enlazar el sitio de Astro para que consuma el API (la superficie `settings` ya está escrita; las demás son el trabajo que el propio documento del sitio lista)
@@ -98,3 +98,33 @@ rellena esos idiomas es el motor de CLA-611.
 ⚠️ **Detalle observado, no arreglado aquí:** en algunos proyectos la URL del `thumb` apunta al
 original en lugar de a una conversión, porque las conversiones de esas imágenes todavía no se han
 generado (van por la cola). Con el worker en marcha terminan de generarse.
+
+
+## P4 — bloqueado por un hueco del backend, no por falta de datos (2026-10-03)
+
+El mapeo slot → imagen **ya está resuelto** y basado en leer el árbol, no en los nombres: es la
+tabla S2.1 de `odd/tasks/dynamic-content-sync.md` del repo del sitio. Siete slots tienen imagen
+(`over-ons.team`, `over-ons.cert-1..4`, `home.featured-diagram`, `home.shop-photo`), los tres
+hero son placeholders vacíos por diseño (`GATE_REAL_MEDIA`: *"3 hero slots are empty"*), y
+`winkel.photo` es un slot que la web **nunca** renderiza.
+
+**Lo que impide sembrarlo:** todos esos slot apuntan a `media_id`, y `media` exige dueño
+(`model_type` y `model_id` son NOT NULL), y el **único** modelo del módulo con media es
+`Project`. Las siete imágenes son **imágenes de sitio** —equipo, certificados, diagrama, tienda—,
+no fotos de obra: colgarlas de un proyecto las metería en la galería de ese proyecto, que el API
+publica (`gallery` y `detail_gallery`). Un certificado apareciendo como foto de obra es
+exactamente el tipo de dato falso que esta tarea existe para no producir.
+
+Y no se puede rodear: la media sin dueño no existe en este esquema, y crear un proyecto que haga
+de contenedor sería inventar una entidad para tapar el hueco.
+
+**El hueco, dicho con precisión:** el backend modela **slots de sitio** pero sólo sabe guardar
+media **de registro**. Su propio documento ya lo nombra como *"a backend gap to be ticketed, not
+guessed away"*. La salida natural es que el sitio pueda tener media propia (`Site` con
+`InteractsWithMedia`, o un dueño específico para slots), y entonces esta siembra es trivial.
+
+**Decisión del usuario sobre los derechos, que sí queda registrada:** cuando ese hueco se cierre,
+las imágenes del prototipo se siembran **marcadas como DEMO y sin fecha falsa** — el valor de
+`usage_rights_confirmed_at` dirá que **no** están confirmados, en vez de afirmar una confirmación
+que no existe. El endpoint sólo sirve un slot con esa propiedad *rellena*, así que la marca debe
+ser un texto explícito, nunca una fecha inventada.
