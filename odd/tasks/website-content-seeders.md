@@ -2,7 +2,7 @@
 
 - **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
 - **Pedido por el usuario (2026-10-03):** crear varios seeders que pueblen el website, **copiando del sitio actual** (`/home/totti/electrobertel_official`, servido en `127.0.0.1:8080`), y después enlazar el sitio de Astro para que **consuma la data de nuestro API**.
-- **Estado:** P1, P2 y P3 hechos y verificados. **P4 bloqueado por un hueco de diseño del backend**, declarado abajo. P5–P7 pendientes.
+- **Estado:** P1, P2, P3 y P5 hechos y verificados. **P4 bloqueado por un hueco de diseño del backend**, declarado abajo. P6/P7 pendientes.
 
 ## Por qué esto es la pieza que falta (y no una idea mía)
 
@@ -27,7 +27,7 @@ Medido antes de escribir, porque el sitio tiene gates propios:
 - [x] **P2** `SiteSettingSeeder`: las claves reales del whitelist con los valores aprobados. Sin `vat_number`
 - [x] **P3** `ProjectSeeder` (DEMO): los 6 casos con sus imágenes, con la marca de demo **visible**
 - [x] **P4** *(bloqueado: ver abajo)* `MediaSlotSeeder`: los slots de `MediaSlot::SUGGESTED_SLOTS` apuntando a media de proyecto (la validación lo exige)
-- [ ] **P5** `LegalDocumentSeeder`: los 3 `doc_id`, título real y cuerpo de "en preparación"
+- [x] **P5** `LegalDocumentSeeder`: los 3 `doc_id`, título real y cuerpo de "en preparación"
 - [ ] **P6** Verificar cada uno **por HTTP** contra el backend servido, no solo con tests
 - [ ] **P7** Enlazar el sitio de Astro para que consuma el API (la superficie `settings` ya está escrita; las demás son el trabajo que el propio documento del sitio lista)
 
@@ -128,3 +128,29 @@ las imágenes del prototipo se siembran **marcadas como DEMO y sin fecha falsa**
 `usage_rights_confirmed_at` dirá que **no** están confirmados, en vez de afirmar una confirmación
 que no existe. El endpoint sólo sirve un slot con esa propiedad *rellena*, así que la marca debe
 ser un texto explícito, nunca una fecha inventada.
+
+
+## P5: los legales, y el efecto de P1 por fin medido (2026-10-03)
+
+Los tres documentos, con el texto que **existe hoy**, que no es el texto legal: título real
+(`Privacyverklaring`, `Cookiebeleid`, `Algemene voorwaarden`) y **el aviso de "en preparación"
+como cuerpo**, copiado de su propio contenido. Escribir aquí una política inventada sería lo peor
+que podría hacer este seeder, y no se hizo.
+
+**`version` y `effective_date` van marcados como lo que son**, por decisión del usuario: la versión
+dice `DEMO` y la fecha de entrada en vigor es la de hoy. Ninguna de las dos significa nada
+legalmente —el documento que entraría en vigor no existe— y el esquema las exige no nulas, así que
+la alternativa era no sembrar.
+
+**Y aquí queda medido el efecto de P1**, que estaba prometido para cuando existieran legales:
+
+| Idioma | `title` | `body` | `translation_status` |
+| --- | --- | --- | --- |
+| `nl` (el que tiene contenido) | `Privacyverklaring` | el aviso | `machine` |
+| `en` (sin contenido) | **`null`** | **`null`** | `missing` |
+
+En inglés **no** devuelve el texto neerlandés: devuelve `null`. Eso es la política de idioma
+estricto funcionando, y era el defecto que P1 corrigió —la clave del sitio estaba escrita sin el
+guion, `isStrict()` nunca coincidía, y con el idioma estricto apagado estos campos caían a
+neerlandés. Ahora mismo, con la clave bien, el comportamiento es el correcto y está comprobado por
+HTTP en los dos idiomas.
