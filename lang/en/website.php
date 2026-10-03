@@ -254,6 +254,19 @@ return [
             'error' => 'Error',
             'updated_at' => 'Updated',
         ],
+        // The seven lifecycle states (documented on TranslationState), in the words of the
+        // person approving. «Reviewed» is the word the column already uses, and the same one
+        // the page-publication screen uses.
+        'statuses' => [
+            'missing' => 'Missing',
+            'machine' => 'Draft',
+            'stale' => 'Outdated',
+            'needs_review' => 'Needs review',
+            'reviewed' => 'Reviewed',
+            'published' => 'Published',
+            'failed' => 'Failed',
+        ],
+
         'actions' => [
             'edit' => 'Edit',
             'edit_value' => 'Translation (:locale)',

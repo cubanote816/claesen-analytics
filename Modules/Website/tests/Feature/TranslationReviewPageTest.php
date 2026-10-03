@@ -79,11 +79,30 @@ final class TranslationReviewPageTest extends TestCase
             $this->states->stateFor($doc, 'title', 'fr')?->status
         );
 
+        // `log_name` es el evento y la descripción dice qué pasó. Antes el nombre se pasaba
+        // a `log()`, que en spatie recibe la **descripción**: toda entrada quedaba bajo
+        // «default» y no había forma de filtrar por evento.
         $this->assertDatabaseHas('activity_log', [
-            'description' => 'translation_review',
+            'log_name' => 'translation_review',
+            'description' => 'approved',
             'subject_type' => TranslationState::class,
             'subject_id' => $state->id,
         ]);
+    }
+
+    public function test_the_screen_names_the_states_instead_of_the_backend_vocabulary(): void
+    {
+        // La pantalla la lee quien aprueba: `machine` o `needs_review` son nombres internos.
+        // No se comprueba en pantalla con datos reales porque la base local no tiene filas de
+        // estado (la tabla se creó al integrar la línea, sin datos), así que el caso vive aquí.
+        $doc = $this->makeDocWithState(TranslationState::STATUS_MACHINE);
+
+        Livewire::test(TranslationReviewPage::class)
+            ->assertOk()
+            ->assertSeeText(__('website.translation_review.statuses.machine'))
+            // Sobre el TEXTO: los valores internos siguen en atributos `wire:` (estado de
+            // Livewire) y eso no lo ve nadie.
+            ->assertDontSeeText('machine');
     }
 
     public function test_publish_only_moves_reviewed_to_published(): void

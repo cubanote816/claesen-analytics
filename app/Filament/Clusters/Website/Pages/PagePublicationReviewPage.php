@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Clusters\Website\Pages;
 
 use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Concerns\NamesValuesForHumans;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -41,6 +42,7 @@ use Modules\Website\Models\PagePublication;
 class PagePublicationReviewPage extends Page implements HasTable
 {
     use InteractsWithTable;
+    use NamesValuesForHumans;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-check-badge';
 
@@ -80,15 +82,15 @@ class PagePublicationReviewPage extends Page implements HasTable
                 TextColumn::make('page')
                     ->label(__('website.page_publication_review.fields.page'))
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => self::human('pages', $state)),
+                    ->formatStateUsing(fn (string $state): string => self::human('website.page_publication_review.pages', $state)),
                 TextColumn::make('locale')
                     ->label(__('website.page_publication_review.fields.locale'))
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => self::human('locales', $state)),
+                    ->formatStateUsing(fn (string $state): string => self::human('website.page_publication_review.locales', $state)),
                 TextColumn::make('status')
                     ->label(__('website.page_publication_review.fields.status'))
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => self::human('statuses', $state))
+                    ->formatStateUsing(fn (string $state): string => self::human('website.page_publication_review.statuses', $state))
                     ->color(fn (string $state): string => match ($state) {
                         PagePublication::STATUS_PUBLISHED => 'success',
                         PagePublication::STATUS_REVIEWED => 'info',
@@ -112,9 +114,9 @@ class PagePublicationReviewPage extends Page implements HasTable
                     // Los mismos nombres que la columna: el filtro no debe hablar
                     // el vocabulario interno (`machine`) si la tabla ya no lo hace.
                     ->options([
-                        PagePublication::STATUS_MACHINE => self::human('statuses', PagePublication::STATUS_MACHINE),
-                        PagePublication::STATUS_REVIEWED => self::human('statuses', PagePublication::STATUS_REVIEWED),
-                        PagePublication::STATUS_PUBLISHED => self::human('statuses', PagePublication::STATUS_PUBLISHED),
+                        PagePublication::STATUS_MACHINE => self::human('website.page_publication_review.statuses', PagePublication::STATUS_MACHINE),
+                        PagePublication::STATUS_REVIEWED => self::human('website.page_publication_review.statuses', PagePublication::STATUS_REVIEWED),
+                        PagePublication::STATUS_PUBLISHED => self::human('website.page_publication_review.statuses', PagePublication::STATUS_PUBLISHED),
                     ]),
             ])
             ->recordActions([
@@ -159,22 +161,6 @@ class PagePublicationReviewPage extends Page implements HasTable
     private function approval(): \Spatie\Activitylog\Support\ActivityLogger
     {
         return activity('page_publication_review');
-    }
-
-    /**
-     * Un nombre para el cliente, en lugar del valor interno.
-     *
-     * `__()` devuelve la propia clave cuando falta la traducción, y soltar
-     * `website.page_publication_review.pages.winkel` delante de quien aprueba es
-     * peor que el slug. Un valor sin etiqueta todavía se muestra tal cual: se ve
-     * raro, pero se entiende, y no engaña a nadie.
-     */
-    private static function human(string $group, string $value): string
-    {
-        $key = "website.page_publication_review.{$group}.{$value}";
-        $label = __($key);
-
-        return $label === $key ? $value : $label;
     }
 
     /**

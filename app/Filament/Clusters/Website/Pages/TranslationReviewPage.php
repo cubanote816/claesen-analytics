@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Clusters\Website\Pages;
 
 use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Concerns\NamesValuesForHumans;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -18,7 +19,6 @@ use Modules\Core\Models\Site;
 use Modules\Intelligence\Jobs\TranslateModelAttributesJob;
 use Modules\Intelligence\Models\TranslationState;
 use Modules\Intelligence\Services\TranslationStateService;
-use Spatie\Activitylog\Facades\Activity;
 
 /**
  * CLA-611 (gap G8): the human translation review screen — origin side info
@@ -38,6 +38,7 @@ use Spatie\Activitylog\Facades\Activity;
 class TranslationReviewPage extends Page implements HasTable
 {
     use InteractsWithTable;
+    use NamesValuesForHumans;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-language';
 
@@ -86,6 +87,7 @@ class TranslationReviewPage extends Page implements HasTable
                 TextColumn::make('status')
                     ->label(__('website.translation_review.fields.status'))
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => self::human('website.translation_review.statuses', $state))
                     ->color(fn (string $state): string => match ($state) {
                         TranslationState::STATUS_PUBLISHED => 'success',
                         TranslationState::STATUS_REVIEWED => 'info',
@@ -105,14 +107,16 @@ class TranslationReviewPage extends Page implements HasTable
             ->filters([
                 SelectFilter::make('status')
                     ->label(__('website.translation_review.fields.status'))
+                    // Los mismos nombres que la columna: el filtro no debe hablar el
+                    // vocabulario interno si la tabla ya no lo hace.
                     ->options([
-                        TranslationState::STATUS_MISSING => 'missing',
-                        TranslationState::STATUS_MACHINE => 'machine',
-                        TranslationState::STATUS_STALE => 'stale',
-                        TranslationState::STATUS_NEEDS_REVIEW => 'needs_review',
-                        TranslationState::STATUS_REVIEWED => 'reviewed',
-                        TranslationState::STATUS_PUBLISHED => 'published',
-                        TranslationState::STATUS_FAILED => 'failed',
+                        TranslationState::STATUS_MISSING => self::human('website.translation_review.statuses', TranslationState::STATUS_MISSING),
+                        TranslationState::STATUS_MACHINE => self::human('website.translation_review.statuses', TranslationState::STATUS_MACHINE),
+                        TranslationState::STATUS_STALE => self::human('website.translation_review.statuses', TranslationState::STATUS_STALE),
+                        TranslationState::STATUS_NEEDS_REVIEW => self::human('website.translation_review.statuses', TranslationState::STATUS_NEEDS_REVIEW),
+                        TranslationState::STATUS_REVIEWED => self::human('website.translation_review.statuses', TranslationState::STATUS_REVIEWED),
+                        TranslationState::STATUS_PUBLISHED => self::human('website.translation_review.statuses', TranslationState::STATUS_PUBLISHED),
+                        TranslationState::STATUS_FAILED => self::human('website.translation_review.statuses', TranslationState::STATUS_FAILED),
                     ]),
             ])
             ->recordActions([
@@ -256,7 +260,7 @@ class TranslationReviewPage extends Page implements HasTable
 
     private function audit(TranslationState $record, string $from, string $to, string $event): void
     {
-        Activity::causedBy(auth()->user())
+        activity('translation_review')->causedBy(auth()->user())
             ->performedOn($record)
             ->withProperties([
                 'translatable' => $record->translatable_type.'#'.$record->translatable_id,
@@ -266,7 +270,11 @@ class TranslationReviewPage extends Page implements HasTable
                 'to' => $to,
                 'event' => $event,
             ])
-            ->log('translation_review');
+            // El nombre va en el helper, no aquí: `log()` recibe la **descripción**, así
+            // que pasarle el nombre archivaba cada entrada bajo «default» — se leía como
+            // una auditoría, pero no se podía filtrar por evento. La descripción dice qué
+            // pasó ('approved', 'published', 'edited', 'retranslate_queued').
+            ->log($event);
 
         Notification::make()
             ->title(__('website.translation_review.notifications.updated'))

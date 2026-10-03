@@ -255,6 +255,19 @@ return [
             'error' => 'Fout',
             'updated_at' => 'Bijgewerkt',
         ],
+        // Los siete estados del ciclo de vida (documentados en TranslationState), dichos
+        // como los diría quien aprueba. «Nagekeken» es la misma palabra que ya usa la
+        // columna, y es también la que usa la pantalla de publicaciones de páginas.
+        'statuses' => [
+            'missing' => 'Ontbreekt',
+            'machine' => 'Concept',
+            'stale' => 'Verouderd',
+            'needs_review' => 'Na te kijken',
+            'reviewed' => 'Nagekeken',
+            'published' => 'Gepubliceerd',
+            'failed' => 'Mislukt',
+        ],
+
         'actions' => [
             'edit' => 'Bewerken',
             'edit_value' => 'Vertaling (:locale)',
