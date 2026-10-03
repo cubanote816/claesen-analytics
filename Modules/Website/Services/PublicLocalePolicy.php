@@ -35,7 +35,7 @@ use Modules\Core\Services\OrganizationContext;
  */
 final class PublicLocalePolicy
 {
-    public const DEFAULT_STRICT_SITE_KEYS = ['electrobertels'];
+    public const DEFAULT_STRICT_SITE_KEYS = ['electro-bertels'];
 
     /**
      * Whether the request's resolved site serves the public API strictly

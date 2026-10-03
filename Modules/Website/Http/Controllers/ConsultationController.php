@@ -32,7 +32,7 @@ class ConsultationController extends Controller
         $siteKey = app(OrganizationContext::class)->site()?->key;
         $consentVersionRequired = in_array(
             $siteKey,
-            (array) config('website.intake_hardening.consent_version_required_site_keys', ['electrobertels']),
+            (array) config('website.intake_hardening.consent_version_required_site_keys', ['electro-bertels']),
             true
         );
 

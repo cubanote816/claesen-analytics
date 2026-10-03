@@ -171,7 +171,7 @@ Modules/Safety/config/config.php
   `organizations.enforce` esté off, ADR D4). No relajar esto.
 - **Política de locale por sitio (`PublicLocalePolicy`, CLA-611 G9):** los
   sitios en `config('website.public_api.strict_locale_site_keys')`
-  (electrobertels) sirven `null` para un locale sin traducción — **nunca**
+  (electro-bertels) sirven `null` para un locale sin traducción — **nunca**
   texto de otro locale. Claesen mantiene la cadena tolerante
   locale → nl → en, congelada por `PortfolioApiTest` — no tocar ese test
   ni el fallback.

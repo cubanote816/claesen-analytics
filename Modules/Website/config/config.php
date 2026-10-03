@@ -26,7 +26,7 @@ return [
     | it. Opting a new site in is a config change, not a migration.
     */
     'public_api' => [
-        'strict_locale_site_keys' => ['electrobertels'],
+        'strict_locale_site_keys' => ['electro-bertels'],
     ],
 
     /*
@@ -143,6 +143,6 @@ return [
         // from the request's site key — never a hardcoded id check. Claesen
         // stays off this list: its live form doesn't send the field and its
         // payload/behaviour stays byte-identical.
-        'consent_version_required_site_keys' => ['electrobertels'],
+        'consent_version_required_site_keys' => ['electro-bertels'],
     ],
 ];
