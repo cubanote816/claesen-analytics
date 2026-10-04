@@ -280,3 +280,30 @@ para nadie. Dos cosas aprendidas midiendo:
 
 **No se tocó** `useDisk('local')` ni la privacidad de los originales: el diseño ya era el correcto
 (original privado, conversiones públicas) y lo que faltaba era el enlace, no la política.
+
+### Cerrado: el origen de la URL sale de la request (decisión D, 2026-10-04)
+
+Quedaba un solo tramo: el API publicaba `http://localhost/storage/…` porque armaba la URL desde
+`APP_URL` (y en el entorno local el `.env` dice `http://localhost`). Dos caminos se descartaron
+**midiéndolos**, no por gusto:
+
+- **Ruta relativa**: es lo que el repo ya hizo en fieldops (CLA-444), pero acá **rompe al consumidor**:
+  el contrato del sync del sitio exige URL absoluta — `isAbsoluteHttpUrl()` y
+  `url must be an absolute http(s) URL` en su validador — así que devolver `/storage/…` habría cambiado
+  un fallo de descarga por un fallo de contrato, sobre una superficie que hoy valida verde.
+- **`APP_URL` correcto**: arregla este entorno, pero deja el API dependiente de que la máquina que
+  genera la URL sea la misma a la que llega el consumidor, que es exactamente lo que rompió producción
+  la vez anterior.
+
+**Implementado**: `MediaSlotController` arma el origen con `getSchemeAndHttpHost()` y **el camino con
+el disco** (`/storage/…`, vía `parse_url(Storage::disk(...)->url(...))`), así el `storage:link` sigue
+siendo la única fuente de verdad del layout. La respuesta lleva `Vary: Host`: el cuerpo ahora depende
+del host y el endpoint se sirve `public, max-age=60`, así que sin eso un caché compartido podría
+servirle a un host la URL del otro. (`Vary` es una lista y el CORS aporta `Origin`: el test afirma
+pertenencia, no igualdad — lo aprendí porque mi primera aserción fue demasiado estricta.)
+
+Tests: `the media url origin follows the request host` (y se actualizó el que afirmaba
+`$media->getUrl('optimized')`, que es justo el acoplamiento que se eliminó). **Verificado de punta a
+punta** con el `--check` del sync del sitio: `media: 7 mapped slot(s) verified (checksum, dimensions,
+format)`. Su snapshot queda pendiente de su lado: su propio mensaje dice qué hacer («run the sync
+without --check and commit the result»), y es su archivo.

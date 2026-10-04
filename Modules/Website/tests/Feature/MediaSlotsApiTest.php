@@ -82,7 +82,11 @@ final class MediaSlotsApiTest extends TestCase
         $data = $response->json('data.0');
 
         $this->assertSame('home.hero', $data['slot']);
-        $this->assertSame($media->getUrl('optimized'), $data['url']);
+        // The origin comes from the request, the path from the disk. Asserting the
+        // full `$media->getUrl('optimized')` here would re-introduce the coupling to
+        // the configured APP_URL that this deliberately dropped (CLA-444's lesson).
+        $this->assertStringStartsWith('http://localhost/storage/', $data['url']);
+        $this->assertStringEndsWith($media->getPathRelativeToRoot('optimized'), $data['url']);
         $this->assertSame(1200, $data['width']);
         $this->assertSame(800, $data['height']);
         $this->assertSame('sha256:'.hash('sha256', $bytes), $data['checksum']);
@@ -144,6 +148,43 @@ final class MediaSlotsApiTest extends TestCase
         $withEntries = json_decode($this->getJson('/v1/website/media/slots')->assertOk()->getContent());
         $this->assertInstanceOf(\stdClass::class, $withEntries->data[0]->alt);
         $this->assertSame('NL alt', $withEntries->data[0]->alt->nl);
+    }
+
+    /**
+     * The URL must be usable from wherever the request came from: the deployment's
+     * APP_URL is routinely not the address a consumer reaches the API by (internal
+     * host vs public domain), and the site's build downloads these URLs from
+     * whichever machine runs the build. Taken from the request, the URL is correct
+     * for that caller by construction.
+     */
+    public function test_the_media_url_origin_follows_the_request_host(): void
+    {
+        $site = Site::find(Site::claesenId());
+        $project = Project::factory()->create(['site_id' => $site->id]);
+        $media = $project->addMedia(
+            UploadedFile::fake()->image('slot.png', 1200, 800)
+        )->toMediaCollection('gallery');
+
+        $media->setCustomProperty('usage_rights_confirmed_at', now()->toIso8601String());
+        $media->save();
+
+        MediaSlot::create([
+            'site_id' => $site->id,
+            'slot' => 'home.hero',
+            'media_id' => $media->id,
+        ]);
+
+        $response = $this->getJson('http://build.bertels.test/v1/website/media/slots')->assertOk();
+
+        $url = $response->json('data.0.url');
+        $this->assertStringStartsWith('http://build.bertels.test/storage/', $url);
+        $this->assertStringEndsWith($media->getPathRelativeToRoot('optimized'), $url);
+
+        // The body depends on the Host, and the endpoint is served as `public,
+        // max-age=60`: without `Vary: Host` a shared cache could hand one host the
+        // other's URLs. (`Vary` is a comma list and CORS contributes `Origin`, so
+        // this asserts membership, not equality.)
+        $this->assertStringContainsString('Host', (string) $response->headers->get('Vary'));
     }
 
     public function test_slots_without_confirmed_usage_rights_are_omitted(): void

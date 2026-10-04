@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Website\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -23,10 +24,18 @@ use Modules\Website\Models\MediaSlot;
  * Slots whose media has no recorded usage-rights confirmation
  * (website:confirm-media-usage-rights, CLA-467) are omitted entirely —
  * backend-requirements.md §8.2.6: unauthorized photos are never served.
+ *
+ * `url` is built from the **request's** host, not from `APP_URL`. The
+ * deployment's `APP_URL` is frequently not the address a given consumer reaches
+ * the API by (internal host vs public domain — the same mismatch that broke
+ * images in production once before, see CLA-444 in
+ * docs/ai/fieldops-decisions-log.md), and the site's build downloads these URLs
+ * from whichever machine runs the build. A URL that is only correct on the server
+ * that generated it is worse than useless: it looks fine and 404s.
  */
 class MediaSlotController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $siteId = app(OrganizationContext::class)->siteId();
 
@@ -40,9 +49,13 @@ class MediaSlotController extends Controller
             'data' => $slots
                 ->filter(fn (MediaSlot $slot) => $this->isServable($slot))
                 ->values()
-                ->map(fn (MediaSlot $slot) => $this->serialize($slot))
+                ->map(fn (MediaSlot $slot) => $this->serialize($request, $slot))
                 ->all(),
-        ]);
+        ])
+            // El cuerpo cambia según el Host (las URLs son absolutas desde él), y
+            // `SetPublicApiCacheHeaders` marca la respuesta `public, max-age=60`.
+            // Sin esto, un caché compartido podría servirle a un host la URL del otro.
+            ->header('Vary', 'Host');
     }
 
     /**
@@ -57,14 +70,14 @@ class MediaSlotController extends Controller
             && filled($media->getCustomProperty('usage_rights_confirmed_at'));
     }
 
-    private function serialize(MediaSlot $slot): array
+    private function serialize(Request $request, MediaSlot $slot): array
     {
         $media = $slot->media;
         $meta = $this->conversionMeta($media);
 
         return [
             'slot' => $slot->slot,
-            'url' => $media->getUrl('optimized'),
+            'url' => $this->publicUrl($request, $media),
             'width' => $meta['width'],
             'height' => $meta['height'],
             'checksum' => $meta['checksum'],
@@ -75,6 +88,23 @@ class MediaSlotController extends Controller
             'alt' => (object) $this->localeMap($media->getCustomProperty('alt')),
             'caption' => (object) $this->localeMap($media->getCustomProperty('caption')),
         ];
+    }
+
+    /**
+     * The public conversion URL, with the origin taken from the request.
+     *
+     * The path is still the disk's own (`/storage/…`, including the `/storage`
+     * prefix configured for the public disk) so the symlink layout stays the single
+     * source of truth; only the scheme+host are swapped. Same shape the fieldops
+     * fix settled on (a `/storage/{path}` path resolved by the consumer), except
+     * the API can resolve the origin itself because it sees the request.
+     */
+    private function publicUrl(Request $request, $media): string
+    {
+        $relative = $media->getPathRelativeToRoot('optimized');
+        $path = parse_url(Storage::disk($media->conversions_disk)->url($relative), PHP_URL_PATH);
+
+        return $request->getSchemeAndHttpHost().($path ?: '/storage/'.$relative);
     }
 
     /**

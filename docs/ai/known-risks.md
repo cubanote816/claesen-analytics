@@ -298,15 +298,20 @@ Dos consecuencias, ambas comprobadas:
    `/storage/…`: la URL responde **403** y el build del sitio se cae. Las **conversiones** viven ahí
    (son públicas; el original sigue en el disco `local` y **también** responde 403, que es lo correcto).
    Ya está agregado a `levantar-servidores.sh`; en producción tiene que correr igual.
-2. **`APP_URL` tiene que ser el host público real.** En el entorno local el `.env` dice
-   `http://localhost`, así que el API publica `http://localhost/storage/…` y ningún consumidor externo
-   puede bajarla. Ojo: pasar `APP_URL` como variable de entorno del contenedor **no alcanza** — en este
-   montaje el `.env` gana en el contexto HTTP. Medido con dos `Host` distintos.
+2. ~~**`APP_URL` tiene que ser el host público real.**~~ **RESUELTO (2026-10-04).** Era el mismo
+   patrón que ya rompió producción una vez (`fieldops-decisions-log.md`, CLA-444): servir una URL
+   absoluta derivada de `APP_URL` cuando el `APP_URL` interno no coincide con el dominio público. Ojo
+   con el detalle que costó encontrar: pasar `APP_URL` como variable de entorno del contenedor **no
+   alcanza** en este montaje — en el contexto HTTP gana el `.env` (medido con dos `Host` distintos).
 
-**Es el mismo patrón que ya rompió producción una vez** (ver `fieldops-decisions-log.md`, CLA-444):
-guardar/servir la URL absoluta derivada de `APP_URL` rompe en producción real, porque el `APP_URL`
-interno no coincide con el dominio público. Ahí se resolvió guardando **ruta relativa** y resolviéndola
-del lado del cliente, con tests que lo fijan. Acá la decisión está **pendiente** (ver tabla abajo).
+   **Decisión: `GET /v1/website/media/slots` toma el origen de la request** (`getSchemeAndHttpHost()`),
+   no de `APP_URL`, y la respuesta lleva **`Vary: Host`** porque el cuerpo cambia según el host y el
+   endpoint se sirve `public, max-age=60`. La ruta sigue saliendo del disco (`/storage/…`), así que el
+   `storage:link` sigue siendo la única fuente de verdad del layout. `APP_URL` **sigue importando**
+   para otras URLs absolutas (enlaces de correo, reseteo), solo que ya no para esta superficie.
+
+   Verificado de punta a punta con el `--check` del sync del sitio: los 7 slots se descargan y se
+   validan (`checksum, dimensions, format`).
 
 ### Los tests usan `Storage::fake('public')` y no ejercen el disco real
 
@@ -355,7 +360,7 @@ en cualquier entorno recién sembrado, que es un fallo peor que el que se estaba
 | MFA del panel: Azure SSO/MFA, MFA nativo de Filament o ambos | Gate previo al primer login real de Bertels (ADR D8) | Orelvys |
 | Autorizar consulta de conteo de solo lectura en producción | Dimensionar los backfills de P2/P3 | Orelvys |
 | Assets de marca aprobados para el panel de Bertels | Bloquea P6 | Orelvys |
-| Cómo sirve el API la media del sitio: **URL absoluta desde `APP_URL`** (hoy) o **ruta relativa** que resuelva el consumidor | El sync del sitio descarga `url`; con `APP_URL` mal, publica URLs inalcanzables. Precedente en contra de la absoluta: CLA-444 (fieldops) | Orelvys |
+| ~~Cómo sirve el API la media del sitio: URL absoluta desde `APP_URL` o ruta relativa~~ **Resuelta 2026-10-04: el origen sale de la request** (`getSchemeAndHttpHost()`), la ruta del disco, y `Vary: Host`. Se descartó el relativo porque el contrato del sync del sitio exige URL absoluta (`isAbsoluteHttpUrl`) y habría roto una superficie que hoy valida verde | El sync descarga `url`; con la URL atada a `APP_URL` publicaba orígenes inalcanzables (precedente CLA-444) | — |
 
 ---
 
