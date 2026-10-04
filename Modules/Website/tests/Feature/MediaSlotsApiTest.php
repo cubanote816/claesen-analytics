@@ -151,6 +151,44 @@ final class MediaSlotsApiTest extends TestCase
     }
 
     /**
+     * `mime_type` must describe the file the consumer downloads — the conversion —
+     * not the private original. The tempting `$media->mime_type` is the original's,
+     * so a PNG original converted to WebP would advertise `image/png` for WebP
+     * bytes; a consumer that trusts the field to pick a decoder is misled.
+     *
+     * The conversion here is a **real** WebP, generated rather than faked: a test
+     * that left the PNG bytes in place would keep passing while the bug was present,
+     * because then the two mime types genuinely coincide.
+     */
+    public function test_the_mime_type_describes_the_conversion_not_the_original(): void
+    {
+        [, $media, $bytes] = $this->createProjectMedia(Site::find(Site::claesenId()));
+
+        MediaSlot::create([
+            'site_id' => Site::claesenId(),
+            'slot' => 'home.hero',
+            'media_id' => $media->id,
+        ]);
+
+        // The upload is a PNG (see createProjectMedia), and the original keeps saying so.
+        $this->assertSame('image/png', $media->mime_type);
+
+        $image = imagecreatefromstring($bytes);
+        $this->assertNotFalse($image, 'the fixture must be a readable image');
+
+        ob_start();
+        imagewebp($image);
+        $webp = (string) ob_get_clean();
+        imagedestroy($image);
+
+        $this->assertNotSame('', $webp, 'the test environment must be able to encode WebP');
+
+        Storage::disk('public')->put($media->getPathRelativeToRoot('optimized'), $webp);
+
+        $this->assertSame('image/webp', $this->getJson('/v1/website/media/slots')->json('data.0.mime_type'));
+    }
+
+    /**
      * The URL must be usable from wherever the request came from: the deployment's
      * APP_URL is routinely not the address a consumer reaches the API by (internal
      * host vs public domain), and the site's build downloads these URLs from

@@ -81,7 +81,7 @@ class MediaSlotController extends Controller
             'width' => $meta['width'],
             'height' => $meta['height'],
             'checksum' => $meta['checksum'],
-            'mime_type' => $media->mime_type,
+            'mime_type' => $meta['mime_type'] ?? $media->mime_type,
             // `(object)` y no el array pelado: un mapa vacío serializa como `[]` (una lista), y
             // el contrato dice que `alt` y `caption` son objetos por idioma. Con un array vacío el
             // sync del sitio rechaza la superficie entera — que es como se encontró esto.
@@ -108,11 +108,18 @@ class MediaSlotController extends Controller
     }
 
     /**
-     * Dimensions + checksum of the PUBLIC optimized conversion (never the
-     * private original). Cached per media revision so repeated builds are
-     * cheap and unchanged files keep the same checksum.
+     * Dimensions, mime and checksum of the PUBLIC optimized conversion (never the
+     * private original). Cached per media revision so repeated builds are cheap and
+     * unchanged files keep the same checksum.
      *
-     * @return array{width: ?int, height: ?int, checksum: ?string}
+     * `mime_type` is read from the conversion FILE, not from `$media->mime_type`:
+     * that property describes the **original**. A site whose original is a PNG and
+     * whose conversion is WebP would otherwise be told `image/png` while the bytes
+     * it downloads are WebP — and a consumer that trusts the field to pick a
+     * decoder is misled. Reading it here costs nothing: the file is already being
+     * opened for the dimensions and the checksum.
+     *
+     * @return array{width: ?int, height: ?int, mime_type: ?string, checksum: ?string}
      */
     private function conversionMeta($media): array
     {
@@ -123,7 +130,7 @@ class MediaSlotController extends Controller
         );
 
         return Cache::remember($key, 3600, function () use ($media): array {
-            $empty = ['width' => null, 'height' => null, 'checksum' => null];
+            $empty = ['width' => null, 'height' => null, 'mime_type' => null, 'checksum' => null];
 
             try {
                 $disk = Storage::disk($media->conversions_disk);
@@ -139,6 +146,7 @@ class MediaSlotController extends Controller
                 return [
                     'width' => $dimensions[0] ?? null,
                     'height' => $dimensions[1] ?? null,
+                    'mime_type' => $dimensions['mime'] ?? null,
                     'checksum' => 'sha256:'.hash_file('sha256', $absolutePath),
                 ];
             } catch (\Throwable) {

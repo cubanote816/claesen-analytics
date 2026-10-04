@@ -43,6 +43,18 @@ final class PagePublicationSeederTest extends TestCase
         'winkel',
     ];
 
+    /**
+     * The site's legal page ids. They are first-class page ids there, so they are
+     * materialised here like the other seven — but they never start published.
+     *
+     * @var list<string>
+     */
+    private const LEGAL_PAGES = [
+        'legal-privacy',
+        'legal-cookies',
+        'legal-terms',
+    ];
+
     private const LOCALES = ['nl', 'en', 'fr', 'de'];
 
     /** The site the seeder looks for, with the locales the real site declares. */
@@ -62,9 +74,13 @@ final class PagePublicationSeederTest extends TestCase
 
         $this->seed(PagePublicationSeeder::class);
 
-        // 7 content pages x 4 locales. The three legal pages stay out on purpose:
-        // their gate is their own draft status in the content, not this table.
-        $this->assertSame(count(self::PAGES) * count(self::LOCALES), PagePublication::query()->count());
+        // 10 page ids x 4 locales = 40 pairs. The legal pages are materialised
+        // too: an absent row cannot be approved by a human, which is exactly what
+        // kept them out of the review screen.
+        $this->assertSame(
+            (count(self::PAGES) + count(self::LEGAL_PAGES)) * count(self::LOCALES),
+            PagePublication::query()->count(),
+        );
     }
 
     public function test_it_publishes_only_the_site_default_locale(): void
@@ -82,10 +98,39 @@ final class PagePublicationSeederTest extends TestCase
         $this->assertSame(['nl'], $published->pluck('locale')->unique()->values()->all());
 
         // Everything else is a draft, which the manifest never publishes: an
-        // untranslated locale cannot become indexable by being seeded.
+        // untranslated locale cannot become indexable by being seeded — and the
+        // legal pages are drafts in **every** locale, default one included, because
+        // nobody has approved their copy.
         $this->assertSame(
-            count(self::PAGES) * (count(self::LOCALES) - 1),
+            count(self::PAGES) * (count(self::LOCALES) - 1) + count(self::LEGAL_PAGES) * count(self::LOCALES),
             PagePublication::query()->where('status', PagePublication::STATUS_MACHINE)->count(),
+        );
+    }
+
+    /**
+     * `published` means "the client approved this page". Legal copy is still the
+     * "in preparation" notice, so seeding it published would put an approval in the
+     * manifest that never happened — and the manifest is what decides what the site
+     * is allowed to index.
+     */
+    public function test_legal_pages_are_materialised_but_never_start_published(): void
+    {
+        $this->bertelsSite();
+
+        $this->seed(PagePublicationSeeder::class);
+
+        $legal = PagePublication::query()->whereIn('page', self::LEGAL_PAGES)->get();
+
+        $this->assertCount(count(self::LEGAL_PAGES) * count(self::LOCALES), $legal);
+        $this->assertSame(
+            [],
+            $legal->where('status', PagePublication::STATUS_PUBLISHED)->pluck('page')->all(),
+        );
+        $expected = self::LOCALES;
+        sort($expected);
+        $this->assertSame(
+            $expected,
+            $legal->pluck('locale')->unique()->sort()->values()->all(),
         );
     }
 
@@ -126,7 +171,10 @@ final class PagePublicationSeederTest extends TestCase
                 ->where('locale', 'fr')
                 ->value('status'),
         );
-        $this->assertSame(count(self::PAGES) * count(self::LOCALES), PagePublication::query()->count());
+        $this->assertSame(
+            (count(self::PAGES) + count(self::LEGAL_PAGES)) * count(self::LOCALES),
+            PagePublication::query()->count(),
+        );
     }
 
     public function test_it_skips_a_site_that_is_not_registered_yet(): void

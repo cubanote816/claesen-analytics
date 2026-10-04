@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Which locales of which **static page** are approved for publication.
  *
- * The copy of the eight pages lives in Git (decision D-F), so those pages have
- * no model, no row and no place to record an approval — and without it the build
- * can only guess, which is how the site ended up deciding with a constant in
+ * The site declares **ten** page ids: the seven content pages, whose copy lives in
+ * Git (decision D-F), and the three legal ones (`legal-privacy`, `legal-cookies`,
+ * `legal-terms`), whose copy the API serves. None of them has a model of its own,
+ * so none has a row anywhere to record an approval — and without one the build can
+ * only guess, which is how the site ended up deciding with a constant in
  * TypeScript. One row per (site, page, locale).
  *
  * **Not** `PublicationState` (`website_publication_states`): that one is the

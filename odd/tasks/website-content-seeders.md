@@ -189,7 +189,7 @@ Lo que se hizo:
 **Verificado por HTTP**: 7 slots servidos con `url` de conversión (los originales siguen privados),
 `width`, `height` y `checksum` `sha256:…` — exactamente el contrato que su documento fijó.
 
-⚠️ **Defecto encontrado en el controlador del sitio, no arreglado aquí** (es de la otra línea):
+⚠️ **Defecto del caché de `conversionMeta()`: sigue abierto** (el `mime_type` de ese mismo método ya se arregló, ver abajo):
 `MediaSlotController::conversionMeta()` cachea el resultado **vacío** durante una hora con una clave
 que incluye el `updated_at` del media pero **no** el hecho de que la conversión ya exista. Consecuencia:
 recién sembrado, mientras la cola genera las conversiones, el endpoint responde `width`/`height`/
@@ -307,3 +307,49 @@ Tests: `the media url origin follows the request host` (y se actualizó el que a
 punta** con el `--check` del sync del sitio: `media: 7 mapped slot(s) verified (checksum, dimensions,
 format)`. Su snapshot queda pendiente de su lado: su propio mensaje dice qué hacer («run the sync
 without --check and commit the result»), y es su archivo.
+
+### `mime_type` describía el original (2026-10-04)
+
+Lo encontró la línea del sitio y era real. `MediaSlotController` servía `$media->mime_type`, que es
+el del **original** — así que un original PNG convertido a WebP anunciaba `image/png` mientras el
+bytes descargados eran WebP. Un consumidor que confíe en el campo para elegir decodificador queda
+mal informado.
+
+Engañoso: **3 de los 7** slots lo mostraban, y los otros 4 **parecían** correctos sin serlo — sus
+originales ya eran WebP, así que el campo coincidía **sin haber mirado la conversión**.
+
+Arreglado leyendo el mime del **archivo de la conversión** en `conversionMeta()`, donde ya se abría
+ese mismo archivo para las dimensiones y el checksum: cero lecturas nuevas, una sola fuente. Si
+`getimagesize()` no puede con el archivo, el campo queda `null` y `serialize()` cae al del original
+antes que emitir vacío (su contrato exige una cadena no vacía).
+
+Test nuevo (`the mime type describes the conversion not the original`) **verificado quitando el
+arreglo**: con él `image/webp`, sin él `image/png` y falla. La conversión del test se **genera** como
+WebP de verdad — si el test dejara los bytes PNG, seguiría pasando con el bug presente, porque ahí
+los dos mimes coinciden de casualidad.
+
+### Las páginas legales vuelven a esta tabla (2026-10-04)
+
+Me corrijo: el seeder decía, en un comentario mío, que los tres legales quedaban **deliberadamente
+fuera** porque «su compuerta es su propio `status: draft` en el contenido». Eso es falso. El sitio los
+declara como page ids de primera clase, al lado de los otros siete:
+
+```
+home, particulieren, bedrijven, winkel, projecten, over-ons, contact   ·   legal-privacy, legal-cookies, legal-terms
+```
+
+Son **diez**, no ocho (mi migración decía «ocho páginas»). Una fila ausente y una fila sin publicar
+significan lo mismo para el build — no indexable — pero sólo la segunda puede revisarse y
+**aprobarse**. Al no materializarlas, el cliente no tenía forma de aprobarlas: ése era el hueco.
+
+Se siembran, y con una diferencia deliberada: **`machine` en todos los locales, incluido el default**.
+En las otras siete, el locale por defecto arranca `published` porque su copy es real y está aprobada
+(D-F). El copy legal **no** lo está: su cuerpo sigue siendo el aviso de «en preparación» y el sitio
+tiene `GATE_LEGAL_COPY`. Marcar `published` pondría en el manifest una aprobación que nunca ocurrió, y
+el manifest es justamente lo que decide qué puede indexarse. Si esa lectura no es la que querés, es
+**una línea** del seeder.
+
+Resultado: **40 pares** (10 × 4). El manifest sigue sirviendo **7 páginas** — y eso no es un pendiente,
+es la compuerta funcionando: los legales aparecerán cuando alguien los apruebe en la pantalla. La
+pantalla de revisión de CLA-611 ya los lista sola (filtra por `site_id` + `translatable_type`, sin
+lista de tipos), así que no hay que registrar ningún tipo traducible.
