@@ -48,7 +48,7 @@ En desarrollo, con el proxy de Vite: `VITE_API_BASE_URL=/api/v1/knx` +
 | Qué | URL |
 |---|---|
 | API | `http://localhost:8002/api/v1/knx` |
-| Mailpit (correo local) | `http://localhost:8027` |
+| Mailpit (correo local) | `http://localhost:8025` |
 | Kantoor (front) | `http://localhost:5173` |
 | Veld (front) | `http://localhost:5174` |
 

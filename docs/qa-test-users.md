@@ -37,8 +37,17 @@ necesita el sync de Cafca para existir (sin él, el comando avisa y lo omite).
 ## MFA — el código llega a Mailpit, no al correo real
 
 `super_admin`/`admin` tienen MFA obligatorio: en el primer login el panel pide configurarlo. Elige
-el proveedor **por email** y **el código aparece en Mailpit** (<http://localhost:8027>). No hace
+el proveedor **por email** y **el código aparece en Mailpit** (<http://localhost:8025>). No hace
 falta app de autenticación.
+
+**No es sólo para administradores** (verificado 2026-10-04): en el panel de **Bertels**, un usuario
+`viewer` —el cliente— también pasa por el paso de identidad. Con `qa.cliente.bertels@electro-bertels.test`
+el login muestra «Verifieer je identiteit» y pide el código de 6 dígitos. No es el alta del proveedor
+(ese usuario ya lo tenía configurado), es la verificación de cada login, y el campo son **seis casillas
+separadas**, no un input único.
+
+Y un detalle del mismo día: el puerto era **8025**, no 8027. Los dos contenedores publican ahí
+(`electrobertels-login-mailpit-1`, `8025->8025`).
 
 > ⚠️ **Gotcha que cuesta media hora:** el código solo llega si el mailer por defecto apunta a
 > Mailpit. Un `.env` copiado de un checkout que apunta al tenant real trae
@@ -63,7 +72,7 @@ cambio de `.env`).
 |---|---|
 | Backoffice Claesen (`admin`) | <http://localhost:8001> |
 | Backoffice Electro Bertels (`bertels`) | <http://localhost:8001/bertels> |
-| Mailpit | <http://localhost:8027> |
+| Mailpit | <http://localhost:8025> |
 | MySQL | `localhost:3309` |
 
 Puertos a propósito distintos de los del checkout principal (8000/3308) para no chocar.
