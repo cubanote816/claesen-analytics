@@ -33,11 +33,55 @@ use Modules\Core\Models\User;
 final class MailBrand
 {
     /**
+     * The company for the mail being sent right now, or null.
+     *
+     * Laravel's markdown template prints `config('app.name')` in the header and the
+     * footer, and it is a component: it receives no message, no notifiable and no
+     * mailable data — verified by dumping `get_defined_vars()` inside it, which shows
+     * only `__path`, `__data`, `app`, `attributes`, `slot`… So there is nowhere to read
+     * the company from at render time, and the only channel left is a value that is
+     * live while the body renders.
+     *
+     * It is set by `forUser()`, which the multi-company notifications call from
+     * `toMail()` — i.e. before the body is rendered — and cleared after each send by
+     * the `MessageSending` listener, so a later send can never inherit it. Clearing
+     * AFTER is what makes this safe: the event fires too late to help the current
+     * message but early enough to protect the next one.
+     */
+    private static ?string $forThisSend = null;
+
+    /**
+     * The name the header and footer of an outgoing mail should carry.
+     *
+     * Falls back to the configured app name, which is what every single-company
+     * sender in the repo keeps using — they send as Claesen and never touch this.
+     */
+    public static function footerName(): string
+    {
+        return self::$forThisSend ?? (string) config('app.name');
+    }
+
+    /** Called after a message is sent, so nothing leaks into the next one. */
+    public static function forget(): void
+    {
+        self::$forThisSend = null;
+    }
+
+    /**
      * @return array{address: ?string, name: ?string}
      */
     public static function forUser(?User $user): array
     {
         $site = self::siteFor($user);
+
+        $name = $site?->mail_from_name
+            ?? $user?->organization?->name
+            ?? $site?->mailFromName()
+            ?? config('mail.from.name');
+
+        // Sin usuario no hay empresa que afirmar: se limpia en vez de dejar la del
+        // envío anterior, que sería peor que el nombre genérico.
+        self::$forThisSend = $user === null ? null : (string) $name;
 
         return [
             'address' => $site?->mailFromAddress() ?? config('mail.from.address'),
@@ -45,10 +89,7 @@ final class MailBrand
             // then the global fallback. `Site::mailFromName()` alone is not enough:
             // it falls back to `config('mail.from.name')`, which is the anonymous
             // global value this class exists to avoid.
-            'name' => $site?->mail_from_name
-                ?? $user?->organization?->name
-                ?? $site?->mailFromName()
-                ?? config('mail.from.name'),
+            'name' => $name,
         ];
     }
 

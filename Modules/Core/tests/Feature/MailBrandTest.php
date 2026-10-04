@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Modules\Core\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Core\Models\User;
+use Illuminate\Mail\Events\MessageSending;
+use Symfony\Component\Mime\Email as Message;
+use Illuminate\Support\Facades\Event;use Modules\Core\Models\User;
 use Modules\Core\Notifications\PasswordResetNotification;
 use Modules\Core\Notifications\VerifyEmailAuthenticationWithBrand;
 use Modules\Core\Support\MailBrand;
@@ -124,6 +126,53 @@ final class MailBrandTest extends TestCase
             $this->bertelsFixtureUser(),
             'Laravel only consults preferredLocale() behind this interface',
         );
+    }
+
+    /**
+     * The header and footer of every mail print `MailBrand::footerName()`, because
+     * Laravel's markdown template is a component that receives no message and no data
+     * — dumping `get_defined_vars()` inside it shows only `__path`, `__data`, `app`,
+     * `attributes`, `slot`… So the company has to be live while the body renders, and
+     * it is set by `forUser()`, which both notifications call from `toMail()`.
+     */
+    public function test_the_footer_name_follows_the_send_in_progress(): void
+    {
+        $organization = $this->bertelsFixtureOrganization();
+        $this->bertelsFixtureSite($organization);
+
+        config(['app.name' => 'Configured Name']);
+
+        MailBrand::forUser($this->bertelsFixtureUser($organization));
+        $this->assertSame('Bertels Fixture Org', MailBrand::footerName());
+
+        // Sin usuario no hay empresa que afirmar: se vuelve al nombre configurado en
+        // vez de dejar el del envío anterior.
+        MailBrand::forUser(null);
+        $this->assertSame('Configured Name', MailBrand::footerName());
+    }
+
+    /**
+     * Forgetting after the send is what stops a company inheriting the previous one's
+     * name. The listener matters as much as the setter, and registration is exactly
+     * the kind of thing that breaks in silence.
+     */
+    public function test_the_brand_is_forgotten_after_each_send(): void
+    {
+        $this->assertTrue(
+            Event::hasListeners(MessageSending::class),
+            'nothing clears the brand after a send, so the next mail would inherit it',
+        );
+
+        $organization = $this->bertelsFixtureOrganization();
+        $this->bertelsFixtureSite($organization);
+        config(['app.name' => 'Configured Name']);
+
+        MailBrand::forUser($this->bertelsFixtureUser($organization));
+        $this->assertSame('Bertels Fixture Org', MailBrand::footerName());
+
+        Event::dispatch(new MessageSending(new Message, []));
+
+        $this->assertSame('Configured Name', MailBrand::footerName());
     }
 
     /**

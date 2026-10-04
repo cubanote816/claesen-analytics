@@ -3,9 +3,12 @@
 namespace App\Providers;
 
 use App\Contracts\MarketingCampaignInterface;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\MailBrand;
 use Modules\Mailing\Exceptions\MailConfigurationException;
 use Modules\Mailing\Services\MicrosoftGraphMailer;
 use Modules\Mailing\Services\SaaSMailer;
@@ -41,6 +44,12 @@ class AppServiceProvider extends ServiceProvider
         if ($globalTo = config('mail.always_to')) {
             Mail::alwaysTo($globalTo);
         }
+
+        // El nombre de la empresa del envío en curso (ver MailBrand) se limpia acá.
+        // `MessageSending` llega DESPUÉS de que el cuerpo se renderizó —demasiado tarde
+        // para este correo— pero ANTES del siguiente envío, así que limpiar acá es
+        // justo lo que impide que una empresa herede el nombre de la anterior.
+        Event::listen(MessageSending::class, static fn () => MailBrand::forget());
 
 
         // F1/P5c of the multi-organization program (ADR D5,
