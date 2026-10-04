@@ -8,6 +8,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Modules\Core\Models\User;
+use Modules\Core\Support\MailBrand;
 
 // CLA-371: mirrors FieldOps\Notifications\ClientContactInvitationNotification's
 // approach (plain MailMessage, action link into the frontend) rather than a
@@ -41,8 +43,16 @@ class PasswordResetNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        // The company comes from the notifiable, not from the panel that fired the
+        // request: this notification is queued, so by send time there is no request
+        // and no panel — and a Bertels user was getting a mail titled "Claesen
+        // Outdoor Lighting Platform" from Claesen's address.
+        $brand = MailBrand::forUser($notifiable instanceof User ? $notifiable : null);
+        $suffix = filled($brand['name']) ? ' — '.$brand['name'] : '';
+
         return (new MailMessage)
-            ->subject('Reset your password — Claesen Outdoor Lighting Platform')
+            ->from($brand['address'], $brand['name'])
+            ->subject('Reset your password'.$suffix)
             ->greeting("Hello {$notifiable->name},")
             ->line('We received a request to reset your password. This link expires in 60 minutes.')
             ->action('Reset password', $this->resetUrl())

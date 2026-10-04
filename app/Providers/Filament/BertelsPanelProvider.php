@@ -3,7 +3,7 @@
 namespace App\Providers\Filament;
 
 use Filament\Auth\MultiFactor\App\AppAuthentication;
-use Filament\Auth\MultiFactor\Email\EmailAuthentication;
+use Modules\Core\Filament\Auth\EmailAuthenticationWithBrand;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -67,7 +67,7 @@ class BertelsPanelProvider extends PanelProvider
             // special-cased for one panel.
             ->multiFactorAuthentication([
                 AppAuthentication::make(),
-                EmailAuthentication::make(),
+                EmailAuthenticationWithBrand::make(),
             ])
             ->multiFactorAuthenticationRequiredMiddlewareName(\Modules\Core\Http\Middleware\EnsureAdminRoleMultiFactorAuthenticationIsEnabled::class)
             ->requiresMultiFactorAuthentication()

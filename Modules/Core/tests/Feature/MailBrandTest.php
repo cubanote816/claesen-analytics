@@ -1,0 +1,114 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Modules\Core\Tests\Feature;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Core\Models\User;
+use Modules\Core\Notifications\PasswordResetNotification;
+use Modules\Core\Notifications\VerifyEmailAuthenticationWithBrand;
+use Modules\Core\Support\MailBrand;
+use Modules\Core\Tests\Support\InteractsWithOrganizationFixtures;
+use Tests\TestCase;
+
+/**
+ * One application instance serves two companies, but Laravel's mailer has a single
+ * global `from`. Left alone, every message carried `MAIL_FROM_NAME` — which here
+ * resolved to `${APP_NAME}`, i.e. "Laravel" — and a Bertels user's password reset
+ * arrived titled "Claesen Outdoor Lighting Platform".
+ *
+ * Both notifications are queued, so the company cannot come from the request or the
+ * panel: by send time there is neither. It comes from the notifiable's organization,
+ * which is what these tests pin down.
+ */
+final class MailBrandTest extends TestCase
+{
+    use InteractsWithOrganizationFixtures;
+    use RefreshDatabase;
+
+    public function test_the_name_is_the_users_own_company(): void
+    {
+        $organization = $this->bertelsFixtureOrganization();
+        $this->bertelsFixtureSite($organization);
+
+        $brand = MailBrand::forUser($this->bertelsFixtureUser($organization));
+
+        $this->assertSame('Bertels Fixture Org', $brand['name']);
+    }
+
+    public function test_a_site_level_from_name_wins_over_the_organization_name(): void
+    {
+        $organization = $this->bertelsFixtureOrganization();
+        $this->bertelsFixtureSite($organization, ['mail_from_name' => 'Winkel Bertels']);
+
+        $brand = MailBrand::forUser($this->bertelsFixtureUser($organization));
+
+        $this->assertSame('Winkel Bertels', $brand['name']);
+    }
+
+    /**
+     * Without a user there is nothing to derive a company from, and inventing one
+     * would be worse than the anonymous global value.
+     */
+    public function test_without_a_user_it_falls_back_to_the_global_config(): void
+    {
+        config(['mail.from.name' => 'Global Brand', 'mail.from.address' => 'global@example.test']);
+
+        $brand = MailBrand::forUser(null);
+
+        $this->assertSame('Global Brand', $brand['name']);
+        $this->assertSame('global@example.test', $brand['address']);
+    }
+
+    public function test_the_reset_notification_names_the_users_company(): void
+    {
+        $organization = $this->bertelsFixtureOrganization();
+        $this->bertelsFixtureSite($organization);
+
+        $mail = (new PasswordResetNotification('a-code'))
+            ->toMail($this->bertelsFixtureUser($organization));
+
+        $this->assertSame('Reset your password — Bertels Fixture Org', $mail->subject);
+        $this->assertSame('Bertels Fixture Org', $mail->from[1]);
+    }
+
+    public function test_the_sign_in_code_notification_carries_the_same_brand(): void
+    {
+        $organization = $this->bertelsFixtureOrganization();
+        $this->bertelsFixtureSite($organization);
+
+        $mail = (new VerifyEmailAuthenticationWithBrand('123456', 5))
+            ->toMail($this->bertelsFixtureUser($organization));
+
+        $this->assertSame('Bertels Fixture Org', $mail->from[1]);
+        // The parent's body is left alone: this class only adds the sender.
+        $this->assertNotEmpty($mail->introLines);
+    }
+
+    /**
+     * The bug this replaces was company-specific, so the guard has to be too: a
+     * pattern that only ever produced "contained no 'Laravel'" would pass just as
+     * happily with the two companies swapped.
+     */
+    public function test_the_two_companies_do_not_share_a_name(): void
+    {
+        $bertelsOrganization = $this->bertelsFixtureOrganization();
+        $this->bertelsFixtureSite($bertelsOrganization);
+
+        $bertels = MailBrand::forUser($this->bertelsFixtureUser($bertelsOrganization))['name'];
+        $claesen = MailBrand::forUser($this->claesenUser())['name'];
+
+        $this->assertNotSame($claesen, $bertels);
+        $this->assertNotSame('Laravel', $bertels);
+    }
+
+    public function test_a_user_without_an_organization_does_not_break(): void
+    {
+        $user = User::factory()->create(['organization_id' => null]);
+
+        config(['mail.from.name' => 'Global Brand']);
+
+        $this->assertSame('Global Brand', MailBrand::forUser($user)['name']);
+    }
+}
