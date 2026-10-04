@@ -230,6 +230,11 @@ return [
             'projecten' => 'Projects',
             'over-ons' => 'About us',
             'contact' => 'Contact & quote request',
+        // Chrome del panel, no copy del cliente: el contenido legal del sitio sólo
+        // existe en nl, así que estas etiquetas son nuestras y por eso se traducen.
+            'legal-privacy' => 'Privacy statement',
+            'legal-cookies' => 'Cookie policy',
+            'legal-terms' => 'Terms and conditions',
         ],
 
         'actions' => [

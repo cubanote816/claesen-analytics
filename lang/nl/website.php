@@ -231,6 +231,14 @@ return [
             'projecten' => 'Projecten',
             'over-ons' => 'Over ons',
             'contact' => 'Contact & prijsaanvraag',
+        // Los títulos salen del contenido del sitio (es su copy), no de acá.
+        // Los legales sólo existen en nl allá, por eso no hay versión en inglés de estos.
+            'legal-privacy' => 'Privacyverklaring',
+            'legal-cookies' => 'Cookiebeleid',
+            'legal-terms' => 'Algemene voorwaarden',
+            'legal-privacy' => 'Privacyverklaring',
+            'legal-cookies' => 'Cookiebeleid',
+            'legal-terms' => 'Algemene voorwaarden',
         ],
 
         'actions' => [
