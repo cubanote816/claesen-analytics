@@ -35,6 +35,20 @@ use Modules\Website\Models\MediaSlot;
  */
 class MediaSlotController extends Controller
 {
+    /**
+     * Lo que se devuelve cuando no hay dimensiones que informar. Constante y no un
+     * array suelto porque se retorna desde dos sitios (conversión ausente y lectura
+     * fallida) y los dos deben decir exactamente lo mismo.
+     *
+     * @var array{width: null, height: null, mime_type: null, checksum: null}
+     */
+    private const EMPTY_CONVERSION_META = [
+        'width' => null,
+        'height' => null,
+        'mime_type' => null,
+        'checksum' => null,
+    ];
+
     public function index(Request $request): JsonResponse
     {
         $siteId = app(OrganizationContext::class)->siteId();
@@ -123,23 +137,31 @@ class MediaSlotController extends Controller
      */
     private function conversionMeta($media): array
     {
-        $key = sprintf(
-            'website.media-slot-meta.%d.%s',
-            $media->id,
-            $media->updated_at?->timestamp ?? '0'
-        );
+        $disk = Storage::disk($media->conversions_disk);
+        $relativePath = $media->getPathRelativeToRoot('optimized');
 
-        return Cache::remember($key, 3600, function () use ($media): array {
-            $empty = ['width' => null, 'height' => null, 'mime_type' => null, 'checksum' => null];
+        // La existencia del archivo se comprueba ANTES del caché, y el vacío no se
+        // cachea nunca. Antes sí se cacheaba, y eso significaba que un slot cuyas
+        // conversiones todavía no estaban generadas (justo después de sembrar o subir)
+        // quedaba respondiendo `width`/`height`/`checksum` en `null` durante UNA HORA
+        // después de que el fichero ya existiera. El sync del sitio exige enteros
+        // positivos, así que rechazaba la superficie entera por eso.
+        if (! $disk->exists($relativePath)) {
+            return self::EMPTY_CONVERSION_META;
+        }
 
-            try {
-                $disk = Storage::disk($media->conversions_disk);
-                $relativePath = $media->getPathRelativeToRoot('optimized');
+        // El `try` envuelve al caché entero, no al revés: `Cache::remember` sólo guarda
+        // el resultado cuando el closure **retorna**, así que una lectura que falle
+        // tampoco deja un vacío cacheado. Un fallo de lectura no es un hecho sobre la
+        // imagen y no se debe congelar una hora como si lo fuera.
+        try {
+            $key = sprintf(
+                'website.media-slot-meta.%d.%s',
+                $media->id,
+                $media->updated_at?->timestamp ?? '0'
+            );
 
-                if (! $disk->exists($relativePath)) {
-                    return $empty;
-                }
-
+            return Cache::remember($key, 3600, function () use ($disk, $relativePath): array {
                 $absolutePath = $disk->path($relativePath);
                 $dimensions = @getimagesize($absolutePath);
 
@@ -149,13 +171,13 @@ class MediaSlotController extends Controller
                     'mime_type' => $dimensions['mime'] ?? null,
                     'checksum' => 'sha256:'.hash_file('sha256', $absolutePath),
                 ];
-            } catch (\Throwable) {
-                // A missing/unreadable conversion must never 500 the public
-                // listing — dimensions/checksum stay null and the frontend
-                // falls back to its ImagePlaceholder behaviour.
-                return $empty;
-            }
-        });
+            });
+        } catch (\Throwable) {
+            // Una conversión ausente o ilegible no puede tumbar el listado público: las
+            // dimensiones quedan en null y el frontend cae a su ImagePlaceholder. Pero
+            // el vacío se devuelve SIN cachear, para que el próximo intento reintente.
+            return self::EMPTY_CONVERSION_META;
+        }
     }
 
     /**

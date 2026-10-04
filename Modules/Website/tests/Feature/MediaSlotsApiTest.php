@@ -6,6 +6,7 @@ namespace Modules\Website\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -223,6 +224,45 @@ final class MediaSlotsApiTest extends TestCase
         // other's URLs. (`Vary` is a comma list and CORS contributes `Origin`, so
         // this asserts membership, not equality.)
         $this->assertStringContainsString('Host', (string) $response->headers->get('Vary'));
+    }
+
+    /**
+     * A slot whose conversion is not on disk yet must not be remembered as empty.
+     *
+     * The endpoint cached the "no dimensions" answer for an hour, so a slot seeded or
+     * uploaded moments before a build answered `width`/`height`/`checksum` as null and
+     * kept answering that long after the queue had written the file. The site's sync
+     * requires positive integers, so it rejected the whole surface for that.
+     *
+     * `phpunit.xml` sets `CACHE_STORE=array`, which is per-request and would hide the
+     * bug entirely — hence the switch to a store that survives between requests.
+     */
+    public function test_a_conversion_that_is_not_ready_yet_is_not_cached_as_empty(): void
+    {
+        config(['cache.default' => 'file']);
+        Cache::flush();
+
+        [$project, $media, $bytes] = $this->createProjectMedia(Site::find(Site::claesenId()));
+
+        MediaSlot::create([
+            'site_id' => Site::claesenId(),
+            'slot' => 'home.hero',
+            'media_id' => $media->id,
+        ]);
+
+        // La cola todavía no la generó: el fichero no está.
+        $conversion = $media->getPathRelativeToRoot('optimized');
+        Storage::disk('public')->delete($conversion);
+
+        $this->assertNull($this->getJson('/v1/website/media/slots')->json('data.0.width'));
+
+        // La cola termina y la conversión aparece. La próxima respuesta tiene que verla.
+        Storage::disk('public')->put($conversion, $bytes);
+
+        $this->assertSame(1200, $this->getJson('/v1/website/media/slots')->json('data.0.width'));
+        $this->assertSame('image/png', $this->getJson('/v1/website/media/slots')->json('data.0.mime_type'));
+
+        Cache::flush();
     }
 
     public function test_slots_without_confirmed_usage_rights_are_omitted(): void
