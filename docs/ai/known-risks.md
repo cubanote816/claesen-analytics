@@ -338,6 +338,24 @@ Lo que lo resuelve de raíz es servir con **nginx + php-fpm**, que es el stack r
 las imágenes disponibles en esta máquina son sólo `sail-8.x/app` (la de PHP), y la de nginx requiere un
 `pull` que no se intentó.
 
+### El sitio necesita su origen en CORS, y el de producción falta confirmar (2026-10-04)
+
+El formulario de contacto vive en **otro origen** que la API, así que sin su origen en
+`config/cors.php` el **navegador bloquea cada envío** con `Failed to fetch` — mientras el endpoint
+responde **201 a `curl`**, porque `curl` no aplica CORS. Ese contraste es lo que hacía invisible el
+problema desde la terminal: se comprobó con un navegador real, desde dos orígenes, y el diferencial
+fue concluyente (8080 bloqueado, 5173 con 201).
+
+Ya está agregado `http://localhost:8080` (el sitio en desarrollo). **Falta confirmar el de
+producción**: el repo del sitio declara `https://www.electrobertels.be` como canónico por defecto,
+pero allí mismo está marcado como **inferido** del dominio del correo y su `.env.example` dice que
+las URLs cambiarán cuando el dominio se libere. Se dejó en la lista como candidato, y **hay que
+confirmarlo antes de publicar**: si el dominio real es otro, el formulario del cliente falla igual que
+fallaba hoy, y del lado del servidor no se ve nada raro.
+
+Señal para diagnosticarlo rápido: `curl` funciona y el navegador no. Siempre es CORS, nunca el
+endpoint.
+
 ## Riesgos abiertos — Programa multiempresa Electro Bertels
 
 ### Acceso al panel: usuarios con `organization_id` nulo (CLA-611, 2026-09-29)

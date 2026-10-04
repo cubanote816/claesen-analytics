@@ -30,6 +30,20 @@ return [
         'http://localhost:5180',
         'http://localhost:5186',
         'http://localhost:5190',
+
+        // El sitio público de Astro. Faltaba, y no es cosmético: el formulario de
+        // contacto vive en OTRO origen, así que sin esto el navegador bloquea cada
+        // envío con «Failed to fetch» mientras el endpoint responde 201 a `curl`
+        // (curl no aplica CORS, y por eso el problema no se veía desde la terminal).
+        // Comprobado con un navegador real desde los dos orígenes: 8080 bloqueado,
+        // 5173 con 201.
+        'http://localhost:8080',
+        // En producción lo sirve su propio dominio. `https://www.electrobertels.be` es
+        // el que el repo del sitio declara como canónico por defecto
+        // (`astro.config.ts`, `SITE_URL`), pero allí está marcado como INFERIDO del
+        // dominio del correo y su `.env.example` dice que las URLs cambiarán cuando el
+        // dominio se libere — así que queda como candidato a confirmar, no como hecho.
+        'https://www.electrobertels.be',
     ])),
 
     'allowed_origins_patterns' => array_values(array_filter([
