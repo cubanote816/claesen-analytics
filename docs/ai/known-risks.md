@@ -287,6 +287,34 @@ Los resources de Website (`ConsultationRequestResource`, `ProjectResource`) est�
 
 ---
 
+### La media del sitio se publica con una URL que puede no ser alcanzable (CLA-611, 2026-10-04)
+
+`GET /v1/website/media/slots` sirve **URLs absolutas** construidas desde `APP_URL` (el
+`AppServiceProvider` reescribe `filesystems.disks.public.url` con `rtrim(config('app.url')).'/storage'`).
+Dos consecuencias, ambas comprobadas:
+
+1. **`php artisan storage:link` es obligatorio en cada despliegue.** `public/storage` no existe por
+   defecto y está gitignoreado, así que un worktree o un servidor recién clonado no sirve **nada** bajo
+   `/storage/…`: la URL responde **403** y el build del sitio se cae. Las **conversiones** viven ahí
+   (son públicas; el original sigue en el disco `local` y **también** responde 403, que es lo correcto).
+   Ya está agregado a `levantar-servidores.sh`; en producción tiene que correr igual.
+2. **`APP_URL` tiene que ser el host público real.** En el entorno local el `.env` dice
+   `http://localhost`, así que el API publica `http://localhost/storage/…` y ningún consumidor externo
+   puede bajarla. Ojo: pasar `APP_URL` como variable de entorno del contenedor **no alcanza** — en este
+   montaje el `.env` gana en el contexto HTTP. Medido con dos `Host` distintos.
+
+**Es el mismo patrón que ya rompió producción una vez** (ver `fieldops-decisions-log.md`, CLA-444):
+guardar/servir la URL absoluta derivada de `APP_URL` rompe en producción real, porque el `APP_URL`
+interno no coincide con el dominio público. Ahí se resolvió guardando **ruta relativa** y resolviéndola
+del lado del cliente, con tests que lo fijan. Acá la decisión está **pendiente** (ver tabla abajo).
+
+### Los tests usan `Storage::fake('public')` y no ejercen el disco real
+
+`MediaSlotsApiTest` falsea el disco público, así que un `storage:link` faltante o una `APP_URL`
+equivocada **no** fallan en la suite: el test pasa y el consumidor real no puede bajar el archivo. Fue
+exactamente lo que pasó. La verificación válida es externa (el `--check` del sync del sitio, que
+descarga de verdad) y por eso se corre contra el servidor levantado.
+
 ## Riesgos abiertos — Programa multiempresa Electro Bertels
 
 ### Acceso al panel: usuarios con `organization_id` nulo (CLA-611, 2026-09-29)
@@ -327,6 +355,7 @@ en cualquier entorno recién sembrado, que es un fallo peor que el que se estaba
 | MFA del panel: Azure SSO/MFA, MFA nativo de Filament o ambos | Gate previo al primer login real de Bertels (ADR D8) | Orelvys |
 | Autorizar consulta de conteo de solo lectura en producción | Dimensionar los backfills de P2/P3 | Orelvys |
 | Assets de marca aprobados para el panel de Bertels | Bloquea P6 | Orelvys |
+| Cómo sirve el API la media del sitio: **URL absoluta desde `APP_URL`** (hoy) o **ruta relativa** que resuelva el consumidor | El sync del sitio descarga `url`; con `APP_URL` mal, publica URLs inalcanzables. Precedente en contra de la absoluta: CLA-444 (fieldops) | Orelvys |
 
 ---
 

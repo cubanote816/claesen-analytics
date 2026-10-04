@@ -246,3 +246,37 @@ Son **dos** causas, ambas del lado del backend y ninguna en el sembrador:
 Ninguna de las dos se arregla desde el sembrador, y las dos bloquean la superficie `media` del sitio.
 **Los tests no las detectan** porque `MediaSlotsApiTest` usa `Storage::fake('public')`: el disco real
 de producción nunca se ejerce. Queda anotado como riesgo, no como algo resuelto.
+
+### La descarga: qué era, qué arreglé y qué queda
+
+Con el contrato ya válido, el `--check` del sitio avanza hasta la descarga y falla ahí. **Medido**, no
+supuesto:
+
+**(a) Faltaba `public/storage`.** `php artisan storage:link` no había corrido nunca en el worktree y
+`public/storage` está gitignoreado, así que **nada** bajo `/storage/…` se servía: la URL de la
+conversión respondía **403**. Arreglado, y agregado a `levantar-servidores.sh` (idempotente) para que
+un worktree nuevo sirva la media sin pasos manuales. Verificado:
+
+| ruta | antes | ahora |
+|---|---|---|
+| `/storage/29/conversions/domotica-optimized.webp` (conversión) | 403 | **200 · 58 390 bytes** |
+| `/storage/24/eb-about-team.webp` (**el original**) | 403 | **403** |
+
+El original sigue bloqueado porque vive en el disco `local` y el API nunca lo serializa: se arregló la
+descarga **sin** tocar la decisión de privacidad, que tiene un test detrás
+(`PrivateMediaOriginalsTest`).
+
+**(b) `APP_URL`.** El API no devuelve una ruta: devuelve una **URL absoluta** derivada de `APP_URL`
+(`AppServiceProvider` reescribe `filesystems.disks.public.url`), y en el entorno local el `.env` dice
+`http://localhost`, sin puerto. Así que el API publica `http://localhost/storage/29/…`, que no existe
+para nadie. Dos cosas aprendidas midiendo:
+
+- Pasar `APP_URL` como **variable de entorno del contenedor no alcanza**: en este montaje el `.env`
+  gana en el contexto HTTP (CLI sí la ve — lo que me hizo creer durante un rato que estaba arreglado).
+- El repo ya se comió este problema una vez: CLA-444, en fieldops, con URLs absolutas guardadas desde
+  `Storage::disk('public')->url()`. Se resolvió guardando **ruta relativa** y resolviéndola del lado
+  del cliente. Por eso esto **no** se decide acá: queda como decisión pendiente en
+  `docs/ai/known-risks.md`.
+
+**No se tocó** `useDisk('local')` ni la privacidad de los originales: el diseño ya era el correcto
+(original privado, conversiones públicas) y lo que faltaba era el enlace, no la política.
