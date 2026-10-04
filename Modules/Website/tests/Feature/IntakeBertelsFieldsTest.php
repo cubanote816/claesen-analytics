@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Modules\Core\Models\Site;
 use Modules\Intelligence\Services\GeminiService;
 use Modules\Website\Models\ConsultationRequest;
+use Modules\Website\Models\SiteSetting;
 use Tests\TestCase;
 
 /**
@@ -48,6 +49,21 @@ final class IntakeBertelsFieldsTest extends TestCase
             'email' => 'visitor@example.test',
             'message' => 'Ik heb interesse in een ombouw van mijn verdelingbord.',
         ], $overrides);
+    }
+
+    /**
+     * Registra la versión del texto de consentimiento del sitio. Es lo que **enciende**
+     * el requisito: la lista config-declarada dice quién lo exige, y este ajuste dice si
+     * hay algo que exigir.
+     */
+    private function declareConsentVersion(Site $site, string $version): void
+    {
+        SiteSetting::query()->create([
+            'site_id' => $site->id,
+            'key' => 'contact_consent_version',
+            'type' => SiteSetting::TYPE_TEXT,
+            'value' => $version,
+        ]);
     }
 
     public function test_the_new_fields_are_validated_and_persisted(): void
@@ -97,9 +113,13 @@ final class IntakeBertelsFieldsTest extends TestCase
             'domain' => 'bertels-consent.test',
         ]);
 
-        // Decision 1A, Bertels direction: resolved from the request's site —
-        // the config list names the site KEY, never a hardcoded id.
+        // La lista config-declarada dice QUIÉN lo exige: se resuelve desde el sitio de
+        // la request, nunca desde un id a fuego (decisión 1A).
         config(['website.intake_hardening.consent_version_required_site_keys' => [$site->key]]);
+
+        // Y el sitio tiene que declarar una versión de texto que aceptar. Sin esto no
+        // hay nada que exigir: ver el test de abajo, que es el caso real de hoy.
+        $this->declareConsentVersion($site, '2026-10-01');
 
         $this->postJson('/v1/website/consultations?site=bertels-fixture-consent', $this->payload())
             ->assertStatus(422)
@@ -112,5 +132,33 @@ final class IntakeBertelsFieldsTest extends TestCase
         $lead = ConsultationRequest::query()->sole();
         $this->assertSame($site->id, $lead->site_id);
         $this->assertSame('2026-10-01', $lead->consent_policy_version);
+    }
+
+    /**
+     * El caso REAL de hoy, y el motivo de este cambio.
+     *
+     * Bertels está en la lista de sitios que exigen la versión, pero
+     * `contact_consent_version` está **ausente a propósito**: es un artefacto legal que el
+     * cliente todavía no entregó (igual que el copy de los legales). Con el `required`
+     * incondicional, TODO envío real respondía 422 — comprobado con POST reales contra el
+     * trunk, porque el front de Astro no manda el campo y el openapi tampoco lo documenta.
+     *
+     * Un formulario no puede exigir la versión de un texto que todavía no existe, y
+     * sembrar un `v1` inventado sería declarar una aceptación que no ocurrió.
+     */
+    public function test_a_site_without_a_declared_consent_version_does_not_require_it(): void
+    {
+        $site = Site::factory()->create([
+            'key' => 'bertels-fixture-no-consent',
+            'domain' => 'bertels-no-consent.test',
+        ]);
+
+        config(['website.intake_hardening.consent_version_required_site_keys' => [$site->key]]);
+
+        // Sin `declareConsentVersion()`: el ajuste no está, así que no hay nada que exigir.
+        $this->postJson('/v1/website/consultations?site=bertels-fixture-no-consent', $this->payload())
+            ->assertCreated();
+
+        $this->assertNull(ConsultationRequest::query()->sole()->consent_policy_version);
     }
 }

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
 use Modules\Core\Services\OrganizationContext;
+use Modules\Website\Models\SiteSetting;
 use Modules\Website\Models\WebsiteIntakeSpamAttempt;
 use Modules\Website\Services\ConsultationService;
 use Modules\Website\Services\IntakeSpamGuard;
@@ -29,8 +30,27 @@ class ConsultationController extends Controller
         // REQUIRED only for sites that require it (config-declared site-key
         // list, resolved from this request's site — approver decision 1A,
         // never a hardcoded id check).
+        //
+        // Y sólo si hay una versión que exigir. La lista dice QUIÉN lo exige; esta
+        // condición dice si existe el texto. Sin ella, el formulario de Bertels
+        // respondía 422 a TODO envío real: comprobado con POST reales, porque el front
+        // de Astro no manda el campo (y el openapi tampoco lo documenta).
+        //
+        // No es un atajo: `contact_consent_version` es uno de los dos valores que el
+        // sembrado dejó ausentes A PROPÓSITO, porque es un artefacto legal que el
+        // cliente todavía no entregó. Rellenarlo con un `v1` inventado sería declarar
+        // una aceptación que no ocurrió — lo mismo que se evitó con los legales. Cuando
+        // el cliente entregue el texto y su versión se registren en el ajuste, el
+        // requisito se enciende solo, sin tocar código.
         $siteKey = app(OrganizationContext::class)->site()?->key;
-        $consentVersionRequired = in_array(
+
+        $consentVersionDeclared = filled(
+            SiteSetting::cachedForCurrentSite()
+                ->firstWhere('key', 'contact_consent_version')
+                ?->resolvedValue()
+        );
+
+        $consentVersionRequired = $consentVersionDeclared && in_array(
             $siteKey,
             (array) config('website.intake_hardening.consent_version_required_site_keys', ['electro-bertels']),
             true
