@@ -142,10 +142,20 @@ class SiteSettingsPage extends Page implements HasForms
                 continue;
             }
 
-            $fields[] = TextInput::make($key)
+            $input = TextInput::make($key)
                 ->label(__("website.site_settings.fields.{$key}"))
                 ->hint(self::hintFor($key))
                 ->hintIcon('heroicon-m-information-circle');
+
+            // `->email()` alone is not enough here, and this is not hypothetical: the
+            // value that actually got saved was `info@electrobertels.be5`, which passes
+            // RFC validation because a digit is legal in a TLD. The extra rule requires
+            // the TLD to be letters only. It does NOT catch a typo like
+            // `info@electrobertels.bee` — that one is simply a valid address — so this
+            // is a guard against the class of mistake that happened, not a promise.
+            $fields[] = $key === 'email'
+                ? $input->email()->regex('/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/')
+                : $input;
         }
 
         return $schema->schema($fields)->statePath('data');

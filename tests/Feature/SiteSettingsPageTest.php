@@ -107,4 +107,31 @@ final class SiteSettingsPageTest extends TestCase
 
         $this->actingAs($user);
     }
+
+    /**
+     * The email field is the one that actually broke: the value saved was
+     * `info@electrobertels.be5`, typed into a plain TextInput with no format rule.
+     *
+     * `->email()` alone does NOT reject it — a digit is legal in a TLD under RFC
+     * validation, which is why the first attempt at this fix looked like it should have
+     * worked and did not. The rule that catches it requires the TLD to be letters only.
+     *
+     * Deliberately not pretending to catch everything: `info@electrobertels.bee` is a
+     * syntactically valid address, and no format rule rejects it. This guards the class
+     * of mistake that happened, not every typo.
+     */
+    public function test_the_email_field_rejects_a_value_that_is_not_an_address(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        Livewire::test(SiteSettingsPage::class)
+            ->fillForm(['email' => 'info@electrobertels.be5'])
+            ->call('save')
+            ->assertHasFormErrors(['email']);
+
+        $this->assertNotSame(
+            'info@electrobertels.be5',
+            SiteSetting::query()->where('key', 'email')->value('value'),
+        );
+    }
 }
