@@ -154,4 +154,41 @@ final class SiteSettingsWhitelistExtensionTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.legal_name', 'Claesen BV');
     }
+
+    /**
+     * Los ajustes vacíos se omiten del payload.
+     *
+     * El contrato del consumidor (el validador del sync del sitio) exige «non-empty
+     * string WHEN PRESENT»: un campo presente y nulo lo rechaza, y con razón, porque no
+     * se distingue de un error. Y hay ajustes vacíos **a propósito** porque el cliente
+     * todavía no dio el dato (`vat_number`, `contact_consent_version`): el sembrado los
+     * deja ausentes por eso mismo. Servirlos en null contradecía esa decisión y rompía
+     * el sync entero.
+     *
+     * Ojo con lo que NO se omite: una lista vacía y un cero **son** valores. Si esto
+     * empezara a tirar `[]`, el sitio perdería el derecho a decir «ninguno».
+     */
+    public function test_empty_settings_are_omitted_but_empty_lists_are_kept(): void
+    {
+        $siteId = Site::claesenId();
+
+        SiteSetting::query()->updateOrCreate(
+            ['site_id' => $siteId, 'key' => 'vat_number'],
+            ['type' => SiteSetting::TYPE_TEXT, 'value' => null],
+        );
+        SiteSetting::query()->updateOrCreate(
+            ['site_id' => $siteId, 'key' => 'social_links'],
+            ['type' => SiteSetting::TYPE_JSON, 'value' => []],
+        );
+
+        Cache::flush();
+
+        $data = $this->getJson('/v1/website/settings')->assertOk()->json('data');
+
+        $this->assertArrayNotHasKey('vat_number', $data, 'un ajuste nulo no debe estar «presente»');
+        $this->assertSame([], $data['social_links'], 'una lista vacía es un valor, no una ausencia');
+
+        // Y el mapa vacío tiene que seguir siendo objeto, no lista.
+        $this->assertStringNotContainsString('"data":[]', $this->getJson('/v1/website/settings')->getContent());
+    }
 }
