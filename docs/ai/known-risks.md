@@ -338,7 +338,7 @@ Lo que lo resuelve de raíz es servir con **nginx + php-fpm**, que es el stack r
 las imágenes disponibles en esta máquina son sólo `sail-8.x/app` (la de PHP), y la de nginx requiere un
 `pull` que no se intentó.
 
-### El sitio necesita su origen en CORS, y el de producción falta confirmar (2026-10-04)
+### El sitio necesita su origen en CORS ~~y el de producción falta confirmar~~ (2026-10-04) — RESUELTO
 
 El formulario de contacto vive en **otro origen** que la API, así que sin su origen en
 `config/cors.php` el **navegador bloquea cada envío** con `Failed to fetch` — mientras el endpoint
@@ -346,15 +346,16 @@ responde **201 a `curl`**, porque `curl` no aplica CORS. Ese contraste es lo que
 problema desde la terminal: se comprobó con un navegador real, desde dos orígenes, y el diferencial
 fue concluyente (8080 bloqueado, 5173 con 201).
 
-Ya está agregado `http://localhost:8080` (el sitio en desarrollo). **Falta confirmar el de
-producción**: el repo del sitio declara `https://www.electrobertels.be` como canónico por defecto,
-pero allí mismo está marcado como **inferido** del dominio del correo y su `.env.example` dice que
-las URLs cambiarán cuando el dominio se libere. Se dejó en la lista como candidato, y **hay que
-confirmarlo antes de publicar**: si el dominio real es otro, el formulario del cliente falla igual que
-fallaba hoy, y del lado del servidor no se ve nada raro.
+**RESUELTO (2026-10-04)**: el dominio de producción quedó **confirmado por el usuario** como
+`https://www.electrobertels.be`. Al verificarlo apareció un hueco que no se veía: con
+`Origin: https://electrobertels.be` —el dominio **sin `www`**— la respuesta **no** traía cabecera CORS
+(el `www.` sí, y el preflight daba 204). Es el mismo sitio, así que si alguien entra sin `www` y el
+sitio no redirige, el formulario falla con «Failed to fetch» exactamente igual que antes. Se agregaron
+**los dos** orígenes a `config/cors.php` y ahora ambos devuelven `Access-Control-Allow-Origin`.
 
-Señal para diagnosticarlo rápido: `curl` funciona y el navegador no. Siempre es CORS, nunca el
-endpoint.
+**La señal para diagnosticar esto rápido, y quedó escrita**: `curl` funciona y el navegador no. Es
+CORS, no el endpoint — `curl` no aplica CORS. Cualquier API consumida desde otro origen se verifica
+**con navegador**, nunca sólo con `curl`.
 
 ## Riesgos abiertos — Programa multiempresa Electro Bertels
 

@@ -40,10 +40,14 @@ return [
         'http://localhost:8080',
         // En producción lo sirve su propio dominio. `https://www.electrobertels.be` es
         // el que el repo del sitio declara como canónico por defecto
-        // (`astro.config.ts`, `SITE_URL`), pero allí está marcado como INFERIDO del
-        // dominio del correo y su `.env.example` dice que las URLs cambiarán cuando el
-        // dominio se libere — así que queda como candidato a confirmar, no como hecho.
+        // (`astro.config.ts`, `SITE_URL`); **confirmado por el usuario el 2026-10-04**.
         'https://www.electrobertels.be',
+        // Y también el dominio PELADO, porque comprobé que no lo cubre: con
+        // `Origin: https://electrobertels.be` la respuesta no traía cabecera CORS
+        // (`www.` sí la traía, y el preflight daba 204). Es el mismo sitio, así que si
+        // alguien entra sin `www` y el sitio no lo redirige, el formulario falla con
+        // «Failed to fetch» — exactamente el fallo silencioso que costó encontrar hoy.
+        'https://electrobertels.be',
     ])),
 
     'allowed_origins_patterns' => array_values(array_filter([
