@@ -320,6 +320,24 @@ equivocada **no** fallan en la suite: el test pasa y el consumidor real no puede
 exactamente lo que pasó. La verificación válida es externa (el `--check` del sync del sitio, que
 descarga de verdad) y por eso se corre contra el servidor levantado.
 
+### El panel se sirve con `php artisan serve`, que atiende una petición por vez (2026-10-04)
+
+No es un problema de producción —ahí va nginx + php-fpm— pero sí del entorno donde se prueba y se
+muestra el panel, y se midió: **10 peticiones en paralelo a `/bertels/login` tardaban 6,37 s**, o sea
+10 × 0,64 s exactamente en serie, con **un solo** proceso `php -S`. Una página del panel pide decenas
+de assets, así que el navegador espera en fila y termina expirando; y una única petición que un cliente
+abandona deja el proceso atascado (se lo vio en estado `R`) y el panel **entero** sin responder, ni
+siquiera `/login`.
+
+Mitigado en `levantar-servidores.sh` pasando **`PHP_CLI_SERVER_WORKERS=4`**: `php -S` hace fork y la
+misma prueba baja a **3,97 s** (no 4× menos, porque hay contención de base de datos, pero una petición
+trabada ya no bloquea a las demás). **Los worktrees nuevos no lo traen**: si el panel se siente lento o
+se congela, es esto antes que el código.
+
+Lo que lo resuelve de raíz es servir con **nginx + php-fpm**, que es el stack real de Sail. No se hizo:
+las imágenes disponibles en esta máquina son sólo `sail-8.x/app` (la de PHP), y la de nginx requiere un
+`pull` que no se intentó.
+
 ## Riesgos abiertos — Programa multiempresa Electro Bertels
 
 ### Acceso al panel: usuarios con `organization_id` nulo (CLA-611, 2026-09-29)
