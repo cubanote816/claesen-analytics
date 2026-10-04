@@ -68,29 +68,49 @@ final class MailBrand
     }
 
     /**
+     * La marca de un envío que conoce su **sitio** pero no su usuario.
+     *
+     * Es el caso de las mails del propio sitio (`ConsultationConfirmationMail`,
+     * `NewConsultationRequestMail`): son `Mailable`s que ya llevan el `Site` encima.
+     * Antes usaban `$site->mailFromName()` a secas, que cae a
+     * `config('mail.from.name')` — o sea a `APP_NAME`, «Laravel» — así que el visitante
+     * recibía un correo de un remitente llamado Laravel, y el pie decía «© 2026
+     * Laravel», en las dos empresas.
+     */
+    public static function forSite(Site $site): array
+    {
+        $name = $site->mail_from_name
+            ?? $site->organization?->name
+            ?? $site->mailFromName()
+            ?? config('mail.from.name');
+
+        self::$forThisSend = (string) $name;
+
+        return [
+            'address' => $site->mailFromAddress() ?? config('mail.from.address'),
+            'name' => $name,
+        ];
+    }
+
+    /**
      * @return array{address: ?string, name: ?string}
      */
     public static function forUser(?User $user): array
     {
         $site = self::siteFor($user);
 
-        $name = $site?->mail_from_name
-            ?? $user?->organization?->name
-            ?? $site?->mailFromName()
-            ?? config('mail.from.name');
+        if ($site === null) {
+            // Sin usuario o sin sitio no hay empresa que afirmar: se limpia en vez de
+            // dejar la del envío anterior, que sería peor que el nombre genérico.
+            self::$forThisSend = null;
 
-        // Sin usuario no hay empresa que afirmar: se limpia en vez de dejar la del
-        // envío anterior, que sería peor que el nombre genérico.
-        self::$forThisSend = $user === null ? null : (string) $name;
+            return [
+                'address' => config('mail.from.address'),
+                'name' => $user?->organization?->name ?? config('mail.from.name'),
+            ];
+        }
 
-        return [
-            'address' => $site?->mailFromAddress() ?? config('mail.from.address'),
-            // The site's own override, then the organization's real name, and only
-            // then the global fallback. `Site::mailFromName()` alone is not enough:
-            // it falls back to `config('mail.from.name')`, which is the anonymous
-            // global value this class exists to avoid.
-            'name' => $name,
-        ];
+        return self::forSite($site);
     }
 
     private static function siteFor(?User $user): ?Site

@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Modules\Core\Models\Site;
+use Modules\Core\Support\MailBrand;
 use Modules\Website\Models\ConsultationRequest;
 
 /**
@@ -34,10 +35,18 @@ class ConsultationConfirmationMail extends Mailable
 
     public function envelope(): Envelope
     {
+        // `MailBrand` fija el remitente Y deja puesto el nombre que la plantilla de
+        // Laravel imprime en cabecera y pie. Acá y no en el constructor: una Mailable
+        // encolada se serializa al despachar y el worker la re-renderiza sin volver a
+        // pasar por el constructor. `envelope()` sí corre en el worker, y el framework
+        // lo resuelve ANTES que `content()` (ver `prepareMailableForDelivery`), así que
+        // el nombre ya está puesto cuando se renderiza el cuerpo.
+        $brand = MailBrand::forSite($this->site);
+
         return new Envelope(
             from: new Address(
-                (string) $this->site->mailFromAddress(),
-                (string) $this->site->mailFromName(),
+                (string) $brand['address'],
+                (string) $brand['name'],
             ),
             subject: 'We received your request',
         );

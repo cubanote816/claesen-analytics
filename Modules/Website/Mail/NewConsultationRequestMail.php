@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Modules\Core\Models\Site;
+use Modules\Core\Support\MailBrand;
 use Modules\Website\Models\ConsultationRequest;
 
 class NewConsultationRequestMail extends Mailable
@@ -32,10 +33,14 @@ class NewConsultationRequestMail extends Mailable
 
     public function envelope(): Envelope
     {
+        // Ver la nota en ConsultationConfirmationMail: acá se fija la marca del envío
+        // porque `envelope()` corre en el worker y antes de que se renderice el cuerpo.
+        $brand = MailBrand::forSite($this->site);
+
         return new Envelope(
             from: new Address(
-                (string) $this->site->mailFromAddress(),
-                (string) $this->site->mailFromName(),
+                (string) $brand['address'],
+                (string) $brand['name'],
             ),
             subject: 'New consultation request — '.$this->consultation->name,
         );
