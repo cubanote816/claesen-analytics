@@ -48,15 +48,21 @@ class PasswordResetNotification extends Notification implements ShouldQueue
         // and no panel — and a Bertels user was getting a mail titled "Claesen
         // Outdoor Lighting Platform" from Claesen's address.
         $brand = MailBrand::forUser($notifiable instanceof User ? $notifiable : null);
-        $suffix = filled($brand['name']) ? ' — '.$brand['name'] : '';
 
+        // Textos traducidos, no literales: el idioma lo elige el destinatario a través
+        // de `User::preferredLocale()`, que Laravel consulta solo al enviar la
+        // notificación. Antes estaban en inglés fijo y un usuario neerlandés recibía
+        // «Reset your password».
         return (new MailMessage)
             ->from($brand['address'], $brand['name'])
-            ->subject('Reset your password'.$suffix)
-            ->greeting("Hello {$notifiable->name},")
-            ->line('We received a request to reset your password. This link expires in 60 minutes.')
-            ->action('Reset password', $this->resetUrl())
-            ->line('If you did not request this, you can safely ignore this email — your password will not change.');
+            ->subject(__('core::notifications.password_reset.subject', ['company' => $brand['name']]))
+            ->greeting(__('core::notifications.password_reset.greeting', ['name' => $notifiable->name]))
+            ->line(__('core::notifications.password_reset.line_request'))
+            ->action(__('core::notifications.password_reset.action'), $this->resetUrl())
+            ->line(__('core::notifications.password_reset.line_ignore'))
+            // Despedida propia: la de Laravel imprime `config('app.name')`, que en una
+            // instancia con dos empresas no puede ser el nombre de las dos.
+            ->salutation(__('core::notifications.password_reset.salutation'));
     }
 
     private function resetUrl(): string

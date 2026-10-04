@@ -34,6 +34,14 @@ class VerifyEmailAuthenticationWithBrand extends VerifyEmailAuthentication
         $brand = MailBrand::forUser($notifiable instanceof User ? $notifiable : null);
 
         return parent::toMail($notifiable)
-            ->from($brand['address'], $brand['name']);
+            ->from($brand['address'], $brand['name'])
+            // El saludo y la despedida se fijan acá porque los de Laravel son sus
+            // plantillas: el saludo por defecto es «Hello!» —una clave que nadie
+            // traduce, así que sale en inglés aunque el resto del correo esté en
+            // neerlandés— y la despedida imprime `config('app.name')`.
+            ->greeting(__('core::notifications.sign_in_code.greeting', [
+                'name' => $notifiable instanceof User ? $notifiable->name : '',
+            ]))
+            ->salutation(__('core::notifications.sign_in_code.salutation'));
     }
 }

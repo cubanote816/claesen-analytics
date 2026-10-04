@@ -67,10 +67,81 @@ final class MailBrandTest extends TestCase
         $this->bertelsFixtureSite($organization);
 
         $mail = (new PasswordResetNotification('a-code'))
-            ->toMail($this->bertelsFixtureUser($organization));
+            ->toMail($this->bertelsFixtureUser($organization, ['language' => 'en']));
 
         $this->assertSame('Reset your password — Bertels Fixture Org', $mail->subject);
         $this->assertSame('Bertels Fixture Org', $mail->from[1]);
+    }
+
+    /**
+     * Both notifications went out in English for Dutch users: the reset copy was
+     * hardcoded English, and Filament's sign-in code is translated but rendered under
+     * the app default, which in the queue worker is never the recipient's.
+     *
+     * Laravel asks the notifiable for the locale (`NotificationSender::preferredLocale()`)
+     * and wraps the send in it, so `User::preferredLocale()` is what makes both render
+     * in the user's own language.
+     *
+     * This test sets the locale itself rather than calling the sender: `toMail()` is
+     * invoked directly here, and the sender is the piece that applies the locale. Its
+     * wiring is covered by the assertion on `preferredLocale()` above and proven end to
+     * end by actually sending the notification — see the note in MailBrandTest's class
+     * docblock and the live check recorded with this change.
+     */
+    public function test_the_reset_notification_renders_in_the_recipients_language(): void
+    {
+        $organization = $this->bertelsFixtureOrganization();
+        $this->bertelsFixtureSite($organization);
+
+        $user = $this->bertelsFixtureUser($organization, ['language' => 'nl']);
+        $this->assertSame('nl', $user->preferredLocale());
+
+        $notification = new PasswordResetNotification('a-code');
+
+        app()->setLocale('en');
+        $english = $notification->toMail($user);
+
+        app()->setLocale('nl');
+        $dutch = $notification->toMail($user);
+
+        $this->assertSame('Wachtwoord opnieuw instellen — Bertels Fixture Org', $dutch->subject);
+        $this->assertNotSame($english->subject, $dutch->subject);
+        $this->assertStringContainsString('Hallo', (string) $dutch->greeting);
+        $this->assertStringContainsString('herstellink', (string) $dutch->introLines[0]);
+    }
+
+    /**
+     * This is the assertion that would have caught the first attempt. Laravel only asks
+     * a notifiable for its locale behind `instanceof HasLocalePreference`
+     * (`NotificationSender::preferredLocale()`), so having the method is not enough —
+     * without the interface nothing calls it and both notifications keep rendering in
+     * the app default. The live mail is what exposed it; this keeps it from coming back.
+     */
+    public function test_the_user_model_declares_the_locale_preference_interface(): void
+    {
+        $this->assertInstanceOf(
+            \Illuminate\Contracts\Translation\HasLocalePreference::class,
+            $this->bertelsFixtureUser(),
+            'Laravel only consults preferredLocale() behind this interface',
+        );
+    }
+
+    /**
+     * A locale we ship nothing for must fall back to the default rather than render a
+     * language with no files — that prints raw keys in a customer's inbox.
+     */
+    public function test_an_unsupported_language_falls_back_to_the_default(): void
+    {
+        $organization = $this->bertelsFixtureOrganization();
+        $this->bertelsFixtureSite($organization);
+
+        $user = $this->bertelsFixtureUser($organization, ['language' => 'de']);
+
+        $this->assertNull($user->preferredLocale());
+        $this->assertStringStartsWith(
+            'Reset your password',
+            (new PasswordResetNotification('a-code'))->toMail($user)->subject,
+        );
     }
 
     public function test_the_sign_in_code_notification_carries_the_same_brand(): void

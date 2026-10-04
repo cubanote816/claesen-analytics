@@ -12,6 +12,7 @@ use Filament\Auth\MultiFactor\Email\Concerns\InteractsWithEmailAuthentication;
 use Filament\Auth\MultiFactor\Email\Contracts\HasEmailAuthentication;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -37,9 +38,17 @@ use Spatie\Permission\Traits\HasRoles;
  * Enforcement (which panels/roles require it) lives in each PanelProvider's
  * ->multiFactorAuthentication() call, not in this model.
  */
-class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasEmailAuthentication
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery, HasEmailAuthentication, HasLocalePreference
 {
     use HasFactory, \Laravel\Sanctum\HasApiTokens, Notifiable;
+
+    /**
+     * Locales this application actually ships notification copy for. Kept narrow on
+     * purpose — see `preferredLocale()`.
+     *
+     * @var list<string>
+     */
+    public const NOTIFICATION_LOCALES = ['nl', 'en'];
 
     // F2/CLA-465: aliased so assignRole()/syncRoles() can be overridden below
     // to detect a super_admin grant — Spatie Permission itself never fires a
@@ -323,6 +332,36 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         // session failing it gets 403'd on every route including logout (see
         // EnsurePanelAccess's comment on why that's avoided).
         return (bool) $this->is_active;
+    }
+
+    /**
+     * Laravel asks the notifiable for this when it renders a notification
+     * (`Illuminate\Notifications\NotificationSender::preferredLocale()`), so
+     * implementing it makes EVERY notification render in the user's own language —
+     * ours and Filament's sign-in code alike, since both go through that sender.
+     *
+     * Both were arriving in English for Dutch users: the reset notification's texts
+     * were hardcoded English, and the sign-in code's are Filament's own translations
+     * rendered under `config('app.locale')`, which in the queue worker is the app
+     * default and never the recipient's.
+     *
+     * Only locales we actually ship are returned. Anything else yields null so Laravel
+     * falls back to the configured default — better English than a locale with no
+     * files, which prints raw keys. Every real user is `nl` today; add the language
+     * directory (and Filament's, for the sign-in code) before widening this list.
+     *
+     * The `HasLocalePreference` interface on this class is NOT decoration: Laravel
+     * only asks for this method behind that check
+     * (`NotificationSender::preferredLocale()` — `if ($notifiable instanceof
+     * HasLocalePreference)`). Without it nothing calls this and both notifications
+     * keep going out in the app default, which is what happened the first time.
+     */
+    public function preferredLocale(): ?string
+    {
+        return is_string($this->language)
+            && in_array($this->language, self::NOTIFICATION_LOCALES, true)
+                ? $this->language
+                : null;
     }
 
     public function isOnline(): bool
