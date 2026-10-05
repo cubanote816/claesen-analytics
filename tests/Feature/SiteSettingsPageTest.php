@@ -134,4 +134,44 @@ final class SiteSettingsPageTest extends TestCase
             SiteSetting::query()->where('key', 'email')->value('value'),
         );
     }
+
+    /**
+     * The address is edited as four fields, not as raw JSON in a single-line input.
+     *
+     * That input is where `"Balennn"` came from: typing inside a JSON blob produces
+     * still-valid JSON, so nothing stopped it. With parts, a mistake is local and
+     * visible instead of silently rewriting the whole object.
+     *
+     * Compared with the keys sorted, because MySQL's JSON column reorders object keys by
+     * length — asserting the order here would be asserting the database's, not the page's.
+     */
+    public function test_the_address_is_stored_as_the_contract_shape_and_drops_other_keys(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        Livewire::test(SiteSettingsPage::class)
+            ->fillForm([
+                'address_structured' => [
+                    'street' => 'Benoit Jansenstraat 4',
+                    'postal_code' => '2490',
+                    'city' => 'Balen',
+                    'country_code' => 'BE',
+                    // Not part of the contract: it must not reach the column, or it would
+                    // travel into the site's snapshot untouched.
+                    'stray' => 'x',
+                ],
+            ])
+            ->call('save');
+
+        $stored = SiteSetting::query()->where('key', 'address_structured')->value('value');
+
+        ksort($stored);
+
+        $this->assertSame([
+            'city' => 'Balen',
+            'country_code' => 'BE',
+            'postal_code' => '2490',
+            'street' => 'Benoit Jansenstraat 4',
+        ], $stored);
+    }
 }

@@ -38,6 +38,14 @@ class SiteSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
 
+    /**
+     * The address keys the site's contract defines. Anything else is dropped on save:
+     * a stray key would travel into the site's snapshot untouched.
+     *
+     * @var list<string>
+     */
+    private const ADDRESS_KEYS = ['street', 'postal_code', 'city', 'country_code'];
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
     protected static ?string $cluster = WebsiteCluster::class;
@@ -83,9 +91,18 @@ class SiteSettingsPage extends Page implements HasForms
                 // JSON key is edited as raw JSON text (CLA-479 company facts
                 // are heterogeneous shapes — scalar `founded_year`, object
                 // `address_structured`, array `opening_hours`).
-                SiteSetting::TYPE_JSON => $key === 'social_links'
-                    ? (is_array($value) ? $value : [])
-                    : (isset($value) ? json_encode($value, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) : null),
+                SiteSetting::TYPE_JSON => match (true) {
+                    // Keys with a shape of their own are edited as parts, not as JSON.
+                    // `address_structured` is a fixed set of four fields, so there is
+                    // nothing to gain from making someone type braces and quotes around
+                    // them — and everything to lose: a stray keystroke inside a JSON
+                    // blob is still valid JSON, which is how `"Balennn"` got saved.
+                    $key === 'social_links',
+                    $key === 'address_structured' => is_array($value) ? $value : [],
+                    default => isset($value)
+                        ? json_encode($value, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+                        : null,
+                },
                 default => is_string($value) ? $value : null,
             };
         }
@@ -128,6 +145,25 @@ class SiteSettingsPage extends Page implements HasForms
                             ->columns(2)
                             ->addActionLabel(__('website.site_settings.fields.social_links')),
                     ]);
+
+                continue;
+            }
+
+            if ($key === 'address_structured') {
+                $fields[] = Section::make(__("website.site_settings.fields.{$key}"))
+                    ->description(self::hintFor($key))
+                    ->schema([
+                        TextInput::make("{$key}.street")
+                            ->label(__('website.site_settings.address.street')),
+                        TextInput::make("{$key}.postal_code")
+                            ->label(__('website.site_settings.address.postal_code')),
+                        TextInput::make("{$key}.city")
+                            ->label(__('website.site_settings.address.city')),
+                        TextInput::make("{$key}.country_code")
+                            ->label(__('website.site_settings.address.country_code'))
+                            ->maxLength(2),
+                    ])
+                    ->columns(2);
 
                 continue;
             }
@@ -198,10 +234,25 @@ class SiteSettingsPage extends Page implements HasForms
                 $value = array_filter($value ?? [], fn ($v) => filled($v));
             }
 
+            if ($key === 'address_structured') {
+                // Only the keys the consumer's contract defines. A stray key would be
+                // carried into the site's snapshot untouched, and the order is the
+                // database's anyway: MySQL's JSON column reorders object keys by length,
+                // so writing them in a "canonical" order here buys nothing.
+                $value = collect(self::ADDRESS_KEYS)
+                    ->mapWithKeys(fn (string $part): array => [
+                        $part => filled($value[$part] ?? null) ? (string) $value[$part] : null,
+                    ])
+                    ->reject(fn (?string $part): bool => $part === null)
+                    ->all();
+            }
+
             // Raw-JSON editor keys arrive as a JSON string — decode before
             // persisting so the `value` column keeps its array-cast contract
             // (the field's ->rule('json') already rejected invalid input).
-            if ($type === SiteSetting::TYPE_JSON && $key !== 'social_links') {
+            if ($type === SiteSetting::TYPE_JSON
+                && ! in_array($key, ['social_links', 'address_structured'], true)
+            ) {
                 $value = json_decode((string) $value, true);
             }
 

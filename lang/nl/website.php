@@ -302,6 +302,15 @@ return [
         ],
     ],
     'site_settings' => [
+
+        // Het adres wordt per deel bewerkt, niet als JSON: het is een vaste vorm en een
+        // typefout binnen een JSON-blob blijft geldige JSON, dus ze glipt erdoor.
+        'address' => [
+            'street' => 'Straat en nummer',
+            'postal_code' => 'Postcode',
+            'city' => 'Gemeente',
+            'country_code' => 'Landcode (2 letters)',
+        ],
         'label' => 'Site-instellingen',
         'save' => 'Opslaan',
         'saved' => 'Instellingen opgeslagen',

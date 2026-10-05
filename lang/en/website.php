@@ -298,6 +298,15 @@ return [
         ],
     ],
     'site_settings' => [
+
+        // The address is edited as parts, not as JSON: it is a fixed shape, and a typo
+        // inside a JSON blob stays valid JSON, so it slips through.
+        'address' => [
+            'street' => 'Street and number',
+            'postal_code' => 'Postal code',
+            'city' => 'City',
+            'country_code' => 'Country code (2 letters)',
+        ],
         'label' => 'Site settings',
         'save' => 'Save',
         'saved' => 'Settings saved',
