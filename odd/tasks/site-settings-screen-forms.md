@@ -3,7 +3,7 @@
 - **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
 - **Origen:** resumen de sesión 2026-10-04 (items 12, 13 y 14). Continuación directa de
   `odd/tasks/website-content-seeders.md` y de CLA-611.
-- **Estado:** T0 hecho · T1 hecho · T1b hecho · T2 bloqueado por decisión del usuario.
+- **Estado:** T0, T1, T1b, T2 y T3 hechos · T2 con un bloqueo de entorno declarado en «T2 — resultado».
 
 ## Qué queda abierto del 2026-10-04, y por qué
 
@@ -29,9 +29,11 @@ por lo tanto **la pantalla sigue pudiendo borrar los horarios de apertura**. Est
 - [x] **T1b** `lang/de` y `lang/fr` sin las etiquetas del domicilio: el mismo defecto que T1, en la
       misma pantalla. Medido, no supuesto: `nl` tiene 42 claves, a `en` no le falta ninguna, y a
       `fr`/`de` les faltaban exactamente `address.{street,postal_code,city,country_code}`
-- [ ] **T2** (bloqueado por decisión del usuario) destinatario del aviso interno de solicitud nueva
-- [ ] **T3** (necesita decisión) `MediaSlotsApiTest` está acoplado a `APP_URL` sin puerto; ver
-      «Verificación final»
+- [x] **T2** destinatario del aviso interno, por sitio (decidido por el usuario el 2026-10-06):
+      migración `2026_10_06_120000`. **Valores provisionales**, y la entrega sigue bloqueada por las
+      credenciales de Microsoft Graph que faltan en el entorno: ver «T2 — resultado»
+- [x] **T3** `MediaSlotsApiTest` desacoplado de `APP_URL`: la request nombra su propio host. 8/8 con el
+      `APP_URL` del contenedor y 8/8 sin el puerto (`a9b8dfd`)
 
 ## T0 — el bloqueante no reproduce: qué se midió
 
@@ -201,8 +203,9 @@ mismo— y después la aserción la compara contra `http://localhost/storage/` *
 Y el `.env` del disco dice `http://localhost` (mtime del 2026-09-28): **el puerto lo aporta el entorno
 del contenedor**, no el repo. O sea: el defecto es del test —una aserción que fija el host mientras su
 propio comentario dice que quiere desacoplarse de `APP_URL`— y aparece en el entorno que el equipo
-usa de verdad. **No lo toqué**: está en otro módulo y fuera del alcance aprobado, así que queda como
-T3 con la causa ya medida.
+usa de verdad. **Corregido después, cuando el usuario dio el GO (T3, `a9b8dfd`)**: la request pasa a
+nombrar su propio host —como ya hacía su test hermano— y la aserción queda autocontenida. Verificado en
+las dos condiciones: 8/8 con el `APP_URL` del contenedor y 8/8 sin el puerto.
 
 **Irónico y vale decirlo:** la aserción que dice *«asserting the full `$media->getUrl('optimized')`
 here would re-introduce the coupling to the configured APP_URL»* es, ella misma, una afirmación sobre
@@ -216,3 +219,37 @@ mapeo. Se lee con `array_values()`.
 que abrir el `Toggle` deje una fila lista para completar en vez de un hueco detrás de un botón
 «añadir». `defaultItems` no puede hacerlo: cuando el día se abre, el `Repeater` ya tiene estado. El día
 cerrado nunca lo guarda, porque el mapper escribe `hours: null` siempre que el `Toggle` dice cerrado.
+
+## T2 — resultado (2026-10-06)
+
+**El destinatario quedó puesto. Que la entrega dependiera de él, no.** Migración `2026_10_06_120000` en
+`Modules/Core/database/migrations/`, y no un seeder, igual que el precedente del remitente: un seeder no
+corre en el despliegue.
+
+| Sitio | Destinatario del aviso interno |
+| --- | --- |
+| `claesen-verlichting` | `orelvys.cuellar@claesen-verlichting.be` |
+| `electro-bertels` | `cubanote816@gmail.com` |
+
+**Valores provisionales, y no hay pantalla para ellos**: la pantalla de ajustes edita filas de
+`site_settings`, y esto es una **columna de `sites`**, así que cambiarlos más adelante es otra migración
+o un comando, no un tecleo en el panel.
+
+**Verificado por el camino real**, no leyendo la columna: un POST a cada intake (`?site=electro-bertels` y
+`?site=claesen-verlichting`) devolvió **201** y creó **dos** filas de entrega por lead — la confirmación
+al visitante y **el aviso interno a la dirección de ese sitio**. Antes del cambio esa segunda fila **no
+existía**: el aviso se omitía entero.
+
+**Lo que sigue bloqueado, y no lo causó este cambio:** ninguna de esas filas llega a `sent`. Las mails de
+consulta salen por el mailer **nombrado** `microsoft-graph`
+(`SendConsultationEmailJob`: `Mail::mailer('microsoft-graph')->send(...)`), y en este entorno
+`mail.mailers.microsoft-graph.{client_id,tenant_id,client_secret}` están **vacíos** (comprobados como
+booleanos, sin leer valores), así que `MicrosoftGraphService` lanza `MailConfigurationException` y la fila
+queda `failed` tras 2 intentos — con Mailpit levantado y respondiendo 200. **Mailpit no participa de ese
+camino**: los códigos de MFA sí llegan porque salen por el mailer por defecto. Es deliberado y
+preexistente (`ConsultationEmailDeliveryTest` afirma este comportamiento con credenciales sin
+configurar), y queda registrado en `docs/ai/known-risks.md`.
+
+**Dos leads de prueba quedaron en la base de dev** (`ConsultationRequest` 9 y 10, con
+`verificacion@example.test` como visitante y sus 4 filas de entrega en `failed`). No salió ningún correo:
+las entregas fallaron. Se borran cuando el usuario diga.

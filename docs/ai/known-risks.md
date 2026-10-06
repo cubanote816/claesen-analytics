@@ -429,6 +429,38 @@ trabajo en que se corrigió este registro. Ver `odd/tasks/site-settings-screen-f
 
 ## Riesgos abiertos — Programa multiempresa Electro Bertels
 
+### El aviso interno no se puede entregar sin credenciales de Microsoft Graph (2026-10-06)
+
+**Qué:** el destinatario del aviso interno ya está puesto por sitio (`sites.mail_notification_email`,
+migración `2026_10_06_120000`), pero **ninguna** entrega de correo de consultas llega: las filas de
+`website_email_deliveries` quedan en `failed` con
+`[Modules\Mailing\Exceptions\MailConfigurationException] delivery attempt failed.`
+
+**Por qué:** las mails de consulta salen por el mailer **nombrado** `microsoft-graph`
+(`SendConsultationEmailJob`: `Mail::mailer('microsoft-graph')->send(...)`), **no** por el mailer por
+defecto. En este entorno `mail.mailers.microsoft-graph.{client_id,tenant_id,client_secret}` están
+**vacíos** (comprobados como booleanos, sin leer valores), así que `MicrosoftGraphService` lanza
+`MailConfigurationException`.
+
+**Mailpit no participa de ese camino.** Los códigos de MFA sí llegan a `localhost:8025` porque salen por
+el mailer por defecto (SMTP). Levantar Mailpit no arregla esto, y su ausencia tampoco lo causaba.
+
+**Es deliberado y preexistente**, no un defecto nuevo: `ConsultationEmailDeliveryTest` afirma
+exactamente este comportamiento con credenciales sin configurar, y el job registra **solo el nombre de
+la clase** de excepción (nunca `getMessage()`, que puede devolver el payload de Graph con direcciones).
+
+**Medido:** un POST real a cada sitio (201) crea **dos** filas de entrega por lead —antes del cambio del
+destinatario, una sola, porque el aviso interno se omitía— y las dos quedan `failed` tras 2 intentos con
+Mailpit levantado. La causa es la credencial ausente, no el buzón y no el destinatario.
+
+**Qué NO se hizo:** configurar credenciales (no existen en este entorno y es una decisión de negocio u
+ops), y no se tocó el mailer por defecto. Es la misma decisión externa que este documento ya lista para
+F4 (identidad remitente y proveedor de correo de Bertels, tenant de Microsoft 365) y no se resuelve
+desde el repo.
+
+**Consecuencia para el cierre de F4:** poner el destinatario era necesario y **no suficiente**. Hasta que
+existan credenciales, el aviso interno no llega a nadie en ningún entorno sin ellas.
+
 ### Un test de media está acoplado a `APP_URL` sin puerto (2026-10-06)
 
 **Qué:** `Modules/Website/tests/Feature/MediaSlotsApiTest` falla con
