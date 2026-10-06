@@ -14,10 +14,15 @@ Los contratos viven en esos repos y **son la fuente de verdad**:
 
 | Documento | Contenido |
 |---|---|
+| **`docs/Knx/openapi.yaml`** (este repo) | **OpenAPI 3.0.3 de las 52 rutas `api/v1/knx/*`** — contrato de forma generado a mano y verificado por `Modules/Knx/tests/Feature/OpenApiContractTest.php`, que falla si el spec y las rutas reales se separan en cualquier dirección (KNX-4) |
 | `electro-bertels-kantoor/docs/BACKEND-API.md` | 32 endpoints, tipos exactos (§3), esquema sugerido (§5), checklist (§8) |
 | `electro-bertels-kantoor/docs/BACKEND-API-ZONES.md` | Zonas (contrato cerrado), fichas funcionales y pruebas |
 | `electro-bertels-kantoor/docs/openapi.yaml` | OpenAPI 3 |
 | `electro-bertels-kantoor/src/api/types.ts` | Tipos reales del front — **manda sobre los `.md` cuando difieren** |
+
+El backend es el **único** que mantiene `docs/Knx/openapi.yaml`: los fronts lo consumen por `git` en
+vez de reconstruir la forma desde un mensaje. Es el canal primario de coordinación entre sesiones;
+el relay local queda sólo como timbre.
 
 El front ya está terminado y funciona en modo `mock`. Enchufarlo es
 `VITE_API_MODE=real` + `VITE_API_BASE_URL=/api/v1/knx`: **no se toca el front**.

@@ -1,13 +1,17 @@
 # Handover backend → frontend (Kantoor y Veld)
 
-> **Estado:** API de **Kantoor completa** (36 rutas, contrato de `BACKEND-API.md` +
-> `BACKEND-API-ZONES.md`). API de **Veld completa**: V11.a–e cerrados (sesión, trabajo de
+> **Estado:** API de **Kantoor completa** (52 rutas entre `BACKEND-API.md` +
+> `BACKEND-API-ZONES.md` + KNX-3). API de **Veld completa**: V11.a–e cerrados (sesión, trabajo de
 > hoy, zonas, proyecto, planos, registro de aparatos, incidencias y cierre de visita en sus
 > 3 fases). Solo quedan las fotos adicionales, que su propio documento marca como próximas.
 > **Rama:** `electrobertels/knx-api` · **Tickets:** CLA-604 (oficina) y CLA-609 (campo)
 > · **Doc del módulo:** `docs/Knx/knx-kantoor-backend.md`
 > **Instrucciones paso a paso para vuestro código:** §7 en Kantoor / §5 en Veld, al final de
 > vuestra copia de `docs/handover-backend.md`.
+>
+> **Contrato de forma (KNX-4):** `docs/Knx/openapi.yaml` en el repo del backend — OpenAPI 3.0.3
+> de las **52 rutas** `api/v1/knx/*`, con `Modules/Knx/tests/Feature/OpenApiContractTest.php`
+> que falla si el spec y las rutas reales se separan en cualquier dirección.
 
 ---
 
