@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Clusters\Website\Pages;
 
+use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
 use App\Filament\Clusters\Website\WebsiteCluster;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
@@ -41,6 +42,7 @@ use Modules\Website\Models\SiteSetting;
 class SiteSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
+    use ShowsSitePublicationState;
 
     /**
      * The address keys the site's contract defines. Anything else is dropped on save:

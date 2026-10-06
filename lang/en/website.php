@@ -158,7 +158,7 @@ return [
     'publication' => [
         'status' => [
             'idle'     => 'No changes',
-            'pending'  => 'Queued',
+            'pending'  => 'Changes not published',
             'accepted' => 'Publication requested',
             'error'    => 'Publication error',
         ],

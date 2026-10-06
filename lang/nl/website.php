@@ -158,7 +158,7 @@ return [
     'publication' => [
         'status' => [
             'idle'     => 'Geen wijzigingen',
-            'pending'  => 'In de wachtrij',
+            'pending'  => 'Wijzigingen niet gepubliceerd',
             'accepted' => 'Publicatie aangevraagd',
             'error'    => 'Publicatiefout',
         ],

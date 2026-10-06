@@ -184,6 +184,32 @@ return [
             'archived' => 'Archiviert',
         ],
     ],
+    'publication' => [
+        'status' => [
+            'idle'     => 'Keine Änderungen',
+            // « In der Warteschlange » (der alte Text) beschrieb das automatische Modell: seit
+            // der bewussten Veröffentlichung (2026-10-06) heißt der Zustand, dass Änderungen
+            // auf eine menschliche Entscheidung warten — nicht, dass ein Build eingereiht ist.
+            'pending'  => 'Änderungen nicht veröffentlicht',
+            'accepted' => 'Veröffentlichung angefordert',
+            'error'    => 'Veröffentlichungsfehler',
+        ],
+        'widget' => [
+            'status_label'  => 'Veröffentlichungsstatus',
+            'last_accepted' => 'Letzte Anfrage',
+            'build_status'  => 'Build-Status des Frontends',
+            'building'      => 'Wird erstellt...',
+            'unreachable'   => 'Nicht erreichbar',
+            'no_data'       => '—',
+            'release'       => 'Release: :release',
+        ],
+        'actions' => [
+            'publish_now'                => 'Jetzt veröffentlichen',
+            'publish_now_confirm_title'  => 'Veröffentlichung starten',
+            'publish_now_confirm_body'   => 'Dies fordert einen vollständigen Neuaufbau der Website an. Die aktuelle Version bleibt online, bis der Build abgeschlossen ist.',
+            'publish_now_success'        => 'Veröffentlichung angefordert',
+        ],
+    ],
     'site_settings' => [
 
         // Die Adresse wird in Teilen bearbeitet, nicht als JSON: es ist eine feste Form, und

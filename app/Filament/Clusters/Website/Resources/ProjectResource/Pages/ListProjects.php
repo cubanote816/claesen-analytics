@@ -2,46 +2,29 @@
 
 namespace App\Filament\Clusters\Website\Resources\ProjectResource\Pages;
 
+use App\Filament\Clusters\Website\Actions\PublishSiteNowAction;
+use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
 use App\Filament\Clusters\Website\Resources\ProjectResource;
-use App\Filament\Clusters\Website\Widgets\PublicationStatusWidget;
 use Filament\Actions;
-use Filament\Actions\Action;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
-use Modules\Website\Services\StaticSitePublicationService;
 
 class ListProjects extends ListRecords
 {
+    use ShowsSitePublicationState;
+
     protected static string $resource = ProjectResource::class;
 
+    /**
+     * The trait already contributes the publish action and the status widget. A List page
+     * also needs its create action, and a trait method cannot be extended, so this pair is
+     * written out here — with the action taken from the one shared definition rather than
+     * copied.
+     */
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('publish_now')
-                ->label(__('website.publication.actions.publish_now'))
-                ->icon('heroicon-o-cloud-arrow-up')
-                ->color('info')
-                ->requiresConfirmation()
-                ->modalHeading(__('website.publication.actions.publish_now_confirm_title'))
-                ->modalDescription(__('website.publication.actions.publish_now_confirm_body'))
-                ->action(function () {
-                    app(StaticSitePublicationService::class)
-                        ->requestRebuild(reason: 'manual', force: true);
-
-                    Notification::make()
-                        ->title(__('website.publication.actions.publish_now_success'))
-                        ->success()
-                        ->send();
-                }),
-
+            PublishSiteNowAction::make(),
             Actions\CreateAction::make(),
-        ];
-    }
-
-    protected function getHeaderWidgets(): array
-    {
-        return [
-            PublicationStatusWidget::class,
         ];
     }
 }

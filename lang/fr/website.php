@@ -184,6 +184,32 @@ return [
             'archived' => 'Archivé',
         ],
     ],
+    'publication' => [
+        'status' => [
+            'idle'     => 'Aucune modification',
+            // « En attente » (l'ancien texte) décrivait le modèle automatique : depuis la
+            // publication délibérée (2026-10-06), l'état signifie que des modifications
+            // attendent une décision humaine, pas qu'un rebuild est en file.
+            'pending'  => 'Modifications non publiées',
+            'accepted' => 'Publication demandée',
+            'error'    => 'Erreur de publication',
+        ],
+        'widget' => [
+            'status_label'  => 'Statut de publication',
+            'last_accepted' => 'Dernière demande',
+            'build_status'  => 'Statut de construction du frontend',
+            'building'      => 'Construction en cours...',
+            'unreachable'   => 'Injoignable',
+            'no_data'       => '—',
+            'release'       => 'Version : :release',
+        ],
+        'actions' => [
+            'publish_now'                => 'Publier maintenant',
+            'publish_now_confirm_title'  => 'Lancer la publication',
+            'publish_now_confirm_body'   => 'Cela demande une reconstruction complète du site. La version actuelle reste en ligne jusqu\'à la fin de la construction.',
+            'publish_now_success'        => 'Publication demandée',
+        ],
+    ],
     'site_settings' => [
 
         // L'adresse s'édite par parties, pas en JSON : c'est une forme fixe, et une faute de
