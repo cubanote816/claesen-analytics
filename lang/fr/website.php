@@ -185,6 +185,15 @@ return [
         ],
     ],
     'site_settings' => [
+
+        // L'adresse s'édite par parties, pas en JSON : c'est une forme fixe, et une faute de
+        // frappe dans un blob JSON reste du JSON valide, donc elle passe.
+        'address' => [
+            'street' => 'Rue et numéro',
+            'postal_code' => 'Code postal',
+            'city' => 'Commune',
+            'country_code' => 'Code pays (2 lettres)',
+        ],
         'label' => 'Paramètres du site',
         'save' => 'Enregistrer',
         'saved' => 'Paramètres enregistrés',

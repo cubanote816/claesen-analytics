@@ -185,6 +185,15 @@ return [
         ],
     ],
     'site_settings' => [
+
+        // Die Adresse wird in Teilen bearbeitet, nicht als JSON: es ist eine feste Form, und
+        // ein Tippfehler in einem JSON-Blob bleibt gültiges JSON, also rutscht er durch.
+        'address' => [
+            'street' => 'Straße und Nummer',
+            'postal_code' => 'Postleitzahl',
+            'city' => 'Gemeinde',
+            'country_code' => 'Ländercode (2 Buchstaben)',
+        ],
         'label' => 'Website-Einstellungen',
         'save' => 'Speichern',
         'saved' => 'Einstellungen gespeichert',
