@@ -31,14 +31,14 @@ class MediaObserver
 
         if ($media->collection_name === 'gallery') {
             // Gallery saves: dispatch AI metadata job first.
-            // That job calls requestRebuild() in its finally block after
-            // caption/alt are generated — avoids a rebuild before metadata lands.
+            // That job marks the site dirty in its finally block, after caption/alt are
+            // generated — so the pending flag is not raised before the metadata lands.
             GenerateGalleryMediaMetadataJob::dispatch($media->id);
             return;
         }
 
         // featured_image, detail_gallery, or any future collection.
-        $this->publicationService->requestRebuild($media->model?->site_id, 'content_changed');
+        $this->publicationService->markContentChanged($media->model?->site_id);
     }
 
     public function deleted(Media $media): void
@@ -47,6 +47,6 @@ class MediaObserver
             return;
         }
 
-        $this->publicationService->requestRebuild($media->model?->site_id, 'content_changed');
+        $this->publicationService->markContentChanged($media->model?->site_id);
     }
 }

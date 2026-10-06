@@ -318,7 +318,13 @@ class StaticSitePublishTest extends TestCase
 
     // ─── Observers ────────────────────────────────────────────────────────────
 
-    public function test_project_observer_dispatches_rebuild_on_all_five_events(): void
+    /**
+     * Deliberate publishing (2026-10-06): all five events mark the site dirty and none of
+     * them asks for a rebuild. This test used to be named
+     * ..._dispatches_rebuild_on_all_five_events — that is the behaviour the user removed, so
+     * asserting it would be asserting the bug.
+     */
+    public function test_project_observer_marks_dirty_on_all_five_events_and_publishes_none(): void
     {
         Queue::fake();
         $observer = app(ProjectObserver::class);
@@ -328,7 +334,8 @@ class StaticSitePublishTest extends TestCase
             $observer->$event($project);
         }
 
-        Queue::assertPushed(TriggerStaticSiteRebuildJob::class, 5);
+        Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
+        $this->assertSame(PublicationStatus::PENDING, PublicationState::current()->status);
     }
 
     public function test_media_observer_dispatches_gallery_metadata_job_for_gallery_media(): void
@@ -343,7 +350,7 @@ class StaticSitePublishTest extends TestCase
         Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
     }
 
-    public function test_media_observer_dispatches_rebuild_for_non_gallery_project_media(): void
+    public function test_media_observer_marks_dirty_for_non_gallery_project_media(): void
     {
         Queue::fake();
         $observer = app(MediaObserver::class);
@@ -353,7 +360,8 @@ class StaticSitePublishTest extends TestCase
             $observer->saved($media);
         }
 
-        Queue::assertPushed(TriggerStaticSiteRebuildJob::class, 2);
+        Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
+        $this->assertSame(PublicationStatus::PENDING, PublicationState::current()->status);
     }
 
     public function test_media_observer_ignores_non_project_media(): void
@@ -365,10 +373,14 @@ class StaticSitePublishTest extends TestCase
         $observer->saved($media);
         $observer->deleted($media);
 
+        // Asserted against the table, not only the queue: since publishing became explicit
+        // nothing pushes, so "nothing pushed" would pass even with the model_type guard
+        // deleted. What must actually hold is that no site was marked dirty either.
         Queue::assertNothingPushed();
+        $this->assertDatabaseCount('website_publication_states', 0);
     }
 
-    public function test_media_observer_dispatches_rebuild_on_delete_for_any_collection(): void
+    public function test_media_observer_marks_dirty_on_delete_for_any_collection(): void
     {
         Queue::fake();
         $observer = app(MediaObserver::class);
@@ -378,7 +390,8 @@ class StaticSitePublishTest extends TestCase
             $observer->deleted($media);
         }
 
-        Queue::assertPushed(TriggerStaticSiteRebuildJob::class, 3);
+        Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
+        $this->assertSame(PublicationStatus::PENDING, PublicationState::current()->status);
     }
 
     // ─── Manual rebuild button (force=true) ───────────────────────────────────

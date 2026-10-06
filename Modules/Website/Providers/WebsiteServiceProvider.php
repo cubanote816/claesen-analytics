@@ -41,6 +41,7 @@ class WebsiteServiceProvider extends ServiceProvider
 
         \Modules\Website\Models\ConsultationRequest::observe(\Modules\Website\Observers\ConsultationRequestObserver::class);
         \Modules\Website\Models\Project::observe(\Modules\Website\Observers\ProjectObserver::class);
+        \Modules\Website\Models\SiteSetting::observe(\Modules\Website\Observers\SiteSettingObserver::class);
         \Spatie\MediaLibrary\MediaCollections\Models\Media::observe(\Modules\Website\Observers\MediaObserver::class);
 
         if ($this->app->runningInConsole()) {

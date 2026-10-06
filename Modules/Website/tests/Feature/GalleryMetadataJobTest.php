@@ -9,9 +9,11 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Modules\Intelligence\Services\GeminiService;
+use Modules\Website\App\Enums\PublicationStatus;
 use Modules\Website\Jobs\GenerateGalleryMediaMetadataJob;
 use Modules\Website\Jobs\TriggerStaticSiteRebuildJob;
 use Modules\Website\Models\Project;
+use Modules\Website\Models\PublicationState;
 use Tests\TestCase;
 
 /**
@@ -64,10 +66,10 @@ class GalleryMetadataJobTest extends TestCase
     }
 
     // =========================================================================
-    // NotifyAstroFrontendJob is dispatched in the finally block
+    // The finally block marks the site dirty instead of publishing it
     // =========================================================================
 
-    public function test_job_dispatches_notify_frontend_job(): void
+    public function test_job_marks_the_site_dirty_instead_of_publishing(): void
     {
         $project = Project::factory()->create();
         $file    = UploadedFile::fake()->image('gallery2.jpg');
@@ -86,7 +88,10 @@ class GalleryMetadataJobTest extends TestCase
         Queue::fake(); // Reset captures from addMedia above
         (new GenerateGalleryMediaMetadataJob($media->id))->handle($gemini);
 
-        Queue::assertPushed(TriggerStaticSiteRebuildJob::class);
+        // Deliberate publishing (2026-10-06): the job records that content changed and
+        // never asks for a rebuild. Generating a caption is not a publication decision.
+        Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
+        $this->assertSame(PublicationStatus::PENDING, PublicationState::current()->status);
     }
 
     // =========================================================================

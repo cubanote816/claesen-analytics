@@ -180,7 +180,13 @@ final class StaticSitePublishPerSiteTest extends TestCase
         $this->assertSame(PublicationStatus::ACCEPTED, $state->fresh()->status);
     }
 
-    public function test_saving_a_project_requests_a_rebuild_for_its_own_site_not_claesens(): void
+    /**
+     * What this test protected — per-site isolation, not Claesen by accident — is unchanged;
+     * only the observable is. It used to assert the observer asked for a rebuild for the
+     * project's own site and not for Claesen's. Now the observer marks dirty instead of
+     * publishing, so the property to assert is which site's state was marked.
+     */
+    public function test_saving_a_project_marks_its_own_site_dirty_not_claesens(): void
     {
         Queue::fake();
 
@@ -189,13 +195,16 @@ final class StaticSitePublishPerSiteTest extends TestCase
 
         (new ProjectObserver(app(StaticSitePublicationService::class)))->updated($project);
 
-        Queue::assertPushed(
-            TriggerStaticSiteRebuildJob::class,
-            fn (TriggerStaticSiteRebuildJob $job) => $job->siteId === $bertelsSite->id
+        Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
+
+        $this->assertSame(
+            PublicationStatus::PENDING,
+            PublicationState::current($bertelsSite->id)->status,
         );
-        Queue::assertNotPushed(
-            TriggerStaticSiteRebuildJob::class,
-            fn (TriggerStaticSiteRebuildJob $job) => $job->siteId === Site::claesenId()
-        );
+
+        // Asserted as an absent row rather than as an idle one: PublicationState::current()
+        // creates an idle row on demand, so "Claesen is idle" would be true even if the
+        // observer had marked the wrong site.
+        $this->assertDatabaseMissing('website_publication_states', ['site_id' => Site::claesenId()]);
     }
 }

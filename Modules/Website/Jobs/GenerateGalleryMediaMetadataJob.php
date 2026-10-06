@@ -91,7 +91,10 @@ class GenerateGalleryMediaMetadataJob implements ShouldQueue
             Log::error("GenerateGalleryMediaMetadataJob failed for media #{$this->mediaId}: " . $e->getMessage());
         } finally {
             if ($notifyFrontend) {
-                app(StaticSitePublicationService::class)->requestRebuild($siteId, 'content_changed');
+                // Marks the site dirty; it does not publish. The gallery's metadata just
+                // changed, so the site is now different from what is live — but a human
+                // decides when that goes out, not the caption generator.
+                app(StaticSitePublicationService::class)->markContentChanged($siteId);
             }
         }
     }

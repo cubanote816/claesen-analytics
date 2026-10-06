@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Http\Client\ConnectionException;
 use Modules\Core\Models\Site;
+use Modules\Website\App\Enums\PublicationStatus;
 use Modules\Website\DTOs\WebhookResult;
 use Modules\Website\Jobs\TriggerStaticSiteRebuildJob;
 use Modules\Website\Models\PublicationState;
@@ -61,6 +62,41 @@ class StaticSitePublicationService
             'dispatch_key' => $dispatchKey,
             'fires_at'     => now()->addSeconds($debounce)->toIso8601String(),
         ]);
+    }
+
+    /**
+     * Mark a site's content as changed WITHOUT asking for a rebuild.
+     *
+     * This is the deliberate-publishing model the user chose on 2026-10-06: saving content
+     * makes the site dirty, and a human decides when that becomes a publication.
+     * requestRebuild() is the other half — the explicit action, still what a manual
+     * "publish now" calls.
+     *
+     * Saving must keep marking. If an edit left no trace the client would lose the only
+     * signal that something is waiting to be published, and "editing" would collapse back
+     * into "published" — the distinction this whole flow exists to draw.
+     *
+     * Gated exactly like requestRebuild(): with the pipeline switched off nothing could ever
+     * publish, so a pending badge would be one nobody can clear.
+     *
+     * Safe to call from model observers — never throws, no queue, no network.
+     */
+    public function markContentChanged(?int $siteId = null): void
+    {
+        if (!config('static_site.enabled')) {
+            return;
+        }
+
+        $state = PublicationState::current($siteId);
+
+        // Already dirty in this cycle: markPending() would rewrite the same row. This runs
+        // once per saved row — the settings screen saves every allowed key on each submit —
+        // so the guard keeps one edit from producing a burst of identical UPDATEs.
+        if ($state->status === PublicationStatus::PENDING && $state->pending_since !== null) {
+            return;
+        }
+
+        $state->markPending();
     }
 
     /**
