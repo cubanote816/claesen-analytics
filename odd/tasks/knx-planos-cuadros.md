@@ -113,3 +113,7 @@ capture-correction-plan”*. La corrección quedó aplicada y verificada fuera d
 quedó además desanclado al limpiarse `/tmp` (recrearlo dio candidato vacío). No se usó RESET ni
 RECOVER: son destructivos y requieren decisión explícita.
 
+**Decisión del usuario (2026-10-06): cerrar con lo verificado.** U2 y U3 aprobados; U1 con los
+tres defectos corregidos y verificados en `da7ed94`; U4/U5 declarados sin veredicto por el fallo
+del tooling de revisión. No se reintenta el linaje ni se usa RESET/RECOVER.
+
