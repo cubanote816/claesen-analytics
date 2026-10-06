@@ -188,6 +188,24 @@ return [
         'label' => 'Paramètres du site',
         'save' => 'Enregistrer',
         'saved' => 'Paramètres enregistrés',
+        // Les horaires s'éditent jour par jour, pas en JSON : `hours: null` EST
+        // « fermé » dans le contrat, donc l'interrupteur en découle.
+        'opening_hours' => [
+            'day' => 'Jour',
+            'closed' => 'Fermé',
+            'ranges' => 'Horaires d\'ouverture',
+            'opens' => 'De',
+            'closes' => 'À',
+            'add_day' => 'Ajouter un jour',
+            'add_range' => 'Ajouter une plage',
+            // Les clés sont des données du contrat ; seul le libellé est traduit.
+            'days' => [
+                'sunday' => 'Dimanche',
+                'monday' => 'Lundi',
+                'tuesdayToFriday' => 'Du mardi au vendredi',
+                'saturday' => 'Samedi',
+            ],
+        ],
         'fields' => [
             'hours' => 'Horaires d\'ouverture',
             'phone' => 'Téléphone',
@@ -213,7 +231,7 @@ return [
             'address' => 'Claesen : chaîne libre, lue telle quelle par le frontend Claesen. Ne pas modifier pour Electro Bertels.',
             'address_structured' => 'Electro Bertels : source structurée — JSON avec street, postal_code, city, country_code. Le frontend Claesen ne lit pas ce champ.',
             'founded_year' => 'Entier JSON, ex. 1977',
-            'opening_hours' => 'Tableau JSON : [{"day_key": "monday", "hours": [{"open": "09:00", "close": "18:00"}] | null}]',
+            'opening_hours' => 'Une ligne par jour. "Fermé" signifie : aucune heure d\'ouverture.',
             'maps_consent_mode' => 'always | on_consent | never',
         ],
     ],

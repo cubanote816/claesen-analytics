@@ -307,6 +307,24 @@ return [
             'city' => 'City',
             'country_code' => 'Country code (2 letters)',
         ],
+        // Opening hours are edited day by day, not as JSON: `hours: null` IS "closed"
+        // in the contract, so the switch is derived from it.
+        'opening_hours' => [
+            'day' => 'Day',
+            'closed' => 'Closed',
+            'ranges' => 'Opening hours',
+            'opens' => 'From',
+            'closes' => 'To',
+            'add_day' => 'Add a day',
+            'add_range' => 'Add a period',
+            // The keys are contract data; only the label is translated.
+            'days' => [
+                'sunday' => 'Sunday',
+                'monday' => 'Monday',
+                'tuesdayToFriday' => 'Tuesday to Friday',
+                'saturday' => 'Saturday',
+            ],
+        ],
         'label' => 'Site settings',
         'save' => 'Save',
         'saved' => 'Settings saved',
@@ -335,7 +353,7 @@ return [
             'address' => 'Claesen: verbatim string, read unchanged by the Claesen frontend. Do not edit for Electro Bertels.',
             'address_structured' => 'Electro Bertels: structured source — JSON with street, postal_code, city, country_code. The Claesen frontend does not read this field.',
             'founded_year' => 'JSON integer, e.g. 1977',
-            'opening_hours' => 'JSON array: [{"day_key": "monday", "hours": [{"open": "09:00", "close": "18:00"}] | null}]',
+            'opening_hours' => 'One row per day. "Closed" means no opening hours.',
             'maps_consent_mode' => 'always | on_consent | never',
         ],
     ],

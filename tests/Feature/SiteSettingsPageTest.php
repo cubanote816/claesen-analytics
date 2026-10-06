@@ -174,4 +174,163 @@ final class SiteSettingsPageTest extends TestCase
             'street' => 'Benoit Jansenstraat 4',
         ], $stored);
     }
+
+    /**
+     * `opening_hours` is edited as one row per day, not as raw JSON in a single-line input.
+     *
+     * That input is the same defect that produced `"Balennn"` in the address: a JSON blob
+     * whose only validation was `rule('json')`, and a typo inside a blob stays valid JSON.
+     * Here the contract is a four-key day list in which `hours === null` IS "closed", and
+     * the sync validator only accepts those four keys — a seven-day list is what got the
+     * first seeder rejected.
+     *
+     * Compared with assertEquals, not assertSame: MySQL reorders object keys by length, so
+     * asserting order would be asserting the database's, not the page's.
+     */
+    public function test_opening_hours_round_trips_the_contract_shape(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        Livewire::test(SiteSettingsPage::class)
+            ->fillForm([
+                'opening_hours' => [
+                    ['day_key' => 'sunday', 'closed' => true],
+                    ['day_key' => 'monday', 'closed' => true],
+                    ['day_key' => 'tuesdayToFriday', 'closed' => false, 'hours' => [
+                        ['open' => '09:00', 'close' => '12:00'],
+                        ['open' => '13:00', 'close' => '18:00'],
+                    ]],
+                    ['day_key' => 'saturday', 'closed' => false, 'hours' => [
+                        ['open' => '09:00', 'close' => '12:00'],
+                    ]],
+                ],
+            ])
+            ->call('save');
+
+        $this->assertEquals([
+            ['day_key' => 'sunday', 'hours' => null],
+            ['day_key' => 'monday', 'hours' => null],
+            ['day_key' => 'tuesdayToFriday', 'hours' => [
+                ['open' => '09:00', 'close' => '12:00'],
+                ['open' => '13:00', 'close' => '18:00'],
+            ]],
+            ['day_key' => 'saturday', 'hours' => [
+                ['open' => '09:00', 'close' => '12:00'],
+            ]],
+        ], SiteSetting::query()->where('key', 'opening_hours')->value('value'));
+    }
+
+    /**
+     * The lesson this test exists for. The previous attempt blamed the mapper for a column
+     * that came out null, when the cause was the test itself: it pushed a deliberately
+     * invalid `day_key` (`everyFullMoon`) into the form, the `Select` rejected it, and
+     * validation aborted the whole save — which is correct. The save never ran.
+     *
+     * So this asserts the observable outcome (nothing is written) and says out loud that
+     * the `Select` is what stops it, instead of claiming to test the mapper's internals —
+     * and it asserts the exact error path, so it proves the refusal came from the day
+     * field and not from something unrelated breaking the save.
+     */
+    public function test_opening_hours_never_persists_a_day_outside_the_contract(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        Livewire::test(SiteSettingsPage::class)
+            ->fillForm([
+                'opening_hours' => [
+                    ['day_key' => 'everyFullMoon', 'closed' => false, 'hours' => [
+                        ['open' => '09:00', 'close' => '12:00'],
+                    ]],
+                ],
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['opening_hours.0.day_key']);
+
+        $this->assertNull(
+            SiteSetting::query()->where('key', 'opening_hours')->value('value'),
+            'A day the contract does not define must not reach the column.',
+        );
+    }
+
+    /**
+     * `hours: null` IS "closed" in the contract, so the toggle decides and not whatever
+     * ranges happen to be left in the state. Without this, flipping a day to closed could
+     * keep serving its old hours.
+     */
+    public function test_opening_hours_stores_a_closed_day_as_null_hours(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        Livewire::test(SiteSettingsPage::class)
+            ->fillForm([
+                'opening_hours' => [
+                    ['day_key' => 'sunday', 'closed' => true, 'hours' => [
+                        ['open' => '09:00', 'close' => '12:00'],
+                    ]],
+                ],
+            ])
+            ->call('save');
+
+        $this->assertEquals(
+            [['day_key' => 'sunday', 'hours' => null]],
+            SiteSetting::query()->where('key', 'opening_hours')->value('value'),
+        );
+    }
+
+    /**
+     * The same day twice must not be storable. Without the `Select`'s `distinct()` the save
+     * would succeed and the snapshot would carry two Mondays, which is not a state the
+     * contract describes: its day list is a set.
+     *
+     * The failure lands on the duplicated row, so asserting the second row's error path is
+     * the honest one — and the column staying null is what proves the save was refused
+     * rather than half-applied.
+     */
+    public function test_opening_hours_rejects_the_same_day_twice(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        Livewire::test(SiteSettingsPage::class)
+            ->fillForm([
+                'opening_hours' => [
+                    ['day_key' => 'monday', 'closed' => false, 'hours' => [['open' => '09:00', 'close' => '12:00']]],
+                    ['day_key' => 'monday', 'closed' => false, 'hours' => [['open' => '13:00', 'close' => '18:00']]],
+                ],
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['opening_hours.1.day_key']);
+
+        $this->assertNull(SiteSetting::query()->where('key', 'opening_hours')->value('value'));
+    }
+
+    /**
+     * A closed day still arrives with one blank period, so flipping the toggle open leaves the
+     * user a row to fill instead of an empty area behind an "add period" button.
+     *
+     * `defaultItems` cannot cover this: by the time a day is opened, the repeater already has
+     * state. Verified on the mounted form state rather than by clicking, because the toggle is
+     * Filament's `visible()` reacting to `live()`, and that reaction is what this state feeds.
+     */
+    public function test_opening_hours_offers_a_blank_period_for_a_closed_day(): void
+    {
+        $this->actingAsSuperAdmin();
+        SiteSetting::factory()->create([
+            'key' => 'opening_hours',
+            'type' => SiteSetting::TYPE_JSON,
+            'value' => [['day_key' => 'sunday', 'hours' => null]],
+        ]);
+
+        $rows = array_values(Livewire::test(SiteSettingsPage::class)->get('data.opening_hours'));
+
+        // Read through array_values() on both levels on purpose: Filament keys the state of a
+        // Repeater by item uuid, not by index. Asserting `[0 => …]` here fails against a uuid
+        // key and looks like a mapping bug, which is the wrong conclusion.
+        $this->assertCount(1, $rows);
+        $this->assertSame('sunday', $rows[0]['day_key']);
+        $this->assertTrue($rows[0]['closed']);
+        $this->assertSame(
+            [['open' => null, 'close' => null]],
+            array_values($rows[0]['hours']),
+        );
+    }
 }

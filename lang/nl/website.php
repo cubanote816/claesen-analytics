@@ -311,6 +311,24 @@ return [
             'city' => 'Gemeente',
             'country_code' => 'Landcode (2 letters)',
         ],
+        // De openingsuren worden per dag bewerkt, niet als JSON: `hours: null` IS
+        // "gesloten" in het contract, dus de schakelaar wordt daaruit afgeleid.
+        'opening_hours' => [
+            'day' => 'Dag',
+            'closed' => 'Gesloten',
+            'ranges' => 'Openingsuren',
+            'opens' => 'Van',
+            'closes' => 'Tot',
+            'add_day' => 'Dag toevoegen',
+            'add_range' => 'Periode toevoegen',
+            // De sleutels zijn contractdata; alleen het label wordt vertaald.
+            'days' => [
+                'sunday' => 'Zondag',
+                'monday' => 'Maandag',
+                'tuesdayToFriday' => 'Dinsdag t/m vrijdag',
+                'saturday' => 'Zaterdag',
+            ],
+        ],
         'label' => 'Site-instellingen',
         'save' => 'Opslaan',
         'saved' => 'Instellingen opgeslagen',
@@ -339,7 +357,7 @@ return [
             'address' => 'Claesen: vrije tekenreeks, ongewijzigd door het Claesen-frontend gelezen. Niet bewerken voor Electro Bertels.',
             'address_structured' => 'Electro Bertels: gestructureerde bron — JSON met street, postal_code, city, country_code. Het Claesen-frontend leest dit veld niet.',
             'founded_year' => 'JSON-geheel getal, bijv. 1977',
-            'opening_hours' => 'JSON-array: [{"day_key": "maandag", "hours": [{"open": "09:00", "close": "18:00"}] | null}]',
+            'opening_hours' => 'Eén rij per dag. "Gesloten" betekent: geen openingsuren.',
             'maps_consent_mode' => 'always | on_consent | never',
         ],
     ],

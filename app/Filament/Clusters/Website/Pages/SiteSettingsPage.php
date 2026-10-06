@@ -7,12 +7,16 @@ namespace App\Filament\Clusters\Website\Pages;
 use App\Filament\Clusters\Website\WebsiteCluster;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Lang;
 use Modules\Core\Models\Site;
@@ -45,6 +49,17 @@ class SiteSettingsPage extends Page implements HasForms
      * @var list<string>
      */
     private const ADDRESS_KEYS = ['street', 'postal_code', 'city', 'country_code'];
+
+    /**
+     * The four day keys the site's snapshot contract accepts — not seven. The first
+     * seeder was rejected by the site's own validator with exactly this list:
+     * `opening_hours.day_key must be one of sunday, monday, tuesdayToFriday, saturday`.
+     * `tuesdayToFriday` is the contract's shape and not a shortcut: the real hours share
+     * one midday break across those four days.
+     *
+     * @var list<string>
+     */
+    private const OPENING_HOURS_DAY_KEYS = ['sunday', 'monday', 'tuesdayToFriday', 'saturday'];
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
@@ -99,6 +114,10 @@ class SiteSettingsPage extends Page implements HasForms
                     // blob is still valid JSON, which is how `"Balennn"` got saved.
                     $key === 'social_links',
                     $key === 'address_structured' => is_array($value) ? $value : [],
+                    // `opening_hours` reaches the form as day rows, not as the contract's
+                    // array: the toggle that says "closed" is derived from `hours === null`
+                    // rather than stored, so there is one source of truth for it.
+                    $key === 'opening_hours' => self::openingHoursForForm($value),
                     default => isset($value)
                         ? json_encode($value, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
                         : null,
@@ -168,6 +187,50 @@ class SiteSettingsPage extends Page implements HasForms
                 continue;
             }
 
+            if ($key === 'opening_hours') {
+                $fields[] = Section::make(__("website.site_settings.fields.{$key}"))
+                    ->description(self::hintFor($key))
+                    ->schema([
+                        Repeater::make($key)
+                            ->label('')
+                            ->schema([
+                                Select::make('day_key')
+                                    ->label(__('website.site_settings.opening_hours.day'))
+                                    ->options(self::openingHoursDayOptions())
+                                    ->required()
+                                    // The contract's day list is a set: two rows for the same
+                                    // day would reach the site's snapshot as two Sundays.
+                                    ->distinct(),
+                                Toggle::make('closed')
+                                    ->label(__('website.site_settings.opening_hours.closed'))
+                                    ->live(),
+                                Repeater::make('hours')
+                                    ->label(__('website.site_settings.opening_hours.ranges'))
+                                    ->schema([
+                                        TimePicker::make('open')
+                                            ->label(__('website.site_settings.opening_hours.opens'))
+                                            ->format('H:i')
+                                            ->seconds(false)
+                                            ->required(),
+                                        TimePicker::make('close')
+                                            ->label(__('website.site_settings.opening_hours.closes'))
+                                            ->format('H:i')
+                                            ->seconds(false)
+                                            ->required(),
+                                    ])
+                                    ->columns(2)
+                                    ->minItems(1)
+                                    ->defaultItems(1)
+                                    ->addActionLabel(__('website.site_settings.opening_hours.add_range'))
+                                    ->visible(fn (Get $get): bool => ! $get('closed')),
+                            ])
+                            ->columns(3)
+                            ->addActionLabel(__('website.site_settings.opening_hours.add_day')),
+                    ]);
+
+                continue;
+            }
+
             if ($type === SiteSetting::TYPE_JSON) {
                 $fields[] = TextInput::make($key)
                     ->label(__("website.site_settings.fields.{$key}"))
@@ -212,6 +275,127 @@ class SiteSettingsPage extends Page implements HasForms
             : null;
     }
 
+    /**
+     * The day labels for the `Select`, keyed by the contract's own `day_key` values — the
+     * labels are chrome (they get translated), the keys are data and never are.
+     *
+     * @return array<string, string>
+     */
+    private static function openingHoursDayOptions(): array
+    {
+        return collect(self::OPENING_HOURS_DAY_KEYS)
+            ->mapWithKeys(fn (string $day): array => [
+                $day => __("website.site_settings.opening_hours.days.{$day}"),
+            ])
+            ->all();
+    }
+
+    /**
+     * Contract shape -> form shape. `hours === null` IS the contract's "closed", so the
+     * toggle is derived from it rather than stored alongside it: two representations of
+     * the same fact could disagree, one cannot.
+     *
+     * Days the contract does not define are dropped on the way in as well, so a legacy
+     * seven-day list (the shape that got the first seeder rejected) shows up as the four
+     * days that are actually editable instead of silently disappearing on save.
+     *
+     * Order is preserved, not re-imposed: the stored array is what the site's snapshot
+     * holds, and reordering it here would rewrite the payload the sync compares against.
+     *
+     * @return list<array{day_key: string, closed: bool, hours: list<array{open: mixed, close: mixed}>}>
+     */
+    private static function openingHoursForForm(mixed $value): array
+    {
+        return collect(is_array($value) ? $value : [])
+            ->filter(fn (mixed $row): bool => is_array($row))
+            ->filter(fn (array $row): bool => self::isOpeningHoursDay(self::openingHoursDay($row)))
+            ->map(function (array $row): array {
+                $day = (string) self::openingHoursDay($row);
+                $hours = $row['hours'] ?? null;
+
+                $ranges = collect(is_array($hours) ? $hours : [])
+                    ->filter(fn (mixed $range): bool => is_array($range))
+                    ->map(fn (array $range): array => [
+                        'open' => $range['open'] ?? null,
+                        'close' => $range['close'] ?? null,
+                    ])
+                    ->values()
+                    ->all();
+
+                return [
+                    'day_key' => $day,
+                    'closed' => $hours === null,
+                    // A closed day still arrives with one blank period, so flipping the toggle
+                    // open leaves a row to fill instead of an empty area behind an "add"
+                    // button. `defaultItems` cannot do this: by the time a day is opened the
+                    // repeater already has state. A closed day never stores it — the mapper
+                    // writes `hours: null` whenever the toggle says closed.
+                    'hours' => $ranges === [] ? [['open' => null, 'close' => null]] : $ranges,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Form shape -> contract shape, the inverse of openingHoursForForm().
+     *
+     * The `Select` already makes an unknown day unreachable from the UI, and validation
+     * stops the save before this runs — that is the trap that produced a false bug report
+     * once: a test pushed a deliberately invalid `day_key`, the save aborted, and the empty
+     * column looked like a mapper defect. This is the line of defence behind both, so a day
+     * outside the contract can never reach the site's snapshot even if it arrives anyway.
+     *
+     * A day that is open with no usable range collapses to `hours: null` (closed): the
+     * contract has `null` or a non-empty list, nothing in between. The form requires at
+     * least one range for an open day, so this only catches input that never came from it.
+     *
+     * @return list<array{day_key: string, hours: null | list<array{open: string, close: string}>}>
+     */
+    private static function openingHoursForStorage(mixed $value): array
+    {
+        return collect(is_array($value) ? $value : [])
+            ->filter(fn (mixed $row): bool => is_array($row))
+            ->filter(fn (array $row): bool => self::isOpeningHoursDay(self::openingHoursDay($row)))
+            ->map(function (array $row): array {
+                $day = (string) self::openingHoursDay($row);
+                $hours = null;
+
+                if (! (bool) ($row['closed'] ?? false)) {
+                    $ranges = collect(is_array($row['hours'] ?? null) ? $row['hours'] : [])
+                        ->filter(fn (mixed $range): bool => is_array($range))
+                        ->map(fn (array $range): array => [
+                            'open' => $range['open'] ?? null,
+                            'close' => $range['close'] ?? null,
+                        ])
+                        ->filter(fn (array $range): bool => filled($range['open']) && filled($range['close']))
+                        ->map(fn (array $range): array => [
+                            'open' => (string) $range['open'],
+                            'close' => (string) $range['close'],
+                        ])
+                        ->values()
+                        ->all();
+
+                    $hours = $ranges === [] ? null : $ranges;
+                }
+
+                return ['day_key' => $day, 'hours' => $hours];
+            })
+            ->values()
+            ->all();
+    }
+
+    /** @param array<string, mixed> $row */
+    private static function openingHoursDay(array $row): mixed
+    {
+        return $row['day_key'] ?? null;
+    }
+
+    private static function isOpeningHoursDay(mixed $day): bool
+    {
+        return is_string($day) && in_array($day, self::OPENING_HOURS_DAY_KEYS, true);
+    }
+
     protected function getFormActions(): array
     {
         return [
@@ -247,11 +431,18 @@ class SiteSettingsPage extends Page implements HasForms
                     ->all();
             }
 
+            if ($key === 'opening_hours') {
+                // The toggle decides, not the ranges left behind in the state: the contract
+                // expresses "closed" as `hours: null`, and anything the day list does not
+                // define is dropped rather than carried into the site's snapshot.
+                $value = self::openingHoursForStorage($value);
+            }
+
             // Raw-JSON editor keys arrive as a JSON string — decode before
             // persisting so the `value` column keeps its array-cast contract
             // (the field's ->rule('json') already rejected invalid input).
             if ($type === SiteSetting::TYPE_JSON
-                && ! in_array($key, ['social_links', 'address_structured'], true)
+                && ! in_array($key, ['social_links', 'address_structured', 'opening_hours'], true)
             ) {
                 $value = json_decode((string) $value, true);
             }

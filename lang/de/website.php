@@ -188,6 +188,24 @@ return [
         'label' => 'Website-Einstellungen',
         'save' => 'Speichern',
         'saved' => 'Einstellungen gespeichert',
+        // Öffnungszeiten werden pro Tag bearbeitet, nicht als JSON: `hours: null` IST
+        // "geschlossen" im Vertrag, daher wird der Schalter daraus abgeleitet.
+        'opening_hours' => [
+            'day' => 'Tag',
+            'closed' => 'Geschlossen',
+            'ranges' => 'Öffnungszeiten',
+            'opens' => 'Von',
+            'closes' => 'Bis',
+            'add_day' => 'Tag hinzufügen',
+            'add_range' => 'Zeitraum hinzufügen',
+            // Die Schlüssel sind Vertragsdaten; nur das Label wird übersetzt.
+            'days' => [
+                'sunday' => 'Sonntag',
+                'monday' => 'Montag',
+                'tuesdayToFriday' => 'Dienstag bis Freitag',
+                'saturday' => 'Samstag',
+            ],
+        ],
         'fields' => [
             'hours' => 'Öffnungszeiten',
             'phone' => 'Telefon',
@@ -213,7 +231,7 @@ return [
             'address' => 'Claesen: freier Text, wird unverändert vom Claesen-Frontend gelesen. Nicht für Electro Bertels bearbeiten.',
             'address_structured' => 'Electro Bertels: strukturierte Quelle — JSON mit street, postal_code, city, country_code. Das Claesen-Frontend liest dieses Feld nicht.',
             'founded_year' => 'Ganzzahliger JSON-Wert, z. B. 1977',
-            'opening_hours' => 'JSON-Array: [{"day_key": "monday", "hours": [{"open": "09:00", "close": "18:00"}] | null}]',
+            'opening_hours' => 'Eine Zeile pro Tag. "Geschlossen" bedeutet: keine Öffnungszeiten.',
             'maps_consent_mode' => 'always | on_consent | never',
         ],
     ],
