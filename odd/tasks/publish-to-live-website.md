@@ -116,7 +116,13 @@ Cinco unidades. La decisión que las ordena es la **WU2**: cambia el significado
 
 **Corrección de una aserción, no del código**: el widget es un **componente Livewire hijo**, así que `assertSee` contra el HTML de la página falla **incluso en la lista de Proyectos**, que lo tuvo siempre. La herramienta correcta es `assertSeeLivewire`.
 
-**Alcance real, sin adornos**: el header quedó en **ajustes** y en **Proyectos**. Las otras pantallas donde se edita contenido —**Vertaalreview**, **Mediaslots**, **editar un proyecto**— todavía no lo tienen. Con el trait es **una línea cada una**; queda como **WU3b** para no meter seis pantallas en una sola revisión.
+**Alcance: CERRADO en WU3b (`b2d285d`)**. El header está en las **siete** pantallas donde se edita contenido de build: ajustes, lista de proyectos, editar proyecto, lista de mediaslots, editar mediaslot, Vertaalreview y Pagina-publicaties.
+
+**Las dos pantallas de edición son el caso interesante**: un método de trait no se puede extender y esas páginas **ya devolvían acciones propias** (`DeleteAction`), así que cada una escribe el par explícito —publicar **más eliminar**— en vez de dejar que un override se coma la segunda. Un test asegura que `delete` sobrevive en `EditProject`, y la captura del navegador lo muestra en `EditMediaSlot`.
+
+**Fuera, y cada una con su razón medida**: **Mededelingen** (anuncios), porque **el sitio no los consume** —ni una referencia en su `src`/`scripts`— así que un botón ahí prometería algo que no pasa; **consultas** (leads privados, nunca se publican); y las pantallas de **crear**, porque no se publica un registro que todavía no está guardado.
+
+**Verificación**: 7 tests (24 aserciones) + un pase de navegador por las **7 pantallas**, con **0 sin la acción y 0 sin el widget**. **`EditMediaSlot` no tiene test a propósito**: montarla exige una fila de media real (`media_id` no es nullable) y arrastra los fakes de upload/cola/Gemini por una sola aserción; su cobertura es el render del navegador — captura en `/tmp/wu3b-mediaslot-editar.png`, con «Nu publiceren» y «Verwijderen» juntos.
 
 **Tests**: `SitePublicationHeaderTest` (3 nuevos) + la regresión de la pantalla de ajustes + el test de traducciones del clúster: **16 passed (337 aserciones)**.
 
