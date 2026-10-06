@@ -7,7 +7,7 @@
 
 ## Respuesta corta
 
-**La intuición es correcta y el repo ya decidió lo mismo** — tiene acción de publicar, estado por sitio, webhook por sitio, debounce anti-carrera y aprobación por página. **Pero el botón no mueve datos:** el bucle de publicación reconstruye el sitio **desde el snapshot commiteado en Git**, nunca desde el API. Lo que falta no es el botón; es el **paso de datos**.
+**La intuición es correcta y el repo ya decidió lo mismo** — tiene acción de publicar, estado por sitio, webhook por sitio, debounce anti-carrera y aprobación por página. **Pero el botón no mueve datos:** el bucle de publicación reconstruye el sitio **desde el archivo de snapshot que el build lee**, nunca desde el API. Lo que faltaba no era el botón; era el **paso de datos**. *(Corrección: en este documento dije «snapshot commiteado». El repo lo llama así en su vocabulario, pero en la rama `feat/publication-gate` **no está commiteado** — ver «Hallazgos del repo del sitio».)*
 
 ## Lo que ya existe (verificado, con archivo)
 
@@ -57,7 +57,7 @@ settings: 4 locale(s), opening hours for 4 day row(s)
   run the sync without --check and commit the result.
 ```
 
-Y el diff entre el snapshot commiteado y lo que el API sirve hoy: `street` `"Benoit Jansenstraat 4"` → `"…444"` y `opening_hours` `tuesdayToFriday` `09:00` → `11:00`. Valores de prueba del usuario, guardados correctamente por los dos campos nuevos — el validador del sitio los aceptó.
+Y el diff entre el snapshot del working tree y lo que el API servía ese día: `street` `"Benoit Jansenstraat 4"` → `"…444"` y `opening_hours` `tuesdayToFriday` `09:00` → `11:00`. Valores de prueba del usuario, guardados correctamente por los dos campos nuevos — el validador del sitio los aceptó.
 
 ## Las dos decisiones de producto que hay detrás
 
@@ -136,13 +136,28 @@ Cinco unidades. La decisión que las ordena es la **WU2**: cambia el significado
 
 ### WU1 · Llevar el dato al build *(backend + sitio)*
 
-**Qué**: que el build de la web tome el contenido del **API** en vez del snapshot congelado. Forma prevista: el release corre `sync-content.mjs` con `PUBLICATION_API_URL` **antes** de `astro build`. El `--optional` que el script ya soporta hace que, si el API no responde, el build avise y siga con el snapshot commiteado.
+### WU1 · Llevar el dato al build *(HECHO — 2026-10-06)*
 
-**Aceptación**: editar un ajuste en el panel, disparar un release, y que la web publicada muestre el valor nuevo — **medido, no razonado**.
+**Qué**: que el build de la web tome el contenido del **API** en vez del snapshot del working tree. El release corre `sync-content.mjs` **antes** de `astro build`.
 
-**Toca**: `scripts/publish/release.mjs` y/o `.github/workflows/ci.yml` del **repo del sitio**. Ver la bandera 1.
+**La decisión de fallar la tomó el propio repo del sitio, no yo**: T04 de `odd/tasks/backend-cms-integration.md` — *«sin red o sin API, el job **falla** (nunca compila con datos dinámicos obsoletos por defecto)»*. Por eso **no** se pasa `--optional`: ese flag es para el CI, donde el API está genuinamente fuera de alcance; acá alguien apretó «publicar». La duda que yo había dejado abierta (*¿el aviso falla o sigue?*) ya estaba respondida en su documentación.
 
-**Riesgos**: el build pasa a depender de la red hacia el API (mitigado por `--optional`, pero hay que decidir si el aviso **falla** o **sigue**), y hay que confirmar que el runtime del release **alcanza** el API en producción.
+**HECHO**: `release.mjs` sincroniza las tres superficies (`settings`, `media`, `legal`) antes de `runBuild()`, con el mismo patrón de timeout y de asentamiento que el build, y **fail-closed**: si una falla, el release aborta, escribe el log, registra el error en el estado y **no mueve `current`**. Tests: `tests/unit/release-content-sync.test.ts` (2, los dos fail-closed: sin `PUBLICATION_API_URL`, y con un API que no responde). Suite unitaria del sitio: **325 passed** (323 antes).
+
+**MEDIDO, no razonado** — corrida real: `PUBLICATION_API_URL=http://localhost:8004 node scripts/publish/release.mjs manual` →
+
+```
+✔ release 20261006T192401Z published (reason: manual)
+```
+
+- El snapshot pasó de `"street": "Benoit Jansenstraat 4"` / `"open": "09:00"` a **`"444"`** / **`"11:00"`**.
+- **Y los dos valores están en el build**: `Benoit Jansenstraat 444` y `11:00` aparecen en `dist/` (`winkel`, `en/shop`, `fr/magasin`).
+- **Y en la web servida**: `curl http://localhost:8080/over-ons/` devuelve `Benoit Jansenstraat 444`.
+- `releases/current` → `20261006T192401Z`, `state.json` con `ok: true`.
+
+**Hallazgo de gobernanza, para que lo sepas**: T03/T04/T05 del plan del sitio están **sin autorizar** en su propio documento («Authorized scope: **Nada todavía**»), y la decisión **D-G** (cuál de los dos repos Astro es el entregable) figura como **bloqueante** para escribir código. Mi cambio es el paso de datos de T04 y sigue su decisión, pero el repo del sitio debería saberlo.
+
+**Y no commiteé nada en el repo del sitio**: ver «Hallazgos del repo del sitio» — habría sido peor que no commitear.
 
 ### WU5 · Vista previa *(backend + sitio)*
 
@@ -179,6 +194,17 @@ Cinco unidades. La decisión que las ordena es la **WU2**: cambia el significado
 
 ## Hechos reutilizables que dejó esta investigación
 
-1. La web **lee un snapshot commiteado**, no el API en vivo. El panel escribe en la base → el API lo sirve al instante → el sitio no lo ve hasta que alguien re-sincroniza. Son tres escalones y el del medio no se mueve solo.
+1. La web lee un **archivo de snapshot del working tree** — el repo lo llama «committed snapshot» en su vocabulario, aunque en `feat/publication-gate` todavía **no lo esté** — no el API en vivo. El panel escribe en la base → el API lo sirve al instante → el sitio no lo ve hasta que alguien re-sincroniza. Son tres escalones y el del medio no se mueve solo.
+
+## Hallazgos del repo del sitio (2026-10-06)
+
+Medidos mientras hacía WU1, y son decisiones o avisos para quien sea dueño de esa línea:
+
+1. **Toda la línea del sync está sin commitear.** `src/business/facts.snapshot.json`, `media.snapshot.json`, `src/business/media.ts`, `src/components/SlotImage.astro`, `scripts/dynamic/` (el CLI entero), `odd/tasks/dynamic-content-sync.md` y los tests de sync/media están **untracked**; además hay 15 archivos modificados (~336/+84). Rama `feat/publication-gate`. Nada de eso está roto: su suite unitaria da **323 passed** antes de mi cambio.
+2. **Por eso NO commiteé nada ahí, y creo que era la decisión correcta.** Mi cambio en `release.mjs` **depende de `scripts/dynamic/sync-content.mjs`**, que no está en git: commitear sólo mi archivo produciría un commit que referencia un script inexistente en un checkout limpio. Los dos tienen que entrar juntos, y eso es de esa línea.
+3. **CI:** `ci.yml:42` corre sólo `pnpm build`, y `package.json` no encadena el sync. Como el snapshot no está trackeado, un checkout limpio **no lo tiene** → ese build no puede funcionar tal cual. Es la mitad «CI» de T04, que sigue abierta.
+4. **`revision` sigue siendo el SHA de git** (`f788706`), no la del API. El propio `contentRevision()` documenta que debería pasar a ser la del API (T03); hoy un release no se puede trazar al contenido que publicó.
+5. **`.env.example` no documenta `PUBLICATION_API_URL`** aunque el mensaje de error del CLI manda ahí. **Intenté agregarlo y el arnés me lo bloqueó por ser ruta sensible (`.env*`)**; queda como dos líneas para pegar, no como algo que yo pueda hacer.
+6. **`releases/` es un directorio local con 5 releases previos** (2026-09-27 a 2026-10-04) y `current` apunta al último. Corrí el release con `PUBLISH_KEEP_RELEASES=10` **para no podarle historial a nadie**; sin eso, el sexto release habría borrado el más viejo.
 2. `NotifyAstroFrontendJob` está **deprecado** en favor de `StaticSitePublicationService::requestRebuild()` + `TriggerStaticSiteRebuildJob`. Dependía de `GITHUB_ACTION_*` por env; el nuevo usa webhook **por sitio**. No dispatcharlo desde código nuevo.
 3. Un observer nuevo es una decisión de producto, no un detalle técnico: cada observer es «esto se publica solo».
