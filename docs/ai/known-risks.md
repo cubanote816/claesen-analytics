@@ -429,6 +429,29 @@ trabajo en que se corrigió este registro. Ver `odd/tasks/site-settings-screen-f
 
 ## Riesgos abiertos — Programa multiempresa Electro Bertels
 
+### Un test de media está acoplado a `APP_URL` sin puerto (2026-10-06)
+
+**Qué:** `Modules/Website/tests/Feature/MediaSlotsApiTest` falla con
+`Failed asserting that 'http://localhost:8004/storage/…' starts with "http://localhost/storage/"`. El
+test hace una request **relativa** (`getJson('/v1/website/media/slots')`), así que Laravel le antepone
+`config('app.url')`; el endpoint construye la URL desde el host de la request —que pasa a ser ese— y la
+aserción la compara contra `http://localhost/storage/` **hardcodeado**. Con `APP_URL` sin puerto pasa;
+con puerto, falla.
+
+**Medido, no razonado:** la única variable que cambié fue `APP_URL`. Con `http://localhost:8004` (el
+del contenedor) → **1 fallo**; con `http://localhost` → **8/8 passed**. El `.env` del disco dice
+`http://localhost` (mtime del 2026-09-28): **el puerto lo aporta el entorno del contenedor**, no el
+repo.
+
+**Por qué es un riesgo:** la suite del trunk **no está verde en el entorno que el equipo usa**. Un
+fallo permanente y conocido es exactamente el ruido donde se esconden los fallos reales — la misma
+familia de problema que enmascaró el bloqueante de base vacía: el verde dependía del entorno y no del
+código.
+
+**Qué NO se hizo:** corregirlo, porque está en otro módulo y fuera del alcance del trabajo que lo
+encontró. La corrección es de una línea, pero exige decidir antes contra qué host aseverar (el de la
+request, no `config('app.url')` ni un literal).
+
 ### Acceso al panel: usuarios con `organization_id` nulo (CLA-611, 2026-09-29)
 
 **Qué:** `User::canAccessPanel()` rechaza en el panel `admin` a un usuario cuya organización

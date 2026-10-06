@@ -3,7 +3,7 @@
 - **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
 - **Origen:** resumen de sesión 2026-10-04 (items 12, 13 y 14). Continuación directa de
   `odd/tasks/website-content-seeders.md` y de CLA-611.
-- **Estado:** T0 hecho · T1 hecho · T2 bloqueado por decisión del usuario.
+- **Estado:** T0 hecho · T1 hecho · T1b hecho · T2 bloqueado por decisión del usuario.
 
 ## Qué queda abierto del 2026-10-04, y por qué
 
@@ -26,7 +26,12 @@ por lo tanto **la pantalla sigue pudiendo borrar los horarios de apertura**. Est
 - [x] **T1** `opening_hours` como `Repeater`: un día por fila, `Select` de las cuatro claves del
       contrato, `Toggle` de cerrado. **Test-first**, con la verificación que la vez anterior no se
       pudo tener
+- [x] **T1b** `lang/de` y `lang/fr` sin las etiquetas del domicilio: el mismo defecto que T1, en la
+      misma pantalla. Medido, no supuesto: `nl` tiene 42 claves, a `en` no le falta ninguna, y a
+      `fr`/`de` les faltaban exactamente `address.{street,postal_code,city,country_code}`
 - [ ] **T2** (bloqueado por decisión del usuario) destinatario del aviso interno de solicitud nueva
+- [ ] **T3** (necesita decisión) `MediaSlotsApiTest` está acoplado a `APP_URL` sin puerto; ver
+      «Verificación final»
 
 ## T0 — el bloqueante no reproduce: qué se midió
 
@@ -159,10 +164,49 @@ con `live()`.
    otra razón. Por eso ahora asevera **la ruta de error exacta** (`opening_hours.0.day_key`), que sí
 distingue el rechazo del campo de cualquier otra rotura.
 
-**Hallazgo no arreglado, del mismo tipo de defecto y en otra sección:** `lang/de` y `lang/fr` **no
-tienen el bloque `address`** que sí tienen `nl` y `en`, así que el domicilio muestra claves crudas
+**Hallazgo del mismo tipo, en otra sección — ARREGLADO (`9778384`)**: `lang/de` y `lang/fr` no tenían
+el bloque `address` que sí tienen `nl` y `en`, así que el domicilio mostraba claves crudas
 (`website.site_settings.address.street`) en esos dos locales. Es preexistente (viene del commit
-`4315313`); no lo toqué y queda reportado.
+`4315313`), pero se arregló acá porque publicar un bloque nuevo sólo en algunos locales **es el mismo
+defecto**, y las claves de `opening_hours` sí quedaron en los cuatro. **Medido, no supuesto**: `nl`
+tiene 42 claves bajo `site_settings`, a `en` no le falta ninguna, y a `fr` y `de` les faltaban
+exactamente cuatro: `address.street`, `address.postal_code`, `address.city`, `address.country_code`.
+Después del arreglo los tres locales dan 0 faltantes y las etiquetas resuelven a texto real.
+
+## Verificación final (2026-10-06)
+
+**Suite completa del trunk: `2215 passed / 3 skipped / 1 failed`** (7883 aserciones, 37 min),
+corrida con `php artisan test` dentro del contenedor.
+
+**El único fallo no es de esta feature, y está probado con un experimento controlado.**
+
+```
+MediaSlotsApiTest > it serves slots with conversion url dimensions checksum and locale maps
+Failed asserting that 'http://localhost:8004/storage/32/conversions/slot-optimized.webp'
+              starts with "http://localhost/storage/".
+```
+
+El test hace una request **relativa** (`getJson('/v1/website/media/slots')`), así que Laravel le
+antepone `config('app.url')`; el endpoint construye la URL desde el host de la request —que es ese
+mismo— y después la aserción la compara contra `http://localhost/storage/` **hardcodeado**. Con
+`APP_URL=http://localhost:8004`, el host lleva puerto y la aserción falla.
+
+**La prueba de que no es de esta feature: la única variable que cambié fue `APP_URL`.**
+
+| `APP_URL` | `MediaSlotsApiTest` |
+| --- | --- |
+| `http://localhost:8004` (el del contenedor) | **1 fallo** |
+| `http://localhost` (override) | **8/8 passed** |
+
+Y el `.env` del disco dice `http://localhost` (mtime del 2026-09-28): **el puerto lo aporta el entorno
+del contenedor**, no el repo. O sea: el defecto es del test —una aserción que fija el host mientras su
+propio comentario dice que quiere desacoplarse de `APP_URL`— y aparece en el entorno que el equipo
+usa de verdad. **No lo toqué**: está en otro módulo y fuera del alcance aprobado, así que queda como
+T3 con la causa ya medida.
+
+**Irónico y vale decirlo:** la aserción que dice *«asserting the full `$media->getUrl('optimized')`
+here would re-introduce the coupling to the configured APP_URL»* es, ella misma, una afirmación sobre
+the configured `APP_URL` — sólo que hardcodeada.
 
 **Nota de método:** el estado de un `Repeater` de Filament **está indexado por UUID**, no por índice.
 Asertar `[0 => …]` contra el estado del formulario falla contra una clave uuid y **parece** un bug de
