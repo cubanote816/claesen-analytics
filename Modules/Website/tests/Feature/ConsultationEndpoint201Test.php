@@ -6,6 +6,8 @@ namespace Modules\Website\Tests\Feature;
 
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\Http;
+use Modules\Core\Models\Site;
+use Modules\Website\Models\ConsultationEmailDelivery;
 use Modules\Website\Models\ConsultationRequest;
 use Tests\TestCase;
 
@@ -64,15 +66,33 @@ class ConsultationEndpoint201Test extends TestCase
 
     public function test_returns_201_and_skips_notification_when_recipient_is_null(): void
     {
+        // "Null" now has to mean BOTH sources: the site's own recipient wins over config, and
+        // every site has one. Without clearing the site's too, this test ran a scenario where
+        // the notice was NOT skipped and never said so — it only counted rows, so its name
+        // promised more than its body did. `sites` is excluded from DatabaseTruncation
+        // (tests/TestCase.php), so the seeded value is put back.
+        $site = Site::query()->where('key', 'claesen-verlichting')->firstOrFail();
+        $seededRecipient = $site->mail_notification_email;
+        $site->update(['mail_notification_email' => null]);
         config(['website.consultation_notification_email' => null]);
 
-        $before = ConsultationRequest::count();
+        try {
+            $before = ConsultationRequest::count();
 
-        $this->postJson('/v1/website/consultations', $this->payload())
-            ->assertStatus(201);
+            $this->postJson('/v1/website/consultations', $this->payload())
+                ->assertStatus(201);
 
-        $this->assertSame($before + 1, ConsultationRequest::count());
-        Http::assertNothingSent();
+            $this->assertSame($before + 1, ConsultationRequest::count());
+            Http::assertNothingSent();
+
+            // What CLA-532 actually promises: the lead is kept and the notice is skipped,
+            // never a hard failure. Asserting it is the point of this test's name.
+            $this->assertSame(0, ConsultationEmailDelivery::query()
+                ->where('type', ConsultationEmailDelivery::TYPE_INTERNAL)
+                ->count());
+        } finally {
+            $site->update(['mail_notification_email' => $seededRecipient]);
+        }
     }
 
     public function test_two_deliberate_posts_each_return_201_and_persist_one_row_each(): void

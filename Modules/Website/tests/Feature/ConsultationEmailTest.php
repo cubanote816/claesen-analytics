@@ -7,6 +7,7 @@ namespace Modules\Website\Tests\Feature;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Modules\Core\Models\Site;
 use Modules\Website\Mail\ConsultationConfirmationMail;
 use Modules\Website\Mail\NewConsultationRequestMail;
 use Modules\Website\Models\ConsultationEmailDelivery;
@@ -43,19 +44,30 @@ class ConsultationEmailTest extends TestCase
     {
         Mail::fake();
 
-        // CLA-532: the notification recipient now comes from config (was a
-        // hardcoded address). Set it for the happy path; the null-recipient
-        // "persist but skip the send" behaviour is covered by
-        // ConsultationEndpoint201Test.
-        config(['website.consultation_notification_email' => 'qa@example.test']);
+        // The internal recipient comes from the site's own override when it has one, and only
+        // then from config. Every site HAS one now — a migration gives each a real recipient —
+        // so reaching the config fallback means clearing it on purpose. Until this was
+        // explicit, the test leaned on seed data staying null: the day a site got a recipient,
+        // it broke with nothing in its body changed. `sites` is excluded from
+        // DatabaseTruncation (tests/TestCase.php) because nothing re-seeds it, so the value is
+        // put back before anything else runs.
+        $site = Site::query()->where('key', 'claesen-verlichting')->firstOrFail();
+        $seededRecipient = $site->mail_notification_email;
 
-        $service = app(ConsultationService::class);
+        try {
+            $site->update(['mail_notification_email' => null]);
+            config(['website.consultation_notification_email' => 'qa@example.test']);
 
-        $consultation = $service->createRequest([
-            'name' => 'Jan Claesen',
-            'email' => 'jan@example.com',
-            'message' => 'Interested in stadium lighting.',
-        ]);
+            $service = app(ConsultationService::class);
+
+            $consultation = $service->createRequest([
+                'name' => 'Jan Claesen',
+                'email' => 'jan@example.com',
+                'message' => 'Interested in stadium lighting.',
+            ]);
+        } finally {
+            $site->update(['mail_notification_email' => $seededRecipient]);
+        }
 
         Mail::assertSent(
             NewConsultationRequestMail::class,
