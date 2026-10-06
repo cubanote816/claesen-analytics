@@ -31,3 +31,19 @@
 
 - [x] El test de contrato pasa y falla si el spec y las rutas se separan.
 - [x] `Modules/Knx/tests` en verde, Pint limpio en el test.
+
+## Revisión nativa (RDD) — estado
+
+Linaje `review-c173137d8a61b838` (target `sha256:45a355ce…`, rango `618480d..9d7c4b4`, tier medium,
+lente `review-reliability`, 8 ficheros / 1060 líneas). El reviewer del `pi_host_relay` falló **dos
+veces** con `reviewer-empty-output` (`stopReason: length` a los 153 s, y luego `stop` en 1,3 s), sin
+producir texto y sin quemar autoridad. Es el mismo fallo determinista del relay que bloqueó la
+corrección de U1 en KNX-3, esta vez con un candidato tres veces más chico: es la configuración del
+relay, no el diff.
+
+El target que marcaba el recordatorio RDD (`sha256:67b58f…`) era sólo el drift preexistente de
+`package-lock.json`, ajeno (`applicability: unrelated`); se inspeccionó el rango commiteado real.
+
+**Decisión del usuario (2026-10-06): cerrar con lo verificado.** No se reintenta ni se usa
+RESET/RECOVER. El veredicto nativo falta; la verificación es el test de contrato bidireccional más
+la suite completa.
