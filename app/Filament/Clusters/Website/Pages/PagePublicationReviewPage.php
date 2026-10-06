@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Clusters\Website\Pages;
 
+use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
 use App\Filament\Clusters\Website\WebsiteCluster;
 use App\Filament\Concerns\NamesValuesForHumans;
 use Filament\Actions\Action;
@@ -43,6 +44,7 @@ class PagePublicationReviewPage extends Page implements HasTable
 {
     use InteractsWithTable;
     use NamesValuesForHumans;
+    use ShowsSitePublicationState;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-check-badge';
 

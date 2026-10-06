@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Filament\Clusters\Website\Pages\PagePublicationReviewPage;
 use App\Filament\Clusters\Website\Pages\SiteSettingsPage;
+use App\Filament\Clusters\Website\Pages\TranslationReviewPage;
+use App\Filament\Clusters\Website\Resources\MediaSlotResource\Pages\ListMediaSlots;
+use App\Filament\Clusters\Website\Resources\ProjectResource\Pages\EditProject;
 use App\Filament\Clusters\Website\Resources\ProjectResource\Pages\ListProjects;
 use App\Filament\Clusters\Website\Widgets\PublicationStatusWidget;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
+use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
 use Modules\Website\Jobs\TriggerStaticSiteRebuildJob;
+use Modules\Website\Models\Project;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -99,6 +105,68 @@ final class SitePublicationHeaderTest extends TestCase
             ->assertOk()
             ->assertActionExists('publish_now')
             ->assertActionExists('create')
+            ->assertSeeLivewire(PublicationStatusWidget::class);
+    }
+
+    public function test_the_translation_review_screen_shows_the_state_and_the_action(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+
+        Livewire::test(TranslationReviewPage::class)
+            ->assertOk()
+            ->assertActionExists('publish_now')
+            ->assertSeeLivewire(PublicationStatusWidget::class);
+    }
+
+    /**
+     * The screen that decides which pages the site may show. It has its own per-row `publish`
+     * action, which means something else — approving one page into the manifest. This is the
+     * whole-site one, and the two coexist deliberately.
+     */
+    public function test_the_page_publication_review_screen_shows_the_state_and_the_action(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+
+        Livewire::test(PagePublicationReviewPage::class)
+            ->assertOk()
+            ->assertActionExists('publish_now')
+            ->assertSeeLivewire(PublicationStatusWidget::class);
+    }
+
+    public function test_the_media_slots_list_keeps_its_create_action_and_gains_publish(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+
+        Livewire::test(ListMediaSlots::class)
+            ->assertOk()
+            ->assertActionExists('publish_now')
+            ->assertActionExists('create')
+            ->assertSeeLivewire(PublicationStatusWidget::class);
+    }
+
+    /**
+     * An Edit page is the one place where the trait alone is not enough: it already returned
+     * its own header actions, and overriding that method to add one is exactly how the other
+     * gets dropped. Hence the explicit pair in the class, and hence this assertion.
+     *
+     * EditMediaSlot follows the identical pattern and is NOT covered here: mounting it needs a
+     * real media row (media_id is not nullable), which drags in the upload, queue and Gemini
+     * fakes for one assertion. The browser pass renders it instead.
+     */
+    public function test_the_project_edit_screen_keeps_its_delete_action_and_gains_publish(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+
+        $project = Project::factory()->create(['site_id' => Site::claesenId()]);
+
+        Livewire::test(EditProject::class, ['record' => $project->getRouteKey()])
+            ->assertOk()
+            ->assertActionExists('publish_now')
+            ->assertActionExists('delete')
             ->assertSeeLivewire(PublicationStatusWidget::class);
     }
 }
