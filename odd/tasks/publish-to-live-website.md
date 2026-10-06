@@ -169,13 +169,67 @@ Cinco unidades. La decisión que las ordena es la **WU2**: cambia el significado
 
 **Y no commiteé nada en el repo del sitio**: ver «Hallazgos del repo del sitio» — habría sido peor que no commitear.
 
-### WU5 · Vista previa *(backend + sitio)*
+### WU5 · Vista previa *(DISEÑO — 2026-10-06; nada implementado)*
 
-**Qué**: que el cliente **vea** lo pendiente antes de publicar. Encaja con lo que ya hay: el release produce releases con un symlink `current`, así que un candidato puede construirse aparte y servirse en una URL de preview que el panel enlaza.
+**La pregunta**: que el cliente **vea** lo que va a publicar antes de publicar. Necesita diseño propio, como quedó dicho. Acá está.
 
-**Aceptación**: el cliente abre el preview desde el panel y ve el contenido pendiente antes de aprobar.
+#### Lo que hace que esto sea un delta y no una obra
 
-**Dependencia**: es la unidad más grande y la **menos especificada**. Necesita su propio diseño — dónde vive el preview, con qué URL, quién lo protege — antes de poder estimarla. No la empezaría sin eso.
+Un release **ya es un directorio inmutable** (`releases/<id>`, copiado de `dist/`), y publicar es **un solo acto atómico**: el swap del symlink `current` (temp + `rename`). `serve.mjs` sirve `releases/current` con resolución confinada al directorio del release, y ya tiene un endpoint operativo (`/__status`). El receiver ya tiene `POST /rebuild` firmado, `GET /health`, y serializa builds.
+
+**La consecuencia, y es la idea central: vista previa y publicación son el MISMO build.** La única diferencia es si se hace el swap. Eso convierte «vista previa» en un modo, no en un pipeline nuevo.
+
+#### El argumento fuerte: publicar los bytes que se aprobaron
+
+Con el modelo de dos fases —**preparar** (build → candidato) → el cliente mira → **promover** (swap del mismo directorio)— lo que se publica es **exactamente lo que se aprobó**, en vez de reconstruir y confiar en que el contenido no cambió en el medio. Y el historial de WU4 gana un dato exacto: el `release` de la fila **es** lo aprobado.
+
+**Su consecuencia, a declarar**: si alguien edita entre preparar y promover, el candidato queda **viejo**. Un candidato viejo es peor que ninguno, así que hay que decirlo. Engancha con la **marca de agua del WU4**, que ya sabe cuándo cambió el contenido por última vez: si hay cambios posteriores a la preparación, el panel lo avisa en vez de dejar publicar en silencio.
+
+#### Flujo
+
+```
+cliente edita           → guardar marca sucio, no publica (WU2)
+panel: Preparar         → POST /preview firmado  →  build + release candidato (SIN swap)
+cliente mira            → URL firmada, en otra pestaña
+panel: Publicar         → POST /rebuild {promote: <candidato>}  →  swap atómico, SIN reconstruir
+historial (WU4)         → registra el release promovido
+```
+
+#### Decisiones de diseño
+
+**D1 · ¿Dónde vive el preview? — puerto aparte, no prefijo de ruta.** Un prefijo (`/__preview/contact/`) se ve tentador porque es una URL más simple de compartir, pero el sitio es estático con **rutas absolutas**: bajo un prefijo, los enlaces y los assets apuntan a la raíz y el preview muestra el release **publicado**. Se sirve el candidato en **su propio puerto** (p. ej. `SERVE_PREVIEW_PORT`), con el mismo `serve.mjs` parametrizado por directorio, y así `/contact/` funciona igual. Además, `X-Robots-Tag: noindex` en las respuestas del preview.
+
+**D2 · ¿Qué compuerta usa el preview? — la de lo que quedaría publicado, no la última sincronizada.** El estado de publicación vive en `src/content/publication.json`, escrito por `sync-publication.mjs`, y hoy la compuerta **no oculta** las páginas no aprobadas: las deja `noindex` («a locale not declared published is a draft and stays noindex»). O sea que el contenido pendiente **sí se puede leer** en un preview normal. Lo que falta para que el preview sea **fiel** es que las páginas a punto de aprobarse aparezcan como quedarían: si no, el cliente ve el estado anterior y la compuerta de lo que aprueba. **Recomendación**: sincronizar también el estado de publicación en modo preview (incluyendo `reviewed`). Es la diferencia entre «mirar el sitio» y «mirar lo que voy a publicar».
+
+**D3 · ¿Quién lo protege? — URL firmada, reusando lo que ya existe.** `lib/signature.mjs` ya firma con HMAC-SHA256 y `PUBLISH_SECRET` (compartido entre backend y sitio), con ventana de replay. El preview reusa eso con **TTL propio, más largo** (la ventana de 300 s es para un webhook, no para un cliente leyendo un texto legal). **Por qué importa**: lo que se previewa es justamente el material que la compuerta mantiene fuera del índice —legales sin aprobar, traducciones sin revisar, páginas en draft— y dejarlo abierto en la LAN contradice la compuerta que existe para eso. Si el túnel de acceso lo permite, además se ata a la LAN; si no, la firma es lo que queda, y hay que aceptar que un enlace filtrado es contenido accesible hasta que expire.
+
+**D4 · ¿Cuándo se prepara? — acción explícita.** Un build por cada tecla es caro y el cliente no lo pidió; y encaja con la publicación deliberada: nada viaja sin que alguien lo decida.
+
+**D5 · ¿Y si el cliente publica sin preparar? — prepara y promueve en un paso.** Es el comportamiento de hoy, y así C no le quita el camino simple a quien no quiere preview.
+
+**D6 · Retención.** El candidato es un release más (ya hay `KEEP_RELEASES` y poda), pero hay que **proteger el candidato activo** de la poda, igual que hoy se protege `current`.
+
+#### Qué hay que tocar
+
+| Repo | Archivo | Qué |
+| --- | --- | --- |
+| Sitio | `scripts/publish/release.mjs` | Modo candidato (build + release **sin** swap) y promover sin construir |
+| Sitio | `scripts/publish/receiver.mjs` | `POST /preview` firmado; `candidate` en `/health`; promote |
+| Sitio | `scripts/publish/serve.mjs` | Servir el candidato (puerto propio) y **verificar la firma** del preview |
+| Sitio | `scripts/publish/lib/signature.mjs` | TTL propio para enlaces de preview |
+| Backend | acción + widget + historial | «Preparar vista previa», el enlace firmado, el estado del candidato, y el aviso de candidato viejo |
+
+#### Riesgos, y lo que esto NO es
+
+- **El prefijo de ruta no sirve** (D1), y es la trampa que más fácil se pisa: el preview se vería como «el sitio de siempre» y parecería que la función no anda.
+- **Un candidato viejo es peor que ninguno.** Si se puede publicar sin avisar, el modelo de dos fases **debilita** la garantía que trajo: alguien aprueba unos bytes y se publican otros. El aviso contra la marca del WU4 no es un adorno, es la condición.
+- **No es un staging.** Mismo contenido, misma base, otra promoción. No sirve para probar datos falsos ni para dos entornos.
+- **Apróbar en la pantalla de páginas después de preparar deja el candidato desactualizado** salvo que D2 se haga como se recomienda.
+- **Toca el repo del sitio**, que sigue con **toda su línea del sync sin commitear**. WU5 no se puede entregar de verdad hasta que eso se ordene.
+
+#### Para estimar
+
+Es la unidad más grande de C: ~4 archivos del sitio (uno con un modo nuevo del motor de release), ~3 puntos del backend, y tests en los dos. **Antes de empezar hay que decidir D1–D5**, y el orden importa: D2 cambia lo que el preview *significa*.
 
 **Orden propuesto**: **WU2** (la decisión) → **WU3** → **WU4** (las dos sólo backend, y la segunda necesita la primera para saber qué mostrar) → **WU1** → **WU5**.
 
