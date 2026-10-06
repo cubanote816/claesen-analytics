@@ -6,6 +6,7 @@ namespace Modules\Knx\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
@@ -50,7 +51,7 @@ final class KnxDocumentsAndReportsTest extends TestCase
 
         $this->assertCount(6, $documents);
         $this->assertSame(
-            ['id', 'name', 'projectCode', 'projectName', 'kind', 'size', 'uploadedAt', 'uploadedBy', 'url', 'revision', 'isCurrent', 'approvedBy'],
+            ['id', 'name', 'projectCode', 'projectName', 'kind', 'mimeType', 'size', 'pages', 'uploadedAt', 'uploadedBy', 'url', 'revision', 'isCurrent', 'approvedBy'],
             array_keys($documents[0]),
         );
 
@@ -140,7 +141,7 @@ final class KnxDocumentsAndReportsTest extends TestCase
 
     private function signedUrlFor(KnxDocument $document): string
     {
-        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        return URL::temporarySignedRoute(
             'api.knx.documents.download',
             now()->addMinutes(5),
             ['id' => $document->getKey()],

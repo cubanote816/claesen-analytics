@@ -5,8 +5,8 @@ namespace Modules\Knx\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
 use Modules\Knx\Database\Factories\KnxDocumentFactory;
+use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
 
 /**
  * A plan or document of a project.
@@ -25,6 +25,7 @@ class KnxDocument extends Model
 
     protected $fillable = [
         'organization_id',
+        'client_id',
         'project_id',
         'name',
         'kind',

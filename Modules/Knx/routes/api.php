@@ -160,7 +160,9 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             // K7 — readiness writes. The reads live in the shared group below: Veld uses
             // the same payload (its contract says so), but only the office changes checks.
             Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
-            // K8 — documents and reports.
+            // K8 — documents and reports. The upload (KNX-3) lives beside the reads so
+            // the office has one shape for a document, create and list alike.
+            Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
             Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
             Route::get('documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
 

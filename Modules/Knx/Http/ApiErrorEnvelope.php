@@ -40,6 +40,8 @@ final class ApiErrorEnvelope
 
     public const CODE_VALIDATION = 'validation_error';
 
+    public const CODE_PAYLOAD_TOO_LARGE = 'payload_too_large';
+
     public const CODE_RATE_LIMITED = 'rate_limited';
 
     public const CODE_SERVER_ERROR = 'server_error';
@@ -52,6 +54,7 @@ final class ApiErrorEnvelope
         Response::HTTP_NOT_FOUND => self::CODE_NOT_FOUND,
         Response::HTTP_CONFLICT => self::CODE_CONFLICT,
         Response::HTTP_UNPROCESSABLE_ENTITY => self::CODE_VALIDATION,
+        Response::HTTP_REQUEST_ENTITY_TOO_LARGE => self::CODE_PAYLOAD_TOO_LARGE,
         Response::HTTP_TOO_MANY_REQUESTS => self::CODE_RATE_LIMITED,
     ];
 

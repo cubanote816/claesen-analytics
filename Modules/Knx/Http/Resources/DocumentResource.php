@@ -55,7 +55,13 @@ class DocumentResource extends KnxResource
             'projectCode' => $document->project?->code,
             'projectName' => $document->project?->name,
             'kind' => $document->kind,
+            // What the file *is*, derived from the stored column (or the extension for
+            // documents written before uploads existed) instead of the name, so the
+            // office can filter plans by content type. Null is a real answer: the
+            // office never stored a content type for the demo fixture's archive.
+            'mimeType' => $document->resolvedMimeType(),
             'size' => self::humanSize($document->size_bytes),
+            'pages' => $document->pages,
             'uploadedAt' => $document->uploaded_at->format('Y-m-d'),
             'uploadedBy' => $document->uploadedBy?->shortName(),
             'url' => $this->withUrl ? $this->signedUrl() : null,
