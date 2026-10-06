@@ -357,6 +357,37 @@ sitio no redirige, el formulario falla con «Failed to fetch» exactamente igual
 CORS, no el endpoint — `curl` no aplica CORS. Cualquier API consumida desde otro origen se verifica
 **con navegador**, nunca sólo con `curl`.
 
+### La suite no puede correr sobre una base de datos vacía (2026-10-04, sin causa encontrada)
+
+Reproducible y determinista: `php artisan migrate:fresh` contra la base de tests **falla siempre** en
+`2026_01_28_093946_create_permission_tables`, con
+
+```
+SQLSTATE[HY000]: General error: 1824 Failed to open the referenced table 'roles'
+… alter table `model_has_roles` add constraint `model_has_roles_role_id_foreign`
+  foreign key (`role_id`) references `roles` (`id`) on delete cascade
+```
+
+Es decir: la migración **no encuentra la tabla `roles` que ella misma acaba de crear** unas líneas
+antes. La creación está normal (`bigIncrements('id')`, `name`, `guard_name`, `timestamps()`, un
+`unique`), `config('permission.table_names')` tiene los cinco nombres correctos, no hay caché de
+config, y no existe otra migración que toque `roles`. **No encontré la causa.**
+
+**Por qué importa**: mientras la base de tests ya existía, `RefreshDatabase` no volvía a migrar y
+todo pasaba; el problema aparece **desde cero**, o sea en una máquina nueva, en CI, o en cualquier
+instalación limpia. El mismo día esto bloqueó la verificación de un cambio en la pantalla de ajustes:
+los 8 tests del archivo fallaban con **0 aserciones** (fallo de `setUp`, no del código).
+
+**Ojo con el diagnóstico fácil**: primero lo atribuí a una carrera entre dos procesos migrando a la
+vez (había abortado una corrida). Al repetirlo limpio, falla igual. **No es una carrera.**
+
+**Trabajo relacionado que quedó sin shippear por esto**: la edición de `opening_hours` como
+`Repeater` (un día por fila, con `Select` de los cuatro días que el contrato acepta y `Toggle` de
+cerrado). Estaba escrito y su test corregido — el fracaso anterior era **del test**, que metía a
+propósito un día inválido y la validación del `Select` abortaba el guardado entero, correctamente —
+pero sin poder correr los tests no se puede afirmar que la pantalla renderice ni que guarde bien, así
+que se revirtió. Mejor un campo JSON incómodo que una pantalla rota.
+
 ## Riesgos abiertos — Programa multiempresa Electro Bertels
 
 ### Acceso al panel: usuarios con `organization_id` nulo (CLA-611, 2026-09-29)
