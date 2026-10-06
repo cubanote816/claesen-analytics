@@ -3,7 +3,7 @@
 - **Rama:** `electrobertels/trunk`. Backend: `/home/totti/claesen/electrobertels`. Sitio: `/home/totti/electrobertel_official`
 - **Origen:** pregunta del usuario (2026-10-06): «¿sería buena práctica tener un botón que explícitamente le diga al cliente empujar los cambios a la web en vivo? Una cosa es estar editando y otra tenerlo ya listo.»
 - **Lo que la disparó:** el usuario editó ajustes en el panel (`:8004`) y **no se veían en el sitio local** (`:8080`).
-- **Estado: ANÁLISIS, sin implementación.** Este documento no autoriza trabajo; la decisión A/B/C de abajo sigue abierta.
+- **Estado: OPCIÓN C ELEGIDA por el usuario (2026-10-06)** — en planificación. Este documento **todavía no autoriza trabajo**: las unidades de abajo esperan GO.
 
 ## Respuesta corta
 
@@ -71,26 +71,69 @@ Hay que elegir. Si se quiere publicación deliberada, el camino automático debe
 
 La aprobación por página existe, pero aprobar sin ver el resultado renderizado es un acto de fe. La mitad difícil de este pedido es **preview/staging**, no el botón. Un release candidato con `astro preview` es la forma que encaja con lo que ya hay.
 
-## Orden de trabajo propuesto
+## Plan de ejecución de la opción C
 
-Ninguna de estas tareas está autorizada todavía.
+Cinco unidades. La decisión que las ordena es la **WU2**: cambia el significado de «publicado» y por eso va primero.
 
-- [ ] **P0 · Decidir A/B/C** (ver abajo). Todo lo demás depende de esto.
-- [ ] **P1 · Llevar el dato al build.** Que el pipeline de release corra el sync antes de `astro build` (`sync-content.mjs --optional` con `PUBLICATION_API_URL` puesto), o que el backend escriba/empuje el snapshot. **Sin esto, «publicar» es reconstruir contenido viejo.** Es el trabajo real y yo lo pondría primero.
-- [ ] **P2 · Cobertura del disparo.** Decidir explícitamente qué superficies avisan (falta `SiteSetting`) y cuáles quedan sólo con acción manual. Consecuencia de la decisión 1.
-- [ ] **P3 · Estado y acción donde se edita.** El mismo botón + widget en cada pantalla de edición, o un indicador global de «cambios pendientes».
-- [ ] **P4 · Historial.** Quién publicó, cuándo y qué cambió. Requiere decidir si `website_publication_states` deja de ser estado-actual y gana una tabla de eventos.
-- [ ] **P5 · Vista previa.** Release candidato + preview antes de aprobar. La parte grande.
+### WU2 · Decidir y acotar el disparo *(decisión + backend)*
 
-## Opciones
+**Qué**: C implica que **el cliente publica deliberadamente**. Hoy los observers de `Project` y `Media` publican solos con 20 s de debounce, y eso haría inútil el «publico cuando esté listo».
+
+**La decisión**: ¿el disparo automático se **apaga** para las superficies que edita el cliente (ajustes, legales) y se mantiene para las internas (proyectos, media)? ¿O se apaga del todo y todo se publica con la acción explícita?
+
+**Aceptación**: la respuesta escrita en este documento, y el código alineado con ella. **Es la única pregunta que bloquea el resto.**
+
+### WU3 · Estado y acción donde se edita *(backend)*
+
+**Qué**: el mismo botón + indicador de cambios pendientes en **cada** pantalla de edición, no sólo en la lista de Proyectos. Y que «pendiente» sea honesto: qué cambió desde la última publicación.
+
+**Aceptación**: desde la pantalla de ajustes se ve si hay cambios sin publicar y se puede publicar; **verificado en navegador**, no sólo con tests.
+
+**Dependencia**: necesita la respuesta de WU2 para saber qué estado mostrar.
+
+### WU4 · Historial *(backend)*
+
+**Qué**: quién publicó, cuándo, con qué resultado y qué cambió. Hoy `website_publication_states` guarda **estado actual** — una fila por sitio, sin serie temporal.
+
+**Aceptación**: desde el panel se puede responder «¿quién publicó y cuándo?» y «¿qué cambió desde la última publicación?».
+
+**Nota de diseño, antes de escribir la tabla**: «qué cambió» necesita una **base de comparación** — un hash del contenido publicado, o el commit del snapshot. Decidirlo primero.
+
+### WU1 · Llevar el dato al build *(backend + sitio)*
+
+**Qué**: que el build de la web tome el contenido del **API** en vez del snapshot congelado. Forma prevista: el release corre `sync-content.mjs` con `PUBLICATION_API_URL` **antes** de `astro build`. El `--optional` que el script ya soporta hace que, si el API no responde, el build avise y siga con el snapshot commiteado.
+
+**Aceptación**: editar un ajuste en el panel, disparar un release, y que la web publicada muestre el valor nuevo — **medido, no razonado**.
+
+**Toca**: `scripts/publish/release.mjs` y/o `.github/workflows/ci.yml` del **repo del sitio**. Ver la bandera 1.
+
+**Riesgos**: el build pasa a depender de la red hacia el API (mitigado por `--optional`, pero hay que decidir si el aviso **falla** o **sigue**), y hay que confirmar que el runtime del release **alcanza** el API en producción.
+
+### WU5 · Vista previa *(backend + sitio)*
+
+**Qué**: que el cliente **vea** lo pendiente antes de publicar. Encaja con lo que ya hay: el release produce releases con un symlink `current`, así que un candidato puede construirse aparte y servirse en una URL de preview que el panel enlaza.
+
+**Aceptación**: el cliente abre el preview desde el panel y ve el contenido pendiente antes de aprobar.
+
+**Dependencia**: es la unidad más grande y la **menos especificada**. Necesita su propio diseño — dónde vive el preview, con qué URL, quién lo protege — antes de poder estimarla. No la empezaría sin eso.
+
+**Orden propuesto**: **WU2** (la decisión) → **WU3** → **WU4** (las dos sólo backend, y la segunda necesita la primera para saber qué mostrar) → **WU1** → **WU5**.
+
+## Dos banderas de alcance, antes de empezar
+
+**1. El repo del sitio es otra línea.** WU1 y WU5 tocan `scripts/publish/release.mjs`, el CI y/o el receiver de `/home/totti/electrobertel_official` — el repo que esta sesión trató como de **otra línea** (su `media.snapshot.json`, las superficies `legal`/`projects` del sync, la página de edición de legales). Necesito **autorización explícita para tocarlo**, o coordinación con esa línea. Sin eso, WU1 y WU5 quedan fuera de mi alcance y C no se puede completar.
+
+**2. C cambia comportamiento que hoy existe.** Proyectos y media **se publican solos** hoy. C implica publicar deliberadamente. Es la mejora de producto que se pidió, pero es un **cambio de comportamiento**, y queda declarado como tal — no como un detalle de implementación.
+
+## La opción elegida
 
 | | Qué implica | Costo |
 | --- | --- | --- |
 | **A · Seguir publicando desde el desarrollo** | Lo de hoy. Cero botón para el cliente. Hay que **declararlo**: «la web la publica el equipo» | Nulo |
-| **B · Botón real** | P1 + P2 + P3. El botón pasa a prometer lo que cumple | Medio |
-| **C · Flujo completo de cliente** | B + P4 + P5 | Alto |
+| **B · Botón real** | WU1 + WU2 + WU3. El botón pasa a prometer lo que cumple | Medio |
+| **C · Flujo completo de cliente — ELEGIDA (2026-10-06)** | B + historial (WU4) + vista previa (WU5) | Alto |
 
-**Recomendación:** **A ahora, B cuando el cliente edite de verdad.** Un botón sin el paso de datos promete algo que no cumple, y eso es peor que no tener botón.
+**La recomendación era A ahora, B después**, por un motivo que sigue siendo válido y por eso queda escrito: un botón sin el paso de datos promete algo que no cumple. El usuario eligió **C**, que resuelve esa objeción de raíz porque incluye WU1 — pero **el orden importa**: si se entregan WU3/WU4 antes que WU1, el botón queda visible y todavía mentiroso. Conviene no encenderlo hasta que WU1 esté hecho, o decirlo en la propia interfaz mientras tanto.
 
 ## Fuera de alcance / no verificado
 
