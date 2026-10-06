@@ -95,13 +95,30 @@ Cinco unidades. La decisión que las ordena es la **WU2**: cambia el significado
 
 **Dónde me equivoqué, y queda escrito**: afirmé que **un solo** test codificaba el auto-publicado. Eran **cuatro**. Mi grep encontró las líneas y **no leí su contexto**. Los cuatro se re-especificaron conservando lo que de verdad protegían: el de multi-sitio ahora asevera **qué sitio** quedó marcado, y como **fila ausente** — porque `PublicationState::current()` crea una fila idle al pasar y habría vuelto vacua la aserción —, y el de la media ajena ahora asevera que **nada** quedó marcado, no sólo que nada se encoló.
 
-### WU3 · Estado y acción donde se edita *(backend)*
+### WU3 · Estado y acción donde se edita *(HECHO en la pantalla de ajustes — 2026-10-06)*
 
 **Qué**: el mismo botón + indicador de cambios pendientes en **cada** pantalla de edición, no sólo en la lista de Proyectos. Y que «pendiente» sea honesto: qué cambió desde la última publicación.
 
 **Aceptación**: desde la pantalla de ajustes se ve si hay cambios sin publicar y se puede publicar; **verificado en navegador**, no sólo con tests.
 
 **Dependencia**: necesita la respuesta de WU2 para saber qué estado mostrar.
+
+**HECHO (`e97826d`)**, con un alcance que conviene leer despacio:
+
+- **Un trait** (`ShowsSitePublicationState`) da el widget + la acción, y **una definición única** (`PublishSiteNowAction`) da la acción. No se copió nada: la lista de Proyectos se refactorizó para usar esa definición, conservando su acción de crear.
+- **Aplicado a la pantalla de ajustes** (lo que pide la aceptación) y a la lista de Proyectos.
+- **La etiqueta `pending` mentía**: decía «In de wachtrij» / «Queued» — en cola —, que era el modelo **automático**. Ahora significa que hay cambios esperando una decisión humana: «Wijzigingen niet gepubliceerd» / «Changes not published», en los cuatro locales.
+- **`fr` y `de` no tenían NINGÚN bloque `publication`**, así que el widget y el botón salían como **claves crudas** ahí. Agregado en los dos. Y el test de traducciones del clúster **no podía verlo**: declara por escrito que sólo mira `nl` y `en` y que garantiza «que exista *alguna* traducción».
+
+**Verificado en navegador, los tres estados**: `idle` («Geen wijzigingen») → `pending` («Wijzigingen niet gepubliceerd») → restaurado. Captura en `/tmp/wu3-2-pending.png`. **El flag se provocó por SQL** porque en local `static_site.enabled=false` y editar no puede marcarlo — a propósito, porque acá nada podría publicarlo. La fila quedó como estaba.
+
+**Error mío, declarado**: apunté el UPDATE a `site_id=1` (Claesen) y afectó **0 filas**. El panel de Bertels muestra el estado de **su** sitio (id=2, `electro-bertels`) — es el **aislamiento por sitio funcionando**, no un defecto.
+
+**Corrección de una aserción, no del código**: el widget es un **componente Livewire hijo**, así que `assertSee` contra el HTML de la página falla **incluso en la lista de Proyectos**, que lo tuvo siempre. La herramienta correcta es `assertSeeLivewire`.
+
+**Alcance real, sin adornos**: el header quedó en **ajustes** y en **Proyectos**. Las otras pantallas donde se edita contenido —**Vertaalreview**, **Mediaslots**, **editar un proyecto**— todavía no lo tienen. Con el trait es **una línea cada una**; queda como **WU3b** para no meter seis pantallas en una sola revisión.
+
+**Tests**: `SitePublicationHeaderTest` (3 nuevos) + la regresión de la pantalla de ajustes + el test de traducciones del clúster: **16 passed (337 aserciones)**.
 
 ### WU4 · Historial *(backend)*
 
