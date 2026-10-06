@@ -39,12 +39,12 @@
 
 ## Tareas
 
-- [ ] **U1** `POST /documents` — subida, idempotencia `clientId`, `supersedes`, `mimeType`/`pages`.
-- [ ] **U2** `code` de `POST /projects` con la restricción de la ruta de lectura → `422`.
-- [ ] **U3** `GET /employees?role=office` — `{id, name, shortName}` de los activos.
-- [ ] **U4** `GET`/`PUT /projects/{code}/plans/{documentId}/markers` (por documento, `carryOverFrom`).
-- [ ] **U5** `GET /projects/{code}/boards` + importador del worklist.
-- [ ] **U6** Documentos (módulo + handoff) y memoria.
+- [x] **U1** `POST /documents` — subida, idempotencia `clientId`, `supersedes`, `mimeType`/`pages`. `c90e6a6`
+- [x] **U2** `code` de `POST /projects` con la restricción de la ruta de lectura → `422`. `f6b3144`
+- [x] **U3** `GET /employees?role=office` — `{id, name, shortName}` de los activos. `5af2b3c`
+- [x] **U4** `GET`/`PUT /projects/{code}/plans/{documentId}/markers` (por documento, `carryOverFrom`). `694969e`
+- [x] **U5** `GET /projects/{code}/boards` + importador del worklist. `b8232dd`
+- [x] **U6** Documentos (módulo + handoff) y memoria.
 
 ## Criterios de aceptación (sobre HTTP real en `:8002`)
 
@@ -61,4 +61,21 @@
 
 ## Progreso / evidencia
 
-_(se completa por unidad de trabajo)_
+- Suite completa del módulo: `Modules/Knx/tests` **229 passed / 1 skipped / 0 failed** (1290
+  aserciones), corrida contra una base aislada `electrobertels_knx_testing` (`phpunit.xml` fija
+  `claesen_analytics_web_testing`, que la comparte el stack de Claesen y quedó sin tabla
+  `migrations` a mitad de sesión).
+- Pint: los 34 ficheros de la unidad están limpios. El módulo **no** era Pint-limpio antes
+  (`KnxProject.php`, `KnxZone.php`, `DashboardService.php`, `IdempotentWrite.php`, `KnxTenant.php`,
+  `KnxZonesTest.php`, `KnxPlanningAssignment.php`) y no se tocaron.
+- HTTP real en `:8002` (detalle en `handoff.md`): subida, supersesión, marcadores, cuadros
+  (5/13/52/160, los números medidos), empleados y `code` inválido.
+- El importador se corrió contra el worklist real de `000026`; quedó en la BD local (es dato real
+  del proyecto). Los artefactos de prueba de la verificación (documentos 85/86 y el proyecto
+  `HTTP-VERIFY`) se borraron.
+- Hallazgo propio corregido antes de comitear U5: el detector de “módulo nuevo” contaba `A, A, B`
+  (dos objetos en el mismo canal) como un módulo nuevo; ahora el reinicio es un canal que
+  **retrocede** (A después de D), que es la señal KNX real. Los 13 módulos medidos se mantienen.
+- Error de lectura propio corregido al empezar U5: había contado las **filas** por número de pedido
+  como si fueran módulos (5× `JRA/S8.230.5.1`); en realidad son 13 módulos = 13 pares (cuadro,
+  aparato). El worklist sí está a granularidad de módulo.

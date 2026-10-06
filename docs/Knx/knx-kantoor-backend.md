@@ -77,6 +77,7 @@ Implicaciones a resolver antes de implementar (no bloquea K0-K10):
 | V11.c | Veld: `POST …/devices` (idempotente, `409 address_in_use`) | ✅ cerrado |
 | V11.d | Veld: `POST …/issues` (contextualizada, idempotente) | ✅ cerrado |
 | V11.e | Veld: `POST …/visits` (3 fases) | ✅ cerrado |
+| **KNX-3** | **Oficina**: subida de planos (`POST /documents`), marcadores por revisión, cuadros con módulos/canales/enlaces y listado de empleados | ✅ cerrado |
 
 **El contrato está completo:** los 36 endpoints de `/api/v1/knx` cubren las 32 llamadas que hace el cliente real del front (`src/api/real/index.ts`), incluidos login/refresh/logout y las descargas firmadas, que el front todavía no consume.
 
@@ -398,6 +399,82 @@ El `created` de las tres respuestas se deriva de `wasRecentlyCreated`, que es ex
 ### Bug del fixture corregido por el camino
 
 El sembrador usaba `now()->setTime(9, 42)` para "hoy"; sembrando **antes de las 09:42** eso genera un timestamp **en el futuro**. No se notaba hasta que el reloj pasó de medianoche y el histórico de conflictos salió ordenado al revés (la entrada nueva quedaba *antes* de la de origen). Ahora un helper `at()` garantiza pasado, y los tests dejan de depender de la hora a la que se ejecuten.
+
+## Planos, marcadores, cuadros y empleados (KNX-3)
+
+Lo que el backoffice de oficina necesitaba para que el visor de planos dejara de
+mostrar el estado vacío. El contrato vive en `electro-bertels-kantoor` (rama
+`docs/backend-planos-contrato`, `docs/BACKEND-API.md` §4.11 y §4.3) y **no se tocó**.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `POST` | `/documents` (multipart) | sube un plano; el servidor calcula `size_bytes`, `mime_type` y `pages` |
+| `GET`/`PUT` | `/projects/{code}/plans/{documentId}/markers` | marcadores de cuadro **por documento (revisión)**, por página |
+| `GET` | `/projects/{code}/boards` | cuadros con módulos, canales, objetos y habitaciones |
+| `GET` | `/employees?role=office\|field` | personas activas `{id, name, shortName}` |
+
+### Subida (`POST /documents`)
+
+`file` (obligatorio), `project` (código), `kind` (≤40), `revision` (≤20),
+`supersedes` (id de documento), `clientId` (idempotencia) y `uploadedAt` (hoy por
+defecto). El servidor deriva tamaño, MIME (finfo, nunca el declarado por el
+cliente) y páginas (smalot; no-PDF = 1, PDF ilegible = 1), guarda en el disco
+`local` bajo `knx/plans/{code}/{id}-{nombre}` y responde `201` con el **mismo
+`DocumentResource`** de las lecturas, URL firmada incluida, para que el front no
+necesite un segundo parser.
+
+- **`clientId`**: mismo patrón que las escrituras de campo (`IdempotentWrite`); un
+  reintento responde `200` con el documento existente. Misma clave en otro proyecto
+  → `422`.
+- **`supersedes` es explícito, no por nombre de archivo** (el arquitecto renombra el
+  fichero entre revisiones). La anterior pasa a `is_current = false` y la nueva a
+  `true in una sola transacción`.
+- **Límite 50 MB** (el zip de fotos mide 38 MB): por encima, `413`
+  (`payload_too_large`), nunca el `500` de PHP.
+- `mime_type` y `pages` se exponen ahora en `DocumentResource`; `size_bytes` dejó de
+  ser nullable (backfill a 0 para las filas previas).
+
+### Marcadores (`…/plans/{documentId}/markers`)
+
+El conjunto pertenece a un **documento —una revisión—**, nunca al proyecto: no hay
+marcadores portables. `nx`/`ny` son fracciones de la página en `decimal(6,5)` y
+`pageWidthPt`/`pageHeightPt` son la medición del cliente, guardada como dato opaco
+(el servidor **no** parsea el PDF). `PUT` reemplaza el conjunto completo de una
+página y es idempotente; `carryOverFrom` usa la revisión anterior como base y el
+cuerpo pisa por `boardId`. Una revisión nueva **no** mueve los marcadores de la
+vieja. `revision` se **deriva** del documento (no se duplica ni se valida).
+
+`board_id` es la cadena externa del worklist (el slug), la misma que expone
+`GET /boards` como `id`: por eso subida y marcado son un solo contrato.
+
+### Cuadros (`GET /projects/{code}/boards`) e importador
+
+El worklist del proyecto se ingesta con **`php artisan knx:import-worklist <dir>
+<code>`** (lee `linking-worklist.csv` + `group-addresses.csv`, idempotente).
+Medido sobre el worklist real de `000026`: **5 cuadros, 13 módulos, 52 canales, 160
+enlaces**.
+
+- **Identidad de cuadro = slug del worklist** (`Str::slug(nombre de la caja)`, la
+  misma cadena que el import del front). `code` sigue siendo la etiqueta corta.
+- **Identidad de módulo = `slot`**, la posición 1-based en el cuadro, derivada del
+  orden del worklist. Un canal que retrocede (A→A después de A–D) marca un segundo
+  módulo físico del mismo número de pedido.
+- **El hecho es el enlace `(canal, habitación, objeto, dirección de grupo)`**, no un
+  campo `canal → habitación`: medido, ningún canal sirve a más de una habitación y
+  uno lleva varios objetos de esa habitación.
+
+### Empleados (`GET /employees`)
+
+`{id, name, shortName}` de los activos; por defecto `role=office`, que es el selector
+que necesita el alta de proyecto (`POST /projects` acepta `leadEmployeeId` y valida
+`exists:knx_employees,id`, pero no había ningún endpoint que los listara: el único era
+`GET /technicians`, solo de campo).
+
+### Validación de `code`
+
+`POST /projects` valida ahora `code` con la misma restricción que la ruta de lectura
+(`[A-Za-z0-9._-]+`): un código con un espacio respondía `201` y después era
+inalcanzable por `GET /projects/{code}`.
 
 ## Entorno local
 
