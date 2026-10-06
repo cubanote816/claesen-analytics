@@ -423,6 +423,10 @@ propósito un día inválido y la validación del `Select` abortaba el guardado 
 pero sin poder correr los tests no se puede afirmar que la pantalla renderice ni que guarde bien, así
 que se revirtió. Mejor un campo JSON incómodo que una pantalla rota.
 
+**Resuelto el 2026-10-06:** el `Repeater` está implementado y verificado —tests, **navegador real**
+(Playwright contra el panel) y el juez del sitio `--surface=settings --check`→ en la misma unidad de
+trabajo en que se corrigió este registro. Ver `odd/tasks/site-settings-screen-forms.md`.
+
 ## Riesgos abiertos — Programa multiempresa Electro Bertels
 
 ### Acceso al panel: usuarios con `organization_id` nulo (CLA-611, 2026-09-29)

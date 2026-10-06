@@ -3,7 +3,7 @@
 - **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
 - **Origen:** resumen de sesión 2026-10-04 (items 12, 13 y 14). Continuación directa de
   `odd/tasks/website-content-seeders.md` y de CLA-611.
-- **Estado:** T0 hecho · T1 **en curso** · T2 bloqueado por decisión del usuario.
+- **Estado:** T0 hecho · T1 hecho · T2 bloqueado por decisión del usuario.
 
 ## Qué queda abierto del 2026-10-04, y por qué
 
@@ -23,7 +23,7 @@ por lo tanto **la pantalla sigue pudiendo borrar los horarios de apertura**. Est
 ## Tareas
 
 - [x] **T0** Corregir el registro del bloqueante de base vacía (docs; sin código de aplicación)
-- [ ] **T1** `opening_hours` como `Repeater`: un día por fila, `Select` de las cuatro claves del
+- [x] **T1** `opening_hours` como `Repeater`: un día por fila, `Select` de las cuatro claves del
       contrato, `Toggle` de cerrado. **Test-first**, con la verificación que la vez anterior no se
       pudo tener
 - [ ] **T2** (bloqueado por decisión del usuario) destinatario del aviso interno de solicitud nueva
@@ -113,3 +113,62 @@ está vacío en `.env`. `Site::notificationEmail()` devuelve `null` ⇒ el aviso
   sync, la página de edición de legales.
 - **SPF/DKIM/DMARC de `electrobertels.be`:** decisión del usuario en su DNS. El remitente ya sale de
   ese dominio; sin autorización DNS cae en spam. No verificable desde acá.
+
+## T1 — resultado (2026-10-06)
+
+**Qué quedó:** `opening_hours` ya no es JSON crudo. Un `Repeater` de **un día por fila** con `Select`
+de las cuatro claves del contrato, un `Toggle` de cerrado, y un `Repeater` anidado de períodos
+`{open, close}` con `TimePicker` en `H:i`. `distinct()` en el `Select` impide el mismo día dos veces.
+Dos helpers (`openingHoursForForm` / `openingHoursForStorage`) son la única puerta entre la forma del
+formulario y la del contrato, y el guardado recompone descartando lo que el contrato no define.
+Además el *hint* dejó de describir el JSON crudo que se eliminó, en los cuatro locales.
+
+**RED observado antes de tocar el código:** los dos tests que afirman la forma fallaban con
+`null does not match expected type "array"` — porque `opening_hours` caía en la rama de JSON crudo y
+`json_decode` de un array da `null`.
+
+**GREEN:** 11 tests / 41 aserciones en el archivo (6 preexistentes + 5 nuevos). Regresión del lado del
+API, que no toqué: `SiteSettingsWhitelistExtensionTest` 7/7 (44 aserciones).
+
+**Verificado quitando el arreglo** (la disciplina que este repo ya usa):
+- Volver al JSON crudo → fallan los tests del round-trip y del día cerrado.
+- Quitar `->distinct()` → el test del día duplicado falla con `Component has no errors`, o sea que el
+  duplicado **se guardaba**. El test muerde.
+
+**Verificado con el juez externo del sitio:** `node scripts/dynamic/sync-content.mjs
+--surface=settings --check` → `✔ the snapshot is already up to date`, y reporta «opening hours for 4
+day row(s)».
+
+**Verificado en navegador real** (Playwright + Chromium contra `:8004`, login con MFA por correo leído
+de Mailpit, **sin guardar**):
+- La sección renderiza con sus etiquetas y **ninguna clave de traducción cruda** en pantalla.
+- Los 4 días con su estado real: `sunday` y `monday` cerrados, `tuesdayToFriday` y `saturday` abiertos.
+- Los horarios reales tal como están sembrados: `09:00 12:00 13:00 18:00 09:00 12:00`, y **cero**
+campos de hora en los dos días cerrados.
+- Abrir un día cerrado **revela su período** (6 → 8 campos): es el `Toggle` gobernando la visibilidad
+con `live()`.
+- Al terminar se devuelve el estado original, sin guardar.
+
+**Dos cosas que declarar, porque NO están verificadas:**
+
+1. **El filtro `isOpeningHoursDay` del mapper es defensa en profundidad que ningún test alcanza.** El
+   `Select` y la validación cortan antes, así que desde la UI no hay forma de meter un día fuera del
+   contrato. No lo cuento como verificado.
+2. **El test del día inválido pasaba —vacuamente— también antes del cambio**: con el JSON crudo,
+   `rule('json')` rechazaba el array y no se guardaba nada, así que el `assertNull` era cierto por
+   otra razón. Por eso ahora asevera **la ruta de error exacta** (`opening_hours.0.day_key`), que sí
+distingue el rechazo del campo de cualquier otra rotura.
+
+**Hallazgo no arreglado, del mismo tipo de defecto y en otra sección:** `lang/de` y `lang/fr` **no
+tienen el bloque `address`** que sí tienen `nl` y `en`, así que el domicilio muestra claves crudas
+(`website.site_settings.address.street`) en esos dos locales. Es preexistente (viene del commit
+`4315313`); no lo toqué y queda reportado.
+
+**Nota de método:** el estado de un `Repeater` de Filament **está indexado por UUID**, no por índice.
+Asertar `[0 => …]` contra el estado del formulario falla contra una clave uuid y **parece** un bug de
+mapeo. Se lee con `array_values()`.
+
+**Decisión de UX, con su razón:** un día cerrado llega al formulario con **un período en blanco**, para
+que abrir el `Toggle` deje una fila lista para completar en vez de un hueco detrás de un botón
+«añadir». `defaultItems` no puede hacerlo: cuando el día se abre, el `Repeater` ya tiene estado. El día
+cerrado nunca lo guarda, porque el mapper escribe `hours: null` siempre que el `Toggle` dice cerrado.
