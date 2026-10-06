@@ -13,6 +13,8 @@ use Modules\Knx\Models\KnxDocument;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Support\IdempotentWrite;
+use Modules\Knx\Support\KnxTenant;
+use RuntimeException;
 use Smalot\PdfParser\Parser;
 use Throwable;
 
@@ -51,6 +53,14 @@ class DocumentService
     public function create(KnxProject $project, KnxEmployee $uploadedBy, array $input): array
     {
         $clientId = $input['clientId'] ?? null;
+
+        if ($clientId === '') {
+            // An empty string is not an identity: the client sent no key. The stored
+            // value and the replay read have to agree, or a retry with "" bypasses
+            // replay and lands on the unique index as a 500.
+            $clientId = null;
+            $input['clientId'] = null;
+        }
 
         $replay = $this->replayFor($project, $clientId);
 
@@ -133,6 +143,10 @@ class DocumentService
 
         $document = KnxDocument::query()
             ->with(['project', 'uploadedBy', 'approvedBy'])
+            // Explicitly tenant-scoped: the key is unique per organization, so the
+            // lookup must be too, or another organization's key would be invisible
+            // here and still collide on insert.
+            ->where('organization_id', KnxTenant::organizationId())
             ->where('client_id', $clientId)
             ->first();
 
@@ -172,11 +186,20 @@ class DocumentService
     {
         $safe = preg_replace('/[^A-Za-z0-9._-]+/', '-', $file->getClientOriginalName()) ?: 'document';
 
-        return (string) Storage::disk('local')->putFileAs(
+        $path = Storage::disk('local')->putFileAs(
             'knx/plans/'.$project->code,
             $file,
             $document->getKey().'-'.$safe,
         );
+
+        if ($path === false) {
+            // putFileAs answers false instead of throwing when the write fails.
+            // Committing the empty path would leave a document pointing at no file,
+            // so the write fails loudly and the transaction rolls the row back.
+            throw new RuntimeException(__('knx::documents.store_failed'));
+        }
+
+        return $path;
     }
 
     /**

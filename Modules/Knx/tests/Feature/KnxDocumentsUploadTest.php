@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Tests\Feature;
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxDocument;
+use Modules\Knx\Models\KnxProject;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -258,6 +261,61 @@ final class KnxDocumentsUploadTest extends TestCase
 
         $response->assertJsonPath('code', 'payload_too_large');
         $this->assertSame(0, KnxDocument::query()->where('name', 'big.zip')->count());
+    }
+
+    public function test_a_storage_failure_rolls_the_document_back_instead_of_committing_an_empty_path(): void
+    {
+        $previous = KnxDocument::query()
+            ->where('name', 'UV_C1618_Gelijkvloers_Wayfinding.pdf')
+            ->sole();
+        $before = KnxDocument::query()->count();
+
+        // putFileAs answers false instead of throwing when the disk cannot write. The
+        // write must fail loudly and roll back, never commit a row with an empty path.
+        $disk = Mockery::mock(FilesystemAdapter::class);
+        $disk->shouldReceive('putFileAs')->once()->andReturn(false);
+        Storage::set('local', $disk);
+
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->upload('C1618', ['supersedes' => $previous->getKey()]);
+            $this->fail('The storage failure should have rolled the document back.');
+        } catch (RuntimeException) {
+            // expected
+        }
+
+        $this->assertSame($before, KnxDocument::query()->count());
+        $this->assertTrue($previous->fresh()->is_current);
+    }
+
+    public function test_an_empty_client_id_is_no_key_instead_of_a_500_on_retry(): void
+    {
+        // "" is what a form field sends when it is empty; it must mean "no key", not a
+        // key of the empty string. Otherwise the retry bypasses replay and the unique
+        // index turns it into a 500.
+        $first = $this->upload('C1618', ['clientId' => ''])->assertCreated();
+        $second = $this->upload('C1618', ['clientId' => ''])->assertCreated();
+
+        $this->assertNotSame($first->json('id'), $second->json('id'));
+        $this->assertNull(KnxDocument::query()->whereKey($first->json('id'))->sole()->client_id);
+        $this->assertSame(0, KnxDocument::query()->where('client_id', '')->count());
+    }
+
+    public function test_a_client_id_used_by_another_organization_does_not_block_this_one(): void
+    {
+        $other = Organization::factory()->create(['slug' => 'other-org']);
+        $foreignProject = KnxProject::factory()->create(['organization_id' => $other->id]);
+
+        KnxDocument::factory()->create([
+            'organization_id' => $other->id,
+            'project_id' => $foreignProject->getKey(),
+            'client_id' => 'shared-upload-key',
+        ]);
+
+        // The key is unique per organization: this organization's upload is a fresh
+        // document, not a cross-tenant replay and not a unique-constraint 500.
+        $this->upload('C1618', ['clientId' => 'shared-upload-key'])->assertCreated();
     }
 
     public function test_the_missing_required_fields_are_field_errors(): void

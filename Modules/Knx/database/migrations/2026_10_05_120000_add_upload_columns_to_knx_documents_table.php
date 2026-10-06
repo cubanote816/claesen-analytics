@@ -28,7 +28,10 @@ return new class extends Migration
     {
         Schema::table('knx_documents', function (Blueprint $table): void {
             $table->string('client_id', 64)->nullable()->after('id');
-            $table->unique('client_id');
+            // Unique per organization, not globally: the replay lookup is tenant
+            // scoped, so a global index would let another organization's key stay
+            // invisible and still collide on insert.
+            $table->unique(['organization_id', 'client_id']);
         });
 
         // A null size is not reconstructible; 0 is the only non-invented value, and
@@ -44,7 +47,7 @@ return new class extends Migration
     {
         Schema::table('knx_documents', function (Blueprint $table): void {
             $table->unsignedBigInteger('size_bytes')->nullable()->change();
-            $table->dropUnique(['client_id']);
+            $table->dropUnique(['organization_id', 'client_id']);
             $table->dropColumn('client_id');
         });
     }
