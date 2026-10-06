@@ -63,10 +63,15 @@ class ProjectController extends Controller
             ],
             // `code` is the natural key, unique per organization (the DB enforces it
             // too; this rule is what turns the clash into a field error, not a 500).
+            // The pattern is the read route's own constraint: a code with a space
+            // would be created with a 201 and then be unreachable, because
+            // `GET /projects/{code}` only matches [A-Za-z0-9._-]+. Rejecting it here
+            // is the missing 422, not a design change.
             'code' => [
                 'required',
                 'string',
                 'max:32',
+                'regex:/^[A-Za-z0-9._-]+$/',
                 Rule::unique('knx_projects', 'code')->where('organization_id', KnxTenant::organizationId()),
             ],
             'name' => ['required', 'string', 'max:255'],
@@ -83,6 +88,7 @@ class ProjectController extends Controller
             'rooms.*.floor' => ['sometimes', 'nullable', 'string', 'max:255'],
         ], [
             'code.unique' => __('knx::projects.duplicate_code'),
+            'code.regex' => __('knx::projects.invalid_code'),
             'clientId.exists' => __('knx::projects.unknown_client'),
             'leadEmployeeId.exists' => __('knx::projects.unknown_lead'),
         ]);

@@ -134,6 +134,32 @@ final class KnxOfficeWritesTest extends TestCase
         );
     }
 
+    public function test_a_project_code_that_the_read_route_cannot_reach_is_a_422(): void
+    {
+        // `GET /projects/{code}` matches [A-Za-z0-9._-]+ only, so a code with a space
+        // used to be created with a 201 and then be unreachable forever: the missing
+        // 422 this rule adds. A dot, a dash and an underscore stay legal, exactly like
+        // the route constraint.
+        $this->postJson('/api/v1/knx/projects', [
+            'clientId' => $this->uvVastgoedId(),
+            'code' => 'C 1699',
+            'name' => 'Testproject SMOKE onbereikbare code',
+        ])->assertStatus(422)
+            ->assertJsonPath('code', 'validation_error')
+            ->assertJsonStructure(['errors' => ['code']]);
+
+        $this->assertSame(0, KnxProject::query()->where('code', 'C 1699')->count());
+
+        // The allowed alphabet still works and is reachable through the read route.
+        $this->postJson('/api/v1/knx/projects', [
+            'clientId' => $this->uvVastgoedId(),
+            'code' => 'C.1699_a-b',
+            'name' => 'Testproject SMOKE bereikbare code',
+        ])->assertCreated();
+
+        $this->getJson('/api/v1/knx/projects/C.1699_a-b')->assertOk()->assertJsonPath('code', 'C.1699_a-b');
+    }
+
     public function test_a_duplicate_project_code_is_a_field_error_and_not_a_500(): void
     {
         // `C1618` is the fixture's own first project code.
