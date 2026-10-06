@@ -211,6 +211,40 @@ las dos condiciones: 8/8 con el `APP_URL` del contenedor y 8/8 sin el puerto.
 here would re-introduce the coupling to the configured APP_URL»* es, ella misma, una afirmación sobre
 the configured `APP_URL` — sólo que hardcodeada.
 
+### La segunda corrida: verde, y un fallo mío en el camino
+
+**Suite completa tras T3: `2216 passed / 3 skipped / 0 failed`** (7891 aserciones, 35 min), con el
+`APP_URL` del contenedor — la condición donde antes fallaba.
+
+Pero la corrida intermedia (tras T3 y **antes** de arreglar lo de abajo) dio `1 failed` en **otro**
+test, `ConsultationEmailTest`, y **ese fallo era mío**:
+
+- `tests/TestCase.php` excluye `sites` de `DatabaseTruncation` porque **nada la re-siembra**: la fila la
+  inserta la migración semilla de P1.
+- Esa migración corre **antes** que la mía, así que mi migración de destinatarios encuentra el sitio de
+  Claesen **también en la base de tests** y le pone el destinatario.
+- `Site::notificationEmail()` **prefiere la columna del sitio** al config, así que el aviso interno dejó
+  de ir a `config('website.consultation_notification_email')` y el test falló **sin que su cuerpo
+  cambiara**.
+
+**El precedente nunca chocó con esto, y la razón vale registrar**: `set_bertels_mail_sender` apunta a
+`electro-bertels`, y ese sitio **no lo crea** la migración semilla → su update afecta **cero filas** en
+tests. El mío apunta a `claesen-verlichting`, que **sí** existe.
+
+**El arreglo hace que cada test declare su premisa** (`584d7b0`) en vez de depender de una columna
+sembrada:
+- `ConsultationEmailTest` limpia el destinatario del sitio **a propósito** para alcanzar el fallback del
+  config, y **devuelve el valor sembrado** — porque `sites` es una fila compartida que sobrevive al
+  truncado.
+- `test_returns_201_and_skips_notification_when_recipient_is_null` tenía **un nombre más grande que su
+  cuerpo**: sólo contaba filas, así que pasaba mientras el aviso **no** se omitía. Ahora limpia las dos
+  fuentes y **asevera la omisión**: cero filas de entrega internas. Antes no aseveraba nada de eso.
+
+**Lo que esto enseña, y es lo más útil de toda la feature**: una migración de datos sobre una **fila
+semilla** cambia las premisas de los tests en silencio. El test se rompió en otro archivo, por una causa
+que no estaba en su código — y sólo lo dijo la suite completa. Es exactamente el motivo por el que vale
+correrla.
+
 **Nota de método:** el estado de un `Repeater` de Filament **está indexado por UUID**, no por índice.
 Asertar `[0 => …]` contra el estado del formulario falla contra una clave uuid y **parece** un bug de
 mapeo. Se lee con `array_values()`.

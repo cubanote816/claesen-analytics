@@ -461,7 +461,7 @@ desde el repo.
 **Consecuencia para el cierre de F4:** poner el destinatario era necesario y **no suficiente**. Hasta que
 existan credenciales, el aviso interno no llega a nadie en ningún entorno sin ellas.
 
-### Un test de media está acoplado a `APP_URL` sin puerto (2026-10-06)
+### Un test de media estaba acoplado a `APP_URL` sin puerto — RESUELTO (2026-10-06)
 
 **Qué:** `Modules/Website/tests/Feature/MediaSlotsApiTest` falla con
 `Failed asserting that 'http://localhost:8004/storage/…' starts with "http://localhost/storage/"`. El
@@ -480,9 +480,14 @@ fallo permanente y conocido es exactamente el ruido donde se esconden los fallos
 familia de problema que enmascaró el bloqueante de base vacía: el verde dependía del entorno y no del
 código.
 
-**Qué NO se hizo:** corregirlo, porque está en otro módulo y fuera del alcance del trabajo que lo
-encontró. La corrección es de una línea, pero exige decidir antes contra qué host aseverar (el de la
-request, no `config('app.url')` ni un literal).
+**Resuelto (2026-10-06, `a9b8dfd`), con el GO del usuario:** la request del test ahora **nombra su
+propio host** —como ya hacía su test hermano `test_the_media_url_origin_follows_the_request_host`—, así
+que la aserción es autocontenida y no afirma nada sobre `APP_URL`. **Verificado en las dos
+condiciones**: 8/8 con el `APP_URL` del contenedor y 8/8 con `APP_URL=http://localhost`.
+
+**Lección que queda**: un test que arma una request **relativa** hereda `config('app.url')` como host,
+así que cualquier literal de host en sus aserciones lo ata al entorno. Si el host importa, se escribe
+explícito en la request.
 
 ### Acceso al panel: usuarios con `organization_id` nulo (CLA-611, 2026-09-29)
 
