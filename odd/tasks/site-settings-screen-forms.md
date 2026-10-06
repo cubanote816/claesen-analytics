@@ -1,0 +1,115 @@
+# Pantalla de ajustes del sitio: cada valor con la forma que tiene
+
+- **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
+- **Origen:** resumen de sesión 2026-10-04 (items 12, 13 y 14). Continuación directa de
+  `odd/tasks/website-content-seeders.md` y de CLA-611.
+- **Estado:** T0 hecho · T1 **en curso** · T2 bloqueado por decisión del usuario.
+
+## Qué queda abierto del 2026-10-04, y por qué
+
+| # | Lo reportado | Estado real al abrir esta feature |
+| --- | --- | --- |
+| 13 | «BLOQUEANTE: la suite no puede correr sobre una base vacía» | **No reproduce.** Tres corridas verdes (T0) |
+| 14 | `opening_hours` escrito y revertido por el bloqueante | **Desbloqueado por T0.** Es lo que implementa T1 |
+| — | `mail_notification_email` vacío en los dos sitios | **No es un bug: falta el dato.** T2 |
+
+**La causa común de 12 y 14, que es el motivo de esta feature:** `address_structured` y
+`opening_hours` se editaban como **JSON en un campo de una línea** cuya única validación era
+`rule('json')`. `"Balennn"` **es** JSON válido, así que un tecleo dentro del blob reescribía el
+objeto entero sin que nada lo frenara — así se corrompieron datos dos veces con `causer=5`. El
+domicilio ya se arregló (**cuatro campos**, verificado por test). `opening_hours` sigue igual, y
+por lo tanto **la pantalla sigue pudiendo borrar los horarios de apertura**. Esto no es cosmética.
+
+## Tareas
+
+- [x] **T0** Corregir el registro del bloqueante de base vacía (docs; sin código de aplicación)
+- [ ] **T1** `opening_hours` como `Repeater`: un día por fila, `Select` de las cuatro claves del
+      contrato, `Toggle` de cerrado. **Test-first**, con la verificación que la vez anterior no se
+      pudo tener
+- [ ] **T2** (bloqueado por decisión del usuario) destinatario del aviso interno de solicitud nueva
+
+## T0 — el bloqueante no reproduce: qué se midió
+
+Reproducción del fallo reportado (no una aproximación: misma config y misma base que la suite), más
+una corrida desde una base **vacía de verdad**, que es la condición que el bloqueante decía romper.
+
+| Prueba | Comando | Resultado |
+| --- | --- | --- |
+| Base descartable limpia (`migdiag_20261006`, `APP_ENV=testing`) | `php artisan migrate:fresh` | **EXIT=0** · `create_permission_tables … DONE` |
+| Base de tests real (`claesen_analytics_web_testing`) | `php artisan migrate:fresh` | **EXIT=0** · idem |
+| **Cero tablas** + suite | `php artisan db:wipe` → `php artisan test tests/Feature/SiteSettingsPageTest.php` | **6 passed (21 assertions)**; `RefreshDatabase` migró desde cero |
+
+`roles` / `model_has_roles` / `role_has_permissions` quedan `ENGINE=InnoDB` correctos. Servidor:
+MySQL **8.4.8**, `lower_case_table_names=0`, `foreign_key_checks=1`, sin `sql_mode` inusual.
+
+**La hipótesis, declarada como hipótesis y no como causa probada:** el `1824` de MySQL es *«no puedo
+**abrir** la tabla padre»*, no *«no existe»* — la firma de un diccionario de datos corrupto en el
+**volumen local de Sail** (un `roles` a medio crear por una migración abortada). `migrate:fresh`
+**dropea todas las tablas antes de crear**, así que la primera corrida verde limpió el estado sucio.
+Eso explica las dos mitades del reporte: fallaba *siempre* en esa máquina y ahora no.
+
+**Lo que esto implica, y es lo importante:** el defecto **no estaba en el repo**. Lo confirma la
+estructura del CI, que ya tenía el paso correcto desde antes:
+
+```
+.github/workflows/tests.yml:105-106
+  # Proves migrate-from-zero — the gap every differential waiver deferred here.
+  run: php artisan migrate --force --no-interaction
+```
+
+sobre un servicio `mysql:8.4` limpio (`tests.yml:36-39`). **Por eso T0 no agrega un paso de CI: ya
+existe.** Agregar otro sería ruido.
+
+**Lo que sí quedaba mal y se corrigió:** el CI no corrió nunca sobre la punta actual de esta rama
+(los últimos runs son del 2026-09-23, y el trunk está **24 commits adelante** de `origin`). Es decir:
+el repo tenía la guarda, pero **nadie la había ejercitado** sobre este código. Queda anotado.
+
+**Enmascaramiento que hay que recordar:** `RefreshDatabase` **no vuelve a migrar** si la base ya
+existe. Una suite verde no prueba que un checkout limpio arranque; sólo lo prueba una base vacía.
+
+## T1 — `opening_hours`, y la trampa que ya está resuelta
+
+**La forma la fija el contrato, no la imaginación.** El sync del sitio lo rechazó una vez con
+`opening_hours.day_key must be one of sunday, monday, tuesdayToFriday, saturday`. Son **cuatro**
+claves, no siete:
+
+```
+[ { day_key: 'sunday'|'monday'|'tuesdayToFriday'|'saturday',
+    hours: null | [ { open: '09:00', close: '12:00' }, … ] } ]
+```
+
+`hours === null` **significa cerrado**. Los valores reales tienen corte de mediodía.
+
+**La trampa, que costó una reversión:** el `Repeater` anterior **no estaba roto**. El valor guardado
+salía `null` porque **el test** metía a propósito un `day_key` inválido (`everyFullMoon`) y el
+`Select` lo **rechaza antes de guardar, abortando todo el guardado, y hace bien**. El guardado nunca
+corría por culpa del fixture, y el síntoma (columna vacía) parecía un bug de código. Por eso los
+tests de T1 no repiten ese error de diseño: ver abajo.
+
+**Test-first (RED antes de GREEN)**
+
+1. **Round-trip con días válidos:** montar con el valor sembrado, guardar, y afirmar la forma de la
+   columna. **Sin asertar orden de claves** de objeto: MySQL las reordena por longitud, así que
+   asertar el orden afirma la base y no el código.
+2. **Un día fuera del contrato no se guarda.** Se afirma el **mapper de guardado** —que es la última
+   línea de defensa—, no el `Select`: el `Select` ya lo hace inalcanzable desde la UI, y ese es
+   justamente el punto que confundió la vez anterior.
+3. **Un día cerrado guarda `hours: null`**, y uno abierto guarda sus rangos. Es la regla del
+   contrato que un Repeater puede romper en silencio.
+
+**Verificación:** tests + **navegador** (los tests son necesarios y no suficientes para UI) + el
+**juez del sitio**, `--surface=settings --check`, que debe seguir diciendo «already up to date»: un
+round-trip que cambie el snapshot es un fallo, no una mejora.
+
+## T2 — aviso interno: medido, y es un dato que falta
+
+`mail_notification_email` es `NULL` en los dos sitios (dev y demo) y `WEBSITE_CONSULTATION_EMAIL`
+está vacío en `.env`. `Site::notificationEmail()` devuelve `null` ⇒ el aviso **se omite por diseño**
+(CLA-532), nunca falla. **No es un bug: falta a quién avisarle.** Necesita una decisión del usuario.
+
+## Fuera de alcance (declarado)
+
+- **Línea del sitio, otra sesión:** su `media.snapshot.json`, las superficies `legal`/`projects` del
+  sync, la página de edición de legales.
+- **SPF/DKIM/DMARC de `electrobertels.be`:** decisión del usuario en su DNS. El remitente ya sale de
+  ese dominio; sin autorización DNS cae en spam. No verificable desde acá.

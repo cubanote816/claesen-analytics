@@ -357,7 +357,41 @@ sitio no redirige, el formulario falla con «Failed to fetch» exactamente igual
 CORS, no el endpoint — `curl` no aplica CORS. Cualquier API consumida desde otro origen se verifica
 **con navegador**, nunca sólo con `curl`.
 
-### La suite no puede correr sobre una base de datos vacía (2026-10-04, sin causa encontrada)
+### La suite no puede correr sobre una base de datos vacía — **no reproducía** (2026-10-04 → 2026-10-06)
+
+**Actualización 2026-10-06: no reproduce, y el fallo no estaba en el repo.** Se repitió el fallo
+reportado en tres configuraciones, incluida la condición exacta que este riesgo decía romper —una base
+**vacía de verdad**, después de `php artisan db:wipe`—:
+
+| Prueba | Comando | Resultado |
+| --- | --- | --- |
+| Base descartable limpia, `APP_ENV=testing` | `php artisan migrate:fresh` | **EXIT=0** · `create_permission_tables … DONE` |
+| Base de tests real (`claesen_analytics_web_testing`) | `php artisan migrate:fresh` | **EXIT=0** · idem |
+| **Cero tablas** + suite | `db:wipe` → `php artisan test tests/Feature/SiteSettingsPageTest.php` | **6 passed (21 assertions)**; `RefreshDatabase` migró desde cero |
+
+`roles` / `model_has_roles` / `role_has_permissions` quedan `ENGINE=InnoDB` correctos. Servidor: MySQL
+**8.4.8**, `lower_case_table_names=0`, `foreign_key_checks=1`, `sql_mode` sin nada inusual.
+
+**La hipótesis, declarada como hipótesis y no como causa probada:** el `1824` de MySQL es *«no puedo
+**abrir** la tabla padre»*, no *«no existe»* — la firma de un diccionario de datos corrupto en el
+**volumen local de Sail** (un `roles` a medio crear por una migración abortada). `migrate:fresh`
+**dropea todas las tablas antes de crear**, así que la primera corrida verde limpió el estado sucio.
+Eso explica las dos mitades del reporte: fallaba *siempre* en esa máquina y ahora no.
+
+**Consecuencia, y es la parte que importa:** el fallo era **del entorno, no del código**. Lo confirma
+que el CI ya tenía el paso correcto desde antes — `.github/workflows/tests.yml:105-106` corre
+`php artisan migrate --force --no-interaction` (comentario: *«Proves migrate-from-zero»*) sobre un
+servicio `mysql:8.4` limpio (`tests.yml:36-39`). **Por eso no se agrega un paso de CI: ya existe.**
+
+**Lo que sí quedaba flojo, y queda anotado:** el CI **no corrió nunca sobre la punta actual de
+`electrobertels/trunk`** (los últimos runs son del 2026-09-23 y la rama está 24 commits adelante de
+`origin`). La guarda existía; nadie la había ejercitado sobre este código.
+
+**Y el enmascaramiento que hay que recordar, porque es reutilizable:** `RefreshDatabase` **no vuelve a
+migrar** si la base ya existe. Una suite verde **no prueba** que un checkout limpio arranque; sólo lo
+prueba una base vacía. Cualquier verificación de tipo «instalación limpia» tiene que partir de cero.
+
+El reporte original, tal como se registró el 2026-10-04:
 
 Reproducible y determinista: `php artisan migrate:fresh` contra la base de tests **falla siempre** en
 `2026_01_28_093946_create_permission_tables`, con
@@ -371,7 +405,8 @@ SQLSTATE[HY000]: General error: 1824 Failed to open the referenced table 'roles'
 Es decir: la migración **no encuentra la tabla `roles` que ella misma acaba de crear** unas líneas
 antes. La creación está normal (`bigIncrements('id')`, `name`, `guard_name`, `timestamps()`, un
 `unique`), `config('permission.table_names')` tiene los cinco nombres correctos, no hay caché de
-config, y no existe otra migración que toque `roles`. **No encontré la causa.**
+config, y no existe otra migración que toque `roles`. **No encontré la causa.** *(Superado el
+2026-10-06: ver arriba.)*
 
 **Por qué importa**: mientras la base de tests ya existía, `RefreshDatabase` no volvía a migrar y
 todo pasaba; el problema aparece **desde cero**, o sea en una máquina nueva, en CI, o en cualquier
