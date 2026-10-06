@@ -123,7 +123,7 @@ GET    /projects?status=&q=             GET  /projects/{code}
 GET    /projects/{code}/stats           GET  /projects/{code}/devices
 GET    /projects/{code}/activity        GET  /projects/{code}/functions
 GET    /projects/{code}/visits          (cierres de visita enviados desde Veld)
-GET    /projects/{code}/tests
+GET    /projects/{code}/tests           GET  /projects/{code}/boards   (oficina)
 
 GET    /clients?q=                      GET  /clients/{id}
 
@@ -133,18 +133,26 @@ PATCH  /conflicts/{id}
 GET    /zones?project=                  GET  /zones/{id}
 PATCH  /zones/{id}/checks/{key}
 
-GET    /technicians                     GET  /planning?from=&to=
+GET    /technicians                     GET  /employees?role=office|field   (oficina)
+GET    /planning?from=&to=
 PUT    /planning                        DELETE /planning?technicianId=&date=
 
 GET    /notifications                   POST /notifications/{id}/ack
 POST   /notifications/ack-all
 
 GET    /documents?project=&q=           GET  /documents/{id}
+POST   /documents                       (oficina, multipart: file, project, kind, revision, supersedes, clientId)
+GET|PUT /projects/{code}/plans/{documentId}/markers   (oficina)
 GET    /reports/exports                 POST /reports
 GET    /events                          (text/event-stream)
 
 PATCH  /functions/{id}                  PATCH /tests/{id}
 ```
+
+Las cuatro marcadas **(oficina)** son KNX-3: con un token de campo responden `401`. Su forma
+exacta (campos, códigos `413`/`422`, ejemplos) está en `docs/Knx/openapi.yaml`, que es el
+contrato de forma y no puede quedarse stale: un test bidireccional falla si el spec y las rutas
+reales se separan.
 
 ### 2.3 Formas exactas (respuestas reales del backend)
 
