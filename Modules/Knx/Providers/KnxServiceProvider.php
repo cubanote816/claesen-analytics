@@ -3,6 +3,7 @@
 namespace Modules\Knx\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Knx\Console\Commands\KnxImportWorklistCommand;
 use Nwidart\Modules\Traits\PathNamespace;
 
 /**
@@ -35,6 +36,12 @@ class KnxServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->register(RouteServiceProvider::class);
+
+        // `knx:import-worklist`: loads a governed KNX worklist into a project's boards
+        // (KNX-3). Registered here because the module had no commands before.
+        $this->commands([
+            KnxImportWorklistCommand::class,
+        ]);
     }
 
     protected function registerTranslations(): void

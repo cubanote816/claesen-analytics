@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
+use Modules\Knx\Http\Controllers\BoardController;
 use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\DashboardController;
@@ -139,6 +140,11 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::get('projects/{code}/activity', [ProjectController::class, 'activity'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.activity');
+            // KNX-3 — the cabinets, their modules, channels and links. Its board id is
+            // the same string a plan marker's `boardId` carries.
+            Route::get('projects/{code}/boards', [BoardController::class, 'index'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards');
             // V11.e — the closures signed off from site. The office is the reader: the
             // field app only ever sends them.
             Route::get('projects/{code}/visits', [ProjectController::class, 'visits'])
