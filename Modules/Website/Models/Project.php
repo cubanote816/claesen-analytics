@@ -10,6 +10,8 @@ use Modules\Website\Database\Factories\ProjectFactory;
 use Spatie\Translatable\HasTranslations;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 use Modules\Intelligence\Traits\HasAiTranslations;
 
 class Project extends Model implements HasMedia
@@ -24,7 +26,26 @@ class Project extends Model implements HasMedia
      */
 
     use HasFactory, SoftDeletes, HasTranslations, InteractsWithMedia, HasAiTranslations, BelongsToSite;
+    use LogsActivity;
     use \Modules\Core\Models\Concerns\SiteImageConversions;
+
+    /**
+     * WU4: un cambio de proyecto es contenido del sitio, así que tiene que quedar en el rastro
+     * que responde «¿qué cambió desde la última publicación?». El default de spatie **no
+     * registra nada** (sin atributos seleccionados no hay cambio que anotar), así que esto no
+     * es opcional: es lo que hace que el trait sirva de algo.
+     *
+     * `logOnlyDirty` mantiene el coste proporcional al cambio: se anotan los atributos que se
+     * movieron, no el modelo entero; `dontLogEmptyChanges` evita el ruido de un guardado sin
+     * cambios.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
 
     protected static function newFactory(): ProjectFactory
     {

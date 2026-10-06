@@ -8,6 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Modules\Core\Models\ActivityLogEntry;
 use Modules\Core\Models\Site;
 use Modules\Core\Services\OrganizationContext;
 use Modules\Website\Models\PublicationState;
@@ -52,6 +53,12 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
             return;
         }
 
+        // Marca de agua de «qué cambió»: el id más alto del log **antes** de pedir el rebuild.
+        // Se toma antes y no después a propósito — un cambio que llegue mientras el webhook
+        // viaja queda del lado de «pendiente», que es el error seguro: mostrar un cambio ya
+        // publicado molesta, esconder uno pendiente hace creer que la web está al día.
+        $watermark = ActivityLogEntry::query()->max('id');
+
         $result = $service->sendWebhook($this->siteId, $this->reason, $this->force);
 
         if ($result->success) {
@@ -61,7 +68,12 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
             // new job handles the next rebuild.
             $state->refresh();
             if ($state->dispatch_key === $this->dispatchKey) {
-                $state->markAccepted();
+                $state->markAccepted($watermark);
+
+                $service->recordPublicationEvent('accepted', $this->siteId, [
+                    'dispatch_key' => $this->dispatchKey,
+                    'reason'       => $this->reason,
+                ]);
             }
             return;
         }
@@ -100,6 +112,14 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
         $state->markError(
             sprintf('[%s] %s', get_class($exception), $exception->getMessage())
         );
+
+        // El resultado, en el log de actividad: sin esto la solicitud queda sin desenlace y el
+        // historial no puede responder "¿y qué pasó con esa publicación?".
+        app(StaticSitePublicationService::class)->recordPublicationEvent('failed', $this->siteId, [
+            'dispatch_key' => $this->dispatchKey,
+            'reason'       => $this->reason,
+            'error'        => sprintf('[%s] %s', get_class($exception), $exception->getMessage()),
+        ]);
 
         Log::error('Static site rebuild job exhausted all retries.', [
             'dispatch_key' => $this->dispatchKey,

@@ -155,6 +155,35 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    // WU4: who published, when, and what changed. "What changed" comes from the activity log
+    // that already existed, narrowed to everything after the last accepted publication — not
+    // from a new hash. See odd/tasks/publish-to-live-website.md.
+    'publication_history' => [
+        'label' => 'Publications',
+        'changes_heading' => 'Changes since the last publication',
+        'empty' => 'No publications yet',
+        'empty_changes' => 'No changes since the last publication',
+        'fields' => [
+            'when'           => 'When',
+            'who'            => 'Who',
+            'event'          => 'What',
+            'reason'         => 'Reason',
+            'error'          => 'Error',
+            'subject'        => 'Part',
+            'fields_changed' => 'Changed fields',
+        ],
+        'events' => [
+            'requested' => 'Requested',
+            'accepted'  => 'Accepted',
+            'failed'    => 'Failed',
+        ],
+        'subjects' => [
+            'sitesetting'  => 'Setting',
+            'project'      => 'Project',
+            'mediaslot'    => 'Media slot',
+            'announcement' => 'Announcement',
+        ],
+    ],
     'publication' => [
         'status' => [
             'idle'     => 'No changes',

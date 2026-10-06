@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Core\Models\Concerns\BelongsToSite;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * CLA-481: a named media slot per site. The slot is the stable join key the
@@ -28,6 +30,21 @@ class MediaSlot extends Model
 {
     use BelongsToSite;
     use HasFactory;
+    use LogsActivity;
+
+    /**
+     * WU4: qué imagen sirve un slot es contenido del sitio — cambiarla y no registrarlo dejaría
+     * el rastro de «qué cambió» incompleto justo en la superficie más visible (la foto).
+     *
+     * El default de spatie no registra nada, así que esto no es opcional.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
 
     protected $table = 'website_media_slots';
 

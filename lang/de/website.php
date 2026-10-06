@@ -184,6 +184,35 @@ return [
             'archived' => 'Archiviert',
         ],
     ],
+    // WU4: wer veröffentlicht hat, wann, und was sich geändert hat. Das «was» kommt aus dem
+    // bereits vorhandenen Aktivitätsprotokoll, begrenzt auf alles nach der letzten
+    // angenommenen Veröffentlichung.
+    'publication_history' => [
+        'label' => 'Veröffentlichungen',
+        'changes_heading' => 'Änderungen seit der letzten Veröffentlichung',
+        'empty' => 'Noch keine Veröffentlichungen',
+        'empty_changes' => 'Keine Änderungen seit der letzten Veröffentlichung',
+        'fields' => [
+            'when'           => 'Wann',
+            'who'            => 'Wer',
+            'event'          => 'Was',
+            'reason'         => 'Grund',
+            'error'          => 'Fehler',
+            'subject'        => 'Bereich',
+            'fields_changed' => 'Geänderte Felder',
+        ],
+        'events' => [
+            'requested' => 'Angefordert',
+            'accepted'  => 'Angenommen',
+            'failed'    => 'Fehlgeschlagen',
+        ],
+        'subjects' => [
+            'sitesetting'  => 'Einstellung',
+            'project'      => 'Projekt',
+            'mediaslot'    => 'Medienslot',
+            'announcement' => 'Mitteilung',
+        ],
+    ],
     'publication' => [
         'status' => [
             'idle'     => 'Keine Änderungen',

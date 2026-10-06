@@ -184,6 +184,34 @@ return [
             'archived' => 'Archivé',
         ],
     ],
+    // WU4 : qui a publié, quand, et ce qui a changé. Le « ce qui a changé » vient du journal
+    // d'activité qui existait déjà, limité à ce qui suit la dernière publication acceptée.
+    'publication_history' => [
+        'label' => 'Publications',
+        'changes_heading' => 'Modifications depuis la dernière publication',
+        'empty' => 'Aucune publication pour le moment',
+        'empty_changes' => 'Aucune modification depuis la dernière publication',
+        'fields' => [
+            'when'           => 'Quand',
+            'who'            => 'Qui',
+            'event'          => 'Quoi',
+            'reason'         => 'Motif',
+            'error'          => 'Erreur',
+            'subject'        => 'Élément',
+            'fields_changed' => 'Champs modifiés',
+        ],
+        'events' => [
+            'requested' => 'Demandée',
+            'accepted'  => 'Acceptée',
+            'failed'    => 'Échouée',
+        ],
+        'subjects' => [
+            'sitesetting'  => 'Paramètre',
+            'project'      => 'Projet',
+            'mediaslot'    => 'Emplacement média',
+            'announcement' => 'Annonce',
+        ],
+    ],
     'publication' => [
         'status' => [
             'idle'     => 'Aucune modification',

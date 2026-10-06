@@ -155,6 +155,36 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    // WU4: quién publicó, cuándo y qué cambió. El «qué cambió» sale del log de actividad que
+    // ya existía, acotado a lo posterior a la última publicación aceptada — no de un hash
+    // nuevo. Ver odd/tasks/publish-to-live-website.md.
+    'publication_history' => [
+        'label' => 'Publicaties',
+        'changes_heading' => 'Wijzigingen sinds de laatste publicatie',
+        'empty' => 'Nog geen publicaties',
+        'empty_changes' => 'Geen wijzigingen sinds de laatste publicatie',
+        'fields' => [
+            'when'           => 'Wanneer',
+            'who'            => 'Wie',
+            'event'          => 'Wat',
+            'reason'         => 'Reden',
+            'error'          => 'Fout',
+            'subject'        => 'Onderdeel',
+            'fields_changed' => 'Gewijzigde velden',
+        ],
+        'events' => [
+            'requested' => 'Aangevraagd',
+            'accepted'  => 'Geaccepteerd',
+            'failed'    => 'Mislukt',
+        ],
+        // En el idioma de quien mira, no el nombre de la clase.
+        'subjects' => [
+            'sitesetting'  => 'Instelling',
+            'project'      => 'Project',
+            'mediaslot'    => 'Mediaslot',
+            'announcement' => 'Mededeling',
+        ],
+    ],
     'publication' => [
         'status' => [
             'idle'     => 'Geen wijzigingen',

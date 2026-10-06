@@ -14,6 +14,15 @@ use Modules\Website\Models\PublicationState;
 
 class StaticSitePublicationService
 {
+    /**
+     * Nombre del log de actividad donde queda constancia de las publicaciones.
+     *
+     * Es el argumento del helper `activity('…')`, **no** un parámetro de `log()`: en
+     * spatie/activitylog v5 el nombre del log es el del helper, y pasarlo a `log()` archiva
+     * todo bajo "default" — un rastro que parece auditoría y no se puede filtrar por evento.
+     */
+    public const PUBLICATION_LOG = 'static_site_publication';
+
     // ─── Public API ──────────────────────────────────────────────────────────
 
     /**
@@ -62,6 +71,53 @@ class StaticSitePublicationService
             'dispatch_key' => $dispatchKey,
             'fires_at'     => now()->addSeconds($debounce)->toIso8601String(),
         ]);
+
+        $this->recordPublicationEvent('requested', $siteId, [
+            'dispatch_key' => $dispatchKey,
+            'reason'       => $reason,
+            'force'        => $force,
+        ]);
+    }
+
+    /**
+     * Deja constancia de una publicación en el log de actividad.
+     *
+     * Se registra la **solicitud** y el **resultado** por separado, y es deliberado: la
+     * solicitud corre con sesión —alguien apretó el botón— y el resultado corre en un worker
+     * donde no hay usuario, así que **el actor sólo existe en la primera**. La clave de despacho
+     * va en las propiedades de las dos para poder enlazarlas.
+     *
+     * Público porque el job es el otro llamador: con dos copias del registro, una se quedaría
+     * atrás.
+     *
+     * `tap()` no es adorno: el autocompletado de `site_id` de `ActivityLogEntry` lo lee del
+     * **sujeto**, y un `Site` no tiene columna `site_id` — sin esto la fila quedaría sin sitio y
+     * la pantalla no podría filtrar por el sitio del panel.
+     *
+     * @param array<string, mixed> $properties
+     */
+    public function recordPublicationEvent(string $event, int $siteId, array $properties): void
+    {
+        $site = $this->resolveSite($siteId);
+
+        if (! $site) {
+            return;
+        }
+
+        $logger = activity(self::PUBLICATION_LOG)
+            ->performedOn($site)
+            ->withProperties(array_merge(['event' => $event], $properties))
+            ->tap(function ($activity) use ($site): void {
+                $activity->site_id = $site->id;
+            });
+
+        // En el worker no hay usuario, y ahí el resultado simplemente no tiene actor; la
+        // solicitud es la que lo aporta.
+        if ($user = auth()->user()) {
+            $logger->causedBy($user);
+        }
+
+        $logger->log('site publication '.$event);
     }
 
     /**
