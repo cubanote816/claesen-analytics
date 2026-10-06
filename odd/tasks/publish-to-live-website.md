@@ -126,13 +126,23 @@ Cinco unidades. La decisión que las ordena es la **WU2**: cambia el significado
 
 **Tests**: `SitePublicationHeaderTest` (3 nuevos) + la regresión de la pantalla de ajustes + el test de traducciones del clúster: **16 passed (337 aserciones)**.
 
-### WU4 · Historial *(backend)*
+### WU4 · Historial *(HECHO — 2026-10-06)*
 
-**Qué**: quién publicó, cuándo, con qué resultado y qué cambió. Hoy `website_publication_states` guarda **estado actual** — una fila por sitio, sin serie temporal.
+**Qué**: quién publicó, cuándo, con qué resultado y qué cambió.
 
-**Aceptación**: desde el panel se puede responder «¿quién publicó y cuándo?» y «¿qué cambió desde la última publicación?».
+**La base de comparación, decidida midiendo y no inventando**: se usa el **`activity_log` que ya existía**. Tiene `site_id`, `causer_id`, `attribute_changes` y fecha, es **append-only por construcción** (`ActivityLogEntry` prohíbe update y delete desde Eloquent), y ya tenía 36 filas de este sitio. **Su precio, declarado**: hereda `clean_after_days = 365` del log, o sea que el historial de publicaciones **se poda al año** como todo lo demás. Si esa línea de tiempo no alcanza, es una decisión aparte.
 
-**Nota de diseño, antes de escribir la tabla**: «qué cambió» necesita una **base de comparación** — un hash del contenido publicado, o el commit del snapshot. Decidirlo primero.
+**La fecha no alcanzó, y eso se midió**: el primer intento usaba `created_at > last_accepted_at`, y el test **falló 3 de 3**. La causa: los `timestamp` de MySQL tienen precisión de **segundo**, así que un cambio guardado en el mismo segundo que la publicación quedaba indistinguible de ella — y desde la pantalla eso se ve como «no hay cambios pendientes» cuando sí los hay. La base pasó a ser una **marca de agua**: el id más alto del log, tomado **justo antes** de pedir el rebuild, de modo que un cambio que llegue mientras el webhook viaja caiga del lado de «pendiente». Es el error seguro: mostrar un cambio ya publicado molesta; esconder uno pendiente hace creer que la web está al día.
+
+**La cobertura había que ampliarla**: `SiteSetting`, `Announcement` y `ConsultationRequest` registraban actividad, **`Project` y `MediaSlot` no** — y una lista de cambios que omite proyectos e imágenes sólo **parece** completa. Los dos registran ahora, con las mismas opciones que `SiteSetting` (`logAll` + `logOnlyDirty` + `dontLogEmptyChanges`), que mantiene el coste proporcional al cambio.
+
+**Dos filas por publicación, y es deliberado**: la **solicitud** la escribe quien aprieta el botón (ahí hay usuario) y el **resultado** lo escribe el worker (donde no lo hay). Son los dos extremos del circuito, y separarlos es lo que permite ver una publicación que se quedó sin desenlace. La `dispatch_key` va en las propiedades de las dos para enlazarlas.
+
+**Tres defectos salieron de MIRAR la captura, no de los tests**: `badge()` dibuja **una insignia por elemento** del array, así que los campos cambiados salían duplicados; el estado vacío tomaba el texto del modelo `ActivityLogEntry` («Geen activity log entries») en vez de hablar de publicaciones; y la columna decía el nombre de la columna (`value`) para un cambio de ajuste, que **no dice cuál ajuste**. Ahora lee `Instelling: opening_hours`.
+
+**Verificación**: 10 tests (`PublicationHistoryTest` 5, `PublicationHistoryPageTest` 3, más el portero de traducciones del clúster) y **pase de navegador** con la captura mirada en cuatro rondas.
+
+**Limitación declarada**: en local el pipeline está apagado, así que la tabla de publicaciones queda legítimamente vacía y la de cambios es la que trae filas reales. El camino de datos lo cubren los tests.
 
 ### WU1 · Llevar el dato al build *(backend + sitio)*
 
