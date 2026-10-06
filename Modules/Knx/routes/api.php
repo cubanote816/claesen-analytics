@@ -8,6 +8,7 @@ use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\DashboardController;
 use Modules\Knx\Http\Controllers\DocumentController;
+use Modules\Knx\Http\Controllers\EmployeeController;
 use Modules\Knx\Http\Controllers\EventStreamController;
 use Modules\Knx\Http\Controllers\Field\FieldDeviceController;
 use Modules\Knx\Http\Controllers\Field\FieldIssueController;
@@ -149,6 +150,9 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::post('notifications/{id}/ack', [FieldNotificationController::class, 'ack'])->name('notifications.ack');
             // K5 — technicians and planning.
             Route::get('technicians', [PlanningController::class, 'technicians'])->name('technicians.index');
+            // KNX-3 — the office people the project form can pick as `leadEmployeeId`.
+            // `/technicians` is field-only, which is why a lead selector had no data.
+            Route::get('employees', [EmployeeController::class, 'index'])->name('employees.index');
 
             Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
             Route::put('planning', [PlanningController::class, 'store'])->name('planning.store');
