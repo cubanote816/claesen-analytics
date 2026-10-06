@@ -18,6 +18,7 @@ use Modules\Knx\Http\Controllers\Field\FieldTodayController;
 use Modules\Knx\Http\Controllers\Field\FieldVisitController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\FunctionSpecController;
+use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\ProjectController;
 use Modules\Knx\Http\Controllers\ReportController;
@@ -169,6 +170,15 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
             Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
             Route::get('documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
+
+            // KNX-3 — the boards placed on a revision. The set belongs to the document,
+            // so both routes resolve the document inside the project (`{code}`).
+            Route::get('projects/{code}/plans/{documentId}/markers', [PlanMarkerController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.markers.show');
+            Route::put('projects/{code}/plans/{documentId}/markers', [PlanMarkerController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.markers.update');
 
             Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
             Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
