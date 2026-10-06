@@ -75,13 +75,25 @@ La aprobación por página existe, pero aprobar sin ver el resultado renderizado
 
 Cinco unidades. La decisión que las ordena es la **WU2**: cambia el significado de «publicado» y por eso va primero.
 
-### WU2 · Decidir y acotar el disparo *(decisión + backend)*
+### WU2 · Decidir y acotar el disparo *(HECHO — 2026-10-06)*
 
 **Qué**: C implica que **el cliente publica deliberadamente**. Hoy los observers de `Project` y `Media` publican solos con 20 s de debounce, y eso haría inútil el «publico cuando esté listo».
 
-**La decisión**: ¿el disparo automático se **apaga** para las superficies que edita el cliente (ajustes, legales) y se mantiene para las internas (proyectos, media)? ¿O se apaga del todo y todo se publica con la acción explícita?
+**DECISIÓN DEL USUARIO: sin automático, todo explícito.** Nada se publica por guardar; siempre hay que apretar «Publicar», también para proyectos y media.
 
-**Aceptación**: la respuesta escrita en este documento, y el código alineado con ella. **Es la única pregunta que bloquea el resto.**
+**El matiz que hace que esto sirva, y no que rompa la señal**: guardar **deja de reconstruir** pero **sigue marcando** «hay cambios sin publicar». Si guardar no marcara nada, el cliente perdería la única señal de que falta publicar — que es justo lo que C necesita para distinguir «estoy editando» de «está listo».
+
+**Forma**: `requestRebuild()` queda como **la acción explícita** (es lo que ya llama el botón «Publicar ahora»), y los disparadores automáticos pasan a `markContentChanged()`, que marca pendiente y **no despacha nada**. Llamadores automáticos a cambiar: `ProjectObserver` (5 eventos), `MediaObserver` (2) y `GenerateGalleryMediaMetadataJob:94` (el camino de la galería, que publica desde su `finally`). **El `ListProjects.php:29` no se toca**: es el botón.
+
+**Hueco que se cierra de paso (era el #2 del análisis)**: `SiteSetting` no tenía observer, así que editar ajustes no marcaba nada. Con C eso importa más que antes: sin él, editar ajustes no deja rastro de «pendiente» en ningún lado.
+
+**Aceptación**: guardar un proyecto, una media o un ajuste deja el estado en `pending` y **no** despacha `TriggerStaticSiteRebuildJob`; la acción explícita sí lo despacha con `force: true`. Test-first, y el test que hoy afirma lo contrario se invierte.
+
+**Efecto declarado**: es un **cambio de comportamiento** — hoy guardar un proyecto publica. Deja de hacerlo.
+
+**HECHO (`ed61c30`)**. `markContentChanged()` marca sucio y no despacha nada; `requestRebuild()` queda como la acción explícita. Se cerró además el hueco del observer de `SiteSetting`, atado a `created`/`updated`/`deleted` y **no** a `saved`, porque la pantalla escribe las ~19 claves en cada envío y `saved` dispara incluso para filas que no cambiaron. **`Modules/Website` + `ClaesenBaseline`: 338 passed (1187 aserciones).**
+
+**Dónde me equivoqué, y queda escrito**: afirmé que **un solo** test codificaba el auto-publicado. Eran **cuatro**. Mi grep encontró las líneas y **no leí su contexto**. Los cuatro se re-especificaron conservando lo que de verdad protegían: el de multi-sitio ahora asevera **qué sitio** quedó marcado, y como **fila ausente** — porque `PublicationState::current()` crea una fila idle al pasar y habría vuelto vacua la aserción —, y el de la media ajena ahora asevera que **nada** quedó marcado, no sólo que nada se encoló.
 
 ### WU3 · Estado y acción donde se edita *(backend)*
 
