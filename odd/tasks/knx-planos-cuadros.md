@@ -79,3 +79,37 @@
 - Error de lectura propio corregido al empezar U5: había contado las **filas** por número de pedido
   como si fueran módulos (5× `JRA/S8.230.5.1`); en realidad son 13 módulos = 13 pares (cuadro,
   aparato). El worklist sí está a granularidad de módulo.
+
+## Revisión nativa (RDD) — estado
+
+Los commits se revisaron **por unidad de trabajo**, con un worktree ligado por commit (el proveedor
+proyecta contra el `HEAD` del worktree, así que un commit intermedio no se puede aislar sin uno).
+
+| Unidad | Linaje | Resultado |
+|---|---|---|
+| U2 (`f6b3144`) | `review-447bf002c82d5cd4` | **approved** + acknowledged, autoridad quemada. 2 hallazgos no bloqueantes. |
+| U3 (`5af2b3c`) | `review-3198a2f6a558bbcd` | **approved** + acknowledged, autoridad quemada. 1 hallazgo no bloqueante. |
+| U1 (`c90e6a6`) | `review-e0ad99591cefaf39` | reviewer + **refuter**: 3 hallazgos **CRITICAL** reales, corregidos y commitados en `da7ed94`. |
+| U4/U5 | — | sin veredicto: el flujo del proveedor quedó inconsistente (binding de consentimiento expirado; proyección de repo completo; `lineage_created: false`). |
+
+**Los tres hallazgos de U1 (todos `introduced` por `c90e6a6`) y su arreglo:**
+
+1. `storeFile` casteaba a `string` el `false` que `putFileAs` devuelve sin lanzar cuando la escritura
+   falla, y la transacción podía commitear un documento con `path` vacío. Ahora lanza.
+2. Un `clientId` vacío se guardaba como valor real pero la relectura lo trataba como “sin clave”,
+   así que un reintento con `""` esquivaba el replay y chocaba con el índice único → 500. Ahora
+   `""` se normaliza a `null`.
+3. El índice único de `client_id` era global mientras la relectura es por organización; ahora es
+   `unique(organization_id, client_id)` y la relectura filtra explícitamente por tenant.
+
+Tres tests de regresión nuevos; `Modules/Knx/tests` **232 passed / 1 skipped / 0 failed** (1299
+aserciones) tras `da7ed94`.
+
+**Bloqueante de la revisión:** el proveedor emitió la ruta `correction_plan_required` para U1, pero
+`gentle_review_capture` rechazó el binding vigente como *“collectBinding is missing or stale for
+current STATUS”* en los cuatro estados probados (sin commitear, corregido commiteado, sin corregir,
+con y sin `workspaceRoot`), y `gentle_review advance` responde *“transition is unsupported:
+capture-correction-plan”*. La corrección quedó aplicada y verificada fuera del linaje; el linaje
+quedó además desanclado al limpiarse `/tmp` (recrearlo dio candidato vacío). No se usó RESET ni
+RECOVER: son destructivos y requieren decisión explícita.
+
