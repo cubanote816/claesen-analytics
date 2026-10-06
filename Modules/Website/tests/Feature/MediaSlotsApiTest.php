@@ -76,7 +76,14 @@ final class MediaSlotsApiTest extends TestCase
             'media_id' => $media->id,
         ]);
 
-        $response = $this->getJson('/v1/website/media/slots')
+        // An explicit host, not a relative path. A relative request inherits
+        // `config('app.url')`, so asserting a literal origin here made this test depend on
+        // APP_URL — passing with `http://localhost` and failing with
+        // `http://localhost:8004`, which is the coupling its own comment below says it
+        // dropped (CLA-444's lesson). The host is given by this test, so the assertion is
+        // self-contained. `test_the_media_url_origin_follows_the_request_host` covers the
+        // same rule with a different host, on purpose.
+        $response = $this->getJson('http://media.test/v1/website/media/slots')
             ->assertOk()
             ->assertJsonCount(1, 'data');
 
@@ -84,9 +91,9 @@ final class MediaSlotsApiTest extends TestCase
 
         $this->assertSame('home.hero', $data['slot']);
         // The origin comes from the request, the path from the disk. Asserting the
-        // full `$media->getUrl('optimized')` here would re-introduce the coupling to
-        // the configured APP_URL that this deliberately dropped (CLA-444's lesson).
-        $this->assertStringStartsWith('http://localhost/storage/', $data['url']);
+        // full `$media->getUrl('optimized')` would re-introduce the coupling to the
+        // disk's own URL config.
+        $this->assertStringStartsWith('http://media.test/storage/', $data['url']);
         $this->assertStringEndsWith($media->getPathRelativeToRoot('optimized'), $data['url']);
         $this->assertSame(1200, $data['width']);
         $this->assertSame(800, $data['height']);
