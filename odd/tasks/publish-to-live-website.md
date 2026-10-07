@@ -246,10 +246,78 @@ historial (WU4)         → registra el release promovido
 | **S0** | Modelo de publicación (B) | **DECIDIDO** |
 | **S1** | Navegación: sidebar desplegable con 4 grupos + badges por página | **HECHO** (`06dc6fd`) |
 | **S2** | Dividir Ajustes en 6 páginas | **HECHO** (`da1245e`) |
-| **S3** | Cabecera uniforme + barra fija «Unsaved changes / Discard / Save draft» | pendiente |
-| **S4** | Publicación por página: botón, estados, modal, toast | pendiente |
+| **S3** | Cabecera uniforme + barra fija «Unsaved changes / Discard / Save draft» | **HECHO** (`4b0ec17`) |
+| **S4a** | Sync por claves del lado del sitio (`--keys=` + mezcla) — el habilitante del criterio #2 | **HECHO** (sin commitear, línea del sitio) |
+| **S4b** | Panel: botón por página, estados, modal, toast, y badge por diferencia | pendiente |
 | **S5** | Page publications: filtros, Approve all, drawer con iframe | pendiente (**es WU5b**, con granularidad por página) |
 | **S6** | «New media slot» + consistencia visual + chequeos de <1000 px | pendiente |
+
+### S4a · El sync por claves, del lado del sitio — HECHO (sin commitear)
+
+**Por qué existe esta rebanada.** Publicar **una** página necesita sincronizar **sólo esa página**. La
+superficie `settings` escribe `src/business/facts.snapshot.json` entero —las 13 claves de las 6 páginas
+juntas—, así que usarla para publicar Contacto publicaría también los borradores de Dirección ✗, que es
+justo lo que el criterio de aceptación #2 prohíbe. No se puede arreglar desde el panel: el sync trae los
+datos y escribe el snapshot.
+
+**El contrato**: el sync acepta `--keys=<claves separadas por coma>` (sólo con `--surface=settings`; en
+cualquier otra superficie se **rechaza**, como el resto de los flags incompatibles de ese archivo) y, en
+vez de escribir el snapshot recién construido, escribe **el publicado con encima los campos que esas
+claves producen**. Todo lo demás conserva su valor publicado: eso es exactamente «publicar una sección
+no publica las otras».
+
+**Quién manda qué, y por qué así.** El panel manda **claves de `site_settings`** (que es lo suyo: tiene
+el mapa clave→sección desde S2), **no** campos del snapshot ni un nombre de sección. El mapeo
+clave→campo se queda en el sync, que es donde ya vive (`parseSettings` / `buildSnapshot`) y donde el
+sitio conoce su propio contrato. Mandar un nombre de sección obligaría al sitio a duplicar el mapa del
+panel; mandar campos obligaría al panel a conocer el snapshot del sitio. Ninguna de las dos.
+
+**Invariante nueva, porque el modo de fallo es silencioso:** si el sync conoce un campo del snapshot que
+**ninguna** clave produce, ese campo quedaría congelado en lo publicado para siempre y nadie lo notaría.
+Se cubre con un test que compara el conjunto de campos del snapshot contra los que las claves pueden
+tocar, y falla si aparece uno huérfano — el mismo tipo de guarda que el reparto de claves por sección de
+S2.
+
+**Fail-closed, como el resto del archivo:** una clave desconocida en `--keys` **rechaza la corrida** en
+vez de ignorarse (una clave mal escrita publicaría una sección incompleta y en silencio); un snapshot
+publicado ausente o corrupto **no** se inventa (se rechaza, salvo el caso ya previsto de bootstrap sin
+snapshot, donde la mezcla degenera en un sync completo y se declara); y `--check --keys=` compara la
+mezcla contra lo publicado, que es **exactamente** la pregunta «¿publicar esta sección cambiaría algo?»
+— la misma señal que S4b necesita para el badge por diferencia.
+
+**La prueba que exige el criterio #2**: con borradores en **dos** secciones distintas, sincronizar las
+claves de una y verificar que la otra quedó **en su valor publicado**. Que la primera se escriba no
+alcanza.
+
+**Estado**: `sync-content.mjs` (filtro + mezcla), `release.mjs` (`syncDynamicContent({keys})`) y
+`receiver.mjs` (`/rebuild` acepta y reenvía `keys`) quedan **sin commitear**, como el resto de esa línea
+del repo del sitio.
+
+**Verificado end-to-end en la pila real, y con control** (2026-10-07). Con un borrador en Contacto
+(`email`) y otro en Dirección (`maps_directions_url`) escritos en la base:
+
+- sync **completo** (`--stdout` sin claves) → aparecen **los dos** borradores. Ése es el control: sin
+  él la prueba sería vacía, y de hecho la primera corrida «pasó» así, porque las escrituras por SQL
+  crudo no habían entrado y yo mismo había escondido su error;
+- sync **con `--keys=` sólo de Contacto** → `email` sale con el borrador de Contacto ✓ y
+  `mapsDirectionsUrl` sale con el **valor publicado**, no con el borrador de Dirección ✓.
+
+Eso es el criterio de aceptación #2 medido sobre la API real y el sync real, no sobre un doble. Cierre:
+los dos valores restaurados y un `--check` sin claves que responde «ya está al día» ✓ — o sea que el
+snapshot volvió a coincidir con la API y no quedó nada sucio.
+
+**Hallazgo que vale registrar** (porque el síntoma es «el dato no llega, y la base lo tiene»): la API
+sirve `SiteSetting::cachedForCurrentSite()`, un mapa cacheado **una hora por sitio** e invalidado por el
+observer del modelo. Una escritura por **SQL crudo** —que es la forma cómoda de fabricar un borrador sin
+ensuciar el badge de actividad— **no** invalida esa caché: la base dice una cosa y la API responde otra
+hasta que la caché se limpia. Me costó un ciclo de verificación entenderlo.
+
+**Deuda que esta rebanada destapó, y que no es suya**: la suite del repo del sitio tiene 3 tests en rojo
+porque el snapshot real trae la fila del martes en `11:00` y el fixture congelado `APPROVED_BYTES` en
+`09:00` — residuo de **mi** medición de WU1, no de este cambio (comprobado leyendo los dos valores y
+viendo que los tres fallos son `readSnapshot` contra el fixture). Un cuarto fallo (`legal-render`) viene
+de la línea de contenido de otra sesión.
+
 
 ### S2 · Ajustes en seis páginas — HECHO
 
