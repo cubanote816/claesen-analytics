@@ -36,6 +36,84 @@ final class WebsiteNavigationTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * El submenú cuelga del ítem Website **dentro del sidebar**, con sus cuatro grupos y sus
+     * ítems, en el orden del prototipo.
+     *
+     * Es lo que Filament no hace solo: corta el registro de las páginas de un clúster a propósito
+     * (`Page::registerNavigationItems()` sale temprano), así que sus ítems no llegan al sidebar y
+     * el submenú terminaba renderizándose al costado del contenido. Acá se comprueba la forma
+     * anidada que sí es alcanzable: ítem del clúster -> grupos -> ítems.
+     */
+    public function test_the_cluster_item_carries_the_groups_and_their_items(): void
+    {
+        $items = \App\Filament\Clusters\Website\WebsiteCluster::getNavigationItems();
+
+        $this->assertCount(1, $items, 'El clúster publica un ítem: el suyo.');
+
+        $clusterItem = $items[0];
+        $this->assertSame(__('navigation.groups.content_website'), $clusterItem->getGroup());
+
+        $children = $clusterItem->getChildItems();
+
+        $this->assertSame(
+            array_map(fn (string $g): string => WebsiteNavigationGroups::label($g), WebsiteNavigationGroups::all()),
+            array_map(fn ($item): string => (string) $item->getLabel(), $children),
+            'Los cuatro grupos, en el orden del prototipo (Publicación primero, Ajustes tercero).',
+        );
+
+        $settingsGroup = collect($children)
+            ->first(fn ($item): bool => $item->getLabel() === WebsiteNavigationGroups::label(WebsiteNavigationGroups::SITE_SETTINGS));
+
+        $this->assertCount(
+            count(WebsiteSettingSections::all()),
+            $settingsGroup->getChildItems(),
+            'Cada una de las seis secciones de Ajustes cuelga de su grupo, no suelta.',
+        );
+    }
+
+    /**
+     * Y el badge viaja con el ítem: el número que se ve en el sidebar es el mismo que se cuenta.
+     */
+    public function test_the_nested_items_keep_their_badges(): void
+    {
+        SiteSetting::factory()->create(['key' => 'email', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'a@b.test']);
+
+        $items = \App\Filament\Clusters\Website\WebsiteCluster::getNavigationItems();
+
+        $contact = collect($items[0]->getChildItems())
+            ->flatMap(fn ($group) => $group->getChildItems())
+            ->first(fn ($item): bool => $item->getLabel() === __('website.settings_sections.contact.label'));
+
+        $this->assertNotNull($contact, 'El ítem de Contact tiene que estar colgado del submenú.');
+        $this->assertSame('1', $contact->getBadge());
+    }
+
+    /**
+     * El override de la vista del sidebar es **de carga**, y por eso tiene una alarma.
+     *
+     * Filament no pasa `child-items` a la recursión, así que sin esa línea el sidebar no baja el
+     * segundo nivel: el menú de tres niveles («Website › grupo › página») vuelve a mostrar sólo los
+     * cuatro grupos —sin sus páginas— y las páginas quedan **inalcanzables desde el menú**. No es un
+     * test de comportamiento (eso lo cubre el navegador): es para que borrar el archivo, o
+     * actualizar Filament, no se lleve el menú en silencio.
+     */
+    public function test_the_sidebar_view_override_still_passes_the_children_down(): void
+    {
+        $path = resource_path('views/vendor/filament-panels/components/sidebar/item.blade.php');
+
+        $this->assertFileExists(
+            $path,
+            'El override del sidebar desapareció: el menú perdería el segundo nivel de anidado.',
+        );
+
+        $this->assertStringContainsString(
+            ':child-items="$childItem->getChildItems()"',
+            (string) file_get_contents($path),
+            'El override del sidebar ya no pasa los hijos a la recursión: las páginas quedarían inalcanzables.',
+        );
+    }
+
     // ─── La estructura ────────────────────────────────────────────────────────
 
     public function test_every_cluster_component_belongs_to_one_of_the_four_groups(): void

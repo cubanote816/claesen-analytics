@@ -32,4 +32,22 @@ final class WebsiteNavigationGroups
     {
         return __("website.nav_groups.{$group}");
     }
+
+    /**
+     * El icono de cada grupo.
+     *
+     * **No es decorativo**: Filament **exige** un icono en un ítem que tiene hijos
+     * («Parent items must have an icon to ensure a proper user experience») y lo comprueba al
+     * **renderizar** — no al construir los ítems —, así que sin esto el sidebar devuelve 500 y los
+     * tests de estructura siguen verdes. Lo encontró el navegador.
+     */
+    public static function icon(string $group): string
+    {
+        return match ($group) {
+            self::PUBLISHING    => 'heroicon-o-paper-airplane',
+            self::CONTENT       => 'heroicon-o-rectangle-stack',
+            self::SITE_SETTINGS => 'heroicon-o-cog-6-tooth',
+            self::INBOX         => 'heroicon-o-inbox',
+        };
+    }
 }
