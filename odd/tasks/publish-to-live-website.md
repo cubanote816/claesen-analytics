@@ -244,7 +244,7 @@ historial (WU4)         → registra el release promovido
 | | Slice | Estado |
 | --- | --- | --- |
 | **S0** | Modelo de publicación (B) | **DECIDIDO** |
-| **S1** | Navegación: sidebar desplegable con 4 grupos + badges por página | pendiente |
+| **S1** | Navegación: sidebar desplegable con 4 grupos + badges por página | **HECHO** (`06dc6fd`) |
 | **S2** | Dividir Ajustes en 6 páginas | **HECHO** (`da1245e`) |
 | **S3** | Cabecera uniforme + barra fija «Unsaved changes / Discard / Save draft» | pendiente |
 | **S4** | Publicación por página: botón, estados, modal, toast | pendiente |
@@ -268,6 +268,22 @@ Seis páginas, una por sección, cada una con **su URL**: general, contact, addr
 **Suite completa del trunk: 2241 passed / 3 skipped / 0 failed** (8065 aserciones, 49 min), corrida **después** de S2 y como evidencia de cierre por esa misma razón.
 
 **Trampa de implementación, registrada**: un trait **no** puede declarar `$cluster` ni `$view` sobre `Filament\Pages\Page` — las definiciones difieren y PHP **falla la composición** con un error fatal. Las declara cada página concreta, donde sobrescribir el valor por defecto sí está permitido.
+
+### S1 · Navegación agrupada con badges — HECHO
+
+**La barra de pestañas horizontal desapareció**: el clúster pasó a `SubNavigationPosition::Start`. Y **no hizo falta un componente de navegación propio**: un clúster de Filament **agrupa su submenú** por el `$navigationGroup` de cada componente, así que los cuatro grupos del prototipo (Publiceren · Inhoud · Site-instellingen · Postvak) salen de ahí.
+
+**Los números salen de un solo servicio** (`WebsiteNavigationBadges`), porque «cambios sin publicar» hoy significa una cosa concreta: filas de actividad registradas **después de la última publicación**, que es exactamente el corte de la marca de agua del WU4. Se cuenta por sujeto: las filas de ajuste de una sección, una clase de modelo, las solicitudes nuevas, las páginas aprobadas esperando salir, y las traducciones esperando una persona. Un **0 no dibuja badge** (dice `null`, no `'0'`): un badge que dice cero es ruido.
+
+**La semántica, dicha y no escondida**: cuenta **cambios hechos**, no **diferencias que quedan**. Editar un valor y devolverlo a como estaba publicado sigue contando 1 hasta publicar esa sección. Es lo que el brief pide al hablar de «cambios», y es **la misma lista que muestra el historial** —pinchando se ven esos cambios, uno por uno—. La versión por **diferencia** es el `--check` del sync y llega con la publicación por sección (S4): cuando llegue, **cambia en un solo lugar**, este servicio.
+
+**`PublicationHistoryPage` no lleva badge a propósito**: esa pantalla **es** el registro. Repetir ahí un número es cómo dos números terminan sin coincidir.
+
+**Verificado con 9 tests (43 aserciones) y en el navegador**, que es donde se juzgó el diseño: sin pestañas, los cuatro grupos, los badges (Algemeen 3 · Contact 10 · Adres 18 · Openingsuren 5 · Sociale links 1 · Privacy 2 · Adviesaanvragen 3), el padre Website activo y el ítem actual resaltado. Captura en `/tmp/s1-navigation.png`.
+
+**Desviación declarada**: el submenú se renderiza **al inicio del contenido** (pegado al sidebar del panel), **no dentro** del sidebar del panel. Es cómo Filament v5 renderiza esa posición —verificado en su vista (`page/index.blade.php`: `SubNavigationPosition::Start` monta `page.sub-navigation.sidebar` dentro de `fi-page-main`)—. Cumple «desplegable + agrupado + padre activo», pero no es literalmente «en el sidebar». Hacerlo literal exige un render hook sobre el sidebar del panel, y **no estaba en los criterios de aceptación**.
+
+**Suite completa del trunk: 2250 passed / 3 skipped / 0 failed** (8108 aserciones, 42 min).
 
 ## Riesgos, y lo que esto NO es
 
