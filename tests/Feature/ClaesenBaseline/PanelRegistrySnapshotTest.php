@@ -77,8 +77,11 @@ final class PanelRegistrySnapshotTest extends TestCase
     {
         // Declared inversion (CLA-598, supersedes the CLA-549 spike's empty panel):
         // Bertels manages its own Website content — exactly the Website cluster's
-        // three resources and its site-settings page — and nothing else. Any other
+        // three resources and its site-settings pages — and nothing else. Any other
         // resource appearing here without a phase ticket is the regression this guards.
+        //
+        // WU-S2 (2026-10-07): the single site-settings page became six, one per section of
+        // the approved prototype. It is a declared change of the same surface, not a new one.
         $panel = Filament::getPanel('bertels');
 
         $this->assertSame('bertels', $panel->getId());
@@ -96,8 +99,14 @@ final class PanelRegistrySnapshotTest extends TestCase
         $this->assertSame(
             $this->sorted([
                 Dashboard::class,
+                \App\Filament\Clusters\Website\Pages\AddressSettingsPage::class,
+                \App\Filament\Clusters\Website\Pages\ContactSettingsPage::class,
+                \App\Filament\Clusters\Website\Pages\GeneralSettingsPage::class,
+                \App\Filament\Clusters\Website\Pages\OpeningHoursSettingsPage::class,
                 \App\Filament\Clusters\Website\Pages\PagePublicationReviewPage::class,
-                \App\Filament\Clusters\Website\Pages\SiteSettingsPage::class,
+                \App\Filament\Clusters\Website\Pages\PrivacyConsentSettingsPage::class,
+                \App\Filament\Clusters\Website\Pages\PublicationHistoryPage::class,
+                \App\Filament\Clusters\Website\Pages\SocialLinksSettingsPage::class,
                 \App\Filament\Clusters\Website\Pages\TranslationReviewPage::class,
                 \App\Filament\Clusters\Website\WebsiteCluster::class, // a cluster is itself a page
             ]),

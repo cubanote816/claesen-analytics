@@ -18,7 +18,7 @@ use Tests\TestCase;
 /**
  * F3/CLA-469 of the multi-organization program — docs/ai/adr-multi-organization.md.
  *
- * A real CRUD list (unlike SiteSettingsPage's fixed slots) — see
+ * A real CRUD list (unlike the site settings pages' fixed slots) — see
  * AnnouncementResource's own docblock. Hardcoded to Claesen (CreateAnnouncement::
  * mutateFormDataBeforeCreate()) until Bertels has its own panel/resources.
  */

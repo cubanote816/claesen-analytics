@@ -238,6 +238,34 @@ return [
             'publish_now_success'        => 'Publication demandée',
         ],
     ],
+    // WU-S2 : la découpe des paramètres du site en six pages, telle que le prototype approuvé
+    // la déclare.
+    'settings_sections' => [
+        'general' => [
+            'label' => 'Général',
+            'description' => 'Identité légale utilisée dans le pied de page, les pages légales et les données de recherche.',
+        ],
+        'contact' => [
+            'label' => 'Contact',
+            'description' => 'Téléphone, WhatsApp et e-mail affichés sur le site.',
+        ],
+        'address' => [
+            'label' => 'Adresse et cartes',
+            'description' => 'Où se trouve le magasin et comment les visiteurs le trouvent.',
+        ],
+        'hours' => [
+            'label' => 'Horaires d\'ouverture',
+            'description' => 'Horaire hebdomadaire affiché dans le pied de page et sur la page de contact.',
+        ],
+        'social' => [
+            'label' => 'Liens sociaux',
+            'description' => 'Profils liés depuis le pied de page.',
+        ],
+        'privacy' => [
+            'label' => 'Confidentialité et consentement',
+            'description' => 'Intégrations dépendantes des cookies et suivi du consentement.',
+        ],
+    ],
     'site_settings' => [
 
         // L'adresse s'édite par parties, pas en JSON : c'est une forme fixe, et une faute de

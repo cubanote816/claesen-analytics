@@ -326,6 +326,33 @@ return [
             'archived' => 'Archived',
         ],
     ],
+    // WU-S2: the split of Site settings into six pages, as the approved prototype declares it.
+    'settings_sections' => [
+        'general' => [
+            'label' => 'General',
+            'description' => 'Legal identity used in the footer, legal pages and search data.',
+        ],
+        'contact' => [
+            'label' => 'Contact',
+            'description' => 'Phone, WhatsApp and email shown across the site.',
+        ],
+        'address' => [
+            'label' => 'Address & maps',
+            'description' => 'Where the shop is and how visitors find it.',
+        ],
+        'hours' => [
+            'label' => 'Opening hours',
+            'description' => 'Weekly schedule shown in the footer and on the contact page.',
+        ],
+        'social' => [
+            'label' => 'Social links',
+            'description' => 'Profiles linked from the footer.',
+        ],
+        'privacy' => [
+            'label' => 'Privacy & consent',
+            'description' => 'Cookie-dependent embeds and consent tracking.',
+        ],
+    ],
     'site_settings' => [
 
         // The address is edited as parts, not as JSON: it is a fixed shape, and a typo

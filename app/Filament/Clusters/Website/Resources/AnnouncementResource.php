@@ -20,7 +20,7 @@ use Modules\Website\Models\Announcement;
 /**
  * F3/CLA-469 of the multi-organization program — docs/ai/adr-multi-organization.md.
  *
- * A real CRUD list — unlike SiteSettingsPage's fixed key/value slots, an
+ * A real CRUD list — unlike the site settings pages' fixed key/value slots, an
  * announcement is genuinely list-shaped content (multiple, dated, with a
  * lifecycle). Still hardcoded to Claesen's site (see
  * ProjectResource::categoryOptions()'s identical rationale) until Bertels

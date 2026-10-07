@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Filament\Clusters\Website\Pages\AddressSettingsPage;
 use App\Filament\Clusters\Website\Pages\PagePublicationReviewPage;
-use App\Filament\Clusters\Website\Pages\SiteSettingsPage;
 use App\Filament\Clusters\Website\Pages\TranslationReviewPage;
 use App\Filament\Clusters\Website\Resources\MediaSlotResource\Pages\ListMediaSlots;
 use App\Filament\Clusters\Website\Resources\ProjectResource\Pages\EditProject;
@@ -62,7 +62,10 @@ final class SitePublicationHeaderTest extends TestCase
     {
         $this->actingAsSuperAdmin();
 
-        Livewire::test(SiteSettingsPage::class)
+        // Una de las seis páginas de Ajustes: el header lo aporta el trait compartido, así que
+        // alcanza con comprobarlo en una — y el test del mapa exige que las seis existan y
+        // tengan etiqueta.
+        Livewire::test(AddressSettingsPage::class)
             ->assertOk()
             ->assertActionExists('publish_now')
             // assertSeeLivewire and not assertSee: the widget is a Livewire child, so its text
@@ -83,7 +86,7 @@ final class SitePublicationHeaderTest extends TestCase
 
         Queue::fake();
 
-        Livewire::test(SiteSettingsPage::class)->callAction('publish_now');
+        Livewire::test(AddressSettingsPage::class)->callAction('publish_now');
 
         Queue::assertPushed(
             TriggerStaticSiteRebuildJob::class,

@@ -331,6 +331,35 @@ return [
             'archived' => 'Gearchiveerd',
         ],
     ],
+    // WU-S2: la división de Ajustes en seis páginas, tal como la declara el prototipo
+    // aprobado. `settings_sections.*.label` es el nombre en el menú y el título de la página, y
+    // `.description` es la línea que va debajo del título.
+    'settings_sections' => [
+        'general' => [
+            'label' => 'Algemeen',
+            'description' => 'Juridische identiteit voor de footer, de juridische pagina\'s en de zoekdata.',
+        ],
+        'contact' => [
+            'label' => 'Contact',
+            'description' => 'Telefoon, WhatsApp en e-mail zoals ze op de site verschijnen.',
+        ],
+        'address' => [
+            'label' => 'Adres en kaarten',
+            'description' => 'Waar de zaak is en hoe bezoekers die vinden.',
+        ],
+        'hours' => [
+            'label' => 'Openingsuren',
+            'description' => 'Weekrooster in de footer en op de contactpagina.',
+        ],
+        'social' => [
+            'label' => 'Sociale links',
+            'description' => 'Profielen waarnaar de footer linkt.',
+        ],
+        'privacy' => [
+            'label' => 'Privacy en toestemming',
+            'description' => 'Embeds die van cookies afhangen en het bijhouden van toestemming.',
+        ],
+    ],
     'site_settings' => [
 
         // Het adres wordt per deel bewerkt, niet als JSON: het is een vaste vorm en een

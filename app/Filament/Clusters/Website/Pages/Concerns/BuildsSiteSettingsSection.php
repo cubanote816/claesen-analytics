@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Filament\Clusters\Website\Pages;
+namespace App\Filament\Clusters\Website\Pages\Concerns;
 
 use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
-use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Clusters\Website\WebsiteSettingSections;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -13,9 +13,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -24,58 +22,72 @@ use Modules\Core\Models\Site;
 use Modules\Website\Models\SiteSetting;
 
 /**
- * F3/CLA-469 of the multi-organization program — docs/ai/adr-multi-organization.md.
+ * El formulario de **una** sección de ajustes.
  *
- * A settings FORM (fixed slots from config('website.site_settings.allowed_keys')),
- * not a CRUD resource — same "no page builder" boundary the ticket draws
- * explicitly. Hardcoded to Claesen's site (Site::forPanelOrFail()->id), same rationale
- * as ProjectResource::categoryOptions()/CreateAnnouncement — Bertels has no
- * panel yet (F3/F4).
+ * Vive en un trait y no en una clase base abstracta por una razón práctica: Filament
+ * auto-descubre las `Page` de este directorio, y una base abstracta ahí dentro es un riesgo que
+ * no hace falta correr. Las seis páginas concretas usan este trait y sólo declaran su sección.
  *
- * 'hours' (type 'translatable') gets one plain TextInput per locale here
- * rather than routing through HasAiTranslations/a single-field-plus-AI-
- * translation flow — this table's `value` column isn't itself a
- * HasTranslations attribute (it's a manual per-key JSON blob covering three
- * different value shapes), so wiring automatic translation for one of those
- * shapes is out of scope for a first version of this settings page.
+ * **La lógica de los campos se movió, no se rehizo**: el domicilio sigue siendo cuatro campos,
+ * `opening_hours` sigue siendo un `Repeater` de un día por fila con el `Toggle` derivado de
+ * `hours === null`, y el correo sigue teniendo su regla. Lo único que cambió es de dónde salen
+ * las claves: `sectionKeys()` en lugar del whitelist entero. Eso es lo que hace que guardar
+ * Contacto no toque los horarios — y es la mitad de «cada página se publica por su cuenta».
+ *
+ * F3/CLA-469: sigue siendo un formulario de slots fijos, no un CRUD, y sigue atado al sitio del
+ * panel (`Site::forPanelOrFail()`), que es lo que permite que el mismo clúster sirva a Claesen y
+ * a Bertels.
  */
-class SiteSettingsPage extends Page implements HasForms
+trait BuildsSiteSettingsSection
 {
     use InteractsWithForms;
     use ShowsSitePublicationState;
 
     /**
-     * The address keys the site's contract defines. Anything else is dropped on save:
-     * a stray key would travel into the site's snapshot untouched.
+     * Las claves de dirección que define el contrato del sitio. Cualquier otra se descarta al
+     * guardar: una clave ajena viajaría intacta al snapshot del sitio.
      *
      * @var list<string>
      */
     private const ADDRESS_KEYS = ['street', 'postal_code', 'city', 'country_code'];
 
     /**
-     * The four day keys the site's snapshot contract accepts — not seven. The first
-     * seeder was rejected by the site's own validator with exactly this list:
+     * Las cuatro claves de día que acepta el contrato del snapshot — no siete. El primer
+     * seeder fue rechazado por el validador del propio sitio con exactamente esta lista:
      * `opening_hours.day_key must be one of sunday, monday, tuesdayToFriday, saturday`.
-     * `tuesdayToFriday` is the contract's shape and not a shortcut: the real hours share
-     * one midday break across those four days.
      *
      * @var list<string>
      */
     private const OPENING_HOURS_DAY_KEYS = ['sunday', 'monday', 'tuesdayToFriday', 'saturday'];
 
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
-
-    protected static ?string $cluster = WebsiteCluster::class;
-
-    protected static ?string $slug = 'site-settings';
-
-    protected string $view = 'website::filament.pages.site-settings';
-
+    /**
+     * `$cluster` y `$view` **no** se declaran acá a propósito: `Filament\Pages\Page` los define,
+     * y una propiedad de trait que difiere de la del padre es un error fatal de composición
+     * («define the same property … however, the definition differs»). Las declara cada página
+     * concreta, donde sobrescribir el valor por defecto sí está permitido.
+     */
     public ?array $data = [];
+
+    /** La sección que edita esta página. La declara cada página concreta. */
+    abstract public static function section(): string;
+
+    /**
+     * Las claves de esta sección, con su tipo, en el orden del whitelist.
+     *
+     * @return array<string, string>
+     */
+    protected static function sectionKeys(): array
+    {
+        $allowed = SiteSetting::allowedKeys();
+
+        return collect(WebsiteSettingSections::keys(static::section()))
+            ->mapWithKeys(fn (string $key): array => [$key => $allowed[$key] ?? SiteSetting::TYPE_TEXT])
+            ->all();
+    }
 
     public static function getNavigationLabel(): string
     {
-        return __('website.site_settings.label');
+        return __('website.settings_sections.'.static::section().'.label');
     }
 
     public static function canAccess(): bool
@@ -85,7 +97,7 @@ class SiteSettingsPage extends Page implements HasForms
 
     public function getTitle(): string
     {
-        return __('website.site_settings.label');
+        return static::getNavigationLabel();
     }
 
     public function mount(): void
@@ -98,27 +110,19 @@ class SiteSettingsPage extends Page implements HasForms
 
         $state = [];
 
-        foreach (SiteSetting::allowedKeys() as $key => $type) {
+        foreach (self::sectionKeys() as $key => $type) {
             $setting = $settings->get($key);
             $value = $setting?->value;
 
             $state[$key] = match ($type) {
                 SiteSetting::TYPE_TRANSLATABLE => is_array($value) ? $value : [],
-                // 'social_links' keeps its structured Repeater; every other
-                // JSON key is edited as raw JSON text (CLA-479 company facts
-                // are heterogeneous shapes — scalar `founded_year`, object
-                // `address_structured`, array `opening_hours`).
                 SiteSetting::TYPE_JSON => match (true) {
-                    // Keys with a shape of their own are edited as parts, not as JSON.
-                    // `address_structured` is a fixed set of four fields, so there is
-                    // nothing to gain from making someone type braces and quotes around
-                    // them — and everything to lose: a stray keystroke inside a JSON
-                    // blob is still valid JSON, which is how `"Balennn"` got saved.
+                    // Las claves con forma propia se editan por partes, no como JSON.
                     $key === 'social_links',
                     $key === 'address_structured' => is_array($value) ? $value : [],
-                    // `opening_hours` reaches the form as day rows, not as the contract's
-                    // array: the toggle that says "closed" is derived from `hours === null`
-                    // rather than stored, so there is one source of truth for it.
+                    // `opening_hours` llega al formulario como filas de día, no como el array
+                    // del contrato: el `Toggle` que dice «cerrado» se deriva de `hours === null`
+                    // en vez de guardarse al lado, así que hay una sola fuente de verdad.
                     $key === 'opening_hours' => self::openingHoursForForm($value),
                     default => isset($value)
                         ? json_encode($value, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
@@ -135,7 +139,7 @@ class SiteSettingsPage extends Page implements HasForms
     {
         $fields = [];
 
-        foreach (SiteSetting::allowedKeys() as $key => $type) {
+        foreach (self::sectionKeys() as $key => $type) {
             if ($type === SiteSetting::TYPE_TRANSLATABLE) {
                 $fields[] = Section::make(__("website.site_settings.fields.{$key}"))
                     ->schema([
@@ -149,11 +153,10 @@ class SiteSettingsPage extends Page implements HasForms
                 continue;
             }
 
-            // 'social_links' keeps its dedicated Repeater (CLA-469 shape,
-            // frozen for the Claesen panel); all other JSON keys get a
-            // raw-JSON editor validated server-side. Explicit branching —
-            // a `TYPE_JSON && $key === 'social_links'` MATCH arm evaluates
-            // to bool and can never match $type.
+            // 'social_links' conserva su Repeater propio (forma CLA-469, congelada para el panel
+            // de Claesen); el resto de las claves JSON tienen editor de JSON crudo validado en el
+            // servidor. Ramas explícitas: un brazo `TYPE_JSON && $key === 'social_links'` dentro
+            // de un `match` evalúa a bool y nunca puede coincidir con $type.
             if ($type === SiteSetting::TYPE_JSON && $key === 'social_links') {
                 $fields[] = Section::make(__("website.site_settings.fields.{$key}"))
                     ->schema([
@@ -200,8 +203,8 @@ class SiteSettingsPage extends Page implements HasForms
                                     ->label(__('website.site_settings.opening_hours.day'))
                                     ->options(self::openingHoursDayOptions())
                                     ->required()
-                                    // The contract's day list is a set: two rows for the same
-                                    // day would reach the site's snapshot as two Sundays.
+                                    // La lista de días del contrato es un conjunto: dos filas del
+                                    // mismo día llegarían al snapshot como dos domingos.
                                     ->distinct(),
                                 Toggle::make('closed')
                                     ->label(__('website.site_settings.opening_hours.closed'))
@@ -248,12 +251,11 @@ class SiteSettingsPage extends Page implements HasForms
                 ->hint(self::hintFor($key))
                 ->hintIcon('heroicon-m-information-circle');
 
-            // `->email()` alone is not enough here, and this is not hypothetical: the
-            // value that actually got saved was `info@electrobertels.be5`, which passes
-            // RFC validation because a digit is legal in a TLD. The extra rule requires
-            // the TLD to be letters only. It does NOT catch a typo like
-            // `info@electrobertels.bee` — that one is simply a valid address — so this
-            // is a guard against the class of mistake that happened, not a promise.
+            // `->email()` a secas no alcanza, y no es hipotético: el valor que de verdad se
+            // guardó fue `info@electrobertels.be5`, que pasa la validación RFC porque un dígito
+            // es legal en un TLD. La regla extra exige que el TLD sea sólo letras. NO caza un
+            // error como `info@electrobertels.bee` —esa es una dirección válida— así que es una
+            // guarda contra la clase de error que ocurrió, no una promesa.
             $fields[] = $key === 'email'
                 ? $input->email()->regex('/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/')
                 : $input;
@@ -263,10 +265,8 @@ class SiteSettingsPage extends Page implements HasForms
     }
 
     /**
-     * Optional per-key hint text (e.g. the address/address_structured
-     * consumer note required by approver decision 2A). Rendered only when
-     * the translation key actually exists — __() would otherwise leak the
-     * raw key string into the UI.
+     * Nota opcional por clave (por ejemplo la del domicilio que exige la decisión 2A). Se
+     * devuelve sólo si la traducción existe — si no, `__()` filtraría la clave cruda a la UI.
      */
     private static function hintFor(string $key): ?string
     {
@@ -278,8 +278,8 @@ class SiteSettingsPage extends Page implements HasForms
     }
 
     /**
-     * The day labels for the `Select`, keyed by the contract's own `day_key` values — the
-     * labels are chrome (they get translated), the keys are data and never are.
+     * Las etiquetas de día del `Select`, con las claves del contrato. Las etiquetas son chrome
+     * (se traducen), las claves son datos y nunca se tocan.
      *
      * @return array<string, string>
      */
@@ -293,16 +293,15 @@ class SiteSettingsPage extends Page implements HasForms
     }
 
     /**
-     * Contract shape -> form shape. `hours === null` IS the contract's "closed", so the
-     * toggle is derived from it rather than stored alongside it: two representations of
-     * the same fact could disagree, one cannot.
+     * Forma del contrato -> forma del formulario. `hours === null` ES el «cerrado» del contrato,
+     * así que el `Toggle` se deriva de eso en vez de guardarse al lado: dos representaciones del
+     * mismo hecho podrían contradecirse, una no.
      *
-     * Days the contract does not define are dropped on the way in as well, so a legacy
-     * seven-day list (the shape that got the first seeder rejected) shows up as the four
-     * days that are actually editable instead of silently disappearing on save.
+     * Los días que el contrato no define se descartan también al entrar, así una lista heredada
+     * de siete días se ve como los cuatro editables en lugar de desaparecer al guardar.
      *
-     * Order is preserved, not re-imposed: the stored array is what the site's snapshot
-     * holds, and reordering it here would rewrite the payload the sync compares against.
+     * El orden se **conserva**, no se reimpone: el array guardado es el que tiene el snapshot del
+     * sitio, y reordenarlo acá reescribiría el payload contra el que el sync compara.
      *
      * @return list<array{day_key: string, closed: bool, hours: list<array{open: mixed, close: mixed}>}>
      */
@@ -327,11 +326,11 @@ class SiteSettingsPage extends Page implements HasForms
                 return [
                     'day_key' => $day,
                     'closed' => $hours === null,
-                    // A closed day still arrives with one blank period, so flipping the toggle
-                    // open leaves a row to fill instead of an empty area behind an "add"
-                    // button. `defaultItems` cannot do this: by the time a day is opened the
-                    // repeater already has state. A closed day never stores it — the mapper
-                    // writes `hours: null` whenever the toggle says closed.
+                    // Un día cerrado llega igual con un período en blanco, para que abrir el
+                    // `Toggle` deje una fila lista en vez de un hueco detrás de un botón.
+                    // `defaultItems` no puede hacerlo: cuando el día se abre, el repeater ya
+                    // tiene estado. Un día cerrado nunca lo guarda: el mapper escribe
+                    // `hours: null` siempre que el `Toggle` dice cerrado.
                     'hours' => $ranges === [] ? [['open' => null, 'close' => null]] : $ranges,
                 ];
             })
@@ -340,17 +339,17 @@ class SiteSettingsPage extends Page implements HasForms
     }
 
     /**
-     * Form shape -> contract shape, the inverse of openingHoursForForm().
+     * Forma del formulario -> forma del contrato, la inversa de openingHoursForForm().
      *
-     * The `Select` already makes an unknown day unreachable from the UI, and validation
-     * stops the save before this runs — that is the trap that produced a false bug report
-     * once: a test pushed a deliberately invalid `day_key`, the save aborted, and the empty
-     * column looked like a mapper defect. This is the line of defence behind both, so a day
-     * outside the contract can never reach the site's snapshot even if it arrives anyway.
+     * El `Select` ya hace inalcanzable un día desconocido desde la UI y la validación corta antes:
+     * ésa es la trampa que una vez produjo un informe de bug falso —un test metía un `day_key`
+     * inválido, el guardado abortaba, y la columna vacía parecía un defecto del mapper—. Esto es
+     * la línea de defensa detrás de las dos, para que un día fuera del contrato no llegue al
+     * snapshot ni aunque llegue igual.
      *
-     * A day that is open with no usable range collapses to `hours: null` (closed): the
-     * contract has `null` or a non-empty list, nothing in between. The form requires at
-     * least one range for an open day, so this only catches input that never came from it.
+     * Un día abierto sin ningún rango usable colapsa a `hours: null` (cerrado): el contrato tiene
+     * `null` o una lista no vacía, nada en el medio. El formulario exige al menos un rango para un
+     * día abierto, así que esto sólo atrapa entrada que nunca vino de él.
      *
      * @return list<array{day_key: string, hours: null | list<array{open: string, close: string}>}>
      */
@@ -413,7 +412,9 @@ class SiteSettingsPage extends Page implements HasForms
         $siteId = Site::forPanelOrFail()->id;
         $state = $this->form->getState();
 
-        foreach (SiteSetting::allowedKeys() as $key => $type) {
+        // Sólo las claves de esta sección: guardar Contacto no escribe los horarios, y por lo
+        // tanto no los marca como cambiados para nadie.
+        foreach (self::sectionKeys() as $key => $type) {
             $value = $state[$key] ?? null;
 
             if ($type === SiteSetting::TYPE_TRANSLATABLE) {
@@ -421,10 +422,10 @@ class SiteSettingsPage extends Page implements HasForms
             }
 
             if ($key === 'address_structured') {
-                // Only the keys the consumer's contract defines. A stray key would be
-                // carried into the site's snapshot untouched, and the order is the
-                // database's anyway: MySQL's JSON column reorders object keys by length,
-                // so writing them in a "canonical" order here buys nothing.
+                // Sólo las claves que define el contrato del consumidor. Una clave ajena viajaría
+                // intacta al snapshot del sitio, y el orden es el de la base de todas formas: la
+                // columna JSON de MySQL reordena las claves por longitud, así que escribirlas en
+                // un orden «canónico» acá no compra nada.
                 $value = collect(self::ADDRESS_KEYS)
                     ->mapWithKeys(fn (string $part): array => [
                         $part => filled($value[$part] ?? null) ? (string) $value[$part] : null,
@@ -434,15 +435,15 @@ class SiteSettingsPage extends Page implements HasForms
             }
 
             if ($key === 'opening_hours') {
-                // The toggle decides, not the ranges left behind in the state: the contract
-                // expresses "closed" as `hours: null`, and anything the day list does not
-                // define is dropped rather than carried into the site's snapshot.
+                // El `Toggle` decide, no los rangos que quedaron en el estado: el contrato
+                // expresa «cerrado» como `hours: null`, y lo que la lista de días no define se
+                // descarta en vez de viajar al snapshot.
                 $value = self::openingHoursForStorage($value);
             }
 
-            // Raw-JSON editor keys arrive as a JSON string — decode before
-            // persisting so the `value` column keeps its array-cast contract
-            // (the field's ->rule('json') already rejected invalid input).
+            // Las claves con editor de JSON crudo llegan como string — se decodifican antes de
+            // persistir para que la columna `value` conserve su contrato de cast a array (el
+            // `->rule('json')` del campo ya rechazó la entrada inválida).
             if ($type === SiteSetting::TYPE_JSON
                 && ! in_array($key, ['social_links', 'address_structured', 'opening_hours'], true)
             ) {

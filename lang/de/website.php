@@ -239,6 +239,34 @@ return [
             'publish_now_success'        => 'Veröffentlichung angefordert',
         ],
     ],
+    // WU-S2: die Aufteilung der Website-Einstellungen in sechs Seiten, wie der genehmigte
+    // Prototyp sie deklariert.
+    'settings_sections' => [
+        'general' => [
+            'label' => 'Allgemein',
+            'description' => 'Rechtliche Identität für Footer, Rechtsseiten und Suchdaten.',
+        ],
+        'contact' => [
+            'label' => 'Kontakt',
+            'description' => 'Telefon, WhatsApp und E-Mail, wie sie auf der Website erscheinen.',
+        ],
+        'address' => [
+            'label' => 'Adresse und Karten',
+            'description' => 'Wo der Betrieb ist und wie Besucher ihn finden.',
+        ],
+        'hours' => [
+            'label' => 'Öffnungszeiten',
+            'description' => 'Wochenplan im Footer und auf der Kontaktseite.',
+        ],
+        'social' => [
+            'label' => 'Social-Media-Links',
+            'description' => 'Profile, auf die der Footer verlinkt.',
+        ],
+        'privacy' => [
+            'label' => 'Datenschutz und Einwilligung',
+            'description' => 'Cookie-abhängige Einbettungen und Einwilligungsverfolgung.',
+        ],
+    ],
     'site_settings' => [
 
         // Die Adresse wird in Teilen bearbeitet, nicht als JSON: es ist eine feste Form, und
