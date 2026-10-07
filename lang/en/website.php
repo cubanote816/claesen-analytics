@@ -329,6 +329,13 @@ return [
     // WU-S2: the split of Site settings into six pages, as the approved prototype declares it.
     // WU-S1: the four groups of the Website submenu, from the prototype. The value has to be the
     // SAME across the items of a group (Filament groups by text), so it resolves in one place.
+    // WU-S3: the unsaved-changes bar. It replaces the Save button at the end of the form.
+    'settings_bar' => [
+        'unsaved'    => 'Unsaved changes',
+        'discard'    => 'Discard',
+        'save_draft' => 'Save draft',
+        'discarded'  => 'Changes discarded',
+    ],
     'nav_groups' => [
         'publishing'    => 'Publishing',
         'content'       => 'Content',

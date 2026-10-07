@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Clusters\Website\Pages\Concerns;
 
 use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
+use App\Filament\Clusters\Website\WebsiteCluster;
 use App\Filament\Clusters\Website\WebsiteNavigationBadges;
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Clusters\Website\WebsiteSettingSections;
@@ -133,7 +134,154 @@ trait BuildsSiteSettingsSection
         return static::getNavigationLabel();
     }
 
+    /** La línea de descripción que el prototipo pide debajo del título. */
+    public function getSubheading(): ?string
+    {
+        return __('website.settings_sections.'.static::section().'.description');
+    }
+
+    /**
+     * Migas de pan de tres partes: sitio › grupo › página, como el prototipo.
+     *
+     * Clave **entera** para el grupo y para la página actual: Filament renderiza un `<span>` sin
+     * enlace cuando la clave es un número, que es lo que corresponde — el grupo no es una pantalla
+     * y la página actual es donde ya estás.
+     */
+    public function getBreadcrumbs(): array
+    {
+        $cluster = WebsiteCluster::class;
+
+        return [
+            $cluster::getUrl() => $cluster::getNavigationLabel(),
+            WebsiteNavigationGroups::label(WebsiteNavigationGroups::SITE_SETTINGS),
+            static::getNavigationLabel(),
+        ];
+    }
+
+    /**
+     * ¿Guardar ahora cambiaría algo? — lo que decide si la barra aparece.
+     *
+     * Se compara lo que **se guardaría** contra lo que hay en la base, y **no** el estado crudo del
+     * formulario: el `Repeater` de horarios indexa sus filas por **uuid** y esos uuid cambian en
+     * cada montaje, así que el estado crudo «difiere» siempre. Comparar la forma del contrato
+     * responde la pregunta de verdad, y de paso hace que **editar y volver atrás no cuente como
+     * cambio** — a diferencia del badge de la navegación, que cuenta cambios hechos.
+     */
+    public function hasUnsavedChanges(): bool
+    {
+        $stored = $this->storedShape();
+
+        foreach ($this->pendingShape() as $key => $value) {
+            // `!=` y no `!==` a propósito: MySQL **reordena las claves** de un objeto JSON por
+            // longitud, así que una comparación estricta de arrays afirma el orden de la base y
+            // daría «hay cambios» para siempre.
+            if (self::comparable($value) != self::comparable($stored[$key] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Vuelve al último borrador **guardado**.
+     *
+     * La base es el borrador, así que descartar no restaura nada de la sesión: relee lo guardado.
+     * Es lo que el criterio de aceptación pide, y no necesita almacenamiento nuevo.
+     */
+    public function discard(): void
+    {
+        $this->fillFromStored();
+
+        Notification::make()
+            ->title(__('website.settings_bar.discarded'))
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Lo que se escribiría ahora mismo, en la forma del contrato.
+     *
+     * La usan `save()` **y** `hasUnsavedChanges()`, y que sea una sola es lo que impide que la barra
+     * diga una cosa y el guardado haga otra.
+     *
+     * @return array<string, mixed>
+     */
+    private function pendingShape(): array
+    {
+        $state = $this->form->getRawState();
+        $out = [];
+
+        foreach (self::sectionKeys() as $key => $type) {
+            $value = $state[$key] ?? null;
+
+            if ($type === SiteSetting::TYPE_TRANSLATABLE) {
+                $value = array_filter($value ?? [], fn ($v) => filled($v));
+            }
+
+            if ($key === 'address_structured') {
+                // Sólo las claves que define el contrato del consumidor. Una clave ajena viajaría
+                // intacta al snapshot del sitio.
+                $value = collect(self::ADDRESS_KEYS)
+                    ->mapWithKeys(fn (string $part): array => [
+                        $part => filled($value[$part] ?? null) ? (string) $value[$part] : null,
+                    ])
+                    ->reject(fn (?string $part): bool => $part === null)
+                    ->all();
+            }
+
+            if ($key === 'opening_hours') {
+                // El `Toggle` decide, no los rangos que quedaron en el estado: el contrato expresa
+                // «cerrado» como `hours: null`, y lo que la lista de días no define se descarta.
+                $value = self::openingHoursForStorage($value);
+            }
+
+            // Las claves con editor de JSON crudo llegan como string — se decodifican antes de
+            // persistir para que la columna `value` conserve su contrato de cast a array (el
+            // `->rule('json')` del campo ya rechazó la entrada inválida).
+            if ($type === SiteSetting::TYPE_JSON
+                && ! in_array($key, ['social_links', 'address_structured', 'opening_hours'], true)
+            ) {
+                $value = json_decode((string) $value, true);
+            }
+
+            $out[$key] = $value;
+        }
+
+        return $out;
+    }
+
+    /** @return array<string, mixed> */
+    private function storedShape(): array
+    {
+        $siteId = Site::forPanelOrFail()->id;
+
+        return SiteSetting::query()
+            ->where('site_id', $siteId)
+            ->whereIn('key', array_keys(self::sectionKeys()))
+            ->pluck('value', 'key')
+            ->all();
+    }
+
+    /** `null`, cadena vacía y lista vacía son lo mismo: «nada» — y una clave que nunca se guardó. */
+    private static function comparable(mixed $value): mixed
+    {
+        return ($value === null || $value === '' || $value === []) ? null : $value;
+    }
+
     public function mount(): void
+    {
+        $this->fillFromStored();
+    }
+
+    /**
+     * El estado del formulario a partir de lo **guardado**.
+     *
+     * Única puerta de entrada a propósito: `discard()` y `mount()` la comparten, así que descartar
+     * no puede divergir de abrir la pantalla. La base **es** el borrador guardado, así que
+     * descartar es volver a leerla — no hay nada más que guardar para eso.
+     */
+    private function fillFromStored(): void
     {
         $siteId = Site::forPanelOrFail()->id;
         $settings = SiteSetting::query()
@@ -176,10 +324,10 @@ trait BuildsSiteSettingsSection
             if ($type === SiteSetting::TYPE_TRANSLATABLE) {
                 $fields[] = Section::make(__("website.site_settings.fields.{$key}"))
                     ->schema([
-                        TextInput::make("{$key}.nl")->label('NL'),
-                        TextInput::make("{$key}.en")->label('EN'),
-                        TextInput::make("{$key}.fr")->label('FR'),
-                        TextInput::make("{$key}.de")->label('DE'),
+                        self::localeInput("{$key}.nl", 'NL', $key),
+                        self::localeInput("{$key}.en", 'EN', $key),
+                        self::localeInput("{$key}.fr", 'FR', $key),
+                        self::localeInput("{$key}.de", 'DE', $key),
                     ])
                     ->columns(2);
 
@@ -272,8 +420,9 @@ trait BuildsSiteSettingsSection
             if ($type === SiteSetting::TYPE_JSON) {
                 $fields[] = TextInput::make($key)
                     ->label(__("website.site_settings.fields.{$key}"))
-                    ->hint(self::hintFor($key))
-                    ->hintIcon('heroicon-m-information-circle')
+                    // `helperText` y no `hint`: el prototipo pide la ayuda **debajo del campo**, no
+                    // escondida detrás del icono «i».
+                    ->helperText(self::hintFor($key))
                     ->rule('json');
 
                 continue;
@@ -281,8 +430,7 @@ trait BuildsSiteSettingsSection
 
             $input = TextInput::make($key)
                 ->label(__("website.site_settings.fields.{$key}"))
-                ->hint(self::hintFor($key))
-                ->hintIcon('heroicon-m-information-circle');
+                ->helperText(self::hintFor($key));
 
             // `->email()` a secas no alcanza, y no es hipotético: el valor que de verdad se
             // guardó fue `info@electrobertels.be5`, que pasa la validación RFC porque un dígito
@@ -301,6 +449,23 @@ trait BuildsSiteSettingsSection
      * Nota opcional por clave (por ejemplo la del domicilio que exige la decisión 2A). Se
      * devuelve sólo si la traducción existe — si no, `__()` filtraría la clave cruda a la UI.
      */
+    /**
+     * Un campo de un idioma: el código va **dentro** del input, como prefijo.
+     *
+     * La etiqueta por campo se esconde a propósito: repetiría el prefijo («Nl» arriba y «NL»
+     * adentro) y el nombre del campo ya está en el título del grupo. El `aria-label` conserva el
+     * nombre accesible, que es lo que no se puede perder al esconder la etiqueta.
+     */
+    private static function localeInput(string $path, string $locale, string $key): TextInput
+    {
+        return TextInput::make($path)
+            ->hiddenLabel()
+            ->prefix($locale)
+            ->extraInputAttributes([
+                'aria-label' => __("website.site_settings.fields.{$key}")." ({$locale})",
+            ]);
+    }
+
     private static function hintFor(string $key): ?string
     {
         $translationKey = "website.site_settings.hints.{$key}";
@@ -442,50 +607,20 @@ trait BuildsSiteSettingsSection
 
     public function save(): void
     {
+        // Valida **antes** de tocar nada. `pendingShape()` lee el estado **crudo** — que es lo que
+        // hace comparable el formulario — y el estado crudo no valida por sí solo: sin esta línea,
+        // un correo inválido o una hora fuera de contrato se guardarían igual.
+        $this->form->getState();
+
         $siteId = Site::forPanelOrFail()->id;
-        $state = $this->form->getState();
+        $types = self::sectionKeys();
 
-        // Sólo las claves de esta sección: guardar Contacto no escribe los horarios, y por lo
-        // tanto no los marca como cambiados para nadie.
-        foreach (self::sectionKeys() as $key => $type) {
-            $value = $state[$key] ?? null;
-
-            if ($type === SiteSetting::TYPE_TRANSLATABLE) {
-                $value = array_filter($value ?? [], fn ($v) => filled($v));
-            }
-
-            if ($key === 'address_structured') {
-                // Sólo las claves que define el contrato del consumidor. Una clave ajena viajaría
-                // intacta al snapshot del sitio, y el orden es el de la base de todas formas: la
-                // columna JSON de MySQL reordena las claves por longitud, así que escribirlas en
-                // un orden «canónico» acá no compra nada.
-                $value = collect(self::ADDRESS_KEYS)
-                    ->mapWithKeys(fn (string $part): array => [
-                        $part => filled($value[$part] ?? null) ? (string) $value[$part] : null,
-                    ])
-                    ->reject(fn (?string $part): bool => $part === null)
-                    ->all();
-            }
-
-            if ($key === 'opening_hours') {
-                // El `Toggle` decide, no los rangos que quedaron en el estado: el contrato
-                // expresa «cerrado» como `hours: null`, y lo que la lista de días no define se
-                // descarta en vez de viajar al snapshot.
-                $value = self::openingHoursForStorage($value);
-            }
-
-            // Las claves con editor de JSON crudo llegan como string — se decodifican antes de
-            // persistir para que la columna `value` conserve su contrato de cast a array (el
-            // `->rule('json')` del campo ya rechazó la entrada inválida).
-            if ($type === SiteSetting::TYPE_JSON
-                && ! in_array($key, ['social_links', 'address_structured', 'opening_hours'], true)
-            ) {
-                $value = json_decode((string) $value, true);
-            }
-
+        // Sólo las claves de esta sección: guardar Contacto no escribe los horarios, y por lo tanto
+        // no los marca como cambiados para nadie.
+        foreach ($this->pendingShape() as $key => $value) {
             SiteSetting::query()->updateOrCreate(
                 ['site_id' => $siteId, 'key' => $key],
-                ['value' => $value, 'type' => $type],
+                ['value' => $value, 'type' => $types[$key]],
             );
         }
 

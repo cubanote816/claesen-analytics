@@ -337,6 +337,13 @@ return [
     // WU-S1: los cuatro grupos del submenú de Website, del prototipo. El valor tiene que ser el
     // **mismo** entre los ítems de un grupo (Filament agrupa por texto), así que la etiqueta se
     // resuelve en un solo sitio.
+    // WU-S3: la barra de cambios sin guardar. Sustituye al botón «Save» del final del formulario.
+    'settings_bar' => [
+        'unsaved'    => 'Niet-opgeslagen wijzigingen',
+        'discard'    => 'Verwerpen',
+        'save_draft' => 'Concept opslaan',
+        'discarded'  => 'Wijzigingen verworpen',
+    ],
     'nav_groups' => [
         'publishing'    => 'Publiceren',
         'content'       => 'Inhoud',

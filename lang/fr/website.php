@@ -243,6 +243,14 @@ return [
     // WU-S1 : les quatre groupes du sous-menu Website, du prototype. La valeur doit être la MÊME
     // entre les éléments d'un groupe (Filament groupe par texte), donc elle se résout en un seul
     // endroit.
+    // WU-S3 : la barre des modifications non enregistrées. Elle remplace le bouton
+    // « Enregistrer » à la fin du formulaire.
+    'settings_bar' => [
+        'unsaved'    => 'Modifications non enregistrées',
+        'discard'    => 'Abandonner',
+        'save_draft' => 'Enregistrer le brouillon',
+        'discarded'  => 'Modifications abandonnées',
+    ],
     'nav_groups' => [
         'publishing'    => 'Publication',
         'content'       => 'Contenu',

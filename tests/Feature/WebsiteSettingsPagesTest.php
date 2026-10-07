@@ -8,6 +8,7 @@ use App\Filament\Clusters\Website\Pages\AddressSettingsPage;
 use App\Filament\Clusters\Website\Pages\ContactSettingsPage;
 use App\Filament\Clusters\Website\Pages\OpeningHoursSettingsPage;
 use App\Filament\Clusters\Website\Pages\SocialLinksSettingsPage;
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Core\Models\Site;
@@ -137,6 +138,102 @@ final class WebsiteSettingsPagesTest extends TestCase
             ->call('save');
 
         $this->assertEquals(['nl' => 'Ma-Vr: 9-17u'], $this->stored('hours'));
+    }
+
+    // ─── Cabecera y barra de cambios sin guardar (WU-S3) ───────────────────────
+
+    /**
+     * Criterio de aceptación del slice: **discard restaura el último borrador guardado**.
+     *
+     * Y sale gratis, porque la base **es** el borrador guardado: descartar es volver a leerla, no
+     * hay nada que guardar para poder descartar. Lo que sí hay que probar es que relee lo guardado
+     * y **no** el estado inicial de la sesión ni un formulario vacío.
+     */
+    public function test_discard_restores_the_last_saved_draft(): void
+    {
+        $this->actingAsSuperAdmin();
+        SiteSetting::factory()->create([
+            'key'   => 'email',
+            'type'  => SiteSetting::TYPE_TEXT,
+            'value' => 'guardado@electrobertels.be',
+        ]);
+
+        Livewire::test(ContactSettingsPage::class)
+            ->assertFormSet(['email' => 'guardado@electrobertels.be'])
+            ->fillForm(['email' => 'a-medio-cambiar@electrobertels.be'])
+            ->assertFormSet(['email' => 'a-medio-cambiar@electrobertels.be'])
+            ->call('discard')
+            ->assertFormSet(['email' => 'guardado@electrobertels.be']);
+
+        // Y descartar no escribió nada: el borrador guardado sigue siendo el mismo.
+        $this->assertSame('guardado@electrobertels.be', $this->stored('email'));
+    }
+
+    /**
+     * La barra aparece **cuando hay algo que guardar** y desaparece cuando no.
+     *
+     * Es lo que el prototipo pide al sustituir el botón «Save» del final del formulario: la acción
+     * de guardar está cuando hay algo que guardar, no siempre a la vista.
+     */
+    public function test_the_unsaved_bar_shows_only_when_saving_would_change_something(): void
+    {
+        $this->actingAsSuperAdmin();
+        SiteSetting::factory()->create([
+            'key'   => 'email',
+            'type'  => SiteSetting::TYPE_TEXT,
+            'value' => 'guardado@electrobertels.be',
+        ]);
+
+        Livewire::test(ContactSettingsPage::class)
+            // Recién abierta: el formulario dice lo mismo que la base.
+            ->assertDontSee(__('website.settings_bar.unsaved'))
+            ->fillForm(['email' => 'otro@electrobertels.be'])
+            ->assertSee(__('website.settings_bar.unsaved'))
+            ->call('save')
+            // Guardado: otra vez no hay nada pendiente.
+            ->assertDontSee(__('website.settings_bar.unsaved'));
+    }
+
+    /**
+     * Y volver al valor guardado **no** cuenta como cambio.
+     *
+     * Es la diferencia con el badge de la navegación, que cuenta cambios **hechos**: acá la pregunta
+     * es si guardar cambiaría algo, así que escribir lo mismo que ya está no enciende la barra.
+     */
+    public function test_typing_the_saved_value_back_does_not_count_as_a_change(): void
+    {
+        $this->actingAsSuperAdmin();
+        SiteSetting::factory()->create([
+            'key'   => 'email',
+            'type'  => SiteSetting::TYPE_TEXT,
+            'value' => 'guardado@electrobertels.be',
+        ]);
+
+        Livewire::test(ContactSettingsPage::class)
+            ->fillForm(['email' => 'otro@electrobertels.be'])
+            ->assertSee(__('website.settings_bar.unsaved'))
+            ->fillForm(['email' => 'guardado@electrobertels.be'])
+            ->assertDontSee(__('website.settings_bar.unsaved'));
+    }
+
+    /** La cabecera: migas de tres partes y la descripción de la sección debajo del título. */
+    public function test_the_header_carries_the_three_part_breadcrumb_and_the_description(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        $page = Livewire::test(ContactSettingsPage::class)->instance();
+
+        $this->assertSame(
+            __('website.settings_sections.contact.description'),
+            $page->getSubheading(),
+        );
+
+        $this->assertSame([
+            \App\Filament\Clusters\Website\WebsiteCluster::getUrl()
+                => \App\Filament\Clusters\Website\WebsiteCluster::getNavigationLabel(),
+            WebsiteNavigationGroups::label(WebsiteNavigationGroups::SITE_SETTINGS),
+            __('website.settings_sections.contact.label'),
+        ], $page->getBreadcrumbs());
     }
 
     // ─── Contact ──────────────────────────────────────────────────────────────

@@ -244,6 +244,14 @@ return [
     // WU-S1: die vier Gruppen des Website-Untermenüs, aus dem Prototyp. Der Wert muss zwischen
     // den Einträgen einer Gruppe DERSELBE sein (Filament gruppiert nach Text), daher wird er an
     // einer Stelle aufgelöst.
+    // WU-S3: die Leiste für nicht gespeicherte Änderungen. Sie ersetzt die Schaltfläche
+    // «Speichern» am Ende des Formulars.
+    'settings_bar' => [
+        'unsaved'    => 'Nicht gespeicherte Änderungen',
+        'discard'    => 'Verwerfen',
+        'save_draft' => 'Entwurf speichern',
+        'discarded'  => 'Änderungen verworfen',
+    ],
     'nav_groups' => [
         'publishing'    => 'Veröffentlichung',
         'content'       => 'Inhalt',
