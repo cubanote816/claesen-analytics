@@ -140,6 +140,13 @@ return [
 
     'enforce' => env('ORGANIZATIONS_ENFORCE', false),
 
+    // CLA-598: which Site each Filament panel manages. A panel manages exactly one
+    // site (ADR D1); the site is decided by the panel, never by request data.
+    'panel_sites' => [
+        'admin' => 'claesen-verlichting',
+        'bertels' => 'electro-bertels',
+    ],
+
     'owned_modules' => [
         'claesen' => [
             'fieldops',

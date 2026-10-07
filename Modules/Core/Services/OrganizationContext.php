@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Core\Services;
 
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Auth;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\Site;
@@ -73,6 +74,16 @@ class OrganizationContext
     {
         if ($this->siteResolved) {
             return $this->site;
+        }
+
+        // CLA-598: inside a Filament panel the panel decides the site (ADR D1), not
+        // the user's own organization — a super_admin working in the Bertels panel
+        // must not silently keep Claesen's site. Never falls back to Claesen when a
+        // mapped panel's site row does not exist yet.
+        $panelId = Filament::getCurrentPanel()?->getId();
+
+        if ($panelId !== null && config("organizations.panel_sites.{$panelId}") !== null) {
+            return Site::forPanel($panelId);
         }
 
         return $this->resolve()?->sites()->first();

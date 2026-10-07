@@ -23,6 +23,7 @@ return [
         'client_can_manage_contacts_hint' => 'Staat dit contact toe om andere contacten voor dezelfde klant uit te nodigen en te beheren, zonder tussenkomst van de backoffice.',
         'password' => 'Wachtwoord',
         'roles' => 'Rollen',
+        'organization' => 'Organisatie',
         'is_active' => 'Account actief',
         'is_active_hint' => 'Deactiveren blokkeert alle aanmeldingen onmiddellijk.',
         'status' => 'Status',

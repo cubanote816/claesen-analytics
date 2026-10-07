@@ -1,0 +1,900 @@
+openapi: 3.0.3
+info:
+  title: KNX Installation API (Kantoor + Veld)
+  version: "1.0"
+  description: >-
+    API del módulo `Modules\Knx` (Electro Bertels), consumida por las dos apps:
+    Kantoor (oficina) y Veld (campo). El contrato de comportamiento vive en los
+    repos de esos fronts; **este archivo es la forma congelada** y
+    `Modules/Knx/tests/Feature/OpenApiContractTest.php` falla si el spec y las
+    rutas registradas se separan en cualquier dirección — a diferencia de un
+    `.md`, no puede quedar stale en silencio.
+
+    Todo va bajo el tenant Electro Bertels (`organization:electrobertels`) y,
+    salvo `auth/login`, `auth/refresh` y las descargas firmadas, detrás de
+    `auth:sanctum`. El guard de app (`EnsureKnxApp`) separa los dos perfiles:
+    **office** (Kantoor) y **field** (Veld). Un token de campo contra una ruta
+    de oficina responde 401, y al revés igual.
+
+    Los errores usan el sobre uniforme `ApiErrorEnvelope` (`message`, `code`,
+    `errors`), también en este documento.
+servers:
+  - url: /api/v1/knx
+    description: Local (`php artisan serve` / contenedor de desarrollo)
+security:
+  - bearerAuth: []
+tags:
+  - name: auth
+    description: Sesión compartida por las dos apps
+  - name: session
+  - name: dashboard
+  - name: clients
+  - name: projects
+  - name: documents
+  - name: plans
+  - name: boards
+  - name: employees
+  - name: planning
+  - name: conflicts
+  - name: zones
+  - name: notifications
+  - name: reports
+  - name: functions
+  - name: tests
+  - name: events
+  - name: field
+    description: Guard `EnsureKnxApp:field` — sólo la app de campo
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login de oficina o de campo; responde el `Session` del perfil
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200":
+          description: Sesión creada
+          content:
+            application/json:
+              example:
+                access_token: "1|abc..."
+                expires_in: 3600
+                user: { id: "106", name: "Lien Smet", initials: "LS", role: "lead", domain: "kantoor.electrobertels.be" }
+        "422":
+          description: Credenciales incorrectas o cuenta sin acceso (mismo cuerpo para no filtrar qué falló)
+          content:
+            application/json:
+              example: { message: "Deze inloggegevens kloppen niet.", code: validation_error, errors: { email: ["Deze inloggegevens kloppen niet."] } }
+        "429": { description: Throttle 5/minuto }
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Rota el token presentado; acepta `refresh_token` o el propio Bearer
+      security: []
+      responses:
+        "200":
+          description: Token rotado
+          content:
+            application/json:
+              example: { access_token: "2|def...", expires_in: 3600 }
+        "429": { description: Throttle 10/minuto }
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Revoca el token presentado
+      responses:
+        "204": { description: Revocado }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /me/session:
+    get:
+      tags: [session]
+      summary: El `Session` de la oficina
+      description: Un 401 es lo que el front usa para borrar el token.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example: { id: "106", name: "Lien Smet", initials: "LS", role: "lead", domain: "kantoor.electrobertels.be" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /dashboard:
+    get:
+      tags: [dashboard]
+      summary: Agregado del panel de inicio (una sola llamada)
+      responses:
+        "200": { description: OK }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /clients:
+    get:
+      tags: [clients]
+      summary: Listado de clientes
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 100 }
+      responses:
+        "200": { description: OK }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+    post:
+      tags: [clients]
+      summary: Alta de cliente (sólo `name` obligatorio)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 255 }
+                city: { type: string, maxLength: 255 }
+                contact: { type: string, maxLength: 255 }
+                phone: { type: string, maxLength: 255 }
+                email: { type: string, maxLength: 255 }
+                address: { type: string, maxLength: 255 }
+                vat: { type: string, maxLength: 255 }
+      responses:
+        "201": { description: Creado — mismo `ClientResource` que las lecturas }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /clients/{id}:
+    get:
+      tags: [clients]
+      summary: Detalle de cliente
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects:
+    get:
+      tags: [projects]
+      summary: Listado de proyectos (por defecto en orden de inserción)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [planned, busy, delivery, done, all] }
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 100 }
+      responses:
+        "200": { description: OK }
+    post:
+      tags: [projects]
+      summary: Alta de proyecto con sus salas (una transacción)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, code, name]
+              properties:
+                clientId: { type: integer, description: Debe pertenecer a la organización del token }
+                code:
+                  type: string
+                  maxLength: 32
+                  pattern: "^[A-Za-z0-9._-]+$"
+                  description: Misma restricción que la ruta de lectura; un espacio es 422, no un proyecto inalcanzable.
+                name: { type: string, maxLength: 255 }
+                city: { type: string, maxLength: 255 }
+                leadEmployeeId:
+                  description: "Véase GET /employees. Los ids de los recursos viajan como string, así que se aceptan entero o string numérico."
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
+                deadline: { type: string, format: date }
+                rooms:
+                  type: array
+                  items:
+                    type: object
+                    required: [name]
+                    properties:
+                      name: { type: string, maxLength: 255 }
+                      floor: { type: string, maxLength: 255 }
+      responses:
+        "201": { description: Creado — mismo `ProjectResource` que las lecturas }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}:
+    get:
+      tags: [projects]
+      summary: Detalle de proyecto por su clave natural (`code`)
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/stats:
+    get:
+      tags: [projects]
+      summary: Estadísticas del proyecto
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/devices:
+    get:
+      tags: [projects]
+      summary: Dossier de aparatos (campo primero, luego ETS), con `isNew` y `hasConflict`
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/activity:
+    get:
+      tags: [projects]
+      summary: Feed de actividad derivado de los registros existentes
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+  /projects/{code}/visits:
+    get:
+      tags: [projects]
+      summary: Cierres de visita enviados desde campo, más recientes primero
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200":
+          description: OK — los cierres de visita, más recientes primero
+          content:
+            application/json:
+              example:
+                - id: "12"
+                  projectCode: "000026"
+                  type: "visit_end"
+                  room: "Inkomhal"
+                  workDone: "Armatuur gecontroleerd"
+                  minutes: 180
+                  signedBy: "Dirk Maes"
+                  capturedAt: "2026-10-02T20:28:15+02:00"
+                  closedBy: "J. Van Dyck"
+                  pending: ["Driver badkamer ontbreekt"]
+                  reservations: []
+                  verifiedFunctions: ["Verlichting inkomhal"]
+                  documents: ["Stickerplan E10"]
+  /projects/{code}/boards:
+    get:
+      tags: [boards]
+      summary: Cuadros del proyecto con módulos, canales y enlaces
+      description: >-
+        `boards[].id` es la identidad externa del cuadro (el slug del worklist,
+        o su código corto si lo creó campo) y es **la misma cadena que lleva el
+        `boardId` de un marcador**. Cada módulo lleva `slot` (su posición en el
+        cuadro) porque el worklist sólo trae el número de pedido. El enlace
+        `(canal, habitación, objeto, GA)` es el hecho; ningún canal sirve a más
+        de una habitación.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200":
+          description: "OK — `boards: []` es un estado real (worklist sin importar)"
+          content:
+            application/json:
+              example:
+                projectCode: "000026"
+                boards:
+                  - id: "caja-2-bord-dagbesteding-gelijkvloers-glv"
+                    name: "Caja 2 - Bord dagbesteding gelijkvloers (GLV)"
+                    floor: "gelijkvloers"
+                    modules:
+                      - device: "DG/S1.64.1.1"
+                        slot: 2
+                        channels:
+                          - channel: "A"
+                            links:
+                              - { room: "Polyvalente ruimte", object: "Schakelen (Cmd)", role: "dim_switch_cmd", ga: "2/2/1", gaName: "L-GLV-Dagbesteding-Polyvalente-Cmd", dpt: "DPST-1-1" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/functions:
+    get:
+      tags: [functions]
+      summary: Fichas funcionales del proyecto
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+  /functions/{id}:
+    patch:
+      tags: [functions]
+      summary: Actualiza una ficha funcional; aprobar fija `approvedBy`/`approvedAt`
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/tests:
+    get:
+      tags: [tests]
+      summary: Pruebas de aceptación del proyecto
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+  /tests/{id}:
+    patch:
+      tags: [tests]
+      summary: Actualiza una prueba; `failed`/`blocked`/`not_applicable` exigen `note`
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /documents:
+    get:
+      tags: [documents]
+      summary: Listado de documentos (sin URLs firmadas; el detalle las trae)
+      parameters:
+        - name: project
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 100 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                - id: "85"
+                  name: "plan.pdf"
+                  projectCode: "000026"
+                  projectName: "Den Brand"
+                  kind: "Plan"
+                  mimeType: "application/pdf"
+                  size: "2 MB"
+                  pages: 3
+                  uploadedAt: "2026-10-06"
+                  uploadedBy: "L. Smet"
+                  url: null
+                  revision: "Rev. H"
+                  isCurrent: true
+                  approvedBy: null
+    post:
+      tags: [documents]
+      summary: Subida de un plano o documento (multipart)
+      description: >-
+        El servidor calcula `size_bytes`, `mime_type` y `pages` desde los bytes
+        (finfo + contador de páginas), guarda en disco `local` bajo una ruta
+        derivada del proyecto y del id, y aplica `supersedes` en una sola
+        transacción. Un reintento con el mismo `clientId` devuelve el documento
+        ya creado (`200`) en vez de una revisión duplicada. Por encima de 50 MB
+        responde `413`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, project, kind]
+              properties:
+                file: { type: string, format: binary }
+                project: { type: string, description: Código de proyecto }
+                kind: { type: string, maxLength: 40, description: "Plan, Schema, ETS, Keuring, Foto's…" }
+                revision: { type: string, maxLength: 20 }
+                supersedes:
+                  description: Id del documento al que reemplaza (mismo proyecto). Entero o string numérico.
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
+                clientId: { type: string, maxLength: 64, description: Idempotencia en reintento }
+                uploadedAt: { type: string, format: date, description: Hoy por defecto }
+      responses:
+        "201":
+          description: Creado — mismo `DocumentResource` que las lecturas, con URL firmada
+          content:
+            application/json:
+              example: { id: "85", name: "plan.pdf", kind: "Plan", mimeType: "application/pdf", size: "2 MB", pages: 3, revision: "Rev. H", isCurrent: true, url: "http://localhost/api/v1/knx/documents/85/download?expires=...&signature=..." }
+        "200": { description: Reintento idempotente con el mismo `clientId` }
+        "404": { description: Proyecto desconocido o `supersedes` que no es de ese proyecto }
+        "413":
+          description: Archivo por encima de 50 MB
+          content:
+            application/json:
+              example: { message: "Het bestand is te groot. Het maximum is 50 MB.", code: payload_too_large, errors: {} }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /documents/{id}:
+    get:
+      tags: [documents]
+      summary: Detalle de documento, con URL de descarga firmada (30 min)
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /documents/{id}/download:
+    get:
+      tags: [documents]
+      summary: Descarga firmada (sin Bearer — la firma es la credencial)
+      description: La firma caduca y va fuera del grupo autenticado porque un `<a href>` no puede mandar cabecera Bearer.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: Bytes del archivo }
+        "403": { description: Firma inválida o expirada }
+        "404": { description: Documento o archivo inexistente }
+  /projects/{code}/plans/{documentId}/markers:
+    get:
+      tags: [plans]
+      summary: Marcadores de cuadro de una página de un documento (1 por defecto)
+      description: >-
+        El conjunto pertenece al **documento —una revisión—**, nunca al
+        proyecto. `revision` se echa desde el documento, no se duplica.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200":
+          description: OK — un conjunto vacío es el estado normal tras subir
+          content:
+            application/json:
+              example:
+                documentId: "86"
+                revision: "Rev. I"
+                page: 1
+                pageWidthPt: 4309.0
+                pageHeightPt: 2591.0
+                markers:
+                  - { boardId: "caja-1-alsb-leefgroep-gelijkvloers-glv", nx: 0.31, ny: 0.44 }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [plans]
+      summary: Reemplaza el conjunto de marcadores de una página (idempotente)
+      description: >-
+        `nx`/`ny` son fracciones de la página; `pageWidthPt`/`pageHeightPt`
+        los mide el cliente y el servidor los guarda como datos opacos (no
+        parsea el PDF). `carryOverFrom` usa la revisión anterior como base —el conjunto
+        de ESA MISMA PÁGINA, no el de todas sus páginas— y el cuerpo pisa por `boardId`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [page, markers]
+              properties:
+                documentId: { type: string, description: "Si viene, debe ser este documento" }
+                revision: { type: string, maxLength: 20, description: Aceptado por compatibilidad; se ignora (se echa del documento) }
+                page: { type: integer, minimum: 1 }
+                pageWidthPt: { type: number, nullable: true }
+                pageHeightPt: { type: number, nullable: true }
+                carryOverFrom:
+                  description: >-
+                    Id de documento del que copiar como base el conjunto de ESTA MISMA
+                    PÁGINA (no el de todas sus páginas). Entero o string numérico.
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
+                markers:
+                  type: array
+                  maxItems: 500
+                  items:
+                    type: object
+                    required: [boardId, nx, ny]
+                    properties:
+                      boardId: { type: string, maxLength: 128, description: "El `id` de GET /projects/{code}/boards" }
+                      nx: { type: number, minimum: 0, maximum: 1 }
+                      ny: { type: number, minimum: 0, maximum: 1 }
+      responses:
+        "200":
+          description: OK — el conjunto resultante
+          content:
+            application/json:
+              example:
+                documentId: "86"
+                revision: "Rev. I"
+                page: 1
+                pageWidthPt: 4309.0
+                pageHeightPt: 2591.0
+                markers: [{ boardId: "caja-1-alsb-leefgroep-gelijkvloers-glv", nx: 0.31, ny: 0.44 }]
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /exports/{id}/download:
+    get:
+      tags: [reports]
+      summary: Descarga firmada de un informe
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: Bytes del informe }
+        "403": { description: Firma inválida o expirada }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /employees:
+    get:
+      tags: [employees]
+      summary: Personas activas del dominio (por defecto, oficina)
+      description: >-
+        Existe para que el alta de proyecto pueda construir el selector de
+        `leadEmployeeId`. `GET /technicians` es sólo campo.
+      parameters:
+        - name: role
+          in: query
+          schema: { type: string, enum: [office, field], default: office }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                - { id: "106", name: "Lien Smet", shortName: "L. Smet" }
+                - { id: "107", name: "Pieter Aerts", shortName: "P. Aerts" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /technicians:
+    get:
+      tags: [planning]
+      summary: Técnicos de campo activos (sólo `kind = field`)
+      responses:
+        "200": { description: OK }
+  /planning:
+    get:
+      tags: [planning]
+      summary: Planificación en un rango de fechas
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: OK }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    put:
+      tags: [planning]
+      summary: Asigna un técnico a un día (idempotente por técnico+día)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [technicianId, date, projectCode]
+              properties:
+                technicianId: { type: integer }
+                date: { type: string, format: date }
+                projectCode: { type: string }
+      responses:
+        "200": { description: OK }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [planning]
+      summary: Quita la asignación de un día; un día ya vacío no es error (204)
+      responses:
+        "204": { description: Sin contenido }
+  /conflicts:
+    get:
+      tags: [conflicts]
+      summary: Conflictencentrum; `status=active` = open + in_review
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, in_review, ets_listed, applied, downloaded, verified, closed, rejected, active, all] }
+        - name: project
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+  /conflicts/{id}:
+    get:
+      tags: [conflicts]
+      summary: Detalle de conflicto con su histórico append-only
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [conflicts]
+      summary: Cambia el estado (cada cambio escribe una línea de histórico)
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: La propuesta cambia a una dirección ya ocupada
+          content:
+            application/json:
+              example: { message: "The address [1.1.133] is already in use.", code: address_in_use, errors: { proposal: ["The address [1.1.133] is already in use."] } }
+  /zones:
+    get:
+      tags: [zones]
+      summary: Zonas de preparación; lectura compartida por las dos apps
+      parameters:
+        - name: project
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+  /zones/{id}:
+    get:
+      tags: [zones]
+      summary: Detalle de zona con los 8 checks y el estado derivado
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /zones/{id}/checks/{key}:
+    patch:
+      tags: [zones]
+      summary: Cambia un check (sólo oficina); `failed`/`na` exigen `note`
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - name: key
+          in: path
+          required: true
+          schema: { type: string, enum: [installed, power, bus, device_ids, loads, materials, function_approved, blockers] }
+      responses:
+        "200": { description: Zona ya recomputada }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /notifications:
+    get:
+      tags: [notifications]
+      summary: "Bandeja de campo (incluye las ya confirmadas con `acked: true`)"
+      responses:
+        "200": { description: OK }
+  /notifications/ack-all:
+    post:
+      tags: [notifications]
+      summary: Confirma todas las pendientes (idempotente)
+      responses:
+        "200": { description: OK }
+  /notifications/{id}/ack:
+    post:
+      tags: [notifications]
+      summary: Confirma una notificación; confirma también el aparato que la creó
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /reports/exports:
+    get:
+      tags: [reports]
+      summary: Historial de informes exportados
+      responses:
+        "200": { description: OK }
+  /reports:
+    post:
+      tags: [reports]
+      summary: Encola un informe (`ets`, `dossier`, `delivery`, `hours`)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [projectCode, type]
+              properties:
+                projectCode: { type: string }
+                type: { type: string, enum: [ets, dossier, delivery, hours] }
+      responses:
+        "202": { description: Encolado — `ExportRecord` con `downloadUrl` cuando está listo }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /events:
+    get:
+      tags: [events]
+      summary: Server-sent events (opcional; sin él el polling sigue funcionando)
+      description: >-
+        `text/event-stream`. Autenticación por Bearer, no por query: por eso el
+        `EventSource` nativo no sirve y el front lee el stream con `fetch()`.
+        La conexión se cierra sola (55 s por defecto) y el navegador reconecta.
+      responses:
+        "200":
+          description: Stream abierto
+          content:
+            text/event-stream:
+              schema: { type: string }
+  /field/session:
+    get:
+      tags: [field]
+      summary: Sesión de campo (a propósito sin `role` ni `email`)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example: { id: "108", name: "Jan Van Dyck", initials: "JV", domain: "veld.electrobertels.be" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /field/today:
+    get:
+      tags: [field]
+      summary: Trabajos de hoy del técnico, con su zona, estado y blocker
+      responses:
+        "200": { description: OK }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /field/projects/{code}:
+    get:
+      tags: [field]
+      summary: El proyecto que la app cachea para trabajar sin cobertura
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+        "403": { description: El proyecto no está asignado a este técnico hoy }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /field/projects/{code}/plans:
+    get:
+      tags: [field]
+      summary: Planos descargables (sólo dibujos con fichero y tipo nombrable)
+      description: >-
+        `mimeType` sale de la columna (o de la extensión para documentos
+        anteriores); `url` es una firma de una semana, porque el técnico
+        descarga una vez y abre sin conexión.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+        "403": { description: Proyecto no asignado hoy }
+  /field/projects/{code}/devices:
+    get:
+      tags: [field]
+      summary: Aparatos del proyecto (mismo `Device` shape que el dossier)
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+        "403": { description: Proyecto no asignado hoy }
+    post:
+      tags: [field]
+      summary: Registra un aparato desde obra (idempotente por `clientId`)
+      description: >-
+        Un `clientId` repetido devuelve el mismo aparato (`200`); otra dirección
+        ya ocupada responde `409 address_in_use` y además escribe un conflicto
+        `duplicate_address` con la foto como evidencia. Crear el aparato crea
+        también su notificación.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, projectCode, address, type, roomId, capturedAt]
+              properties:
+                clientId: { type: string, maxLength: 64 }
+                projectCode: { type: string, description: "Debe coincidir con `{code}`" }
+                address: { type: string, maxLength: 32 }
+                type: { type: string, maxLength: 100 }
+                roomId: { type: string, maxLength: 64, description: Debe ser una sala del proyecto }
+                roomName: { type: string, nullable: true, maxLength: 150 }
+                floor: { type: string, nullable: true, maxLength: 100 }
+                boardCode: { type: string, nullable: true, maxLength: 32 }
+                serial: { type: string, nullable: true, maxLength: 64 }
+                note: { type: string, nullable: true, maxLength: 1000 }
+                photoDataUrl: { type: string, nullable: true }
+                capturedAt: { type: string, format: date-time }
+      responses:
+        "201": { description: Aparato creado }
+        "200": { description: Reintento del mismo `clientId` — mismo aparato }
+        "403": { description: Proyecto no asignado hoy }
+        "409":
+          description: Dirección ocupada
+          content:
+            application/json:
+              example: { message: "The address [1.1.133] is already in use.", code: address_in_use, errors: { proposal: ["The address [1.1.133] is already in use."] }, existing: {} }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /field/projects/{code}/issues:
+    post:
+      tags: [field]
+      summary: Reporta una incidencia desde obra (idempotente por `clientId`)
+      description: Una incidencia **es** un conflicto con el `kind` mapeado a los tipos de oficina y el contexto conservado en `device_field`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, projectCode, kind, capturedAt]
+              properties:
+                clientId: { type: string, maxLength: 64 }
+                projectCode: { type: string }
+                kind: { type: string, enum: [damaged, missing, plan_mismatch, other] }
+                roomId: { type: string, nullable: true }
+                roomName: { type: string, nullable: true }
+                boardCode: { type: string, nullable: true }
+                channel: { type: string, nullable: true }
+                address: { type: string, nullable: true }
+                note: { type: string, nullable: true }
+                photoDataUrl: { type: string, nullable: true }
+                capturedAt: { type: string, format: date-time }
+      responses:
+        "201": { description: Conflicto creado }
+        "200": { description: Reintento del mismo `clientId` }
+        "403": { description: Proyecto no asignado hoy }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /field/projects/{code}/visits:
+    post:
+      tags: [field]
+      summary: Cierra una visita en una de sus tres fases (idempotente por `clientId`)
+      description: >-
+        `type` ∈ `visit_end`/`partial`/`final`. Cerrar una visita **no** cambia
+        el estado del proyecto, no abre conflictos y no cierra pruebas: son
+        etiquetas de texto libre del técnico.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, projectCode, type, capturedAt]
+              properties:
+                clientId: { type: string, maxLength: 64 }
+                projectCode: { type: string }
+                type: { type: string, enum: [visit_end, partial, final] }
+                minutes: { type: integer, nullable: true }
+                roomId: { type: string, nullable: true }
+                roomName: { type: string, nullable: true }
+                workDone: { type: string, nullable: true }
+                pending: { type: array, items: { type: string } }
+                reservations: { type: array, items: { type: string } }
+                verifiedFunctions: { type: array, items: { type: string } }
+                documents: { type: array, items: { type: string } }
+                capturedAt: { type: string, format: date-time }
+      responses:
+        "201": { description: Cierre registrado }
+        "200": { description: Reintento del mismo `clientId` }
+        "403": { description: Proyecto no asignado hoy }
+        "422": { $ref: "#/components/responses/ValidationError" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Token de Sanctum emitido por `POST /auth/login`
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    Code:
+      name: code
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[A-Za-z0-9._-]+$" }
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    Unauthenticated:
+      description: Sin token, token caducado, o token de la otra app (los dos casos son indistinguibles a propósito)
+      content:
+        application/json:
+          example: { message: "Unauthenticated.", code: unauthenticated, errors: {} }
+    NotFound:
+      description: No existe, o no es de este tenant/proyecto
+      content:
+        application/json:
+          example: { message: "Not found.", code: not_found, errors: {} }
+    ValidationError:
+      description: Error de validación campo a campo
+      content:
+        application/json:
+          example: { message: "The given data was invalid.", code: validation_error, errors: { code: ["..."] } }

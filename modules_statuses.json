@@ -9,5 +9,6 @@
     "Performance": true,
     "Safety": true,
     "FieldOps": true,
-    "Employee": true
+    "Employee": true,
+    "Knx": true
 }

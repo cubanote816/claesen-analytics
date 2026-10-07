@@ -10,6 +10,7 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
+use Filament\View\PanelsRenderHook;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -80,12 +81,21 @@ class BertelsPanelProvider extends PanelProvider
             // equivalent among the assets handed over for this spike, so light mode
             // uses the square icon-only mark instead (472x452, same file as the
             // favicon) rather than stretching a badly-fitted asset.
+            ->brandName('Electro Bertels')
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => view('core::filament.organization-indicator')->render(),
+            )
             ->brandLogo(asset('img/bertels-favicon.jpg'))
             ->darkModeBrandLogo(asset('img/bertels-brand-logo-dark.png'))
             ->brandLogoHeight('2.5rem')
             ->favicon(asset('img/bertels-favicon.jpg'))
             // No discoverResources/Pages/Widgets on purpose — F3/F4 give
             // Bertels its own resources once P5 enforcement exists.
+            // CLA-598: the Website cluster (projects, leads, announcements, site settings)
+            // is the only cluster under app/Filament/Clusters; every resource in it is
+            // scoped to the panel's own site (App\Filament\Concerns\ScopedToPanelSite).
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
             ->pages([
                 Dashboard::class,
             ])
@@ -95,6 +105,19 @@ class BertelsPanelProvider extends PanelProvider
             // panel at all (User::canAccessPanel()) — kept as an explicit
             // ->visible() anyway for defense in depth / symmetry with admin.
             ->navigationItems([
+                // CLA-602 (Fase 1 de la app KNX): punto de entrada deliberadamente
+                // fuera del shell de Filament — abre en pestaña nueva una vista
+                // standalone (Modules\Core\Http\Controllers\KnxLandingController)
+                // con la identidad visual propia de electrobertels.md, no la de
+                // este panel. Sin ->visible() propio: todo usuario que llega a
+                // este panel ya pasó el mismo canAccessPanel('bertels') que la
+                // ruta vuelve a exigir, así que sería una segunda comprobación
+                // redundante (a diferencia del ítem de abajo, cuyo destino es
+                // OTRO panel con una regla de acceso distinta).
+                NavigationItem::make(fn () => __('navigation.knx'))
+                    ->url(fn () => route('bertels.knx'))
+                    ->icon('heroicon-o-bolt')
+                    ->openUrlInNewTab(),
                 NavigationItem::make(fn () => __('navigation.switch_to_claesen'))
                     ->url(fn () => route('core.switch-panel', ['panel' => 'admin', 'from' => 'bertels']))
                     ->icon('heroicon-o-arrow-uturn-left')
@@ -127,6 +150,10 @@ class BertelsPanelProvider extends PanelProvider
                 AssignCorrelationId::class,
                 UpdateUserActivity::class,
                 ResolveOrganizationContext::class,
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
+            ])
+            ->persistentMiddleware([
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

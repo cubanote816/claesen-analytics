@@ -1,0 +1,291 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Modules\Knx\Tests\Feature;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Core\Models\Organization;
+use Modules\Core\Models\User;
+use Modules\Knx\Database\Seeders\KnxDemoSeeder;
+use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxPlanningAssignment;
+use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxVisit;
+use Modules\Knx\Models\KnxZone;
+use Modules\Knx\Services\FieldTodayService;
+use Tests\TestCase;
+
+/**
+ * V11.a — the field app's session and work list (CLA-609).
+ *
+ * The rule that matters is scope: a technician sees the projects the planning put
+ * them on **today**, and nothing else. That is the contract's own requirement, and
+ * it is what keeps a phone from listing the whole office's work.
+ */
+final class KnxFieldSessionTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Organization::factory()->create(['slug' => 'electro-bertels']);
+
+        $this->seed(KnxDemoSeeder::class);
+    }
+
+    private function fieldUser(string $email = 'jan.van.dyck@electrobertels.be'): User
+    {
+        return User::query()->where('email', $email)->sole();
+    }
+
+    private function officeUser(): User
+    {
+        return User::query()->where('email', 'lien.smet@electrobertels.be')->sole();
+    }
+
+    /** The fixture plans Monday to Friday, so "today" needs a row of its own. */
+    private function planToday(KnxEmployee $technician, string $projectCode): void
+    {
+        // The fixture plans Monday to Friday, so today may already have a row for
+        // this technician — and (employee, date) is unique.
+        KnxPlanningAssignment::updateOrCreate(
+            ['employee_id' => $technician->getKey(), 'date' => now()->toDateString()],
+            ['project_id' => KnxProject::query()->where('code', $projectCode)->sole()->getKey()],
+        );
+    }
+
+    public function test_the_field_session_has_its_own_shape(): void
+    {
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $payload = $this->getJson('/api/v1/knx/field/session')->assertOk()->json();
+
+        // No role, no email: the phone shows a name on a loading screen, and the
+        // office payload would invite the app to ask for office things.
+        $this->assertSame(['id', 'name', 'initials', 'domain'], array_keys($payload));
+        $this->assertSame('Jan Van Dyck', $payload['name']);
+        $this->assertSame('JV', $payload['initials']);
+        $this->assertSame('veld.electrobertels.be', $payload['domain']);
+    }
+
+    public function test_the_two_apps_do_not_accept_each_others_accounts(): void
+    {
+        // An office account on the field endpoint…
+        $this->actingAs($this->officeUser(), 'sanctum');
+        $this->getJson('/api/v1/knx/field/session')->assertUnauthorized();
+        $this->getJson('/api/v1/knx/field/today')->assertUnauthorized();
+
+        $this->app['auth']->forgetGuards();
+
+        // …and a field account on the office endpoint.
+        $this->actingAs($this->fieldUser(), 'sanctum');
+        $this->getJson('/api/v1/knx/me/session')->assertUnauthorized();
+        $this->getJson('/api/v1/knx/projects')->assertUnauthorized();
+    }
+
+    public function test_the_work_list_has_the_contract_shape(): void
+    {
+        $technician = KnxEmployee::query()->where('name', 'Jan Van Dyck')->sole();
+        $this->planToday($technician, 'C1618');
+
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $jobs = $this->getJson('/api/v1/knx/field/today')->assertOk()->json();
+
+        $this->assertNotEmpty($jobs);
+        $this->assertSame(
+            [
+                'id', 'projectCode', 'projectName', 'city', 'address', 'room', 'zoneStatus',
+                'blockingReason', 'tasks', 'devicesPlanned', 'devicesDone', 'photos',
+                'openConflicts', 'visitClosed',
+            ],
+            array_keys($jobs[0]),
+        );
+
+        $job = collect($jobs)->firstWhere('projectCode', 'C1618');
+
+        $this->assertNotNull($job);
+        $this->assertSame('UV Campus · Gelijkvloers', $job['projectName']);
+        $this->assertSame('Heverlee', $job['city']);
+        // The street next to the city, so the card can draw where the job is without
+        // asking for the project first (CLA-635).
+        $this->assertSame('Kapeldreef 60, 3001 Heverlee', $job['address']);
+
+        // The zone that needs attention, not just the first one: C1618 has four and
+        // only Vergaderzaal is blocked.
+        $this->assertSame('Vergaderzaal', $job['room']);
+        $this->assertSame('blocked', $job['zoneStatus']);
+        $this->assertSame('DALI-driver niet geleverd — kan verlichting niet testen', $job['blockingReason']);
+
+        // Tasks come from the data: C1618 has 17 of 24 devices registered and tests
+        // still open.
+        $this->assertSame(['Toestellen registreren', 'Verlichting testen'], $job['tasks']);
+
+        // The counters travel in the day's payload so the card needs no request per
+        // job (CLA-635), and they come from the same source as the office's own
+        // project header. C1618 has two conflicts in `open`/`in_review`; the one
+        // already `verified` must not count.
+        $this->assertSame(24, $job['devicesPlanned']);
+        $this->assertSame(17, $job['devicesDone']);
+        $this->assertSame(38, $job['photos']);
+        $this->assertSame(2, $job['openConflicts']);
+
+        // The fixture seeds no visits, so the day is open until somebody signs it off.
+        $this->assertFalse($job['visitClosed']);
+    }
+
+    public function test_the_day_is_closed_only_by_a_visit_end_captured_today(): void
+    {
+        $jan = KnxEmployee::query()->where('name', 'Jan Van Dyck')->sole();
+        $mira = KnxEmployee::query()->where('name', 'Mira Claes')->sole();
+        $this->planToday($jan, 'C1618');
+
+        $project = KnxProject::query()->where('code', 'C1618')->sole();
+
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $closed = fn (): bool => (bool) collect($this->getJson('/api/v1/knx/field/today')->json())
+            ->firstWhere('projectCode', 'C1618')['visitClosed'];
+
+        $this->assertFalse($closed(), 'the fixture seeds no visits');
+
+        // `captured_at` and not the day the row was written: the app queues closures
+        // offline and sends them late, so a closure signed yesterday is yesterday's.
+        $this->visitToday($project, $jan, now()->subDay());
+        $this->assertFalse($closed(), 'a closure signed yesterday is not today');
+
+        // A partial handover and a final acceptance are phases of the delivery, not
+        // the day being finished. Only `visit_end` is the one the app sends when the
+        // technician closes the visit.
+        $this->visitToday($project, $jan, now(), KnxVisit::TYPE_PARTIAL);
+        $this->assertFalse($closed(), 'a partial handover does not close the day');
+
+        // Signed by a colleague who is on the job too: a closure is the project's
+        // day and not the signer's, so it closes for everyone on it.
+        $this->planToday($mira, 'C1618');
+        $this->visitToday($project, $mira, now());
+        $this->assertTrue($closed(), 'a closure signed by a colleague on the job closes the day for everyone');
+    }
+
+    private function visitToday(KnxProject $project, KnxEmployee $technician, \DateTimeInterface $capturedAt, string $type = KnxVisit::TYPE_VISIT_END): void
+    {
+        KnxVisit::factory()->ofType($type)->create([
+            'project_id' => $project->getKey(),
+            'closed_by_employee_id' => $technician->getKey(),
+            'captured_at' => $capturedAt,
+        ]);
+    }
+
+    public function test_a_technician_only_sees_the_projects_they_are_on_today(): void
+    {
+        $jan = KnxEmployee::query()->where('name', 'Jan Van Dyck')->sole();
+        $mira = KnxEmployee::query()->where('name', 'Mira Claes')->sole();
+
+        $this->planToday($jan, 'C1618');
+        $this->planToday($mira, '239870');
+
+        $this->actingAs($this->fieldUser('jan.van.dyck@electrobertels.be'), 'sanctum');
+        $janJobs = collect($this->getJson('/api/v1/knx/field/today')->json())->pluck('projectCode')->all();
+
+        $this->assertContains('C1618', $janJobs);
+        $this->assertNotContains('239870', $janJobs, 'a project another technician is on today is not mine');
+
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($this->fieldUser('mira.claes@electrobertels.be'), 'sanctum');
+        $miraJobs = collect($this->getJson('/api/v1/knx/field/today')->json())->pluck('projectCode')->all();
+
+        $this->assertContains('239870', $miraJobs);
+        $this->assertNotContains('C1618', $miraJobs);
+    }
+
+    public function test_a_technician_with_no_work_today_gets_an_empty_list_not_an_error(): void
+    {
+        // The three technicians without an account are also without an assignment
+        // today in most weeks; the app must show "no work", not a failure.
+        KnxPlanningAssignment::query()->whereDate('date', now()->toDateString())->delete();
+
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $this->getJson('/api/v1/knx/field/today')->assertOk()->assertJsonCount(0);
+    }
+
+    public function test_the_assignment_scope_is_a_single_answer_the_whole_field_api_can_use(): void
+    {
+        $jan = KnxEmployee::query()->where('name', 'Jan Van Dyck')->sole();
+        $this->planToday($jan, 'C1618');
+
+        $today = app(FieldTodayService::class);
+
+        $this->assertTrue($today->isAssignedToday($jan, KnxProject::query()->where('code', 'C1618')->sole()));
+        $this->assertFalse($today->isAssignedToday($jan, KnxProject::query()->where('code', '239870')->sole()));
+
+        // Yesterday's assignment is not today's: the row moves out of today (moving
+        // the whole week would collide with the fixture's other days).
+        KnxPlanningAssignment::query()
+            ->where('employee_id', $jan->getKey())
+            ->whereDate('date', now()->toDateString())
+            ->delete();
+
+        $this->assertFalse($today->isAssignedToday($jan, KnxProject::query()->where('code', 'C1618')->sole()));
+    }
+
+    public function test_a_technician_can_actually_log_in_with_their_own_credentials(): void
+    {
+        // The gap that let a real bug through: every other test here uses actingAs(),
+        // which never exercises the login endpoint. The field account has to be able
+        // to sign in and then use the token it got.
+        $response = $this->postJson('/api/v1/knx/auth/login', [
+            'email' => 'jan.van.dyck@electrobertels.be',
+            'password' => KnxDemoSeeder::DEMO_FIELD_PASSWORD,
+        ])->assertOk();
+
+        // The field Session shape, not the office one.
+        $this->assertSame(['id', 'name', 'initials', 'domain'], array_keys($response->json('user')));
+        $this->assertSame('Jan Van Dyck', $response->json('user.name'));
+
+        $token = $response->json('access_token');
+
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($token)->getJson('/api/v1/knx/field/session')->assertOk();
+        $this->withToken($token)->getJson('/api/v1/knx/field/today')->assertOk();
+    }
+
+    public function test_an_office_login_still_answers_with_the_office_session(): void
+    {
+        $response = $this->postJson('/api/v1/knx/auth/login', [
+            'email' => 'lien.smet@electrobertels.be',
+            'password' => KnxDemoSeeder::DEMO_PASSWORD,
+        ])->assertOk();
+
+        $this->assertSame(
+            ['id', 'name', 'initials', 'role', 'email', 'domain'],
+            array_keys($response->json('user')),
+        );
+    }
+
+    public function test_the_shared_zone_read_works_for_both_apps_but_writes_do_not(): void
+    {
+        // Veld's contract uses Kantoor's zone payload verbatim, so the read is shared.
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $this->getJson('/api/v1/knx/zones?project=C1618')->assertOk()->assertJsonCount(4);
+
+        // Changing a readiness check stays an office action.
+        $zone = KnxZone::query()->where('name', 'Vergaderzaal')->sole();
+
+        $this->patchJson("/api/v1/knx/zones/{$zone->getKey()}/checks/loads", ['status' => 'passed'])
+            ->assertUnauthorized();
+    }
+
+    public function test_the_field_endpoints_require_a_token(): void
+    {
+        $this->app['auth']->forgetGuards();
+
+        $this->getJson('/api/v1/knx/field/session')->assertUnauthorized()->assertJsonPath('code', 'unauthenticated');
+        $this->getJson('/api/v1/knx/field/today')->assertUnauthorized();
+    }
+}

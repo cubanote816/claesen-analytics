@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Http;
+use Modules\Core\Models\Site;
 use Modules\Website\App\Enums\PublicationStatus;
 use Modules\Website\Models\PublicationState;
 
@@ -16,10 +17,16 @@ class PublicationStatusWidget extends StatsOverviewWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    public static function canView(): bool
+    {
+        return Site::forPanel() !== null;
+    }
+
     protected function getStats(): array
     {
-        $state  = PublicationState::current();
-        $health = $this->fetchHealth();
+        $site   = Site::forPanelOrFail();
+        $state  = PublicationState::current($site->id);
+        $health = $this->fetchHealth($site);
 
         return array_values(array_filter([
             $this->backendStatusStat($state, $health),
@@ -115,9 +122,12 @@ class PublicationStatusWidget extends StatsOverviewWidget
 
     // ─── Health check ─────────────────────────────────────────────────────────
 
-    private function fetchHealth(): ?array
+    private function fetchHealth(Site $site): ?array
     {
-        $url = config('static_site.health_url');
+        // CLA-598: the global config URL is Claesen's own build — never let another
+        // site's widget report Claesen's health as its own.
+        $url = $site->static_site_health_url
+            ?? ($site->id === Site::claesenId() ? config('static_site.health_url') : null);
 
         if (!$url) {
             return null;
