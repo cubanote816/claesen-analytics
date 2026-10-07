@@ -1,3 +1,23 @@
+{{--
+    Override de la vista del sidebar de Filament (WU-S1b del rediseño del backoffice).
+
+    Se mantiene por **tres** desviaciones deliberadas del vendor
+    (`vendor/filament/filament/resources/views/components/sidebar/item.blade.php`). Si al
+    actualizar Filament el menú vuelve a mostrar dos niveles, ítems sin icono o puntos en vez de
+    iconos, es que una de estas tres se perdió — re-aplicarlas sobre la vista nueva:
+
+    1. La recursión pasa `:child-items`, sin lo cual Filament **no baja un segundo nivel** y el
+       menú de tres niveles («Website › grupo › página») pierde las páginas: quedarían
+       inalcanzables desde el menú. Hay un test que lo vigila.
+    2. Un ítem con icono **siempre** lo dibuja. El vendor lo condiciona a `! $subGrouped` o a que
+       el sidebar sea colapsable en desktop, y en este panel no lo es: los ítems anidados
+       quedaban sin icono y sin estar en el DOM.
+    3. El punto sustituto (`fi-sidebar-item-grouped-border`) se dibuja sólo cuando **no** hay
+       icono, para no tener las dos cosas a la vez.
+
+    Contexto completo: `odd/tasks/publish-to-live-website.md`, slice S1.
+--}}
+
 @props([
     'active' => false,
     'activeChildItems' => false,
@@ -53,15 +73,29 @@
         @endif
         class="fi-sidebar-item-btn"
     >
-        @if (filled($icon) && ((! $subGrouped) || ($sidebarCollapsible && (! $subNavigation))))
+        {{--
+            WU-S1b: si el ítem TIENE icono, se dibuja. La vista del vendor lo condiciona a
+            `! $subGrouped` o a que el sidebar sea colapsable en desktop, y en este panel no lo es:
+            los ítems anidados quedaban sin icono **y sin estar en el DOM**. El usuario pidió
+            conservar la iconografía que las pantallas ya tenían, así que acá el único requisito es
+            que haya icono.
+        --}}
+        @if (filled($icon))
             {{
                 \Filament\Support\generate_icon_html(($active && $activeIcon) ? $activeIcon : $icon, attributes: (new \Filament\Support\View\ComponentAttributeBag([
-                    'x-show' => ($subGrouped && $sidebarCollapsible) ? '! $store.sidebar.isOpen' : false,
+                    // WU-S1b: el icono se ve **siempre**, también con el sidebar abierto.
+                    //
+                    // La vista del vendor hace lo contrario: con un ítem sub-agrupado deja el
+                    // icono oculto mientras el sidebar está abierto y dibuja un **punto** en su
+                    // lugar, y sólo muestra el icono con el sidebar colapsado. El usuario pidió
+                    // conservar la iconografía que las pantallas ya tenían, así que acá manda el
+                    // icono y el punto no se dibuja (ver la condición de abajo).
+                    'x-show' => false,
                 ]))->class(['fi-sidebar-item-icon']), size: \Filament\Support\Enums\IconSize::Large)
             }}
         @endif
 
-        @if ((blank($icon) && $grouped) || $subGrouped)
+        @if ((blank($icon) && $grouped) || ($subGrouped && blank($icon)))
             <div
                 @if (filled($icon) && $subGrouped && $sidebarCollapsible && (! $subNavigation))
                     x-show="$store.sidebar.isOpen"
