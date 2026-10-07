@@ -15,6 +15,36 @@
 
 ---
 
+## Contrato en staging: `docs/Knx/openapi-next.yaml`
+
+Los hitos **M1, M2, M2b y M2c** (KNX-20, 18, 24, 51, 44, 45, 46, 47, 52, 25, 53, 54, 56, 55, 26,
+50, 48, 49) tienen su contrato completo en **`docs/Knx/openapi-next.yaml`**: 34 paths / 43
+operaciones nuevas o cambiadas, mismo estilo que `openapi.yaml` (`camelCase`, ids como string,
+sobre de error `{message, code, errors}`, sin `{data: …}`). **Podéis construir contra él ya, con
+mocks.**
+
+- Cada operación lleva `x-ticket` y `x-status`:
+  - `planned` — decidida; se implementa como está escrito.
+  - `provisional` — la forma puede cambiar hasta una medición previa (planos DWG, KNX-49).
+  - `pending-decision` — forma acordada, implementación **bloqueada** por decisión del dueño:
+    escritura de intenciones desde campo (KNX-55). **No la implementéis todavía; la ruta no existe.**
+- Regla de movimiento: cada ruta de `openapi-next.yaml` **pasa** a `openapi.yaml` en el mismo commit
+  en que se implementa. Cuando una ruta aparece en `openapi.yaml`, ya existe de verdad en el backend.
+- Orden de rebanadas y qué entrega cada una: `odd/tasks/knx-m1-m2b-m2c-contratos.md` en el repo del
+  backend.
+- **Cambios que tocan rutas que ya consumís:** `POST /projects` pasa a exigir `siteAddress`;
+  `GET /notifications` generaliza `kind` (compatible hacia atrás);
+  `POST /field/projects/{code}/devices` acepta `boardId`/`moduleSlot`/`channel` opcionales;
+  `GET /projects/{code}/boards` expone `origin`/`reviewState`/`updatedBy`/`updatedAt` y `roomId` por
+  enlace; `GET /conflicts` y `GET /conflicts/{id}` exponen `lifecycle`; `PUT …/markers` no cambia.
+- **Decisiones de producto nuevas:** habitación canónica = la que crea oficina (ETS/worklist/plano
+  entran como alias); zona = habitación (`unique(room_id)`); mal funcionamiento = conflicto con
+  `lifecycle: malfunction` y transiciones validadas; fotos como entidad con evento `photos_uploaded`.
+- Los **dos** únicos huecos del contrato nuevo: `provisional` en DWG y `pending-decision` en la
+  escritura de intenciones desde campo. Nada más queda abierto.
+
+---
+
 ## 0. Resumen en una línea
 
 **Los dos fronts pueden trabajar enteros contra el backend real**: el contrato de Kantoor
