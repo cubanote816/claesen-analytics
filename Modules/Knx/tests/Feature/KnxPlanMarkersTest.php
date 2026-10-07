@@ -235,6 +235,44 @@ final class KnxPlanMarkersTest extends TestCase
         $this->assertNull($otherSet->json('pageWidthPt'));
     }
 
+    public function test_a_put_with_an_empty_set_clears_the_page(): void
+    {
+        $document = $this->document('C1618', 'UV_C1618_Gelijkvloers_Wayfinding.pdf');
+        $url = "/api/v1/knx/projects/C1618/plans/{$document->getKey()}/markers";
+
+        $this->putJson($url, $this->payload((string) $document->getKey()))->assertOk();
+        $this->assertCount(2, $this->getJson($url)->assertOk()->json('markers'));
+
+        // The set replaces the whole page, so an EMPTY set is a valid body: it clears the
+        // page. Removing the last marker must not be a 422 — there is no DELETE here.
+        $empty = $this->putJson($url, [
+            'page' => 1,
+            'markers' => [],
+        ])->assertOk();
+
+        $this->assertSame([], $empty->json('markers'));
+        $this->assertSame(0, KnxPlanMarker::query()->where('document_id', $document->getKey())->count());
+    }
+
+    public function test_carry_over_from_with_an_empty_body_copies_the_previous_series(): void
+    {
+        $previous = $this->document('C1618', 'UV_C1618_Gelijkvloers_Wayfinding.pdf');
+        $next = $this->document('C1618', 'C1618_ETS-export_0409.knxproj');
+
+        $this->putJson("/api/v1/knx/projects/C1618/plans/{$previous->getKey()}/markers", $this->payload((string) $previous->getKey()))
+            ->assertOk();
+
+        // The typical start of a new revision: carry everything, correct nothing yet. With
+        // `required` this body was a 422, so the whole carry-over was unreachable.
+        $carried = $this->putJson("/api/v1/knx/projects/C1618/plans/{$next->getKey()}/markers", [
+            'page' => 1,
+            'markers' => [],
+            'carryOverFrom' => $previous->getKey(),
+        ])->assertOk();
+
+        $this->assertCount(2, $carried->json('markers'));
+    }
+
     public function test_the_marker_endpoints_require_the_office_app(): void
     {
         $document = $this->document('C1618', 'UV_C1618_Gelijkvloers_Wayfinding.pdf');

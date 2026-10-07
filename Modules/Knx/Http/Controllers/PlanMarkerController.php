@@ -56,7 +56,11 @@ class PlanMarkerController extends Controller
             'page' => ['required', 'integer', 'min:1'],
             'pageWidthPt' => ['sometimes', 'nullable', 'numeric', 'gt:0'],
             'pageHeightPt' => ['sometimes', 'nullable', 'numeric', 'gt:0'],
-            'markers' => ['required', 'array', 'max:500'],
+            // `present`, not `required`: the set replaces the whole page, so an EMPTY
+            // set is a valid body — it clears the page (there is no DELETE) and it is
+            // also the base for a full `carryOverFrom`. Laravel's `required` rejects an
+            // empty array, which made removing the last marker a 422.
+            'markers' => ['present', 'array', 'max:500'],
             // `distinct` because the table has one marker per board per document: two
             // DOM markers sharing a key would mean one delete removes both, and the
             // database would reject the second anyway.
