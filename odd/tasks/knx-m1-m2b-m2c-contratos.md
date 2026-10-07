@@ -42,11 +42,13 @@
 
 ## Rebanadas
 
-- [ ] **R0** `docs/Knx/openapi-next.yaml` — contrato COMPLETO de todas las rutas nuevas (~28),
-  `x-ticket`/`x-status`, esquemas de request/response, códigos y ejemplos. Commit propio del contrato.
-  Aviso en el handover. Commit aparte: `knx-feature-report.md` (estaba sin trackear).
-- [ ] **R1a** KNX-20 — `204` en los dos `ack`, cuerpos reales de los 3 POST de campo, `OpenApiContractTest`
-  con recorder de códigos (y cuerpo-contra-esquema si sale barato; si no, anotado como siguiente paso).
+- [x] **R0** `docs/Knx/openapi-next.yaml` — contrato COMPLETO de todas las rutas nuevas (34 paths /
+  43 operaciones), `x-ticket`/`x-status`, esquemas de request/response, códigos y ejemplos. Commit
+  `b802bf7`. Aviso en el handover + plan de rebanadas. Commit aparte: `knx-feature-report.md`
+  (`9f52b4a`, estaba sin trackear).
+- [x] **R1a** KNX-20 — `204` en los dos `ack`, cuerpos reales de los 3 POST de campo y
+  `AssertDocumentedSuccessCode` (guard test-only que compara todo 2xx real del suite contra el spec).
+  Commit `PENDIENTE_R1A`.
 - [ ] **R1b** KNX-18 — test guardián: `PUT /markers` sin la clave `markers` → `422`. Cerrar en Linear.
 - [ ] **R1c** KNX-24 — `SetLocaleFromHeader` en las rutas Knx (`lang/en` alcanzable por HTTP).
 - [ ] **R2** KNX-51 — dirección de la obra (`siteAddress`), `PATCH /projects/{code}`.
@@ -70,7 +72,42 @@
 
 ## Progreso / evidencia
 
-- (pendiente) R0.
+- **R0 (`b802bf7`).** `docs/Knx/openapi-next.yaml`: 34 paths / 43 operaciones, 34 schemas, todas con
+  `x-ticket` y `x-status`. YAML parsea con `Symfony\Component\Yaml`. Reparto por ticket: KNX-25:1,
+  KNX-26:2, KNX-44:3, KNX-45:2, KNX-46:1, KNX-47:2, KNX-48:1, KNX-49:2, KNX-51:3, KNX-52:9,
+  KNX-53:3, KNX-54:4, KNX-55:5, KNX-56:5. Handover actualizado con el anuncio para los dos fronts.
+  Test de contrato (`OpenApiContractTest`) sigue verde porque `openapi.yaml` no se tocó:
+  **2 passed / 53 assertions**.
+- **R0b (`9f52b4a`).** `docs/Knx/knx-feature-report.md` deja de estar sin trackear.
+
+- **R1a (`PENDIENTE_R1A`).** `openapi.yaml`: `204` en `/notifications/ack-all` y
+  `/notifications/{id}/ack`; cuerpos reales de los 3 POST de campo (aparato / incidencia / visita) con
+  ejemplo de `201` y de `200`. Nuevo `AssertDocumentedSuccessCode` registrado sólo bajo
+  `runningUnitTests()`: compara todo 2xx real del suite contra las respuestas declaradas. Dos tests
+  nuevos en `OpenApiContractTest` (guard registrado + toda operación declara un 2xx).
+  - Suite: **243 passed / 1 skipped / 0 failed** (1434 aserciones), Pint limpio en lo tocado.
+  - Prueba del guard: revirtiendo el spec de `ack-all` a `200`, el suite falla con
+    `Undocumented success code: POST /notifications/ack-all returned 204, and docs/Knx/openapi.yaml declares [200]`.
+  - HTTP real `:8002`: `POST /field/projects/C1618/devices` → `201` cuerpo real y reintento `200`
+    mismo aparato; `POST …/issues` → `201 {"id":"87",…}`; `POST …/visits` → `201 {"id":"9",…}`;
+    `POST /notifications/44/ack` → `204`; `POST /notifications/ack-all` → `204`.
+  - **Siguiente paso (no barato todavía):** validar el cuerpo contra el esquema. `openapi.yaml` usa
+    ejemplos inline, no `components/schemas`, así que la validación de forma exige primero migrar el
+    spec a schemas. Queda anotado para KNX-20 como deuda.
+
+### Entorno de verificación (hallazgo, no obvio)
+
+`php artisan test` desde el host falla con `getaddrinfo for mysql failed`: el `.env` apunta al host
+`mysql`, que sólo resuelve dentro de la red Sail. La suite se corre **dentro del contenedor**
+`knx-api-tmp` (puerto 8002), con la base aislada:
+
+```bash
+docker exec -e DB_DATABASE=electrobertels_knx_testing knx-api-tmp \
+  sh -lc 'php artisan test Modules/Knx/tests/Feature/OpenApiContractTest.php'
+```
+
+`phpunit.xml` fija `claesen_analytics_web_testing`; la BD `electrobertels_knx_testing` ya existe en el
+MySQL del stack y es la que mantiene la suite aislada de otros checkouts.
 
 ## Avisos
 

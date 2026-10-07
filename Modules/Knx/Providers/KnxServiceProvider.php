@@ -2,8 +2,10 @@
 
 namespace Modules\Knx\Providers;
 
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\ServiceProvider;
 use Modules\Knx\Console\Commands\KnxImportWorklistCommand;
+use Modules\Knx\Http\Middleware\AssertDocumentedSuccessCode;
 use Nwidart\Modules\Traits\PathNamespace;
 
 /**
@@ -31,6 +33,14 @@ class KnxServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        // KNX-20 — the path-only anti-drift test could not see a controller that
+        // returned a 204 while the spec documented a 200. This guard closes that gap
+        // by checking every 2xx the suite actually produces; it is test-only.
+        if ($this->app->runningUnitTests()) {
+            $this->app->make(Kernel::class)
+                ->pushMiddleware(AssertDocumentedSuccessCode::class);
+        }
     }
 
     public function register(): void

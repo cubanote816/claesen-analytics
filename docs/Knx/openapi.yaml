@@ -657,7 +657,7 @@ paths:
       tags: [notifications]
       summary: Confirma todas las pendientes (idempotente)
       responses:
-        "200": { description: OK }
+        "204": { description: Sin contenido — confirmadas }
   /notifications/{id}/ack:
     post:
       tags: [notifications]
@@ -665,7 +665,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Id"
       responses:
-        "200": { description: OK }
+        "204": { description: Sin contenido — confirmada }
         "404": { $ref: "#/components/responses/NotFound" }
   /reports/exports:
     get:
@@ -785,8 +785,16 @@ paths:
                 photoDataUrl: { type: string, nullable: true }
                 capturedAt: { type: string, format: date-time }
       responses:
-        "201": { description: Aparato creado }
-        "200": { description: Reintento del mismo `clientId` — mismo aparato }
+        "201":
+          description: Aparato creado
+          content:
+            application/json:
+              example: { id: "88", address: "1.1.131", type: "SA/S8.16.2.1", roomName: "Inkomhal", boardCode: "E10", serial: "", registeredBy: "J. Van Dyck", registeredAt: "2026-10-06T09:42:00+02:00" }
+        "200":
+          description: Reintento del mismo `clientId` — mismo aparato
+          content:
+            application/json:
+              example: { id: "88", address: "1.1.131", type: "SA/S8.16.2.1", roomName: "Inkomhal", boardCode: "E10", serial: "", registeredBy: "J. Van Dyck", registeredAt: "2026-10-06T09:42:00+02:00" }
         "403": { description: Proyecto no asignado hoy }
         "409":
           description: Dirección ocupada
@@ -821,8 +829,16 @@ paths:
                 photoDataUrl: { type: string, nullable: true }
                 capturedAt: { type: string, format: date-time }
       responses:
-        "201": { description: Conflicto creado }
-        "200": { description: Reintento del mismo `clientId` }
+        "201":
+          description: Conflicto creado
+          content:
+            application/json:
+              example: { id: "16", clientId: "6f1c9d2e-3a44-4b1e-9c7f-2f0a8e5d1b3c" }
+        "200":
+          description: Reintento del mismo `clientId`
+          content:
+            application/json:
+              example: { id: "16", clientId: "6f1c9d2e-3a44-4b1e-9c7f-2f0a8e5d1b3c" }
         "403": { description: Proyecto no asignado hoy }
         "422": { $ref: "#/components/responses/ValidationError" }
   /field/projects/{code}/visits:
@@ -856,8 +872,16 @@ paths:
                 documents: { type: array, items: { type: string } }
                 capturedAt: { type: string, format: date-time }
       responses:
-        "201": { description: Cierre registrado }
-        "200": { description: Reintento del mismo `clientId` }
+        "201":
+          description: Cierre registrado
+          content:
+            application/json:
+              example: { id: "12", clientId: "b2e5a1c4-77d0-4f39-8a2e-1c9d3b6f4e08" }
+        "200":
+          description: Reintento del mismo `clientId`
+          content:
+            application/json:
+              example: { id: "12", clientId: "b2e5a1c4-77d0-4f39-8a2e-1c9d3b6f4e08" }
         "403": { description: Proyecto no asignado hoy }
         "422": { $ref: "#/components/responses/ValidationError" }
 components:
