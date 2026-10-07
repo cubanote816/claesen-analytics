@@ -285,6 +285,21 @@ Seis páginas, una por sección, cada una con **su URL**: general, contact, addr
 
 **Suite completa del trunk: 2250 passed / 3 skipped / 0 failed** (8108 aserciones, 42 min).
 
+### S1b · El submenú al sidebar, con su iconografía — HECHO
+
+**El usuario reportó bien**: los ítems se dibujaban **al costado del contenido** y los cuatro grupos habían perdido sus páginas. Dos causas, las dos **medidas** en el vendor:
+
+1. **Una página de clúster nunca se registra en el sidebar**: `Page::registerNavigationItems()` sale temprano si la página tiene clúster, **a propósito**, para que Filament sea dueño de la sub-navegación. Por eso los ítems aparecían fuera de la navegación del panel. La puerta es el ítem **del clúster**: `getNavigationItems()` **sí** funciona en una página de clúster (lo que no corre es el registro), `NavigationItem` lleva `childItems`, y `NavigationManager` **los preserva** al fusionar los `parentItem`.
+2. **El sidebar de Filament recursiona UN nivel**: la llamada recursiva **no pasa `child-items`**, así que los nietos nunca se dibujan. El prototipo necesita **tres** niveles (Website › grupo › página). Un override de esa vista agrega la prop que falta, y hay un test que lo vigila para que borrarlo —o actualizar Filament— no se lleve el menú en silencio.
+
+**Orden de los grupos corregido**: «Site settings» salía **primero** porque los grupos salían en orden de descubrimiento. El prototipo ordena Publicación, Contenido, Ajustes, Bandeja, y ahora el orden está declarado en un solo sitio.
+
+**Un error que sólo el navegador podía ver**: Filament **exige** un icono en un ítem que tiene hijos («Parent items must have an icon») y lo comprueba **al renderizar**. Sin iconos, el sidebar devolvía **500 en toda página del panel** mientras los tests de estructura seguían verdes. Y hay un dato más fuerte: **el sidebar no lo cubre ningún test** — `Livewire::test(Page::class)` renderiza el componente de la página, no el layout—, así que para esta pantalla el navegador no es un extra, es la única verificación.
+
+**Iconografía**: el usuario pidió conservarla, y el anidado la había sacado. En el vendor: la condición del icono exige `! $subGrouped` **o** un sidebar colapsable en desktop —que este panel no es—, así que los ítems anidados **no tenían icono ni estaban en el DOM**; y lo que Filament dibuja en su lugar es un **punto sustituto**, para todo ítem sub-agrupado. El override ahora dibuja el icono cuando lo hay y el punto **sólo** cuando no lo hay. Las tres desviaciones del vendor quedan listadas arriba del archivo, porque la próxima actualización de Filament las revierte en silencio.
+
+**Verificado**: 12 tests (51 aserciones), el sidebar volcado desde el DOM y **la captura mirada** en tres páginas — `Website › Publiceren | Inhoud | Site-instellingen | Postvak`, cada ítem con su icono y su badge, dentro de «Content & Website».
+
 ## Riesgos, y lo que esto NO es
 
 - **El prefijo de ruta no sirve** (D1), y es la trampa que más fácil se pisa: el preview se vería como «el sitio de siempre» y parecería que la función no anda.
