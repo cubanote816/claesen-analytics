@@ -48,8 +48,9 @@
   (`9f52b4a`, estaba sin trackear).
 - [x] **R1a** KNX-20 — `204` en los dos `ack`, cuerpos reales de los 3 POST de campo y
   `AssertDocumentedSuccessCode` (guard test-only que compara todo 2xx real del suite contra el spec).
-  Commit `PENDIENTE_R1A`.
-- [ ] **R1b** KNX-18 — test guardián: `PUT /markers` sin la clave `markers` → `422`. Cerrar en Linear.
+  Commit `61dcdce`.
+- [x] **R1b** KNX-18 — test guardián: `PUT /markers` sin la clave `markers` → `422` (y el
+  conjunto vacío sigue siendo `200`). Commit `PENDIENTE_R1B`.
 - [ ] **R1c** KNX-24 — `SetLocaleFromHeader` en las rutas Knx (`lang/en` alcanzable por HTTP).
 - [ ] **R2** KNX-51 — dirección de la obra (`siteAddress`), `PATCH /projects/{code}`.
 - [ ] **R3** KNX-44 — habitaciones, alias, zona automática con los 8 checks, `roomId` en enlaces de
@@ -80,7 +81,7 @@
   **2 passed / 53 assertions**.
 - **R0b (`9f52b4a`).** `docs/Knx/knx-feature-report.md` deja de estar sin trackear.
 
-- **R1a (`PENDIENTE_R1A`).** `openapi.yaml`: `204` en `/notifications/ack-all` y
+- **R1a (`61dcdce`).** `openapi.yaml`: `204` en `/notifications/ack-all` y
   `/notifications/{id}/ack`; cuerpos reales de los 3 POST de campo (aparato / incidencia / visita) con
   ejemplo de `201` y de `200`. Nuevo `AssertDocumentedSuccessCode` registrado sólo bajo
   `runningUnitTests()`: compara todo 2xx real del suite contra las respuestas declaradas. Dos tests

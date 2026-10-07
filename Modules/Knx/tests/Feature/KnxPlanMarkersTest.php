@@ -254,6 +254,27 @@ final class KnxPlanMarkersTest extends TestCase
         $this->assertSame(0, KnxPlanMarker::query()->where('document_id', $document->getKey())->count());
     }
 
+    /**
+     * The other half of KNX-18: `markers` is `present`, not optional. An empty set is
+     * valid, but omitting the key is a different body and must stay a 422 — otherwise a
+     * malformed request would silently mean "clear the page". This is the guardian that
+     * keeps the fix from drifting back into `required`, which rejected the empty array.
+     */
+    public function test_a_put_without_the_markers_key_is_rejected(): void
+    {
+        $document = $this->document('C1618', 'UV_C1618_Gelijkvloers_Wayfinding.pdf');
+        $url = "/api/v1/knx/projects/C1618/plans/{$document->getKey()}/markers";
+
+        $this->putJson($url, $this->payload((string) $document->getKey()))->assertOk();
+
+        $this->putJson($url, ['page' => 1])
+            ->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['markers']]);
+
+        // The rejected body changed nothing: the previous set is still there.
+        $this->assertCount(2, $this->getJson($url)->assertOk()->json('markers'));
+    }
+
     public function test_carry_over_from_with_an_empty_body_copies_the_previous_series(): void
     {
         $previous = $this->document('C1618', 'UV_C1618_Gelijkvloers_Wayfinding.pdf');
