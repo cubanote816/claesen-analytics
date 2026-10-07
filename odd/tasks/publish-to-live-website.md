@@ -169,9 +169,23 @@ Cinco unidades. La decisión que las ordena es la **WU2**: cambia el significado
 
 **Y no commiteé nada en el repo del sitio**: ver «Hallazgos del repo del sitio» — habría sido peor que no commitear.
 
-### WU5 · Vista previa *(DISEÑO — 2026-10-06; nada implementado)*
+### WU5 · Vista previa *(DISEÑO confirmado D1–D5 · WU5a HECHO · WU5b/WU5c pendientes)*
 
 **La pregunta**: que el cliente **vea** lo que va a publicar antes de publicar. Necesita diseño propio, como quedó dicho. Acá está.
+
+#### Estado de la implementación
+
+**WU5a · el motor del sitio — HECHO.** `release.mjs` construye un **candidato** (`promote: false`): el release queda en disco y registrado, `current` no se mueve, y `current_release`/`content_revision`/`last_success_at` —que describen lo **publicado**— no se tocan. `promoteRelease()` publica **sin reconstruir**, con el nombre validado contra `releases/` (nada de `..` ni de rutas fuera del motor) y rechazando promover lo que ya está publicado. El receiver gana `POST /preview` (mismo contrato de firma, misma cola de build), el candidato en `/health`, y en `/rebuild` **promueve sólo si la marca de contenido coincide** con la que se guardó al preparar. La poda protege al candidato además de a `current`.
+
+**Verificado con receiver real, HMAC real y builds reales** (`/tmp/wu5-engine-check.mjs`): preparar deja `current` **intacto** (release y symlink), `/health` expone el candidato y su marca, publicar con la marca que coincide **promueve sin construir** (0 releases nuevos), y con una marca distinta **construye** — que es el default seguro, porque promover sin saber si el candidato sigue representando lo que hay publicaría bytes que nadie revisó.
+
+**Es inerte hasta que el backend lo pida**, y eso es deliberado: el backend todavía no manda `watermark`, así que publicar sigue construyendo como siempre. La capacidad existe sin cambiar el comportamiento de nadie.
+
+**WU5b · servir el candidato — PENDIENTE.** `serve.mjs` en puerto propio (D1), verificación de la firma del enlace (D3) y `X-Robots-Tag: noindex`.
+
+**WU5c · el lado del panel — PENDIENTE.** La acción «Preparar vista previa» (D4), el enlace firmado (D3), el estado del candidato en el panel, el aviso de candidato viejo (la marca del WU4), y mandar la marca en el payload de publicar (D5).
+
+**D2 queda para WU5b**: hoy la compuerta sólo marca `noindex`, así que el preview por defecto ya deja **leer** lo pendiente; lo que D2 agrega es que las páginas a punto de aprobarse aparezcan como quedarían.
 
 #### Lo que hace que esto sea un delta y no una obra
 
