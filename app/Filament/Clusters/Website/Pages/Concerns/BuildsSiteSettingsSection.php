@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Clusters\Website\Pages\Concerns;
 
 use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
+use App\Filament\Clusters\Website\WebsiteNavigationBadges;
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Clusters\Website\WebsiteSettingSections;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
@@ -88,6 +90,37 @@ trait BuildsSiteSettingsSection
     public static function getNavigationLabel(): string
     {
         return __('website.settings_sections.'.static::section().'.label');
+    }
+
+    /** WU-S1: las seis viven en «Site settings», y en el orden del mapa del prototipo. */
+    public static function getNavigationGroup(): ?string
+    {
+        return WebsiteNavigationGroups::label(WebsiteNavigationGroups::SITE_SETTINGS);
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        // `=== false` y no `?: null`: `array_search` devuelve **0** para la primera sección, y
+        // `0 ?: null` la mandaría al final del grupo sin decir nada.
+        $index = array_search(static::section(), WebsiteSettingSections::all(), true);
+
+        return $index === false ? null : $index + 1;
+    }
+
+    /**
+     * WU-S1: cambios sin publicar de esta sección. `null` en vez de `'0'` cuando no hay nada: un
+     * badge que dice cero es ruido.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $pending = WebsiteNavigationBadges::forSettingSection(static::section());
+
+        return $pending > 0 ? (string) $pending : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
     }
 
     public static function canAccess(): bool

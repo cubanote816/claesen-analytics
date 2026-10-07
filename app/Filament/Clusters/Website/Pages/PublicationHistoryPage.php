@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Clusters\Website\Pages;
 
 use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Clusters\Website\Widgets\UnpublishedChangesWidget;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
@@ -32,6 +33,22 @@ use Modules\Website\Services\StaticSitePublicationService;
 class PublicationHistoryPage extends Page implements HasTable
 {
     use InteractsWithTable;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return WebsiteNavigationGroups::label(WebsiteNavigationGroups::PUBLISHING);
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 2;
+    }
+
+    /**
+     * Sin badge, a propósito: esta pantalla **es** el registro de las publicaciones. Un número de
+     * «cambios sin publicar» acá repetiría el de las páginas que los editan sin decir cuál, y
+     * duplicar un número es la forma de que dos números distintos no coincidan nunca.
+     */
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clock';
 

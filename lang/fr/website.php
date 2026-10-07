@@ -240,6 +240,15 @@ return [
     ],
     // WU-S2 : la découpe des paramètres du site en six pages, telle que le prototype approuvé
     // la déclare.
+    // WU-S1 : les quatre groupes du sous-menu Website, du prototype. La valeur doit être la MÊME
+    // entre les éléments d'un groupe (Filament groupe par texte), donc elle se résout en un seul
+    // endroit.
+    'nav_groups' => [
+        'publishing'    => 'Publication',
+        'content'       => 'Contenu',
+        'site_settings' => 'Paramètres du site',
+        'inbox'         => 'Boîte de réception',
+    ],
     'settings_sections' => [
         'general' => [
             'label' => 'Général',

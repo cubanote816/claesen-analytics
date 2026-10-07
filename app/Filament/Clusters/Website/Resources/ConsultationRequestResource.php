@@ -3,6 +3,8 @@
 namespace App\Filament\Clusters\Website\Resources;
 
 use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Clusters\Website\WebsiteNavigationBadges;
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Clusters\Website\Resources\ConsultationRequestResource\Pages;
 use App\Filament\Clusters\Website\Resources\ConsultationRequestResource\RelationManagers;
 use Modules\Website\Models\ConsultationRequest;
@@ -24,6 +26,32 @@ use Modules\Website\Services\RetentionService;
 class ConsultationRequestResource extends Resource
 {
     use \App\Filament\Concerns\ScopedToPanelSite;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return WebsiteNavigationGroups::label(WebsiteNavigationGroups::INBOX);
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
+    /**
+     * Solicitudes nuevas: lo que la bandeja todavía no tomó. Es el único badge que **no** habla de
+     * publicación — acá no se publica nada, se atiende — y por eso su color es distinto.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $new = WebsiteNavigationBadges::forNewConsultations();
+
+        return $new > 0 ? (string) $new : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'danger';
+    }
 
     protected static ?string $model = ConsultationRequest::class;
 

@@ -22,5 +22,11 @@ class WebsiteCluster extends Cluster
         return __('navigation.groups.content_website');
     }
 
-    protected static ?\Filament\Pages\Enums\SubNavigationPosition $subNavigationPosition = \Filament\Pages\Enums\SubNavigationPosition::Top;
+    /**
+     * WU-S1: el submenú va al **sidebar**, agrupado, en vez de la barra de pestañas horizontal
+     * con scroll de arriba. Un clúster agrupa sus ítems por el `$navigationGroup` de cada
+     * componente, así que los cuatro grupos del prototipo (Publicación, Contenido, Ajustes,
+     * Bandeja) salen de ahí sin inventar un componente de navegación propio.
+     */
+    protected static ?\Filament\Pages\Enums\SubNavigationPosition $subNavigationPosition = \Filament\Pages\Enums\SubNavigationPosition::Start;
 }

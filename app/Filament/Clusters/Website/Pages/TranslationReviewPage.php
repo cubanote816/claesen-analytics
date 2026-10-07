@@ -6,6 +6,8 @@ namespace App\Filament\Clusters\Website\Pages;
 
 use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
 use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Clusters\Website\WebsiteNavigationBadges;
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Concerns\NamesValuesForHumans;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -41,6 +43,29 @@ class TranslationReviewPage extends Page implements HasTable
     use InteractsWithTable;
     use NamesValuesForHumans;
     use ShowsSitePublicationState;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return WebsiteNavigationGroups::label(WebsiteNavigationGroups::PUBLISHING);
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
+    }
+
+    /** Traducciones esperando una persona. */
+    public static function getNavigationBadge(): ?string
+    {
+        $waiting = WebsiteNavigationBadges::forTranslationsWaiting();
+
+        return $waiting > 0 ? (string) $waiting : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'info';
+    }
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-language';
 

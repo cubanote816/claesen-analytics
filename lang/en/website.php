@@ -327,6 +327,14 @@ return [
         ],
     ],
     // WU-S2: the split of Site settings into six pages, as the approved prototype declares it.
+    // WU-S1: the four groups of the Website submenu, from the prototype. The value has to be the
+    // SAME across the items of a group (Filament groups by text), so it resolves in one place.
+    'nav_groups' => [
+        'publishing'    => 'Publishing',
+        'content'       => 'Content',
+        'site_settings' => 'Site settings',
+        'inbox'         => 'Inbox',
+    ],
     'settings_sections' => [
         'general' => [
             'label' => 'General',

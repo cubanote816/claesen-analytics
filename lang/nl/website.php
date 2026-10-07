@@ -334,6 +334,15 @@ return [
     // WU-S2: la división de Ajustes en seis páginas, tal como la declara el prototipo
     // aprobado. `settings_sections.*.label` es el nombre en el menú y el título de la página, y
     // `.description` es la línea que va debajo del título.
+    // WU-S1: los cuatro grupos del submenú de Website, del prototipo. El valor tiene que ser el
+    // **mismo** entre los ítems de un grupo (Filament agrupa por texto), así que la etiqueta se
+    // resuelve en un solo sitio.
+    'nav_groups' => [
+        'publishing'    => 'Publiceren',
+        'content'       => 'Inhoud',
+        'site_settings' => 'Site-instellingen',
+        'inbox'         => 'Postvak',
+    ],
     'settings_sections' => [
         'general' => [
             'label' => 'Algemeen',

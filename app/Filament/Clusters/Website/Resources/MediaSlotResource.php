@@ -6,6 +6,8 @@ namespace App\Filament\Clusters\Website\Resources;
 
 use App\Filament\Clusters\Website\Resources\MediaSlotResource\Pages;
 use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Clusters\Website\WebsiteNavigationBadges;
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Concerns\ScopedToPanelSite;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -32,6 +34,29 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class MediaSlotResource extends Resource
 {
     use ScopedToPanelSite;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return WebsiteNavigationGroups::label(WebsiteNavigationGroups::CONTENT);
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 2;
+    }
+
+    /** Cambios sin publicar de los slots de media. */
+    public static function getNavigationBadge(): ?string
+    {
+        $pending = WebsiteNavigationBadges::forSubjectType(MediaSlot::class);
+
+        return $pending > 0 ? (string) $pending : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
+    }
 
     protected static ?string $model = MediaSlot::class;
 

@@ -3,6 +3,8 @@
 namespace App\Filament\Clusters\Website\Resources;
 
 use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Clusters\Website\WebsiteNavigationBadges;
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Clusters\Website\Resources\ProjectResource\Pages;
 use Modules\Website\Models\Project;
 use Modules\Core\Models\Site;
@@ -28,6 +30,29 @@ use Filament\Schemas\Components\Utilities\Get;
 class ProjectResource extends Resource
 {
     use \App\Filament\Concerns\ScopedToPanelSite;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return WebsiteNavigationGroups::label(WebsiteNavigationGroups::CONTENT);
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
+    }
+
+    /** Cambios sin publicar de los proyectos. */
+    public static function getNavigationBadge(): ?string
+    {
+        $pending = WebsiteNavigationBadges::forSubjectType(Project::class);
+
+        return $pending > 0 ? (string) $pending : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
+    }
 
     // CLA-470: 10 MB matches the precedent already established for photo
     // uploads elsewhere in the app (Modules\FieldOps's photos collections,

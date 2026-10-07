@@ -241,6 +241,15 @@ return [
     ],
     // WU-S2: die Aufteilung der Website-Einstellungen in sechs Seiten, wie der genehmigte
     // Prototyp sie deklariert.
+    // WU-S1: die vier Gruppen des Website-Untermenüs, aus dem Prototyp. Der Wert muss zwischen
+    // den Einträgen einer Gruppe DERSELBE sein (Filament gruppiert nach Text), daher wird er an
+    // einer Stelle aufgelöst.
+    'nav_groups' => [
+        'publishing'    => 'Veröffentlichung',
+        'content'       => 'Inhalt',
+        'site_settings' => 'Website-Einstellungen',
+        'inbox'         => 'Posteingang',
+    ],
     'settings_sections' => [
         'general' => [
             'label' => 'Allgemein',

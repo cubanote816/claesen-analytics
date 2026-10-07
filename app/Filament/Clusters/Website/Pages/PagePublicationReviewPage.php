@@ -6,6 +6,8 @@ namespace App\Filament\Clusters\Website\Pages;
 
 use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
 use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Clusters\Website\WebsiteNavigationBadges;
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Concerns\NamesValuesForHumans;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -45,6 +47,30 @@ class PagePublicationReviewPage extends Page implements HasTable
     use InteractsWithTable;
     use NamesValuesForHumans;
     use ShowsSitePublicationState;
+
+    // WU-S1: el submenú vive en el sidebar, agrupado. Los cuatro grupos salen del prototipo.
+    public static function getNavigationGroup(): ?string
+    {
+        return WebsiteNavigationGroups::label(WebsiteNavigationGroups::PUBLISHING);
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
+    /** Páginas aprobadas esperando salir a la web. */
+    public static function getNavigationBadge(): ?string
+    {
+        $waiting = WebsiteNavigationBadges::forPagesWaitingToGoLive();
+
+        return $waiting > 0 ? (string) $waiting : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'info';
+    }
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-check-badge';
 
