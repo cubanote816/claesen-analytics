@@ -357,11 +357,50 @@ sitio no redirige, el formulario falla con «Failed to fetch» exactamente igual
 CORS, no el endpoint — `curl` no aplica CORS. Cualquier API consumida desde otro origen se verifica
 **con navegador**, nunca sólo con `curl`.
 
-### La suite no puede correr sobre una base de datos vacía — **no reproducía** (2026-10-04 → 2026-10-06)
+### La suite no puede correr sobre una base de datos vacía — **causa encontrada** (2026-10-04 → 2026-10-07)
 
-**Actualización 2026-10-06: no reproduce, y el fallo no estaba en el repo.** Se repitió el fallo
-reportado en tres configuraciones, incluida la condición exacta que este riesgo decía romper —una base
-**vacía de verdad**, después de `php artisan db:wipe`—:
+**Actualización 2026-10-07: es una carrera entre worktrees que comparten la base de tests.**
+Reproducido en vivo, con evidencia, y con la hipótesis anterior corregida:
+
+| Evidencia | Medición |
+| --- | --- |
+| Base de tests del worktree de KNX | `/home/totti/claesen/electrobertels-knx-api/phpunit.xml:40` → `DB_DATABASE=claesen_analytics_web_testing` — **la misma del trunk** |
+| Procesos vivos en ese contenedor al momento del fallo | **dos** `php artisan test` a la vez (85 s y 45 s de antigüedad) |
+| Mi corrida de `WebsiteSettingsPagesTest` con esos procesos vivos | `1824 Failed to open the referenced table 'roles'` — **idéntico al reporte original** (12 fallos) |
+| Estado de la tabla durante el fallo | `roles` **existe**, `ENGINE=InnoDB`, 0 filas — o sea, no era «no existe» |
+| La misma corrida después de que esos procesos terminaron | `14 passed / 4 failed` — **el fallo de base desapareció**, y los 4 restantes eran errores reales de mi código |
+
+**El mecanismo:** `RefreshDatabase` corre `migrate:fresh` **una vez por proceso**, y eso **dropea todas
+las tablas** de la base de esa conexión. Con dos procesos sobre la misma base, uno dropea `roles`
+mientras el otro agrega la clave foránea de `model_has_roles` hacia ella. El `1824` no dice «no
+existe», dice *«no puedo abrirla»*: exactamente lo que se ve cuando la tabla está siendo dropeada o
+recreada en ese instante.
+
+**Por qué el reporte decía «falla siempre» y a mí no me reproducía:** no dependía de la máquina, sino
+de si había **un vecino migrando**. Quien corre la suite mientras otro worktree la corre recibe encima
+un `migrate:fresh` ajeno; quien corre solo, nunca lo ve. Las verificaciones «limpias» del 2026-10-06
+pasaron porque en ese momento nadie más estaba migrando, y la regla que usé entonces —comprobar que no
+hubiera tests corriendo **antes** de correr los míos— es justamente la que lo evita.
+
+**La corrección:** el fallo **era del entorno y no del código**, como se concluyó; lo que estaba mal
+era la **causa** hipotetizada (un diccionario corrupto del volumen de Sail). Era concurrencia sobre una
+base compartida.
+
+**La regla práctica, para la próxima vez:** antes de creerle a un fallo de base en esta máquina, mirar
+si **otro worktree está testeando**:
+
+```sh
+for c in $(docker ps --format '{{.Names}}'); do
+  echo -n "$c: "; docker exec "$c" sh -lc 'ps -eo args | grep -c "[a]rtisan test"' 2>/dev/null || echo "-"
+done
+```
+
+Si hay alguno, esperar y reintentar. El arreglo de fondo —que **no** se aplicó porque vive en otro
+worktree, no en este repo— es que cada worktree use **su propia base de tests**, o que las corridas se
+serialicen. Mientras tanto, un `1824` acá significa «hay otro proceso migrando», no «el repo está roto».
+
+Lo que se midió el 2026-10-06, y sigue siendo válido (no era concluyente porque en ese momento no
+había ningún otro proceso migrando, que es justamente la condición que lo dispara):
 
 | Prueba | Comando | Resultado |
 | --- | --- | --- |
@@ -372,11 +411,10 @@ reportado en tres configuraciones, incluida la condición exacta que este riesgo
 `roles` / `model_has_roles` / `role_has_permissions` quedan `ENGINE=InnoDB` correctos. Servidor: MySQL
 **8.4.8**, `lower_case_table_names=0`, `foreign_key_checks=1`, `sql_mode` sin nada inusual.
 
-**La hipótesis, declarada como hipótesis y no como causa probada:** el `1824` de MySQL es *«no puedo
-**abrir** la tabla padre»*, no *«no existe»* — la firma de un diccionario de datos corrupto en el
-**volumen local de Sail** (un `roles` a medio crear por una migración abortada). `migrate:fresh`
-**dropea todas las tablas antes de crear**, así que la primera corrida verde limpió el estado sucio.
-Eso explica las dos mitades del reporte: fallaba *siempre* en esa máquina y ahora no.
+**Hipótesis que quedó descartada, y se deja escrita porque era plausible:** el `1824` de MySQL es
+*«no puedo **abrir** la tabla padre»*, no *«no existe»* → se imaginó un diccionario de datos corrupto
+en el **volumen local de Sail** (un `roles` a medio crear por una migración abortada). La lectura del
+error era correcta; la causa, no: ver la actualización del 2026-10-07 arriba.
 
 **Consecuencia, y es la parte que importa:** el fallo era **del entorno, no del código**. Lo confirma
 que el CI ya tenía el paso correcto desde antes — `.github/workflows/tests.yml:105-106` corre
@@ -406,7 +444,7 @@ Es decir: la migración **no encuentra la tabla `roles` que ella misma acaba de 
 antes. La creación está normal (`bigIncrements('id')`, `name`, `guard_name`, `timestamps()`, un
 `unique`), `config('permission.table_names')` tiene los cinco nombres correctos, no hay caché de
 config, y no existe otra migración que toque `roles`. **No encontré la causa.** *(Superado el
-2026-10-06: ver arriba.)*
+2026-10-07: era una carrera por base compartida — ver arriba.)*
 
 **Por qué importa**: mientras la base de tests ya existía, `RefreshDatabase` no volvía a migrar y
 todo pasaba; el problema aparece **desde cero**, o sea en una máquina nueva, en CI, o en cualquier
