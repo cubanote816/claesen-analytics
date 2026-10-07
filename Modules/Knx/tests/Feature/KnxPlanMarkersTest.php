@@ -273,6 +273,33 @@ final class KnxPlanMarkersTest extends TestCase
         $this->assertCount(2, $carried->json('markers'));
     }
 
+    public function test_carry_over_from_only_takes_the_same_page(): void
+    {
+        $previous = $this->document('C1618', 'UV_C1618_Gelijkvloers_Wayfinding.pdf');
+        $next = $this->document('C1618', 'C1618_ETS-export_0409.knxproj');
+
+        // Page 1 gets the default pair; page 2 gets a different board.
+        $this->putJson("/api/v1/knx/projects/C1618/plans/{$previous->getKey()}/markers", $this->payload((string) $previous->getKey()))
+            ->assertOk();
+        $this->putJson("/api/v1/knx/projects/C1618/plans/{$previous->getKey()}/markers", [
+            'page' => 2,
+            'markers' => [['boardId' => 'caja-4-bord-dagbesteding-1e-verdieping-v01', 'nx' => 0.4, 'ny' => 0.35]],
+        ])->assertOk();
+
+        // Carrying into page 2 takes page 2's own board, not the two from page 1: reading
+        // every page would have moved them onto this page.
+        $carried = $this->putJson("/api/v1/knx/projects/C1618/plans/{$next->getKey()}/markers", [
+            'page' => 2,
+            'markers' => [],
+            'carryOverFrom' => $previous->getKey(),
+        ])->assertOk();
+
+        $this->assertSame(
+            ['caja-4-bord-dagbesteding-1e-verdieping-v01'],
+            array_column($carried->json('markers'), 'boardId'),
+        );
+    }
+
     public function test_the_marker_endpoints_require_the_office_app(): void
     {
         $document = $this->document('C1618', 'UV_C1618_Gelijkvloers_Wayfinding.pdf');

@@ -122,8 +122,14 @@ class PlanMarkerService
                 ->where('project_id', $project->getKey())
                 ->findOrFail((int) $sourceId);
 
+            // Scoped to the SAME page: `carryOverFrom` copies the previous revision's set
+            // of this page, not the whole document flattened into one. Reading every page
+            // silently MOVED a board that lived on another page (the unique key is document
+            // + board), which is a surprise no caller asked for. A plan with markers on
+            // several pages carries each page on its own PUT.
             $carried = KnxPlanMarker::query()
                 ->where('document_id', $source->getKey())
+                ->where('page', (int) $input['page'])
                 ->orderBy('id')
                 ->get();
 
