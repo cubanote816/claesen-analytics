@@ -233,7 +233,43 @@ historial (WU4)         → registra el release promovido
 | Sitio | `scripts/publish/lib/signature.mjs` | TTL propio para enlaces de preview |
 | Backend | acción + widget + historial | «Preparar vista previa», el enlace firmado, el estado del candidato, y el aviso de candidato viejo |
 
-#### Riesgos, y lo que esto NO es
+#### Rediseño del backoffice — brief del prototipo (2026-10-07)
+
+**Referencia**: `Mejoras UI backoffice website` (`D:\Proyectos\Electrobertels\website\plan\resultado`). No es un mockup: su `PAGES`/`KEYS` declara la intención **en datos** — qué claves de `site_settings` van a cada página, y qué páginas llevan botón de publicar.
+
+**S0 · decisión de arquitectura: B — «el snapshot del sitio **es** el estado publicado».** Publicar una sección = sincronizar **sólo esa sección** al snapshot y reconstruir; el resto del snapshot mantiene lo publicado. Se descartó **A** (columna `published_value` por clave: más caro, y acopla el preview con el camino de lectura del API) y **C** (publicación de todo el sitio) porque **no cumple** el criterio «publicar una página no publica los cambios de otras». Lo que hace B viable: el `--check` del sync **ya calcula** exactamente «borrador ≠ publicado», por superficie.
+
+**Idioma**: sigue `nl` por defecto en los cuatro locales, como hasta ahora.
+
+| | Slice | Estado |
+| --- | --- | --- |
+| **S0** | Modelo de publicación (B) | **DECIDIDO** |
+| **S1** | Navegación: sidebar desplegable con 4 grupos + badges por página | pendiente |
+| **S2** | Dividir Ajustes en 6 páginas | **HECHO** (`da1245e`) |
+| **S3** | Cabecera uniforme + barra fija «Unsaved changes / Discard / Save draft» | pendiente |
+| **S4** | Publicación por página: botón, estados, modal, toast | pendiente |
+| **S5** | Page publications: filtros, Approve all, drawer con iframe | pendiente (**es WU5b**, con granularidad por página) |
+| **S6** | «New media slot» + consistencia visual + chequeos de <1000 px | pendiente |
+
+### S2 · Ajustes en seis páginas — HECHO
+
+Seis páginas, una por sección, cada una con **su URL**: general, contact, address, hours, social, privacy. El mapa (`WebsiteSettingSections`) es la **única fuente de verdad** del reparto, y sale del prototipo.
+
+**La lógica de los campos se movió, no se rehizo**: el domicilio son cuatro campos, `opening_hours` es el `Repeater` de un día por fila con el `Toggle` derivado de `hours === null`, y el correo tiene su regla. Los tests se **reubicaron** por sección en vez de reescribirse: eran la única prueba de que esos comportamientos siguen en pie tras el traslado. Lo que cambió es de dónde salen las claves —`sectionKeys()` en vez del whitelist entero— y **eso** es lo que hace que guardar Contacto no toque los horarios.
+
+**Dos invariantes nuevos**, porque el modo de fallo de esta división es silencioso: ninguna clave del whitelist puede quedar **sin sección** (una clave huérfana es una clave que nadie puede editar, y se descubre tarde) y ninguna puede estar en **dos** (dos páginas peleando por la misma clave, gana la última). Más: las seis se llaman y se describen en los cuatro idiomas — el portero de traducciones del clúster **no** puede verlas, porque declara que descarta las claves concatenadas.
+
+**Dos claves que el prototipo no menciona y se conservan**: `phone` y `hours` son de **Claesen** (su frontend las lee textuales). El prototipo es del backoffice de Bertels, así que no las lista; sacarlas de la UI rompería la edición de Claesen sin que nadie lo pidiera, así que van en la sección cuyo tema comparten. **La nota de horarios que el prototipo pide está deliberadamente ausente**: no hay clave para ella, y crear una que el sync del sitio descarta en silencio sería un campo que no llega a ningún lado. Primero tiene que existir del lado del sitio, y eso es de esa línea.
+
+**Snapshots del baseline regenerados a propósito** (`UPDATE_BASELINE_SNAPSHOTS=1`) y el diff **medido**: **-2 rutas, +14**. Son las seis páginas en los dos paneles, y el diff muestra que las rutas nuevas llevan **el mismo stack de middleware** que la que reemplazan — o sea que la protección se heredó. Entre esas 14 está una que el baseline **nunca había registrado**: `PublicationHistoryPage`, del WU4.
+
+**Y eso es una admisión**: `PanelRegistrySnapshotTest` estaba **en rojo desde el WU4**, porque esa unidad agregó una página al panel y no la declaró en ningún lado. Corrí sólo el subconjunto de tests de publicación después y nunca lo vi. Es exactamente lo que ese baseline existe para atrapar, y funcionó — tarde.
+
+**Suite completa del trunk: 2241 passed / 3 skipped / 0 failed** (8065 aserciones, 49 min), corrida **después** de S2 y como evidencia de cierre por esa misma razón.
+
+**Trampa de implementación, registrada**: un trait **no** puede declarar `$cluster` ni `$view` sobre `Filament\Pages\Page` — las definiciones difieren y PHP **falla la composición** con un error fatal. Las declara cada página concreta, donde sobrescribir el valor por defecto sí está permitido.
+
+## Riesgos, y lo que esto NO es
 
 - **El prefijo de ruta no sirve** (D1), y es la trampa que más fácil se pisa: el preview se vería como «el sitio de siempre» y parecería que la función no anda.
 - **Un candidato viejo es peor que ninguno.** Si se puede publicar sin avisar, el modelo de dos fases **debilita** la garantía que trajo: alguien aprueba unos bytes y se publican otros. El aviso contra la marca del WU4 no es un adorno, es la condición.
