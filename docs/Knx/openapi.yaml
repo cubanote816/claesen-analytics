@@ -186,7 +186,9 @@ paths:
                   description: Misma restricción que la ruta de lectura; un espacio es 422, no un proyecto inalcanzable.
                 name: { type: string, maxLength: 255 }
                 city: { type: string, maxLength: 255 }
-                leadEmployeeId: { type: integer, description: "Véase GET /employees" }
+                leadEmployeeId:
+                  description: "Véase GET /employees. Los ids de los recursos viajan como string, así que se aceptan entero o string numérico."
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
                 deadline: { type: string, format: date }
                 rooms:
                   type: array
@@ -241,7 +243,24 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Code"
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK — los cierres de visita, más recientes primero
+          content:
+            application/json:
+              example:
+                - id: "12"
+                  projectCode: "000026"
+                  type: "visit_end"
+                  room: "Inkomhal"
+                  workDone: "Armatuur gecontroleerd"
+                  minutes: 180
+                  signedBy: "Dirk Maes"
+                  capturedAt: "2026-10-02T20:28:15+02:00"
+                  closedBy: "J. Van Dyck"
+                  pending: ["Driver badkamer ontbreekt"]
+                  reservations: []
+                  verifiedFunctions: ["Verlichting inkomhal"]
+                  documents: ["Stickerplan E10"]
   /projects/{code}/boards:
     get:
       tags: [boards]
@@ -361,7 +380,9 @@ paths:
                 project: { type: string, description: Código de proyecto }
                 kind: { type: string, maxLength: 40, description: "Plan, Schema, ETS, Keuring, Foto's…" }
                 revision: { type: string, maxLength: 20 }
-                supersedes: { type: integer, description: Id del documento al que reemplaza (mismo proyecto) }
+                supersedes:
+                  description: Id del documento al que reemplaza (mismo proyecto). Entero o string numérico.
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
                 clientId: { type: string, maxLength: 64, description: Idempotencia en reintento }
                 uploadedAt: { type: string, format: date, description: Hoy por defecto }
       responses:
@@ -432,8 +453,8 @@ paths:
       description: >-
         `nx`/`ny` son fracciones de la página; `pageWidthPt`/`pageHeightPt`
         los mide el cliente y el servidor los guarda como datos opacos (no
-        parsea el PDF). `carryOverFrom` usa la revisión anterior como base y
-        el cuerpo pisa por `boardId`.
+        parsea el PDF). `carryOverFrom` usa la revisión anterior como base —el conjunto
+        de ESA MISMA PÁGINA, no el de todas sus páginas— y el cuerpo pisa por `boardId`.
       parameters:
         - $ref: "#/components/parameters/Code"
         - $ref: "#/components/parameters/DocumentId"
@@ -450,7 +471,11 @@ paths:
                 page: { type: integer, minimum: 1 }
                 pageWidthPt: { type: number, nullable: true }
                 pageHeightPt: { type: number, nullable: true }
-                carryOverFrom: { type: integer, description: Id de documento del que copiar como base }
+                carryOverFrom:
+                  description: >-
+                    Id de documento del que copiar como base el conjunto de ESTA MISMA
+                    PÁGINA (no el de todas sus páginas). Entero o string numérico.
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
                 markers:
                   type: array
                   maxItems: 500
