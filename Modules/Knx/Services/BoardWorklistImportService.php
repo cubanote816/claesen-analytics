@@ -7,6 +7,7 @@ namespace Modules\Knx\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Knx\Models\KnxBoard;
+use Modules\Knx\Models\KnxBoardModule;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Models\KnxProjectRoom;
 
@@ -74,27 +75,54 @@ class BoardWorklistImportService
         $roomIds = $this->roomIdMap($project);
 
         return DB::transaction(function () use ($project, $boards, $roomIds): array {
-            $stats = ['boards' => 0, 'modules' => 0, 'channels' => 0, 'links' => 0];
+            $stats = ['boards' => 0, 'modules' => 0, 'channels' => 0, 'links' => 0, 'skipped' => 0];
             $usedCodes = [];
 
             foreach ($boards as $board) {
-                $model = KnxBoard::updateOrCreate(
-                    ['project_id' => $project->getKey(), 'slug' => $board['slug']],
-                    [
+                $model = KnxBoard::query()
+                    ->where('project_id', $project->getKey())
+                    ->where('slug', $board['slug'])
+                    ->with('modules')
+                    ->first();
+
+                // A board a person edited or created by hand is LEFT ALONE: a re-import
+                // must not overwrite office work. It is counted as skipped so the
+                // operator sees what the import did not touch instead of discovering it.
+                if ($model !== null && $this->ownedByAPerson($model)) {
+                    $usedCodes[$model->code] = ($usedCodes[$model->code] ?? 0) + 1;
+                    $stats['skipped']++;
+
+                    continue;
+                }
+
+                if ($model === null) {
+                    $model = KnxBoard::create([
+                        'project_id' => $project->getKey(),
+                        'slug' => $board['slug'],
                         'code' => $this->uniqueCode($board['name'], $usedCodes),
                         'name' => $board['name'],
                         'floor' => $board['floor'],
-                    ],
-                );
+                        'origin' => KnxBoard::ORIGIN_IMPORT,
+                        'review_state' => KnxBoard::REVIEW_CONFIRMED,
+                    ]);
+                } else {
+                    $model->update([
+                        'code' => $this->uniqueCode($board['name'], $usedCodes),
+                        'name' => $board['name'],
+                        'floor' => $board['floor'],
+                    ]);
+                }
 
-                // The board row is reused (so a device pointing at it keeps doing so)
-                // and its structure is replaced: that is what makes a re-import safe.
+                // The board's structure is replaced: that is what makes a re-import safe
+                // for a board nobody has edited.
                 $model->modules()->delete();
 
                 foreach ($board['modules'] as $index => $module) {
                     $created = $model->modules()->create([
                         'device' => $module['device'],
                         'slot' => $index + 1,
+                        'origin' => KnxBoardModule::ORIGIN_IMPORT,
+                        'review_state' => KnxBoardModule::REVIEW_CONFIRMED,
                     ]);
 
                     foreach ($module['links'] as $position => $link) {
@@ -213,6 +241,21 @@ class BoardWorklistImportService
         }
 
         return null;
+    }
+
+    /**
+     * True when the board or any of its modules was written by a person (`origin` is
+     * not `import`). A re-import leaves those alone.
+     */
+    private function ownedByAPerson(KnxBoard $board): bool
+    {
+        if ($board->origin !== KnxBoard::ORIGIN_IMPORT) {
+            return true;
+        }
+
+        return $board->modules->contains(
+            fn (KnxBoardModule $module): bool => $module->origin !== KnxBoardModule::ORIGIN_IMPORT,
+        );
     }
 
     /**

@@ -119,7 +119,10 @@ final class KnxBoardsTest extends TestCase
         $this->assertSame('caja-1-leefgroep-glv', $first['id']);
         $this->assertSame('Caja 1 - Leefgroep (GLV)', $first['name']);
         $this->assertSame('gelijkvloers', $first['floor']);
-        $this->assertSame(['device', 'slot', 'channels'], array_keys($first['modules'][0]));
+        $this->assertSame(
+            ['device', 'slot', 'origin', 'reviewState', 'updatedBy', 'updatedAt', 'channels'],
+            array_keys($first['modules'][0]),
+        );
 
         $second = $payload['boards'][1];
 

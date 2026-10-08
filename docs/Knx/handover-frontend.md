@@ -55,6 +55,9 @@ mocks.**
   `DocumentFile`, `PATCH /documents/{id} {floor}`; `GET /field/projects/{code}/rooms` y
   `GET /field/projects/{code}/plans/{documentId}/model` (sólo `confirmed`); los planos de campo
   exponen `floor` e `isCurrent`.
+- **Cuadros y módulos (KNX-52, implementado):** el CRUD de oficina y `origin`/`reviewState`/
+  `updatedBy`/`updatedAt`; `409 slot_taken` con el módulo actual; renombrar no cambia el `id`; una
+  reimportación salta lo editado a mano.
 - Los **dos** únicos huecos del contrato nuevo: `provisional` en DWG y `pending-decision` en la
   escritura de intenciones desde campo. Nada más queda abierto.
 

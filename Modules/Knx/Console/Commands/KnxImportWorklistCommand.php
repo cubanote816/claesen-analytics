@@ -56,6 +56,13 @@ class KnxImportWorklistCommand extends Command
             $code,
         ));
 
+        if (($stats['skipped'] ?? 0) > 0) {
+            $this->warn(sprintf(
+                'Skipped %d board(s) a person edited or created: a re-import never overwrites office work.',
+                $stats['skipped'],
+            ));
+        }
+
         return self::SUCCESS;
     }
 }

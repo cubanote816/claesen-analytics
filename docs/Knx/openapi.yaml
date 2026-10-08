@@ -415,14 +415,16 @@ paths:
   /projects/{code}/boards:
     get:
       tags: [boards]
-      summary: Cuadros del proyecto con módulos, canales y enlaces
+      summary: Cuadros del proyecto con módulos, canales y enlaces, con procedencia
       description: >-
-        `boards[].id` es la identidad externa del cuadro (el slug del worklist,
-        o su código corto si lo creó campo) y es **la misma cadena que lleva el
-        `boardId` de un marcador**. Cada módulo lleva `slot` (su posición en el
-        cuadro) porque el worklist sólo trae el número de pedido. El enlace
-        `(canal, habitación, objeto, GA)` es el hecho; ningún canal sirve a más
-        de una habitación.
+        `boards[].id` es la identidad externa del cuadro (el slug del worklist, o el que
+        derivó el servidor si lo creó oficina) y es **la misma cadena que lleva el `boardId`
+        de un marcador**. Cada módulo lleva `slot` (su posición en el cuadro). El enlace
+        `(canal, habitación, objeto, GA)` es el hecho; ningún canal sirve a más de una
+        habitación. `roomId` es la habitación resuelta por nombre o alias: `null` cuando el
+        texto no casó, y queda visible con su texto original. `origin`
+        (`import`/`office`/`field`) y `reviewState` (`confirmed`/`unreviewed`) dicen quién lo
+        escribió y si la oficina lo revisó; `updatedBy`/`updatedAt` lo completan.
       parameters:
         - $ref: "#/components/parameters/Code"
       responses:
@@ -434,15 +436,223 @@ paths:
                 projectCode: "000026"
                 boards:
                   - id: "caja-2-bord-dagbesteding-gelijkvloers-glv"
+                    code: "caja-2"
                     name: "Caja 2 - Bord dagbesteding gelijkvloers (GLV)"
                     floor: "gelijkvloers"
+                    origin: "import"
+                    reviewState: "confirmed"
+                    updatedBy: null
+                    updatedAt: "2026-10-05T14:00:00+02:00"
                     modules:
                       - device: "DG/S1.64.1.1"
                         slot: 2
+                        origin: "import"
+                        reviewState: "confirmed"
+                        updatedBy: null
+                        updatedAt: "2026-10-05T14:00:00+02:00"
                         channels:
                           - channel: "A"
                             links:
                               - { roomId: "31", room: "Polyvalente ruimte", object: "Schakelen (Cmd)", role: "dim_switch_cmd", ga: "2/2/1", gaName: "L-GLV-Dagbesteding-Polyvalente-Cmd", dpt: "DPST-1-1" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [boards]
+      summary: Alta de cuadro desde oficina
+      description: >-
+        El servidor deriva el `id` (el slug del nombre) y lo devuelve; nace `origin: office`
+        y `reviewState: confirmed`. Una reimportación no pisa un cuadro escrito a mano.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: { type: string, maxLength: 32 }
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 64, nullable: true }
+      responses:
+        "201": { description: "Creado — mismo `Board` que las lecturas" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/boards/{boardId}:
+    patch:
+      tags: [boards]
+      summary: Edita un cuadro
+      description: >-
+        `boardId` es el `id` estable del cuadro (el slug). Renombrar NO cambia el slug: es la
+        identidad que apunta un marcador. La edición deja `origin: office` y
+        `reviewState: confirmed`, y a partir de ahí una reimportación no lo pisa.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string, maxLength: 32 }
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 64, nullable: true }
+      responses:
+        "200": { description: "Cuadro ya actualizado" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/boards/{boardId}/modules:
+    post:
+      tags: [boards]
+      summary: Añade un módulo a un cuadro
+      description: Un `slot` ocupado responde `409 slot_taken` con el módulo que lo ocupa.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device, slot]
+              properties:
+                device: { type: string, maxLength: 64 }
+                slot: { type: integer, minimum: 1 }
+      responses:
+        "201": { description: "Módulo creado" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: El slot ya está ocupado
+          content:
+            application/json:
+              example: { message: "Slot 2 is already taken on this board.", code: slot_taken, errors: { slot: ["Slot 2 is already taken on this board."] }, module: { device: "SA/S8.16.2.2", slot: 2 } }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/boards/{boardId}/modules/{slot}:
+    patch:
+      tags: [boards]
+      summary: Edita el módulo de un slot
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device: { type: string, maxLength: 64 }
+      responses:
+        "200": { description: "Módulo actualizado" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [boards]
+      summary: Quita un módulo del cuadro
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "204": { description: Quitado }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/boards/{boardId}/modules/{slot}/channels/{channel}/links:
+    put:
+      tags: [boards]
+      summary: Reemplaza los enlaces de un canal (idempotente)
+      description: >-
+        `roomId` es obligatorio aquí: escribir a mano un enlace es haber resuelto la
+        habitación. `links` reemplaza el conjunto de ESA terna; el cuerpo vacío es válido.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - name: channel
+          in: path
+          required: true
+          schema: { type: string, maxLength: 8 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [links]
+              properties:
+                links:
+                  type: array
+                  items:
+                    type: object
+                    required: [roomId, object, role, ga, gaName, dpt]
+                    properties:
+                      roomId: { type: string }
+                      room: { type: string, maxLength: 150, nullable: true }
+                      object: { type: string, maxLength: 150 }
+                      role: { type: string, maxLength: 64 }
+                      ga: { type: string, maxLength: 32 }
+                      gaName: { type: string, maxLength: 255 }
+                      dpt: { type: string, maxLength: 32 }
+      responses:
+        "200": { description: "Canal ya actualizado con sus enlaces" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/boards/{boardId}/confirm:
+    post:
+      tags: [boards]
+      summary: "La oficina confirma el cuadro (pasa a `reviewState: confirmed`)"
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: "Cuadro ya confirmado" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/boards/{boardId}/modules/{slot}/confirm:
+    post:
+      tags: [boards]
+      summary: "La oficina confirma un módulo (pasa a `reviewState: confirmed`)"
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: "Módulo ya confirmado" }
         "404": { $ref: "#/components/responses/NotFound" }
   /projects/{code}/functions:
     get:

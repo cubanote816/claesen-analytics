@@ -18,9 +18,19 @@ class KnxBoardModule extends Model
 {
     use HasFactory;
 
+    public const ORIGIN_IMPORT = 'import';
+
+    public const ORIGIN_OFFICE = 'office';
+
+    public const ORIGIN_FIELD = 'field';
+
+    public const REVIEW_CONFIRMED = 'confirmed';
+
+    public const REVIEW_UNREVIEWED = 'unreviewed';
+
     protected $table = 'knx_board_modules';
 
-    protected $fillable = ['board_id', 'device', 'slot'];
+    protected $fillable = ['board_id', 'device', 'slot', 'origin', 'review_state', 'updated_by_employee_id'];
 
     protected function casts(): array
     {
@@ -32,6 +42,12 @@ class KnxBoardModule extends Model
     public function board(): BelongsTo
     {
         return $this->belongsTo(KnxBoard::class, 'board_id');
+    }
+
+    /** Who last wrote the module (KNX-52). */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(KnxEmployee::class, 'updated_by_employee_id');
     }
 
     public function links(): HasMany

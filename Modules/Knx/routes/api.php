@@ -177,6 +177,33 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::get('projects/{code}/boards', [BoardController::class, 'index'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.boards');
+            // KNX-52 — el alta y la edición de cuadros y módulos desde oficina. Toda
+            // escritura deja `origin`/`reviewState`/`updatedBy` para que una
+            // reimportación no pise lo editado a mano.
+            Route::post('projects/{code}/boards', [BoardController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.store');
+            Route::patch('projects/{code}/boards/{boardId}', [BoardController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.update');
+            Route::post('projects/{code}/boards/{boardId}/modules', [BoardController::class, 'storeModule'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.store');
+            Route::patch('projects/{code}/boards/{boardId}/modules/{slot}', [BoardController::class, 'updateModule'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.update');
+            Route::delete('projects/{code}/boards/{boardId}/modules/{slot}', [BoardController::class, 'destroyModule'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.destroy');
+            Route::put('projects/{code}/boards/{boardId}/modules/{slot}/channels/{channel}/links', [BoardController::class, 'updateLinks'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.links.update');
+            Route::post('projects/{code}/boards/{boardId}/confirm', [BoardController::class, 'confirm'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.confirm');
+            Route::post('projects/{code}/boards/{boardId}/modules/{slot}/confirm', [BoardController::class, 'confirmModule'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.confirm');
             // V11.e — the closures signed off from site. The office is the reader: the
             // field app only ever sends them.
             Route::get('projects/{code}/visits', [ProjectController::class, 'visits'])

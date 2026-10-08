@@ -72,7 +72,9 @@
 - [x] **R6** KNX-47 — campo: `GET /field/projects/{code}/rooms` (fichas), `GET …/plans/{documentId}/model`
   (sólo confirmadas + marcadores), `floor` en `POST /documents`, `floor`/`isCurrent` en `DocumentFile`
   y en los planos de campo, `PATCH /documents/{id} {floor}`. Commit `PENDIENTE_R6`.
-- [ ] **R7** KNX-52 — cuadros y módulos oficina (alta/edición/confirmación, `origin`/`reviewState`).
+- [x] **R7** KNX-52 — cuadros y módulos oficina: `origin`/`reviewState`/`updatedBy`/`updatedAt`,
+  alta/edición/borrado de módulos, `PUT …/links`, confirmaciones, y reimportación que **no pisa** lo
+  editado a mano (lo cuenta como `skipped`). Commit `PENDIENTE_R7`.
 - [ ] **R8** KNX-25 — campo: `GET /field/projects/{code}/boards` (lectura).
 - [ ] **R9** KNX-53 — campo: `POST …/boards`, `POST …/boards/{boardId}/modules`,
   `409 slot_taken`, `boardId`/`moduleSlot`/`channel` en el registro de aparatos.
@@ -166,6 +168,15 @@
     → `422`. Artefacto de subida borrado.
   - Bug propio: `PATCH` validaba `floor` con `required`, que rechaza un `null`; el contrato dice que
     `null` LIMPIA la planta. Pasó a `present|nullable`.
+
+- **R7 (`PENDIENTE_R7`).** Migración `2026_10_08_150000`; `origin`/`review_state`/`updated_by` en
+  `knx_boards` y `knx_board_modules`; `BoardService`; `BoardResource`/`BoardModuleResource`;
+  `BoardController` con 8 endpoints de escritura; el importador salta cuadros con procedencia humana
+  y lo reporta. Nuevo `KnxBoardWritesTest` (6 tests).
+  - HTTP real `:8002`: alta de cuadro → `201` `office`/`confirmed`/`L. Smet`; módulo → `201`;
+    slot ocupado → `409 slot_taken` con el módulo actual; `PUT links` → `200`; `confirm` → `200`.
+    Artefactos borrados de la BD dev.
+  - Suite completa: **269 passed / 1 skipped / 0 failed** (1677 aserciones).
 
 ### Entorno de verificación (hallazgo, no obvio)
 
