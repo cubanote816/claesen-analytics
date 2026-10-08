@@ -41,3 +41,23 @@ Reglas:
 - Archivos en UTF-8 limpio.
 - Presenta plan antes de editar.
 - Espera GO antes de implementar.
+
+---
+
+## Cierre de cada ticket KNX (obligatorio)
+
+> **Ámbito:** este repositorio es un monorepo (CAFCA Intelligence Hub) con varios módulos. Esta
+> regla aplica **solo al trabajo del módulo Knx** (equipo Linear `KNX`); los demás módulos no la
+> siguen.
+
+Cuando cierres un ticket KNX (commit hecho, checks en verde, Linear actualizado con el hash),
+guardá en Engram una observación con título `KNX cierre: <KNX-NN> <resumen corto>` y este cuerpo:
+
+- **Qué**: lo implementado, en 1–3 líneas.
+- **Dónde**: repo, rama y hashes de los commits.
+- **Verificación**: resultado crudo de los checks, una línea por check (y si fue contra el mock o
+  contra :8002).
+- **Decisiones**: decisiones tomadas o pedidas al dueño (o "ninguna").
+- **Pendiente**: lo que queda abierto o bloqueado (o "nada").
+
+No edites nada dentro de `~/knx/orquestador/`: lo mantiene el orquestador con el dueño.
