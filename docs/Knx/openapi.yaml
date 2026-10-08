@@ -176,7 +176,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [clientId, code, name]
+              required: [clientId, code, name, siteAddress]
               properties:
                 clientId: { type: integer, description: Debe pertenecer a la organización del token }
                 code:
@@ -185,7 +185,16 @@ paths:
                   pattern: "^[A-Za-z0-9._-]+$"
                   description: Misma restricción que la ruta de lectura; un espacio es 422, no un proyecto inalcanzable.
                 name: { type: string, maxLength: 255 }
-                city: { type: string, maxLength: 255 }
+                siteAddress:
+                  type: object
+                  description: Dirección de la obra (KNX-51), obligatoria. `city` del proyecto queda como derivado de `siteAddress.city`.
+                  required: [street, postalCode, city]
+                  properties:
+                    street: { type: string, maxLength: 255 }
+                    postalCode: { type: string, maxLength: 16 }
+                    city: { type: string, maxLength: 255 }
+                    accessNote: { type: string, maxLength: 500, nullable: true }
+                city: { type: string, maxLength: 255, description: Aceptada por compatibilidad; se ignora y se deriva de `siteAddress.city`. }
                 leadEmployeeId:
                   description: "Véase GET /employees. Los ids de los recursos viajan como string, así que se aceptan entero o string numérico."
                   oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
@@ -208,8 +217,41 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Code"
       responses:
-        "200": { description: OK }
+        "200": { description: "OK — incluye `siteAddress` (nullable en proyectos anteriores a KNX-51)" }
         "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [projects]
+      summary: Edita la cabecera del proyecto (nombre, responsable, plazo y dirección de obra)
+      description: >-
+        Actualización parcial: sólo se toca lo que viene. `siteAddress`, si viene, reemplaza el bloque
+        completo (sus tres campos son obligatorios juntos) y su `city` se copia a la columna `city`
+        del proyecto.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 255 }
+                leadEmployeeId:
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }, { type: "null" }]
+                deadline: { type: string, format: date, nullable: true }
+                siteAddress:
+                  type: object
+                  required: [street, postalCode, city]
+                  properties:
+                    street: { type: string, maxLength: 255 }
+                    postalCode: { type: string, maxLength: 16 }
+                    city: { type: string, maxLength: 255 }
+                    accessNote: { type: string, maxLength: 500, nullable: true }
+            example: { name: "Den Brand — fase 2", siteAddress: { street: "Heidebloemstraat 14", postalCode: "2400", city: "Mol" } }
+      responses:
+        "200": { description: "Proyecto ya actualizado, misma forma que el GET" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /projects/{code}/stats:
     get:
       tags: [projects]

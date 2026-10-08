@@ -50,106 +50,12 @@ paths:
   # ---------------------------------------------------------------------------
   # KNX-51 · Dirección de la obra
   # ---------------------------------------------------------------------------
-
-  /projects:
-    post:
-      tags: [projects]
-      summary: Alta de proyecto con su dirección de obra y sus salas
-      x-ticket: KNX-51
-      x-status: planned
-      description: >-
-        Cambio respecto del contrato actual: `siteAddress` pasa a ser **obligatoria** en el alta.
-        `city` sigue existiendo como derivado de `siteAddress.city`, por compatibilidad con los
-        proyectos viejos y con el `city` que el contrato ya exponía.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [clientId, code, name, siteAddress]
-              properties:
-                clientId:
-                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
-                code: { type: string, maxLength: 32, pattern: "^[A-Za-z0-9._-]+$" }
-                name: { type: string, maxLength: 255 }
-                siteAddress: { $ref: "#/components/schemas/SiteAddress" }
-                leadEmployeeId:
-                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
-                deadline: { type: string, format: date }
-                rooms:
-                  type: array
-                  items: { $ref: "#/components/schemas/RoomCreateInput" }
-            example:
-              clientId: 7
-              code: "000026"
-              name: "Den Brand"
-              siteAddress: { street: "Heidebloemstraat 12", postalCode: "2400", city: "Mol", accessNote: "Sleutel bij conciërge" }
-              leadEmployeeId: 106
-              rooms: [{ name: "Inkomhal", floor: "Gelijkvloers" }]
-      responses:
-        "201": { $ref: "#/components/responses/ProjectCreated" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
-  /projects/{code}:
-    get:
-      tags: [projects]
-      summary: Detalle de proyecto (ahora con `siteAddress`)
-      x-ticket: KNX-51
-      x-status: planned
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Project" }
-              example:
-                code: "000026"
-                name: "Den Brand"
-                clientId: "7"
-                clientName: "Gemeente Mol"
-                siteAddress: { street: "Heidebloemstraat 12", postalCode: "2400", city: "Mol", accessNote: null }
-                city: "Mol"
-                lead: "L. Smet"
-                devicesPlanned: 42
-                devicesDone: 37
-                photos: 12
-                status: "busy"
-                deadline: "2026-11-30"
-        "404": { $ref: "#/components/responses/NotFound" }
-    patch:
-      tags: [projects]
-      summary: Edita la cabecera del proyecto (nombre, responsable, plazo y dirección)
-      x-ticket: KNX-51
-      x-status: planned
-      description: >-
-        Actualización parcial. Sólo se toca lo que viene en el cuerpo. `siteAddress` reemplaza el
-        bloque completo (no es un merge campo a campo): si viene, tiene que traer sus tres campos.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name: { type: string, maxLength: 255 }
-                leadEmployeeId:
-                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }, { type: "null" }]
-                deadline: { type: string, format: date, nullable: true }
-                siteAddress: { $ref: "#/components/schemas/SiteAddress" }
-            example: { name: "Den Brand — fase 2", siteAddress: { street: "Heidebloemstraat 14", postalCode: "2400", city: "Mol" } }
-      responses:
-        "200":
-          description: Proyecto ya actualizado, misma forma que el GET
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Project" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "422": { $ref: "#/components/responses/ValidationError" }
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-51:
+  #   POST   /projects          (siteAddress obligatoria)
+  #   GET    /projects/{code}   (expone siteAddress)
+  #   PATCH  /projects/{code}   (nuevo)
+  # Los esquemas `Project` y `SiteAddress` siguen aquí como referencia.
 
   # ---------------------------------------------------------------------------
   # KNX-44 · Habitación canónica y zona automática

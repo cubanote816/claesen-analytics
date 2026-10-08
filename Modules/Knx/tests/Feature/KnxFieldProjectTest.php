@@ -69,7 +69,7 @@ final class KnxFieldProjectTest extends TestCase
         $this->assertSame(
             [
                 'code', 'name', 'clientName', 'clientAddress', 'clientContact', 'clientPhone',
-                'city', 'devicesPlanned', 'devicesDone', 'photos', 'openConflicts',
+                'city', 'siteAddress', 'devicesPlanned', 'devicesDone', 'photos', 'openConflicts',
                 'floors', 'rooms', 'boards', 'deviceTypes',
             ],
             array_keys($payload),

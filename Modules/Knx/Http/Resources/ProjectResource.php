@@ -3,7 +3,6 @@
 namespace Modules\Knx\Http\Resources;
 
 use Illuminate\Http\Request;
-
 use Modules\Knx\Models\KnxProject;
 
 /**
@@ -26,6 +25,8 @@ class ProjectResource extends KnxResource
             'name' => $this->resource->name,
             'clientId' => (string) $this->resource->client_id,
             'clientName' => $this->resource->client?->name,
+            // Structured site address (KNX-51); null on projects created before it.
+            'siteAddress' => $this->resource->siteAddress(),
             'city' => $this->resource->city,
             'lead' => $this->resource->lead?->shortName(),
             'devicesPlanned' => $this->resource->devices_planned,

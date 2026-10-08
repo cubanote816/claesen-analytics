@@ -32,7 +32,8 @@ mocks.**
   en que se implementa. Cuando una ruta aparece en `openapi.yaml`, ya existe de verdad en el backend.
 - Orden de rebanadas y qué entrega cada una: `odd/tasks/knx-m1-m2b-m2c-contratos.md` en el repo del
   backend.
-- **Cambios que tocan rutas que ya consumís:** `POST /projects` pasa a exigir `siteAddress`;
+- **Cambios que tocan rutas que ya consumís:** `POST /projects` **ya exige** `siteAddress` y
+  `PATCH /projects/{code}` **ya existe** (KNX-51, implementado; ver §0.1);
   `GET /notifications` generaliza `kind` (compatible hacia atrás);
   `POST /field/projects/{code}/devices` acepta `boardId`/`moduleSlot`/`channel` opcionales;
   `GET /projects/{code}/boards` expone `origin`/`reviewState`/`updatedBy`/`updatedAt` y `roomId` por

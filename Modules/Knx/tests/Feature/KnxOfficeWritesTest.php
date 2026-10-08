@@ -75,6 +75,7 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => $this->uvVastgoedId(),
             'code' => 'SMOKE-1',
             'name' => 'Testproject SMOKE',
+            'siteAddress' => ['street' => 'Naamsestraat 1', 'postalCode' => '3000', 'city' => 'Leuven', 'accessNote' => 'Sleutel bij conciërge'],
             'city' => 'Leuven',
             'leadEmployeeId' => $leadId,
             'deadline' => '2026-12-31',
@@ -86,13 +87,20 @@ final class KnxOfficeWritesTest extends TestCase
 
         // The same shape the project read returns.
         $this->assertSame(
-            ['code', 'name', 'clientId', 'clientName', 'city', 'lead', 'devicesPlanned', 'devicesDone', 'photos', 'status', 'deadline'],
+            ['code', 'name', 'clientId', 'clientName', 'siteAddress', 'city', 'lead', 'devicesPlanned', 'devicesDone', 'photos', 'status', 'deadline'],
             array_keys($response->json()),
         );
         $this->assertSame('SMOKE-1', $response->json('code'));
         $this->assertSame('UV Vastgoed', $response->json('clientName'));
         $this->assertSame('L. Smet', $response->json('lead'));
         $this->assertSame('2026-12-31', $response->json('deadline'));
+        // The structured address comes back as sent, and the `city` column keeps the
+        // derived copy so the readers that still use it do not drift (KNX-51).
+        $this->assertSame(
+            ['street' => 'Naamsestraat 1', 'postalCode' => '3000', 'city' => 'Leuven', 'accessNote' => 'Sleutel bij conciërge'],
+            $response->json('siteAddress'),
+        );
+        $this->assertSame('Leuven', $response->json('city'));
         // Defaults the caller never sent: a new project starts empty.
         $this->assertSame('planned', $response->json('status'));
         $this->assertSame(0, $response->json('devicesPlanned'));
@@ -113,6 +121,7 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => $this->uvVastgoedId(),
             'code' => 'SMOKE-2',
             'name' => 'Testproject SMOKE zonder ruimtes',
+            'siteAddress' => ['street' => 'Dorpsstraat 2', 'postalCode' => '2400', 'city' => 'Mol'],
         ])->assertCreated();
 
         // The caller cannot choose the tenant, not even by naming another
@@ -126,12 +135,82 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => $this->uvVastgoedId(),
             'code' => 'SMOKE-3',
             'name' => 'Testproject SMOKE met vreemde tenant',
+            'siteAddress' => ['street' => 'Kerkstraat 3', 'postalCode' => '2400', 'city' => 'Mol'],
         ])->assertCreated();
 
         $this->assertSame(
             KnxTenant::organizationId(),
             KnxProject::query()->where('code', 'SMOKE-3')->sole()->organization_id,
         );
+    }
+
+    public function test_a_project_without_a_site_address_is_rejected(): void
+    {
+        // KNX-51: the address is the whole point of the ticket — a project the office
+        // cannot send anyone to is not a project.
+        $this->postJson('/api/v1/knx/projects', [
+            'clientId' => $this->uvVastgoedId(),
+            'code' => 'SMOKE-ADDR',
+            'name' => 'Testproject SMOKE zonder adres',
+        ])->assertStatus(422)
+            ->assertJsonPath('code', 'validation_error')
+            ->assertJsonStructure(['errors' => ['siteAddress']]);
+
+        // And a half-filled block is rejected too: the three fields go together.
+        $this->postJson('/api/v1/knx/projects', [
+            'clientId' => $this->uvVastgoedId(),
+            'code' => 'SMOKE-ADDR2',
+            'name' => 'Testproject SMOKE half adres',
+            'siteAddress' => ['street' => 'Naamsestraat 1'],
+        ])->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['siteAddress.postalCode', 'siteAddress.city']]);
+
+        $this->assertSame(0, KnxProject::query()->whereIn('code', ['SMOKE-ADDR', 'SMOKE-ADDR2'])->count());
+    }
+
+    public function test_the_office_edits_the_project_header_and_its_site_address(): void
+    {
+        $leadId = KnxEmployee::query()->where('name', 'Lien Smet')->sole()->id;
+
+        $this->postJson('/api/v1/knx/projects', [
+            'clientId' => $this->uvVastgoedId(),
+            'code' => 'SMOKE-EDIT',
+            'name' => 'Voor de wijziging',
+            'siteAddress' => ['street' => 'Oude straat 1', 'postalCode' => '2400', 'city' => 'Mol'],
+        ])->assertCreated();
+
+        $response = $this->patchJson('/api/v1/knx/projects/SMOKE-EDIT', [
+            'name' => 'Na de wijziging',
+            'leadEmployeeId' => $leadId,
+            'deadline' => '2027-01-15',
+            'siteAddress' => ['street' => 'Nieuwe straat 9', 'postalCode' => '2400', 'city' => 'Mol'],
+        ])->assertOk();
+
+        $this->assertSame('Na de wijziging', $response->json('name'));
+        $this->assertSame('L. Smet', $response->json('lead'));
+        $this->assertSame('2027-01-15', $response->json('deadline'));
+        $this->assertSame('Nieuwe straat 9', $response->json('siteAddress.street'));
+        $this->assertSame('Mol', $response->json('city'));
+
+        // Partial: an empty body changes nothing.
+        $untouched = $this->patchJson('/api/v1/knx/projects/SMOKE-EDIT', [])->assertOk();
+        $this->assertSame('Na de wijziging', $untouched->json('name'));
+        $this->assertSame('Nieuwe straat 9', $untouched->json('siteAddress.street'));
+
+        // The address block replaces whole; a partial one is a field error.
+        $this->patchJson('/api/v1/knx/projects/SMOKE-EDIT', ['siteAddress' => ['street' => 'Enkel straat']])
+            ->assertStatus(422)->assertJsonStructure(['errors' => ['siteAddress.postalCode']]);
+
+        $this->assertSame('Nieuwe straat 9', KnxProject::query()->where('code', 'SMOKE-EDIT')->sole()->site_street);
+
+        // Unknown code, and a project of another organization, are both 404.
+        $this->patchJson('/api/v1/knx/projects/BESTAAT-NIET', ['name' => 'x'])->assertNotFound();
+
+        $other = Organization::factory()->create(['slug' => 'other-edit']);
+        KnxProject::factory()->create(['organization_id' => $other->id, 'code' => 'FOREIGN-1']);
+
+        $this->getJson('/api/v1/knx/projects/FOREIGN-1')->assertNotFound();
+        $this->patchJson('/api/v1/knx/projects/FOREIGN-1', ['name' => 'x'])->assertNotFound();
     }
 
     public function test_a_project_code_that_the_read_route_cannot_reach_is_a_422(): void
@@ -144,6 +223,7 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => $this->uvVastgoedId(),
             'code' => 'C 1699',
             'name' => 'Testproject SMOKE onbereikbare code',
+            'siteAddress' => ['street' => 'Straat 4', 'postalCode' => '2400', 'city' => 'Mol'],
         ])->assertStatus(422)
             ->assertJsonPath('code', 'validation_error')
             ->assertJsonStructure(['errors' => ['code']]);
@@ -155,6 +235,7 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => $this->uvVastgoedId(),
             'code' => 'C.1699_a-b',
             'name' => 'Testproject SMOKE bereikbare code',
+            'siteAddress' => ['street' => 'Straat 5', 'postalCode' => '2400', 'city' => 'Mol'],
         ])->assertCreated();
 
         $this->getJson('/api/v1/knx/projects/C.1699_a-b')->assertOk()->assertJsonPath('code', 'C.1699_a-b');
@@ -167,6 +248,7 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => $this->uvVastgoedId(),
             'code' => 'C1618',
             'name' => 'Testproject SMOKE dubbel nummer',
+            'siteAddress' => ['street' => 'Straat 6', 'postalCode' => '2400', 'city' => 'Mol'],
         ])->assertStatus(422)
             ->assertJsonPath('code', 'validation_error')
             ->assertJsonStructure(['errors' => ['code']]);
@@ -180,6 +262,7 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => 999999,
             'code' => 'SMOKE-X1',
             'name' => 'Testproject SMOKE onbekende klant',
+            'siteAddress' => ['street' => 'Straat 7', 'postalCode' => '2400', 'city' => 'Mol'],
         ])->assertStatus(422)
             ->assertJsonPath('code', 'validation_error')
             ->assertJsonStructure(['errors' => ['clientId']]);
@@ -188,6 +271,7 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => $this->uvVastgoedId(),
             'code' => 'SMOKE-X2',
             'name' => 'Testproject SMOKE onbekende projectleider',
+            'siteAddress' => ['street' => 'Straat 8', 'postalCode' => '2400', 'city' => 'Mol'],
             'leadEmployeeId' => 999999,
         ])->assertStatus(422)
             ->assertJsonPath('code', 'validation_error')
@@ -198,6 +282,7 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => $this->uvVastgoedId(),
             'code' => 'SMOKE-X3',
             'name' => 'Testproject SMOKE ruimte zonder naam',
+            'siteAddress' => ['street' => 'Straat 9', 'postalCode' => '2400', 'city' => 'Mol'],
             'rooms' => [['floor' => '1e verdieping']],
         ])->assertStatus(422)
             ->assertJsonStructure(['errors' => ['rooms.0.name']]);
@@ -238,12 +323,14 @@ final class KnxOfficeWritesTest extends TestCase
             'clientId' => $foreignClient->id,
             'code' => 'CROSS1',
             'name' => 'Cross tenant client',
+            'siteAddress' => ['street' => 'Straat 10', 'postalCode' => '2400', 'city' => 'Mol'],
         ])->assertStatus(422)->assertJsonValidationErrors('clientId');
 
         $this->postJson('/api/v1/knx/projects', [
             'clientId' => $this->uvVastgoedId(),
             'code' => 'CROSS2',
             'name' => 'Cross tenant lead',
+            'siteAddress' => ['street' => 'Straat 11', 'postalCode' => '2400', 'city' => 'Mol'],
             'leadEmployeeId' => $foreignLead->id,
         ])->assertStatus(422)->assertJsonValidationErrors('leadEmployeeId');
 

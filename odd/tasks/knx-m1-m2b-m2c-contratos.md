@@ -56,7 +56,9 @@
   `RequireOrganization`, y la orden de trabajo acotó esta rebanada al locale.
 - [x] **Colateral** — `ef3cf00`: flake preexistente del seeder (día 0) que apareció al correr R1c con
   el reloj del contenedor en 08:34; arreglado en commit aparte, no mezclado con KNX-24.
-- [ ] **R2** KNX-51 — dirección de la obra (`siteAddress`), `PATCH /projects/{code}`.
+- [x] **R2** KNX-51 — dirección de la obra (`siteAddress` obligatoria en el alta), `GET`/`PATCH
+  /projects/{code}`, `siteAddress` en `ProjectResource`, `FieldProjectResource` y `FieldTodayJobResource`,
+  `resolve()` con filtro de organización. Commit `PENDIENTE_R2`.
 - [ ] **R3** KNX-44 — habitaciones, alias, zona automática con los 8 checks, `roomId` en enlaces de
   cuadro, migración una-zona-por-habitación.
 - [ ] **R4** KNX-45 — modelo de plano por revisión: `GET`/`PUT …/plans/{documentId}/rooms`.
@@ -108,6 +110,16 @@
   «These credentials are incorrect.» (el default sin cabecera sigue siendo neerlandés).
 - **Colateral (`ef3cf00`).** Flake de reloj en `KnxDemoSeeder::at()` + reloj congelado a las 08:30 en
   `KnxConflictsTest`. Suite de M1 completa: **245 passed / 1 skipped / 0 failed** (1443 aserciones).
+
+- **R2 (`PENDIENTE_R2`).** Migración `2026_10_08_100000_add_site_address_to_knx_projects_table`
+  (`site_street`, `site_postal_code`, `site_city`, `site_access_note`, nullable). `POST /projects`
+  exige `siteAddress` y deriva `city`; `PATCH /projects/{code}` nuevo; los tres recursos exponen
+  `siteAddress`; `ProjectController::resolve()` filtra por organización. Suite completa (fin de M1+M2
+  temprano): **247 passed / 1 skipped / 0 failed** (1473 aserciones).
+  - HTTP real `:8002`: `POST /projects` sin `siteAddress` → `422`; con `siteAddress` (y un `city`
+    distinto inventado) → `201` con `siteAddress` y `city: "Mol"` derivado; `PATCH` → `200` con
+    nombre y dirección nuevos y `accessNote` reseteado a `null` (el bloque reemplaza entero).
+  - Artefactos de verificación borrados de la BD dev.
 
 ### Entorno de verificación (hallazgo, no obvio)
 

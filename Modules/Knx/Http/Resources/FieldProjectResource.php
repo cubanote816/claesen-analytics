@@ -37,6 +37,9 @@ class FieldProjectResource extends KnxResource
             'clientContact' => $client->contact ?? '',
             'clientPhone' => $client->phone ?? '',
             'city' => $project->city ?? '',
+            // Structured site address (KNX-51). Nullable in the contract and null on
+            // projects created before it: the app falls back to `clientAddress`/`city`.
+            'siteAddress' => $project->siteAddress(),
             // The four numbers of the office's project header, from the same source
             // (`ProjectStatsResource`): the columns the office already maintains plus
             // the live conflict count. Recounting them from the device list would be a

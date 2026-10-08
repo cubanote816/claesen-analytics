@@ -130,6 +130,10 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::get('projects/{code}', [ProjectController::class, 'show'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.show');
+            // KNX-51 — edit the header (name, lead, deadline, site address).
+            Route::patch('projects/{code}', [ProjectController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.update');
             Route::get('projects/{code}/stats', [ProjectController::class, 'stats'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.stats');
