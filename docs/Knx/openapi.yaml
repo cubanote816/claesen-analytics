@@ -624,6 +624,93 @@ paths:
                 markers: [{ boardId: "caja-1-alsb-leefgroep-gelijkvloers-glv", nx: 0.31, ny: 0.44 }]
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/plans/{documentId}/rooms:
+    get:
+      tags: [plans]
+      summary: Modelo de habitaciones de una página de un plano (geometría opaca)
+      description: >-
+        El conjunto cuelga del documento (una revisión) y de una página, nunca del proyecto. La
+        geometría es dato opaco: el servidor no parsea el PDF. `proposalStatus` es `none` hasta que
+        KNX-48 añada la extracción.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200":
+          description: OK — un conjunto vacío es el estado normal tras subir
+          content:
+            application/json:
+              example:
+                documentId: "89"
+                revision: "Rev. H"
+                page: 1
+                pageWidthPt: 4309.0
+                pageHeightPt: 2591.0
+                proposalStatus: "none"
+                rooms:
+                  - roomId: "31"
+                    polygon: [[0.31, 0.44], [0.42, 0.44], [0.42, 0.55], [0.31, 0.55]]
+                    labelAt: [0.365, 0.495]
+                    areaM2: 137.0
+                    source: "manual"
+                    state: "confirmed"
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [plans]
+      summary: Reemplaza el modelo de habitaciones de una página (idempotente)
+      description: >-
+        `rooms` es `present|array`: la clave es obligatoria pero puede venir vacía (limpiar la página
+        es válido, la misma lección de KNX-18). `roomId` es `distinct` dentro del cuerpo.
+        `carryOverFrom` copia como base el conjunto de la MISMA página del documento origen y lo
+        copiado vuelve a `proposed`: es un punto de partida, no una confirmación heredada.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [page, rooms]
+              properties:
+                page: { type: integer, minimum: 1 }
+                pageWidthPt: { type: number, nullable: true }
+                pageHeightPt: { type: number, nullable: true }
+                carryOverFrom:
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
+                rooms:
+                  type: array
+                  maxItems: 500
+                  items:
+                    type: object
+                    required: [roomId, polygon, source, state]
+                    properties:
+                      roomId: { type: string, description: "Id de una habitación del proyecto; `distinct` dentro del conjunto." }
+                      polygon:
+                        type: array
+                        minItems: 3
+                        items:
+                          type: array
+                          minItems: 2
+                          maxItems: 2
+                          items: { type: number, minimum: 0, maximum: 1 }
+                      labelAt:
+                        type: array
+                        nullable: true
+                        minItems: 2
+                        maxItems: 2
+                        items: { type: number, minimum: 0, maximum: 1 }
+                      areaM2: { type: number, nullable: true }
+                      source: { type: string, enum: [manual, pdf, dwg] }
+                      state: { type: string, enum: [proposed, confirmed] }
+      responses:
+        "200": { description: "El conjunto resultante, misma forma que el GET" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /exports/{id}/download:
     get:
       tags: [reports]

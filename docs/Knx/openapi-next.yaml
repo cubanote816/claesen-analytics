@@ -71,117 +71,12 @@ paths:
   # ---------------------------------------------------------------------------
   # KNX-45 · Modelo de plano por revisión
   # ---------------------------------------------------------------------------
-
-  /projects/{code}/plans/{documentId}/rooms:
-    get:
-      tags: [plans]
-      summary: Modelo de habitaciones de una página de un plano (geometría opaca)
-      x-ticket: KNX-45
-      x-status: planned
-      description: >-
-        El conjunto cuelga de un **documento —una revisión—** y de una página, nunca del proyecto.
-        La geometría es dato opaco: el servidor no parsea el PDF, sólo guarda lo que mide el cliente.
-        `polygon` es una lista de puntos `[nx, ny]` en fracción de página (0..1), `labelAt` la
-        posición de la etiqueta. `state` es la procedencia: `proposed` (llegó de una máquina o de un
-        carry-over) o `confirmed` (lo tocó una persona), el mismo principio que el campo propone y
-        la oficina decide.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-        - $ref: "#/components/parameters/DocumentId"
-        - $ref: "#/components/parameters/Page"
-      responses:
-        "200":
-          description: OK — un conjunto vacío es un estado real (plano recién subido)
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/PlanRoomSet" }
-              example:
-                documentId: "86"
-                revision: "Rev. H"
-                page: 1
-                pageWidthPt: 4309.0
-                pageHeightPt: 2591.0
-                proposalStatus: "ready"
-                rooms:
-                  - roomId: "31"
-                    polygon: [[0.31, 0.44], [0.42, 0.44], [0.42, 0.55], [0.31, 0.55]]
-                    labelAt: [0.365, 0.495]
-                    areaM2: 137.0
-                    source: "pdf"
-                    state: "proposed"
-        "404": { $ref: "#/components/responses/NotFound" }
-    put:
-      tags: [plans]
-      summary: Reemplaza el modelo de habitaciones de una página (idempotente)
-      x-ticket: KNX-45
-      x-status: planned
-      description: >-
-        Reemplaza el conjunto de ESA página. `rooms` se valida con `present|array` desde el primer
-        día: la clave tiene que venir, pero puede venir vacía — dejar una página sin modelo es una
-        operación válida (fue el error de KNX-18, que no se repite). `roomId` es `distinct` dentro
-        del cuerpo. `carryOverFrom` copia como base el conjunto de la MISMA página del documento
-        origen (nunca el de todas sus páginas) y **lo copiado vuelve a `proposed`**: es una
-        propuesta de partida, no una confirmación heredada.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-        - $ref: "#/components/parameters/DocumentId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/PlanRoomSetInput" }
-            example:
-              page: 1
-              pageWidthPt: 4309.0
-              pageHeightPt: 2591.0
-              carryOverFrom: "85"
-              rooms:
-                - roomId: "31"
-                  polygon: [[0.31, 0.44], [0.42, 0.44], [0.42, 0.55], [0.31, 0.55]]
-                  labelAt: [0.365, 0.495]
-                  areaM2: 137.0
-                  source: "manual"
-                  state: "confirmed"
-      responses:
-        "200":
-          description: El conjunto resultante, en la misma forma que el GET
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/PlanRoomSet" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
-  /projects/{code}/plans/{documentId}/rooms/propose:
-    post:
-      tags: [plans]
-      summary: Lanza la propuesta automática de habitaciones (PDF vectorial) de una página
-      x-ticket: KNX-48
-      x-status: provisional
-      description: >-
-        Ruta de disparo añadida por el backend: el contrato de KNX-45 sólo definía leer y escribir el
-        modelo, y la propuesta necesita quién la arranque. La extracción es asíncrona; el resultado se
-        lee en `proposalStatus` y en `rooms` con `state: proposed`. Sólo aplica a PDF vectorial; un
-        plano sin texto extraíble responde `422`. Provisional hasta cerrar KNX-48.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-        - $ref: "#/components/parameters/DocumentId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [page]
-              properties:
-                page: { type: integer, minimum: 1 }
-      responses:
-        "202":
-          description: Propuesta encolada — releer el GET hasta que `proposalStatus` sea `ready`/`failed`
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/PlanRoomSet" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "422": { $ref: "#/components/responses/ValidationError" }
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-45:
+  #   GET /projects/{code}/plans/{documentId}/rooms
+  #   PUT /projects/{code}/plans/{documentId}/rooms
+  #   (y el disparo de la propuesta, POST …/rooms/propose, sigue pendiente en KNX-48)
+  #
 
   # ---------------------------------------------------------------------------
   # KNX-46 · Ficha de habitación (oficina)

@@ -63,7 +63,9 @@
   checks (`ZoneService::createForRoom`), `unique(room_id)` en `knx_zones` con backfill de una zona por
   habitación, `roomId` resuelto por nombre/alias en los enlaces de cuadro, `Zone.roomId` y
   `BoardLink.roomId`. Commit `PENDIENTE_R3`.
-- [ ] **R4** KNX-45 — modelo de plano por revisión: `GET`/`PUT …/plans/{documentId}/rooms`.
+- [x] **R4** KNX-45 — modelo de plano por revisión: `knx_plan_rooms`, `GET`/`PUT
+  /projects/{code}/plans/{documentId}/rooms`, `carryOverFrom` misma página → `proposed`, `present|array`,
+  `roomId` distinct. Commit `PENDIENTE_R4`.
 - [ ] **R5** KNX-46 — ficha de habitación oficina `GET /projects/{code}/rooms/{id}/sheet`.
 - [ ] **R6** KNX-47 — campo: `GET /field/projects/{code}/rooms`, `GET …/plans/{documentId}/model`.
 - [ ] **R7** KNX-52 — cuadros y módulos oficina (alta/edición/confirmación, `origin`/`reviewState`).
@@ -138,6 +140,12 @@
   - Bug propio atrapado por la verificación real: la migración insertaba `created_at` en
     `knx_zone_checks`, que a propósito no tiene esa columna; los tests no lo veían porque el backfill
     corre sobre tablas vacías. Arreglado y la migración quedó idempotente (MySQL auto-commitea DDL).
+
+- **R4 (`PENDIENTE_R4`).** Migración `2026_10_08_130000_create_knx_plan_rooms_table`; modelo
+  `KnxPlanRoom`; `PlanRoomService`; `PlanRoomSetResource`; `PlanRoomController`; 7 tests
+  (`KnxPlanRoomsTest`). `proposalStatus` queda `none` (KNX-48 lo llena).
+  - HTTP real `:8002`: GET inicial `{proposalStatus:none, rooms:[]}`; PUT con polígono/`areaM2` → `200`
+    con la geometría devuelta tal cual; PUT sin la clave `rooms` → `422`; PUT `rooms:[]` → `200` y limpia.
 
 ### Entorno de verificación (hallazgo, no obvio)
 

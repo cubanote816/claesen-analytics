@@ -22,6 +22,7 @@ use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\FunctionSpecController;
 use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
+use Modules\Knx\Http\Controllers\PlanRoomController;
 use Modules\Knx\Http\Controllers\ProjectController;
 use Modules\Knx\Http\Controllers\ReportController;
 use Modules\Knx\Http\Controllers\RoomController;
@@ -202,6 +203,15 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::put('projects/{code}/plans/{documentId}/markers', [PlanMarkerController::class, 'update'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans.markers.update');
+
+            // KNX-45 — the room model of a revision, per page. Same anchoring as the
+            // markers: the set belongs to the document and the page.
+            Route::get('projects/{code}/plans/{documentId}/rooms', [PlanRoomController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.rooms.show');
+            Route::put('projects/{code}/plans/{documentId}/rooms', [PlanRoomController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.rooms.update');
 
             Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
             Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
