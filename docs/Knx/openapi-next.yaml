@@ -102,39 +102,8 @@ paths:
   # KNX-54 · Avisos en la app y por email
   # ---------------------------------------------------------------------------
 
-  /notifications:
-    get:
-      tags: [notifications]
-      summary: Avisos (bandeja), generalizados por `kind`
-      x-ticket: KNX-54
-      x-status: planned
-      description: >-
-        Cambio respecto del contrato actual: la notificación deja de ser sólo "aparato de campo
-        registrado" y pasa a ser un aviso tipado. Los campos viejos (`address`, `type`, `room`,
-        `boardName`, `serial`, `reportedBy`, `reportedAt`, `acked`) siguen presentes: es compatible
-        hacia atrás. `/events` (SSE) emite los mismos `kind`.
-      parameters:
-        - name: kind
-          in: query
-          schema:
-            type: string
-            enum: [device_registered, board_created, module_added, module_changed, address_conflict, intent_changed, issue_reported, malfunction_reported, malfunction_status_changed, visit_closed]
-        - name: project
-          in: query
-          schema: { type: string }
-        - name: unacked
-          in: query
-          schema: { type: boolean }
-      responses:
-        "200":
-          description: "OK — incluye los ya confirmados con `acked: true`"
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/Notification" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
+  # /notifications y /events (con `kind`) ya están en docs/Knx/openapi.yaml (KNX-54).
+  # Sólo queda aquí lo que todavía NO se implementa:
   /me/notification-preferences:
     get:
       tags: [notifications]
@@ -170,22 +139,6 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/NotificationPreferences" }
         "422": { $ref: "#/components/responses/ValidationError" }
-
-  /events:
-    get:
-      tags: [notifications]
-      summary: Server-sent events — emite un evento por cada `kind` de aviso
-      x-ticket: KNX-54
-      x-status: planned
-      description: >-
-        Mismos `kind` que `GET /notifications`. Bearer, no query param. La conexión se cierra sola
-        (55 s por defecto) y el navegador reconecta.
-      responses:
-        "200":
-          description: Stream abierto
-          content:
-            text/event-stream:
-              schema: { type: string }
 
   # ---------------------------------------------------------------------------
   # KNX-56 · Mal funcionamiento

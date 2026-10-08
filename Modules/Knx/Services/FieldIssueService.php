@@ -11,6 +11,7 @@ use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxConflictLog;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxNotification;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Support\IdempotentWrite;
 
@@ -188,6 +189,25 @@ class FieldIssueService
                 'at' => now(),
                 'action' => 'reported',
                 'address' => $address,
+            ]);
+
+            // KNX-54: the incident lands in the inbox, typed, with its target.
+            KnxNotification::create([
+                'project_id' => $project->getKey(),
+                'device_id' => $registered?->getKey(),
+                'issue_id' => $conflict->getKey(),
+                'room_id' => $registered?->room_id,
+                'kind' => KnxNotification::KIND_ISSUE_REPORTED,
+                'title' => __('knx::notifications.issue_reported'),
+                'summary' => trim(($address !== '' ? $address : (string) ($input['roomName'] ?? '')).' · '.$type, ' ·'),
+                'address' => $address !== '' ? $address : null,
+                'room' => $input['roomName'] ?? null,
+                'target_type' => 'conflict',
+                'target_id' => (string) $conflict->getKey(),
+                'reported_by_employee_id' => $technician->getKey(),
+                'reported_at' => Carbon::parse($input['capturedAt']),
+                'captured_at' => Carbon::parse($input['capturedAt']),
+                'acknowledged_at' => null,
             ]);
 
             return $conflict;

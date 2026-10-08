@@ -81,8 +81,10 @@
   (idempotentes por `clientId`, nacen `field`/`unreviewed`), `409 slot_taken` con el módulo, y
   `boardId`/`moduleSlot`/`channel` opcionales en el registro de aparatos (expuestos por `FieldDevice`
   y por el `Device` del dossier). Commit `PENDIENTE_R9`.
-- [ ] **R10** KNX-54 — avisos generalizados (`kind`), `/me/notification-preferences`, email
-  inmediato/digest con el transporte de Mailing.
+- [~] **R10** KNX-54 — avisos generalizados (`kind`, `title`/`summary`, `actor`, `target`, filtros
+  `?kind=&project=&unacked=`, SSE con `kind`, y `kind` en los sitios de creación: device/board/module/
+  issue/conflict/visit). **Parcial:** faltan `GET|PUT /me/notification-preferences` y el correo
+  (inmediato/digest) — siguen en `openapi-next.yaml`.
 - [ ] **R11** KNX-56 — mal funcionamiento (`lifecycle: malfunction`, ciclo validado, `POST /projects/{code}/issues`).
 - [ ] **R12** KNX-55 — intents (oficina lectura+escritura, campo lectura). Escritura de campo pendiente.
 - [ ] **R13** KNX-26 — fotos como entidad + evento `photos_uploaded`.
@@ -196,6 +198,16 @@
     `boardId`/`moduleSlot`/`channel` → devueltos. Artefactos borrados de la BD dev.
   - Migración aplicada en :8002 con `php artisan migrate` (no-op: ya estaba). Sin seeders.
   - Suite completa: **275 passed / 1 skipped / 0 failed**. Ticket compartido con Veld: **comentado, no Done**.
+
+- **R10 (parcial).** Migración `2026_10_08_170000_generalize_knx_notifications`; `KnxNotification`
+  con `KINDS`; `FieldNotificationResource` con el bloque tipado + legacy; filtros en el controller;
+  `kind` en SSE; `kind`/`title`/`summary`/`target` en device, board, module, issue, conflict y visit;
+  lang `notifications`; seeder y factory actualizados.
+  - Suite completa: **278 passed / 1 skipped / 0 failed** (1758 aserciones).
+  - HTTP real `:8002`: `GET /notifications?kind=device_registered` → 6 (con `kind`/`actor`); `kind=nope`
+    → `422`. Migración aplicada con `php artisan migrate` (sin seeders).
+  - **Pendiente de KNX-54:** `/me/notification-preferences` + correo inmediato/digest; y los
+    escritores de `module_changed`, `intent_changed`, `malfunction_*`.
 
 ### Entorno de verificación (hallazgo, no obvio)
 

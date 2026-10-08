@@ -505,12 +505,20 @@ class KnxDemoSeeder extends Seeder
                 'project_id' => $project->id,
                 'device_id' => $device->id,
                 'board_id' => $board->id,
+                'room_id' => $room->id,
+                // KNX-54: the row carries its kind and its human line.
+                'kind' => KnxNotification::KIND_DEVICE_REGISTERED,
                 'type' => $type,
+                'title' => __('knx::notifications.device_registered'),
+                'summary' => trim($address.' · '.$roomName, ' ·'),
                 'address' => $address,
                 'room' => $roomName,
                 'serial' => $serial,
+                'target_type' => 'device',
+                'target_id' => (string) $device->id,
                 'reported_by_employee_id' => $this->people[$by]->id,
                 'reported_at' => $this->at(0, $hour, $minute),
+                'captured_at' => $this->at(0, $hour, $minute),
                 'acknowledged_at' => $acked ? now() : null,
             ]);
         }

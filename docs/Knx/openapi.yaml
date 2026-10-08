@@ -1119,9 +1119,55 @@ paths:
   /notifications:
     get:
       tags: [notifications]
-      summary: "Bandeja de campo (incluye las ya confirmadas con `acked: true`)"
+      summary: "Avisos de la bandeja, generalizados por `kind` (incluye los confirmados con `acked: true`)"
+      description: >-
+        Cambio de KNX-54: la fila es un aviso tipado. `kind` dice qué pasó; `title`/`summary`
+        son la línea humana; `actor` y `target` dicen quién lo hizo y sobre qué. Los campos viejos
+        de la registración (`address`, `type`, `room`, `board`, `boardName`, `serial`, `reportedBy`,
+        `reportedAt`) siguen presentes: es compatible hacia atrás.
+      parameters:
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum: [device_registered, board_created, module_added, module_changed, address_conflict, intent_changed, issue_reported, malfunction_reported, malfunction_status_changed, visit_closed]
+        - name: project
+          in: query
+          schema: { type: string }
+        - name: unacked
+          in: query
+          schema: { type: boolean }
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                - id: "44"
+                  kind: "board_created"
+                  projectCode: "000026"
+                  title: "Nieuw verdeelbord gemeld"
+                  summary: "Nieuw verdeelbord (werf)"
+                  roomId: null
+                  boardId: "nieuw-verdeelbord-werf"
+                  moduleSlot: null
+                  deviceId: null
+                  issueId: null
+                  actor: { id: "115", name: "J. Van Dyck" }
+                  target: { type: "board", id: "nieuw-verdeelbord-werf" }
+                  capturedAt: "2026-10-08T09:00:00Z"
+                  receivedAt: "2026-10-08T09:00:04Z"
+                  acked: false
+                  address: null
+                  type: null
+                  room: null
+                  board: "E77"
+                  boardName: "Nieuw verdeelbord (werf)"
+                  serial: null
+                  projectName: "Den Brand"
+                  reportedBy: "J. Van Dyck"
+                  reportedAt: "2026-10-08T09:00:04Z"
+        "422": { $ref: "#/components/responses/ValidationError" }
   /notifications/ack-all:
     post:
       tags: [notifications]
@@ -1168,6 +1214,8 @@ paths:
         `text/event-stream`. Autenticación por Bearer, no por query: por eso el
         `EventSource` nativo no sirve y el front lee el stream con `fetch()`.
         La conexión se cierra sola (55 s por defecto) y el navegador reconecta.
+        Los eventos de aviso llevan el mismo `kind` que `GET /notifications`, así el
+        cliente rutea el aviso sin una segunda consulta (KNX-54).
       responses:
         "200":
           description: Stream abierto

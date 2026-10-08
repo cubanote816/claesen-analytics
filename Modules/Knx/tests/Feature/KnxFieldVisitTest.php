@@ -11,6 +11,7 @@ use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxAcceptanceTest;
 use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxNotification;
 use Modules\Knx\Models\KnxPlanningAssignment;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Models\KnxProjectRoom;
@@ -348,5 +349,20 @@ final class KnxFieldVisitTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         $this->close()->assertUnauthorized()->assertJsonPath('code', 'unauthenticated');
+    }
+
+    public function test_closing_a_visit_lands_in_the_inbox_as_visit_closed(): void
+    {
+        $this->planToday('Jan Van Dyck');
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $this->close()->assertCreated();
+
+        $notification = KnxNotification::query()
+            ->where('kind', KnxNotification::KIND_VISIT_CLOSED)
+            ->sole();
+
+        $this->assertSame('visit', $notification->target_type);
+        $this->assertNotNull($notification->target_id);
     }
 }

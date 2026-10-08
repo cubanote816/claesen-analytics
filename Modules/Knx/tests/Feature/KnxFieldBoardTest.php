@@ -12,6 +12,7 @@ use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxBoard;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxNotification;
 use Modules\Knx\Models\KnxPlanningAssignment;
 use Modules\Knx\Models\KnxProject;
 use Tests\TestCase;
@@ -80,6 +81,9 @@ final class KnxFieldBoardTest extends TestCase
         $replay = $this->createBoard()->assertOk();
         $this->assertSame($created->json('id'), $replay->json('id'));
         $this->assertSame(1, KnxBoard::query()->where('slug', 'nieuw-verdeelbord-werf')->count());
+
+        // KNX-54: the office inbox gets the typed notice, and the retry does not duplicate it.
+        $this->assertSame(1, KnxNotification::query()->where('kind', KnxNotification::KIND_BOARD_CREATED)->count());
     }
 
     public function test_the_same_client_id_in_another_project_is_rejected(): void
@@ -138,6 +142,9 @@ final class KnxFieldBoardTest extends TestCase
 
         $this->assertSame('slot_taken', $conflict->json('code'));
         $this->assertSame('SA/S8.16.2.2', $conflict->json('module.device'));
+
+        // One typed notice for the module; the replay and the rejected attempt add none.
+        $this->assertSame(1, KnxNotification::query()->where('kind', KnxNotification::KIND_MODULE_ADDED)->count());
     }
 
     public function test_a_registration_can_name_its_board_slot_and_channel(): void

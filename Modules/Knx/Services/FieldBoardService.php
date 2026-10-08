@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Services;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Modules\Knx\Models\KnxBoard;
 use Modules\Knx\Models\KnxBoardModule;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxNotification;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Support\IdempotentWrite;
 
@@ -48,19 +50,38 @@ class FieldBoardService
         $photoPath = $this->photos->store($input['clientId'], $input['photoDataUrl'] ?? null);
 
         $board = IdempotentWrite::run(
-            fn (): KnxBoard => KnxBoard::create([
-                'project_id' => $project->getKey(),
-                'slug' => $this->boards->uniqueSlug($project, (string) $input['name']),
-                'client_id' => $input['clientId'],
-                'code' => $input['code'],
-                'name' => $input['name'],
-                'floor' => $input['floor'] ?? null,
-                'photo_path' => $photoPath,
-                // Born unreviewed: the office decides.
-                'origin' => KnxBoard::ORIGIN_FIELD,
-                'review_state' => KnxBoard::REVIEW_UNREVIEWED,
-                'updated_by_employee_id' => $technician->getKey(),
-            ])->load(['modules.links', 'modules.updatedBy', 'updatedBy']),
+            function () use ($project, $input, $photoPath, $technician): KnxBoard {
+                $board = KnxBoard::create([
+                    'project_id' => $project->getKey(),
+                    'slug' => $this->boards->uniqueSlug($project, (string) $input['name']),
+                    'client_id' => $input['clientId'],
+                    'code' => $input['code'],
+                    'name' => $input['name'],
+                    'floor' => $input['floor'] ?? null,
+                    'photo_path' => $photoPath,
+                    // Born unreviewed: the office decides.
+                    'origin' => KnxBoard::ORIGIN_FIELD,
+                    'review_state' => KnxBoard::REVIEW_UNREVIEWED,
+                    'updated_by_employee_id' => $technician->getKey(),
+                ]);
+
+                // KNX-54: the office inbox learns about the new cabinet, typed.
+                KnxNotification::create([
+                    'project_id' => $project->getKey(),
+                    'board_id' => $board->getKey(),
+                    'kind' => KnxNotification::KIND_BOARD_CREATED,
+                    'title' => __('knx::notifications.board_created'),
+                    'summary' => $board->name,
+                    'target_type' => 'board',
+                    'target_id' => (string) ($board->slug ?? $board->code),
+                    'reported_by_employee_id' => $technician->getKey(),
+                    'reported_at' => Carbon::parse($input['capturedAt']),
+                    'captured_at' => Carbon::parse($input['capturedAt']),
+                    'acknowledged_at' => null,
+                ]);
+
+                return $board->load(['modules.links', 'modules.updatedBy', 'updatedBy']);
+            },
             fn (): ?KnxBoard => $this->replayBoard($project, $input['clientId']),
         );
 
@@ -90,15 +111,34 @@ class FieldBoardService
         $photoPath = $this->photos->store($input['clientId'], $input['photoDataUrl'] ?? null);
 
         $module = IdempotentWrite::run(
-            fn (): KnxBoardModule => $board->modules()->create([
-                'device' => $input['device'],
-                'slot' => (int) $input['slot'],
-                'client_id' => $input['clientId'],
-                'photo_path' => $photoPath,
-                'origin' => KnxBoardModule::ORIGIN_FIELD,
-                'review_state' => KnxBoardModule::REVIEW_UNREVIEWED,
-                'updated_by_employee_id' => $technician->getKey(),
-            ])->load(['links', 'updatedBy']),
+            function () use ($board, $input, $photoPath, $technician): KnxBoardModule {
+                $module = $board->modules()->create([
+                    'device' => $input['device'],
+                    'slot' => (int) $input['slot'],
+                    'client_id' => $input['clientId'],
+                    'photo_path' => $photoPath,
+                    'origin' => KnxBoardModule::ORIGIN_FIELD,
+                    'review_state' => KnxBoardModule::REVIEW_UNREVIEWED,
+                    'updated_by_employee_id' => $technician->getKey(),
+                ]);
+
+                KnxNotification::create([
+                    'project_id' => $board->project_id,
+                    'board_id' => $board->getKey(),
+                    'module_slot' => $module->slot,
+                    'kind' => KnxNotification::KIND_MODULE_ADDED,
+                    'title' => __('knx::notifications.module_added'),
+                    'summary' => trim((string) $board->name.' · slot '.$module->slot.' · '.$module->device, ' ·'),
+                    'target_type' => 'module',
+                    'target_id' => (string) ($board->slug ?? $board->code).'#'.$module->slot,
+                    'reported_by_employee_id' => $technician->getKey(),
+                    'reported_at' => Carbon::parse($input['capturedAt']),
+                    'captured_at' => Carbon::parse($input['capturedAt']),
+                    'acknowledged_at' => null,
+                ]);
+
+                return $module->load(['links', 'updatedBy']);
+            },
             fn (): ?KnxBoardModule => $this->replayModule($project, $input['clientId']),
         );
 

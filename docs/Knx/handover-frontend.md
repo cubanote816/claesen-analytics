@@ -64,6 +64,14 @@ mocks.**
   lo ocupa). Además, `POST /field/projects/{code}/devices` acepta `boardId`/`moduleSlot`/`channel`
   opcionales, y **el `Device` de oficina y el `FieldDevice` los exponen** (`boardId`, `moduleSlot`,
   `channel`): el dossier y el registro ya dicen *dónde* dentro del cuadro está el aparato.
+- **Avisos tipados (KNX-54, PARCIAL — la generalización ya está, faltan preferencias y correo):**
+  `GET /notifications` acepta `?kind=&project=&unacked=` y cada fila trae `kind`, `title`, `summary`,
+  `actor`, `target`, `roomId`, `boardId`, `moduleSlot`, `deviceId`, `issueId`, `capturedAt` y
+  `receivedAt`, además de los campos viejos (compatible hacia atrás). Los `kind` que ya se emiten:
+  `device_registered`, `board_created`, `module_added`, `issue_reported`, `address_conflict`,
+  `visit_closed`. `/events` (SSE) lleva el mismo `kind`. **Pendiente:**
+  `GET|PUT /me/notification-preferences` y el correo (inmediato/digest) siguen en
+  `openapi-next.yaml`.
 - **Cuadros en campo (KNX-25, implementado):** `GET /field/projects/{code}/boards` devuelve la misma
   estructura que la oficina (con `origin`/`reviewState`), para que el registro use los cuadros reales
   del proyecto. Antes `/boards` respondía `401` con un token de campo.

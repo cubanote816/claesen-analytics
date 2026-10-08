@@ -142,14 +142,21 @@ class FieldDeviceService
                 'project_id' => $project->getKey(),
                 'device_id' => $device->getKey(),
                 'board_id' => $board?->getKey(),
-                // The notification mirrors the device (type, address, room, serial):
-                // the inbox row is the event, and it reads like the registration.
+                'room_id' => $room->getKey(),
+                // KNX-54: the event is typed now. The legacy columns stay because the
+                // inbox has read them since V11 and the row IS the registration.
+                'kind' => KnxNotification::KIND_DEVICE_REGISTERED,
                 'type' => $device->type,
+                'title' => __('knx::notifications.device_registered'),
+                'summary' => trim($device->address.' · '.$room->name, ' ·'),
                 'address' => $device->address,
                 'room' => $room->name,
                 'serial' => $device->serial,
+                'target_type' => 'device',
+                'target_id' => (string) $device->getKey(),
                 'reported_by_employee_id' => $technician->getKey(),
                 'reported_at' => $capturedAt,
+                'captured_at' => $capturedAt,
                 'acknowledged_at' => null,
             ]);
 
@@ -299,6 +306,24 @@ class FieldDeviceService
                 'at' => now(),
                 'action' => 'reported',
                 'address' => $input['address'],
+            ]);
+
+            // KNX-54: the attempt also lands in the inbox, typed. The office learns about
+            // the collision even without watching the Conflictencentrum.
+            KnxNotification::create([
+                'project_id' => $project->getKey(),
+                'device_id' => $taken->getKey(),
+                'issue_id' => $conflict->getKey(),
+                'kind' => KnxNotification::KIND_ADDRESS_CONFLICT,
+                'title' => __('knx::notifications.address_conflict'),
+                'summary' => $input['address'],
+                'address' => $input['address'],
+                'target_type' => 'conflict',
+                'target_id' => (string) $conflict->getKey(),
+                'reported_by_employee_id' => $technician->getKey(),
+                'reported_at' => Carbon::parse($input['capturedAt']),
+                'captured_at' => Carbon::parse($input['capturedAt']),
+                'acknowledged_at' => null,
             ]);
         });
     }

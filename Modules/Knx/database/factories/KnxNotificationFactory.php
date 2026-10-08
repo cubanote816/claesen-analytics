@@ -17,11 +17,16 @@ class KnxNotificationFactory extends Factory
     {
         return [
             'project_id' => KnxProject::factory(),
+            // KNX-54: a factory row is a field registration unless a test says otherwise.
+            'kind' => KnxNotification::KIND_DEVICE_REGISTERED,
+            'title' => 'Nieuw toestel geregistreerd',
             'type' => 'Aanwezigheidsdetector',
             'address' => fake()->numberBetween(1, 2).'.'.fake()->numberBetween(0, 15).'.'.fake()->numberBetween(1, 255),
             'room' => 'Zaal '.fake()->numberBetween(1, 9).'.'.fake()->numberBetween(1, 20),
             'serial' => strtoupper(fake()->bothify('00##-####')),
+            'target_type' => 'device',
             'reported_at' => now(),
+            'captured_at' => now(),
         ];
     }
 

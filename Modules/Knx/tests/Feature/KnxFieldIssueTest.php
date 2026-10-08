@@ -12,6 +12,7 @@ use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxNotification;
 use Modules\Knx\Models\KnxPlanningAssignment;
 use Modules\Knx\Models\KnxProject;
 use Tests\TestCase;
@@ -338,5 +339,21 @@ final class KnxFieldIssueTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         $this->report()->assertUnauthorized()->assertJsonPath('code', 'unauthenticated');
+    }
+
+    public function test_reporting_an_incident_lands_in_the_inbox_as_issue_reported(): void
+    {
+        $this->planToday('Jan Van Dyck');
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $this->report()->assertCreated();
+
+        $notification = KnxNotification::query()
+            ->where('kind', KnxNotification::KIND_ISSUE_REPORTED)
+            ->sole();
+
+        $this->assertSame('conflict', $notification->target_type);
+        $this->assertNotNull($notification->issue_id);
+        $this->assertSame('J. Van Dyck', $notification->reportedBy->shortName());
     }
 }
