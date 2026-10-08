@@ -528,6 +528,30 @@ paths:
   # KNX-47 · Plano y fichas en campo (lectura para cachear sin red)
   # ---------------------------------------------------------------------------
 
+  /field/projects/{code}/plans:
+    get:
+      tags: [field]
+      summary: Planos descargables con su planta y su vigencia (cacheable sin red)
+      x-ticket: KNX-47
+      x-status: planned
+      description: >-
+        Cambio respecto del contrato actual: cada plano expone `floor` (la misma planta que usan
+        las habitaciones del proyecto, nullable) e `isCurrent` (`false` cuando una revisión
+        posterior lo reemplazó). El técnico necesita saber en qué planta está mirando antes de
+        bajar un plano, y cuál es la revisión que sigue vigente.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FieldPlan" }
+        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /field/projects/{code}/rooms:
     get:
       tags: [field]
@@ -994,15 +1018,16 @@ paths:
   /documents:
     post:
       tags: [documents]
-      summary: Subida de plano o documento (multipart) — acepta PDF y DWG
-      x-ticket: KNX-49
-      x-status: provisional
+      summary: Subida de plano o documento (multipart) — planta, PDF y DWG
+      x-ticket: KNX-47
+      x-status: planned
       description: >-
-        Cambio respecto del contrato actual: acepta `.dwg`. `sourceFormat` distingue `pdf` de `dwg`;
+        Cambio respecto del contrato actual: acepta `floor` (la planta del plano, la misma que usan
+        las habitaciones del proyecto; nullable) y `.dwg`. `sourceFormat` distingue `pdf` de `dwg`;
         para DWG el servidor encola una conversión y `previewUrl` apunta al PDF derivado, con
         `conversion.status` en `pending|ready|failed`. El PDF se sigue sirviendo tal cual, sin
-        convertir. **Provisional**: la medición de si los DWG de Den Brand traen una capa de
-        habitaciones utilizable todavía no se hizo (KNX-49) y puede cambiar esta forma.
+        convertir. La planta (KNX-47) está decidida; el bloque DWG (KNX-49) es **provisional**
+        hasta la medición de si los DWG de Den Brand traen una capa de habitaciones utilizable.
       requestBody:
         required: true
         content:
@@ -1015,6 +1040,7 @@ paths:
                 project: { type: string }
                 kind: { type: string, maxLength: 40 }
                 revision: { type: string, maxLength: 20 }
+                floor: { type: string, maxLength: 64, nullable: true, description: "La planta del plano, como las habitaciones del proyecto (KNX-47)." }
                 supersedes:
                   oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
                 clientId: { type: string, maxLength: 64 }
@@ -1033,9 +1059,9 @@ paths:
   /documents/{id}:
     get:
       tags: [documents]
-      summary: Detalle de documento, con URL firmada y estado de conversión DWG
-      x-ticket: KNX-49
-      x-status: provisional
+      summary: Detalle de documento, con URL firmada, planta y estado de conversión DWG
+      x-ticket: KNX-47
+      x-status: planned
       parameters:
         - $ref: "#/components/parameters/Id"
       responses:
@@ -1045,6 +1071,33 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentFile" }
         "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [documents]
+      summary: Corrige la planta de un plano ya subido
+      x-ticket: KNX-47
+      x-status: planned
+      description: >-
+        Sólo la planta. Se sube a menudo antes de saber en qué nivel va el plano, y corregirlo no
+        debería obligar a subir otra revisión. Un `null` la borra.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [floor]
+              properties:
+                floor: { type: string, maxLength: 64, nullable: true }
+      responses:
+        "200":
+          description: Documento ya actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentFile" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
 components:
   securitySchemes:
@@ -1472,6 +1525,22 @@ components:
               nx: { type: number }
               ny: { type: number }
 
+    FieldPlan:
+      type: object
+      description: Plano descargable que ve el técnico (FieldPlanResource, KNX-47).
+      properties:
+        id: { type: string }
+        projectCode: { type: string }
+        name: { type: string }
+        kind: { type: string }
+        revision: { type: string, nullable: true }
+        mimeType: { type: string }
+        url: { type: string, description: "URL firmada de una semana: se descarga una vez y se abre sin conexión." }
+        sizeBytes: { type: integer }
+        pages: { type: integer }
+        floor: { type: string, nullable: true }
+        isCurrent: { type: boolean, description: "false cuando una revisión posterior lo reemplazó." }
+
     Notification:
       type: object
       description: >-
@@ -1667,6 +1736,7 @@ components:
         sizeBytes: { type: integer }
         mimeType: { type: string, nullable: true }
         pages: { type: integer }
+        floor: { type: string, nullable: true, description: "La planta del plano, la misma que usan las habitaciones del proyecto (KNX-47)." }
         sourceFormat: { type: string, enum: [pdf, dwg] }
         previewUrl: { type: string, nullable: true }
         conversion:
