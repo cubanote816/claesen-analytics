@@ -28,6 +28,15 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
         public readonly string $dispatchKey,
         public readonly string $reason,
         public readonly bool   $force,
+        /**
+         * Optional per-key publish: site_settings key names to limit the
+         * rebuild to. Null means full sync (unchanged historical behaviour).
+         * Carried as plain scalar data so SerializesModels round-trips it
+         * untouched across queue/retry — it plays no part in the
+         * dispatch_key supersede check below, so it cannot change what
+         * "stale" means.
+         */
+        public readonly ?array $keys = null,
     ) {}
 
     public function handle(StaticSitePublicationService $service): void
@@ -59,7 +68,7 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
         // publicado molesta, esconder uno pendiente hace creer que la web está al día.
         $watermark = ActivityLogEntry::query()->max('id');
 
-        $result = $service->sendWebhook($this->siteId, $this->reason, $this->force);
+        $result = $service->sendWebhook($this->siteId, $this->reason, $this->force, $this->keys);
 
         if ($result->success) {
             // Re-check before marking accepted: another admin save may have

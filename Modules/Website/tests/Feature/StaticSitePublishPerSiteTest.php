@@ -152,6 +152,36 @@ final class StaticSitePublishPerSiteTest extends TestCase
         $this->assertNull($claesenState->fresh()->last_error);
     }
 
+    public function test_the_job_for_a_non_claesen_site_sends_keys_to_that_sites_webhook(): void
+    {
+        $bertelsSite = $this->bertelsFixtureSite(null, [
+            'static_site_webhook_url' => 'http://bertels-frontend:9100/rebuild',
+            'static_site_webhook_secret' => 'bertels-secret',
+        ]);
+
+        Http::fake([
+            'bertels-frontend:9100/*' => Http::response('', 202),
+            'claesen-frontend:9000/*' => Http::response('', 202),
+        ]);
+
+        $state = PublicationState::current($bertelsSite->id);
+        $state->markPending();
+        $state->recordDispatch('bertels-keys');
+
+        (new TriggerStaticSiteRebuildJob($bertelsSite->id, 'bertels-keys', 'content_changed', false, ['general']))
+            ->handle(app(StaticSitePublicationService::class));
+
+        $payloads = [];
+        Http::assertSent(function ($request) use (&$payloads) {
+            $payloads[$request->url()] = json_decode($request->body(), true);
+            return true;
+        });
+
+        // Keys reach Bertels' own endpoint only — Claesen's rebuild target is never hit.
+        $this->assertSame(['general'], $payloads['http://bertels-frontend:9100/rebuild']['keys']);
+        $this->assertArrayNotHasKey('http://claesen-frontend:9000/rebuild', $payloads);
+    }
+
     public function test_the_job_resolves_the_site_into_context_so_a_fresh_worker_process_can_run_it(): void
     {
         // Simulates the real worker scenario D6 describes: no HTTP request,

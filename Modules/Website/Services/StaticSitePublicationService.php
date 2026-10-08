@@ -39,8 +39,12 @@ class StaticSitePublicationService
      * it), keeping its own dispatch_key/debounce/webhook target completely
      * independent of any other site's — a failure or a slow build on one
      * site's endpoint can never block or clobber another's.
+     *
+     * $keys optionally limits the rebuild to specific site_settings keys
+     * (per-key publish). Null or empty means a full sync, exactly as before
+     * this parameter existed.
      */
-    public function requestRebuild(?int $siteId = null, string $reason = 'content_changed', bool $force = false): void
+    public function requestRebuild(?int $siteId = null, string $reason = 'content_changed', bool $force = false, ?array $keys = null): void
     {
         if (!config('static_site.enabled')) {
             return;
@@ -60,7 +64,7 @@ class StaticSitePublicationService
         // ->afterCommit() (Illuminate\Bus\Queueable) so a rolled-back save
         // never fires a rebuild for content that was never actually
         // persisted.
-        TriggerStaticSiteRebuildJob::dispatch($siteId, $dispatchKey, $reason, $force)
+        TriggerStaticSiteRebuildJob::dispatch($siteId, $dispatchKey, $reason, $force, $keys)
             ->delay(now()->addSeconds($debounce))
             ->afterCommit();
 
@@ -162,8 +166,15 @@ class StaticSitePublicationService
      * 202 = request accepted by frontend (build may still be in progress).
      * Real build status is at the resolved site's own health_url (or the
      * global config('static_site.health_url') fallback for Claesen).
+     *
+     * $keys enables per-key publish: when a non-empty list of site_settings
+     * key names is given, it is included in the payload and the site writes
+     * only those keys' fields over its published snapshot. Null or empty
+     * omits the field entirely — the site treats an absent `keys` as a full
+     * sync, so an empty array must never leak into the payload (that would
+     * silently change behaviour for every existing full-sync caller).
      */
-    public function sendWebhook(int $siteId, string $reason, bool $force): WebhookResult
+    public function sendWebhook(int $siteId, string $reason, bool $force, ?array $keys = null): WebhookResult
     {
         $site = $this->resolveSite($siteId);
 
@@ -183,6 +194,13 @@ class StaticSitePublicationService
             'reason'      => $reason,
             'force'       => $force,
         ];
+
+        // Absent-or-empty means full sync: the field only exists when there is
+        // something to limit to. Order of the given keys is preserved — the
+        // site applies them in payload order.
+        if ($keys !== null && $keys !== []) {
+            $payload['keys'] = array_values($keys);
+        }
 
         // Serialize once — the same $body is signed AND sent as raw bytes.
         // HMAC covers: timestamp + "." + body  (exact bytes, no re-encoding).

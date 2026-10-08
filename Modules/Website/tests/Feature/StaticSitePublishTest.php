@@ -221,6 +221,88 @@ class StaticSitePublishTest extends TestCase
         $this->assertSame(0, $result->statusCode);
     }
 
+    // ─── Per-key publish (`keys` in the webhook payload) ─────────────────────
+
+    public function test_send_webhook_without_keys_payload_is_exactly_today_s(): void
+    {
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
+
+        // Written from the current implementation's real output, field by
+        // field, in build order: absent keys must mean byte-identical intent.
+        // assertSame (===) also catches any extra field or reorder.
+        $payload = json_decode($captured->body(), true);
+        $this->assertSame([
+            'source'      => 'backend',
+            'environment' => 'testing',
+            'reason'      => 'content_changed',
+            'force'       => false,
+        ], $payload);
+    }
+
+    public function test_send_webhook_with_empty_keys_array_omits_keys_entirely(): void
+    {
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false, []);
+
+        // An empty array must not appear: the site treats absent `keys` as a
+        // full sync, and a gained empty `keys` would change that behaviour
+        // for every existing caller.
+        $payload = json_decode($captured->body(), true);
+        $this->assertArrayNotHasKey('keys', $payload);
+        $this->assertSame([
+            'source'      => 'backend',
+            'environment' => 'testing',
+            'reason'      => 'content_changed',
+            'force'       => false,
+        ], $payload);
+    }
+
+    public function test_send_webhook_with_keys_contains_exactly_those_keys_in_order(): void
+    {
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        $keys = ['site_settings.navigation', 'general', 'footer'];
+        $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false, $keys);
+
+        $payload = json_decode($captured->body(), true);
+        $this->assertSame($keys, $payload['keys']);
+        // Exactly the four base fields plus `keys` — nothing else changed.
+        $this->assertSame(
+            ['source', 'environment', 'reason', 'force', 'keys'],
+            array_keys($payload),
+        );
+        $this->assertSame('backend', $payload['source']);
+        $this->assertSame('testing', $payload['environment']);
+        $this->assertSame('content_changed', $payload['reason']);
+        $this->assertFalse($payload['force']);
+    }
+
+    public function test_send_webhook_with_keys_still_reports_failure_on_non_202(): void
+    {
+        Http::fake(['*' => Http::response('Bad Gateway', 502)]);
+
+        $result = $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false, ['general']);
+
+        $this->assertFalse($result->success);
+        $this->assertSame(502, $result->statusCode);
+        $this->assertNotNull($result->errorMessage);
+    }
+
     // ─── WebhookResult DTO ────────────────────────────────────────────────────
 
     public function test_webhook_result_ok_factory(): void
@@ -259,6 +341,78 @@ class StaticSitePublishTest extends TestCase
         $this->assertNotNull($s->last_accepted_at);
         $this->assertNull($s->dispatch_key);
         $this->assertNull($s->pending_since);
+    }
+
+    public function test_job_carries_keys_through_to_the_webhook_payload(): void
+    {
+        $this->freshState('K');
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        $keys = ['general', 'site_settings.navigation'];
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'K', 'content_changed', false, $keys))
+            ->handle($this->svc);
+
+        $payload = json_decode($captured->body(), true);
+        $this->assertSame($keys, $payload['keys']);
+        $this->assertSame('content_changed', $payload['reason']);
+        $this->assertFalse($payload['force']);
+    }
+
+    public function test_job_without_keys_sends_payload_without_keys(): void
+    {
+        $this->freshState('L');
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'L', 'content_changed', false))
+            ->handle($this->svc);
+
+        $payload = json_decode($captured->body(), true);
+        $this->assertArrayNotHasKey('keys', $payload);
+    }
+
+    public function test_job_keys_survive_queue_serialization(): void
+    {
+        // SerializesModels round-trip: what a queue worker unserializes on
+        // retry must be exactly what was dispatched.
+        $keys = ['general', 'footer'];
+        $job = new TriggerStaticSiteRebuildJob(Site::claesenId(), 'M', 'content_changed', false, $keys);
+
+        $restored = unserialize(serialize($job));
+
+        $this->assertSame($keys, $restored->keys);
+        $this->assertSame('M', $restored->dispatchKey);
+    }
+
+    public function test_request_rebuild_forwards_keys_to_the_dispatched_job(): void
+    {
+        Queue::fake();
+
+        $this->svc->requestRebuild(reason: 'content_changed', keys: ['general', 'footer']);
+
+        Queue::assertPushed(
+            TriggerStaticSiteRebuildJob::class,
+            fn (TriggerStaticSiteRebuildJob $job) => $job->keys === ['general', 'footer'],
+        );
+    }
+
+    public function test_request_rebuild_without_keys_dispatches_job_with_null_keys(): void
+    {
+        Queue::fake();
+
+        $this->svc->requestRebuild(reason: 'content_changed');
+
+        Queue::assertPushed(
+            TriggerStaticSiteRebuildJob::class,
+            fn (TriggerStaticSiteRebuildJob $job) => $job->keys === null,
+        );
     }
 
     public function test_job_202_but_key_changed_mid_flight_does_not_mark_accepted(): void
