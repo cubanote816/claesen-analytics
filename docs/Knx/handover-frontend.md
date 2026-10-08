@@ -48,6 +48,9 @@ mocks.**
 - **Planta del plano (KNX-47, contrato publicado):** `POST /documents` acepta `floor?`;
   `DocumentFile` y `GET /field/projects/{code}/plans` exponen `floor` e `isCurrent`;
   `PATCH /documents/{id} {floor}`. Todavía en `openapi-next.yaml`.
+- **Ficha de habitación (KNX-46, implementado):** `GET /projects/{code}/rooms/{id}/sheet` con
+  `{room, zone, devices, boardLinks, intents, functions, issues, photos}`; `intents`/`photos` viajan
+  `[]` hasta KNX-55 / KNX-26.
 - Los **dos** únicos huecos del contrato nuevo: `provisional` en DWG y `pending-decision` en la
   escritura de intenciones desde campo. Nada más queda abierto.
 
