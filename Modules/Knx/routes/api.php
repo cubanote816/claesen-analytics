@@ -81,6 +81,15 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans');
 
+            // KNX-47 — el plano real offline: la ficha de cada habitación y el modelo
+            // confirmado de una página del plano.
+            Route::get('projects/{code}/rooms', [FieldProjectController::class, 'rooms'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.rooms');
+            Route::get('projects/{code}/plans/{documentId}/model', [FieldProjectController::class, 'planModel'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.model');
+
             // V11.f — the project's devices. The card's progress and the plan's
             // per-room counts come from here, and it answers the same shape the
             // registration does, so the app has one device shape and not two.
@@ -199,6 +208,8 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
             Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
             Route::get('documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
+            // KNX-47 — corregir la planta de un plano ya subido, sin subir otra revisión.
+            Route::patch('documents/{id}', [DocumentController::class, 'update'])->name('documents.update');
 
             // KNX-3 — the boards placed on a revision. The set belongs to the document,
             // so both routes resolve the document inside the project (`{code}`).

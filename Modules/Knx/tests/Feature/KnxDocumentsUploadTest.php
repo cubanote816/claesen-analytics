@@ -121,7 +121,7 @@ final class KnxDocumentsUploadTest extends TestCase
         // The response is the read shape the office already parses, and it comes with
         // its signed URL so the viewer needs no second parser.
         $this->assertSame(
-            ['id', 'name', 'projectCode', 'projectName', 'kind', 'mimeType', 'size', 'pages', 'uploadedAt', 'uploadedBy', 'url', 'revision', 'isCurrent', 'approvedBy'],
+            ['id', 'name', 'projectCode', 'projectName', 'kind', 'mimeType', 'size', 'pages', 'floor', 'uploadedAt', 'uploadedBy', 'url', 'revision', 'isCurrent', 'approvedBy'],
             array_keys($response->json()),
         );
 
@@ -142,6 +142,30 @@ final class KnxDocumentsUploadTest extends TestCase
         Storage::disk('local')->assertExists($document->path);
         $this->assertStringStartsWith('knx/plans/C1618/', $document->path);
         $this->assertSame(strlen($content), $document->size_bytes);
+    }
+
+    public function test_the_plan_floor_is_recorded_on_upload_and_can_be_corrected_later(): void
+    {
+        $created = $this->upload('C1618', ['kind' => 'Plan', 'floor' => '1e verdieping'])->assertCreated();
+        $this->assertSame('1e verdieping', $created->json('floor'));
+
+        $id = $created->json('id');
+        $documentsBefore = KnxDocument::query()->count();
+
+        // Correcting the floor must not create a second revision.
+        $patched = $this->patchJson("/api/v1/knx/documents/{$id}", ['floor' => '2e verdieping'])->assertOk();
+        $this->assertSame('2e verdieping', $patched->json('floor'));
+        $this->assertSame($documentsBefore, KnxDocument::query()->count());
+        $this->assertSame('2e verdieping', KnxDocument::query()->whereKey($id)->sole()->floor);
+
+        // `null` clears it.
+        $this->patchJson("/api/v1/knx/documents/{$id}", ['floor' => null])->assertOk()->assertJsonPath('floor', null);
+
+        // The key is required: the route only edits the floor.
+        $this->patchJson("/api/v1/knx/documents/{$id}", [])
+            ->assertStatus(422)->assertJsonStructure(['errors' => ['floor']]);
+
+        $this->patchJson('/api/v1/knx/documents/999999', ['floor' => 'x'])->assertNotFound();
     }
 
     public function test_the_uploaded_document_is_listed_with_its_mime_type_pages_and_size(): void

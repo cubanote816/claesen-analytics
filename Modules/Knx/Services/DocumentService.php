@@ -99,6 +99,8 @@ class DocumentService
                 'project_id' => $project->getKey(),
                 'name' => $file->getClientOriginalName(),
                 'kind' => $input['kind'],
+                // The level of the plan, when the office knows it (KNX-47).
+                'floor' => $input['floor'] ?? null,
                 'mime_type' => $this->mimeType($file),
                 'size_bytes' => $file->getSize(),
                 'pages' => $this->pageCount($file),

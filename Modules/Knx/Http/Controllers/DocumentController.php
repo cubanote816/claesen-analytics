@@ -71,6 +71,8 @@ class DocumentController extends Controller
             'file' => ['required', 'file'],
             'project' => ['required', 'string', 'max:32'],
             'kind' => ['required', 'string', 'max:40'],
+            // The plan's floor, the same label as the rooms' (KNX-47).
+            'floor' => ['sometimes', 'nullable', 'string', 'max:64'],
             'revision' => ['sometimes', 'nullable', 'string', 'max:20'],
             // Column ids are integers; the contract calls it "id de documento".
             'supersedes' => ['sometimes', 'nullable', 'integer'],
@@ -101,6 +103,27 @@ class DocumentController extends Controller
             DocumentResource::make($result['document'])->withUrl()->resolve($request),
             $result['created'] ? 201 : 200,
         );
+    }
+
+    /**
+     * `PATCH /documents/{id}` — correct the floor of an already uploaded plan (KNX-47).
+     *
+     * Only the floor: the office regularly uploads a plan before knowing which level it
+     * is, and correcting that must not force a second revision (which would supersede
+     * the first for nothing). `null` clears it.
+     */
+    public function update(Request $request, string $id): DocumentResource
+    {
+        $validated = $request->validate([
+            // `present` + `nullable`: the key is required, but an explicit `null` is how
+            // the office CLEARS the floor. `required` would reject that null.
+            'floor' => ['present', 'nullable', 'string', 'max:64'],
+        ]);
+
+        $document = KnxDocument::query()->with(['project', 'uploadedBy', 'approvedBy'])->findOrFail($id);
+        $document->forceFill(['floor' => $validated['floor']])->save();
+
+        return DocumentResource::make($document->refresh()->load(['project', 'uploadedBy', 'approvedBy']));
     }
 
     /**

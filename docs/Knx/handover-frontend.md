@@ -51,6 +51,10 @@ mocks.**
 - **Ficha de habitación (KNX-46, implementado):** `GET /projects/{code}/rooms/{id}/sheet` con
   `{room, zone, devices, boardLinks, intents, functions, issues, photos}`; `intents`/`photos` viajan
   `[]` hasta KNX-55 / KNX-26.
+- **Planta del plano y campo (KNX-47, implementado):** `floor?` en `POST /documents`, `floor` en
+  `DocumentFile`, `PATCH /documents/{id} {floor}`; `GET /field/projects/{code}/rooms` y
+  `GET /field/projects/{code}/plans/{documentId}/model` (sólo `confirmed`); los planos de campo
+  exponen `floor` e `isCurrent`.
 - Los **dos** únicos huecos del contrato nuevo: `provisional` en DWG y `pending-decision` en la
   escritura de intenciones desde campo. Nada más queda abierto.
 

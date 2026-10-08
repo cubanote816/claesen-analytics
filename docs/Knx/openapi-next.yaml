@@ -406,72 +406,15 @@ paths:
   # ---------------------------------------------------------------------------
   # KNX-47 · Plano y fichas en campo (lectura para cachear sin red)
   # ---------------------------------------------------------------------------
-
-  /field/projects/{code}/plans:
-    get:
-      tags: [field]
-      summary: Planos descargables con su planta y su vigencia (cacheable sin red)
-      x-ticket: KNX-47
-      x-status: planned
-      description: >-
-        Cambio respecto del contrato actual: cada plano expone `floor` (la misma planta que usan
-        las habitaciones del proyecto, nullable) e `isCurrent` (`false` cuando una revisión
-        posterior lo reemplazó). El técnico necesita saber en qué planta está mirando antes de
-        bajar un plano, y cuál es la revisión que sigue vigente.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/FieldPlan" }
-        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
-        "404": { $ref: "#/components/responses/NotFound" }
-
-  /field/projects/{code}/rooms:
-    get:
-      tags: [field]
-      summary: Fichas de habitación de todo el proyecto, para cachear sin red
-      x-ticket: KNX-47
-      x-status: planned
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/RoomSheet" }
-        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
-        "404": { $ref: "#/components/responses/NotFound" }
-
-  /field/projects/{code}/plans/{documentId}/model:
-    get:
-      tags: [field]
-      summary: Modelo de plano cacheable (sólo habitaciones confirmadas + marcadores de esa página)
-      x-ticket: KNX-47
-      x-status: planned
-      description: >-
-        Deliberadamente reducido: sólo las habitaciones en `state: confirmed` y los marcadores de
-        cuadro de esa página. Lo `proposed` no viaja a obra: el técnico no debe leer como verdad una
-        propuesta que la oficina todavía no revisó.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-        - $ref: "#/components/parameters/DocumentId"
-        - $ref: "#/components/parameters/Page"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/FieldPlanModel" }
-        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
-        "404": { $ref: "#/components/responses/NotFound" }
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-47:
+  #   GET   /field/projects/{code}/rooms
+  #   GET   /field/projects/{code}/plans/{documentId}/model
+  #   GET   /field/projects/{code}/plans          (ahora con `floor` e `isCurrent`)
+  #   POST  /documents                            (acepta `floor`)
+  #   GET   /documents/{id}                       (expone `floor`)
+  #   PATCH /documents/{id}                       (nuevo)
+  #
 
   # ---------------------------------------------------------------------------
   # KNX-54 · Avisos en la app y por email

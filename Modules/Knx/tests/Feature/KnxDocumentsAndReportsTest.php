@@ -51,7 +51,7 @@ final class KnxDocumentsAndReportsTest extends TestCase
 
         $this->assertCount(6, $documents);
         $this->assertSame(
-            ['id', 'name', 'projectCode', 'projectName', 'kind', 'mimeType', 'size', 'pages', 'uploadedAt', 'uploadedBy', 'url', 'revision', 'isCurrent', 'approvedBy'],
+            ['id', 'name', 'projectCode', 'projectName', 'kind', 'mimeType', 'size', 'pages', 'floor', 'uploadedAt', 'uploadedBy', 'url', 'revision', 'isCurrent', 'approvedBy'],
             array_keys($documents[0]),
         );
 

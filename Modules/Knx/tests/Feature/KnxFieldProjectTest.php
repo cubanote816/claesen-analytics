@@ -11,8 +11,11 @@ use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxDocument;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxPlanMarker;
 use Modules\Knx\Models\KnxPlanningAssignment;
+use Modules\Knx\Models\KnxPlanRoom;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxProjectRoom;
 use Tests\TestCase;
 
 /**
@@ -250,7 +253,7 @@ final class KnxFieldProjectTest extends TestCase
         $plan = $plans[0];
 
         $this->assertSame(
-            ['id', 'projectCode', 'name', 'kind', 'revision', 'mimeType', 'url', 'sizeBytes', 'pages'],
+            ['id', 'projectCode', 'name', 'kind', 'floor', 'revision', 'mimeType', 'url', 'sizeBytes', 'pages', 'isCurrent'],
             array_keys($plan),
         );
         $this->assertSame('UV_C1618_Gelijkvloers_Wayfinding.pdf', $plan['name']);
@@ -274,6 +277,54 @@ final class KnxFieldProjectTest extends TestCase
         $response = $this->get($path)->assertOk();
 
         $this->assertStringStartsWith('%PDF', $response->streamedContent());
+    }
+
+    public function test_the_field_reads_the_room_sheets_and_the_confirmed_plan_model(): void
+    {
+        $this->planToday($this->technician(), 'C1618');
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $project = KnxProject::query()->where('code', 'C1618')->sole();
+        $inkomhal = KnxProjectRoom::query()->where('project_id', $project->getKey())->where('name', 'Inkomhal')->sole();
+        $vergaderzaal = KnxProjectRoom::query()->where('project_id', $project->getKey())->where('name', 'Vergaderzaal')->sole();
+        $document = KnxDocument::query()->where('project_id', $project->getKey())->where('kind', 'Plan')->sole();
+
+        // One confirmed room and one proposed on the same page.
+        KnxPlanRoom::create([
+            'project_id' => $project->getKey(), 'document_id' => $document->getKey(), 'room_id' => $inkomhal->getKey(),
+            'page' => 1, 'polygon' => [[0.1, 0.1], [0.2, 0.1], [0.2, 0.2]], 'label_at' => [0.15, 0.15],
+            'areaM2' => 12.0, 'source' => 'manual', 'state' => 'confirmed',
+        ]);
+        KnxPlanRoom::create([
+            'project_id' => $project->getKey(), 'document_id' => $document->getKey(), 'room_id' => $vergaderzaal->getKey(),
+            'page' => 1, 'polygon' => [[0.3, 0.3], [0.4, 0.3], [0.4, 0.4]], 'label_at' => null,
+            'areaM2' => null, 'source' => 'pdf', 'state' => 'proposed',
+        ]);
+        KnxPlanMarker::create([
+            'project_id' => $project->getKey(), 'document_id' => $document->getKey(),
+            'board_id' => 'caja-1', 'page' => 1, 'nx' => 0.11, 'ny' => 0.22,
+        ]);
+
+        // The room sheets are the same shape the office reads (KNX-47, from KNX-46).
+        $rooms = $this->getJson('/api/v1/knx/field/projects/C1618/rooms')->assertOk()->json();
+        $this->assertNotEmpty($rooms);
+        $this->assertSame(
+            ['room', 'zone', 'devices', 'boardLinks', 'intents', 'functions', 'issues', 'photos'],
+            array_keys($rooms[0]),
+        );
+        $this->assertTrue(collect($rooms)->contains(fn (array $sheet): bool => $sheet['room']['name'] === 'Inkomhal'));
+
+        // The model carries ONLY the confirmed room plus the page's markers: a proposed
+        // polygon must not reach the field as if the office had accepted it.
+        $model = $this->getJson("/api/v1/knx/field/projects/C1618/plans/{$document->getKey()}/model")->assertOk()->json();
+        $this->assertCount(1, $model['rooms']);
+        $this->assertSame((string) $inkomhal->getKey(), $model['rooms'][0]['roomId']);
+        $this->assertSame('confirmed', $model['rooms'][0]['state']);
+        $this->assertCount(1, $model['markers']);
+        $this->assertSame('caja-1', $model['markers'][0]['boardId']);
+
+        // A document of another project is a 404.
+        $this->getJson('/api/v1/knx/field/projects/C1618/plans/999999/model')->assertNotFound();
     }
 
     public function test_a_plan_that_cannot_be_opened_is_not_offered(): void

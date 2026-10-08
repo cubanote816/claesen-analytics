@@ -69,7 +69,9 @@
 - [x] **R5** KNX-46 — ficha de habitación oficina `GET /projects/{code}/rooms/{id}/sheet`
   (`room`, `zone` con checks, `devices`, `boardLinks`, `functions`, `issues`; `intents`/`photos`
   viajan `[]` hasta KNX-55/KNX-26). Commit `PENDIENTE_R5`.
-- [ ] **R6** KNX-47 — campo: `GET /field/projects/{code}/rooms`, `GET …/plans/{documentId}/model`.
+- [x] **R6** KNX-47 — campo: `GET /field/projects/{code}/rooms` (fichas), `GET …/plans/{documentId}/model`
+  (sólo confirmadas + marcadores), `floor` en `POST /documents`, `floor`/`isCurrent` en `DocumentFile`
+  y en los planos de campo, `PATCH /documents/{id} {floor}`. Commit `PENDIENTE_R6`.
 - [ ] **R7** KNX-52 — cuadros y módulos oficina (alta/edición/confirmación, `origin`/`reviewState`).
 - [ ] **R8** KNX-25 — campo: `GET /field/projects/{code}/boards` (lectura).
 - [ ] **R9** KNX-53 — campo: `POST …/boards`, `POST …/boards/{boardId}/modules`,
@@ -153,6 +155,17 @@
   `openapi-next.yaml`. 8 tests en `KnxRoomsTest`.
   - HTTP real `:8002`: sheet de Inkomhal con las 8 claves, `zone` 99 con 8 checks, 3 dispositivos;
     `intents`/`photos` = `[]`; habitación de otro proyecto → `404`.
+
+- **R6 (`PENDIENTE_R6`).** Migración `2026_10_08_140000` (`knx_documents.floor`); `RoomSheetService`
+  compartido por la ficha de oficina y el listado de campo; `FieldProjectController::rooms` y
+  `::planModel`; `floor`/`isCurrent` en `FieldPlanResource`; `PATCH /documents/{id}`. Cinco rutas
+  movidas/actualizadas en `openapi.yaml`.
+  - HTTP real `:8002`: `/field/projects/C1618/rooms` → 8 fichas con las 8 claves; planos de campo con
+    `floor`/`isCurrent`; modelo del documento 89 → `{rooms:[], markers:[]}`; `POST /documents` con
+    `floor` → guardada; `PATCH {floor:"2e verdieping"}` → `200`; `{floor:null}` → `200`; sin la clave
+    → `422`. Artefacto de subida borrado.
+  - Bug propio: `PATCH` validaba `floor` con `required`, que rechaza un `null`; el contrato dice que
+    `null` LIMPIA la planta. Pasó a `present|nullable`.
 
 ### Entorno de verificación (hallazgo, no obvio)
 
