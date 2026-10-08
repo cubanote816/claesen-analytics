@@ -46,37 +46,19 @@ Reglas:
 
 ## Cierre de cada ticket KNX (obligatorio)
 
-> **Alcance: esta sección aplica SOLO al trabajo del módulo Knx** (`Modules/Knx`). El resto del
-> repositorio sigue sus propias reglas, arriba.
+Un ticket de Linear puede repartirse entre varios repos (backend, Kantoor, Veld). Cerrás solo TU parte:
+- Si el ticket es solo de tu repo: pasalo a Done con el hash.
+- Si lo comparte otro repo (título o descripción nombran Kantoor/Veld/oficina/campo, o otro repo
+  todavía tiene trabajo): NO lo pases a Done. Dejá un comentario "Parte <repo> hecha: <hashes>"
+  y que lo cierre el último repo que termine, tras la aceptación del ticket.
 
-Cuando cierres un ticket KNX (commit hecho, checks en verde, Linear actualizado con el hash),
-guardá en Engram una observación con título `KNX cierre: <KNX-NN> <resumen corto>` y este cuerpo:
-
+Guardá en Engram una observación con título `KNX cierre: <KNX-NN> [<repo>] <resumen corto>`
+(`<repo>` = backend | kantoor | veld) y este cuerpo:
 - **Qué**: lo implementado, en 1–3 líneas.
 - **Dónde**: repo, rama y hashes de los commits.
-- **Verificación**: resultado crudo de los checks, una línea por check (y si fue contra el mock o
-  contra :8002).
+- **Verificación**: resultado crudo de los checks, una línea por check (mock o :8002).
 - **Decisiones**: decisiones tomadas o pedidas al dueño (o "ninguna").
-- **Pendiente**: lo que queda abierto o bloqueado (o "nada").
-
-No edites nada dentro de `~/knx/orquestador/`: lo mantiene el orquestador con el dueño.
-
----
-
-## Cierre de cada ticket KNX (obligatorio)
-
-> **Ámbito:** este repositorio es un monorepo (CAFCA Intelligence Hub) con varios módulos. Esta
-> regla aplica **solo al trabajo del módulo Knx** (equipo Linear `KNX`); los demás módulos no la
-> siguen.
-
-Cuando cierres un ticket KNX (commit hecho, checks en verde, Linear actualizado con el hash),
-guardá en Engram una observación con título `KNX cierre: <KNX-NN> <resumen corto>` y este cuerpo:
-
-- **Qué**: lo implementado, en 1–3 líneas.
-- **Dónde**: repo, rama y hashes de los commits.
-- **Verificación**: resultado crudo de los checks, una línea por check (y si fue contra el mock o
-  contra :8002).
-- **Decisiones**: decisiones tomadas o pedidas al dueño (o "ninguna").
-- **Pendiente**: lo que queda abierto o bloqueado (o "nada").
+- **Pendiente**: lo que queda abierto en tu repo o en otros (o "nada").
+- **Linear**: "Done" o "comentado, sigue abierto por <repo>".
 
 No edites nada dentro de `~/knx/orquestador/`: lo mantiene el orquestador con el dueño.
