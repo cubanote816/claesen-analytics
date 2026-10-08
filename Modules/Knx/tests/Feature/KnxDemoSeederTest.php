@@ -9,6 +9,7 @@ use LogicException;
 use Modules\Core\Models\Organization;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxAcceptanceTest;
+use Modules\Knx\Models\KnxBoard;
 use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxDocument;
@@ -157,23 +158,31 @@ final class KnxDemoSeederTest extends TestCase
         $this->assertTrue($failed->physical_check);
     }
 
-    public function test_re_running_replaces_the_demo_data_instead_of_duplicating_it(): void
+    /**
+     * The change that matters: a second run must NOT touch the tenant.
+     *
+     * This test discriminates between the old and the new behaviour. Before, the
+     * seeder purged and recreated everything, so re-running succeeded and the totals
+     * came out the same — the bug could hide behind equal counts. Now it must REFUSE,
+     * and the ids have to be exactly the ones the first run created.
+     */
+    public function test_re_running_refuses_and_changes_nothing(): void
     {
-        $before = [
-            KnxProject::query()->count(),
-            KnxDevice::query()->count(),
-            KnxZoneCheck::query()->count(),
-            KnxConflict::query()->count(),
-        ];
+        $projects = KnxProject::query()->orderBy('code')->pluck('code', 'id')->all();
+        $boards = KnxBoard::query()->orderBy('id')->pluck('slug', 'id')->all();
+        $devices = KnxDevice::query()->count();
 
-        $this->seed(KnxDemoSeeder::class);
+        try {
+            (new KnxDemoSeeder)->run();
+            $this->fail('the seeder ran again over existing KNX projects');
+        } catch (LogicException $e) {
+            $this->assertStringContainsString('already has KNX projects', $e->getMessage());
+        }
 
-        $this->assertSame($before, [
-            KnxProject::query()->count(),
-            KnxDevice::query()->count(),
-            KnxZoneCheck::query()->count(),
-            KnxConflict::query()->count(),
-        ]);
+        // Same rows AND same ids: nothing was purged and recreated.
+        $this->assertSame($projects, KnxProject::query()->orderBy('code')->pluck('code', 'id')->all());
+        $this->assertSame($boards, KnxBoard::query()->orderBy('id')->pluck('slug', 'id')->all());
+        $this->assertSame($devices, KnxDevice::query()->count());
     }
 
     public function test_it_refuses_to_run_in_production(): void
@@ -227,13 +236,19 @@ final class KnxDemoSeederTest extends TestCase
         );
     }
 
-    public function test_it_runs_outside_the_test_suite_when_the_confirmation_is_explicit(): void
+    /**
+     * The confirmation is what allows a run OUTSIDE the test suite; it is not a
+     * licence to run over existing work. With projects present the seeder still refuses,
+     * which is the whole point of the change.
+     */
+    public function test_an_explicit_confirmation_does_not_override_the_existing_projects_refusal(): void
     {
         $this->app['env'] = 'local';
         config(['knx.demo_seed_confirm' => true]);
 
-        $this->seed(KnxDemoSeeder::class);
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('already has KNX projects');
 
-        $this->assertSame(5, KnxProject::query()->count());
+        (new KnxDemoSeeder)->run();
     }
 }
