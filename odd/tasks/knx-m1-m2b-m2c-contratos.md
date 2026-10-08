@@ -50,8 +50,12 @@
   `AssertDocumentedSuccessCode` (guard test-only que compara todo 2xx real del suite contra el spec).
   Commit `61dcdce`.
 - [x] **R1b** KNX-18 — test guardián: `PUT /markers` sin la clave `markers` → `422` (y el
-  conjunto vacío sigue siendo `200`). Commit `PENDIENTE_R1B`.
-- [ ] **R1c** KNX-24 — `SetLocaleFromHeader` en las rutas Knx (`lang/en` alcanzable por HTTP).
+  conjunto vacío sigue siendo `200`). Commit `7b3ac16`. **KNX-18 cerrada en Linear.**
+- [x] **R1c** KNX-24 — `SetLocaleFromHeader` en las rutas Knx (`lang/en` alcanzable por HTTP).
+  Commit `b38e791`. **KNX-24 queda In Progress:** el ticket cubre además abilities de Sanctum y
+  `RequireOrganization`, y la orden de trabajo acotó esta rebanada al locale.
+- [x] **Colateral** — `ef3cf00`: flake preexistente del seeder (día 0) que apareció al correr R1c con
+  el reloj del contenedor en 08:34; arreglado en commit aparte, no mezclado con KNX-24.
 - [ ] **R2** KNX-51 — dirección de la obra (`siteAddress`), `PATCH /projects/{code}`.
 - [ ] **R3** KNX-44 — habitaciones, alias, zona automática con los 8 checks, `roomId` en enlaces de
   cuadro, migración una-zona-por-habitación.
@@ -95,6 +99,15 @@
   - **Siguiente paso (no barato todavía):** validar el cuerpo contra el esquema. `openapi.yaml` usa
     ejemplos inline, no `components/schemas`, así que la validación de forma exige primero migrar el
     spec a schemas. Queda anotado para KNX-20 como deuda.
+
+- **R1b (`7b3ac16`).** Test guardián nuevo. HTTP real: `{"page":1}` → `422
+  "The markers field must be present."`; `{"page":1,"markers":[]}` → `200`. KnxPlanMarkersTest
+  12 passed / 67 assertions.
+- **R1c (`b38e791`).** `SetLocaleFromHeader` en el grupo `v1/knx`. HTTP real: sin cabecera y con
+  `Accept-Language: nl` → «Deze inloggegevens kloppen niet.»; con `Accept-Language: en` →
+  «These credentials are incorrect.» (el default sin cabecera sigue siendo neerlandés).
+- **Colateral (`ef3cf00`).** Flake de reloj en `KnxDemoSeeder::at()` + reloj congelado a las 08:30 en
+  `KnxConflictsTest`. Suite de M1 completa: **245 passed / 1 skipped / 0 failed** (1443 aserciones).
 
 ### Entorno de verificación (hallazgo, no obvio)
 
