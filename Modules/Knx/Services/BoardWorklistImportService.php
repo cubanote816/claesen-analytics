@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Knx\Models\KnxBoard;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxProjectRoom;
 
 /**
  * Imports a governed KNX worklist into a project's boards (KNX-3).
@@ -67,7 +68,12 @@ class BoardWorklistImportService
 
         $boards = $this->group($worklist, $roles);
 
-        return DB::transaction(function () use ($project, $boards): array {
+        // Resolve each worklist room name to the canonical room, by name or alias.
+        // Names that do not match stay `null`: the link keeps its original text and the
+        // office sees what still needs modelling (KNX-44).
+        $roomIds = $this->roomIdMap($project);
+
+        return DB::transaction(function () use ($project, $boards, $roomIds): array {
             $stats = ['boards' => 0, 'modules' => 0, 'channels' => 0, 'links' => 0];
             $usedCodes = [];
 
@@ -92,7 +98,10 @@ class BoardWorklistImportService
                     ]);
 
                     foreach ($module['links'] as $position => $link) {
-                        $created->links()->create($link + ['position' => $position]);
+                        $created->links()->create($link + [
+                            'position' => $position,
+                            'room_id' => $roomIds[mb_strtolower(trim((string) $link['room']))] ?? null,
+                        ]);
                     }
 
                     $stats['modules']++;
@@ -204,6 +213,36 @@ class BoardWorklistImportService
         }
 
         return null;
+    }
+
+    /**
+     * Lower-cased room name (canonical or alias) to room id.
+     *
+     * The canonical name is written first and an alias never overwrites another room's
+     * canonical name (`??=`): if a worklist alias collides with a real room name, the
+     * real room wins.
+     *
+     * @return array<string, int>
+     */
+    private function roomIdMap(KnxProject $project): array
+    {
+        $map = [];
+        $rooms = KnxProjectRoom::query()
+            ->where('project_id', $project->getKey())
+            ->with('aliases')
+            ->get();
+
+        foreach ($rooms as $room) {
+            $map[mb_strtolower(trim($room->name))] ??= $room->getKey();
+        }
+
+        foreach ($rooms as $room) {
+            foreach ($room->aliases as $alias) {
+                $map[mb_strtolower(trim($alias->name))] ??= $room->getKey();
+            }
+        }
+
+        return $map;
     }
 
     /**

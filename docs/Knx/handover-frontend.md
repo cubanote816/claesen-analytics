@@ -41,6 +41,8 @@ mocks.**
 - **Decisiones de producto nuevas:** habitación canónica = la que crea oficina (ETS/worklist/plano
   entran como alias); zona = habitación (`unique(room_id)`); mal funcionamiento = conflicto con
   `lifecycle: malfunction` y transiciones validadas; fotos como entidad con evento `photos_uploaded`.
+- **Habitaciones (KNX-44, implementado):** `GET`/`POST /projects/{code}/rooms` y `PATCH /rooms/{id}`
+  con `aliases`; `Zone.roomId`; `BoardLink.roomId` resuelto por nombre o alias (null si no casó).
 - Los **dos** únicos huecos del contrato nuevo: `provisional` en DWG y `pending-decision` en la
   escritura de intenciones desde campo. Nada más queda abierto.
 

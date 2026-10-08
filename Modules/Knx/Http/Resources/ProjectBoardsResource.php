@@ -80,6 +80,9 @@ class ProjectBoardsResource extends KnxResource
                     ->sortBy('position')
                     ->values()
                     ->map(fn (KnxBoardLink $link): array => [
+                        // The resolved canonical room (KNX-44), next to the source's own
+                        // text. `null` means the worklist name matched no room.
+                        'roomId' => $link->room_id === null ? null : (string) $link->room_id,
                         'room' => $link->room,
                         'object' => $link->object,
                         'role' => $link->role,

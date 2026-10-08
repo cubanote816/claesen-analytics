@@ -24,6 +24,7 @@ use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\ProjectController;
 use Modules\Knx\Http\Controllers\ReportController;
+use Modules\Knx\Http\Controllers\RoomController;
 use Modules\Knx\Http\Controllers\ZoneController;
 use Modules\Knx\Http\Middleware\EnsureKnxApp;
 
@@ -137,6 +138,17 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::get('projects/{code}/stats', [ProjectController::class, 'stats'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.stats');
+
+            // KNX-44 — the canonical rooms of a project, with their aliases and their
+            // zone. `PATCH /rooms/{id}` has no project in the URL: it resolves through
+            // the room's project and the organization.
+            Route::get('projects/{code}/rooms', [RoomController::class, 'index'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.rooms.index');
+            Route::post('projects/{code}/rooms', [RoomController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.rooms.store');
+            Route::patch('rooms/{id}', [RoomController::class, 'update'])->name('rooms.update');
 
             // K3 — the dossier of a project.
             Route::get('projects/{code}/devices', [ProjectController::class, 'devices'])

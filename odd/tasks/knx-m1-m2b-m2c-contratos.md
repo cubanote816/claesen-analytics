@@ -59,8 +59,10 @@
 - [x] **R2** KNX-51 — dirección de la obra (`siteAddress` obligatoria en el alta), `GET`/`PATCH
   /projects/{code}`, `siteAddress` en `ProjectResource`, `FieldProjectResource` y `FieldTodayJobResource`,
   `resolve()` con filtro de organización. Commit `PENDIENTE_R2`.
-- [ ] **R3** KNX-44 — habitaciones, alias, zona automática con los 8 checks, `roomId` en enlaces de
-  cuadro, migración una-zona-por-habitación.
+- [x] **R3** KNX-44 — habitaciones canónicas + alias (`knx_room_aliases`), zona automática con los 8
+  checks (`ZoneService::createForRoom`), `unique(room_id)` en `knx_zones` con backfill de una zona por
+  habitación, `roomId` resuelto por nombre/alias en los enlaces de cuadro, `Zone.roomId` y
+  `BoardLink.roomId`. Commit `PENDIENTE_R3`.
 - [ ] **R4** KNX-45 — modelo de plano por revisión: `GET`/`PUT …/plans/{documentId}/rooms`.
 - [ ] **R5** KNX-46 — ficha de habitación oficina `GET /projects/{code}/rooms/{id}/sheet`.
 - [ ] **R6** KNX-47 — campo: `GET /field/projects/{code}/rooms`, `GET …/plans/{documentId}/model`.
@@ -120,6 +122,22 @@
     distinto inventado) → `201` con `siteAddress` y `city: "Mol"` derivado; `PATCH` → `200` con
     nombre y dirección nuevos y `accessNote` reseteado a `null` (el bloque reemplaza entero).
   - Artefactos de verificación borrados de la BD dev.
+
+- **R3 (`PENDIENTE_R3`).** Migraciones `2026_10_08_110000` (aliases + `unique(room_id)` + backfill) y
+  `2026_10_08_120000` (`room_id` en `knx_board_links`). Endpoints `GET`/`POST /projects/{code}/rooms`
+  y `PATCH /rooms/{id}` (resuelve por proyecto + organización). El importador resuelve el nombre de
+  habitación del worklist a la habitación canónica por nombre **o alias**; lo que no casa queda
+  `roomId: null` visible.
+  - **Decisión sobre zonas de demo sin habitación:** se conservan como huérfanas legibles
+    (`roomId: null`); la migración solo crea zonas para habitaciones que no tienen una y nunca borra
+    filas de oficina. Verificado en la BD dev: 32 habitaciones → 32 zonas con `room_id`, 0 habitaciones
+    sin zona, `unique` presente, y 3 zonas de demo sin habitación intactas.
+  - Suite completa: **253 passed / 1 skipped / 0 failed** (1518 aserciones).
+  - HTTP real `:8002`: `GET /projects/C1618/rooms` → 7 habitaciones con `zoneId`; `POST` → `201` con
+    `zoneId: 134` y alias; `PATCH /rooms/540` → `200` con nombre y alias reemplazados.
+  - Bug propio atrapado por la verificación real: la migración insertaba `created_at` en
+    `knx_zone_checks`, que a propósito no tiene esa columna; los tests no lo veían porque el backfill
+    corre sobre tablas vacías. Arreglado y la migración quedó idempotente (MySQL auto-commitea DDL).
 
 ### Entorno de verificación (hallazgo, no obvio)
 

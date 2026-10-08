@@ -30,6 +30,7 @@ tags:
   - name: dashboard
   - name: clients
   - name: projects
+  - name: rooms
   - name: documents
   - name: plans
   - name: boards
@@ -261,6 +262,87 @@ paths:
       responses:
         "200": { description: OK }
         "404": { $ref: "#/components/responses/NotFound" }
+  # KNX-44 — la habitación canónica. El nombre que crea la oficina manda; ETS, el
+  # worklist y el plano entran como `aliases`. Zona = habitación: toda habitación nace
+  # con su zona y sus ocho checks, por cualquier vía que se cree.
+  /projects/{code}/rooms:
+    get:
+      tags: [rooms]
+      summary: Habitaciones canónicas del proyecto, con sus alias y su zona
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                - id: "31"
+                  name: "Polyvalente ruimte"
+                  floor: "Gelijkvloers"
+                  zoneId: "14"
+                  aliases:
+                    - { source: "worklist", name: "Polyvalente ruimte" }
+                    - { source: "ets", name: "polyvalente_ruimte" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [rooms]
+      summary: Crea una habitación y su zona con los ocho checks
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 255, nullable: true }
+                aliases:
+                  type: array
+                  items:
+                    type: object
+                    required: [source, name]
+                    properties:
+                      source: { type: string, enum: [ets, worklist, plan, manual] }
+                      name: { type: string, maxLength: 255 }
+      responses:
+        "201": { description: "Creada — mismo `Room` que las lecturas" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /rooms/{id}:
+    patch:
+      tags: [rooms]
+      summary: Edita una habitación (`aliases` reemplaza el conjunto)
+      description: >-
+        Ruta por id sin proyecto: resuelve a través del proyecto de la habitación y de la
+        organización, así que una habitación de otra organización responde 404 igual que una
+        inexistente.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 255, nullable: true }
+                aliases:
+                  type: array
+                  items:
+                    type: object
+                    required: [source, name]
+                    properties:
+                      source: { type: string, enum: [ets, worklist, plan, manual] }
+                      name: { type: string, maxLength: 255 }
+      responses:
+        "200": { description: "Habitación ya actualizada, con su `zoneId`" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /projects/{code}/devices:
     get:
       tags: [projects]
@@ -333,7 +415,7 @@ paths:
                         channels:
                           - channel: "A"
                             links:
-                              - { room: "Polyvalente ruimte", object: "Schakelen (Cmd)", role: "dim_switch_cmd", ga: "2/2/1", gaName: "L-GLV-Dagbesteding-Polyvalente-Cmd", dpt: "DPST-1-1" }
+                              - { roomId: "31", room: "Polyvalente ruimte", object: "Schakelen (Cmd)", role: "dim_switch_cmd", ga: "2/2/1", gaName: "L-GLV-Dagbesteding-Polyvalente-Cmd", dpt: "DPST-1-1" }
         "404": { $ref: "#/components/responses/NotFound" }
   /projects/{code}/functions:
     get:

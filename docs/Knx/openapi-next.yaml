@@ -60,96 +60,13 @@ paths:
   # ---------------------------------------------------------------------------
   # KNX-44 · Habitación canónica y zona automática
   # ---------------------------------------------------------------------------
-
-  /projects/{code}/rooms:
-    get:
-      tags: [rooms]
-      summary: Habitaciones del proyecto, con sus alias y su zona
-      x-ticket: KNX-44
-      x-status: planned
-      description: >-
-        La habitación canónica es la que crea oficina. Los nombres que llegan de ETS, del worklist o
-        del plano entran como `aliases`; lo que no casa se conserva visible y sin resolver.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/Room" }
-              example:
-                - id: "31"
-                  name: "Polyvalente ruimte"
-                  floor: "Gelijkvloers"
-                  zoneId: "14"
-                  aliases:
-                    - { source: "worklist", name: "Polyvalente ruimte" }
-                    - { source: "ets", name: "polyvalente_ruimte" }
-                    - { source: "plan", name: "polyvalente ruimte" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    post:
-      tags: [rooms]
-      summary: Crea una habitación y, en la misma transacción, su zona con los 8 checks
-      x-ticket: KNX-44
-      x-status: planned
-      description: >-
-        Decisión 07-10-2026: **zona = habitación**. Toda habitación creada por cualquier vía (alta de
-        proyecto, esta ruta, importación) nace con su zona y sus ocho comprobaciones en `pending`.
-        No hay alta de habitación sin zona.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/RoomCreateInput" }
-            example: { name: "Snoezelruimte", floor: "1e verdieping", aliases: [{ source: "plan", name: "snoezelruimte" }] }
-      responses:
-        "201":
-          description: Creada — misma forma que un elemento del GET
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Room" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
-  /rooms/{id}:
-    patch:
-      tags: [rooms]
-      summary: Edita una habitación (`aliases` reemplaza el conjunto)
-      x-ticket: KNX-44
-      x-status: planned
-      description: >-
-        Ruta por id **sin** proyecto en la URL: el recurso se resuelve a través de su proyecto y de
-        la organización del token. Una habitación de otra organización responde `404`, igual que una
-        inexistente (hay test dedicado). `aliases`, si viene, reemplaza el conjunto completo; no es
-        un merge.
-      parameters:
-        - $ref: "#/components/parameters/Id"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name: { type: string, maxLength: 255 }
-                floor: { type: string, maxLength: 255, nullable: true }
-                aliases:
-                  type: array
-                  items: { $ref: "#/components/schemas/RoomAlias" }
-            example: { aliases: [{ source: "manual", name: "Polyvalente zaal" }] }
-      responses:
-        "200":
-          description: Habitación ya actualizada, con su `zoneId`
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Room" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "422": { $ref: "#/components/responses/ValidationError" }
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-44:
+  #   GET    /projects/{code}/rooms
+  #   POST   /projects/{code}/rooms
+  #   PATCH  /rooms/{id}
+  # `Zone.roomId` y `BoardLink.roomId` también ya están en `openapi.yaml`.
+  # Los esquemas `Room`, `RoomAlias` y `RoomCreateInput` siguen aquí de referencia.
 
   # ---------------------------------------------------------------------------
   # KNX-45 · Modelo de plano por revisión

@@ -4,6 +4,7 @@ namespace Modules\Knx\Services;
 
 use Illuminate\Validation\ValidationException;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxProjectRoom;
 use Modules\Knx\Models\KnxZone;
 use Modules\Knx\Models\KnxZoneCheck;
 
@@ -21,6 +22,33 @@ use Modules\Knx\Models\KnxZoneCheck;
  */
 class ZoneService
 {
+    /**
+     * Create the readiness zone of a room, with its eight checks in `pending`.
+     *
+     * Zona = habitación (decisión 07-10-2026): every room gets exactly one zone, and
+     * it is created wherever the room is created — the project create form, the rooms
+     * endpoint or an import. A room without a zone would be invisible to the readiness
+     * screen, which is the screen this whole slice exists for.
+     */
+    public function createForRoom(KnxProjectRoom $room): KnxZone
+    {
+        $zone = KnxZone::create([
+            'project_id' => $room->project_id,
+            'room_id' => $room->getKey(),
+            'name' => $room->name,
+            'floor' => $room->floor,
+        ]);
+
+        foreach (KnxZoneCheck::keys() as $key) {
+            $zone->checks()->create([
+                'key' => $key,
+                'status' => KnxZoneCheck::STATUS_PENDING,
+            ]);
+        }
+
+        return $zone;
+    }
+
     public function updateCheck(
         KnxZone $zone,
         string $key,

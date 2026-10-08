@@ -8,7 +8,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
-use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxZone;
 use Modules\Knx\Models\KnxZoneCheck;
 use Tests\TestCase;
@@ -55,7 +54,7 @@ final class KnxZonesTest extends TestCase
 
         $this->assertCount(7, $zones);
         $this->assertSame(
-            ['id', 'projectCode', 'projectName', 'name', 'floor', 'status', 'blockingReason', 'blockedBy', 'nextReviewAt', 'checks'],
+            ['id', 'projectCode', 'projectName', 'roomId', 'name', 'floor', 'status', 'blockingReason', 'blockedBy', 'nextReviewAt', 'checks'],
             array_keys($zones[0]),
         );
 
@@ -126,7 +125,6 @@ final class KnxZonesTest extends TestCase
         // Still blocked — the two failed checks remain — but the assertion that
         // matters is that the payload is recomputed, not echoed.
         $this->assertSame('blocked', $response->json('status'));
-
 
         $loads = collect($response->json('checks'))->firstWhere('key', 'loads');
 

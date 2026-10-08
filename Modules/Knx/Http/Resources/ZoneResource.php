@@ -30,6 +30,9 @@ class ZoneResource extends KnxResource
             'id' => (string) $zone->getKey(),
             'projectCode' => $zone->project?->code,
             'projectName' => $zone->project?->name,
+            // The room that owns this zone (zona = habitación, KNX-44). Null is a real
+            // state: demo zones that are not a room are kept and stay readable.
+            'roomId' => $zone->room_id === null ? null : (string) $zone->room_id,
             'name' => $zone->name,
             'floor' => $zone->floor,
             'status' => $zone->derivedStatus(),
