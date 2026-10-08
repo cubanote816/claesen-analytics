@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Knx\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
@@ -27,6 +28,13 @@ final class KnxConflictsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Freeze the clock mid-morning. This is the exact window that used to flip the
+        // two critical conflicts (08:15 and 09:42): the seeded day-0 rows have to keep
+        // their relative order at any hour, and pinning it here makes that a real
+        // regression test rather than a wall-clock accident.
+        Carbon::setTestNow(Carbon::parse('2026-10-08 08:30:00', 'Europe/Brussels'));
+
         // The tenant has to exist before the fixture runs (KnxTenant refuses to
         // invent one), and it is the fixture that creates the office account:
         // seeding *after* creating our own person would delete it, because the
@@ -40,6 +48,13 @@ final class KnxConflictsTest extends TestCase
             'sanctum',
         );
 
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     private function conflict(string $address): KnxConflict

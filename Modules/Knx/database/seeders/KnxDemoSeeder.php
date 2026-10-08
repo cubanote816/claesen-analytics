@@ -59,6 +59,20 @@ class KnxDemoSeeder extends Seeder
     private const TAKEN_ADDRESSES = ['1.1.100', '1.1.101', '1.1.102'];
 
     /**
+     * The latest wall-clock time any day-0 fixture row uses (conflict k1).
+     *
+     * Day 0 has to mean ONE calendar day. Deciding it per row flipped the order of
+     * the two critical conflicts whenever the suite ran between 08:15 and 09:42: the
+     * earlier one (08:15) stayed today while the later one (09:42) moved to yesterday,
+     * and `KnxConflictsTest` asserts the contract's severity order. Deciding once,
+     * against this bound, keeps the fixture's order at any hour.
+     */
+    private const LATEST_DAY_ZERO_TIME = [9, 42];
+
+    /** The calendar day the whole day-0 set belongs to, decided once per run. */
+    private ?Carbon $dayZeroDay = null;
+
+    /**
      * Password of the seeded Kantoor accounts, documented in
      * docs/Knx/knx-kantoor-backend.md. Demo fixture only.
      */
@@ -148,9 +162,34 @@ class KnxDemoSeeder extends Seeder
      */
     private function at(int $daysAgo, int $hour, int $minute): Carbon
     {
+        // Day 0 is anchored once for the whole run, so every "today" row lands on the
+        // same calendar day and their relative order is stable (see the constant).
+        if ($daysAgo === 0) {
+            return $this->dayZeroDay()->copy()->setTime($hour, $minute);
+        }
+
         $at = now()->subDays($daysAgo)->setTime($hour, $minute);
 
         return $at->isFuture() ? $at->subDay() : $at;
+    }
+
+    /**
+     * The day-0 calendar day: yesterday while the fixture's latest day-0 time has
+     * not happened yet, today otherwise. Memoized so every row agrees.
+     */
+    private function dayZeroDay(): Carbon
+    {
+        if ($this->dayZeroDay === null) {
+            [$hour, $minute] = self::LATEST_DAY_ZERO_TIME;
+
+            $latest = now()->copy()->setTime($hour, $minute);
+
+            $this->dayZeroDay = now()->lt($latest)
+                ? now()->subDay()->startOfDay()
+                : now()->startOfDay();
+        }
+
+        return $this->dayZeroDay;
     }
 
     /**
