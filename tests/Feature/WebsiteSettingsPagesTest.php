@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Modules\Core\Models\Site;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Website\Jobs\TriggerStaticSiteRebuildJob;
 use Modules\Website\Models\SiteSetting;
@@ -65,6 +66,22 @@ final class WebsiteSettingsPagesTest extends TestCase
             'static_site.enabled'        => true,
             'static_site.webhook_url'    => 'http://fake-frontend:9000/rebuild',
             'static_site.webhook_secret' => 'test-secret',
+        ]);
+    }
+
+    /**
+     * El sitio que el panel Bertels resuelve (`Site::forPanelOrFail()`): una base recién
+     * migrada sólo trae la fila de Claesen, así que un GET de `/bertels/...` aborta 404 si no
+     * existe. `Livewire::test` no lo necesita porque sin ruta resuelve el panel admin.
+     */
+    private function serveBertelsPanelSite(): void
+    {
+        $organization = Organization::factory()->create(['slug' => 'electro-bertels']);
+
+        Site::factory()->create([
+            'organization_id' => $organization->id,
+            'key'             => 'electro-bertels',
+            'status'          => Site::STATUS_ACTIVE,
         ]);
     }
 
@@ -280,6 +297,33 @@ final class WebsiteSettingsPagesTest extends TestCase
                 ->assertOk()
                 ->assertActionExists('publish_section')
                 ->assertActionExists('publish_now');
+        }
+    }
+
+    /**
+     * La portada HTTP del panel Bertels: `Livewire::test` monta el componente pero no pasa por
+     * el layout del panel ni por la cabecera, que es donde vive la acción de publicación. La
+     * única cobertura real de esa cabecera es un GET de la página servida.
+     *
+     * El criterio de la acción sale del mapa (`settingsPages()`), igual que en el resto del
+     * archivo: si una página pierde la acción de su sección, se ve acá sin copiar la lista.
+     */
+    public function test_each_settings_page_serves_200_over_http_with_its_section_publish_action(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+        $this->serveBertelsPanelSite();
+
+        // La portada HTTP pasa por el layout del panel: sólo queremos la cabecera, no la
+        // tubería de assets del navegador.
+        $this->withoutVite();
+
+        $label = __('website.publication.actions.publish_section');
+
+        foreach (array_keys($this->settingsPages()) as $page) {
+            $this->get($page::getUrl(panel: 'bertels'))
+                ->assertSuccessful()
+                ->assertSee($label);
         }
     }
 

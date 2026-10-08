@@ -14,6 +14,7 @@ use App\Filament\Clusters\Website\Widgets\PublicationStatusWidget;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
 use Modules\Website\Jobs\TriggerStaticSiteRebuildJob;
@@ -58,6 +59,23 @@ final class SitePublicationHeaderTest extends TestCase
         ]);
     }
 
+    /**
+     * The site the Bertels panel resolves (`Site::forPanelOrFail()`): a freshly migrated
+     * database only has Claesen's row, so a GET of `/bertels/...` aborts 404 without it.
+     * `Livewire::test` never hits that path because without a route it falls back to the
+     * admin panel, which is why only the HTTP coverage needs this.
+     */
+    private function serveBertelsPanelSite(): void
+    {
+        $organization = Organization::factory()->create(['slug' => 'electro-bertels']);
+
+        Site::factory()->create([
+            'organization_id' => $organization->id,
+            'key'             => 'electro-bertels',
+            'status'          => Site::STATUS_ACTIVE,
+        ]);
+    }
+
     public function test_the_settings_screen_shows_the_state_and_the_publish_action(): void
     {
         $this->actingAsSuperAdmin();
@@ -72,6 +90,26 @@ final class SitePublicationHeaderTest extends TestCase
             // is not in the page's initial HTML. Asserting the label with assertSee fails even
             // on the Projects list, which has carried this widget all along.
             ->assertSeeLivewire(PublicationStatusWidget::class);
+    }
+
+    /**
+     * WU3.1: la acción de publicación vive en la **cabecera** del panel, y `Livewire::test` no
+     * pasa por la cabecera — monta el componente directo. El único modo de afirmar que el
+     * botón llega al navegador es servir la página por HTTP y leer el HTML.
+     */
+    public function test_the_settings_page_serves_its_publish_action_over_http(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+        $this->serveBertelsPanelSite();
+
+        // Serving the page goes through the panel layout: we only want the header, not the
+        // browser asset pipeline.
+        $this->withoutVite();
+
+        $this->get(AddressSettingsPage::getUrl(panel: 'bertels'))
+            ->assertSuccessful()
+            ->assertSee(__('website.publication.actions.publish_section'));
     }
 
     /**
