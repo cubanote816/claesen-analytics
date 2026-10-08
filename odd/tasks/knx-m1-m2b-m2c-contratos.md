@@ -66,7 +66,9 @@
 - [x] **R4** KNX-45 — modelo de plano por revisión: `knx_plan_rooms`, `GET`/`PUT
   /projects/{code}/plans/{documentId}/rooms`, `carryOverFrom` misma página → `proposed`, `present|array`,
   `roomId` distinct. Commit `PENDIENTE_R4`.
-- [ ] **R5** KNX-46 — ficha de habitación oficina `GET /projects/{code}/rooms/{id}/sheet`.
+- [x] **R5** KNX-46 — ficha de habitación oficina `GET /projects/{code}/rooms/{id}/sheet`
+  (`room`, `zone` con checks, `devices`, `boardLinks`, `functions`, `issues`; `intents`/`photos`
+  viajan `[]` hasta KNX-55/KNX-26). Commit `PENDIENTE_R5`.
 - [ ] **R6** KNX-47 — campo: `GET /field/projects/{code}/rooms`, `GET …/plans/{documentId}/model`.
 - [ ] **R7** KNX-52 — cuadros y módulos oficina (alta/edición/confirmación, `origin`/`reviewState`).
 - [ ] **R8** KNX-25 — campo: `GET /field/projects/{code}/boards` (lectura).
@@ -146,6 +148,11 @@
   (`KnxPlanRoomsTest`). `proposalStatus` queda `none` (KNX-48 lo llena).
   - HTTP real `:8002`: GET inicial `{proposalStatus:none, rooms:[]}`; PUT con polígono/`areaM2` → `200`
     con la geometría devuelta tal cual; PUT sin la clave `rooms` → `422`; PUT `rooms:[]` → `200` y limpia.
+
+- **R5 (`PENDIENTE_R5`).** `RoomController::sheet` + ruta + `openapi.yaml`; ruta movida de
+  `openapi-next.yaml`. 8 tests en `KnxRoomsTest`.
+  - HTTP real `:8002`: sheet de Inkomhal con las 8 claves, `zone` 99 con 8 checks, 3 dispositivos;
+    `intents`/`photos` = `[]`; habitación de otro proyecto → `404`.
 
 ### Entorno de verificación (hallazgo, no obvio)
 

@@ -81,27 +81,11 @@ paths:
   # ---------------------------------------------------------------------------
   # KNX-46 · Ficha de habitación (oficina)
   # ---------------------------------------------------------------------------
-
-  /projects/{code}/rooms/{id}/sheet:
-    get:
-      tags: [rooms]
-      summary: Ficha completa de una habitación (todo lo que la oficina muestra al hacer clic)
-      x-ticket: KNX-46
-      x-status: planned
-      description: >-
-        Un solo payload para que la ficha no sea seis llamadas. `zone` viene con sus ocho checks y su
-        estado derivado; si la habitación es una zona huérfana de demo sin `roomId` no aparece aquí
-        (se lee por `/zones`).
-      parameters:
-        - $ref: "#/components/parameters/Code"
-        - $ref: "#/components/parameters/Id"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/RoomSheet" }
-        "404": { $ref: "#/components/responses/NotFound" }
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-46:
+  #   GET /projects/{code}/rooms/{id}/sheet
+  # `intents` y `photos` viajan como [] hasta KNX-55 / KNX-26.
+  #
 
   # ---------------------------------------------------------------------------
   # KNX-52 / KNX-25 / KNX-53 · Cuadros y módulos

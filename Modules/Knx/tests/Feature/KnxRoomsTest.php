@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
+use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Models\KnxProjectRoom;
 use Modules\Knx\Models\KnxRoomAlias;
@@ -150,6 +151,46 @@ final class KnxRoomsTest extends TestCase
 
         // And the project-code route does not leak it either.
         $this->getJson("/api/v1/knx/projects/{$foreignProject->code}/rooms")->assertNotFound();
+    }
+
+    public function test_the_room_sheet_gathers_its_zone_devices_and_sections(): void
+    {
+        $inkomhal = collect($this->getJson('/api/v1/knx/projects/C1618/rooms')->assertOk()->json())
+            ->firstWhere('name', 'Inkomhal');
+        $this->assertNotNull($inkomhal);
+
+        $sheet = $this->getJson("/api/v1/knx/projects/C1618/rooms/{$inkomhal['id']}/sheet")->assertOk()->json();
+
+        // One payload instead of six calls (KNX-46).
+        $this->assertSame(
+            ['room', 'zone', 'devices', 'boardLinks', 'intents', 'functions', 'issues', 'photos'],
+            array_keys($sheet),
+        );
+        $this->assertSame($inkomhal['id'], $sheet['room']['id']);
+
+        // The zone is the room's own (zona = habitación), with its eight checks.
+        $this->assertNotNull($sheet['zone']);
+        $this->assertSame($inkomhal['id'], $sheet['zone']['roomId']);
+        $this->assertCount(8, $sheet['zone']['checks']);
+
+        // The devices are exactly the room's devices, nothing else.
+        $expected = KnxDevice::query()->where('room_id', $inkomhal['id'])->count();
+        $this->assertCount($expected, $sheet['devices']);
+        foreach ($sheet['devices'] as $device) {
+            $this->assertSame('Inkomhal', $device['room']);
+        }
+
+        // Sections whose tables do not exist yet travel as empty arrays (KNX-55 / KNX-26).
+        $this->assertSame([], $sheet['intents']);
+        $this->assertSame([], $sheet['photos']);
+
+        // A room of another project, and an unknown one, are 404: the room is resolved
+        // inside the project of the code.
+        $foreignRoom = KnxProjectRoom::query()
+            ->where('project_id', KnxProject::query()->where('code', '239870')->sole()->getKey())
+            ->firstOrFail();
+        $this->getJson("/api/v1/knx/projects/C1618/rooms/{$foreignRoom->getKey()}/sheet")->assertNotFound();
+        $this->getJson('/api/v1/knx/projects/C1618/rooms/999999/sheet')->assertNotFound();
     }
 
     public function test_the_room_endpoints_refuse_a_field_account(): void

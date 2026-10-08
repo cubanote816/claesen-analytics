@@ -343,6 +343,33 @@ paths:
         "200": { description: "Habitación ya actualizada, con su `zoneId`" }
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/rooms/{id}/sheet:
+    get:
+      tags: [rooms]
+      summary: Ficha de habitación (todo lo que la oficina muestra al hacer clic)
+      description: >-
+        Un solo payload en vez de seis llamadas. `zone` trae sus ocho checks y su estado derivado, o
+        `null` si la habitación no tiene zona. `intents` y `photos` son secciones reales del contrato
+        (KNX-55 / KNX-26) cuyas tablas todavía no existen: hoy viajan como `[]` para que el front
+        construya la pantalla, y se llenan cuando esas rebanadas entren.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                room: { id: "31", name: "Polyvalente ruimte", floor: "Gelijkvloers", zoneId: "14", aliases: [] }
+                zone: { id: "14", roomId: "31", name: "Polyvalente ruimte", status: "in_progress", checks: [] }
+                devices: []
+                boardLinks: []
+                intents: []
+                functions: []
+                issues: []
+                photos: []
+        "404": { $ref: "#/components/responses/NotFound" }
   /projects/{code}/devices:
     get:
       tags: [projects]

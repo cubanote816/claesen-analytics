@@ -151,6 +151,11 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
                 ->name('projects.rooms.store');
             Route::patch('rooms/{id}', [RoomController::class, 'update'])->name('rooms.update');
 
+            // KNX-46 — la ficha de habitación: todo lo que la oficina muestra al hacer clic.
+            Route::get('projects/{code}/rooms/{id}/sheet', [RoomController::class, 'sheet'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.rooms.sheet');
+
             // K3 — the dossier of a project.
             Route::get('projects/{code}/devices', [ProjectController::class, 'devices'])
                 ->where('code', '[A-Za-z0-9._-]+')
