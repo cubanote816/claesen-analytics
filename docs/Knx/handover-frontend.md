@@ -64,14 +64,15 @@ mocks.**
   lo ocupa). Además, `POST /field/projects/{code}/devices` acepta `boardId`/`moduleSlot`/`channel`
   opcionales, y **el `Device` de oficina y el `FieldDevice` los exponen** (`boardId`, `moduleSlot`,
   `channel`): el dossier y el registro ya dicen *dónde* dentro del cuadro está el aparato.
-- **Avisos tipados (KNX-54, PARCIAL — la generalización ya está, faltan preferencias y correo):**
-  `GET /notifications` acepta `?kind=&project=&unacked=` y cada fila trae `kind`, `title`, `summary`,
-  `actor`, `target`, `roomId`, `boardId`, `moduleSlot`, `deviceId`, `issueId`, `capturedAt` y
-  `receivedAt`, además de los campos viejos (compatible hacia atrás). Los `kind` que ya se emiten:
-  `device_registered`, `board_created`, `module_added`, `issue_reported`, `address_conflict`,
-  `visit_closed`. `/events` (SSE) lleva el mismo `kind`. **Pendiente:**
-  `GET|PUT /me/notification-preferences` y el correo (inmediato/digest) siguen en
-  `openapi-next.yaml`.
+- **Avisos tipados y correo (KNX-54, implementado):** `GET /notifications` acepta
+  `?kind=&project=&unacked=` y cada fila trae `kind`, `title`, `summary`, `actor`, `target`, `roomId`,
+  `boardId`, `moduleSlot`, `deviceId`, `issueId`, `capturedAt`, `receivedAt` más los campos viejos.
+  `/events` lleva el mismo `kind`. `GET|PUT /me/notification-preferences` → `{email:{immediate,
+  digest: per_visit|hourly|off, mutedKinds}}`. **Correo:** inmediato sólo para `issue_reported`,
+  `malfunction_reported` y `visit_closed` final; el resto va en un resumen (comando
+  `knx:notification-digest`, horario y al cerrar la visita) a cola con reintentos. Destinatarios:
+  jefe de proyecto + `KNX_OFFICE_MAILBOX`. `emailed_at` evita duplicar. **Los `kind`
+  `module_changed`, `intent_changed` y `malfunction_*` todavía no tienen escritor.**
 - **Cuadros en campo (KNX-25, implementado):** `GET /field/projects/{code}/boards` devuelve la misma
   estructura que la oficina (con `origin`/`reviewState`), para que el registro use los cuadros reales
   del proyecto. Antes `/boards` respondía `401` con un token de campo.

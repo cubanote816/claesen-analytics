@@ -21,6 +21,7 @@ use Modules\Knx\Http\Controllers\Field\FieldTodayController;
 use Modules\Knx\Http\Controllers\Field\FieldVisitController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\FunctionSpecController;
+use Modules\Knx\Http\Controllers\NotificationPreferenceController;
 use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\PlanRoomController;
@@ -140,6 +141,12 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
     Route::middleware(['auth:sanctum', 'organization:electro-bertels', EnsureKnxApp::class.':'.EnsureKnxApp::OFFICE])
         ->group(function (): void {
             Route::get('me/session', [SessionController::class, 'show'])->name('me.session');
+
+            // KNX-54 — las preferencias de aviso de la persona autenticada.
+            Route::get('me/notification-preferences', [NotificationPreferenceController::class, 'show'])
+                ->name('me.notification-preferences.show');
+            Route::put('me/notification-preferences', [NotificationPreferenceController::class, 'update'])
+                ->name('me.notification-preferences.update');
 
             // K7b — the dashboard aggregate (its inputs all exist now).
             Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard.show');

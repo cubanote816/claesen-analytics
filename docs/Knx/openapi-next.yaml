@@ -104,45 +104,7 @@ paths:
 
   # /notifications y /events (con `kind`) ya están en docs/Knx/openapi.yaml (KNX-54).
   # Sólo queda aquí lo que todavía NO se implementa:
-  /me/notification-preferences:
-    get:
-      tags: [notifications]
-      summary: Preferencias de aviso de la persona autenticada
-      x-ticket: KNX-54
-      x-status: planned
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/NotificationPreferences" }
-              example: { email: { immediate: true, digest: "per_visit", mutedKinds: [] } }
-    put:
-      tags: [notifications]
-      summary: Guarda las preferencias de aviso
-      x-ticket: KNX-54
-      x-status: planned
-      description: >-
-        `email.immediate` sólo puede activar los tres avisos críticos: `issue_reported`,
-        `malfunction_reported` y `visit_closed` con `type: final`. El resto de los avisos va siempre
-        en el resumen, y `digest: off` lo apaga. Los avisos en la app (bandeja) no dependen de
-        `email`; `mutedKinds` los silencia.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/NotificationPreferences" }
-      responses:
-        "200":
-          description: Preferencias guardadas
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/NotificationPreferences" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
-  # ---------------------------------------------------------------------------
-  # KNX-56 · Mal funcionamiento
-  # ---------------------------------------------------------------------------
+  # IMPLEMENTADO — /me/notification-preferences movido a docs/Knx/openapi.yaml (KNX-54).
 
   /projects/{code}/issues:
     post:

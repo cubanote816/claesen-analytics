@@ -81,10 +81,9 @@
   (idempotentes por `clientId`, nacen `field`/`unreviewed`), `409 slot_taken` con el módulo, y
   `boardId`/`moduleSlot`/`channel` opcionales en el registro de aparatos (expuestos por `FieldDevice`
   y por el `Device` del dossier). Commit `PENDIENTE_R9`.
-- [~] **R10** KNX-54 — avisos generalizados (`kind`, `title`/`summary`, `actor`, `target`, filtros
-  `?kind=&project=&unacked=`, SSE con `kind`, y `kind` en los sitios de creación: device/board/module/
-  issue/conflict/visit). **Parcial:** faltan `GET|PUT /me/notification-preferences` y el correo
-  (inmediato/digest) — siguen en `openapi-next.yaml`.
+- [x] **R10** KNX-54 — avisos generalizados (`kind`, filtros, SSE) + `GET|PUT
+  /me/notification-preferences` + correo inmediato/digest (`KnxNoticeMail`, comando
+  `knx:notification-digest`, `emailed_at` como dedupe). Commit `PENDIENTE_R10`.
 - [ ] **R11** KNX-56 — mal funcionamiento (`lifecycle: malfunction`, ciclo validado, `POST /projects/{code}/issues`).
 - [ ] **R12** KNX-55 — intents (oficina lectura+escritura, campo lectura). Escritura de campo pendiente.
 - [ ] **R13** KNX-26 — fotos como entidad + evento `photos_uploaded`.
@@ -208,6 +207,17 @@
     → `422`. Migración aplicada con `php artisan migrate` (sin seeders).
   - **Pendiente de KNX-54:** `/me/notification-preferences` + correo inmediato/digest; y los
     escritores de `module_changed`, `intent_changed`, `malfunction_*`.
+
+- **R10 (parte 2/2).** Migración `180000` (`knx_notification_preferences` + `knx_notifications.emailed_at`);
+  `KnxNotificationPreference`; controlador/resource/rutas de preferencias; `KnxNoticeMailer`;
+  `KnxNoticeMail` (encolada, `tries`/`backoff`); observador `KnxNotificationObserver` (inmediato en
+  `created`, el resto al digest); comando `knx:notification-digest` (horario + al cerrar visita);
+  `config('knx.office_mailbox')`. 4 tests (`KnxNotificationMailTest`).
+  - Suite completa: **282 passed / 1 skipped / 0 failed** (1791 aserciones).
+  - HTTP real `:8002`: `GET /me/notification-preferences` → `200 {immediate:true, digest:"per_visit",
+    mutedKinds:[]}`; `PUT` → `200` con `digest:"hourly"`. Migración aplicada con `php artisan migrate`
+    (sin seeders).
+  - **Pendiente:** escritores de `module_changed`, `intent_changed` y `malfunction_*` (R11/R12).
 
 ### Entorno de verificación (hallazgo, no obvio)
 

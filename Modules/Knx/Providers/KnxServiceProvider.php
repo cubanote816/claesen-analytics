@@ -2,9 +2,11 @@
 
 namespace Modules\Knx\Providers;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\ServiceProvider;
 use Modules\Knx\Console\Commands\KnxImportWorklistCommand;
+use Modules\Knx\Console\Commands\KnxNotificationDigestCommand;
 use Modules\Knx\Http\Middleware\AssertDocumentedSuccessCode;
 use Nwidart\Modules\Traits\PathNamespace;
 
@@ -41,6 +43,15 @@ class KnxServiceProvider extends ServiceProvider
             $this->app->make(Kernel::class)
                 ->pushMiddleware(AssertDocumentedSuccessCode::class);
         }
+
+        // KNX-54: the digest runs hourly. `emailed_at` on the notice makes a second run
+        // a no-op, so the cadence is the only thing this schedule decides.
+        $this->app->booted(function (): void {
+            $this->app->make(Schedule::class)
+                ->command('knx:notification-digest')
+                ->hourly()
+                ->withoutOverlapping();
+        });
     }
 
     public function register(): void
@@ -51,6 +62,9 @@ class KnxServiceProvider extends ServiceProvider
         // (KNX-3). Registered here because the module had no commands before.
         $this->commands([
             KnxImportWorklistCommand::class,
+            // KNX-54: the non-urgent notices go out as a digest, hourly and at visit
+            // close.
+            KnxNotificationDigestCommand::class,
         ]);
     }
 

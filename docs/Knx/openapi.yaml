@@ -107,6 +107,43 @@ paths:
             application/json:
               example: { id: "106", name: "Lien Smet", initials: "LS", role: "lead", domain: "kantoor.electrobertels.be" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
+  /me/notification-preferences:
+    get:
+      tags: [notifications]
+      summary: Preferencias de aviso de la persona autenticada
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example: { email: { immediate: true, digest: "per_visit", mutedKinds: [] } }
+    put:
+      tags: [notifications]
+      summary: Guarda las preferencias de aviso
+      description: >-
+        `email.immediate` sólo gobierna los tres avisos críticos (`issue_reported`, `malfunction_reported`
+        y `visit_closed` con `type: final`); el resto va siempre en el resumen, y `digest: off` lo apaga.
+        `mutedKinds` silencia la bandeja de la app, nunca el correo inmediato.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: object
+                  required: [immediate, digest]
+                  properties:
+                    immediate: { type: boolean }
+                    digest: { type: string, enum: [per_visit, hourly, off] }
+                    mutedKinds:
+                      type: array
+                      items: { type: string }
+      responses:
+        "200": { description: Preferencias guardadas }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /dashboard:
     get:
       tags: [dashboard]

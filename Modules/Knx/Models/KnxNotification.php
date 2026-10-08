@@ -2,12 +2,14 @@
 
 namespace Modules\Knx\Models;
 
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Knx\Database\Factories\KnxNotificationFactory;
 use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
+use Modules\Knx\Observers\KnxNotificationObserver;
 
 /**
  * A notice for the office. Until KNX-54 it was only "a device the field registered"
@@ -18,7 +20,12 @@ use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
  * `board_id` nullable is meaningful: a field registration can report a board the office
  * has never seen, which is exactly what the office must triage. `address`/`type` are
  * nullable because a cabinet notice has neither.
+ *
+ * Creating a row is what triggers the email decision (KNX-54): the observer sends the
+ * immediate kinds and leaves the rest for the digest. A field retry creates no second
+ * row, so it can never duplicate a mail.
  */
+#[ObservedBy(KnxNotificationObserver::class)]
 class KnxNotification extends Model
 {
     use BelongsToKnxTenant;
@@ -81,6 +88,7 @@ class KnxNotification extends Model
         'reported_at',
         'captured_at',
         'acknowledged_at',
+        'emailed_at',
     ];
 
     protected static function newFactory(): KnxNotificationFactory
@@ -94,6 +102,7 @@ class KnxNotification extends Model
             'reported_at' => 'datetime',
             'captured_at' => 'datetime',
             'acknowledged_at' => 'datetime',
+            'emailed_at' => 'datetime',
         ];
     }
 
