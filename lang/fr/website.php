@@ -236,6 +236,13 @@ return [
             'publish_now_confirm_title'  => 'Lancer la publication',
             'publish_now_confirm_body'   => 'Cela demande une reconstruction complète du site. La version actuelle reste en ligne jusqu\'à la fin de la construction.',
             'publish_now_success'        => 'Publication demandée',
+            'publish_section'                 => 'Publier cette page',
+            'publish_section_confirm_title'   => 'Publier :page',
+            'publish_section_confirm_body'    => 'Seules les modifications de :page seront envoyées au site web. Les modifications des autres pages conservent pour le moment leurs valeurs publiées.',
+            'publish_section_confirm_pending' => 'Modifications de cette page en attente de publication : :count',
+            'publish_section_confirm_submit'  => 'Publier :page',
+            'publish_section_success'         => 'La publication de :page a été demandée',
+            'publish_section_disabled'        => 'La publication est désactivée dans cet environnement — le site web n\'a pas été mis à jour.',
         ],
     ],
     // WU-S2 : la découpe des paramètres du site en six pages, telle que le prototype approuvé

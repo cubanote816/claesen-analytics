@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Lang;
 use Tests\TestCase;
 
 /**
@@ -92,6 +93,42 @@ final class WebsiteClusterTranslationsTest extends TestCase
                     $key,
                     __($key),
                     "falta la traducción de [{$key}]: el panel la mostraría en crudo (comprobado con el idioma [{$locale}])",
+                );
+            }
+        }
+    }
+
+    public function test_the_section_publish_strings_exist_in_all_four_locales(): void
+    {
+        // La puerta del clúster mira nl y en (el fallback se los da aunque falten), y salta las
+        // claves concatenadas. Estas son las claves nuevas de la publicación por sección, y cada
+        // una tiene que existir de verdad en los cuatro idiomas — pinado acá, no supuesto.
+        $keys = [
+            'website.publication.actions.publish_section',
+            'website.publication.actions.publish_section_confirm_title',
+            'website.publication.actions.publish_section_confirm_body',
+            'website.publication.actions.publish_section_confirm_pending',
+            'website.publication.actions.publish_section_confirm_submit',
+            'website.publication.actions.publish_section_success',
+            'website.publication.actions.publish_section_disabled',
+        ];
+
+        foreach (['nl', 'en', 'fr', 'de'] as $locale) {
+            foreach ($keys as $key) {
+                $this->assertTrue(
+                    Lang::has($key, $locale),
+                    "falta [{$key}] en [{$locale}]: el modal o la notificación la mostraría en crudo",
+                );
+            }
+        }
+
+        // Y una copia del inglés no es una traducción: fr y de tienen que decirlo de verdad.
+        foreach ($keys as $key) {
+            foreach (['fr', 'de'] as $locale) {
+                $this->assertNotSame(
+                    trans($key, [], 'en'),
+                    trans($key, [], $locale),
+                    "[{$key}] en [{$locale}] es una copia del inglés, no una traducción",
                 );
             }
         }

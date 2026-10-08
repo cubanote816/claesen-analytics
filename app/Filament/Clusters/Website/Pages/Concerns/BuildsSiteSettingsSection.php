@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Clusters\Website\Pages\Concerns;
 
 use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
+use App\Filament\Clusters\Website\Actions\PublishSiteNowAction;
 use App\Filament\Clusters\Website\WebsiteCluster;
 use App\Filament\Clusters\Website\WebsiteNavigationBadges;
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
@@ -23,6 +24,7 @@ use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Lang;
 use Modules\Core\Models\Site;
 use Modules\Website\Models\SiteSetting;
+use Modules\Website\Services\StaticSitePublicationService;
 
 /**
  * El formulario de **una** sección de ajustes.
@@ -603,6 +605,99 @@ trait BuildsSiteSettingsSection
                 ->submit('save')
                 ->color('primary'),
         ];
+    }
+
+    /**
+     * Cabecera de las seis páginas: la acción de todo el sitio (heredada de
+     * ShowsSitePublicationState) y la de **esta** sección. Un método de trait sí puede
+     * sobrescribir al del trait que usa — y al reimprimir la lista completa acá, `publish_now`
+     * no puede perderse: el test de la cabecera lo exige.
+     */
+    protected function getHeaderActions(): array
+    {
+        return [
+            PublishSiteNowAction::make(),
+            self::publishSectionAction(),
+        ];
+    }
+
+    /**
+     * «Publica la página que estás mirando»: pide el rebuild de **sólo** las claves de esta
+     * sección, tomadas de `WebsiteSettingSections::keys()` — el mapa es la fuente única del
+     * reparto y de esto no se copia una segunda. Las claves que el sitio no consume (`phone`,
+     * `address`, `hours`) viajan igual: es el sitio el que las descarta, y está declarado.
+     *
+     * Va por `requestRebuild()` — la misma compuerta que la acción de todo el sitio — y no por
+     * `sendWebhook()`: la cola es la que llama al webhook, y la que registra accepted/failed en
+     * el estado de publicación. Lo que el panel puede decir es honesto y limitado: que la
+     * publicación **se pidió**. Con la publicación desactivada en este entorno, ni eso — un
+     * webhook imposible no se intenta y no se anuncia como éxito.
+     */
+    public static function publishSectionAction(): Action
+    {
+        return Action::make('publish_section')
+            ->label(__('website.publication.actions.publish_section'))
+            ->icon('heroicon-o-cloud-arrow-up')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading(__('website.publication.actions.publish_section_confirm_title', [
+                'page' => static::getNavigationLabel(),
+            ]))
+            ->modalDescription(function (): string {
+                $description = __('website.publication.actions.publish_section_confirm_body', [
+                    'page' => static::getNavigationLabel(),
+                ]);
+
+                // El estado de la página en el modal: el **mismo** número que el badge de la
+                // navegación. Un segundo conteo que pudiera discrepar del badge es exactamente
+                // lo que el S1 evitó.
+                $pending = WebsiteNavigationBadges::forSettingSection(static::section());
+
+                if ($pending > 0) {
+                    $description .= "\n\n".__('website.publication.actions.publish_section_confirm_pending', [
+                        'count' => $pending,
+                    ]);
+                }
+
+                return $description;
+            })
+            ->modalSubmitActionLabel(__('website.publication.actions.publish_section_confirm_submit', [
+                'page' => static::getNavigationLabel(),
+            ]))
+            ->action(function (): void {
+                // La misma compuerta que `requestRebuild()` sostiene para todo el sitio: sin
+                // pipeline, un webhook no puede salir y el operador no recibe un «éxito» mentiroso.
+                // Sin esto la acción esquiva el gate y, en un entorno sin publicación, intenta un
+                // webhook imposible en vez de no hacer nada por diseño.
+                if (! config('static_site.enabled')) {
+                    Notification::make()
+                        ->title(__('website.publication.actions.publish_section_disabled'))
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                // Por `requestRebuild()` y no por `sendWebhook()`: la cola es la que llama al
+                // webhook, y la que registra accepted/failed en el estado de publicación. Llamarlo
+                // sincrónico desde el panel bloquearía la request durante toda la llamada y además
+                // saltaría esa compuerta.
+                app(StaticSitePublicationService::class)->requestRebuild(
+                    siteId: Site::forPanelOrFail()->id,
+                    reason: 'manual',
+                    force: true,
+                    keys: WebsiteSettingSections::keys(static::section()),
+                );
+
+                // Lo que el panel puede afirmar es honesto y limitado: que la publicación **se
+                // pidió**. El resultado lo reporta el estado de publicación, que la cola actualiza.
+                Notification::make()
+                    ->title(__('website.publication.actions.publish_section_success', [
+                        'page' => static::getNavigationLabel(),
+                    ]))
+                    ->success()
+                    ->send();
+            });
     }
 
     public function save(): void

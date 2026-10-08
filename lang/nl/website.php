@@ -206,6 +206,13 @@ return [
             'publish_now_confirm_title'  => 'Publicatie starten',
             'publish_now_confirm_body'   => 'Dit vraagt een volledige herbouw van de website aan. De huidige versie blijft actief tot de bouw klaar is.',
             'publish_now_success'        => 'Publicatie aangevraagd',
+            'publish_section'                 => 'Deze pagina publiceren',
+            'publish_section_confirm_title'   => ':page publiceren',
+            'publish_section_confirm_body'    => 'Alleen de wijzigingen van :page worden naar de website gestuurd. Wijzigingen op de andere pagina\'s behouden voorlopig hun gepubliceerde waarden.',
+            'publish_section_confirm_pending' => 'Wijzigingen op deze pagina die wachten op publicatie: :count',
+            'publish_section_confirm_submit'  => ':page publiceren',
+            'publish_section_success'         => 'De publicatie van :page is aangevraagd',
+            'publish_section_disabled'        => 'Publiceren is uitgeschakeld in deze omgeving — de website is niet bijgewerkt.',
         ],
     ],
     // CLA-481 (media slots): estas claves no existían en ningún fichero de idioma, así que

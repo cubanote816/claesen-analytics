@@ -6,13 +6,19 @@ namespace Tests\Feature;
 
 use App\Filament\Clusters\Website\Pages\AddressSettingsPage;
 use App\Filament\Clusters\Website\Pages\ContactSettingsPage;
+use App\Filament\Clusters\Website\Pages\GeneralSettingsPage;
 use App\Filament\Clusters\Website\Pages\OpeningHoursSettingsPage;
+use App\Filament\Clusters\Website\Pages\PrivacyConsentSettingsPage;
 use App\Filament\Clusters\Website\Pages\SocialLinksSettingsPage;
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
+use App\Filament\Clusters\Website\WebsiteSettingSections;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
+use Modules\Website\Jobs\TriggerStaticSiteRebuildJob;
 use Modules\Website\Models\SiteSetting;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -51,6 +57,28 @@ final class WebsiteSettingsPagesTest extends TestCase
     private function stored(string $key): mixed
     {
         return SiteSetting::query()->where('site_id', Site::claesenId())->where('key', $key)->value('value');
+    }
+
+    private function enablePublishPipeline(): void
+    {
+        config([
+            'static_site.enabled'        => true,
+            'static_site.webhook_url'    => 'http://fake-frontend:9000/rebuild',
+            'static_site.webhook_secret' => 'test-secret',
+        ]);
+    }
+
+    /** Las seis páginas, con la sección que cada una edita. El mapa manda; acá no se copia. */
+    private function settingsPages(): array
+    {
+        return [
+            GeneralSettingsPage::class => WebsiteSettingSections::GENERAL,
+            ContactSettingsPage::class => WebsiteSettingSections::CONTACT,
+            AddressSettingsPage::class => WebsiteSettingSections::ADDRESS,
+            OpeningHoursSettingsPage::class => WebsiteSettingSections::HOURS,
+            SocialLinksSettingsPage::class => WebsiteSettingSections::SOCIAL,
+            PrivacyConsentSettingsPage::class => WebsiteSettingSections::PRIVACY,
+        ];
     }
 
     // ─── Carga ────────────────────────────────────────────────────────────────
@@ -234,6 +262,184 @@ final class WebsiteSettingsPagesTest extends TestCase
             WebsiteNavigationGroups::label(WebsiteNavigationGroups::SITE_SETTINGS),
             __('website.settings_sections.contact.label'),
         ], $page->getBreadcrumbs());
+    }
+
+    // ─── Publicación por sección ──────────────────────────────────────────────
+
+    /**
+     * Las seis páginas exponen la acción que publica **su** sección — y conservan la de todo
+     * el sitio, que el trait de cabecera ya les daba.
+     */
+    public function test_each_settings_page_exposes_the_section_publish_action(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+
+        foreach (array_keys($this->settingsPages()) as $page) {
+            Livewire::test($page)
+                ->assertOk()
+                ->assertActionExists('publish_section')
+                ->assertActionExists('publish_now');
+        }
+    }
+
+    /**
+     * El criterio entero del slice: publicar la página que se está mirando pide el rebuild de
+     * **exactamente** las claves de esa sección, y ninguna de otra. La expectativa sale del mapa
+     * (`WebsiteSettingSections::keys()`), nunca de una segunda copia escrita a mano: si el mapa
+     * cambia, este test cambia con él en vez de romperse.
+     */
+    public function test_publishing_a_section_requests_a_rebuild_with_exactly_that_sections_keys(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+        Queue::fake();
+
+        foreach ($this->settingsPages() as $page => $section) {
+            Livewire::test($page)->callAction('publish_section');
+
+            /** @var TriggerStaticSiteRebuildJob $job */
+            $job = Queue::pushed(TriggerStaticSiteRebuildJob::class)->last();
+
+            // Una clave de otra sección, sacada del propio mapa: si viajara, publicar esta
+            // página tocaría los valores publicados de otra.
+            $foreignSection = collect(WebsiteSettingSections::all())
+                ->first(fn (string $other): bool => $other !== $section);
+            $foreignKeys = WebsiteSettingSections::keys($foreignSection);
+
+            // El array **completo** de la sección, en el orden del mapa: la página manda la
+            // lista entera y es el sitio el que ignora las claves que no consume (`phone`,
+            // `address`, `hours` — declarado y esperado).
+            $this->assertSame(
+                WebsiteSettingSections::keys($section),
+                $job->keys,
+                "{$page} no pidió exactamente las claves de [{$section}]",
+            );
+
+            $this->assertSame(
+                [],
+                array_intersect($foreignKeys, $job->keys ?? []),
+                "{$page} pidió claves de otra sección",
+            );
+
+            $this->assertTrue($job->force);
+            $this->assertSame('manual', $job->reason);
+        }
+    }
+
+    /**
+     * La publicación va en cola: lo que el panel puede decir es que **se pidió**, no que se
+     * publicó — el resultado del webhook lo registra el job en el estado de publicación.
+     */
+    public function test_a_section_publish_reports_that_the_publication_was_requested(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+        Queue::fake();
+
+        Livewire::test(ContactSettingsPage::class)
+            ->callAction('publish_section')
+            ->assertNotified(
+                __('website.publication.actions.publish_section_success', [
+                    'page' => ContactSettingsPage::getNavigationLabel(),
+                ]),
+            );
+    }
+
+    /**
+     * La confirmación es lo que publica: montar la acción (abrir el modal) **no** manda nada.
+     * Sin este test, un clic accidental en el botón de la cabecera publicaría sin preguntar.
+     */
+    public function test_the_section_publish_does_not_fire_until_the_modal_is_confirmed(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+        Queue::fake();
+
+        $page = Livewire::test(ContactSettingsPage::class)
+            ->mountAction('publish_section')
+            ->assertActionMounted('publish_section');
+
+        Queue::assertNothingPushed();
+
+        $page->callMountedAction();
+
+        // Confirmar el modal es lo que encola la publicación — exactamente una.
+        Queue::assertPushed(TriggerStaticSiteRebuildJob::class);
+    }
+
+    /**
+     * El modal nombra la página y muestra su estado: los cambios pendientes de **esa** sección,
+     * con el número del badge (una sola fuente). Y exige confirmación antes de publicar.
+     */
+    public function test_the_section_publish_modal_names_the_page_and_shows_its_pending_changes(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+
+        // Un cambio hecho y guardado: exactamente lo que el badge de la página cuenta.
+        SiteSetting::factory()->create(['key' => 'email', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'a@b.test']);
+
+        $this->assertSame(1, \App\Filament\Clusters\Website\WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::CONTACT));
+
+        $page = Livewire::test(ContactSettingsPage::class)->mountAction('publish_section');
+        $action = $page->instance()->getMountedAction();
+
+        $this->assertTrue($action->isConfirmationRequired());
+
+        $this->assertSame(
+            __('website.publication.actions.publish_section_confirm_title', [
+                'page' => ContactSettingsPage::getNavigationLabel(),
+            ]),
+            $action->getModalHeading(),
+        );
+
+        $description = (string) $action->getModalDescription();
+
+        $this->assertStringContainsString(
+            __('website.publication.actions.publish_section_confirm_body', [
+                'page' => ContactSettingsPage::getNavigationLabel(),
+            ]),
+            $description,
+        );
+        $this->assertStringContainsString(
+            __('website.publication.actions.publish_section_confirm_pending', ['count' => 1]),
+            $description,
+        );
+    }
+
+    /**
+     * El pin del defecto: con la publicación desactivada en el entorno, la acción no intenta
+     * ningún webhook y no se anuncia como éxito — avisa de que publicar está desactivado.
+     * (`requestRebuild()` sostiene esta misma compuerta para la acción de todo el sitio.)
+     */
+    public function test_publishing_a_section_when_publishing_is_disabled_never_attempts_a_webhook(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        // El entorno real: pipeline apagado. La URL y el secreto **sí** están configurados a
+        // propósito, para que el fallo —si la compuerta faltara— sea un webhook que viaja y no
+        // una configuración ausente.
+        config([
+            'static_site.enabled'        => false,
+            'static_site.webhook_url'    => 'http://fake-frontend:9000/rebuild',
+            'static_site.webhook_secret' => 'test-secret',
+        ]);
+
+        Queue::fake();
+        Http::fake();
+
+        Livewire::test(ContactSettingsPage::class)
+            ->callAction('publish_section')
+            ->assertNotified(__('website.publication.actions.publish_section_disabled'))
+            ->assertNotNotified(
+                __('website.publication.actions.publish_section_success', [
+                    'page' => ContactSettingsPage::getNavigationLabel(),
+                ]),
+            );
+
+        Http::assertNothingSent();
+        Queue::assertNothingPushed();
     }
 
     // ─── Contact ──────────────────────────────────────────────────────────────

@@ -237,6 +237,13 @@ return [
             'publish_now_confirm_title'  => 'Veröffentlichung starten',
             'publish_now_confirm_body'   => 'Dies fordert einen vollständigen Neuaufbau der Website an. Die aktuelle Version bleibt online, bis der Build abgeschlossen ist.',
             'publish_now_success'        => 'Veröffentlichung angefordert',
+            'publish_section'                 => 'Diese Seite veröffentlichen',
+            'publish_section_confirm_title'   => ':page veröffentlichen',
+            'publish_section_confirm_body'    => 'Nur die Änderungen von :page werden an die Website gesendet. Änderungen auf den anderen Seiten behalten vorerst ihre veröffentlichten Werte.',
+            'publish_section_confirm_pending' => 'Änderungen auf dieser Seite, die auf die Veröffentlichung warten: :count',
+            'publish_section_confirm_submit'  => ':page veröffentlichen',
+            'publish_section_success'         => 'Die Veröffentlichung von :page wurde angefordert',
+            'publish_section_disabled'        => 'Die Veröffentlichung ist in dieser Umgebung deaktiviert — die Website wurde nicht aktualisiert.',
         ],
     ],
     // WU-S2: die Aufteilung der Website-Einstellungen in sechs Seiten, wie der genehmigte

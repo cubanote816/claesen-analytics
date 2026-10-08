@@ -205,6 +205,13 @@ return [
             'publish_now_confirm_title'  => 'Start publication',
             'publish_now_confirm_body'   => 'This will request a full rebuild of the website. The current version stays live until the build completes.',
             'publish_now_success'        => 'Publication requested',
+            'publish_section'                => 'Publish this page',
+            'publish_section_confirm_title'  => 'Publish :page',
+            'publish_section_confirm_body'   => 'Only the changes of :page will be sent to the website. Changes on the other pages keep their published values for now.',
+            'publish_section_confirm_pending' => 'Changes on this page waiting to be published: :count',
+            'publish_section_confirm_submit'  => 'Publish :page',
+            'publish_section_success'         => 'The publication of :page was requested',
+            'publish_section_disabled'        => 'Publishing is disabled in this environment — the website was not updated.',
         ],
     ],
     // CLA-481 (media slots): this block was missing from every language file, so the panel
