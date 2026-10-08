@@ -88,109 +88,14 @@ paths:
   #
 
   # ---------------------------------------------------------------------------
-  # KNX-52 (oficina) · KNX-25 / KNX-53 (campo) · Cuadros y módulos
+  # KNX-25 / KNX-53 · Cuadros y módulos (campo)
   # ---------------------------------------------------------------------------
   #
-  # KNX-52 (oficina) IMPLEMENTADO — movido a docs/Knx/openapi.yaml y BORRADO de aquí:
-  #   GET|POST /projects/{code}/boards
-  #   PATCH    /projects/{code}/boards/{boardId}
-  #   POST     /projects/{code}/boards/{boardId}/modules
-  #   PATCH|DELETE /projects/{code}/boards/{boardId}/modules/{slot}
-  #   PUT      /projects/{code}/boards/{boardId}/modules/{slot}/channels/{channel}/links
-  #   POST     /projects/{code}/boards/{boardId}/confirm
-  #   POST     /projects/{code}/boards/{boardId}/modules/{slot}/confirm
-  #
-  # Lo que queda aquí es de CAMPO (KNX-25 lectura, KNX-53 escritura):
-  #
-
-  /field/projects/{code}/boards:
-    post:
-      tags: [field]
-      summary: Crea un cuadro desde obra (idempotente por `clientId`, nace `unreviewed`)
-      x-ticket: KNX-53
-      x-status: planned
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/FieldBoardCreateInput" }
-      responses:
-        "201": { $ref: "#/components/responses/FieldBoardWritten" }
-        "200": { $ref: "#/components/responses/FieldBoardWritten" }
-        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
-  /field/projects/{code}/boards/{boardId}/modules:
-    post:
-      tags: [field]
-      summary: Añade un módulo desde obra (idempotente por `clientId`, nace `unreviewed`)
-      x-ticket: KNX-53
-      x-status: planned
-      parameters:
-        - $ref: "#/components/parameters/Code"
-        - $ref: "#/components/parameters/BoardId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/FieldModuleCreateInput" }
-      responses:
-        "201": { $ref: "#/components/responses/FieldModuleWritten" }
-        "200": { $ref: "#/components/responses/FieldModuleWritten" }
-        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
-        "409":
-          description: El slot ya está ocupado — conflicto explícito, nunca sobrescritura
-          content:
-            application/json:
-              example:
-                message: "Slot 2 is already taken on this board."
-                code: slot_taken
-                errors: { slot: ["Slot 2 is already taken on this board."] }
-                module: { device: "SA/S8.16.2.2", slot: 2 }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
-  /field/projects/{code}/devices:
-    post:
-      tags: [field]
-      summary: Registra un aparato desde obra (idempotente por `clientId`)
-      x-ticket: KNX-53
-      x-status: planned
-      description: >-
-        Cambio respecto del contrato actual: el cuerpo acepta `boardId` (el id estable del cuadro),
-        `moduleSlot` y `channel` opcionales, para que un aparato quede colgado de su módulo y canal
-        reales. `FieldDevice` y el dossier exponen los tres. Sin esos campos el comportamiento es el
-        de hoy.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/FieldDeviceRegistrationInput" }
-      responses:
-        "201": { $ref: "#/components/responses/FieldDeviceWritten" }
-        "200": { $ref: "#/components/responses/FieldDeviceWritten" }
-        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
-        "409":
-          description: Dirección ocupada
-          content:
-            application/json:
-              example: { message: "The address [1.1.133] is already in use.", code: address_in_use, errors: { proposal: ["The address [1.1.133] is already in use."] }, existing: {} }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
-  # ---------------------------------------------------------------------------
-  # KNX-47 · Plano y fichas en campo (lectura para cachear sin red)
-  # ---------------------------------------------------------------------------
-  #
-  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-47:
-  #   GET   /field/projects/{code}/rooms
-  #   GET   /field/projects/{code}/plans/{documentId}/model
-  #   GET   /field/projects/{code}/plans          (ahora con `floor` e `isCurrent`)
-  #   POST  /documents                            (acepta `floor`)
-  #   GET   /documents/{id}                       (expone `floor`)
-  #   PATCH /documents/{id}                       (nuevo)
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en los commits de KNX-25 / KNX-53:
+  #   GET  /field/projects/{code}/boards
+  #   POST /field/projects/{code}/boards
+  #   POST /field/projects/{code}/boards/{boardId}/modules
+  #   POST /field/projects/{code}/devices   (acepta `boardId`/`moduleSlot`/`channel`)
   #
 
   # ---------------------------------------------------------------------------

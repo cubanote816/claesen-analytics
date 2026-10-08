@@ -30,7 +30,7 @@ class KnxBoardModule extends Model
 
     protected $table = 'knx_board_modules';
 
-    protected $fillable = ['board_id', 'device', 'slot', 'origin', 'review_state', 'updated_by_employee_id'];
+    protected $fillable = ['board_id', 'device', 'slot', 'client_id', 'photo_path', 'origin', 'review_state', 'updated_by_employee_id'];
 
     protected function casts(): array
     {

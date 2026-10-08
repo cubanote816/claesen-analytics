@@ -113,12 +113,15 @@ class FieldDeviceService
         Carbon $capturedAt,
     ): KnxDevice {
         return DB::transaction(function () use ($technician, $project, $room, $input, $photoPath, $capturedAt): KnxDevice {
-            $board = $this->boardFor($project, $input['boardCode'] ?? null);
+            $board = $this->boardForInput($project, $input);
 
             $device = KnxDevice::create([
                 'project_id' => $project->getKey(),
                 'room_id' => $room->getKey(),
                 'board_id' => $board?->getKey(),
+                // The place inside the cabinet, when the app knows it (KNX-53).
+                'module_slot' => $input['moduleSlot'] ?? null,
+                'channel' => $input['channel'] ?? null,
                 'type' => $input['type'],
                 'address' => $input['address'],
                 'serial' => $input['serial'] ?? null,
@@ -219,6 +222,37 @@ class FieldDeviceService
             ['project_id' => $project->getKey(), 'code' => trim($code)],
             ['name' => null],
         );
+    }
+
+    /**
+     * The cabinet of a registration (KNX-53).
+     *
+     * `boardId` is the stable id the app got from `GET /field/projects/{code}/boards`
+     * (the slug, or the code for a board without one): it must belong to THIS project,
+     * so an unknown or foreign id is a field error and never a silent null. `boardCode`
+     * stays for a cabinet the office has not modelled — the historical behaviour, which
+     * creates it on the fly.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private function boardForInput(KnxProject $project, array $input): ?KnxBoard
+    {
+        $boardId = $input['boardId'] ?? null;
+
+        if ($boardId !== null && trim((string) $boardId) !== '') {
+            $board = KnxBoard::query()
+                ->where('project_id', $project->getKey())
+                ->where(fn ($query) => $query->where('slug', $boardId)->orWhere('code', $boardId))
+                ->first();
+
+            if ($board === null) {
+                throw ValidationException::withMessages(['boardId' => [__('knx::field.unknown_board')]]);
+            }
+
+            return $board;
+        }
+
+        return $this->boardFor($project, $input['boardCode'] ?? null);
     }
 
     /**

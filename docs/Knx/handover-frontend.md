@@ -58,6 +58,12 @@ mocks.**
 - **Cuadros y módulos (KNX-52, implementado):** el CRUD de oficina y `origin`/`reviewState`/
   `updatedBy`/`updatedAt`; `409 slot_taken` con el módulo actual; renombrar no cambia el `id`; una
   reimportación salta lo editado a mano.
+- **Cuadros y módulos desde obra (KNX-53, implementado):** `POST /field/projects/{code}/boards` y
+  `POST /field/projects/{code}/boards/{boardId}/modules` (idempotentes por `clientId`, nacen
+  `origin: field`/`reviewState: unreviewed`; un slot ocupado → **`409 slot_taken`** con el módulo que
+  lo ocupa). Además, `POST /field/projects/{code}/devices` acepta `boardId`/`moduleSlot`/`channel`
+  opcionales, y **el `Device` de oficina y el `FieldDevice` los exponen** (`boardId`, `moduleSlot`,
+  `channel`): el dossier y el registro ya dicen *dónde* dentro del cuadro está el aparato.
 - **Cuadros en campo (KNX-25, implementado):** `GET /field/projects/{code}/boards` devuelve la misma
   estructura que la oficina (con `origin`/`reviewState`), para que el registro use los cuadros reales
   del proyecto. Antes `/boards` respondía `401` con un token de campo.

@@ -34,6 +34,13 @@ class DeviceResource extends KnxResource
             'room' => $this->resource->room?->name,
             // null means "unknown board" ("?" in the UI); it is not "no board".
             'board' => $this->resource->board?->code,
+            // KNX-53 — el id estable del cuadro y el lugar dentro de él, junto al código
+            // corto que la UI ya mostraba.
+            'boardId' => $this->resource->board === null
+                ? null
+                : (string) ($this->resource->board->slug ?? $this->resource->board->code),
+            'moduleSlot' => $this->resource->module_slot === null ? null : (int) $this->resource->module_slot,
+            'channel' => $this->resource->channel,
             'serial' => $this->resource->serial,
             'registeredBy' => $this->resource->registeredBy?->shortName(),
             'source' => $this->resource->source,

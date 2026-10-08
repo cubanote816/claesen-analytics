@@ -145,7 +145,7 @@ final class KnxFieldProjectTest extends TestCase
         // The same shape the registration answers with, so the app has one device
         // shape and not two.
         $this->assertSame(
-            ['id', 'address', 'type', 'roomName', 'boardCode', 'serial', 'registeredBy', 'registeredAt'],
+            ['id', 'address', 'type', 'roomName', 'boardCode', 'boardId', 'moduleSlot', 'channel', 'serial', 'registeredBy', 'registeredAt'],
             array_keys($devices[0]),
         );
 

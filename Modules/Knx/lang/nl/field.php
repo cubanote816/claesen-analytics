@@ -2,6 +2,8 @@
 
 return [
     'client_id_reused' => 'Deze clientId is al gebruikt voor een toestel in een ander project.',
+    'client_id_reused_any' => 'Deze clientId is al gebruikt in een ander project.',
+    'unknown_board' => 'Onbekend verdeelbord voor dit project.',
     'room_unknown' => 'Deze ruimte hoort niet bij dit project.',
     'project_mismatch' => 'De projectcode in de aanvraag komt niet overeen met de aanvraag-URL.',
     'photo_invalid' => 'De foto is geen geldige data-URL.',

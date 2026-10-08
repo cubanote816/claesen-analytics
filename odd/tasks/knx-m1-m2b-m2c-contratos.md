@@ -76,9 +76,11 @@
   alta/edición/borrado de módulos, `PUT …/links`, confirmaciones, y reimportación que **no pisa** lo
   editado a mano (lo cuenta como `skipped`). Commit `f9d75ec`.
 - [x] **R8** KNX-25 — campo: `GET /field/projects/{code}/boards` (misma forma que oficina, con
-  `origin`/`reviewState`; hoy `/boards` daba 401 con token de campo). Commit `PENDIENTE_R8`.
-- [ ] **R9** KNX-53 — campo: `POST …/boards`, `POST …/boards/{boardId}/modules`,
-  `409 slot_taken`, `boardId`/`moduleSlot`/`channel` en el registro de aparatos.
+  `origin`/`reviewState`; hoy `/boards` daba 401 con token de campo). Commit `e020384`.
+- [x] **R9** KNX-53 — campo: `POST /field/projects/{code}/boards` y `POST …/boards/{boardId}/modules`
+  (idempotentes por `clientId`, nacen `field`/`unreviewed`), `409 slot_taken` con el módulo, y
+  `boardId`/`moduleSlot`/`channel` opcionales en el registro de aparatos (expuestos por `FieldDevice`
+  y por el `Device` del dossier). Commit `PENDIENTE_R9`.
 - [ ] **R10** KNX-54 — avisos generalizados (`kind`), `/me/notification-preferences`, email
   inmediato/digest con el transporte de Mailing.
 - [ ] **R11** KNX-56 — mal funcionamiento (`lifecycle: malfunction`, ciclo validado, `POST /projects/{code}/issues`).
@@ -179,11 +181,21 @@
     Artefactos borrados de la BD dev.
   - Suite completa: **269 passed / 1 skipped / 0 failed** (1677 aserciones).
 
-- **R8 (`PENDIENTE_R8`).** `FieldProjectController::boards` + ruta de campo + `openapi.yaml`;
+- **R8 (`e020384`).** `FieldProjectController::boards` + ruta de campo + `openapi.yaml`;
   `GET` movido de `openapi-next.yaml` (el `POST` de KNX-53 sigue en staging). 1 test nuevo.
   - HTTP real `:8002`: 3 cuadros con `origin: import`/`reviewState: confirmed`; 239870 → `403`;
     token de oficina contra la ruta de campo → `401`.
   - Suite completa: **270 passed / 1 skipped / 0 failed** (1687 aserciones).
+
+- **R9 (`PENDIENTE_R9`).** Migración `2026_10_08_160000` (`client_id` en cuadros/módulos + `photo_path`
+  + `module_slot`/`channel` en aparatos); `FieldBoardService` + `FieldBoardController`; `BoardService`
+  expone `uniqueSlug`; `FieldDeviceService` resuelve `boardId` y guarda `moduleSlot`/`channel`;
+  `FieldDeviceResource` y `DeviceResource` los exponen. 5 tests nuevos (`KnxFieldBoardTest`).
+  - HTTP real `:8002`: board desde obra → `201` `field`/`unreviewed`; reintento → `200`; module → `201`;
+    mismo slot con otra tentativa → `409 slot_taken` con `{device: SA/S8.16.2.2, slot: 3}`; device con
+    `boardId`/`moduleSlot`/`channel` → devueltos. Artefactos borrados de la BD dev.
+  - Migración aplicada en :8002 con `php artisan migrate` (no-op: ya estaba). Sin seeders.
+  - Suite completa: **275 passed / 1 skipped / 0 failed**. Ticket compartido con Veld: **comentado, no Done**.
 
 ### Entorno de verificación (hallazgo, no obvio)
 

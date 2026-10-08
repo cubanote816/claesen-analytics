@@ -45,7 +45,7 @@ final class KnxProjectDossierTest extends TestCase
         $devices = $this->getJson('/api/v1/knx/projects/C1618/devices')->assertOk()->json();
 
         $this->assertSame(
-            ['id', 'address', 'type', 'room', 'board', 'serial', 'registeredBy', 'source', 'isNew', 'hasConflict'],
+            ['id', 'address', 'type', 'room', 'board', 'boardId', 'moduleSlot', 'channel', 'serial', 'registeredBy', 'source', 'isNew', 'hasConflict'],
             array_keys($devices[0]),
         );
 

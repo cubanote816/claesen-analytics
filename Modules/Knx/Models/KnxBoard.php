@@ -40,7 +40,7 @@ class KnxBoard extends Model
     protected $table = 'knx_boards';
 
     protected $fillable = [
-        'project_id', 'code', 'slug', 'name', 'floor',
+        'project_id', 'code', 'slug', 'client_id', 'name', 'floor', 'photo_path',
         'origin', 'review_state', 'updated_by_employee_id',
     ];
 

@@ -31,6 +31,11 @@ class FieldDeviceResource extends KnxResource
             // empty string rather than a missing key.
             'roomName' => $device->room?->name ?? '',
             'boardCode' => $device->board?->code,
+            // KNX-53 — el id estable del cuadro y el lugar dentro de él, para que el
+            // registro diga «dónde» y no sólo «en qué cuadro».
+            'boardId' => $device->board === null ? null : (string) ($device->board->slug ?? $device->board->code),
+            'moduleSlot' => $device->module_slot === null ? null : (int) $device->module_slot,
+            'channel' => $device->channel,
             'serial' => $device->serial ?? '',
             // The short display name, the same one the office sees for this person.
             'registeredBy' => $device->registeredBy?->shortName() ?? '',

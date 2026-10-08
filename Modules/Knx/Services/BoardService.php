@@ -190,7 +190,7 @@ class BoardService
      * import produces, so an office-created board and an imported one are addressed the
      * same way.
      */
-    private function uniqueSlug(KnxProject $project, string $name): string
+    public function uniqueSlug(KnxProject $project, string $name): string
     {
         $base = Str::slug($name);
         $base = $base === '' ? 'bord' : mb_substr($base, 0, 100);

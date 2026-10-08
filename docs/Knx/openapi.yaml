@@ -1229,6 +1229,68 @@ paths:
         "200": { description: "OK — `boards: []` es un estado real (worklist sin importar)" }
         "403": { description: Proyecto no asignado hoy }
         "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [field]
+      summary: Crea un cuadro desde obra (idempotente por `clientId`, nace `unreviewed`)
+      description: >-
+        El servidor deriva el `id` (el slug) y lo devuelve. Nace `origin: field` y
+        `reviewState: unreviewed`: la oficina lo confirma. Un reintento con el mismo `clientId`
+        devuelve el mismo cuadro (`200`); la misma clave en otro proyecto es `422`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, code, name, capturedAt]
+              properties:
+                clientId: { type: string, maxLength: 64 }
+                code: { type: string, maxLength: 32 }
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 64, nullable: true }
+                photoDataUrl: { type: string, nullable: true }
+                capturedAt: { type: string, format: date-time }
+      responses:
+        "201": { description: "Cuadro creado — `origin: field`, `reviewState: unreviewed`" }
+        "200": { description: "Reintento del mismo `clientId` — mismo cuadro" }
+        "403": { description: Proyecto no asignado hoy }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /field/projects/{code}/boards/{boardId}/modules:
+    post:
+      tags: [field]
+      summary: Añade un módulo desde obra (idempotente por `clientId`, nace `unreviewed`)
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          description: El `id` estable del cuadro que devuelve `GET /field/projects/{code}/boards`.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, device, slot, capturedAt]
+              properties:
+                clientId: { type: string, maxLength: 64 }
+                device: { type: string, maxLength: 64 }
+                slot: { type: integer, minimum: 1 }
+                photoDataUrl: { type: string, nullable: true }
+                capturedAt: { type: string, format: date-time }
+      responses:
+        "201": { description: "Módulo creado — `origin: field`, `reviewState: unreviewed`" }
+        "200": { description: Reintento del mismo `clientId` }
+        "403": { description: Proyecto no asignado hoy }
+        "409":
+          description: El slot ya está ocupado
+          content:
+            application/json:
+              example: { message: "Slot 2 is already taken on this board.", code: slot_taken, errors: { slot: ["Slot 2 is already taken on this board."] }, module: { device: "SA/S8.16.2.2", slot: 2 } }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /field/projects/{code}/rooms:
     get:
       tags: [field]
@@ -1293,6 +1355,9 @@ paths:
                 roomName: { type: string, nullable: true, maxLength: 150 }
                 floor: { type: string, nullable: true, maxLength: 100 }
                 boardCode: { type: string, nullable: true, maxLength: 32 }
+                boardId: { type: string, nullable: true, maxLength: 128, description: "El `id` estable del cuadro (KNX-53); debe ser del proyecto." }
+                moduleSlot: { type: integer, nullable: true, description: "El slot del módulo dentro del cuadro (KNX-53)." }
+                channel: { type: string, nullable: true, maxLength: 8, description: "El canal dentro del módulo (KNX-53)." }
                 serial: { type: string, nullable: true, maxLength: 64 }
                 note: { type: string, nullable: true, maxLength: 1000 }
                 photoDataUrl: { type: string, nullable: true }
