@@ -6,20 +6,25 @@ namespace App\Filament\Clusters\Website;
 
 use Modules\Core\Models\ActivityLogEntry;
 use Modules\Core\Models\Site;
+use Modules\Intelligence\Models\TranslationState;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\PagePublication;
 use Modules\Website\Models\PublicationState;
 use Modules\Website\Models\SiteSetting;
-use Modules\Intelligence\Models\TranslationState;
+use Modules\Website\Services\StaticSitePublicationService;
 
 /**
  * Los números de los badges de la navegación (WU-S1 del rediseño del backoffice).
  *
  * **Una sola fuente a propósito.** El brief pide «el número de cambios sin publicar de esa
- * página», y hoy eso significa una cosa concreta: cambios registrados **después de la última
- * publicación**, del sujeto que esa página edita. La marca de agua del WU4
- * (`PublicationState::last_published_activity_id`) es exactamente ese corte, así que no hay que
- * inventar un contador por página.
+ * página», y eso significa una cosa concreta: cambios registrados **después de la última
+ * publicación que cubrió esa página**. Para un contenido que no se publica por partes (proyecto,
+ * aviso, traducción) ese corte es la marca de agua del WU4
+ * (`PublicationState::last_published_activity_id`). Para una sección de ajustes el corte es el
+ * de **su última publicación**: la marca de agua de todo el sitio no puede moverla bien una
+ * publicación que sólo sacó las claves de esa sección, así que el corte sale de la cobertura
+ * registrada en los eventos `accepted` — y sin historial por sección, se vuelve al corte de
+ * siempre.
  *
  * **Lo que este conteo es y lo que no.** Cuenta **cambios hechos**, no **diferencias que
  * quedan**: si alguien edita un valor y lo devuelve a como estaba publicado, el badge sigue
@@ -49,16 +54,19 @@ final class WebsiteNavigationBadges
             return 0;
         }
 
+        $sectionKeys = WebsiteSettingSections::keys($section);
+
         $rows = SiteSetting::query()
             ->where('site_id', $siteId)
-            ->whereIn('key', WebsiteSettingSections::keys($section))
+            ->whereIn('key', $sectionKeys)
             ->pluck('id');
 
         if ($rows->isEmpty()) {
             return 0;
         }
 
-        return self::changesSincePublication($siteId, SiteSetting::class, $rows->all());
+        return self::changesSincePublication($siteId, SiteSetting::class, $rows->all(),
+            self::sectionWatermark($siteId, $sectionKeys));
     }
 
     /** Cambios sin publicar de un contenido que es un modelo (proyecto, media, aviso, slot). */
@@ -129,10 +137,13 @@ final class WebsiteNavigationBadges
      * segundo— y sin marca de agua (nunca se publicó) el corte es «todo lo registrado».
      *
      * @param list<int> $subjectIds limita a unas filas concretas; vacío = cualquier id del tipo
+     * @param int|null $watermarkOverride el corte por sección cuando lo resuelve el llamador;
+     *        `null` significa «usa la marca de agua de todo el sitio», que es el corte de siempre
      */
-    private static function changesSincePublication(int $siteId, string $subjectType, array $subjectIds = []): int
+    private static function changesSincePublication(int $siteId, string $subjectType, array $subjectIds = [], ?int $watermarkOverride = null): int
     {
-        $watermark = PublicationState::current($siteId)->last_published_activity_id;
+        $watermark = $watermarkOverride
+            ?? PublicationState::current($siteId)->last_published_activity_id;
 
         return ActivityLogEntry::query()
             ->where('site_id', $siteId)
@@ -140,5 +151,44 @@ final class WebsiteNavigationBadges
             ->when($subjectIds !== [], fn ($query) => $query->whereIn('subject_id', $subjectIds))
             ->when($watermark !== null, fn ($query) => $query->where('id', '>', $watermark))
             ->count();
+    }
+
+    /**
+     * El corte **de una sección**: la marca de agua de la última publicación aceptada que cubrió
+     * sus claves.
+     *
+     * La cobertura está registrada, no inferida: el job deja en el evento `accepted` las claves
+     * que viajaron (`keys`) y la marca de agua que capturó (`watermark`). Sin claves la
+     * publicación fue de todo el sitio y cubre cualquier sección; con claves, la cubre si alguna
+     * de las de la sección viajó en la carga.
+     *
+     * Filas anteriores a la publicación por sección no traen ni claves ni marca de agua propia:
+     * cubren todo el sitio pero no saben hasta dónde, así que devuelven `null` y el corte es el
+     * de todo el sitio — exactamente el que el badge usó siempre.
+     *
+     * @param list<string> $sectionKeys
+     */
+    private static function sectionWatermark(int $siteId, array $sectionKeys): ?int
+    {
+        $event = ActivityLogEntry::query()
+            ->where('site_id', $siteId)
+            ->where('log_name', StaticSitePublicationService::PUBLICATION_LOG)
+            ->where('properties->event', 'accepted')
+            ->where(function ($query) use ($sectionKeys): void {
+                // `properties->keys` es NULL también cuando la clave no existe: cubre tanto un
+                // evento nuevo sin claves (todo el sitio) como una fila vieja sin cobertura.
+                $query->whereNull('properties->keys');
+
+                foreach ($sectionKeys as $key) {
+                    $query->orWhereRaw(
+                        'JSON_CONTAINS(JSON_EXTRACT(properties, ?), ?)',
+                        ['$.keys', json_encode($key)],
+                    );
+                }
+            })
+            ->orderByDesc('id')
+            ->first();
+
+        return $event === null ? null : ($event->properties['watermark'] ?? null);
     }
 }

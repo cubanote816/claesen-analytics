@@ -77,11 +77,24 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
             // new job handles the next rebuild.
             $state->refresh();
             if ($state->dispatch_key === $this->dispatchKey) {
-                $state->markAccepted($watermark);
+                // Una publicación por sección no puede mover la marca de agua de todo el sitio:
+                // sólo cubrió sus propias claves. Con claves se acepta sin tocarla, para que los
+                // badges de las demás secciones (y del sitio) sigan contando desde la última
+                // publicación que sí las cubrió.
+                $publishedKeys = $this->keys === [] ? null : $this->keys;
+
+                $state->markAccepted($publishedKeys === null ? $watermark : null);
 
                 $service->recordPublicationEvent('accepted', $this->siteId, [
                     'dispatch_key' => $this->dispatchKey,
                     'reason'       => $this->reason,
+                    // La cobertura de la publicación: sin claves fue de todo el sitio, con
+                    // claves de las que viajan acá (el sitio trata «sin claves» como sync
+                    // completo, y el evento registrado dice lo mismo que lo que recibió).
+                    // La marca de agua capturada va al lado: es el corte desde el que cuenta
+                    // cada sección que esta publicación cubrió, y así no se infiere.
+                    'keys'         => $publishedKeys,
+                    'watermark'    => $watermark,
                 ]);
             }
             return;

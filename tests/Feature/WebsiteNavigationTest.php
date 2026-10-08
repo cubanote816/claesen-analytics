@@ -10,14 +10,17 @@ use App\Filament\Clusters\Website\WebsiteNavigationBadges;
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Clusters\Website\WebsiteSettingSections;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Modules\Core\Models\ActivityLogEntry;
 use Modules\Core\Models\Site;
 use Modules\Intelligence\Models\TranslationState;
+use Modules\Website\Jobs\TriggerStaticSiteRebuildJob;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\PagePublication;
 use Modules\Website\Models\Project;
 use Modules\Website\Models\PublicationState;
 use Modules\Website\Models\SiteSetting;
+use Modules\Website\Services\StaticSitePublicationService;
 use Tests\TestCase;
 
 /**
@@ -35,6 +38,32 @@ use Tests\TestCase;
 final class WebsiteNavigationTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * Publica como lo hace el job: petición pendiente, webhook aceptado, estado aceptado y
+     * rastro del resultado. `$keys` null = publicación de todo el sitio; con claves, sólo esas
+     * viajan — la misma ruta que la acción «Publica esta página» de cada sección de Ajustes.
+     *
+     * @param list<string>|null $keys
+     */
+    private function publish(?array $keys = null): void
+    {
+        Http::fake(['*' => Http::response('', 202)]);
+
+        config([
+            'static_site.enabled'        => true,
+            'static_site.webhook_url'    => 'http://fake-frontend:9000/rebuild',
+            'static_site.webhook_secret' => 'test-secret',
+            'static_site.environment'    => 'testing',
+        ]);
+
+        $state = PublicationState::current(Site::claesenId());
+        $state->markPending();
+        $state->recordDispatch(uniqid('publish-', true));
+
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), $state->dispatch_key, 'manual', true, $keys))
+            ->handle(app(StaticSitePublicationService::class));
+    }
 
     /**
      * El submenú cuelga del ítem Website **dentro del sidebar**, con sus cuatro grupos y sus
@@ -195,6 +224,75 @@ final class WebsiteNavigationTest extends TestCase
         SiteSetting::factory()->create(['key' => 'email', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'a@b.test']);
 
         $this->assertSame('1', ContactSettingsPage::getNavigationBadge());
+    }
+
+    /**
+     * El caso que justifica el corte por sección: publicar Contact saca las claves de Contact
+     * y **sólo** las de Contact — su badge baja a 0 y el de las demás secciones se queda
+     * exactamente como estaba. Hoy la publicación por sección mueve la marca de agua de todo
+     * el sitio, y ese movimiento borra también el badge de las secciones que no viajaron.
+     */
+    public function test_publishing_one_section_clears_its_badge_and_leaves_the_others_untouched(): void
+    {
+        SiteSetting::factory()->create(['key' => 'email', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'a@b.test']);
+        SiteSetting::factory()->create(['key' => 'address', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'Calle 1']);
+
+        $this->assertSame(1, WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::CONTACT));
+        $this->assertSame(1, WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::ADDRESS));
+
+        $this->publish(WebsiteSettingSections::keys(WebsiteSettingSections::CONTACT));
+
+        $this->assertSame(
+            0,
+            WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::CONTACT),
+            'La sección publicada ya no tiene cambios pendientes.',
+        );
+        $this->assertSame(
+            1,
+            WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::ADDRESS),
+            'La publicación de Contact no tocó Address: su badge no puede borrarse.',
+        );
+    }
+
+    /** Una publicación sin claves es de todo el sitio: borra el badge de todas las secciones. */
+    public function test_a_full_site_publication_clears_every_section_s_badge(): void
+    {
+        SiteSetting::factory()->create(['key' => 'email', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'a@b.test']);
+        SiteSetting::factory()->create(['key' => 'address', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'Calle 1']);
+        SiteSetting::factory()->create(['key' => 'social_links', 'type' => SiteSetting::TYPE_TEXT, 'value' => '[]']);
+
+        $this->publish();
+
+        foreach ([WebsiteSettingSections::CONTACT, WebsiteSettingSections::ADDRESS, WebsiteSettingSections::SOCIAL] as $section) {
+            $this->assertSame(
+                0,
+                WebsiteNavigationBadges::forSettingSection($section),
+                "La publicación de todo el sitio cubrió {$section}: su badge tiene que bajar a 0.",
+            );
+        }
+    }
+
+    /**
+     * Sin historial por sección — filas anteriores a la publicación por sección, que no dejan
+     * claves ni marca de agua propia en el evento — el corte sigue siendo el de todo el sitio:
+     * exactamente el comportamiento de antes.
+     */
+    public function test_without_per_section_history_the_badge_keeps_the_site_wide_cut_off(): void
+    {
+        SiteSetting::factory()->create(['key' => 'email', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'a@b.test']);
+
+        // Un accepted «viejo»: sin claves, sin marca de agua propia en el evento.
+        PublicationState::current(Site::claesenId())->markAccepted(ActivityLogEntry::query()->max('id'));
+        app(StaticSitePublicationService::class)->recordPublicationEvent('accepted', Site::claesenId(), [
+            'dispatch_key' => 'legacy',
+            'reason'       => 'manual',
+        ]);
+
+        $this->assertSame(0, WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::CONTACT));
+
+        // Y un cambio nuevo vuelve a contar desde el corte de todo el sitio.
+        SiteSetting::factory()->create(['key' => 'phone_display', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'x']);
+        $this->assertSame(1, WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::CONTACT));
     }
 
     public function test_a_content_badge_counts_that_content_s_changes(): void
