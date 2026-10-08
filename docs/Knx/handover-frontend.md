@@ -43,6 +43,11 @@ mocks.**
   `lifecycle: malfunction` y transiciones validadas; fotos como entidad con evento `photos_uploaded`.
 - **Habitaciones (KNX-44, implementado):** `GET`/`POST /projects/{code}/rooms` y `PATCH /rooms/{id}`
   con `aliases`; `Zone.roomId`; `BoardLink.roomId` resuelto por nombre o alias (null si no casó).
+- **Modelo de plano (KNX-45, implementado):** `GET`/`PUT /projects/{code}/plans/{documentId}/rooms`
+  por página, geometría opaca, `present|array`, `carryOverFrom` de la misma página → `proposed`.
+- **Planta del plano (KNX-47, contrato publicado):** `POST /documents` acepta `floor?`;
+  `DocumentFile` y `GET /field/projects/{code}/plans` exponen `floor` e `isCurrent`;
+  `PATCH /documents/{id} {floor}`. Todavía en `openapi-next.yaml`.
 - Los **dos** únicos huecos del contrato nuevo: `provisional` en DWG y `pending-decision` en la
   escritura de intenciones desde campo. Nada más queda abierto.
 
