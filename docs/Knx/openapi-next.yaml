@@ -104,25 +104,6 @@ paths:
   #
 
   /field/projects/{code}/boards:
-    get:
-      tags: [field]
-      summary: Los cuadros del proyecto, para que el técnico registre sobre ellos
-      x-ticket: KNX-25
-      x-status: planned
-      description: >-
-        Misma forma que el listado de oficina. Hoy `/boards` responde `401` con un token de campo
-        porque vive detrás del guard de oficina; esta es la lectura que el registro necesita para
-        usar las salas y los cuadros reales del proyecto y no los de la maqueta.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ProjectBoards" }
-        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
-        "404": { $ref: "#/components/responses/NotFound" }
     post:
       tags: [field]
       summary: Crea un cuadro desde obra (idempotente por `clientId`, nace `unreviewed`)

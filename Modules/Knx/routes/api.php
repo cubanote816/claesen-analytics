@@ -86,6 +86,11 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::get('projects/{code}/rooms', [FieldProjectController::class, 'rooms'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.rooms');
+            // KNX-25 — los cuadros reales del proyecto, para que el registro no use los
+            // de la maqueta.
+            Route::get('projects/{code}/boards', [FieldProjectController::class, 'boards'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards');
             Route::get('projects/{code}/plans/{documentId}/model', [FieldProjectController::class, 'planModel'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans.model');

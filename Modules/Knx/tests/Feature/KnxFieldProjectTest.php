@@ -327,6 +327,26 @@ final class KnxFieldProjectTest extends TestCase
         $this->getJson('/api/v1/knx/field/projects/C1618/plans/999999/model')->assertNotFound();
     }
 
+    public function test_the_field_reads_the_projects_real_boards(): void
+    {
+        $this->planToday($this->technician(), 'C1618');
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $payload = $this->getJson('/api/v1/knx/field/projects/C1618/boards')->assertOk()->json();
+
+        // The same shape the office reads, so the field registers against the real
+        // boards and rooms instead of the mock's fixed list (KNX-25).
+        $this->assertSame(['projectCode', 'boards'], array_keys($payload));
+        $this->assertSame('C1618', $payload['projectCode']);
+        $this->assertNotEmpty($payload['boards']);
+        $this->assertArrayHasKey('origin', $payload['boards'][0]);
+        $this->assertArrayHasKey('reviewState', $payload['boards'][0]);
+
+        // The project scope still answers: not assigned today is forbidden, not hidden.
+        $this->getJson('/api/v1/knx/field/projects/239870/boards')->assertForbidden();
+        $this->getJson('/api/v1/knx/field/projects/NOPE/boards')->assertNotFound();
+    }
+
     public function test_a_plan_that_cannot_be_opened_is_not_offered(): void
     {
         $this->planToday($this->technician(), 'C1618');

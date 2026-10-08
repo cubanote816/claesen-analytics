@@ -9,6 +9,8 @@ use Illuminate\Routing\Controller;
 use Modules\Knx\Http\Resources\FieldDeviceResource;
 use Modules\Knx\Http\Resources\FieldPlanResource;
 use Modules\Knx\Http\Resources\FieldProjectResource;
+use Modules\Knx\Http\Resources\ProjectBoardsResource;
+use Modules\Knx\Models\KnxBoard;
 use Modules\Knx\Models\KnxDocument;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxPlanMarker;
@@ -61,6 +63,27 @@ class FieldProjectController extends Controller
         $technician = $request->attributes->get('knx_employee');
 
         return $technician;
+    }
+
+    /**
+     * `GET /field/projects/{code}/boards` (KNX-25) — the same cabinet structure the
+     * office reads, so the field app registers a device against the real boards and
+     * rooms of the project instead of the mock's fixed list.
+     */
+    public function boards(Request $request, string $code): array
+    {
+        $project = $this->projects->resolveAuthorized($this->technician($request), $code);
+
+        $boards = KnxBoard::query()
+            ->where('project_id', $project->getKey())
+            ->with(['modules.links', 'modules.updatedBy', 'updatedBy'])
+            ->orderBy('id')
+            ->get();
+
+        return ProjectBoardsResource::make([
+            'project' => $project,
+            'boards' => $boards,
+        ])->resolve($request);
     }
 
     /**

@@ -74,8 +74,9 @@
   y en los planos de campo, `PATCH /documents/{id} {floor}`. Commit `PENDIENTE_R6`.
 - [x] **R7** KNX-52 — cuadros y módulos oficina: `origin`/`reviewState`/`updatedBy`/`updatedAt`,
   alta/edición/borrado de módulos, `PUT …/links`, confirmaciones, y reimportación que **no pisa** lo
-  editado a mano (lo cuenta como `skipped`). Commit `PENDIENTE_R7`.
-- [ ] **R8** KNX-25 — campo: `GET /field/projects/{code}/boards` (lectura).
+  editado a mano (lo cuenta como `skipped`). Commit `f9d75ec`.
+- [x] **R8** KNX-25 — campo: `GET /field/projects/{code}/boards` (misma forma que oficina, con
+  `origin`/`reviewState`; hoy `/boards` daba 401 con token de campo). Commit `PENDIENTE_R8`.
 - [ ] **R9** KNX-53 — campo: `POST …/boards`, `POST …/boards/{boardId}/modules`,
   `409 slot_taken`, `boardId`/`moduleSlot`/`channel` en el registro de aparatos.
 - [ ] **R10** KNX-54 — avisos generalizados (`kind`), `/me/notification-preferences`, email
@@ -169,7 +170,7 @@
   - Bug propio: `PATCH` validaba `floor` con `required`, que rechaza un `null`; el contrato dice que
     `null` LIMPIA la planta. Pasó a `present|nullable`.
 
-- **R7 (`PENDIENTE_R7`).** Migración `2026_10_08_150000`; `origin`/`review_state`/`updated_by` en
+- **R7 (`f9d75ec`).** Migración `2026_10_08_150000`; `origin`/`review_state`/`updated_by` en
   `knx_boards` y `knx_board_modules`; `BoardService`; `BoardResource`/`BoardModuleResource`;
   `BoardController` con 8 endpoints de escritura; el importador salta cuadros con procedencia humana
   y lo reporta. Nuevo `KnxBoardWritesTest` (6 tests).
@@ -177,6 +178,12 @@
     slot ocupado → `409 slot_taken` con el módulo actual; `PUT links` → `200`; `confirm` → `200`.
     Artefactos borrados de la BD dev.
   - Suite completa: **269 passed / 1 skipped / 0 failed** (1677 aserciones).
+
+- **R8 (`PENDIENTE_R8`).** `FieldProjectController::boards` + ruta de campo + `openapi.yaml`;
+  `GET` movido de `openapi-next.yaml` (el `POST` de KNX-53 sigue en staging). 1 test nuevo.
+  - HTTP real `:8002`: 3 cuadros con `origin: import`/`reviewState: confirmed`; 239870 → `403`;
+    token de oficina contra la ruta de campo → `401`.
+  - Suite completa: **270 passed / 1 skipped / 0 failed** (1687 aserciones).
 
 ### Entorno de verificación (hallazgo, no obvio)
 

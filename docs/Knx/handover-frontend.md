@@ -58,6 +58,9 @@ mocks.**
 - **Cuadros y módulos (KNX-52, implementado):** el CRUD de oficina y `origin`/`reviewState`/
   `updatedBy`/`updatedAt`; `409 slot_taken` con el módulo actual; renombrar no cambia el `id`; una
   reimportación salta lo editado a mano.
+- **Cuadros en campo (KNX-25, implementado):** `GET /field/projects/{code}/boards` devuelve la misma
+  estructura que la oficina (con `origin`/`reviewState`), para que el registro use los cuadros reales
+  del proyecto. Antes `/boards` respondía `401` con un token de campo.
 - Los **dos** únicos huecos del contrato nuevo: `provisional` en DWG y `pending-decision` en la
   escritura de intenciones desde campo. Nada más queda abierto.
 

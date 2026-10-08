@@ -1215,6 +1215,20 @@ paths:
       responses:
         "200": { description: OK }
         "403": { description: Proyecto no asignado hoy }
+  /field/projects/{code}/boards:
+    get:
+      tags: [field]
+      summary: Los cuadros reales del proyecto, para que el registro no use los de la maqueta
+      description: >-
+        Misma forma que el listado de oficina (cuadros con módulos, canales y enlaces, y `roomId`
+        resuelto por enlace). Hoy `/boards` responde `401` con un token de campo porque vive detrás
+        del guard de oficina; esta es la lectura que el registro necesita.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: "OK — `boards: []` es un estado real (worklist sin importar)" }
+        "403": { description: Proyecto no asignado hoy }
+        "404": { $ref: "#/components/responses/NotFound" }
   /field/projects/{code}/rooms:
     get:
       tags: [field]
