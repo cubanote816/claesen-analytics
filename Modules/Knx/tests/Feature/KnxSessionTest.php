@@ -157,6 +157,23 @@ final class KnxSessionTest extends TestCase
         }
     }
 
+    public function test_the_refusal_follows_the_accept_language_header(): void
+    {
+        // KNX-24: the module had `lang/en` but no locale middleware, so the English
+        // file was unreachable over HTTP and every caller read Dutch. The middleware
+        // now reads `Accept-Language`, the same as FieldOps and Website.
+        Cache::flush();
+
+        $body = ['email' => 'nobody@electrobertels.be', 'password' => 'Secret1234!'];
+
+        $dutch = $this->postJson('/api/v1/knx/auth/login', $body, ['Accept-Language' => 'nl']);
+        $english = $this->postJson('/api/v1/knx/auth/login', $body, ['Accept-Language' => 'en']);
+
+        $this->assertSame(__('knx::auth.failed', [], 'nl'), $dutch->json('errors.email.0'));
+        $this->assertSame(__('knx::auth.failed', [], 'en'), $english->json('errors.email.0'));
+        $this->assertNotSame($dutch->json('errors.email.0'), $english->json('errors.email.0'));
+    }
+
     public function test_the_refusal_names_neither_of_the_two_apps(): void
     {
         // `POST /auth/login` serves Kantoor and Veld. The message used to say

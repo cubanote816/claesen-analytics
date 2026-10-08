@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Core\Http\Middleware\SetLocaleFromHeader;
 use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
@@ -36,7 +37,7 @@ use Modules\Knx\Http\Middleware\EnsureKnxApp;
  * `organization:electro-bertels` so no Claesen token can reach it.
  */
 
-Route::prefix('v1/knx')->name('knx.')->group(function (): void {
+Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->group(function (): void {
     // K1 — session. Login/refresh are unauthenticated by definition and throttled
     // like the rest of the app's logins; logout needs a token to revoke.
     Route::post('auth/login', [AuthController::class, 'login'])
