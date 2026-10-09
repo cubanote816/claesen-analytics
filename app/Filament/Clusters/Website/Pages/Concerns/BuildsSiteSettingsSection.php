@@ -627,11 +627,20 @@ trait BuildsSiteSettingsSection
      * reparto y de esto no se copia una segunda. Las claves que el sitio no consume (`phone`,
      * `address`, `hours`) viajan igual: es el sitio el que las descarta, y está declarado.
      *
+     * Antes de despachar pregunta al sitio (GET /drift, derivado del endpoint de health que
+     * ya conoce el servicio de publicación) si publicar esas claves cambiaría algo del sitio
+     * publicado. Con `drift: false` no se despacha nada — hoy le pediríamos un rebuild que
+     * no produce nada— y al operador se le dice por qué. Si el chequeo no corrió (error,
+     * timeout, host inalcanzable), se publica igual con un aviso: «no se pudo comprobar»
+     * jamás es «no hay nada que publicar», y la notificación de éxito sigue siendo la
+     * honesta de siempre («se pidió», no «se publicó» ni «verificado»).
+     *
      * Va por `requestRebuild()` — la misma compuerta que la acción de todo el sitio — y no por
      * `sendWebhook()`: la cola es la que llama al webhook, y la que registra accepted/failed en
      * el estado de publicación. Lo que el panel puede decir es honesto y limitado: que la
      * publicación **se pidió**. Con la publicación desactivada en este entorno, ni eso — un
-     * webhook imposible no se intenta y no se anuncia como éxito.
+     * webhook imposible no se intenta y no se anuncia como éxito (y el chequeo de drift
+     * tampoco: sin pipeline no hay llamada HTTP de ningún tipo).
      */
     public static function publishSectionAction(): Action
     {
@@ -678,11 +687,37 @@ trait BuildsSiteSettingsSection
                     return;
                 }
 
+                $service = app(StaticSitePublicationService::class);
+                $keys = WebsiteSettingSections::keys(static::section());
+
+                // Preguntar ANTES de despachar: es el punto entero del chequeo. Un timeout o
+                // un error aquí dan null — y null publica igual, avisando; jamás bloquea.
+                $drift = $service->checkDrift(Site::forPanelOrFail()->id, $keys);
+
+                if ($drift === false) {
+                    // El sitio ya coincide con lo publicado: un rebuild no produciría nada.
+                    Notification::make()
+                        ->title(__('website.publication.actions.publish_section_no_drift'))
+                        ->info()
+                        ->send();
+
+                    return;
+                }
+
+                if ($drift === null) {
+                    // El chequeo no corrió: se publica igual, pero nunca se anuncia como
+                    // verificado.
+                    Notification::make()
+                        ->title(__('website.publication.actions.publish_section_unverified'))
+                        ->warning()
+                        ->send();
+                }
+
                 // Por `requestRebuild()` y no por `sendWebhook()`: la cola es la que llama al
                 // webhook, y la que registra accepted/failed en el estado de publicación. Llamarlo
                 // sincrónico desde el panel bloquearía la request durante toda la llamada y además
                 // saltaría esa compuerta.
-                app(StaticSitePublicationService::class)->requestRebuild(
+                $service->requestRebuild(
                     siteId: Site::forPanelOrFail()->id,
                     reason: 'manual',
                     force: true,

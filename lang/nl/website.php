@@ -213,6 +213,8 @@ return [
             'publish_section_confirm_submit'  => ':page publiceren',
             'publish_section_success'         => 'De publicatie van :page is aangevraagd',
             'publish_section_disabled'        => 'Publiceren is uitgeschakeld in deze omgeving — de website is niet bijgewerkt.',
+            'publish_section_no_drift'        => 'Niets te publiceren — deze pagina komt al overeen met de gepubliceerde site.',
+            'publish_section_unverified'      => 'Kon niet controleren of er iets te publiceren viel — de publicatie is alsnog aangevraagd.',
         ],
     ],
     // CLA-481 (media slots): estas claves no existían en ningún fichero de idioma, así que

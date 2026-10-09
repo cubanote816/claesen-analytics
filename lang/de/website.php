@@ -244,6 +244,8 @@ return [
             'publish_section_confirm_submit'  => ':page veröffentlichen',
             'publish_section_success'         => 'Die Veröffentlichung von :page wurde angefordert',
             'publish_section_disabled'        => 'Die Veröffentlichung ist in dieser Umgebung deaktiviert — die Website wurde nicht aktualisiert.',
+            'publish_section_no_drift'        => 'Nichts zu veröffentlichen — diese Seite entspricht bereits der veröffentlichten Website.',
+            'publish_section_unverified'      => 'Es konnte nicht geprüft werden, ob etwas zu veröffentlichen war — die Veröffentlichung wurde trotzdem angefordert.',
         ],
     ],
     // WU-S2: die Aufteilung der Website-Einstellungen in sechs Seiten, wie der genehmigte

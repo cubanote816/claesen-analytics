@@ -4,6 +4,7 @@ namespace Modules\Website\Tests\Feature;
 
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Modules\Core\Models\Site;
@@ -468,6 +469,150 @@ class StaticSitePublishTest extends TestCase
         $s->refresh();
         $this->assertSame(PublicationStatus::PENDING, $s->status);
         $this->assertNull($s->last_error);
+    }
+
+    // ─── Drift check (GET /drift before a per-section publish) ────────────────
+
+    public function test_check_drift_returns_false_when_the_site_reports_nothing_would_change(): void
+    {
+        Http::fake(['*' => Http::response(['checked' => true, 'drift' => false, 'keys' => null])]);
+
+        $this->assertFalse($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_true_when_the_site_reports_drift(): void
+    {
+        Http::fake(['*' => Http::response(['checked' => true, 'drift' => true, 'keys' => ['email']])]);
+
+        $this->assertTrue($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_sends_the_keys_as_a_comma_separated_query_parameter(): void
+    {
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response(['checked' => true, 'drift' => false]);
+        }]);
+
+        $this->svc->checkDrift(Site::claesenId(), ['email', 'phone_display']);
+
+        // El cliente HTTP percent-encodea la coma (%2C): el receiver la decodifica y lee
+        // exactamente la misma lista — se asevera lo que el servidor recibe.
+        $this->assertSame('keys=email,phone_display', urldecode(parse_url($captured->url(), PHP_URL_QUERY)));
+    }
+
+    /**
+     * /drift vive al lado de /health en el mismo receiver: la URL se **deriva** del endpoint
+     * que el sitio ya tiene, no de una configuración nueva.
+     */
+    public function test_check_drift_derives_the_url_from_the_sites_health_url(): void
+    {
+        $site = Site::factory()->create([
+            'static_site_health_url'  => 'http://site-frontend:9100/health',
+            'static_site_webhook_url' => 'http://site-frontend:9100/rebuild',
+        ]);
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response(['checked' => true, 'drift' => false]);
+        }]);
+
+        $this->svc->checkDrift($site->id, ['email']);
+
+        $this->assertSame('http://site-frontend:9100/drift', preg_replace('/\?.*/', '', $captured->url()));
+    }
+
+    public function test_check_drift_derives_the_url_from_the_sites_webhook_url_when_it_has_no_health_url(): void
+    {
+        $site = Site::factory()->create([
+            'static_site_health_url'  => null,
+            'static_site_webhook_url' => 'http://site-frontend:9100/rebuild',
+        ]);
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response(['checked' => true, 'drift' => false]);
+        }]);
+
+        $this->svc->checkDrift($site->id, ['email']);
+
+        $this->assertStringStartsWith('http://site-frontend:9100/drift', $captured->url());
+    }
+
+    public function test_check_drift_falls_back_to_the_global_health_url_for_a_site_without_its_own(): void
+    {
+        config(['static_site.health_url' => 'http://global-frontend:9000/health']);
+        $site = Site::factory()->create([
+            'static_site_health_url'  => null,
+            'static_site_webhook_url' => null,
+        ]);
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response(['checked' => true, 'drift' => false]);
+        }]);
+
+        $this->svc->checkDrift($site->id, ['email']);
+
+        $this->assertStringStartsWith('http://global-frontend:9000/drift', $captured->url());
+    }
+
+    /** Sin URL conocida no hay pregunta que hacer: null es «no se pudo comprobar». */
+    public function test_check_drift_returns_null_when_no_url_is_configured(): void
+    {
+        config(['static_site.health_url' => null, 'static_site.webhook_url' => null]);
+        $site = Site::factory()->create([
+            'static_site_health_url'  => null,
+            'static_site_webhook_url' => null,
+        ]);
+        Http::fake();
+
+        $this->assertNull($this->svc->checkDrift($site->id, ['email']));
+
+        Http::assertNothingSent();
+    }
+
+    public function test_check_drift_returns_null_on_the_invalid_keys_error(): void
+    {
+        Http::fake(['*' => Http::response(
+            ['checked' => false, 'drift' => null, 'error' => 'invalid-keys', 'keys' => null],
+            400,
+        )]);
+
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_null_on_an_error_status(): void
+    {
+        Http::fake(['*' => Http::response('Bad Gateway', 502)]);
+
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_null_on_a_timeout(): void
+    {
+        Http::fake(['*' => fn () => throw new ConnectionException('cURL error 28: Connection timed out')]);
+
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_null_on_an_unreachable_host(): void
+    {
+        Http::fake(['*' => fn () => throw new ConnectionException('cURL error 7: Failed to connect to port 9000')]);
+
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_null_on_a_body_outside_its_contract(): void
+    {
+        // `drift` tiene que ser bool: un «definitely» o un cuerpo sin la clave no responden
+        // la pregunta y jamás pueden interpretarse como «no hay cambios».
+        Http::fake(['*' => Http::response(['checked' => true, 'drift' => 'definitely'])]);
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+
+        Http::fake(['*' => Http::response(['checked' => true])]);
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
     }
 
     // ─── Observers ────────────────────────────────────────────────────────────

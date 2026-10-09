@@ -13,6 +13,7 @@ use App\Filament\Clusters\Website\Pages\SocialLinksSettingsPage;
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Clusters\Website\WebsiteSettingSections;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
@@ -66,6 +67,31 @@ final class WebsiteSettingsPagesTest extends TestCase
             'static_site.enabled'        => true,
             'static_site.webhook_url'    => 'http://fake-frontend:9000/rebuild',
             'static_site.webhook_secret' => 'test-secret',
+        ]);
+
+        // El chequeo de drift que la acción hace antes de despachar. Por defecto responde
+        // «habría cambios» para que los tests que ya existían sigan probando exactamente lo
+        // mismo de siempre: la publicación de hoy. Los tests del chequeo montan el suyo propio.
+        Http::fake([
+            '*drift*' => Http::response(['checked' => true, 'drift' => true]),
+        ]);
+    }
+
+    /**
+     * El entorno del chequeo: pipeline encendido y un receiver que responde su /drift. Se
+     * monta aquí en vez de en enablePublishPipeline() porque la respuesta que hace falta
+     * es justamente lo que cada test del chequeo pinza.
+     */
+    private function enablePublishPipelineWithDrift(array $driftBody, int $status = 200): void
+    {
+        config([
+            'static_site.enabled'        => true,
+            'static_site.webhook_url'    => 'http://fake-frontend:9000/rebuild',
+            'static_site.webhook_secret' => 'test-secret',
+        ]);
+
+        Http::fake([
+            '*drift*' => Http::response($driftBody, $status),
         ]);
     }
 
@@ -484,6 +510,151 @@ final class WebsiteSettingsPagesTest extends TestCase
 
         Http::assertNothingSent();
         Queue::assertNothingPushed();
+    }
+
+    /**
+     * El punto entero del chequeo: si el sitio responde que publicar las claves de esta
+     * página no cambiaría nada del sitio publicado, **no se despacha nada** — hoy le
+     * pediríamos un rebuild que no produce nada. Al operador se le dice por qué.
+     */
+    public function test_publishing_a_section_dispatches_nothing_when_the_site_reports_no_drift(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipelineWithDrift(['checked' => true, 'drift' => false, 'keys' => null]);
+        Queue::fake();
+
+        Livewire::test(ContactSettingsPage::class)
+            ->callAction('publish_section')
+            ->assertNotified(__('website.publication.actions.publish_section_no_drift'))
+            ->assertNotNotified(__('website.publication.actions.publish_section_success', [
+                'page' => ContactSettingsPage::getNavigationLabel(),
+            ]));
+
+        Queue::assertNothingPushed();
+    }
+
+    /**
+     * Con drift, la publicación es exactamente la de siempre: despacho con las claves de la
+     * sección, force, motivo manual, y la misma notificación honesta de «se pidió».
+     */
+    public function test_publishing_a_section_behaves_exactly_as_today_when_the_site_reports_drift(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipelineWithDrift(['checked' => true, 'drift' => true]);
+        Queue::fake();
+
+        Livewire::test(ContactSettingsPage::class)
+            ->callAction('publish_section')
+            ->assertNotified(__('website.publication.actions.publish_section_success', [
+                'page' => ContactSettingsPage::getNavigationLabel(),
+            ]))
+            ->assertNotNotified(__('website.publication.actions.publish_section_no_drift'));
+
+        Queue::assertPushed(
+            TriggerStaticSiteRebuildJob::class,
+            fn (TriggerStaticSiteRebuildJob $job) =>
+                $job->keys === WebsiteSettingSections::keys(WebsiteSettingSections::CONTACT)
+                && $job->force
+                && $job->reason === 'manual',
+        );
+    }
+
+    /**
+     * La pregunta viaja con las claves de **esta** sección — la expectativa sale del mapa
+     * (`WebsiteSettingSections::keys()`), nunca de una segunda lista escrita a mano.
+     */
+    public function test_the_drift_check_asks_about_exactly_the_sections_own_keys(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipelineWithDrift(['checked' => true, 'drift' => false]);
+        Queue::fake();
+
+        Livewire::test(ContactSettingsPage::class)->callAction('publish_section');
+
+        $this->assertCount(1, Http::recorded());
+
+        $url = Http::recorded()[0][0]->url();
+
+        $this->assertSame('http://fake-frontend:9000/drift', preg_replace('/\?.*/', '', $url));
+
+        // El cliente percent-encodea la coma (%2C); el receiver decodifica la misma lista.
+        $this->assertSame(
+            'keys='.implode(',', WebsiteSettingSections::keys(WebsiteSettingSections::CONTACT)),
+            urldecode(parse_url($url, PHP_URL_QUERY)),
+        );
+    }
+
+    /**
+     * «No se pudo comprobar» jamás es «no hay nada que publicar»: un 502 del receiver
+     * publica igual, avisando de que el chequeo no corrió.
+     */
+    public function test_a_failed_drift_check_still_publishes_with_a_warning(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipelineWithDrift(['checked' => false, 'drift' => null, 'error' => 'upstream'], 502);
+        Queue::fake();
+
+        Livewire::test(ContactSettingsPage::class)
+            ->callAction('publish_section')
+            ->assertNotified(__('website.publication.actions.publish_section_unverified'));
+
+        Queue::assertPushed(TriggerStaticSiteRebuildJob::class);
+    }
+
+    public function test_a_timed_out_drift_check_still_publishes_with_a_warning(): void
+    {
+        $this->actingAsSuperAdmin();
+        config([
+            'static_site.enabled'        => true,
+            'static_site.webhook_url'    => 'http://fake-frontend:9000/rebuild',
+            'static_site.webhook_secret' => 'test-secret',
+        ]);
+        Http::fake([
+            '*drift*' => fn () => throw new ConnectionException('cURL error 28: Connection timed out'),
+        ]);
+        Queue::fake();
+
+        Livewire::test(ContactSettingsPage::class)
+            ->callAction('publish_section')
+            ->assertNotified(__('website.publication.actions.publish_section_unverified'));
+
+        Queue::assertPushed(TriggerStaticSiteRebuildJob::class);
+    }
+
+    public function test_an_unreachable_host_still_publishes_with_a_warning(): void
+    {
+        $this->actingAsSuperAdmin();
+        config([
+            'static_site.enabled'        => true,
+            'static_site.webhook_url'    => 'http://fake-frontend:9000/rebuild',
+            'static_site.webhook_secret' => 'test-secret',
+        ]);
+        Http::fake([
+            '*drift*' => fn () => throw new ConnectionException('cURL error 7: Failed to connect to port 9000'),
+        ]);
+        Queue::fake();
+
+        Livewire::test(ContactSettingsPage::class)
+            ->callAction('publish_section')
+            ->assertNotified(__('website.publication.actions.publish_section_unverified'));
+
+        Queue::assertPushed(TriggerStaticSiteRebuildJob::class);
+    }
+
+    /**
+     * Los cuatro idiomas definen las dos cadenas nuevas del chequeo — y esta vez **en cada
+     * archivo**: `trans()` con fallback devolvería el inglés y un hueco en fr/de se vería
+     * como una etiqueta en otro idioma delante del operador.
+     */
+    public function test_every_locale_defines_the_new_drift_strings(): void
+    {
+        foreach (['nl', 'en', 'fr', 'de'] as $locale) {
+            $actions = trans('website.publication.actions', [], $locale);
+
+            $this->assertIsArray($actions, "[{$locale}] perdió el grupo publication.actions");
+            $this->assertArrayHasKey('publish_section_no_drift', $actions, "[{$locale}] falta publish_section_no_drift");
+            $this->assertArrayHasKey('publish_section_unverified', $actions, "[{$locale}] falta publish_section_unverified");
+        }
     }
 
     // ─── Contact ──────────────────────────────────────────────────────────────

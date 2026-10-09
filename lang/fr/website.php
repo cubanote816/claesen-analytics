@@ -243,6 +243,8 @@ return [
             'publish_section_confirm_submit'  => 'Publier :page',
             'publish_section_success'         => 'La publication de :page a été demandée',
             'publish_section_disabled'        => 'La publication est désactivée dans cet environnement — le site web n\'a pas été mis à jour.',
+            'publish_section_no_drift'        => 'Rien à publier — cette page correspond déjà au site publié.',
+            'publish_section_unverified'      => 'Il n\'a pas été possible de vérifier s\'il y avait quelque chose à publier — la publication a quand même été demandée.',
         ],
     ],
     // WU-S2 : la découpe des paramètres du site en six pages, telle que le prototype approuvé

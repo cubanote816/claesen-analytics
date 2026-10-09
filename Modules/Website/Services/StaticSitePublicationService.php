@@ -23,6 +23,15 @@ class StaticSitePublicationService
      */
     public const PUBLICATION_LOG = 'static_site_publication';
 
+    /**
+     * Cuánto puede tardar el GET /drift antes de rendirse, en segundos.
+     *
+     * Es más que el webhook a propósito: el receiver contesta /drift después de lanzar el
+     * sync del sitio y hablar con su propia API — «un par de segundos» reales. Un timeout
+     * aquí no es un fallo que mostrar, es la respuesta «no se pudo comprobar».
+     */
+    public const DRIFT_TIMEOUT_SECONDS = 10;
+
     // ─── Public API ──────────────────────────────────────────────────────────
 
     /**
@@ -246,6 +255,104 @@ class StaticSitePublicationService
             Log::error('Static site webhook unexpected error.', ['url' => $url, 'error' => $e->getMessage()]);
             return WebhookResult::failure(0, $error);
         }
+    }
+
+    /**
+     * ¿Publicar estas claves cambiaría algo del sitio ya publicado?
+     *
+     * Pregunta al receiver del sitio con un GET /drift — el mismo servidor loopback que
+     * atiende /health y /rebuild, sin firma. El receiver lanza el sync y compara contra
+     * su snapshot publicado: `drift: true` significa que publicar esas claves cambiaría
+     * algo; `drift: false`, que la página ya coincide con lo publicado.
+     *
+     * Devuelve **tres** cosas y las tres importan:
+     *  - true  → habría cambios: publicar es útil.
+     *  - false → no cambiaría nada: despachar un rebuild es trabajo en balde.
+     *  - null  → no se pudo comprobar (sin URL, error HTTP, timeout, host inalcanzable,
+     *            cuerpo fuera de contrato). null NUNCA se interpreta como «no hay
+     *            cambios»: una publicación nunca se bloquea por un chequeo que no corrió.
+     *
+     * El timeout es DRIFT_TIMEOUT_SECONDS, más holgado que el webhook pero acotado —
+     * esto corre dentro de una request del panel.
+     *
+     * @param list<string> $keys
+     */
+    public function checkDrift(int $siteId, array $keys): ?bool
+    {
+        $url = $this->driftUrl($this->resolveSite($siteId));
+
+        if (!$url) {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(self::DRIFT_TIMEOUT_SECONDS)
+                ->get($url, ['keys' => implode(',', $keys)]);
+        } catch (\Throwable $e) {
+            // Timeout, DNS, conexión rechazada… todo es «no se pudo comprobar», no un error.
+            Log::warning('Static site drift check could not run.', [
+                'url'   => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if (!$response->ok()) {
+            Log::warning('Static site drift check answered with an error status.', [
+                'url'    => $url,
+                'status' => $response->status(),
+            ]);
+
+            return null;
+        }
+
+        $body = $response->json();
+
+        // El contrato del receiver: {"checked":true,"drift":<bool>,…}. Un 400 con
+        // checked:false o un cuerpo malformado no responden la pregunta — y jamás
+        // cuentan como «no hay cambios».
+        if (($body['checked'] ?? null) !== true || !is_bool($body['drift'] ?? null)) {
+            Log::warning('Static site drift check answered a body outside its contract.', [
+                'url'  => $url,
+                'body' => mb_substr($response->body(), 0, 500),
+            ]);
+
+            return null;
+        }
+
+        return $body['drift'];
+    }
+
+    /**
+     * La URL del /drift del sitio, **derivada** de un endpoint que ya se conoce — el
+     * receiver los sirve a todos en la misma máquina, así que no hay configuración nueva
+     * que inventar. Precedencia igual que sendWebhook(): el propio sitio primero, el
+     * config global después.
+     */
+    private function driftUrl(?Site $site): ?string
+    {
+        $base = $site?->static_site_health_url
+            ?? $site?->static_site_webhook_url
+            ?? config('static_site.health_url')
+            ?? config('static_site.webhook_url');
+
+        if (!$base) {
+            return null;
+        }
+
+        $base = rtrim($base, '/');
+
+        if (str_ends_with($base, '/drift')) {
+            return $base;
+        }
+
+        // /health y /rebuild son los endpoints conocidos del mismo receiver: cambiar el
+        // último segmento. Cualquier otra forma de URL (p. ej. un host pelado) recibe
+        // /drift al final.
+        preg_match('~/(health|rebuild)$~', $base, $m);
+
+        return $m ? substr($base, 0, -strlen($m[0])).'/drift' : $base.'/drift';
     }
 
     private function resolveSite(int $siteId): ?Site

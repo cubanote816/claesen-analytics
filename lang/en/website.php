@@ -212,6 +212,8 @@ return [
             'publish_section_confirm_submit'  => 'Publish :page',
             'publish_section_success'         => 'The publication of :page was requested',
             'publish_section_disabled'        => 'Publishing is disabled in this environment — the website was not updated.',
+            'publish_section_no_drift'        => 'Nothing to publish — this page already matches the published site.',
+            'publish_section_unverified'      => 'It could not be checked whether anything needed publishing — the publication was requested anyway.',
         ],
     ],
     // CLA-481 (media slots): this block was missing from every language file, so the panel
