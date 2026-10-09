@@ -83,6 +83,14 @@ mocks.**
   `POST /field/projects/{code}/issues` acepta `kind: malfunction` (con `symptom` obligatorio) y los
   ids opcionales. **Aviso inmediato** `malfunction_reported` al crearlo (y `malfunction_status_changed`
   en cada paso, al resumen).
+- **Intención por elemento (KNX-55, implementado):** `GET|PUT /projects/{code}/intents` y
+  `GET /intents/{id}/versions`. El elemento es la clave (`target` = `module` con `boardId`+`slot`,
+  `channel` con `+channel`, o `device` con `deviceId`), así que el `PUT` es un upsert que el front
+  puede repetir sin recordar un id: cada cambio crea `version` nueva, la anterior queda en el
+  historial, y repetir el mismo texto no sube versión ni avisa. Cada cambio deja
+  `intent_changed`. `roomId`/`functionId` opcionales. La ficha de habitación ya muestra sus
+  `intents`, y `GET /field/projects/{code}/intents` los sirve para leerlos sin red; **escribir
+  desde obra sigue `pending-decision`** (la ruta no existe).
 - **Cuadros en campo (KNX-25, implementado):** `GET /field/projects/{code}/boards` devuelve la misma
   estructura que la oficina (con `origin`/`reviewState`), para que el registro use los cuadros reales
   del proyecto. Antes `/boards` respondía `401` con un token de campo.

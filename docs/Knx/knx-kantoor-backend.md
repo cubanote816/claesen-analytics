@@ -203,6 +203,30 @@ El histórico añade `by` y `note` en cada paso. `by` es **texto congelado**, no
 
 `POST /projects/{code}/issues` es la entrada de **oficina** (la llamada del cliente tras la entrega): el mismo hallazgo que el de campo, sin `clientId` (no hay reintento offline que deduplicar) y con el objetivo por ids (`roomId`/`deviceId`/`boardId`/`moduleSlot`/`channel`). Comparte el único `IssueService` con la ruta de campo, así que las dos entradas escriben el mismo conflicto, su línea `reported` y su nota tipada. `kind: malfunction` exige `symptom` y **siempre** avisa al momento.
 
+## Intención por elemento (KNX-55)
+
+`GET|PUT /projects/{code}/intents` · `GET /intents/{id}/versions` · `GET /field/projects/{code}/intents`.
+
+Qué debe hacer un **módulo, un canal o un aparato**: texto libre con autor, fecha e historial. Hasta
+ahora solo había fichas funcionales **por zona** (§4.B), que siguen siendo otra cosa: la intención es
+la frase que el jefe de proyecto escribe sobre el elemento concreto.
+
+- **El elemento es la clave.** `target` es `module` (`boardId`+`slot`), `channel` (`boardId`+`slot`+
+  `channel`) o `device` (`deviceId`); `boardId` es la misma cadena externa que ya usan los cuadros y
+  los marcadores. El `PUT` es un upsert, así que el front no arrastra un id entre llamadas.
+- **Una sola intención vigente, historial completo.** Cada cambio crea una fila nueva con su
+  `version`; la anterior queda en `GET /intents/{id}/versions` (la última primero) y **no se
+  reescribe**: es lo que el técnico leyó en obra ese día.
+- **Escribir dos veces lo mismo no crea versión ni aviso.** El contrato dice «cada cambio», no «cada
+  llamada»: un doble clic no puede llenar el historial de ruido.
+- **Cada cambio deja `intent_changed`** (KNX-54), que va al resumen.
+- **Vínculos.** `roomId` y `functionId` opcionales, resueltos dentro del proyecto; un id de otro
+  proyecto es `422`.
+- **El campo lee, no escribe.** `GET /field/projects/{code}/intents` sirve las vigentes para
+  cachearlas sin red, y la ficha de habitación (oficina y campo) muestra las de sus elementos. La
+  escritura desde obra sigue `pending-decision`: la ruta `/field/projects/{code}/intents/write` **no
+  existe** y responde `404`.
+
 ## Zonas (K7)
 
 `GET /zones?project=` · `GET /zones/{id}` · `PATCH /zones/{id}/checks/{key}`.

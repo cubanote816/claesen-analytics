@@ -85,7 +85,7 @@
   /me/notification-preferences` + correo inmediato/digest (`KnxNoticeMail`, comando
   `knx:notification-digest`, `emailed_at` como dedupe). Commit `PENDIENTE_R10`.
 - [x] **R11** KNX-56 — mal funcionamiento (`lifecycle: malfunction`, ciclo validado, `POST /projects/{code}/issues`). Commits `e049918` + `1ca942d`.
-- [ ] **R12** KNX-55 — intents (oficina lectura+escritura, campo lectura). Escritura de campo pendiente.
+- [x] **R12** KNX-55 — intents (oficina lectura+escritura, campo lectura). Escritura de campo pendiente. Commit `04328dc`.
 - [ ] **R13** KNX-26 — fotos como entidad + evento `photos_uploaded`.
 - [ ] **R14** KNX-50 — carry-over de habitaciones entre revisiones + aviso de cambios.
 - [ ] **R15** KNX-48 — propuesta automática de habitaciones en PDF vectorial.
@@ -253,6 +253,27 @@
     entorno: `mailpit` estaba parado en `electrobertels-login_sail`; los avisos inmediatos
     respondían `500` al no resolver el SMTP, así que se levantó el contenedor para verificar.
     En producción la cola no es `sync`, así que el envío no bloquea la escritura.
+
+- **R12 (`04328dc`).** Migración `2026_10_09_110000_create_knx_intents_table` (una fila por versión,
+  `target_key` estable por proyecto, `is_current`, `unique(project_id, target_key, version)`).
+  `KnxIntent` + `KnxIntentFactory`; `IntentService` (upsert por `target`, versiona, no-op sin
+  versión, aviso `intent_changed`); `IntentResource`; `IntentController` (`GET|PUT
+  /projects/{code}/intents`, `GET /intents/{id}/versions`); `GET /field/projects/{code}/intents` en
+  `FieldProjectController`; `RoomSheetService` llena `intents` (oficina y campo). El contrato de las
+  4 rutas pasa a `docs/Knx/openapi.yaml` y sale de `openapi-next.yaml`; la ruta de escritura de campo
+  queda documentada como `pending-decision` (no existe).
+  - Tests: **KnxIntentsTest 10/10**, **KnxFieldIntentTest 5/5**, `OpenApiContractTest` 4/4.
+  - Suite completa del módulo: **310 passed / 1 skipped / 0 failed** (1971 aserciones). Pint limpio.
+  - HTTP real `:8002` (salida cruda en el comentario de Linear y en el resumen de sesión): oficina
+    `PUT /projects/C1618/intents {target: module E10/1, roomId 510, text}` → `200` v1; segundo `PUT`
+    con texto nuevo → `200` v2; `GET ?boardId=E10&slot=1` → solo la vigente (v2);
+    `GET /intents/2/versions` → `[(2,…),(1,…)]`; `GET /projects/C1618/rooms/510/sheet` → `intents`
+    con la vigente. Campo (Jan planificado hoy en C1618):
+    `GET /field/projects/C1618/intents` → la vigente; ficha de habitación de campo con `intents`;
+    `PUT /field/projects/C1618/intents/write` → `404`; bandeja con 2 `intent_changed`
+    (`module E10 slot 1`, actor `L. Smet`, target `intent`).
+  - Artefactos borrados de la BD dev: intenciones, notas `intent_changed` y la asignación de plan del
+    día creada para verificar el alcance de campo.
 
 ### Entorno de verificación (hallazgo, no obvio)
 
