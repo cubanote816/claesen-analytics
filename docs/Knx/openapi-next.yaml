@@ -106,63 +106,9 @@ paths:
   # Sólo queda aquí lo que todavía NO se implementa:
   # IMPLEMENTADO — /me/notification-preferences movido a docs/Knx/openapi.yaml (KNX-54).
 
-  /projects/{code}/issues:
-    post:
-      tags: [conflicts]
-      summary: Oficina abre una incidencia (por ejemplo, la llamada de un cliente tras la entrega)
-      x-ticket: KNX-56
-      x-status: planned
-      description: >-
-        Misma forma que la de campo, sin `clientId` obligatorio (no hay reintento offline). Para
-        `kind: malfunction` crea un conflicto con `lifecycle: malfunction` y su `symptom`; siempre
-        genera aviso inmediato.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/IssueInput" }
-      responses:
-        "201":
-          description: Incidencia creada
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Conflict" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
-  /field/projects/{code}/issues:
-    post:
-      tags: [field]
-      summary: Reporta una incidencia desde obra (idempotente por `clientId`)
-      x-ticket: KNX-56
-      x-status: planned
-      description: >-
-        Cambio respecto del contrato actual: se añade `kind: malfunction` y su `symptom`, con objetivo
-        opcional `roomId, boardId, moduleSlot, channel, deviceId`. `kind: malfunction` crea un
-        conflicto con `lifecycle: malfunction`. El resto de los `kind` sigue mapeando al conflicto de
-        oficina como hasta ahora.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/FieldIssueInput" }
-      responses:
-        "201":
-          description: Incidencia creada
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/FieldIssueResult" }
-        "200":
-          description: Reintento del mismo `clientId`
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/FieldIssueResult" }
-        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
-        "422": { $ref: "#/components/responses/ValidationError" }
+  # /projects/{code}/issues (oficina) y /field/projects/{code}/issues movidos a
+  # docs/Knx/openapi.yaml (KNX-56): `kind: malfunction` + `symptom`, ids opcionales
+  # (`roomId`/`deviceId`/`boardId`/`moduleSlot`) y aviso inmediato `malfunction_reported`.
 
   # /conflicts y /conflicts/{id} (GET, PATCH) movidos a docs/Knx/openapi.yaml
   # (KNX-56): `lifecycle` + `symptom` en el conflicto, filtro `?lifecycle=`, transición
@@ -978,44 +924,8 @@ components:
         roomId: { type: string, nullable: true }
         functionId: { type: string, nullable: true }
 
-    IssueInput:
-      type: object
-      required: [kind]
-      properties:
-        kind: { type: string, enum: [damaged, missing, plan_mismatch, other, malfunction] }
-        symptom: { type: string, nullable: true, description: "Texto del síntoma, obligatorio cuando `kind: malfunction`." }
-        roomId: { type: string, nullable: true }
-        boardId: { type: string, nullable: true }
-        moduleSlot: { type: integer, nullable: true }
-        channel: { type: string, nullable: true }
-        deviceId: { type: string, nullable: true }
-        note: { type: string, nullable: true }
-        photoDataUrl: { type: string, nullable: true }
-
-    FieldIssueInput:
-      type: object
-      required: [clientId, projectCode, kind, capturedAt]
-      properties:
-        clientId: { type: string, maxLength: 64 }
-        projectCode: { type: string }
-        kind: { type: string, enum: [damaged, missing, plan_mismatch, other, malfunction] }
-        symptom: { type: string, nullable: true }
-        roomId: { type: string, nullable: true }
-        roomName: { type: string, nullable: true }
-        boardCode: { type: string, nullable: true }
-        boardId: { type: string, nullable: true }
-        moduleSlot: { type: integer, nullable: true }
-        channel: { type: string, nullable: true }
-        address: { type: string, nullable: true }
-        note: { type: string, nullable: true }
-        photoDataUrl: { type: string, nullable: true }
-        capturedAt: { type: string, format: date-time }
-
-    FieldIssueResult:
-      type: object
-      properties:
-        id: { type: string }
-        clientId: { type: string }
+    # IssueInput / FieldIssueInput / FieldIssueResult movidos a docs/Knx/openapi.yaml
+    # con su ruta (KNX-56); el esquema se documenta allí inline, como el resto del spec vivo.
 
     Conflict:
       type: object

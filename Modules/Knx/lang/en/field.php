@@ -4,6 +4,7 @@ return [
     'client_id_reused' => 'This clientId was already used for a device in another project.',
     'client_id_reused_any' => 'This clientId was already used in another project.',
     'unknown_board' => 'Unknown distribution board for this project.',
+    'unknown_device' => 'That device does not belong to this project.',
     'room_unknown' => 'That room does not belong to this project.',
     'project_mismatch' => 'The project code in the request does not match the request URL.',
     'photo_invalid' => 'The photo is not a valid data URL.',

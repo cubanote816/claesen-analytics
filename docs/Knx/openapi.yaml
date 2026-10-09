@@ -1495,7 +1495,12 @@ paths:
     post:
       tags: [field]
       summary: Reporta una incidencia desde obra (idempotente por `clientId`)
-      description: Una incidencia **es** un conflicto con el `kind` mapeado a los tipos de oficina y el contexto conservado en `device_field`.
+      description: >-
+        Una incidencia **es** un conflicto con el `kind` mapeado a los tipos de oficina y el
+        contexto conservado en `device_field`. KNX-56 añade `kind: malfunction` (la instalación
+        física que no funciona, distinto de dañado o falta), su `symptom` obligatorio, y los
+        ids opcionales `roomId`/`deviceId`/`boardId`/`moduleSlot`; `room`/`deviceAddress`/`boardCode`
+        siguen valiendo. Un `malfunction` nace con `lifecycle: malfunction` y avisa al momento.
       parameters:
         - $ref: "#/components/parameters/Code"
       requestBody:
@@ -1508,12 +1513,17 @@ paths:
               properties:
                 clientId: { type: string, maxLength: 64 }
                 projectCode: { type: string }
-                kind: { type: string, enum: [damaged, missing, plan_mismatch, other] }
-                roomId: { type: string, nullable: true }
-                roomName: { type: string, nullable: true }
+                projectName: { type: string, nullable: true }
+                kind: { type: string, enum: [damaged, missing, plan_mismatch, other, malfunction] }
+                symptom: { type: string, nullable: true, description: "Obligatorio cuando `kind: malfunction`: qué hace mal el elemento." }
+                room: { type: string, nullable: true }
+                roomId: { type: integer, nullable: true }
+                deviceAddress: { type: string, nullable: true }
+                deviceId: { type: integer, nullable: true }
                 boardCode: { type: string, nullable: true }
+                boardId: { type: string, nullable: true }
+                moduleSlot: { type: integer, nullable: true }
                 channel: { type: string, nullable: true }
-                address: { type: string, nullable: true }
                 note: { type: string, nullable: true }
                 photoDataUrl: { type: string, nullable: true }
                 capturedAt: { type: string, format: date-time }
@@ -1529,6 +1539,42 @@ paths:
             application/json:
               example: { id: "16", clientId: "6f1c9d2e-3a44-4b1e-9c7f-2f0a8e5d1b3c" }
         "403": { description: Proyecto no asignado hoy }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/issues:
+    post:
+      tags: [conflicts]
+      summary: La oficina abre una incidencia (KNX-56)
+      description: >-
+        Misma incidencia que la de campo, sin `clientId` (no hay reintento offline). El objetivo es
+        opcional: `roomId`, `deviceId`, `boardId`, `moduleSlot`, `channel`. `kind: malfunction` crea
+        un conflicto con `lifecycle: malfunction` y su `symptom`, y **siempre** avisa al momento
+        (`kind: malfunction_reported`); el resto de `kind` sigue creando un conflicto ETS.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind]
+              properties:
+                kind: { type: string, enum: [damaged, missing, plan_mismatch, other, malfunction] }
+                symptom: { type: string, nullable: true, description: "Obligatorio cuando `kind: malfunction`." }
+                roomId: { type: integer, nullable: true }
+                deviceId: { type: integer, nullable: true }
+                boardId: { type: string, nullable: true }
+                moduleSlot: { type: integer, nullable: true }
+                channel: { type: string, nullable: true }
+                note: { type: string, nullable: true }
+                photoDataUrl: { type: string, nullable: true }
+      responses:
+        "201":
+          description: Incidencia creada
+          content:
+            application/json:
+              example: { id: "17", lifecycle: malfunction, type: malfunction, status: open, symptom: "Gaat niet aan." }
+        "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
   /field/projects/{code}/visits:
     post:

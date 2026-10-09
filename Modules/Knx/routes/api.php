@@ -22,6 +22,7 @@ use Modules\Knx\Http\Controllers\Field\FieldVisitController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\FunctionSpecController;
 use Modules\Knx\Http\Controllers\NotificationPreferenceController;
+use Modules\Knx\Http\Controllers\OfficeIssueController;
 use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\PlanRoomController;
@@ -249,6 +250,11 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::get('conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
             Route::get('conflicts/{id}', [ConflictController::class, 'show'])->name('conflicts.show');
             Route::patch('conflicts/{id}', [ConflictController::class, 'update'])->name('conflicts.update');
+            // KNX-56 — la oficina también abre incidencias (por ejemplo, la llamada del
+            // cliente tras la entrega). `kind: malfunction` abre el ciclo validado.
+            Route::post('projects/{code}/issues', [OfficeIssueController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.issues.store');
             // K7 — readiness writes. The reads live in the shared group below: Veld uses
             // the same payload (its contract says so), but only the office changes checks.
             Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
