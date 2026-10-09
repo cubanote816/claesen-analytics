@@ -118,102 +118,10 @@ paths:
   # KNX-55 · Intención por elemento
   # ---------------------------------------------------------------------------
 
-  /projects/{code}/intents:
-    get:
-      tags: [intents]
-      summary: Intenciones del proyecto, filtrables por elemento o habitación
-      x-ticket: KNX-55
-      x-status: planned
-      description: >-
-        La intención es qué debería hacer un elemento, escrita por el jefe de proyecto, versionada.
-        Un mismo `target` tiene una sola intención vigente; cada cambio crea una versión nueva.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-        - name: boardId
-          in: query
-          schema: { type: string }
-        - name: slot
-          in: query
-          schema: { type: integer }
-        - name: deviceId
-          in: query
-          schema: { type: string }
-        - name: roomId
-          in: query
-          schema: { type: string }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/Intent" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    put:
-      tags: [intents]
-      summary: Escribe la intención de un elemento (upsert por `target`, versiona)
-      x-ticket: KNX-55
-      x-status: planned
-      description: >-
-        `target` es la clave: si ya hay intención para ese elemento, se crea una versión nueva con el
-        texto nuevo y la anterior queda en `GET /intents/{id}/versions`. Cada cambio genera un aviso
-        `intent_changed`.
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/IntentPutInput" }
-      responses:
-        "200":
-          description: Intención vigente, con su `version` incrementada
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Intent" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-
-  /intents/{id}/versions:
-    get:
-      tags: [intents]
-      summary: Todas las versiones de una intención, la última primero
-      x-ticket: KNX-55
-      x-status: planned
-      description: >-
-        Ruta por id sin proyecto: resuelve por el proyecto de la intención y la organización. Otra
-        organización responde `404`.
-      parameters:
-        - $ref: "#/components/parameters/Id"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/Intent" }
-        "404": { $ref: "#/components/responses/NotFound" }
-
-  /field/projects/{code}/intents:
-    get:
-      tags: [field]
-      summary: Intenciones del proyecto, para cachear sin red
-      x-ticket: KNX-55
-      x-status: planned
-      parameters:
-        - $ref: "#/components/parameters/Code"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/Intent" }
-        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
-        "404": { $ref: "#/components/responses/NotFound" }
+  # /projects/{code}/intents (GET, PUT), /intents/{id}/versions (GET) y
+  # /field/projects/{code}/intents (GET) movidos a docs/Knx/openapi.yaml (KNX-55):
+  # intención por elemento con versiones, upsert por target y aviso `intent_changed`.
+  # Solo queda aquí la escritura desde campo, pendiente de decisión.
 
   # Ruta declarada pero BLOQUEADA: el campo no puede escribir intenciones todavía. La decisión
   # pendiente es si sólo el jefe de proyecto o también el técnico. Se deja documentada para que

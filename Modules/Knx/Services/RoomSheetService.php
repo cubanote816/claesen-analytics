@@ -8,12 +8,14 @@ use Illuminate\Http\Request;
 use Modules\Knx\Http\Resources\ConflictResource;
 use Modules\Knx\Http\Resources\DeviceResource;
 use Modules\Knx\Http\Resources\FunctionSpecResource;
+use Modules\Knx\Http\Resources\IntentResource;
 use Modules\Knx\Http\Resources\RoomResource;
 use Modules\Knx\Http\Resources\ZoneResource;
 use Modules\Knx\Models\KnxBoardLink;
 use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxFunctionSpec;
+use Modules\Knx\Models\KnxIntent;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Models\KnxProjectRoom;
 
@@ -24,11 +26,13 @@ use Modules\Knx\Models\KnxProjectRoom;
  * `GET /projects/{code}/rooms/{id}/sheet` and the field's cached
  * `GET /field/projects/{code}/rooms`. Building it twice is how the two drift.
  *
- * `intents` and `photos` are real sections of the contract (KNX-55 / KNX-26) whose
- * tables do not exist yet; they travel as empty arrays so the shape is stable.
+ * `photos` is a real section of the contract (KNX-26) whose table does not exist yet;
+ * it travels as an empty array so the shape is stable. `intents` is real since KNX-55.
  */
 class RoomSheetService
 {
+    public function __construct(private readonly IntentService $intents) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -89,12 +93,16 @@ class RoomSheetService
             ->map(fn (KnxConflict $conflict): array => (new ConflictResource($conflict))->resolve($request))
             ->all();
 
+        $intents = $this->intents->forRoom($room)
+            ->map(fn (KnxIntent $intent): array => (new IntentResource($intent))->resolve($request))
+            ->all();
+
         return [
             'room' => RoomResource::make($room)->resolve($request),
             'zone' => $room->zone === null ? null : ZoneResource::make($room->zone)->resolve($request),
             'devices' => $devices,
             'boardLinks' => $boardLinks,
-            'intents' => [],
+            'intents' => $intents,
             'functions' => $functions,
             'issues' => $issues,
             'photos' => [],

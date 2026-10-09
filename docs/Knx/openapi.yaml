@@ -37,6 +37,7 @@ tags:
   - name: employees
   - name: planning
   - name: conflicts
+  - name: intents
   - name: zones
   - name: notifications
   - name: reports
@@ -1576,6 +1577,95 @@ paths:
               example: { id: "17", lifecycle: malfunction, type: malfunction, status: open, symptom: "Gaat niet aan." }
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/intents:
+    get:
+      tags: [intents]
+      summary: Intenciones vigentes del proyecto, filtrables por elemento o habitación
+      description: >-
+        La intención es qué debería hacer un elemento, escrita por el jefe de proyecto y versionada
+        (KNX-55). Un mismo elemento tiene una sola intención vigente; el historial vive en
+        `GET /intents/{id}/versions`. `target.type` ∈ `module` (`boardId`+`slot`), `channel`
+        (`boardId`+`slot`+`channel`) o `device` (`deviceId`).
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: query
+          schema: { type: string }
+        - name: slot
+          in: query
+          schema: { type: integer }
+        - name: deviceId
+          in: query
+          schema: { type: integer }
+        - name: roomId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [intents]
+      summary: Escribe la intención de un elemento (upsert por `target`, versiona)
+      description: >-
+        `target` es la clave, así que el front no arrastra un id entre llamadas. Si ya hay intención
+        para ese elemento se crea una versión nueva y la anterior queda en el historial; un `PUT`
+        que no cambia nada devuelve la vigente sin subir versión. Cada cambio genera un aviso
+        `intent_changed`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target, text]
+              properties:
+                target:
+                  type: object
+                  required: [type]
+                  properties:
+                    type: { type: string, enum: [module, channel, device] }
+                    boardId: { type: string, nullable: true }
+                    slot: { type: integer, nullable: true }
+                    channel: { type: string, nullable: true }
+                    deviceId: { type: integer, nullable: true }
+                text: { type: string, maxLength: 5000 }
+                roomId: { type: integer, nullable: true }
+                functionId: { type: integer, nullable: true }
+      responses:
+        "200":
+          description: Intención vigente, con su `version` incrementada
+          content:
+            application/json:
+              example: { id: "12", target: { type: module, boardId: E10, slot: 3, channel: null, deviceId: null }, roomId: "510", functionId: null, text: "Schakelt de gang met aanwezigheid.", version: 2, author: { id: "113", name: "L. Smet" }, updatedAt: "2026-10-09T15:00:00Z" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /intents/{id}/versions:
+    get:
+      tags: [intents]
+      summary: Todas las versiones de una intención, la última primero
+      description: >-
+        Ruta por id sin proyecto: resuelve por el proyecto de la intención y la organización.
+        Otra organización responde `404`.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /field/projects/{code}/intents:
+    get:
+      tags: [field]
+      summary: Intenciones del proyecto, para cachear sin red (KNX-55)
+      description: >-
+        El campo las lee, también sin conexión. Escribir desde obra sigue `pending-decision`: la
+        ruta no existe y una llamada responde `404`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+        "403": { description: Proyecto no asignado hoy }
+        "404": { $ref: "#/components/responses/NotFound" }
   /field/projects/{code}/visits:
     post:
       tags: [field]

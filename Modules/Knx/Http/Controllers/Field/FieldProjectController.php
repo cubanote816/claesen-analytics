@@ -9,13 +9,16 @@ use Illuminate\Routing\Controller;
 use Modules\Knx\Http\Resources\FieldDeviceResource;
 use Modules\Knx\Http\Resources\FieldPlanResource;
 use Modules\Knx\Http\Resources\FieldProjectResource;
+use Modules\Knx\Http\Resources\IntentResource;
 use Modules\Knx\Http\Resources\ProjectBoardsResource;
 use Modules\Knx\Models\KnxBoard;
 use Modules\Knx\Models\KnxDocument;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxIntent;
 use Modules\Knx\Models\KnxPlanMarker;
 use Modules\Knx\Models\KnxPlanRoom;
 use Modules\Knx\Services\FieldProjectService;
+use Modules\Knx\Services\IntentService;
 use Modules\Knx\Services\RoomSheetService;
 
 /**
@@ -55,6 +58,21 @@ class FieldProjectController extends Controller
         $project = $this->projects->resolveAuthorized($this->technician($request), $code);
 
         return FieldDeviceResource::list($this->projects->devicesFor($project), $request);
+    }
+
+    /**
+     * `GET /field/projects/{code}/intents` (KNX-55) — the project's current intents, so
+     * the app caches them and the technician reads what each element must do with no
+     * signal. Read-only here: writing from the field is a decision the owner has not
+     * made yet, and the contract marks it `pending-decision`.
+     */
+    public function intents(Request $request, string $code, IntentService $intents): array
+    {
+        $project = $this->projects->resolveAuthorized($this->technician($request), $code);
+
+        return $intents->list($project, [])
+            ->map(fn (KnxIntent $intent): array => (new IntentResource($intent))->resolve($request))
+            ->all();
     }
 
     private function technician(Request $request): KnxEmployee

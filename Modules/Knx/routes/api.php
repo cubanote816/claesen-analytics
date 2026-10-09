@@ -21,6 +21,7 @@ use Modules\Knx\Http\Controllers\Field\FieldTodayController;
 use Modules\Knx\Http\Controllers\Field\FieldVisitController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\FunctionSpecController;
+use Modules\Knx\Http\Controllers\IntentController;
 use Modules\Knx\Http\Controllers\NotificationPreferenceController;
 use Modules\Knx\Http\Controllers\OfficeIssueController;
 use Modules\Knx\Http\Controllers\PlanMarkerController;
@@ -104,6 +105,12 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::get('projects/{code}/devices', [FieldProjectController::class, 'devices'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.devices.index');
+
+            // KNX-55 — las intenciones vigentes del proyecto, para leerlas sin red. El
+            // campo las lee; escribir desde obra sigue pendiente de decisión.
+            Route::get('projects/{code}/intents', [FieldProjectController::class, 'intents'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.intents.index');
 
             // V11.c — registering an apparatus from site. Idempotent by the app's own
             // `clientId`, so this is a POST the client may safely repeat.
@@ -255,6 +262,17 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::post('projects/{code}/issues', [OfficeIssueController::class, 'store'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.issues.store');
+            // KNX-55 — la intención por elemento: qué debe hacer un módulo, un canal o un
+            // aparato. Es un upsert por la identidad del elemento, así que el front no
+            // arrastra un id entre llamadas.
+            Route::get('projects/{code}/intents', [IntentController::class, 'index'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.intents.index');
+            Route::put('projects/{code}/intents', [IntentController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.intents.update');
+            Route::get('intents/{id}/versions', [IntentController::class, 'versions'])
+                ->name('intents.versions');
             // K7 — readiness writes. The reads live in the shared group below: Veld uses
             // the same payload (its contract says so), but only the office changes checks.
             Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
