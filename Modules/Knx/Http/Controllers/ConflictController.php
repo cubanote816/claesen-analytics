@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
 use Modules\Knx\Http\Resources\ConflictResource;
 use Modules\Knx\Models\KnxConflict;
+use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Services\ConflictService;
 
 /**
@@ -18,7 +19,8 @@ class ConflictController extends Controller
     public function index(Request $request, ConflictService $conflicts): array
     {
         $validated = $request->validate([
-            'status' => ['sometimes', 'string', 'in:'.implode(',', [...KnxConflict::STATUSES, 'active', 'all'])],
+            'status' => ['sometimes', 'string', 'in:'.implode(',', [...KnxConflict::ALL_STATUSES, 'active', 'all'])],
+            'lifecycle' => ['sometimes', 'string', Rule::in(KnxConflict::LIFECYCLES)],
             'project' => ['sometimes', 'nullable', 'string'],
             'q' => ['sometimes', 'nullable', 'string', 'max:100'],
         ]);
@@ -27,6 +29,7 @@ class ConflictController extends Controller
             $validated['status'] ?? null,
             $validated['project'] ?? null,
             $validated['q'] ?? null,
+            $validated['lifecycle'] ?? null,
         );
 
         $taken = $conflicts->takenAddressesForList($items);
@@ -53,16 +56,22 @@ class ConflictController extends Controller
     public function update(Request $request, string $id, ConflictService $conflicts): ConflictResource
     {
         $validated = $request->validate([
-            'status' => ['sometimes', 'string', Rule::in(KnxConflict::STATUSES)],
+            'status' => ['sometimes', 'string', Rule::in(KnxConflict::ALL_STATUSES)],
             'proposal' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'note' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ]);
 
         $conflict = KnxConflict::query()->with('project')->findOrFail($id);
+
+        /** @var KnxEmployee|null $actor */
+        $actor = $request->attributes->get('knx_employee');
 
         $updated = $conflicts->update(
             $conflict,
             $validated['status'] ?? null,
             $validated['proposal'] ?? null,
+            $validated['note'] ?? null,
+            $actor,
         );
 
         $taken = $updated->project === null

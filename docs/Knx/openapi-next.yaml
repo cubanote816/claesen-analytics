@@ -164,79 +164,9 @@ paths:
         "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
-  /conflicts:
-    get:
-      tags: [conflicts]
-      summary: Conflictencentrum; ahora con `lifecycle`
-      x-ticket: KNX-56
-      x-status: planned
-      parameters:
-        - name: status
-          in: query
-          schema: { type: string }
-        - name: lifecycle
-          in: query
-          schema: { type: string, enum: [ets, malfunction] }
-        - name: project
-          in: query
-          schema: { type: string }
-        - name: q
-          in: query
-          schema: { type: string }
-      responses:
-        "200": { description: OK }
-
-  /conflicts/{id}:
-    get:
-      tags: [conflicts]
-      summary: Detalle de conflicto con su histórico y su `lifecycle`
-      x-ticket: KNX-56
-      x-status: planned
-      parameters:
-        - $ref: "#/components/parameters/Id"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Conflict" }
-        "404": { $ref: "#/components/responses/NotFound" }
-    patch:
-      tags: [conflicts]
-      summary: Cambia el estado; si el conflicto es `malfunction`, la transición se valida
-      x-ticket: KNX-56
-      x-status: planned
-      description: >-
-        Para `lifecycle: ets` todo sigue igual que en K6: sin máquina de estados, toda transición es
-        reversible y cada cambio escribe su línea de histórico append-only. Para
-        `lifecycle: malfunction` sí hay máquina: `open → diagnosing → resolved → verified`, con
-        `rejected` como salida desde cualquier estado. Una transición no permitida responde `422` en
-        `errors.status`. Cada paso registra autor y hora en el histórico.
-      parameters:
-        - $ref: "#/components/parameters/Id"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                status: { type: string }
-                proposal: { type: string, nullable: true }
-                note: { type: string, nullable: true }
-      responses:
-        "200":
-          description: Conflicto actualizado
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Conflict" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "409":
-          description: La propuesta cambia a una dirección ya ocupada
-          content:
-            application/json:
-              example: { message: "The address [1.1.133] is already in use.", code: address_in_use, errors: { proposal: ["The address [1.1.133] is already in use."] } }
-        "422": { $ref: "#/components/responses/ValidationError" }
+  # /conflicts y /conflicts/{id} (GET, PATCH) movidos a docs/Knx/openapi.yaml
+  # (KNX-56): `lifecycle` + `symptom` en el conflicto, filtro `?lifecycle=`, transición
+  # validada para `malfunction` y `by`/`note` en la línea de histórico.
 
   # ---------------------------------------------------------------------------
   # KNX-55 · Intención por elemento

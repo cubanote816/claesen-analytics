@@ -21,6 +21,7 @@ class KnxConflictFactory extends Factory
             'project_id' => KnxProject::factory(),
             'severity' => fake()->randomElement(KnxConflict::SEVERITIES),
             'type' => fake()->randomElement(KnxConflict::TYPES),
+            'lifecycle' => KnxConflict::LIFECYCLE_ETS,
             'address' => $address,
             'device_existing' => 'Aanwezigheidsdetector · Vergaderzaal · rij 3',
             'device_field' => 'KNX-drukknop 4-voudig · Gang gelijkvloers · rij 5',
@@ -34,5 +35,19 @@ class KnxConflictFactory extends Factory
     public function withStatus(string $status): static
     {
         return $this->state(fn (): array => ['status' => $status]);
+    }
+
+    /**
+     * A malfunction: its own cycle, and `symptom` instead of `proposal` (KNX-56).
+     */
+    public function malfunction(string $status = 'open'): static
+    {
+        return $this->state(fn (): array => [
+            'lifecycle' => KnxConflict::LIFECYCLE_MALFUNCTION,
+            'type' => 'malfunction',
+            'status' => $status,
+            'proposal' => null,
+            'symptom' => 'Gaat niet aan als de aanwezigheidsmelder aanslaat.',
+        ]);
     }
 }

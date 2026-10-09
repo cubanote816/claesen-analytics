@@ -1086,10 +1086,19 @@ paths:
     get:
       tags: [conflicts]
       summary: Conflictencentrum; `status=active` = open + in_review
+      description: >-
+        Cambio de KNX-56: cada conflicto lleva `lifecycle` (`ets` | `malfunction`). `ets` es
+        el ciclo de 8 estados de siempre, libre y reversible. `malfunction` es la incidencia
+        de la instalación física: `open → diagnosing → resolved → verified`, con `rejected`
+        como salida. El `symptom` describe lo que hace mal el elemento; en un conflicto ETS
+        ese papel lo ocupa `proposal`. El histórico añade `by` y `note` a quien ejecutó el paso.
       parameters:
         - name: status
           in: query
           schema: { type: string, enum: [open, in_review, ets_listed, applied, downloaded, verified, closed, rejected, active, all] }
+        - name: lifecycle
+          in: query
+          schema: { type: string, enum: [ets, malfunction] }
         - name: project
           in: query
           schema: { type: string }
@@ -1098,10 +1107,11 @@ paths:
           schema: { type: string }
       responses:
         "200": { description: OK }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /conflicts/{id}:
     get:
       tags: [conflicts]
-      summary: Detalle de conflicto con su histórico append-only
+      summary: Detalle de conflicto con su histórico append-only, su `lifecycle` y su `symptom`
       parameters:
         - $ref: "#/components/parameters/Id"
       responses:
@@ -1109,9 +1119,24 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
     patch:
       tags: [conflicts]
-      summary: Cambia el estado (cada cambio escribe una línea de histórico)
+      summary: Cambia el estado; cada cambio escribe una línea de histórico con autor (`by`)
+      description: >-
+        Para `lifecycle: ets` no hay máquina de estados: toda transición es reversible. Para
+        `lifecycle: malfunction` la transición se valida (`open → diagnosing → resolved →
+        verified`, `rejected` como salida) y una no permitida responde `422` en
+        `errors.status`. `note` viaja a la línea de histórico.
       parameters:
         - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string }
+                proposal: { type: string, nullable: true }
+                note: { type: string, nullable: true }
       responses:
         "200": { description: OK }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1120,6 +1145,7 @@ paths:
           content:
             application/json:
               example: { message: "The address [1.1.133] is already in use.", code: address_in_use, errors: { proposal: ["The address [1.1.133] is already in use."] } }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /zones:
     get:
       tags: [zones]

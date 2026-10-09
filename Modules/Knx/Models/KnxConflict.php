@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
 use Modules\Knx\Database\Factories\KnxConflictFactory;
+use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
 
 /**
  * A conflict between the ETS plan and what is on site.
@@ -17,6 +17,13 @@ use Modules\Knx\Database\Factories\KnxConflictFactory;
  * treating a conflict is an ETS correction **worklist** (`ets_listed` →
  * `applied` → `downloaded` → `verified` → `closed`), never an automatic ETS
  * write. `rejected` is the escape hatch.
+ *
+ * `lifecycle` separates two questions that share the row (KNX-56):
+ *   - `ets` — the plan/site mismatch above, free and reversible on purpose;
+ *   - `malfunction` — the physical installation misbehaving, with its own validated
+ *     cycle (`open → diagnosing → resolved → verified`, `rejected` as the exit).
+ * The ETS workflow's "invented strict machine" argument does not apply here: a
+ * malfunction has a real progression, and a wrong jump would erase the diagnosis.
  */
 class KnxConflict extends Model
 {
@@ -37,7 +44,35 @@ class KnxConflict extends Model
     /** Still on the office's plate (`openConflicts` in the dashboard). */
     public const OPEN_STATUSES = ['open', 'in_review'];
 
-    public const TYPES = ['duplicate_address', 'missing_device', 'plan_mismatch', 'damaged'];
+    public const LIFECYCLE_ETS = 'ets';
+
+    public const LIFECYCLE_MALFUNCTION = 'malfunction';
+
+    public const LIFECYCLES = [self::LIFECYCLE_ETS, self::LIFECYCLE_MALFUNCTION];
+
+    /** The states a malfunction may be in; `rejected` closes it. */
+    public const MALFUNCTION_STATUSES = ['open', 'diagnosing', 'resolved', 'verified', 'rejected'];
+
+    /**
+     * Every status a row may carry, across both lifecycles. The ETS workflow keeps its
+     * eight; `diagnosing`/`resolved` are malfunction-only and only reachable there.
+     */
+    public const ALL_STATUSES = [...self::STATUSES, 'diagnosing', 'resolved'];
+
+    /**
+     * The validated malfunction cycle. `rejected` is reachable from any live state and
+     * is terminal; `verified` only still accepts the rejection so a mistake stays
+     * undoable without erasing the step that followed it.
+     */
+    public const MALFUNCTION_TRANSITIONS = [
+        'open' => ['diagnosing', 'rejected'],
+        'diagnosing' => ['resolved', 'rejected'],
+        'resolved' => ['verified', 'rejected'],
+        'verified' => ['rejected'],
+        'rejected' => [],
+    ];
+
+    public const TYPES = ['duplicate_address', 'missing_device', 'plan_mismatch', 'damaged', 'other', 'malfunction'];
 
     public const SEVERITIES = ['critical', 'warning', 'info'];
 
@@ -56,12 +91,14 @@ class KnxConflict extends Model
         'client_id',
         'severity',
         'type',
+        'lifecycle',
         'address',
         'device_existing',
         'device_field',
         'reported_by_employee_id',
         'reported_at',
         'note',
+        'symptom',
         'photo_path',
         'status',
         'proposal',
@@ -87,6 +124,11 @@ class KnxConflict extends Model
         return $this->belongsTo(KnxDevice::class, 'device_id');
     }
 
+    public function isMalfunction(): bool
+    {
+        return $this->lifecycle === self::LIFECYCLE_MALFUNCTION;
+    }
+
     public function reportedBy(): BelongsTo
     {
         return $this->belongsTo(KnxEmployee::class, 'reported_by_employee_id');
@@ -101,6 +143,13 @@ class KnxConflict extends Model
     public function scopeOpen(Builder $query): Builder
     {
         return $query->whereIn('status', self::OPEN_STATUSES);
+    }
+
+    public function scopeLifecycle(Builder $query, ?string $lifecycle): Builder
+    {
+        return $lifecycle === null
+            ? $query
+            : $query->where('lifecycle', $lifecycle);
     }
 
     /**
