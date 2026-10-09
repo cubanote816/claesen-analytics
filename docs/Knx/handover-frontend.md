@@ -72,7 +72,17 @@ mocks.**
   `malfunction_reported` y `visit_closed` final; el resto va en un resumen (comando
   `knx:notification-digest`, horario y al cerrar la visita) a cola con reintentos. Destinatarios:
   jefe de proyecto + `KNX_OFFICE_MAILBOX`. `emailed_at` evita duplicar. **Los `kind`
-  `module_changed`, `intent_changed` y `malfunction_*` todavía no tienen escritor.**
+  `module_changed` e `intent_changed` todavía no tienen escritor; `malfunction_*` ya lo tienen
+  (KNX-56).**
+- **Mal funcionamiento (KNX-56, implementado):** el conflicto lleva `lifecycle` (`ets` |
+  `malfunction`) y `symptom`, y `GET /conflicts` acepta `?lifecycle=`. Un `malfunction` valida su
+  ciclo (`open → diagnosing → resolved → verified`, con `rejected` como salida): una transición no
+  permitida → **`422`** en `errors.status`; cada paso escribe `by` (autor) y `note` en el histórico.
+  `POST /projects/{code}/issues` es la ruta nueva de **oficina** (sin `clientId`; `kind` +
+  `symptom` + ids opcionales `roomId`/`deviceId`/`boardId`/`moduleSlot`/`channel`), y
+  `POST /field/projects/{code}/issues` acepta `kind: malfunction` (con `symptom` obligatorio) y los
+  ids opcionales. **Aviso inmediato** `malfunction_reported` al crearlo (y `malfunction_status_changed`
+  en cada paso, al resumen).
 - **Cuadros en campo (KNX-25, implementado):** `GET /field/projects/{code}/boards` devuelve la misma
   estructura que la oficina (con `origin`/`reviewState`), para que el registro use los cuadros reales
   del proyecto. Antes `/boards` respondía `401` con un token de campo.

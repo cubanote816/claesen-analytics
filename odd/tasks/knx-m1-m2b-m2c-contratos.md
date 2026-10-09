@@ -84,7 +84,7 @@
 - [x] **R10** KNX-54 — avisos generalizados (`kind`, filtros, SSE) + `GET|PUT
   /me/notification-preferences` + correo inmediato/digest (`KnxNoticeMail`, comando
   `knx:notification-digest`, `emailed_at` como dedupe). Commit `PENDIENTE_R10`.
-- [ ] **R11** KNX-56 — mal funcionamiento (`lifecycle: malfunction`, ciclo validado, `POST /projects/{code}/issues`).
+- [x] **R11** KNX-56 — mal funcionamiento (`lifecycle: malfunction`, ciclo validado, `POST /projects/{code}/issues`). Commits `e049918` + `1ca942d`.
 - [ ] **R12** KNX-55 — intents (oficina lectura+escritura, campo lectura). Escritura de campo pendiente.
 - [ ] **R13** KNX-26 — fotos como entidad + evento `photos_uploaded`.
 - [ ] **R14** KNX-50 — carry-over de habitaciones entre revisiones + aviso de cambios.
@@ -218,6 +218,41 @@
     mutedKinds:[]}`; `PUT` → `200` con `digest:"hourly"`. Migración aplicada con `php artisan migrate`
     (sin seeders).
   - **Pendiente:** escritores de `module_changed`, `intent_changed` y `malfunction_*` (R11/R12).
+
+- **R11.a (`e049918`).** Migración `2026_10_09_100000_add_malfunction_lifecycle_to_knx_conflicts`:
+  `lifecycle` (default `ets`) + `symptom` en `knx_conflicts`, `by` + `note` en `knx_conflict_logs`.
+  `KnxConflict` con `LIFECYCLES`, `MALFUNCTION_STATUSES`, `MALFUNCTION_TRANSITIONS` (ETS sigue libre).
+  `ConflictService::update()` valida la transición de `malfunction`, sella el paso con autor y
+  nota, y crea la nota `malfunction_status_changed`. `ConflictResource` expone `lifecycle`,
+  `symptom` y el `by`/`note` del histórico; `GET /conflicts` filtra por `?lifecycle=`.
+  - Suite de M1+M2 completa: **282 → en R11.a los 4 tests nuevos de `KnxConflictsTest`**; ver
+    el cierre conjunto abajo.
+  - Migración aplicada en `:8002` con `php artisan migrate` (sin seeders).
+
+- **R11.b (`1ca942d`).** `FieldIssueService` pasa a `IssueService` con dos entradas
+  (`reportFromField`, idempotente por `clientId`, y `reportFromOffice`, por ids del plano).
+  Ruta nueva de oficina `POST /projects/{code}/issues`; `POST /field/projects/{code}/issues`
+  acepta `kind: malfunction` + `symptom` y los ids opcionales `roomId`/`deviceId`/`boardId`/
+  `moduleSlot`. `kind: malfunction` nace con `lifecycle: malfunction`, `type: malfunction`,
+  severidad `warning`, y crea la nota inmediata `malfunction_reported` (KNX-54).
+  - Contrato: `/projects/{code}/issues`, `POST /field/projects/{code}/issues`, `GET /conflicts`,
+    `GET`/`PATCH /conflicts/{id}` movidos a `docs/Knx/openapi.yaml`; los esquemas
+    `IssueInput`/`FieldIssueInput`/`FieldIssueResult` retirados de `openapi-next.yaml`.
+  - Tests: **KnxOfficeIssueTest 7/7**, **KnxFieldIssueTest 18/18**, `OpenApiContractTest` 4/4.
+  - Suite completa del módulo: **295 passed / 1 skipped / 0 failed** (1884 aserciones). Pint limpio.
+  - HTTP real `:8002` (salida cruda en el comentario de Linear y en el resumen de sesión):
+    oficina `POST /projects/C1618/issues {kind: malfunction, symptom, deviceId, roomId, boardId,
+    moduleSlot, channel}` → `201` con `lifecycle: malfunction`, `symptom`, `deviceField`
+    `Gang gelijkvloers · 1.1.101 · E11 · slot 3 · kanaal 2` e histórico `reported/by: L. Smet`;
+    `PATCH {status: resolved}` desde `open` → `422` con el mensaje neerlandés de transición;
+    `diagnosing → resolved → verified` → `200`, histórico con `by`/`note`; `?lifecycle=malfunction`
+    → 1 (y `ets` → 6); bandeja con 3 `malfunction_status_changed`. Campo: `malfunction` sin
+    `symptom` → `422`; con `symptom` → `201`; reintento del mismo `clientId` → `200` mismo id;
+    conflicto con `lifecycle: malfunction` y nota `malfunction_reported` con actor y target.
+  - Artefactos de verificación (conflictos 89/90 y sus notas) borrados de la BD dev. Nota de
+    entorno: `mailpit` estaba parado en `electrobertels-login_sail`; los avisos inmediatos
+    respondían `500` al no resolver el SMTP, así que se levantó el contenedor para verificar.
+    En producción la cola no es `sync`, así que el envío no bloquea la escritura.
 
 ### Entorno de verificación (hallazgo, no obvio)
 
