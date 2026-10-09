@@ -7,6 +7,7 @@ namespace App\Filament\Clusters\Website;
 use Modules\Core\Models\ActivityLogEntry;
 use Modules\Core\Models\Site;
 use Modules\Intelligence\Models\TranslationState;
+use Modules\Website\Models\Announcement;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\PagePublication;
 use Modules\Website\Models\PublicationState;
@@ -38,6 +39,47 @@ use Modules\Website\Services\StaticSitePublicationService;
  */
 final class WebsiteNavigationBadges
 {
+    /**
+     * Los sujetos cuyo badge de menú es «cambios sin publicar» —los mismos cuya actividad
+     * lista el widget del sitio. Los badges de solicitudes, traducciones y páginas aprobadas
+     * responden otras preguntas (bandeja, revisión, compuerta) y no son cambios del sitio:
+     * no van acá y no cambia lo que cada uno cuenta.
+     *
+     * @var list<class-string>
+     */
+    private const CHANGE_SUBJECT_TYPES = [
+        Announcement::class,
+        MediaSlot::class,
+        Project::class,
+    ];
+
+    /**
+     * ¿Hay algo sin publicar en el sitio? Con la **misma fuente** que los badges: si algún
+     * badge de cambios cuenta, sí; si ninguno, no.
+     *
+     * Es la pregunta del widget del sitio. Antes la respondía la fila de estado, y una
+     * publicación por sección la deja «accepted» sin haber cubierto el sitio: el widget
+     * terminaba listando como pendiente un cambio que su badge ya dio por publicado (o al
+     * revés). Con estos números, widget y menú no pueden llevarse la contra — es la misma
+     * cuenta mostrada en dos lugares, no una tercera.
+     */
+    public static function hasUnpublishedChanges(): bool
+    {
+        foreach (WebsiteSettingSections::all() as $section) {
+            if (self::forSettingSection($section) > 0) {
+                return true;
+            }
+        }
+
+        foreach (self::CHANGE_SUBJECT_TYPES as $subjectType) {
+            if (self::forSubjectType($subjectType) > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Cambios sin publicar de una sección de ajustes.
      *

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Clusters\Website\Widgets;
 
+use App\Filament\Clusters\Website\WebsiteNavigationBadges;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -32,6 +33,12 @@ use Modules\Website\Services\StaticSitePublicationService;
  * Cobertura, declarada: sólo aparecen los modelos que registran actividad —
  * `SiteSetting`, `Project`, `MediaSlot` y `Announcement`. Cualquier otro cambio del panel no
  * se ve acá porque no deja rastro.
+ *
+ * La pregunta «¿hay algo sin publicar?» se responde con los mismos números que ve el menú
+ * (`WebsiteNavigationBadges::hasUnpublishedChanges()`), no con esta fila de estado: una
+ * publicación por sección la deja «accepted» sin haber cubierto el sitio, y el widget
+ * terminaría listando como pendiente un cambio que su badge ya dio por publicado. Si ningún
+ * badge cuenta, la lista se vacía y habla el estado vacío de abajo.
  */
 class UnpublishedChangesWidget extends TableWidget
 {
@@ -62,6 +69,10 @@ class UnpublishedChangesWidget extends TableWidget
                     // justo arriba.
                     ->where('log_name', '!=', StaticSitePublicationService::PUBLICATION_LOG)
                     ->when($watermark !== null, fn ($query) => $query->where('id', '>', $watermark))
+                    // Los mismos números que el menú: si ningún badge cuenta cambios, no hay
+                    // nada pendiente que listar, publicado por sección o no.
+                    ->when(! WebsiteNavigationBadges::hasUnpublishedChanges(),
+                        fn ($query) => $query->whereRaw('1 = 0'))
                     ->orderByDesc('created_at')
             )
             ->columns([

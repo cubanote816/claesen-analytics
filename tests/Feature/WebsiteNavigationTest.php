@@ -9,10 +9,13 @@ use App\Filament\Clusters\Website\WebsiteCluster;
 use App\Filament\Clusters\Website\WebsiteNavigationBadges;
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Clusters\Website\WebsiteSettingSections;
+use App\Filament\Clusters\Website\Widgets\UnpublishedChangesWidget;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Livewire\Livewire;
 use Modules\Core\Models\ActivityLogEntry;
 use Modules\Core\Models\Site;
+use Modules\Core\Models\User;
 use Modules\Intelligence\Models\TranslationState;
 use Modules\Website\Jobs\TriggerStaticSiteRebuildJob;
 use Modules\Website\Models\ConsultationRequest;
@@ -21,6 +24,7 @@ use Modules\Website\Models\Project;
 use Modules\Website\Models\PublicationState;
 use Modules\Website\Models\SiteSetting;
 use Modules\Website\Services\StaticSitePublicationService;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -46,6 +50,20 @@ final class WebsiteNavigationTest extends TestCase
      *
      * @param list<string>|null $keys
      */
+    /**
+     * La pantalla que decide el tono de la respuesta del widget: sin super_admin el panel
+     * no monta el widget, igual que en `PublicationHistoryPageTest`.
+     */
+    private function actingAsSuperAdmin(): void
+    {
+        Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+
+        $user = User::factory()->create(['is_active' => true]);
+        $user->assignRole('super_admin');
+
+        $this->actingAs($user);
+    }
+
     private function publish(?array $keys = null): void
     {
         Http::fake(['*' => Http::response('', 202)]);
@@ -293,6 +311,72 @@ final class WebsiteNavigationTest extends TestCase
         // Y un cambio nuevo vuelve a contar desde el corte de todo el sitio.
         SiteSetting::factory()->create(['key' => 'phone_display', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'x']);
         $this->assertSame(1, WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::CONTACT));
+    }
+
+    /**
+     * El widget del sitio y los badges del menú responden la misma pregunta — «¿hay algo sin
+     * publicar?» — y no pueden llevarse la contra.
+     *
+     * Éste es el caso que la publicación por sección abrió: publicar Contact cubre SUS claves
+     * y deja la fila de estado «accepted», pero el widget que miraba sólo esa fila —o sólo la
+     * marca de agua de todo el sitio— seguía listando como pendiente un cambio que su badge
+     * ya dio por publicado. Si ningún badge cuenta, el widget no puede seguir contando.
+     */
+    public function test_when_every_badge_is_zero_the_widget_reports_no_unpublished_changes(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        $email = SiteSetting::factory()->create(['key' => 'email', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'a@b.test']);
+
+        $emailChange = ActivityLogEntry::query()
+            ->where('subject_id', $email->id)
+            ->where('subject_type', SiteSetting::class)
+            ->sole();
+
+        // La publicación de Contact cubre el único cambio que hay: ningún badge cuenta nada.
+        $this->publish(WebsiteSettingSections::keys(WebsiteSettingSections::CONTACT));
+
+        $this->assertSame(0, WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::CONTACT));
+        $this->assertSame(0, WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::ADDRESS));
+
+        // …y entonces el widget tampoco puede seguir listando el cambio ya publicado.
+        Livewire::test(UnpublishedChangesWidget::class)
+            ->assertOk()
+            ->assertCanNotSeeTableRecords([$emailChange]);
+    }
+
+    /**
+     * Y el otro lado de la misma moneda: publicar Contact no publica el sitio. Su badge baja
+     * a 0, el de Address sigue contando, y el widget del sitio tiene que seguir diciendo que
+     * hay cambios sin publicar — porque el sitio, en conjunto, sí los tiene. Una publicación
+     * de todo el sitio es la que deja a todos en cero, widget incluido.
+     */
+    public function test_the_widget_still_reports_changes_while_another_section_has_them(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        SiteSetting::factory()->create(['key' => 'email', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'a@b.test']);
+        $address = SiteSetting::factory()->create(['key' => 'address', 'type' => SiteSetting::TYPE_TEXT, 'value' => 'Calle 1']);
+
+        $addressChange = ActivityLogEntry::query()
+            ->where('subject_id', $address->id)
+            ->where('subject_type', SiteSetting::class)
+            ->sole();
+
+        $this->publish(WebsiteSettingSections::keys(WebsiteSettingSections::CONTACT));
+
+        $this->assertSame(0, WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::CONTACT));
+        $this->assertSame(1, WebsiteNavigationBadges::forSettingSection(WebsiteSettingSections::ADDRESS));
+
+        Livewire::test(UnpublishedChangesWidget::class)
+            ->assertOk()
+            ->assertCanSeeTableRecords([$addressChange]);
+
+        $this->publish();
+
+        Livewire::test(UnpublishedChangesWidget::class)
+            ->assertOk()
+            ->assertCanNotSeeTableRecords([$addressChange]);
     }
 
     public function test_a_content_badge_counts_that_content_s_changes(): void
