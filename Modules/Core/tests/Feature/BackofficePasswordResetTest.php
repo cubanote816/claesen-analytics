@@ -130,18 +130,16 @@ final class BackofficePasswordResetTest extends TestCase
 
     public function test_the_sent_screen_replaces_the_form_instead_of_stacking_on_it(): void
     {
-        // CLA-603: Filament memoizes the page's content schema, so the swap has to
-        // be driven by a Closure (->visible(fn () => ...)). With a plain boolean the
-        // form stayed visible and the sent block never rendered — this is the
-        // regression that pins it.
+        // CLA-603: Filament memoizes the page's content schema, so the form must not
+        // stay on screen next to the confirmation.
         Notification::fake();
 
         Livewire::test(RequestPasswordReset::class)
             ->fillForm(['email' => 'nobody@example.com'])
             ->call('request')
             ->assertSet('sent', true)
-            ->assertSee('cafca-login-panel')
-            ->assertDontSee('fi-sc-form');
+            ->assertSeeHtml('role="status"')
+            ->assertDontSeeHtml('fi-sc-form');
     }
 
     public function test_a_microsoft_only_account_never_receives_a_link(): void

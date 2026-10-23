@@ -12,13 +12,7 @@
     subheading still come from the page's getHeading()/getSubheading().
 --}}
 <x-filament-panels::page.simple heading="" subheading="">
-    <header class="cafca-login-heading">
-        <h2 class="cafca-login-heading__title">{{ $this->getHeading() }}</h2>
-
-        @if (filled($subheading = $this->getSubheading()))
-            <p class="cafca-login-heading__lede">{{ $subheading }}</p>
-        @endif
-    </header>
+    @include('core::filament.auth.heading')
 
     {{ $this->content }}
 </x-filament-panels::page.simple>

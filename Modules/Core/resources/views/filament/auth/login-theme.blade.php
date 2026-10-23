@@ -518,7 +518,79 @@
         text-decoration: underline;
     }
 
-    /* ---------- Password screens (mockup: forgot / sent / reset / done) ---------- */
+    /* ---------- Forgot password (password-reset-request.blade.php) ---------- */
+    .cafca-login-link--back {
+        align-self: flex-start;
+        gap: 8px;
+        color: var(--auth-ink-3);
+    }
+
+    .cafca-login-state {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+    }
+
+    .cafca-login-status-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: var(--auth-primary-tint);
+        color: var(--auth-primary);
+    }
+
+    .cafca-login-heading__lede .cafca-login-email {
+        color: var(--auth-ink);
+        font-weight: 600;
+        word-break: break-all;
+    }
+
+    .cafca-login-btn-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .cafca-login-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        box-sizing: border-box;
+        width: 100%;
+        height: 54px;
+        border-radius: 12px;
+        border: 0;
+        font: inherit;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .cafca-login-btn--primary {
+        background: var(--auth-primary);
+        color: #fff;
+    }
+
+    .cafca-login-btn--primary:hover {
+        background: var(--auth-primary-hover);
+    }
+
+    .cafca-login-btn--secondary {
+        background: #fff;
+        color: var(--auth-ink);
+        border: 1px solid var(--auth-border);
+    }
+
+    .cafca-login-btn--secondary:hover {
+        background: #F1F5FA;
+    }
+
+    /* ---------- Reset password screens (T3 still uses these; legacy) ---------- */
     /* Notice tile: 44px, accent at 12% on the sent screen and solid on the
        success one (mockup's own two treatments). */
     .cafca-login-notice {
@@ -537,50 +609,12 @@
         background: var(--cafca-login-accent);
     }
 
-    .cafca-login-notice__envelope {
-        width: 16px;
-        height: 12px;
-        border: 2px solid var(--cafca-login-accent);
-        border-radius: 2px;
-    }
-
     .cafca-login-notice__check {
         width: 14px;
         height: 9px;
         border-left: 2.5px solid #fff;
         border-bottom: 2.5px solid #fff;
         transform: rotate(-45deg) translate(1px, -1px);
-    }
-
-    .cafca-login-panel__aside {
-        font-size: 13px;
-        color: oklch(0.5 0.008 255);
-        margin: 0;
-        text-align: center;
-    }
-
-    .cafca-login-linkbutton {
-        background: none;
-        border: 0;
-        padding: 0;
-        font: inherit;
-        font-weight: 600;
-        color: var(--cafca-login-accent);
-        cursor: pointer;
-    }
-
-    .cafca-login-linkbutton:hover {
-        text-decoration: underline;
-    }
-
-    .cafca-login-back {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-top: 24px;
-        font-size: 13px;
-        font-weight: 600;
-        color: oklch(0.5 0.008 255);
     }
 
     .cafca-login-primary-button {

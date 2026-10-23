@@ -9,9 +9,9 @@ use Filament\Actions\Action;
 use Filament\Auth\Pages\PasswordReset\RequestPasswordReset as BaseRequestPasswordReset;
 use Filament\Facades\Filament;
 use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 use Modules\Core\Services\PasswordResetService;
 
 /**
@@ -28,7 +28,9 @@ use Modules\Core\Services\PasswordResetService;
  */
 class RequestPasswordReset extends BaseRequestPasswordReset
 {
-    /** CLA-603: the mockup's "Check your email" screen. */
+    protected string $view = 'core::filament.auth.password-reset-request';
+
+    /** CLA-603: the "Check your inbox" screen. */
     public bool $sent = false;
 
     /** CLA-603: echoed back on that screen only — never used for any lookup. */
@@ -61,10 +63,16 @@ class RequestPasswordReset extends BaseRequestPasswordReset
         $this->sentTo = $email;
     }
 
-    /** The mockup's "resend email" link on the sent screen. */
-    public function resend(): void
+    /** "Use a different email": back to the form (the typed address stays in it). */
+    public function useDifferentEmail(): void
     {
-        $this->request();
+        $this->sent = false;
+        $this->sentTo = null;
+    }
+
+    public function hasLogo(): bool
+    {
+        return false;
     }
 
     public function getHeading(): string|Htmlable|null
@@ -78,15 +86,21 @@ class RequestPasswordReset extends BaseRequestPasswordReset
             return __('core::auth.forgot_subheading');
         }
 
-        return __('core::auth.reset_sent_body', [
-            'email' => $this->sentTo,
-            'minutes' => PasswordResetService::CODE_TTL_MINUTES,
-        ]);
+        // The address is user input: escaped, then wrapped for the design's emphasis.
+        return new HtmlString(__('core::auth.reset_sent_body', [
+            'email' => '<strong class="cafca-login-email">'.e((string) $this->sentTo).'</strong>',
+        ]));
     }
 
     protected function getEmailFormComponent(): Component
     {
+        $label = __('filament-panels::auth/pages/password-reset/request-password-reset.form.email.label');
+
         return parent::getEmailFormComponent()
+            ->label(new HtmlString(e($label).' <span class="cafca-login-req" aria-hidden="true">*</span>'))
+            ->validationAttribute($label)
+            ->markAsRequired(false)
+            ->autocomplete('username')
             ->placeholder(__('core::auth.email_placeholder'));
     }
 
@@ -98,15 +112,8 @@ class RequestPasswordReset extends BaseRequestPasswordReset
 
     public function content(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                // Closures, not the plain booleans: Filament memoizes the content
-                // schema per component instance, so a value captured here would
-                // stay at its first-render state.
-                $this->getFormContentComponent()
-                    ->visible(fn (): bool => ! $this->sent),
-                View::make('core::filament.auth.password-reset-sent')
-                    ->visible(fn (): bool => $this->sent),
-            ]);
+        // The sent state is rendered by the page view itself (it needs the icon above
+        // the heading and the buttons below), so the schema is only the form.
+        return $schema->components([$this->getFormContentComponent()]);
     }
 }
