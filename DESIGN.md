@@ -118,6 +118,15 @@ Sin overrides propios — el panel hereda el radio de borde default de los compo
 - **Botones de éxito/peligro/advertencia:** mapean 1:1 a `success`/`danger`/`warning`; el texto usa `neutral-900` sobre `warning` (fondo claro) y `neutral-50` sobre `success`/`danger` (fondos más saturados).
 - **Tarjeta de estadística "signature"** (`premium-stat-card.blade.php`): fondo `accent` (Claesen Orange), texto `neutral-50`, tipografía `label-sm`. Es el único componente que usa el acento naranja como color sólido de fondo — todo lo demás lo usa solo como tinte decorativo de bajo porcentaje (ver Elevation & Depth).
 
+## Auth screens (deliberate exception)
+
+Las pantallas de autenticación del backoffice (Sign in hoy; Forgot / Reset password sobre el mismo layout) siguen su propio diseño aprobado, `odd/tasks/backoffice-auth-redesign.reference.html`, igual para el panel de Claesen y el de Electro Bertels. Es la única superficie del backoffice que se aparta de los tokens de arriba, y solo ahí:
+
+- **Layout compartido de dos paneles:** marca a la izquierda (`#07111E`, logos de Claesen y Electro Bertels, rejilla + resplandor + círculos decorativos) y formulario a la derecha (`#F6F8FB`, `max-width: 420px`); apilados por debajo de ~1000px. Vive en `Modules/Core/resources/views/filament/auth/{brand-panel,login-theme}.blade.php`, enganchado a todas las rutas `filament.*.auth.*` en `AdminPanelProvider` (CSS plano, no Tailwind: el panel Bertels no tiene Vite theme).
+- **Tipografía:** Sora 500/600/700 (títulos) + Inter 400/500/600 (resto), cargadas solo en estas pantallas vía `BunnyFontProvider` de Filament. Outfit sigue siendo la fuente del resto de la interfaz.
+- **Color:** azul primario `#1B66C0` (hover `#155AAD`), texto `#0B1727` / `#4A586B`, borde de inputs `#C5CEDB`, error `#8F1236` sobre `#FDEDF1`, foco `3px solid #7DB3F2` con offset 2px. No usan el Claesen Cyan ni el naranja de Bertels: el azul es el mismo en ambos paneles. Siempre en modo claro (sin variante dark).
+- **Controles:** inputs 52px y botones 54px, radius 12px, fuente 16px; todo control interactivo mide al menos 44px. Todos los pares texto/fondo cumplen 4.5:1.
+
 ## Do's and Don'ts
 
 - Do usar Claesen Cyan (`primary`) para toda acción interactiva primaria — es el único color que un usuario debe poder interpretar como "esto es clickeable".

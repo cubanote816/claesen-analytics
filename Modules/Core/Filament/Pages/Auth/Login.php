@@ -39,6 +39,18 @@ class Login extends BaseLogin
     /** CLA-601: the mockup promises "Remember me for 30 days" — make that literally true. */
     private const REMEMBER_MINUTES = 60 * 24 * 30;
 
+    /**
+     * The shared two-panel auth layout (brand panel + form panel) renders its own
+     * <h2> heading, so the page uses the shared view instead of Filament's
+     * simple-page header (whose <h1> would clash with the brand panel's).
+     */
+    protected string $view = 'core::filament.auth.page';
+
+    public function hasLogo(): bool
+    {
+        return false;
+    }
+
     public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable|null
     {
         return filled($this->userUndertakingMultiFactorAuthentication)
@@ -53,31 +65,55 @@ class Login extends BaseLogin
             : __('core::auth.subheading');
     }
 
+    /** Label whose required asterisk is hidden from assistive technology. */
+    private function labelWithRequiredMark(string $label): HtmlString
+    {
+        return new HtmlString(e($label).' <span class="cafca-login-req" aria-hidden="true">*</span>');
+    }
+
     protected function getEmailFormComponent(): \Filament\Schemas\Components\Component
     {
-        return parent::getEmailFormComponent()->placeholder(__('core::auth.email_placeholder'));
+        $label = __('filament-panels::auth/pages/login.form.email.label');
+
+        return parent::getEmailFormComponent()
+            ->label($this->labelWithRequiredMark($label))
+            ->validationAttribute($label)
+            ->markAsRequired(false)
+            ->autocomplete('username')
+            ->placeholder(__('core::auth.email_placeholder'))
+            // The credential failure is shown once, as the role="alert" notice above the
+            // fields (login-alert.blade.php); the stylesheet hides this field's own copy.
+            ->extraFieldWrapperAttributes(['class' => 'cafca-login-field--email']);
     }
 
     protected function getPasswordFormComponent(): \Filament\Schemas\Components\Component
     {
-        $component = parent::getPasswordFormComponent()
-            ->placeholder(__('core::auth.password_placeholder'));
+        $label = __('filament-panels::auth/pages/login.form.password.label');
 
-        // CLA-603: the mockup puts "Forgot password?" on the password label.
-        // Filament renders that link only when the panel has password reset
-        // enabled and with its own label — point it at ours.
+        // The "Forgot password?" link moves to the remember-me row (see below), so the
+        // hint Filament puts on the password label is dropped.
+        return parent::getPasswordFormComponent()
+            ->label($this->labelWithRequiredMark($label))
+            ->validationAttribute($label)
+            ->markAsRequired(false)
+            ->hint(null)
+            ->placeholder(__('core::auth.password_placeholder'));
+    }
+
+    protected function getRememberFormComponent(): \Filament\Schemas\Components\Component
+    {
+        $component = parent::getRememberFormComponent()->label(__('core::auth.remember'));
+
+        // CLA-603: Filament renders the reset link only when the panel has password reset
+        // enabled — point it at that panel's own request route. Sits next to the
+        // remember-me checkbox, as in the approved design.
         if (! filament()->hasPasswordReset()) {
             return $component;
         }
 
         return $component->hint(new HtmlString(Blade::render(
-            '<x-filament::link :href="filament()->getRequestPasswordResetUrl()" tabindex="-1">{{ __(\'core::auth.forgot_password_link\') }}</x-filament::link>'
+            '<a class="cafca-login-link" href="{{ filament()->getRequestPasswordResetUrl() }}">{{ __(\'core::auth.forgot_password_link\') }}</a>'
         )));
-    }
-
-    protected function getRememberFormComponent(): \Filament\Schemas\Components\Component
-    {
-        return parent::getRememberFormComponent()->label(__('core::auth.remember'));
     }
 
     /**

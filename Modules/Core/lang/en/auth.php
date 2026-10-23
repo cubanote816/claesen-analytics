@@ -5,18 +5,19 @@ return [
         'hint' => 'Do you belong to :company?',
         'link' => 'Sign in through your own company\'s panel',
     ],
-    'divider_or' => 'Or',
+    'divider_or' => 'OR',
     'microsoft_login' => 'Sign in with Microsoft',
     // CLA-601: dual-brand login copy. Claesen and Electro Bertels are two
-    // separate trades sharing this one backoffice — the headline/intro name
-    // the shared platform, one bullet per trade names what each company
-    // actually does, and the closing bullet keeps Claesen's original
-    // financial-guardian positioning (still true, now framed as shared value).
+    // separate trades sharing this one backoffice: the headline/intro name the
+    // shared platform and one card per trade names what each company does.
+    'brand_logo_claesen_alt' => 'Claesen Outdoor Lighting',
+    'brand_logo_bertels_alt' => 'Electro Bertels',
     'brand_headline' => 'Two trades, one shared backoffice',
     'brand_intro' => 'Sports lighting and electrical installations — one shared backoffice for both companies.',
-    'brand_bullet_claesen' => 'Claesen — outdoor & stadium sports lighting, every level',
-    'brand_bullet_bertels' => 'Electro Bertels — electrical installations & home automation for homes, businesses and industry',
-    'brand_bullet_shared' => 'Cash-flow guardian & AI auditor for every project',
+    'brand_company_claesen' => 'Claesen',
+    'brand_company_claesen_desc' => 'Outdoor & stadium sports lighting, every level',
+    'brand_company_bertels' => 'Electro Bertels',
+    'brand_company_bertels_desc' => 'Electrical installations & home automation for homes, businesses and industry',
     'brand_footer' => '© :year · All rights reserved',
     'heading' => 'Sign in',
     'subheading' => 'Welcome back. Enter your details to continue.',

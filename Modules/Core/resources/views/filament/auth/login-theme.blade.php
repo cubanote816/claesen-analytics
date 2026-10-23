@@ -1,46 +1,66 @@
 {{--
-    CLA-603: all page-level CSS for the login/auth screens (mockup:
-    diseno/Rediseño de login profesional backoffice/Login.dc.html), extracted
-    from brand-panel.blade.php so it no longer depends on that partial being
-    rendered — and, crucially, no longer depends on the admin panel's Vite
-    theme compiling Tailwind utilities.
+    All page-level CSS for the shared two-panel auth layout (design source of
+    truth: odd/tasks/backoffice-auth-redesign.reference.html): tokens, fonts, the
+    brand panel (brand-panel.blade.php) and the form panel restyle of Filament's
+    simple layout.
 
     Registered on PanelsRenderHook::HEAD_END for every panel's auth routes
     (filament.*.auth.*): the rules restyle .fi-simple-layout/.fi-simple-main-ctn
-    as the mockup's two-column flex shell AND style the brand column, so this
-    file and brand-panel.blade.php must be gated by the same route check.
+    as the two-column flex shell AND style the brand column, so this file and
+    brand-panel.blade.php must be gated by the same route check.
 
-    The per-company brand tokens (--cafca-login-accent*) are injected by
-    brand-panel.blade.php from the panel's own site/organization.
+    Plain <style>, never Tailwind utilities: utilities from resources/css/app.css
+    are not available in panel views, and the bertels panel has no Vite theme at
+    all (CLAUDE.md rule 11). This is the design for BOTH panels — no per-company
+    accent; Filament's panel colours (admin cyan / bertels orange) are overridden
+    on purpose inside the auth screens only.
+
+    The screens are light by design: the HEAD_END script in AdminPanelProvider
+    strips the `dark` class on auth routes, and nothing here has a dark variant.
+
+    T2/T3 (Forgot / Reset password) get the whole shell for free; they only need
+    the shared page view (page.blade.php) and the classes below.
 --}}
-
-@php
-    // CLA-603: brand accent of the company whose panel is being served. Hue comes
-    // from that panel's own ->colors()['primary'] (config/organizations.php
-    // login_brand); lightness/chroma are the approved mockup's. No site mapped →
-    // 255, i.e. the mockup's own blue, never another company's colour.
-    $loginBrand = \Modules\Core\Models\Site::forPanel()?->loginBrand() ?? [];
-    $accentHue = $loginBrand['accent_hue'] ?? 255;
-@endphp
+{{-- Sora (titles) + Inter (everything else), only on the auth pages. Same provider
+     Filament already uses for the panel font (Bunny, GDPR-friendly mirror of Google Fonts). --}}
+{{ app(\Filament\FontProviders\BunnyFontProvider::class)->getHtml('Sora', 'https://fonts.bunny.net/css?family=sora:500,600,700|inter:400,500,600&display=swap') }}
 <style id="cafca-login-theme">
-    /* ---------- Brand accent (per company) ---------- */
+    /* ---------- Tokens ---------- */
     :root {
-        --cafca-login-accent: oklch(0.55 0.16 {{ $accentHue }});
-        --cafca-login-accent-strong: oklch(0.48 0.16 {{ $accentHue }});
-        --cafca-login-dot: oklch(0.7 0.14 {{ $accentHue }});
-        --cafca-login-glow: oklch(0.5 0.16 {{ $accentHue }} / 0.35);
-        --cafca-login-ring: oklch(0.55 0.16 {{ $accentHue }} / 0.15);
+        --auth-brand-bg: #07111E;
+        --auth-brand-text: #C3CEDF;
+        --auth-brand-muted: #9FB0C7;
+        --auth-page-bg: #F6F8FB;
+        --auth-ink: #0B1727;
+        --auth-ink-2: #4A586B;
+        --auth-ink-3: #3F4D61;
+        --auth-border: #C5CEDB;
+        --auth-divider: #D3DAE5;
+        --auth-primary: #1B66C0;
+        --auth-primary-hover: #155AAD;
+        --auth-primary-tint: #E3EEFB;
+        --auth-focus: #7DB3F2;
+        --auth-error: #8F1236;
+        --auth-error-bg: #FDEDF1;
+        --auth-error-border: #F3B7C6;
+        --auth-font-display: 'Sora', 'Inter', sans-serif;
+        --auth-font-body: 'Inter', system-ui, sans-serif;
+
+        /* Legacy names still used by the password screens below (T2/T3 will drop them). */
+        --cafca-login-accent: var(--auth-primary);
+        --cafca-login-accent-strong: var(--auth-primary-hover);
     }
 
-    /* ---------- Page shell (mockup: outer flex container) ---------- */
+    /* ---------- Page shell ---------- */
     html.fi,
     .fi-body {
-        --font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+        --font-family: 'Inter';
+        font-family: var(--auth-font-body) !important;
     }
 
     .fi-body {
-        background: oklch(0.985 0.003 255) !important;
+        background: var(--auth-page-bg) !important;
+        color: var(--auth-ink);
     }
 
     .fi-simple-layout {
@@ -50,231 +70,303 @@
         min-height: 100vh;
     }
 
-    /* ---------- Left brand column ---------- */
+    .fi-simple-layout :focus-visible {
+        outline: 3px solid var(--auth-focus);
+        outline-offset: 2px;
+    }
+
+    /* ---------- Left brand panel ---------- */
     .cafca-login-brand {
-        flex: 1 1 320px;
-        min-width: 0;
-        min-height: 420px;
-        box-sizing: border-box;
         position: relative;
         overflow: hidden;
-        padding: 56px 48px;
+        flex: 1 1 560px;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: clamp(32px, 5vw, 72px);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        color: oklch(0.96 0.004 255);
-        background: linear-gradient(155deg, oklch(0.16 0.03 255), oklch(0.22 0.035 258));
-    }
-
-    .cafca-login-brand__grid {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
+        gap: 56px;
+        color: #fff;
+        background-color: var(--auth-brand-bg);
         background-image:
-            repeating-linear-gradient(0deg, oklch(1 0 0 / 0.04) 0px, transparent 1px, transparent 48px),
-            repeating-linear-gradient(90deg, oklch(1 0 0 / 0.04) 0px, transparent 1px, transparent 48px);
+            radial-gradient(60% 50% at 100% 0%, rgba(34, 118, 210, .30), rgba(7, 17, 30, 0) 70%),
+            linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
+        background-size: auto, 48px 48px, 48px 48px;
     }
 
-    .cafca-login-brand__glow {
+    .cafca-login-brand__rings {
         position: absolute;
-        top: -140px;
-        right: -140px;
-        width: 380px;
-        height: 380px;
-        border-radius: 50%;
+        right: -240px;
+        bottom: -260px;
         pointer-events: none;
-        background: radial-gradient(circle, var(--cafca-login-glow), transparent 70%);
-    }
-
-    .cafca-login-brand__logos,
-    .cafca-login-brand__copy,
-    .cafca-login-brand__footer {
-        position: relative;
-        z-index: 1;
     }
 
     .cafca-login-brand__logos {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 28px;
+        flex-wrap: wrap;
     }
 
-    /* CLA-603: one logo per panel — the company of the site that panel manages.
-       Base height is the mockup's Claesen lockup (65px) and width:auto keeps each
-       logo's aspect ratio instead of the mockup's hard-coded widths, which
-       belonged to its two-logos row; the per-company height comes from
-       config/organizations.php login_brand.logo_height. */
-    .cafca-login-brand__logo {
+    .cafca-login-brand__logos img {
+        height: 52px;
         width: auto;
-        max-width: 100%;
-        object-fit: contain;
+        display: block;
     }
 
-    .cafca-login-brand__copy {
-        max-width: 400px;
+    .cafca-login-brand__sep {
+        width: 1px;
+        height: 36px;
+        background: rgba(255, 255, 255, .2);
     }
 
-    .cafca-login-brand__headline {
-        font-size: 34px;
-        line-height: 1.25;
-        font-weight: 700;
-        margin: 0 0 16px 0;
-        letter-spacing: -0.01em;
-    }
-
-    .cafca-login-brand__intro {
-        font-size: 15px;
-        line-height: 1.6;
-        color: oklch(0.85 0.01 255);
-        margin: 0 0 28px 0;
-    }
-
-    .cafca-login-brand__bullets {
-        list-style: none;
-        margin: 0;
-        padding: 0;
+    .cafca-login-brand__body {
+        position: relative;
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 36px;
+        max-width: 560px;
     }
 
-    .cafca-login-brand__bullets li {
-        display: flex;
-        /* CLA-603: flex-start (not the mockup's center) because our real copy
-           wraps to two lines; the dot then aligns with the first line. */
-        align-items: flex-start;
-        gap: 12px;
-        font-size: 14px;
+    .cafca-login-brand__title {
+        margin: 0;
+        font-family: var(--auth-font-display);
+        font-weight: 600;
+        font-size: clamp(34px, 4vw, 52px);
+        line-height: 1.08;
+        letter-spacing: -.02em;
+        text-wrap: balance;
+    }
+
+    .cafca-login-brand__lead {
+        margin: 16px 0 0;
+        font-size: 17px;
         line-height: 1.6;
-        color: oklch(0.9 0.006 255);
+        color: var(--auth-brand-text);
+        text-wrap: pretty;
+    }
+
+    .cafca-login-brand__companies {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .cafca-login-brand__company {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 18px 20px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .045);
+        border: 1px solid rgba(255, 255, 255, .10);
     }
 
     .cafca-login-brand__dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--cafca-login-dot);
         flex: none;
-        /* centres the 6px dot on the first line: (line-height 1.6 × 14px)/2 − 3px */
-        margin-top: 8px;
+        width: 10px;
+        height: 10px;
+        margin-top: 7px;
+        border-radius: 50%;
     }
 
-    .cafca-login-brand__footer {
-        font-size: 12px;
-        color: oklch(0.62 0.01 255);
+    .cafca-login-brand__company-name {
+        display: block;
+        margin-bottom: 4px;
+        font-family: var(--auth-font-display);
+        font-weight: 600;
+        font-size: 16px;
     }
 
-    /* ---------- Right form column ---------- */
+    .cafca-login-brand__company-desc {
+        display: block;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--auth-brand-text);
+    }
+
+    .cafca-login-brand__foot {
+        position: relative;
+        margin: 0;
+        font-size: 13px;
+        color: var(--auth-brand-muted);
+    }
+
+    /* ---------- Right form panel ---------- */
     .fi-simple-main-ctn {
-        flex: 1 1 340px !important;
+        flex: 1 1 480px !important;
         min-width: 0;
-        min-height: 420px;
         width: auto !important;
         box-sizing: border-box;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 56px 32px;
+        padding: 48px clamp(20px, 5vw, 72px);
+        background: var(--auth-page-bg);
     }
 
     .fi-simple-main {
         width: 100% !important;
-        max-width: 400px !important;
+        max-width: 420px !important;
         margin: 0 !important;
         padding: 0 !important;
         background: transparent !important;
         box-shadow: none !important;
         border-radius: 0 !important;
+        --tw-ring-shadow: 0 0 #0000 !important;
     }
 
     .fi-simple-page-content {
-        row-gap: 0 !important;
+        display: flex !important;
+        flex-direction: column;
+        gap: 28px;
+        row-gap: 28px !important;
+    }
+
+    /* Blocks of the page: heading, notices, form, alternatives — 28px apart. */
+    .fi-simple-page .fi-sc.fi-sc-has-gap {
+        gap: 28px !important;
+    }
+
+    /* Fields inside the form: 20px apart. */
+    .fi-simple-page .fi-sc-form .fi-sc.fi-sc-has-gap {
+        gap: 20px !important;
+    }
+
+    .fi-simple-page .fi-sc-form > .fi-sc.fi-sc-has-gap {
+        gap: 28px !important;
+    }
+
+    /* Heading (page.blade.php; Filament's own header for pages not migrated yet) */
+    .fi-simple-header .fi-logo {
+        display: none !important;
     }
 
     .fi-simple-header {
         align-items: flex-start !important;
     }
 
-    .fi-simple-header .fi-logo {
-        display: none !important;
-    }
-
+    .cafca-login-heading__title,
     .fi-simple-header-heading {
-        font-size: 26px !important;
-        font-weight: 700 !important;
-        line-height: normal !important;
-        color: oklch(0.2 0.01 255) !important;
-        margin: 0 0 6px 0 !important;
-        letter-spacing: -0.01em !important;
+        margin: 0 !important;
+        font-family: var(--auth-font-display);
+        font-weight: 600;
+        font-size: 34px !important;
+        line-height: 1.2 !important;
+        letter-spacing: -.02em;
         text-align: left !important;
+        color: var(--auth-ink) !important;
     }
 
+    .cafca-login-heading__lede,
     .fi-simple-header-subheading {
-        font-size: 14px !important;
-        color: oklch(0.5 0.008 255) !important;
-        margin: 0 0 32px 0 !important;
+        margin: 8px 0 0 !important;
+        font-size: 16px !important;
+        line-height: 1.5;
         text-align: left !important;
+        color: var(--auth-ink-2) !important;
+        text-wrap: pretty;
     }
 
-    .fi-simple-page .fi-sc-form .fi-sc-has-gap {
-        gap: 20px !important;
+    /* Notice above the fields (role="alert") */
+    .cafca-login-alert {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: var(--auth-error-bg);
+        border: 1px solid var(--auth-error-border);
+        color: var(--auth-error);
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .cafca-login-alert svg {
+        flex: none;
+    }
+
+    /* The credential error is shown once, in the notice above — not under the email too. */
+    .cafca-login-field--email [data-validation-error] {
+        display: none;
     }
 
     /* Labels */
     .fi-simple-page .fi-fo-field-label-content {
-        font-size: 13px !important;
+        font-size: 14px !important;
         font-weight: 600 !important;
-        color: oklch(0.3 0.01 255) !important;
+        color: var(--auth-ink) !important;
     }
 
-    .fi-simple-page .fi-fo-field-label-required-mark {
-        top: 0 !important;
-        vertical-align: baseline;
-        font-size: inherit;
-        font-weight: 600;
-        margin-left: 4px;
-        color: var(--cafca-login-accent) !important;
+    .fi-simple-page .fi-fo-field {
+        row-gap: 8px;
     }
 
-    /* Inputs */
+    .cafca-login-req {
+        color: var(--auth-primary);
+    }
+
+    /* Inputs: 52px, radius 12, 16px (no iOS zoom) */
     .fi-simple-page .fi-input-wrp {
-        min-height: 44px;
-        border: 1px solid oklch(0.88 0.005 255);
-        border-radius: 8px !important;
-        background: oklch(1 0 0) !important;
+        min-height: 52px;
+        border: 1px solid var(--auth-border);
+        border-radius: 12px !important;
+        background: #fff !important;
         box-shadow: none !important;
+        --tw-ring-shadow: 0 0 #0000 !important;
     }
 
     .fi-simple-page .fi-input-wrp:focus-within {
-        border-color: var(--cafca-login-accent);
-        box-shadow: 0 0 0 3px var(--cafca-login-ring) !important;
+        border-color: var(--auth-primary);
+        box-shadow: none !important;
+    }
+
+    .fi-simple-page .fi-input-wrp:has(.fi-input:focus-visible) {
+        outline: 3px solid var(--auth-focus);
+        outline-offset: 2px;
     }
 
     .fi-simple-page .fi-input {
-        height: 42px;
-        padding: 0 14px !important;
-        font-size: 15px !important;
-        color: oklch(0.2 0.01 255) !important;
+        height: 50px;
+        padding: 0 16px !important;
+        font-size: 16px !important;
+        color: var(--auth-ink) !important;
+    }
+
+    .fi-simple-page .fi-input:focus-visible {
+        outline: none;
     }
 
     .fi-simple-page .fi-input::placeholder {
-        color: oklch(0.62 0.006 255) !important;
+        color: #6B7686 !important;
     }
 
-    /* Password SHOW / HIDE text toggle instead of the eye icon */
+    /* Password SHOW / HIDE text toggle (44px) instead of the eye icon.
+       The accessible name is Filament's own aria-label ("Show password" / "Hide password"). */
     .fi-simple-page .fi-input-wrp-suffix {
         border: 0 !important;
-        padding-inline: 0 12px !important;
+        padding: 0 6px 0 0 !important;
     }
 
     .fi-simple-page .fi-input-wrp-actions button {
         width: auto !important;
-        height: auto !important;
-        padding: 4px !important;
+        height: 44px !important;
+        min-width: 64px;
+        padding: 0 12px !important;
+        border-radius: 8px !important;
         background: none !important;
         font-size: 12px;
-        font-weight: 700;
-        color: oklch(0.5 0.01 255);
+        font-weight: 600;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--auth-ink-3);
+        cursor: pointer;
     }
 
     .fi-simple-page .fi-input-wrp-actions button svg {
@@ -289,98 +381,142 @@
         content: "{{ __('core::auth.password_hide') }}";
     }
 
-    /* Remember checkbox */
+    /* Remember-me row: checkbox on the left, "Forgot password?" on the right, wrapping on narrow screens. */
+    .fi-simple-page .fi-fo-field-label-ctn:has(.fi-checkbox-input) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        column-gap: 16px;
+    }
+
     .fi-simple-page .fi-checkbox-input {
-        width: 16px !important;
-        height: 16px !important;
+        appearance: auto !important;
+        width: 20px !important;
+        height: 20px !important;
+        margin: 0;
+        accent-color: var(--auth-primary);
+        cursor: pointer;
     }
 
     .fi-simple-page label:has(.fi-checkbox-input) {
-        gap: 9px !important;
+        display: flex;
+        align-items: center;
+        gap: 12px !important;
+        min-height: 44px;
+        cursor: pointer;
     }
 
     .fi-simple-page label:has(.fi-checkbox-input) .fi-fo-field-label-content {
-        font-size: 14px !important;
+        font-size: 15px !important;
         font-weight: 400 !important;
-        color: oklch(0.35 0.01 255) !important;
+        color: #2C3A4E !important;
     }
 
-    /* Primary button */
+    .cafca-login-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--auth-primary);
+        text-decoration: none;
+    }
+
+    .cafca-login-link:hover {
+        text-decoration: underline;
+    }
+
+    /* Primary button: 54px, radius 12, 16px, full width, blue on both panels */
     .fi-simple-page button[type='submit'] {
         width: 100%;
-        height: 46px;
-        margin-top: 4px;
-        border-radius: 8px !important;
-        font-size: 15px !important;
+        min-height: 54px;
+        border-radius: 12px !important;
+        font-size: 16px !important;
         font-weight: 600 !important;
-        background-color: var(--cafca-login-accent) !important;
+        background-color: var(--auth-primary) !important;
         color: #fff !important;
         box-shadow: none !important;
+        --tw-ring-shadow: 0 0 #0000 !important;
     }
 
     .fi-simple-page button[type='submit']:hover {
-        background-color: var(--cafca-login-accent-strong) !important;
+        background-color: var(--auth-primary-hover) !important;
     }
 
-    /* Divider + Microsoft button (microsoft-login-button.blade.php) */
-    /* Mockup: 28px above and below the divider. The schema grid already puts
-       24px before this block, so only 4px more is added on top. */
+    /* Divider + Microsoft button (microsoft-login-button.blade.php).
+       The grid gap between blocks is 28px; the design wants 20px inside the actions group. */
+    .cafca-login-alt {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-top: -8px;
+    }
+
     .cafca-login-divider {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin: 4px 0 28px;
+        gap: 16px;
     }
 
-    .cafca-login-divider__line {
+    .cafca-login-divider::before,
+    .cafca-login-divider::after {
+        content: "";
         flex: 1;
         height: 1px;
-        background: oklch(0.9 0.005 255);
+        background: var(--auth-divider);
     }
 
     .cafca-login-divider__label {
         font-size: 12px;
         font-weight: 600;
-        color: oklch(0.6 0.008 255);
-        letter-spacing: 0.04em;
+        letter-spacing: .08em;
         text-transform: uppercase;
+        color: #5A6779;
     }
 
     .cafca-login-microsoft {
-        width: 100%;
-        height: 46px;
-        box-sizing: border-box;
-        border-radius: 8px;
-        border: 1px solid oklch(0.88 0.005 255);
-        background: oklch(1 0 0);
-        color: oklch(0.25 0.01 255);
-        font-size: 14px;
-        font-weight: 600;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
+        gap: 12px;
+        box-sizing: border-box;
+        width: 100%;
+        height: 54px;
+        border-radius: 12px;
+        border: 1px solid var(--auth-border);
+        background: #fff;
+        color: var(--auth-ink);
+        font-size: 16px;
+        font-weight: 600;
         text-decoration: none;
     }
 
     .cafca-login-microsoft:hover {
-        background: oklch(0.97 0.003 255);
+        background: #F1F5FA;
     }
 
-    .cafca-login-microsoft__icon {
-        display: inline-grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        width: 14px;
-        height: 14px;
-        gap: 1px;
+    .cafca-login-microsoft svg {
+        flex: none;
     }
 
-    /* CLA-603: the mockup's hard-coded hue-255 primary ramp used to live here.
-       Removed on purpose: Filament already generates --primary-50..950 from the
-       panel's own ->colors()['primary'] and scopes it to the panel, so every
-       themed control (checkbox checked, links) is brand-coloured per company
-       without any override — and without a second place to keep in sync. */
+    /* "Do you belong to the other company?" hint (other-panel-hint.blade.php) */
+    .cafca-login-other-panel {
+        margin: 0;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--auth-ink-2);
+    }
+
+    .cafca-login-other-panel a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        font-weight: 600;
+        color: var(--auth-primary);
+        text-decoration: underline;
+    }
 
     /* ---------- Password screens (mockup: forgot / sent / reset / done) ---------- */
     /* Notice tile: 44px, accent at 12% on the sent screen and solid on the

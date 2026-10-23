@@ -46,7 +46,7 @@ class AdminPanelProvider extends PanelProvider
 
             FilamentView::registerRenderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
-                static fn(): string => view('core::filament.auth.microsoft-login-errors')->render(),
+                static fn(): string => view('core::filament.auth.login-alerts')->render(),
             );
 
             FilamentView::registerRenderHook(
@@ -65,7 +65,8 @@ class AdminPanelProvider extends PanelProvider
                     : '',
             );
 
-            // CLA-603 — split-screen login from the approved mockup. Registered
+            // CLA-603 — split-screen login from the approved mockup (now the dual-brand
+            // two-panel auth layout of odd/tasks/backoffice-auth-redesign.md). Registered
             // here because FilamentView::registerRenderHook is global and this
             // provider is already where the backoffice's cross-panel render hooks
             // live: the gate below covers EVERY panel's auth screens (login,

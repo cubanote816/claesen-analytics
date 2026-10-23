@@ -11,9 +11,9 @@
     credenciales son correctas pero no tienes acceso a este panel»: eso último revela que la
     contraseña era válida (enumeración de cuentas). Esto arregla la trampa sin filtrar nada.
 
-    Estilos en línea a propósito: el panel bertels no tiene ->viteTheme(), así que las utilidades
-    de Tailwind que sólo usan las vistas del login no llegan a compilarse ahí (fue exactamente el
-    defecto del icono de Microsoft de CLA-603).
+    Clases de login-theme.blade.php (CSS plano), nunca utilidades de Tailwind: el panel bertels no
+    tiene ->viteTheme(), así que las utilidades que sólo usan las vistas del login no llegan a
+    compilarse ahí (fue exactamente el defecto del icono de Microsoft de CLA-603).
 --}}
 @php
     use Filament\Facades\Filament;
@@ -30,11 +30,8 @@
 @endphp
 
 @if ($otherBrand !== null && $otherPanelExists && $panelId !== $otherPanelId)
-    <p style="margin-top: 1.25rem; text-align: center; font-size: 0.875rem; line-height: 1.5; opacity: 0.75;">
+    <p class="cafca-login-other-panel">
         {{ __('core::auth.other_panel.hint', ['company' => $otherBrand['logo_alt']]) }}
-        <a
-            href="{{ route("filament.{$otherPanelId}.auth.login") }}"
-            style="font-weight: 600; text-decoration: underline;"
-        >{{ __('core::auth.other_panel.link') }}</a>
+        <a href="{{ route("filament.{$otherPanelId}.auth.login") }}">{{ __('core::auth.other_panel.link') }}</a>
     </p>
 @endif

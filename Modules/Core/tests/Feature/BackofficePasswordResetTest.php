@@ -74,18 +74,20 @@ final class BackofficePasswordResetTest extends TestCase
         $this->get('/bertels/password-reset/request')->assertOk();
     }
 
-    public function test_the_screens_render_the_panels_own_brand_column(): void
+    public function test_the_screens_render_the_shared_dual_brand_column_on_both_panels(): void
     {
         $this->bertelsSite();
 
-        $this->get('/bertels/password-reset/request')
-            ->assertOk()
-            ->assertSee('bertels-brand-logo-dark.png')
-            ->assertDontSee('claesen-logo-login.png');
+        foreach (['/password-reset/request', '/bertels/password-reset/request'] as $url) {
+            $this->get($url)
+                ->assertOk()
+                ->assertSee('claesen-logo-login.png')
+                ->assertSee('bertels-logo-dark.png');
 
-        // CLA-603: the css no longer depends on the admin panel's Vite theme, so
-        // the same page must carry the theme partial on the bertels panel too.
-        $this->get('/bertels/password-reset/request')->assertSee('cafca-login-theme', false);
+            // CLA-603: the css no longer depends on the admin panel's Vite theme, so
+            // the same page must carry the theme partial on the bertels panel too.
+            $this->get($url)->assertSee('cafca-login-theme', false);
+        }
     }
 
     public function test_requesting_a_reset_emails_a_link_to_that_panels_own_screen(): void
