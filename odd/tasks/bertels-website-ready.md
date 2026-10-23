@@ -23,7 +23,7 @@ Scope approved by the user on 2026-10-23 (L3). No push in either repo; the merge
 |----|-------|-------|--------|
 | T1 | S1, S2, S3 | worker in the site repo: verify green, `.env.example`, tests for E, commit units A–E + docs | site `57df126`..`81f324b` |
 | T2 | S4 | worker in trunk: Playwright QA of the 6 settings pages + publish, fix what fails | see `git log --grep 'settings pages QA'` |
-| T3 | S5 | parent: docs (S4b done), `handoff.md`, close | — |
+| T3 | S5 | parent: docs (S4b done), `handoff.md`, close | see `git log --grep 'S4b as done'` |
 
 ## Log
 

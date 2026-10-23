@@ -248,7 +248,7 @@ historial (WU4)         → registra el release promovido
 | **S2** | Dividir Ajustes en 6 páginas | **HECHO** (`da1245e`) |
 | **S3** | Cabecera uniforme + barra fija «Unsaved changes / Discard / Save draft» | **HECHO** (`4b0ec17`) |
 | **S4a** | Sync por claves del lado del sitio (`--keys=` + mezcla) — el habilitante del criterio #2 | **HECHO** (sin commitear, línea del sitio) |
-| **S4b** | Panel: botón por página, estados, modal, toast, y badge por diferencia | pendiente |
+| **S4b** | Panel: botón por página, estados, modal, toast, y badge por diferencia | hecho — `794a533`, `cd194e3`, `d4d60ca`, `940b408`; QA en navegador y 3 defectos corregidos en `79a6e5d` (ver `odd/tasks/bertels-website-ready.md` L6) |
 | **S5** | Page publications: filtros, Approve all, drawer con iframe | pendiente (**es WU5b**, con granularidad por página) |
 | **S6** | «New media slot» + consistencia visual + chequeos de <1000 px | pendiente |
 
