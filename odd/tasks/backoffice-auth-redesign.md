@@ -20,6 +20,7 @@ Visual source of truth: `odd/tasks/backoffice-auth-redesign.reference.html` (the
 - IMPORTANTE: NO debe aparecer en ningún sitio el texto "Cash-flow guardian & AI auditor for every project".
 - Abajo: "© 2026 · All rights reserved" (13px, `#9FB0C7`). Usa el año actual dinámico si el proyecto ya lo hace."
 "**Panel derecho (formulario)**, fondo `#F6F8FB`, formulario centrado vertical y horizontalmente, `max-width: 420px`, gap 28px entre bloques."
+Mobile/tablet amendment (L7, updated reference): below 1040px (`@media (max-width:1039px)`) the brand panel becomes a compact header — logos only at 36px height, 16px gap, 20px padding; rings, title block, company cards and footer hidden — and the form panel is top-aligned with padding `32px 20px 96px`.
 
 **S4 — Tokens.** "Fuentes (Google Fonts): Sora 500/600/700 para títulos, Inter 400/500/600 para el resto.
 - Azul primario `#1B66C0` (hover `#155AAD`), texto fuerte `#0B1727`, texto secundario `#4A586B`, borde de inputs `#C5CEDB`, divisor `#D3DAE5`, error texto `#8F1236` sobre `#FDEDF1` con borde `#F3B7C6`, ring de foco `3px solid #7DB3F2` con offset 2px.
@@ -62,6 +63,7 @@ Visual source of truth: `odd/tasks/backoffice-auth-redesign.reference.html` (the
 | T2 | S1–S4, S6, S8 | worker: Forgot password on the shared layout | `0632273` |
 | T3 | S1–S4, S7, S8 | worker: Reset password on the shared layout | see `git log --grep 'Reset password screen'` |
 | T4 | S8, S9 | parent: full auth suite, 390/1440 check, close | same commit as T3 |
+| T5 | S3 (L7), S8 | parent: compact brand header on mobile/tablet per the updated reference | see `git log --grep 'compact brand header'` |
 
 ## Log
 
@@ -150,3 +152,11 @@ Visual source of truth: `odd/tasks/backoffice-auth-redesign.reference.html` (the
 **L5 — 2026-10-23, T2 evidence (worker + parent re-run):** Forgot password restyled on the shared layout with no backend change. `RequestPasswordReset::request()` + `PasswordResetService::sendResetLink()` already give an identical outcome for unknown, inactive, Microsoft-only and not-set-up accounts (silent return, `sent = true`); only existing accounts get the notification; the `rateLimit(2)` throttle is per component and independent of the address. Residual risk (unchanged): an existing account does extra work, so response time may differ slightly. New views `heading.blade.php` (shared h2+lede) and `password-reset-request.blade.php` (form + `role="status"` sent state); `password-reset-sent.blade.php` removed; `resend()` replaced by `useDifferentEmail()`; expiry sentence dropped (not in the spec lede). Tests: `AuthLayoutForgotPasswordTest` + `BackofficePasswordResetTest` 20/20 (121 assertions, parent re-run); worker: `Modules/Core/tests` + `ClaesenBaseline` 431/431; DOM check 390/1440 on both panels' forms and the admin sent state.
 
 **L6 — 2026-10-23, T3 evidence (worker + parent):** Reset password restyled on the shared layout with no backend change. Real policy: Filament `PasswordRule::default()` with no `Password::defaults()` override anywhere = Laravel default, min 8 only (the API requests also use `min:8`); page shows `minlength="8"` + "At least 8 characters.", pinned by a 7-rejected/8-accepted test. The success state was already in-page (`$done`), no redirect replaced. One Show/Hide toggle switches both fields (`x-data` reveal); the mismatch text comes from the existing `same` rule via `validationMessages`; every `password` error (including the 8-char one) renders once as `role="alert"` under the confirm field. Removed the old live requirements checklist, `password-reset-done`/`-requirements` partials and all legacy `oklch` CSS; shared `Concerns/HasRequiredMarkLabel` trait now used by Login, RequestPasswordReset and ResetPassword. T4 suite (parent): `Modules/Core/tests` + `tests/Feature/ClaesenBaseline` + `WebsitePanelSiteScopingTest` = 444 passed, 1715 assertions, 0 failed. DOM check 390/1440 on both panels' reset form; the success state is covered by test only (a real browser reset would mutate dev data).
+
+**L7 — 2026-10-23, user (verbatim), after asking to check with Playwright that the login is not optimal on mobile and being offered layout options:**
+
+> D:\Proyectos\claesen-verlichting\diseno\backoffice-auth-design-reference.html
+
+The updated reference only adds the `@media (max-width:1039px)` compact-header block (diff against the previous reference: +10 lines, nothing else changed); `odd/tasks/backoffice-auth-redesign.reference.html` now holds it (base64 PNGs stripped).
+
+**L8 — 2026-10-23, T5 evidence (parent):** Playwright probe (`playwright-core` 1.64.1 + cached headless Chromium, scratch dir outside the repo) before the fix: on phones the brand panel was 711–770px tall, the first input started at y=889–972, so the form was below the first screen on iPhone SE/14, 320×568 and 844×390, and Filament's email autofocus jumped the initial scroll to 345–713px. After porting the media query to `login-theme.blade.php`: brand header 76px, first input at y=238–399 and inside the first screen on every device for sign-in, forgot and reset on both panels, initial scroll 0, no horizontal overflow; desktop 1440×900 unchanged (brand 900px, logos 52px). Autofocus kept: with the form at the top it no longer moves the page. Remaining: on 320×568 and 844×390 the primary button sits just below the fold.

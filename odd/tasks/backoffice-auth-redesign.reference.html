@@ -104,6 +104,16 @@ body{margin:0;font-family:var(--font-body);background:var(--page-bg);color:var(-
 .state[hidden]{display:none}
 .btn-stack{display:flex;flex-direction:column;gap:12px}
 
+/* ===== Mobile / tablet (stacked): compact brand header, form first ===== */
+@media (max-width:1039px){
+  .screen{align-content:flex-start}
+  .brand{flex:1 1 100%;padding:20px;gap:0}
+  .brand__rings,.brand__body,.brand__foot{display:none}
+  .brand__logos{gap:16px}
+  .brand__logos img{height:36px}
+  .panel{align-items:flex-start;padding:32px 20px 96px}
+}
+
 /* ===== Reference-only switcher (NOT part of the design — do not port) ===== */
 .ref-bar{position:fixed;z-index:10;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:4px;padding:4px;background:#0B1727;border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
 .ref-bar a{color:#C3CEDF;font-size:13px;font-weight:600;text-decoration:none;padding:10px 16px;border-radius:999px}

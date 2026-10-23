@@ -219,6 +219,38 @@
         --tw-ring-shadow: 0 0 #0000 !important;
     }
 
+    /* ---------- Mobile / tablet (stacked): compact brand header, form first ---------- */
+    @media (max-width: 1039px) {
+        .fi-simple-layout {
+            align-content: flex-start;
+        }
+
+        .cafca-login-brand {
+            flex: 1 1 100%;
+            padding: 20px;
+            gap: 0;
+        }
+
+        .cafca-login-brand__rings,
+        .cafca-login-brand__body,
+        .cafca-login-brand__foot {
+            display: none;
+        }
+
+        .cafca-login-brand__logos {
+            gap: 16px;
+        }
+
+        .cafca-login-brand__logos img {
+            height: 36px;
+        }
+
+        .fi-simple-main-ctn {
+            align-items: flex-start;
+            padding: 32px 20px 96px;
+        }
+    }
+
     .fi-simple-page-content {
         display: flex !important;
         flex-direction: column;
