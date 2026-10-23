@@ -12,6 +12,7 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\HtmlString;
+use Modules\Core\Filament\Pages\Auth\Concerns\HasRequiredMarkLabel;
 use Modules\Core\Services\PasswordResetService;
 
 /**
@@ -28,6 +29,8 @@ use Modules\Core\Services\PasswordResetService;
  */
 class RequestPasswordReset extends BaseRequestPasswordReset
 {
+    use HasRequiredMarkLabel;
+
     protected string $view = 'core::filament.auth.password-reset-request';
 
     /** CLA-603: the "Check your inbox" screen. */
@@ -97,7 +100,7 @@ class RequestPasswordReset extends BaseRequestPasswordReset
         $label = __('filament-panels::auth/pages/password-reset/request-password-reset.form.email.label');
 
         return parent::getEmailFormComponent()
-            ->label(new HtmlString(e($label).' <span class="cafca-login-req" aria-hidden="true">*</span>'))
+            ->label($this->labelWithRequiredMark($label))
             ->validationAttribute($label)
             ->markAsRequired(false)
             ->autocomplete('username')

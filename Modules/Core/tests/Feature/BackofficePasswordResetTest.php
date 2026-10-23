@@ -187,8 +187,8 @@ final class BackofficePasswordResetTest extends TestCase
             ])
             ->call('resetPassword')
             ->assertSet('done', true)
-            ->assertSee('cafca-login-panel')
-            ->assertDontSee('fi-sc-form');
+            ->assertSeeHtml('role="status"')
+            ->assertDontSeeHtml('fi-sc-form');
     }
 
     public function test_an_expired_code_is_rejected_and_the_password_is_untouched(): void

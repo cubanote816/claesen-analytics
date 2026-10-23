@@ -18,7 +18,7 @@
     The screens are light by design: the HEAD_END script in AdminPanelProvider
     strips the `dark` class on auth routes, and nothing here has a dark variant.
 
-    T2/T3 (Forgot / Reset password) get the whole shell for free; they only need
+    Forgot / Reset password get the whole shell for free; a page only needs
     the shared page view (page.blade.php) and the classes below.
 --}}
 {{-- Sora (titles) + Inter (everything else), only on the auth pages. Same provider
@@ -46,9 +46,6 @@
         --auth-font-display: 'Sora', 'Inter', sans-serif;
         --auth-font-body: 'Inter', system-ui, sans-serif;
 
-        /* Legacy names still used by the password screens below (T2/T3 will drop them). */
-        --cafca-login-accent: var(--auth-primary);
-        --cafca-login-accent-strong: var(--auth-primary-hover);
     }
 
     /* ---------- Page shell ---------- */
@@ -590,78 +587,42 @@
         background: #F1F5FA;
     }
 
-    /* ---------- Reset password screens (T3 still uses these; legacy) ---------- */
-    /* Notice tile: 44px, accent at 12% on the sent screen and solid on the
-       success one (mockup's own two treatments). */
-    .cafca-login-notice {
-        width: 44px;
+    /* ---------- Reset password (password-reset-reset.blade.php) ---------- */
+    .cafca-login-toggle {
         height: 44px;
-        border-radius: 10px;
-        background: color-mix(in oklab, var(--cafca-login-accent) 12%, transparent);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 24px;
-    }
-
-    .cafca-login-notice--done {
-        border-radius: 50%;
-        background: var(--cafca-login-accent);
-    }
-
-    .cafca-login-notice__check {
-        width: 14px;
-        height: 9px;
-        border-left: 2.5px solid #fff;
-        border-bottom: 2.5px solid #fff;
-        transform: rotate(-45deg) translate(1px, -1px);
-    }
-
-    .cafca-login-primary-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 46px;
+        min-width: 64px;
+        padding: 0 12px;
+        border: 0;
         border-radius: 8px;
-        background: var(--cafca-login-accent);
-        color: #fff !important;
-        font-size: 15px;
+        background: transparent;
+        font: inherit;
+        font-size: 12px;
         font-weight: 600;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--auth-ink-3);
+        cursor: pointer;
     }
 
-    .cafca-login-primary-button:hover {
-        background: var(--cafca-login-accent-strong);
-        color: #fff !important;
+    .fi-simple-page .fi-input-wrp-suffix:has(.cafca-login-toggle) {
+        border: 0 !important;
+        padding: 0 6px 0 0 !important;
     }
 
-    /* One line per requirement, each with a 6px dot that turns green once met. */
-    .cafca-login-requirements {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        padding: 14px 16px;
-        border-radius: 8px;
-        background: oklch(0.97 0.003 255);
-    }
-
-    .cafca-login-requirement {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+    .cafca-login-hint {
         font-size: 13px;
-        color: oklch(0.6 0.008 255);
+        color: var(--auth-ink-2);
     }
 
-    .cafca-login-requirement__dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: currentColor;
-        flex: none;
+    .cafca-login-field-error {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--auth-error);
     }
 
-    .cafca-login-requirement.is-met {
-        color: oklch(0.55 0.14 150);
+    /* The new-password field's own error copy is shown once, under the confirm field. */
+    .cafca-login-field--alert-below [data-validation-error] {
+        display: none;
     }
 </style>

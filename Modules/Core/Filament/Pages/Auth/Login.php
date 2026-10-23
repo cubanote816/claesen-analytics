@@ -16,6 +16,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
+use Modules\Core\Filament\Pages\Auth\Concerns\HasRequiredMarkLabel;
 use Modules\Core\Models\User;
 
 /**
@@ -36,6 +37,8 @@ use Modules\Core\Models\User;
  */
 class Login extends BaseLogin
 {
+    use HasRequiredMarkLabel;
+
     /** CLA-601: the mockup promises "Remember me for 30 days" — make that literally true. */
     private const REMEMBER_MINUTES = 60 * 24 * 30;
 
@@ -63,12 +66,6 @@ class Login extends BaseLogin
         return filled($this->userUndertakingMultiFactorAuthentication)
             ? parent::getSubheading()
             : __('core::auth.subheading');
-    }
-
-    /** Label whose required asterisk is hidden from assistive technology. */
-    private function labelWithRequiredMark(string $label): HtmlString
-    {
-        return new HtmlString(e($label).' <span class="cafca-login-req" aria-hidden="true">*</span>');
     }
 
     protected function getEmailFormComponent(): \Filament\Schemas\Components\Component

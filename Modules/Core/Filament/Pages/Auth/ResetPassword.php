@@ -11,8 +11,11 @@ use Filament\Auth\Http\Responses\Contracts\PasswordResetResponse;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\View;
+use Illuminate\Support\HtmlString;
+use Modules\Core\Filament\Pages\Auth\Concerns\HasRequiredMarkLabel;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Validation\ValidationException;
 use Modules\Core\Services\PasswordResetService;
 
@@ -32,6 +35,17 @@ use Modules\Core\Services\PasswordResetService;
  */
 class ResetPassword extends BaseResetPassword
 {
+    use HasRequiredMarkLabel;
+
+    protected string $view = 'core::filament.auth.password-reset-reset';
+
+    /**
+     * The project's real password policy for this page: Filament's `PasswordRule::default()`
+     * (nothing calls Password::defaults(), so Laravel's default: min 8, nothing else), the same
+     * `min:8` the API requests use. Only mirrored in the `minlength` attribute and the hint.
+     */
+    private const PASSWORD_MIN_LENGTH = 8;
+
     /** CLA-603: the mockup's "Password updated" screen. */
     public bool $done = false;
 
@@ -68,6 +82,11 @@ class ResetPassword extends BaseResetPassword
         return null;
     }
 
+    public function hasLogo(): bool
+    {
+        return false;
+    }
+
     public function getHeading(): string|Htmlable|null
     {
         return __($this->done ? 'core::auth.reset_done_heading' : 'core::auth.reset_new_heading');
@@ -79,9 +98,8 @@ class ResetPassword extends BaseResetPassword
     }
 
     /**
-     * The mockup's reset screen shows only the two password fields — no
-     * (disabled) email field, which is Filament's own layout, and the
-     * requirements checklist between the fields and the submit button.
+     * Only the two password fields (no disabled email field, which is Filament's own layout).
+     * The reset token and email stay as Livewire properties filled from the signed URL.
      */
     public function form(Schema $schema): Schema
     {
@@ -89,22 +107,41 @@ class ResetPassword extends BaseResetPassword
             ->components([
                 $this->getPasswordFormComponent(),
                 $this->getPasswordConfirmationFormComponent(),
-                View::make('core::filament.auth.password-reset-requirements'),
             ]);
     }
 
     public function getPasswordFormComponent(): Component
     {
+        $label = __('core::auth.reset_new_password_label');
+
         return parent::getPasswordFormComponent()
-            ->label(__('core::auth.reset_new_password_label'))
-            ->placeholder(__('core::auth.reset_new_password_placeholder'));
+            ->label($this->labelWithRequiredMark($label))
+            ->validationAttribute($label)
+            ->markAsRequired(false)
+            // One toggle (below) switches both fields; the per-field eye icon goes away.
+            ->revealable(false)
+            ->suffix(new HtmlString(Blade::render('<button type="button" class="cafca-login-toggle" x-on:click="reveal = ! reveal" x-bind:aria-label="reveal ? \'{{ __(\'core::auth.reset_hide_passwords\') }}\' : \'{{ __(\'core::auth.reset_show_passwords\') }}\'" aria-label="{{ __(\'core::auth.reset_show_passwords\') }}"><span x-text="reveal ? \'{{ __(\'core::auth.password_hide\') }}\' : \'{{ __(\'core::auth.password_show\') }}\'">{{ __(\'core::auth.password_show\') }}</span></button>')))
+            ->extraInputAttributes([
+                'minlength' => self::PASSWORD_MIN_LENGTH,
+                'aria-describedby' => 'reset-password-hint',
+                'x-bind:type' => "reveal ? 'text' : 'password'",
+            ])
+            // The real `same:passwordConfirmation` rule keeps validating; only its text changes,
+            // and it is shown once, as an alert under the confirm field.
+            ->validationMessages(['same' => __('core::auth.reset_passwords_mismatch')])
+            ->extraFieldWrapperAttributes(['class' => 'cafca-login-field--alert-below'])
+            ->belowContent(new HtmlString('<span class="cafca-login-hint" id="reset-password-hint">'.e(__('core::auth.reset_password_hint', ['min' => self::PASSWORD_MIN_LENGTH])).'</span>'));
     }
 
     public function getPasswordConfirmationFormComponent(): Component
     {
+        $label = __('core::auth.reset_confirm_password_label');
+
         return parent::getPasswordConfirmationFormComponent()
-            ->label(__('core::auth.reset_confirm_password_label'))
-            ->placeholder(__('core::auth.reset_confirm_password_placeholder'));
+            ->label($this->labelWithRequiredMark($label))
+            ->markAsRequired(false)
+            ->extraInputAttributes(['x-bind:type' => "reveal ? 'text' : 'password'"])
+            ->belowContent(View::make('core::filament.auth.password-reset-mismatch'));
     }
 
     public function getResetPasswordFormAction(): Action
@@ -115,15 +152,7 @@ class ResetPassword extends BaseResetPassword
 
     public function content(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                // Closures, not the plain booleans: Filament memoizes the content
-                // schema per component instance, so a value captured here would
-                // stay at its first-render state.
-                $this->getFormContentComponent()
-                    ->visible(fn (): bool => ! $this->done),
-                View::make('core::filament.auth.password-reset-done')
-                    ->visible(fn (): bool => $this->done),
-            ]);
+        // The success state is rendered by the page view (icon above the heading, link below).
+        return $schema->components([$this->getFormContentComponent()]);
     }
 }
