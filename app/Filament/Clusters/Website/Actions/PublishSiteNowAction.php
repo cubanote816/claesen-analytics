@@ -36,6 +36,18 @@ class PublishSiteNowAction
             ->modalHeading(__('website.publication.actions.publish_now_confirm_title'))
             ->modalDescription(__('website.publication.actions.publish_now_confirm_body'))
             ->action(function (): void {
+                // With the pipeline off `requestRebuild()` does nothing, so a success notice
+                // would announce a publication that never happened (same gate as the
+                // per-section action).
+                if (! config('static_site.enabled')) {
+                    Notification::make()
+                        ->title(__('website.publication.actions.publish_section_disabled'))
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
                 app(StaticSitePublicationService::class)
                     ->requestRebuild(reason: 'manual', force: true);
 

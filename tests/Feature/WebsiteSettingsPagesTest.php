@@ -266,6 +266,22 @@ final class WebsiteSettingsPagesTest extends TestCase
     }
 
     /**
+     * The bar is `position: fixed`, so it needs a spacer to leave room for the last field; the
+     * spacer must exist exactly when the bar does. Found in the 390px browser QA.
+     */
+    public function test_the_unsaved_bar_reserves_room_so_it_never_covers_the_last_field(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        Livewire::test(GeneralSettingsPage::class)
+            ->assertDontSeeHtml('claesen-unsaved-bar-spacer"')
+            ->fillForm(['legal_name' => 'Changed name'])
+            ->assertSeeHtml('claesen-unsaved-bar-spacer"')
+            ->call('discard')
+            ->assertDontSeeHtml('claesen-unsaved-bar-spacer"');
+    }
+
+    /**
      * Y volver al valor guardado **no** cuenta como cambio.
      *
      * Es la diferencia con el badge de la navegación, que cuenta cambios **hechos**: acá la pregunta
@@ -510,6 +526,42 @@ final class WebsiteSettingsPagesTest extends TestCase
 
         Http::assertNothingSent();
         Queue::assertNothingPushed();
+    }
+
+    /**
+     * The whole-site action used to announce "Publication requested" even with the pipeline off,
+     * where `requestRebuild()` is a silent no-op — a success notice for something that never
+     * happened. Found in the browser QA of the settings pages.
+     */
+    public function test_publish_now_does_not_claim_success_when_publishing_is_disabled(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        config(['static_site.enabled' => false]);
+
+        Queue::fake();
+        Http::fake();
+
+        Livewire::test(ContactSettingsPage::class)
+            ->callAction('publish_now')
+            ->assertNotified(__('website.publication.actions.publish_section_disabled'))
+            ->assertNotNotified(__('website.publication.actions.publish_now_success'));
+
+        Http::assertNothingSent();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_publish_now_still_reports_the_request_when_publishing_is_enabled(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+
+        Queue::fake();
+
+        Livewire::test(ContactSettingsPage::class)
+            ->callAction('publish_now')
+            ->assertNotified(__('website.publication.actions.publish_now_success'))
+            ->assertNotNotified(__('website.publication.actions.publish_section_disabled'));
     }
 
     /**
@@ -887,5 +939,43 @@ final class WebsiteSettingsPagesTest extends TestCase
             [['platform' => 'facebook', 'url' => 'https://fb.example']],
             $this->stored('social_links'),
         );
+    }
+
+    /**
+     * The browser keys Repeater rows by uuid, not by 0..n (Filament state is uuid-indexed), and
+     * `fillForm()` with a plain list hid that: the stored column became a uuid-keyed object, and
+     * the unsaved bar stayed on after saving. Found in the browser QA of the six pages.
+     */
+    public function test_social_links_stay_a_list_when_the_repeater_rows_are_keyed_by_uuid(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        Livewire::test(SocialLinksSettingsPage::class)
+            ->fillForm([
+                'social_links' => [
+                    'd55886b3-43dd-4400-8165-169c1da963c6' => ['platform' => 'facebook', 'url' => 'https://fb.example'],
+                ],
+            ])
+            ->assertSee(__('website.settings_bar.unsaved'))
+            ->call('save')
+            ->assertDontSee(__('website.settings_bar.unsaved'));
+
+        $stored = $this->stored('social_links');
+
+        $this->assertTrue(array_is_list($stored), 'social_links must be stored as a JSON list, not an object');
+        $this->assertEquals([['platform' => 'facebook', 'url' => 'https://fb.example']], $stored);
+    }
+
+    public function test_the_unsaved_bar_is_off_when_opening_a_page_with_saved_social_links(): void
+    {
+        $this->actingAsSuperAdmin();
+        SiteSetting::factory()->create([
+            'key'   => 'social_links',
+            'type'  => SiteSetting::TYPE_JSON,
+            'value' => [['platform' => 'facebook', 'url' => 'https://fb.example']],
+        ]);
+
+        Livewire::test(SocialLinksSettingsPage::class)
+            ->assertDontSee(__('website.settings_bar.unsaved'));
     }
 }

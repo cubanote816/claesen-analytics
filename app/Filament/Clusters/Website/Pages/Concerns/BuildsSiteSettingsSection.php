@@ -232,6 +232,20 @@ trait BuildsSiteSettingsSection
                     ->all();
             }
 
+            if ($key === 'social_links') {
+                // Las filas del `Repeater` llegan indexadas por uuid: sin `array_values()` la
+                // columna se guardaría como un objeto JSON (no como la lista del contrato) y la
+                // barra de cambios nunca se apagaría, porque lo guardado no se parece al estado.
+                $value = collect(is_array($value) ? $value : [])
+                    ->filter(fn (mixed $row): bool => is_array($row))
+                    ->map(fn (array $row): array => [
+                        'platform' => $row['platform'] ?? null,
+                        'url' => $row['url'] ?? null,
+                    ])
+                    ->values()
+                    ->all();
+            }
+
             if ($key === 'opening_hours') {
                 // El `Toggle` decide, no los rangos que quedaron en el estado: el contrato expresa
                 // «cerrado» como `hours: null`, y lo que la lista de días no define se descarta.

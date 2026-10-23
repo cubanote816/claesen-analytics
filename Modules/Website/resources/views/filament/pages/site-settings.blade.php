@@ -23,6 +23,12 @@
             box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
         }
 
+        /* The bar is fixed, so it takes no room in the page: without this spacer the last field
+           can never be scrolled above it (measured at 390px: the bottom input sat under the bar). */
+        .claesen-unsaved-bar-spacer {
+            height: 5rem;
+        }
+
         .claesen-unsaved-bar-text {
             font-size: 0.875rem;
             color: #4b5563;
@@ -67,6 +73,8 @@
         «sucio» en cada render. Ver el trait, donde el mapeo es el mismo que usa el guardado.
     --}}
     @if ($this->hasUnsavedChanges())
+        <div class="claesen-unsaved-bar-spacer" aria-hidden="true"></div>
+
         <div class="claesen-unsaved-bar" role="status">
             <span class="claesen-unsaved-bar-text">
                 {{ __('website.settings_bar.unsaved') }}
