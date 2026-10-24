@@ -16,7 +16,7 @@ Merging to `main` deploys to `prod-priv-01` (`.github/workflows/deploy.yml`, pus
 
 | ID | Specs | Route | Commit |
 |----|-------|-------|--------|
-| T1 | S1 | worker: KNX feature flag (link + routes), tests | — |
+| T1 | S1 | worker: KNX feature flag (link + routes), tests | `122a1d9` |
 | T2 | S2 | parent: push trunk, open draft PR trunk → main, watch CI | — |
 
 ## Log
@@ -26,3 +26,6 @@ Merging to `main` deploys to `prod-priv-01` (`.github/workflows/deploy.yml`, pus
 **L2 — 2026-10-24, parent answer (evidence):** not yet. CI never ran on trunk (`tests.yml` runs only on push to main and on pull_request; `gh run list --branch electrobertels/trunk` empty); trunk is 242 commits / 56 migrations ahead of `origin/main`; no staging (CLA-530/531) and the deploy "Verify deployment" step fails since 2026-09-22; post-deploy commands needed (`website:migrate-media-to-private-disk`, `core:backfill-user-organizations`); CLA-576/577 reminders (production `GEMINI_API_URL` still `us-central1`, Claude vision direct API); the `main` checkout has 5 uncommitted superseded CLA-601 login files; `origin/main` and local `main` are both contained in trunk.
 
 **L3 — 2026-10-24, user (verbatim):** "adelante comienza" — on the proposal: "1. Flag de KNX apagado por defecto, con test. 2. Abrir un PR `trunk → main` en draft, solo para que corra el CI. No dispara deploy. 3. Probar las migraciones sobre una copia de la base y armar la checklist de deploy (backup, comandos post-deploy, `.env` de Gemini). 4. Recién con eso en verde, el merge." with the question "¿Arranco con los pasos 1 y 2?"
+
+**L4 — 2026-10-24, T1 evidence (worker + parent):** `config('knx.enabled')` (env `KNX_ENABLED`, default `false`) gates the 44 `/api/v1/knx/*` routes and `/bertels/knx` with a `knx.enabled` middleware that answers a plain 404 (before auth, so anonymous callers also get 404), hides the Bertels nav item, and makes the KNX error envelope stand down. No KNX schedule, Filament surface, listener, mail or command exists; `GenerateKnxExportJob` is only dispatched from a gated controller; roles and migrations untouched. Route snapshot regenerated (only the 45 KNX lines gain the middleware; count unchanged). Suite runs with `KNX_ENABLED=true` (phpunit.xml); dev `.env` gets `KNX_ENABLED=true`. RED observed (5 failed) before the gate. Tests: `KnxFeatureFlagTest` 7/7; parent re-run `KnxFeatureFlagTest` + `RouteInventorySnapshotTest` + `BertelsSidebarTest` 13/13; worker `Modules/Knx/tests` 188 passed / 1 skipped (the 1 failure was the new test's own assertion, fixed and re-run green), `ClaesenBaseline` 78/78.
+
