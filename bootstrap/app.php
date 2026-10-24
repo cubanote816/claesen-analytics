@@ -33,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'abilities' => CheckAbilities::class,
             'organization' => RequireOrganization::class,
+            'knx.enabled' => \Modules\Knx\Http\Middleware\EnsureKnxEnabled::class,
         ]);
         $middleware->web(append: [
             AssignCorrelationId::class,

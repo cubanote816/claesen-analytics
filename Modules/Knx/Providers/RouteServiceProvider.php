@@ -14,7 +14,7 @@ class RouteServiceProvider extends ServiceProvider
         // docs/BACKEND-API.md §2.1 keeps every path relative to /api; this repo
         // versions module APIs, so the office app points VITE_API_BASE_URL at
         // /api/v1/knx and needs no code change.
-        Route::middleware('api')
+        Route::middleware(['knx.enabled', 'api'])
             ->prefix('api')
             ->name('api.')
             ->group(module_path($this->name, '/routes/api.php'));

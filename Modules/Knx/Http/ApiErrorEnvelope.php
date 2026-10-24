@@ -57,7 +57,8 @@ final class ApiErrorEnvelope
 
     public static function handles(Request $request): bool
     {
-        return $request->is('api/v1/knx/*');
+        // Flag off: KNX must look like any unknown path, so no KNX-shaped body.
+        return config('knx.enabled') && $request->is('api/v1/knx/*');
     }
 
     public static function render(Throwable $exception, Request $request): ?JsonResponse

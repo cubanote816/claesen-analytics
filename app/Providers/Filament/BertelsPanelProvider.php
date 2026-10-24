@@ -139,7 +139,7 @@ class BertelsPanelProvider extends PanelProvider
                     // así que «puede entrar al panel» dejó de implicar «es de la casa».
                     // Sin esto, el cliente vería la entrada a una app de personal. La
                     // ruta vuelve a comprobarlo; aquí solo se evita ofrecérsela.
-                    ->visible(fn (): bool => (bool) auth()->user()?->canOpenKnxOffice()),
+                    ->visible(fn (): bool => (bool) config('knx.enabled') && (bool) auth()->user()?->canOpenKnxOffice()),
                 NavigationItem::make(fn () => __('navigation.switch_to_claesen'))
                     ->url(fn () => route('core.switch-panel', ['panel' => 'admin', 'from' => 'bertels']))
                     ->icon('heroicon-o-arrow-uturn-left')

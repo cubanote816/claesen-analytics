@@ -63,7 +63,8 @@ Route::middleware(['web', 'auth'])->group(function () {
 // el menú del panel Bertels, deliberadamente fuera del shell de Filament —
 // ver KnxLandingController. Mismo patrón que las rutas anteriores: fuera de
 // cualquier grupo de panel, con la autorización dentro del controller.
-Route::middleware(['web', 'auth'])->group(function () {
+// El flag `knx.enabled` (KNX_ENABLED) la apaga con 404 mientras KNX no salga a producción.
+Route::middleware(['knx.enabled', 'web', 'auth'])->group(function () {
     Route::get('/bertels/knx', \Modules\Core\Http\Controllers\KnxLandingController::class)
         ->name('bertels.knx');
 });

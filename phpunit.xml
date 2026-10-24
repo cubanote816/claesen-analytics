@@ -44,6 +44,10 @@
              real transport by default. Tests that exercise Microsoft Graph
              behaviour set config('app.mailing_driver') = 'microsoft-graph' per case. -->
         <env name="MAILING_DRIVER" value="simulation"/>
+        <!-- KNX release flag: off by default (production), on for the suite so the
+             KNX tests exercise the module. KnxFeatureFlagTest pins the default
+             and flips the flag per case. -->
+        <env name="KNX_ENABLED" value="true"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

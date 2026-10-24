@@ -4,6 +4,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Release flag
+    |--------------------------------------------------------------------------
+    |
+    | KNX is not ready for production. While this is false the nav link is
+    | hidden and every KNX route (API and the Bertels landing) answers 404, see
+    | Modules\Knx\Http\Middleware\EnsureKnxEnabled. Migrations are unaffected:
+    | the tables are created on deploy either way. Backed by KNX_ENABLED; read it
+    | through config(), never env().
+    |
+    */
+    'enabled' => (bool) env('KNX_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Tenant
     |--------------------------------------------------------------------------
     |
