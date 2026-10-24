@@ -5,6 +5,7 @@ namespace Modules\Employee\Filament\Widgets;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Log;
+use Modules\Core\Support\CurrentPage;
 use Modules\Employee\Services\EmployeeDashboardRankingService;
 
 class EmployeeHoursSummaryWidget extends Widget
@@ -15,7 +16,7 @@ class EmployeeHoursSummaryWidget extends Widget
 
     public static function canView(): bool
     {
-        return request()->routeIs('filament.admin.pages.dashboard');
+        return CurrentPage::is('filament.admin.pages.dashboard');
     }
 
     public string $selectedMonth = '';
