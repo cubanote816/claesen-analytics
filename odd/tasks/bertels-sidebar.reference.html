@@ -1,0 +1,68 @@
+<!-- Sidebar agrupado por categorías. Usa Inter + Lucide (mismos iconos/tipografía del panel actual). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap">
+<script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+<style>
+.sb{width:180px;padding:22px 10px;display:flex;flex-direction:column;gap:14px;font:600 11px Inter,sans-serif;color:#e8e6e3;background:#262628}
+.sb-list{display:flex;flex-direction:column;gap:2px}
+.sb-item{display:flex;align-items:center;gap:9px;padding:6px 7px;border-radius:5px;color:inherit;text-decoration:none}
+.sb-item:hover{background:#2f2f32}
+.sb-item svg{width:13px;height:13px;color:#9a9893;flex:none}
+.sb-item span{flex:1}
+.sb-item.active{background:#333336;color:#f07a2a}
+.sb-item.active svg{color:#f07a2a}
+.sb-badge{background:#3a3a3d;border-radius:3px;padding:1px 5px;font-size:8px;color:#e8e6e3}
+.sb-group>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:4px 5px;font-size:10px;font-weight:500;color:#9a9893;cursor:pointer;user-select:none}
+.sb-group>summary::-webkit-details-marker{display:none}
+.sb-group>summary svg{width:11px;height:11px;transition:transform .15s}
+.sb-group:not([open])>summary svg{transform:rotate(180deg)}
+</style>
+
+<nav class="sb">
+  <div class="sb-list">
+    <a class="sb-item" href="#"><i data-lucide="house"></i><span>Dashboard</span></a>
+    <a class="sb-item" href="#"><i data-lucide="zap"></i><span>KNX</span></a>
+    <a class="sb-item" href="#"><i data-lucide="undo-2"></i><span>Switch to Claesen</span></a>
+  </div>
+
+  <details class="sb-group" open>
+    <summary>Publishing <i data-lucide="chevron-up"></i></summary>
+    <div class="sb-list">
+      <a class="sb-item" href="#"><i data-lucide="send"></i><span>Publishing</span></a>
+      <a class="sb-item" href="#"><i data-lucide="circle-check"></i><span>Page publications</span></a>
+      <a class="sb-item" href="#"><i data-lucide="clock"></i><span>Publications</span></a>
+      <a class="sb-item" href="#"><i data-lucide="languages"></i><span>Translation review</span></a>
+    </div>
+  </details>
+
+  <details class="sb-group" open>
+    <summary>Content <i data-lucide="chevron-up"></i></summary>
+    <div class="sb-list">
+      <a class="sb-item" href="#"><i data-lucide="globe"></i><span>Website</span></a>
+      <a class="sb-item" href="#"><i data-lucide="folder-open"></i><span>Content</span></a>
+      <a class="sb-item" href="#"><i data-lucide="megaphone"></i><span>Announcements</span></a>
+      <a class="sb-item" href="#"><i data-lucide="image"></i><span>Media slots</span></a>
+      <a class="sb-item" href="#"><i data-lucide="briefcase"></i><span>Projects</span></a>
+    </div>
+  </details>
+
+  <details class="sb-group" open>
+    <summary>Site settings <i data-lucide="chevron-up"></i></summary>
+    <div class="sb-list">
+      <a class="sb-item active" href="#"><i data-lucide="building"></i><span>General</span><em class="sb-badge">3</em></a>
+      <a class="sb-item" href="#"><i data-lucide="phone"></i><span>Contact</span></a>
+      <a class="sb-item" href="#"><i data-lucide="map-pin"></i><span>Address &amp; maps</span><em class="sb-badge">18</em></a>
+      <a class="sb-item" href="#"><i data-lucide="clock"></i><span>Opening hours</span><em class="sb-badge">6</em></a>
+      <a class="sb-item" href="#"><i data-lucide="share-2"></i><span>Social links</span><em class="sb-badge">1</em></a>
+      <a class="sb-item" href="#"><i data-lucide="shield-check"></i><span>Privacy &amp; consent</span><em class="sb-badge">2</em></a>
+    </div>
+  </details>
+
+  <details class="sb-group" open>
+    <summary>Inbox <i data-lucide="chevron-up"></i></summary>
+    <div class="sb-list">
+      <a class="sb-item" href="#"><i data-lucide="inbox"></i><span>Inbox</span></a>
+      <a class="sb-item" href="#"><i data-lucide="inbox"></i><span>Consultation Requests</span><em class="sb-badge">3</em></a>
+    </div>
+  </details>
+</nav>
+<script>lucide.createIcons();</script>

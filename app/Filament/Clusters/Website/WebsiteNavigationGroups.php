@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Clusters\Website;
 
+use Filament\Navigation\NavigationGroup;
+
 /**
  * Los cuatro grupos del submenú de Website (WU-S1 del rediseño del backoffice).
  *
@@ -49,5 +51,27 @@ final class WebsiteNavigationGroups
             self::SITE_SETTINGS => 'heroicon-o-cog-6-tooth',
             self::INBOX         => 'heroicon-o-inbox',
         };
+    }
+
+    /**
+     * Los cuatro grupos como grupos de navegación **del panel** (reference:
+     * odd/tasks/bertels-sidebar.reference.html): cada uno es un grupo colapsable del sidebar, en el
+     * orden del prototipo, y sus ítems son los de las páginas del clúster, que se registran planos
+     * (ver `WebsiteCluster::getNavigationItems()`).
+     *
+     * La etiqueta es un closure (CLAUDE.md regla 10): `panel()` corre una vez al arrancar, en el
+     * idioma por defecto, y un `__()` evaluado ahí dejaría el grupo congelado en neerlandés y sin
+     * emparejar con el `getNavigationGroup()` de cada página, que sí se evalúa por petición.
+     * Sin icono a propósito: Filament no admite icono en el grupo y en sus ítems a la vez.
+     *
+     * @return list<NavigationGroup>
+     */
+    public static function navigationGroups(): array
+    {
+        return array_map(
+            fn (string $group): NavigationGroup => NavigationGroup::make(fn (): string => self::label($group))
+                ->collapsible(),
+            self::all(),
+        );
     }
 }

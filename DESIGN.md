@@ -127,6 +127,15 @@ Las pantallas de autenticación del backoffice (Sign in hoy; Forgot / Reset pass
 - **Color:** azul primario `#1B66C0` (hover `#155AAD`), texto `#0B1727` / `#4A586B`, borde de inputs `#C5CEDB`, error `#8F1236` sobre `#FDEDF1`, foco `3px solid #7DB3F2` con offset 2px. No usan el Claesen Cyan ni el naranja de Bertels: el azul es el mismo en ambos paneles. Siempre en modo claro (sin variante dark).
 - **Controles:** inputs 52px y botones 54px, radius 12px, fuente 16px; todo control interactivo mide al menos 44px. Todos los pares texto/fondo cumplen 4.5:1.
 
+## Bertels sidebar (deliberate exception)
+
+El sidebar del panel Electro Bertels sigue su propio diseño aprobado, `odd/tasks/bertels-sidebar.reference.html` (solo ese panel: el sidebar de Claesen no cambia). Es la segunda superficie del backoffice que se aparta de los tokens de arriba, y solo ahí:
+
+- **Estructura:** grupos de navegación nativos de Filament, colapsables y en este orden — ítems de primer nivel (Dashboard, KNX, Switch to Claesen), Publishing, Content, Site settings, Inbox. Declarados con `->navigationGroups()` en `BertelsPanelProvider` (etiquetas como closure, CLAUDE.md regla 10); las páginas del clúster Website se registran planas, cada una en su grupo (`WebsiteCluster::getNavigationItems()`, solo en el panel `bertels`). Ancho 180px vía `->sidebarWidth('11.25rem')`.
+- **Estilo:** un `<style id="bertels-sidebar-theme">` plano, enganchado a `HEAD_END` solo en este panel (`resources/views/filament/bertels/sidebar-theme.blade.php`; el panel no tiene Vite theme, así que no hay utilidades Tailwind).
+- **Color (oscuro en modo claro y oscuro, sin variante `dark`):** fondo `#262628`, texto `#e8e6e3` (12.1:1), etiqueta de grupo e iconos `#9a9893` (5.2:1), hover `#2f2f32`, ítem activo `#f07a2a` sobre `#333336` (4.5:1), badge `#e8e6e3` sobre `#3a3a3d` (9.1:1). El naranja `#f07a2a` es el naranja de Electro Bertels, no el `accent` de Claesen.
+- **Tipografía y medidas:** Inter (la fuente por defecto de Filament en este panel) 600/11px; etiqueta de grupo 500/10px; ítems con padding 6px 7px, gap 9px, radio 5px, icono 13px; badge 8px, radio 3px. En el cajón móvil (< lg) las filas miden 40px para poder tocarlas.
+
 ## Do's and Don'ts
 
 - Do usar Claesen Cyan (`primary`) para toda acción interactiva primaria — es el único color que un usuario debe poder interpretar como "esto es clickeable".

@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Modules\Core\Filament\Auth\EmailAuthenticationWithBrand;
 use Filament\Http\Middleware\Authenticate;
@@ -94,6 +95,16 @@ class BertelsPanelProvider extends PanelProvider
             ->brandLogo(asset('img/bertels-favicon.jpg'))
             ->darkModeBrandLogo(asset('img/bertels-brand-logo-dark.png'))
             ->brandLogoHeight('2.5rem')
+            // Sidebar redesign (odd/tasks/bertels-sidebar.reference.html): 180px wide, four
+            // collapsible groups in the prototype's order. The look lives in one plain <style>
+            // (this panel has no Vite theme, so Tailwind utilities are not available here — see
+            // DESIGN.md) registered on this panel only, so the Claesen admin sidebar is untouched.
+            ->sidebarWidth('11.25rem')
+            ->navigationGroups(WebsiteNavigationGroups::navigationGroups())
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => view('filament.bertels.sidebar-theme')->render(),
+            )
             ->favicon(asset('img/bertels-favicon.jpg'))
             // No discoverResources/Pages/Widgets on purpose — F3/F4 give
             // Bertels its own resources once P5 enforcement exists.
