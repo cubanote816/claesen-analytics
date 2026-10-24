@@ -181,14 +181,16 @@ final class ProjectMediaContractTest extends TestCase
 
         $this->assertNotNull($media);
         // CLA-470 acceptance: "nombres internos aleatorios" — already true by
-        // Filament's own default (Str::ulid(), BaseFileUpload::setUp()) with
-        // no ->preserveFilenames() call on this field; this pins that the
-        // stored name is not the user-supplied "legit.jpg".
+        // Filament's own default with no ->preserveFilenames() call on this
+        // field. Since filament/forms 5.8 that default is $file->hashName()
+        // (BaseFileUpload::setUp(): Str::random(40) + extension; it was a ULID
+        // before). This pins that the stored name is random and not the
+        // user-supplied "legit.jpg".
         $this->assertNotSame('legit', pathinfo($media->file_name, PATHINFO_FILENAME));
         $this->assertMatchesRegularExpression(
-            '/^[0-9A-Z]{26}\.jpg$/',
+            '/^[A-Za-z0-9]{40}\.jpg$/',
             $media->file_name,
-            'Expected a ULID-based stored filename, got: '.$media->file_name
+            'Expected a random (hashName) stored filename, got: '.$media->file_name
         );
     }
 
