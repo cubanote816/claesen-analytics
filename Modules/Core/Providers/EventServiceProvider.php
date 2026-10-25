@@ -15,6 +15,12 @@ class EventServiceProvider extends ServiceProvider
         \SocialiteProviders\Manager\SocialiteWasCalled::class => [
             \SocialiteProviders\Azure\AzureExtendSocialite::class.'@handle',
         ],
+        \Illuminate\Auth\Events\Login::class => [
+            \Modules\Core\Listeners\ClearAuthenticatedViaMarker::class,
+        ],
+        \Illuminate\Auth\Events\Logout::class => [
+            \Modules\Core\Listeners\ClearAuthenticatedViaMarker::class,
+        ],
     ];
 
     /**

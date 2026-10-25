@@ -32,6 +32,13 @@ use Tests\TestCase;
  * like a local-login user — see test_an_azure_authenticated_admin_without_
  * mfa_is_also_redirected_to_the_set_up_page below.
  *
+ * Superseded for real Microsoft sign-ins by odd/tasks/release-trunk-to-main.md
+ * T6/S2c: the callback now marks the session (Modules\Core\Support\
+ * AuthenticatedVia) and the middleware skips marked sessions — see
+ * MicrosoftSessionMfaExemptionTest. The tests below use actingAs(), which is
+ * not a Microsoft sign-in and carries no marker, so they still pin the
+ * unmarked behavior.
+ *
  * What genuinely IS local-login-only is the interactive per-login
  * challenge (entering a fresh code before being logged in at all) —
  * Filament\Auth\Pages\Login::authenticate() holds the user in a

@@ -15,6 +15,7 @@ use Modules\Core\Models\User;
 use Modules\Core\Services\Auth\AzureRoleService;
 use Modules\Core\Services\Auth\FrontendRedirectService;
 use Modules\Core\Services\AccessAnalyticsService;
+use Modules\Core\Support\AuthenticatedVia;
 
 class MicrosoftAuthController extends Controller
 {
@@ -219,6 +220,9 @@ class MicrosoftAuthController extends Controller
             Auth::login($user);
             if ($request->hasSession()) {
                 $request->session()->regenerate();
+                // After Auth::login(): its Login event clears the marker, and this is the
+                // only sign-in that sets it.
+                AuthenticatedVia::markMicrosoft($request->session());
             }
 
             $source = session()->pull('auth_source', 'frontend');

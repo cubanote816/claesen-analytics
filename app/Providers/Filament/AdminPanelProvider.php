@@ -218,11 +218,13 @@ HTML
             // internal role with panel access — see the middleware's own
             // docblock for why the role gate lives there and not in a Closure
             // passed to requiresMultiFactorAuthentication() (evaluated once at
-            // boot, no per-request user). Only covers the local-password login
-            // path (Modules\Core\Filament\Pages\Auth\Login already carries
-            // Filament's MFA challenge verbatim, CLA-363); Azure OAuth logins
-            // (MicrosoftAuthController) bypass this entirely — that path would
-            // need Azure Conditional Access, outside this repo.
+            // boot, no per-request user). Applies to the local-password login
+            // (Modules\Core\Filament\Pages\Auth\Login carries Filament's MFA
+            // challenge verbatim, CLA-363) and its set-up requirement. Sessions
+            // signed in through MicrosoftAuthController carry a server-side
+            // marker (Modules\Core\Support\AuthenticatedVia) and skip both:
+            // Entra ID is their second factor, which the tenant enforces
+            // outside this repo (Conditional Access / Security Defaults).
             ->multiFactorAuthentication([
                 AppAuthentication::make(),
                 EmailAuthenticationWithBrand::make(),

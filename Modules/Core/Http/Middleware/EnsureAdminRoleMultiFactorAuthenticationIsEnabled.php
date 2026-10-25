@@ -8,6 +8,7 @@ use Closure;
 use Filament\Auth\MultiFactor\Http\Middleware\EnsureMultiFactorAuthenticationIsEnabled;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
+use Modules\Core\Support\AuthenticatedVia;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -28,6 +29,13 @@ use Symfony\Component\HttpFoundation\Response;
  * super_admin/admin, otherwise delegate to Filament's own
  * EnsureMultiFactorAuthenticationIsEnabled — the real TOTP/email "is this
  * user's MFA set up" check is never reimplemented here.
+ *
+ * Sessions signed in through the Microsoft callback are also skipped
+ * (AuthenticatedVia): Entra ID already enforces its own second factor there, so
+ * asking for the app MFA on top is friction without security value. The marker
+ * is server-side session state set only by that callback; an email + local
+ * password sign-in — even for an account that also has a microsoft_id — never
+ * carries it, so it keeps the set-up requirement and the Login page challenge.
  */
 class EnsureAdminRoleMultiFactorAuthenticationIsEnabled
 {
@@ -38,6 +46,10 @@ class EnsureAdminRoleMultiFactorAuthenticationIsEnabled
         }
 
         $user = Filament::auth()->user();
+
+        if ($request->hasSession() && AuthenticatedVia::isMicrosoft($request->session())) {
+            return $next($request);
+        }
 
         if (! $user?->hasAnyRole(['super_admin', 'admin'])) {
             return $next($request);
