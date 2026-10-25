@@ -6,8 +6,8 @@ namespace Modules\Core\Support;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
-use Livewire\Livewire;
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Livewire\Mechanisms\HandleRequests\HandleRequests;
+use Throwable;
 
 /**
  * The named route of the page the current code is serving, also during Livewire requests.
@@ -16,36 +16,35 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  * sees the update endpoint instead of the page. Widgets that use canView() for placement (show
  * on one page only) must ask about the page the component was rendered on.
  *
- * On a Livewire request that page comes from `memo.path` / `memo.method` of the component
- * snapshot, which Livewire signs with a checksum and verifies before touching the component.
- * Fails closed: any request whose page cannot be resolved matches no route name.
+ * On the Livewire update route that page is the `memo.path` / `memo.method` of a snapshot whose checksum
+ * Livewire verified (see VerifiedLivewirePage); the raw request payload is never read. Fails closed: when
+ * no verified page is known, or it cannot be matched, no route name matches.
  */
 final class CurrentPage
 {
     public static function is(string ...$routeNames): bool
     {
-        $route = self::route();
+        try {
+            $route = self::route();
 
-        return $route !== null && $route->named(...$routeNames);
+            return $route !== null && $route->named(...$routeNames);
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     private static function route(): ?Route
     {
-        if (! Livewire::isLivewireRequest()) {
+        if (! app(HandleRequests::class)->isLivewireRoute()) {
             return request()->route();
         }
 
-        $path = Livewire::originalPath();
-        $method = Livewire::originalMethod();
+        $page = app(VerifiedLivewirePage::class)->for(request());
 
-        if (! is_string($path) || ! is_string($method) || $path === 'POST') {
+        if ($page === null || trim($page[0]) === '' || trim($page[1]) === '') {
             return null;
         }
 
-        try {
-            return app('router')->getRoutes()->match(Request::create('/' . ltrim($path, '/'), $method));
-        } catch (HttpException) {
-            return null;
-        }
+        return app('router')->getRoutes()->match(Request::create('/' . ltrim($page[0], '/'), $page[1]));
     }
 }
