@@ -20,7 +20,7 @@ Merging to `main` deploys to `prod-priv-01` (`.github/workflows/deploy.yml`, pus
 |----|-------|-------|--------|
 | T1 | S1 | worker: KNX feature flag (link + routes), tests | `122a1d9` |
 | T2 | S2 | parent: push trunk, open draft PR trunk → main, watch CI | PR #29 (CI run 40112299269) |
-| T3 | S2b | worker: resolve the Filament conflict, upgrade the advised packages, audit clean, suites + panel smoke; parent: CI on PR #29 | — |
+| T3 | S2b | worker: resolve the Filament conflict, upgrade the advised packages, audit clean, suites + panel smoke; parent: CI on PR #29 | `d04b334`, `880d082`, `56cc737` |
 
 ## Log
 
@@ -37,4 +37,6 @@ Merging to `main` deploys to `prod-priv-01` (`.github/workflows/deploy.yml`, pus
 **L6 — 2026-10-24, parent proposal:** "Mi recomendación es tratarlo como **un ticket aparte, antes del merge**: resolver el conflicto de Filament, actualizar estos paquetes, correr la suite completa y hacer QA del panel." Question: "¿Arranco con ese ticket de dependencias, o preferís mergear primero y actualizar después?"
 
 **L7 — 2026-10-24, user (verbatim):** "arranca con el ticket"
+
+**L8 — 2026-10-25, T3 evidence (worker + parent):** conflict cause: `filament/spatie-laravel-media-library-plugin` and the other `filament/*` sub-packages were locked at v5.7.6 and require `filament/support` as `self.version`; adding the plugin to the update list resolved it (no `composer.json` change, no new major; `brick/math` held at `^0.18`). 65 lock changes, notably all `filament/*` 5.7.6→5.10.3, `laravel/framework` 13.29.0→13.38.0, `livewire/livewire` 4.4.2→4.4.8, `league/commonmark` 2.10.0→2.10.4, `symfony/http-foundation` and `symfony/yaml` 8.1.5→8.1.9. The 22 pre-existing modified Filament public assets were byte-identical to the 5.7.6 vendor dist (republished output, not hand edits) and were regenerated from 5.10.3. Two regressions found and fixed: (1) `EmployeeHoursSummaryWidget::canView()` used `routeIs(dashboard)` and filament/widgets 5.8+ enforces `canView()` on every Livewire request → 403 on the lazy load; `Modules\Core\Support\CurrentPage::is()` resolves the original page from the checksum-verified Livewire snapshot memo (`PersistentMiddleware.php:37`, `HandleComponents.php:249`) and fails closed (`d04b334`, RED observed); the other five dashboard widgets use the negated check and never 403; (2) `ProjectMediaContractTest` pinned Filament's old ULID filename, now `hashName()` (random 40 chars) — the CLA-470 contract (random name, never the user's) holds (`56cc737`). Route snapshot: only `/up` action changes (Laravel 13.38 `HealthCheck`). Local: `composer validate --strict` valid, `composer audit --locked` clean, worker focused suites 822 passed / 2 skipped, browser smoke 23/23 Livewire POSTs 200, 0 JS errors. **CI run `40136129916` on `56cc737`: success — Static checks success, PHPUnit success ().**
 
