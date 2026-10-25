@@ -9,7 +9,7 @@
 - 56 migraciones nuevas sobre las 183 actuales (ninguna existente se modifica ni se borra). Ensayadas sobre una copia de producción del 2026-10-25: ~6 s, sin errores.
 - Multiempresa con `ORGANIZATIONS_ENFORCE` **apagado** (no definido en el `.env` → `false`): Claesen se comporta como hoy.
 - KNX **apagado** (`KNX_ENABLED` no definido → `false`): link oculto y todas sus rutas responden 404. Sus tablas se crean vacías.
-- **MFA obligatorio para `super_admin` y `admin`** (decisión del usuario 2026-10-25, ADR D8): en el primer acceso tras el deploy, cada admin tiene que configurar código por mail o app autenticadora antes de usar el panel. No se puede apagar por `.env`.
+- **MFA obligatorio para `super_admin` y `admin` que entran con email + contraseña local** (decisión del usuario 2026-10-25, ADR D8): en el primer acceso con contraseña tras el deploy, el admin tiene que configurar código por mail o app autenticadora antes de usar el panel. **Quien entra con "Sign in with Microsoft" no lo configura**: el segundo factor lo pone Entra ID (S2c, `b2b4f8c`). No se puede apagar por `.env`.
 - Tres tareas programadas nuevas: `website:retry-failed-consultation-emails` (cada 15 min, envía mail), `website:apply-retention-policy` (05:00, inerte mientras `WEBSITE_RETENTION_ENABLED` no esté en `true`), `website:check-intake-abuse-alerts` (cada hora).
 - Upgrade de dependencias (Filament 5.10.3, Laravel 13.38, Livewire 4.4.8, Symfony 8.1.9): `composer audit` limpio.
 
@@ -18,8 +18,9 @@
 - [ ] **CI verde en el PR #29** sobre el commit que se va a mergear.
 - [ ] **Backup manual verificado**, independiente del paso 0 de `deploy.sh` (ese paso continúa aunque el backup falle): `mysqldump --single-transaction` de `claesen_oficial` + `gzip -t` + sha256, guardado fuera del directorio de releases. El dump del 2026-10-25 sirve de referencia pero se rehace el mismo día del deploy.
 - [ ] **Backup de archivos de media** (`storage/app/public` y `storage/app/private` de `/srv/www/claesen/shared`): `website:migrate-media-to-private-disk` mueve 109 originales.
-- [ ] **Avisar a los admins** que en el primer acceso se les va a pedir configurar MFA.
-- [ ] **Mail de producción funcionando** (el código MFA por mail sale por el mailer por defecto). Si no se puede confirmar, los admins deben elegir la app autenticadora.
+- [ ] **Avisar a los admins** que, si entran con email + contraseña, en el primer acceso se les va a pedir configurar MFA; con "Sign in with Microsoft" no.
+- [ ] **Confirmar en Entra ID** que Conditional Access o Security Defaults exigen MFA a las cuentas de `claesen-verlichting.be` y `electrobertels.be` (la exención de S2c se apoya en eso).
+- [ ] **Mail de producción funcionando** (el código MFA por mail sale por el mailer por defecto). Si no se puede confirmar, los admins con contraseña deben elegir la app autenticadora.
 - [ ] Confirmar en `shared/.env` (sin mostrar valores): `KNX_ENABLED` y `ORGANIZATIONS_ENFORCE` **no** están definidos o están en `false`; `WEBSITE_RETENTION_ENABLED` no está en `true`. Confirmado el 2026-10-25 para los dos primeros (L13).
 - [ ] Ventana de deploy fuera del horario de uso (el deploy entra en modo mantenimiento).
 
@@ -41,7 +42,7 @@ En `/srv/www/claesen/current`, como el usuario que corre la app:
 ## Verificación
 
 - [ ] Login de un admin con email + contraseña → pide configurar MFA → configurarlo → entra al panel.
-- [ ] Login con Microsoft de un usuario de Claesen.
+- [ ] Login con Microsoft de un admin de Claesen → entra al panel **sin** pedir configurar MFA.
 - [ ] Dashboard, una lista de proyectos de la web, una consulta y una campaña cargan sin error.
 - [ ] La web pública de Claesen sigue mostrando proyectos e imágenes (después de mover la media).
 - [ ] `/api/v1/knx/me/session` → 404 y `/bertels/knx` → 404 (KNX apagado).
