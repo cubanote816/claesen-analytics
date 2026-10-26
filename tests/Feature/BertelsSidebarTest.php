@@ -109,6 +109,54 @@ final class BertelsSidebarTest extends TestCase
     }
 
     /**
+     * Both panels run in SPA mode, and Livewire's navigate merges <head> instead of replacing it, so
+     * an unscoped theme <style> survives a panel switch and restyles the other panel. Every rule
+     * must hang off the bertels body class (Filament puts `fi-panel-{id}` on <body>).
+     */
+    public function test_the_bertels_theme_style_is_scoped_to_the_bertels_panel_body(): void
+    {
+        $html = $this->actingAs($this->superAdmin())->get('/bertels')->assertSuccessful()->getContent();
+
+        $this->assertSame(1, preg_match('/<style id="bertels-sidebar-theme">(.*?)<\/style>/s', $html, $match));
+
+        $css = (string) preg_replace('/\/\*.*?\*\//s', '', $match[1]);
+
+        $this->assertStringNotContainsString(':root', $css);
+        $this->assertStringNotContainsString('html .fi-', $css);
+        $this->assertStringContainsString('body.fi-panel-bertels {', $css);
+
+        // Every selector of every rule (incl. those inside @media) starts with the scope.
+        preg_match_all('/([^{}]+)\{/', (string) preg_replace('/@media[^{]*\{/', '', $css), $rules);
+        $selectors = collect($rules[1])
+            ->flatMap(fn (string $list): array => explode(',', $list))
+            ->map(fn (string $selector): string => trim($selector))
+            ->filter();
+
+        $this->assertNotEmpty($selectors);
+
+        foreach ($selectors as $selector) {
+            $this->assertStringStartsWith('body.fi-panel-bertels', $selector, "Unscoped selector in the bertels theme: {$selector}");
+        }
+    }
+
+    public function test_the_panel_switch_links_are_excluded_from_spa_navigation_on_both_panels(): void
+    {
+        $user = $this->superAdmin();
+
+        foreach (['admin', 'bertels'] as $panelId) {
+            $panel = Filament::getPanel($panelId);
+
+            $this->assertTrue($panel->hasSpaMode(), "{$panelId} is expected to run in SPA mode.");
+            $this->assertContains('*/switch-panel/*', $panel->getSpaUrlExceptions(), "{$panelId} must exclude the panel switch from SPA navigation.");
+        }
+
+        $html = $this->actingAs($user)->get('/bertels')->assertSuccessful()->getContent();
+
+        $this->assertSame(1, preg_match('/<a\b[^>]*href="[^"]*\/switch-panel\/admin[^"]*"[^>]*>/', $html, $link));
+        $this->assertStringNotContainsString('wire:navigate', $link[0], 'The switch link must be a full page load.');
+    }
+
+    /**
      * Every class sidebar-theme.blade.php styles must exist in Filament's rendered sidebar, and every
      * item must carry its label text: the app overrides Filament's sidebar item view, and after the
      * 5.10 upgrade that override rendered empty labels (Filament passes `label`, not the slot) while
