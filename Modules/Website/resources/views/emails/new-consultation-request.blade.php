@@ -27,7 +27,7 @@
 <div class="wrapper">
     <div class="header">
         <h1>New Consultation Request</h1>
-        <p>Claesen Verlichting — CAFCA Intelligence Hub</p>
+        <p>{{ $site->organization->name }}</p>
     </div>
     <div class="body">
 
@@ -78,6 +78,13 @@
         <div class="section-title">Message</div>
         <div class="message-box">{{ $consultation->message }}</div>
 
+        {{-- F4/CLA-473: the "admin" Filament panel and this resource are
+             Claesen-only today (P6 spike gave Bertels an empty panel with
+             no Website resources — docs/ai/adr-multi-organization.md).
+             This CTA is left pointing at "admin" rather than removed —
+             every site sending this e-mail today is Claesen — but it must
+             not be assumed correct for a future non-Claesen site without
+             revisiting this once Bertels gets its own Website resources. --}}
         <div class="cta">
             <a href="{{ \App\Filament\Clusters\Website\Resources\ConsultationRequestResource::getUrl('view', ['record' => $consultation], panel: 'admin') }}">
                 View in admin panel
@@ -86,7 +93,7 @@
 
     </div>
     <div class="footer">
-        This notification was sent automatically by CAFCA Intelligence Hub.
+        This notification was sent automatically by {{ $site->organization->name }}.
     </div>
 </div>
 </body>

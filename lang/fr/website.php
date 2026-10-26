@@ -70,6 +70,8 @@ return [
             'assigned_to' => 'Attribué à',
             'follow_up_date' => 'Date de suivi',
             'internal_notes' => 'Notes internes',
+            'tags' => 'Étiquettes',
+            'first_response_sla' => 'Première réponse',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -89,17 +91,22 @@ return [
             'other' => 'Autre',
         ],
         'status_options' => [
-            'pending' => 'En attente',
-            'contacted' => 'Contacté',
+            'new' => 'Nouveau',
+            'assigned' => 'Attribué',
             'in_progress' => 'En cours',
-            'completed' => 'Terminé',
-            'cancelled' => 'Annulé',
+            'waiting_client' => 'En attente du client',
+            'closed' => 'Clôturé',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Faible',
             'medium' => 'Moyen',
             'high' => 'Élevé',
             'urgent' => 'Urgent',
+        ],
+        'actions' => [
+            'export' => 'Exporter en CSV',
+            'erase' => 'Effacer (RGPD)',
         ],
     ],
     'activities' => [
@@ -140,6 +147,209 @@ return [
             'new_request_body' => ':name a soumis une nouvelle demande.',
             'reminder_due_title' => 'Rappel échu',
             'reminder_due_body' => ':title — :name',
+        ],
+    ],
+    'translation_review' => [
+        'label' => 'Révision des traductions',
+        'fields' => [
+            'subject' => 'Sujet',
+            'attribute' => 'Champ',
+            'locale' => 'Langue',
+            'status' => 'Statut',
+            'error' => 'Erreur',
+            'updated_at' => 'Mis à jour',
+        ],
+        'actions' => [
+            'edit' => 'Modifier',
+            'edit_value' => 'Traduction (:locale)',
+            'approve' => 'Approuver',
+            'publish' => 'Publier',
+            'retranslate' => 'Retraduire (IA)',
+            'retranslate_confirm' => "La valeur approuvée sera remplacée par une nouvelle traduction IA et devra être approuvée à nouveau. Continuer ?",
+        ],
+        'notifications' => [
+            'updated' => 'Statut de traduction mis à jour',
+        ],
+    ],
+
+    'announcements' => [
+        'label' => 'Annonce',
+        'plural_label' => 'Annonces',
+        'message_helper' => 'Affiché dans la langue actuelle de cette vue d\'administration.',
+        'starts_at_helper' => 'Vide = actif immédiatement une fois publié.',
+        'ends_at_helper' => 'Vide = reste actif jusqu\'à archivage manuel.',
+        'status' => [
+            'draft' => 'Brouillon',
+            'published' => 'Publié',
+            'archived' => 'Archivé',
+        ],
+    ],
+    // WU4 : qui a publié, quand, et ce qui a changé. Le « ce qui a changé » vient du journal
+    // d'activité qui existait déjà, limité à ce qui suit la dernière publication acceptée.
+    'publication_history' => [
+        'label' => 'Publications',
+        'changes_heading' => 'Modifications depuis la dernière publication',
+        'empty' => 'Aucune publication pour le moment',
+        'empty_changes' => 'Aucune modification depuis la dernière publication',
+        'fields' => [
+            'when'           => 'Quand',
+            'who'            => 'Qui',
+            'event'          => 'Quoi',
+            'reason'         => 'Motif',
+            'error'          => 'Erreur',
+            'subject'        => 'Élément',
+            'fields_changed' => 'Champs modifiés',
+        ],
+        'events' => [
+            'requested' => 'Demandée',
+            'accepted'  => 'Acceptée',
+            'failed'    => 'Échouée',
+        ],
+        'subjects' => [
+            'sitesetting'  => 'Paramètre',
+            'project'      => 'Projet',
+            'mediaslot'    => 'Emplacement média',
+            'announcement' => 'Annonce',
+        ],
+    ],
+    'publication' => [
+        'status' => [
+            'idle'     => 'Aucune modification',
+            // « En attente » (l'ancien texte) décrivait le modèle automatique : depuis la
+            // publication délibérée (2026-10-06), l'état signifie que des modifications
+            // attendent une décision humaine, pas qu'un rebuild est en file.
+            'pending'  => 'Modifications non publiées',
+            'accepted' => 'Publication demandée',
+            'error'    => 'Erreur de publication',
+        ],
+        'widget' => [
+            'status_label'  => 'Statut de publication',
+            'last_accepted' => 'Dernière demande',
+            'build_status'  => 'Statut de construction du frontend',
+            'building'      => 'Construction en cours...',
+            'unreachable'   => 'Injoignable',
+            'no_data'       => '—',
+            'release'       => 'Version : :release',
+        ],
+        'actions' => [
+            'publish_now'                => 'Publier maintenant',
+            'publish_now_confirm_title'  => 'Lancer la publication',
+            'publish_now_confirm_body'   => 'Cela demande une reconstruction complète du site. La version actuelle reste en ligne jusqu\'à la fin de la construction.',
+            'publish_now_success'        => 'Publication demandée',
+            'publish_section'                 => 'Publier cette page',
+            'publish_section_confirm_title'   => 'Publier :page',
+            'publish_section_confirm_body'    => 'Seules les modifications de :page seront envoyées au site web. Les modifications des autres pages conservent pour le moment leurs valeurs publiées.',
+            'publish_section_confirm_pending' => 'Modifications de cette page en attente de publication : :count',
+            'publish_section_confirm_submit'  => 'Publier :page',
+            'publish_section_success'         => 'La publication de :page a été demandée',
+            'publish_section_disabled'        => 'La publication est désactivée dans cet environnement — le site web n\'a pas été mis à jour.',
+            'publish_section_no_drift'        => 'Rien à publier — cette page correspond déjà au site publié.',
+            'publish_section_unverified'      => 'Il n\'a pas été possible de vérifier s\'il y avait quelque chose à publier — la publication a quand même été demandée.',
+        ],
+    ],
+    // WU-S2 : la découpe des paramètres du site en six pages, telle que le prototype approuvé
+    // la déclare.
+    // WU-S1 : les quatre groupes du sous-menu Website, du prototype. La valeur doit être la MÊME
+    // entre les éléments d'un groupe (Filament groupe par texte), donc elle se résout en un seul
+    // endroit.
+    // WU-S3 : la barre des modifications non enregistrées. Elle remplace le bouton
+    // « Enregistrer » à la fin du formulaire.
+    'settings_bar' => [
+        'unsaved'    => 'Modifications non enregistrées',
+        'discard'    => 'Abandonner',
+        'save_draft' => 'Enregistrer le brouillon',
+        'discarded'  => 'Modifications abandonnées',
+    ],
+    'nav_groups' => [
+        'publishing'    => 'Publication',
+        'content'       => 'Contenu',
+        'site_settings' => 'Paramètres du site',
+        'inbox'         => 'Boîte de réception',
+    ],
+    'settings_sections' => [
+        'general' => [
+            'label' => 'Général',
+            'description' => 'Identité légale utilisée dans le pied de page, les pages légales et les données de recherche.',
+        ],
+        'contact' => [
+            'label' => 'Contact',
+            'description' => 'Téléphone, WhatsApp et e-mail affichés sur le site.',
+        ],
+        'address' => [
+            'label' => 'Adresse et cartes',
+            'description' => 'Où se trouve le magasin et comment les visiteurs le trouvent.',
+        ],
+        'hours' => [
+            'label' => 'Horaires d\'ouverture',
+            'description' => 'Horaire hebdomadaire affiché dans le pied de page et sur la page de contact.',
+        ],
+        'social' => [
+            'label' => 'Liens sociaux',
+            'description' => 'Profils liés depuis le pied de page.',
+        ],
+        'privacy' => [
+            'label' => 'Confidentialité et consentement',
+            'description' => 'Intégrations dépendantes des cookies et suivi du consentement.',
+        ],
+    ],
+    'site_settings' => [
+
+        // L'adresse s'édite par parties, pas en JSON : c'est une forme fixe, et une faute de
+        // frappe dans un blob JSON reste du JSON valide, donc elle passe.
+        'address' => [
+            'street' => 'Rue et numéro',
+            'postal_code' => 'Code postal',
+            'city' => 'Commune',
+            'country_code' => 'Code pays (2 lettres)',
+        ],
+        'label' => 'Paramètres du site',
+        'save' => 'Enregistrer',
+        'saved' => 'Paramètres enregistrés',
+        // Les horaires s'éditent jour par jour, pas en JSON : `hours: null` EST
+        // « fermé » dans le contrat, donc l'interrupteur en découle.
+        'opening_hours' => [
+            'day' => 'Jour',
+            'closed' => 'Fermé',
+            'ranges' => 'Horaires d\'ouverture',
+            'opens' => 'De',
+            'closes' => 'À',
+            'add_day' => 'Ajouter un jour',
+            'add_range' => 'Ajouter une plage',
+            // Les clés sont des données du contrat ; seul le libellé est traduit.
+            'days' => [
+                'sunday' => 'Dimanche',
+                'monday' => 'Lundi',
+                'tuesdayToFriday' => 'Du mardi au vendredi',
+                'saturday' => 'Samedi',
+            ],
+        ],
+        'fields' => [
+            'hours' => 'Horaires d\'ouverture',
+            'phone' => 'Téléphone',
+            'email' => 'E-mail',
+            'address' => 'Adresse',
+            'social_links' => 'Liens réseaux sociaux (JSON)',
+            'legal_name' => 'Raison sociale',
+            'founded_year' => 'Année de fondation',
+            'phone_display' => 'Téléphone (affichage)',
+            'phone_tel' => 'Téléphone (lien tel:)',
+            'whatsapp_display' => 'WhatsApp (affichage)',
+            'whatsapp_url' => 'WhatsApp (URL)',
+            'address_structured' => 'Adresse (structurée)',
+            'address_country' => 'Pays (traduisible)',
+            'maps_embed_url' => 'Maps intégré (URL)',
+            'maps_directions_url' => 'Maps itinéraire (URL)',
+            'maps_consent_mode' => 'Consentement Maps',
+            'vat_number' => 'Numéro de TVA',
+            'opening_hours' => 'Horaires d\'ouverture (structurés)',
+            'contact_consent_version' => 'Version du consentement (formulaire contact)',
+        ],
+        'hints' => [
+            'address' => 'Claesen : chaîne libre, lue telle quelle par le frontend Claesen. Ne pas modifier pour Electro Bertels.',
+            'address_structured' => 'Electro Bertels : source structurée — JSON avec street, postal_code, city, country_code. Le frontend Claesen ne lit pas ce champ.',
+            'founded_year' => 'Entier JSON, ex. 1977',
+            'opening_hours' => 'Une ligne par jour. "Fermé" signifie : aucune heure d\'ouverture.',
+            'maps_consent_mode' => 'always | on_consent | never',
         ],
     ],
 ];

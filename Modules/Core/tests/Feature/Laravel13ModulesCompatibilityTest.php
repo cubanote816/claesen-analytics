@@ -22,7 +22,7 @@ class Laravel13ModulesCompatibilityTest extends TestCase
 {
     /** @var list<string> */
     private const EXPECTED_MODULES = [
-        'Analytics', 'Cafca', 'Core', 'Employee', 'FieldOps', 'Intelligence',
+        'Analytics', 'Cafca', 'Core', 'Employee', 'FieldOps', 'Intelligence', 'Knx',
         'Mailing', 'Performance', 'Prospects', 'Safety', 'Website',
     ];
 

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -24,6 +25,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'viewer' => 6,
             'client' => 7,
             'technician' => 8,
+            // CLA-604: app access for the Electro Bertels KNX domain. These grant
+            // NO Filament panel access on purpose — User::hasPanelAccess() does
+            // not list them, so a Bertels employee gets no panel access
+            // (→ /auth/no-access): Kantoor and Veld are their own apps. What someone *is*
+            // inside that domain (lead/planner/technician) is
+            // knx_employees.knx_role, a business role, not a permission.
+            'knx_office' => 9,
+            'knx_field' => 10,
         ];
 
         foreach ($roles as $roleName => $sort) {
@@ -69,6 +78,19 @@ class RolesAndPermissionsSeeder extends Seeder
         Role::findByName('project_manager', 'web')->givePermissionTo($scopedWritePermissions);
         Role::findByName('technician', 'web')->givePermissionTo($scopedWritePermissions);
 
+        // F4/CLA-476: bulk PII export and on-demand GDPR erasure are sensitive
+        // enough to keep to the same two roles CLA-496 already trusted with
+        // FieldOps infrastructure writes.
+        $leadPrivacyPermissions = [
+            'website.export-consultation-requests',
+            'website.erase-consultation-pii',
+        ];
+        foreach ($leadPrivacyPermissions as $permission) {
+            Permission::findOrCreate($permission, 'web');
+        }
+        Role::findByName('super_admin', 'web')->givePermissionTo($leadPrivacyPermissions);
+        Role::findByName('admin', 'web')->givePermissionTo($leadPrivacyPermissions);
+
         $superAdminRole = Role::findByName('super_admin');
 
         // Create a Super Admin User
@@ -78,6 +100,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'name' => 'Super Admin',
             'password' => bcrypt('password'),
             'email_verified_at' => now(),
+            // F1/P2 (docs/ai/adr-multi-organization.md).
+            'organization_id' => Organization::claesenId(),
         ]);
 
         $user->assignRole($superAdminRole);

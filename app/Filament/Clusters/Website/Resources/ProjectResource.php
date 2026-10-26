@@ -3,9 +3,12 @@
 namespace App\Filament\Clusters\Website\Resources;
 
 use App\Filament\Clusters\Website\WebsiteCluster;
+use App\Filament\Clusters\Website\WebsiteNavigationBadges;
+use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Clusters\Website\Resources\ProjectResource\Pages;
 use Modules\Website\Models\Project;
-use Modules\Website\App\Enums\ProjectCategory;
+use Modules\Core\Models\Site;
+use Modules\Website\Models\ProjectCategory;
 use Filament\Forms;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
@@ -26,9 +29,62 @@ use Filament\Schemas\Components\Utilities\Get;
 
 class ProjectResource extends Resource
 {
+    use \App\Filament\Concerns\ScopedToPanelSite;
 
+    public static function getNavigationGroup(): ?string
+    {
+        return WebsiteNavigationGroups::label(WebsiteNavigationGroups::CONTENT);
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 3;
+    }
+
+    /** Cambios sin publicar de los proyectos. */
+    public static function getNavigationBadge(): ?string
+    {
+        $pending = WebsiteNavigationBadges::forSubjectType(Project::class);
+
+        return $pending > 0 ? (string) $pending : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
+    }
+
+    // CLA-470: 10 MB matches the precedent already established for photo
+    // uploads elsewhere in the app (Modules\FieldOps's photos collections,
+    // e.g. LuminaireResource) — the previous 100/500 MB limits here had no
+    // real justification for what are plain portfolio photographs.
+    private const MEDIA_MAX_SIZE_KB = 10240;
+
+    // Defends against decompression-bomb-style uploads (a small file
+    // claiming an enormous pixel count) reaching Spatie's WebP conversion
+    // pipeline (registerMediaConversions() in the model) — no legitimate
+    // portfolio photo needs to exceed this.
+    private const MEDIA_MAX_DIMENSION_PX = 8000;
 
     protected static ?string $model = Project::class;
+
+    /**
+     * F3/CLA-468: this panel manages Claesen's own site only (Bertels gets
+     * its own panel/resources in F3/F4, same reasoning already documented
+     * on CreateProject::mutateFormDataBeforeCreate()) — hardcoding Claesen's
+     * id here is deliberate, not an oversight, until a site picker exists.
+     *
+     * @return array<string, string>
+     */
+    private static function categoryOptions(): array
+    {
+        return ProjectCategory::query()
+            ->where('site_id', Site::forPanelOrFail()->id)
+            ->ordered()
+            ->get()
+            ->mapWithKeys(fn (ProjectCategory $category) => [$category->slug => $category->name])
+            ->all();
+    }
 
     public static function getNavigationLabel(): string
     {
@@ -77,7 +133,7 @@ class ProjectResource extends Resource
                                         $originalSlug = $slug;
                                         $count = 1;
 
-                                        $query = Project::where('slug', $slug);
+                                        $query = Project::where('site_id', Site::forPanelOrFail()->id)->where('slug', $slug);
                                         if ($record) {
                                             $query->where('id', '!=', $record->id);
                                         }
@@ -85,7 +141,7 @@ class ProjectResource extends Resource
                                         while ($query->exists()) {
                                             $slug = $originalSlug . '-' . $count;
                                             $count++;
-                                            $query = Project::where('slug', $slug);
+                                            $query = Project::where('site_id', Site::forPanelOrFail()->id)->where('slug', $slug);
                                             if ($record) {
                                                 $query->where('id', '!=', $record->id);
                                             }
@@ -124,7 +180,7 @@ class ProjectResource extends Resource
                                     ->unique(Project::class, 'slug', ignoreRecord: true),
                                 Select::make('category')
                                     ->label(__('website.projects.fields.category'))
-                                    ->options(ProjectCategory::class)
+                                    ->options(fn () => self::categoryOptions())
                                     ->required(),
                                 TextInput::make('client')
                                     ->label(__('website.projects.fields.client')),
@@ -182,13 +238,19 @@ class ProjectResource extends Resource
                                 SpatieMediaLibraryFileUpload::make('featured_image')
                                     ->label(__('website.projects.fields.featured_image'))
                                     ->collection('featured_image')
+                                    // F3/CLA-467: the original lives on the private 'local'
+                                    // disk (Project::registerMediaCollections()) — previewing
+                                    // it directly would resolve no URL at all. The 'thumb'
+                                    // conversion always lives on the public disk.
+                                    ->conversion('thumb')
                                     ->image()
                                     ->imageEditor()
                                     ->imagePreviewHeight('200')
                                     ->multiple()
                                     ->maxFiles(1)
-                                    ->maxSize(102400)
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                                    ->maxSize(self::MEDIA_MAX_SIZE_KB)
+                                    ->acceptedFileTypes(Project::MEDIA_MIME_TYPES)
+                                    ->rules(['dimensions:max_width='.self::MEDIA_MAX_DIMENSION_PX.',max_height='.self::MEDIA_MAX_DIMENSION_PX])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
@@ -199,12 +261,14 @@ class ProjectResource extends Resource
                                 SpatieMediaLibraryFileUpload::make('gallery')
                                     ->label(__('website.projects.fields.gallery'))
                                     ->collection('gallery')
+                                    ->conversion('thumb')
                                     ->imagePreviewHeight('150')
                                     ->panelLayout('grid')
                                     ->multiple()
                                     ->reorderable()
-                                    ->maxSize(512000)
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'])
+                                    ->maxSize(self::MEDIA_MAX_SIZE_KB)
+                                    ->acceptedFileTypes(Project::MEDIA_MIME_TYPES)
+                                    ->rules(['dimensions:max_width='.self::MEDIA_MAX_DIMENSION_PX.',max_height='.self::MEDIA_MAX_DIMENSION_PX])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
@@ -215,7 +279,7 @@ class ProjectResource extends Resource
 
                                         if (!empty($activeUuids)) {
                                             $mediaClass = config('media-library.media_model', \Spatie\MediaLibrary\MediaCollections\Models\Media::class);
-                                            $mappedIds = $mediaClass::query()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
+                                            $mappedIds = $record->media()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
 
                                             $orderedIds = collect($activeUuids)
                                                 ->map(fn($uuid) => $mappedIds[$uuid] ?? null)
@@ -234,12 +298,14 @@ class ProjectResource extends Resource
                                 SpatieMediaLibraryFileUpload::make('detail_gallery')
                                     ->label(__('website.projects.fields.detail_gallery'))
                                     ->collection('detail_gallery')
+                                    ->conversion('thumb')
                                     ->imagePreviewHeight('150')
                                     ->panelLayout('grid')
                                     ->multiple()
                                     ->reorderable()
-                                    ->maxSize(512000)
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'])
+                                    ->maxSize(self::MEDIA_MAX_SIZE_KB)
+                                    ->acceptedFileTypes(Project::MEDIA_MIME_TYPES)
+                                    ->rules(['dimensions:max_width='.self::MEDIA_MAX_DIMENSION_PX.',max_height='.self::MEDIA_MAX_DIMENSION_PX])
                                     ->saveRelationshipsUsing(function (\Filament\Forms\Components\SpatieMediaLibraryFileUpload $component, $state, Project $record) {
                                         $component->saveUploadedFiles();
                                         $activeUuids = collect($component->getState() ?? [])->flatten()->toArray();
@@ -250,7 +316,7 @@ class ProjectResource extends Resource
 
                                         if (!empty($activeUuids)) {
                                             $mediaClass = config('media-library.media_model', \Spatie\MediaLibrary\MediaCollections\Models\Media::class);
-                                            $mappedIds = $mediaClass::query()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
+                                            $mappedIds = $record->media()->whereIn('uuid', $activeUuids)->pluck('id', 'uuid')->toArray();
 
                                             $orderedIds = collect($activeUuids)
                                                 ->map(fn($uuid) => $mappedIds[$uuid] ?? null)
@@ -283,6 +349,10 @@ class ProjectResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('category')
                     ->label(__('website.projects.fields.category'))
+                    // F3/CLA-468: category is a plain slug now — the enum this
+                    // replaced gave ->badge() a translated label for free via
+                    // HasLabel; the catalog lookup replaces that.
+                    ->formatStateUsing(fn (?string $state): ?string => $state !== null ? (self::categoryOptions()[$state] ?? $state) : null)
                     ->badge(),
                 Tables\Columns\IconColumn::make('published')
                     ->label(__('website.projects.fields.published'))
@@ -302,7 +372,7 @@ class ProjectResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('category')
                     ->label(__('website.projects.fields.category'))
-                    ->options(ProjectCategory::class),
+                    ->options(fn () => self::categoryOptions()),
                 Tables\Filters\TernaryFilter::make('published')
                     ->label(__('website.projects.fields.published')),
                 Tables\Filters\TernaryFilter::make('featured')

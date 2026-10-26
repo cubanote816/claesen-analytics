@@ -48,3 +48,23 @@ Route::middleware(['web', 'auth'])->group(function () {
         [\Modules\Core\Http\Controllers\Auth\NoPanelAccessController::class, 'show'])
         ->name('auth.no-access');
 });
+
+// F1/P4+P6 (CLA-460 cont.): audited super_admin panel switch. Intentionally
+// outside any Filament panel's route group — see SwitchPanelController's
+// docblock. Authorization (super_admin only) is enforced inside the
+// controller, not via route middleware, matching this file's existing
+// convention for non-panel routes.
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/switch-panel/{panel}', \Modules\Core\Http\Controllers\SwitchPanelController::class)
+        ->name('core.switch-panel');
+});
+
+// CLA-602 (Fase 1 de la app KNX de Electro Bertels): punto de entrada desde
+// el menú del panel Bertels, deliberadamente fuera del shell de Filament —
+// ver KnxLandingController. Mismo patrón que las rutas anteriores: fuera de
+// cualquier grupo de panel, con la autorización dentro del controller.
+// El flag `knx.enabled` (KNX_ENABLED) la apaga con 404 mientras KNX no salga a producción.
+Route::middleware(['knx.enabled', 'web', 'auth'])->group(function () {
+    Route::get('/bertels/knx', \Modules\Core\Http\Controllers\KnxLandingController::class)
+        ->name('bertels.knx');
+});

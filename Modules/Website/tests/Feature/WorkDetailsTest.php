@@ -147,6 +147,7 @@ class WorkDetailsTest extends TestCase
 
     public function test_detail_gallery_returns_correct_structure_with_media(): void
     {
+        Storage::fake('local');
         Storage::fake('public');
 
         $project = $this->createProject();
@@ -160,12 +161,17 @@ class WorkDetailsTest extends TestCase
         $this->assertCount(1, $gallery, 'detail_gallery should contain the uploaded image');
 
         $item = $gallery[0];
-        foreach (['id', 'original', 'optimized', 'gallery', 'thumb', 'caption', 'alt', 'mime_type', 'size'] as $key) {
+        // F3/CLA-467: 'original' is gone on purpose — the original file now
+        // lives on a private disk (Project::registerMediaCollections()) and
+        // is never exposed by the public API. avif/focal_point are new.
+        foreach (['id', 'optimized', 'gallery', 'thumb', 'optimized_avif', 'gallery_avif', 'thumb_avif', 'caption', 'alt', 'focal_point', 'mime_type', 'size'] as $key) {
             $this->assertArrayHasKey($key, $item, "detail_gallery item must have key [{$key}]");
         }
+        $this->assertArrayNotHasKey('original', $item);
         $this->assertIsInt($item['id']);
         $this->assertNull($item['caption'], 'caption must be null when not set');
         $this->assertNull($item['alt'], 'alt must be null when not set');
+        $this->assertSame(['x' => 0.5, 'y' => 0.5], $item['focal_point']);
     }
 
     // ─── Existing gallery is not affected ────────────────────────────────────

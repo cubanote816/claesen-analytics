@@ -1,0 +1,355 @@
+# Seeders del contenido del sitio (para que el API tenga datos)
+
+- **Rama:** `electrobertels/trunk`. Worktree: `/home/totti/claesen/electrobertels`
+- **Pedido por el usuario (2026-10-03):** crear varios seeders que pueblen el website, **copiando del sitio actual** (`/home/totti/electrobertel_official`, servido en `127.0.0.1:8080`), y después enlazar el sitio de Astro para que **consuma la data de nuestro API**.
+- **Estado:** P1, P2, P3, **P4 (desbloqueado)** y P5 hechos y verificados. P6/P7 pendientes.
+
+## Por qué esto es la pieza que falta (y no una idea mía)
+
+El repo del sitio **ya diseñó** este trabajo: `odd/tasks/dynamic-content-sync.md` (269 líneas) fija la arquitectura —*un CLI, una superficie a la vez*, `scripts/dynamic/sync-content.mjs --surface=<settings|media|legal|projects>`, **copiando el molde de `sync-publication.mjs`**— y tiene una sección explícita: *"Why no live happy path exists today"*, porque el backend contesta `{"data":[]}`. `--surface=settings` **ya está implementado** y su contrato está **pinchado contra `trunk` en el commit `74a65f4`**. Falta el dato en el backend: **esto**.
+
+## Lo que se puede sembrar, y con qué se marca
+
+Medido antes de escribir, porque el sitio tiene gates propios:
+
+| Superficie | Qué hay hoy en el sitio | Cómo se siembra |
+| --- | --- | --- |
+| **settings** | **Datos reales del cliente**, verificados contra el handoff aprobado (`src/business/facts.snapshot.json`) | Valores reales. `vat_number` **no existe** → se **omite** (el contrato dice que las claves ausentes se omiten, nunca se emiten como null) |
+| **projects** | 6/6 **fixtures ficticios** — el propio YAML dice *"not approved public content"* | Decisión del usuario: **sembrar marcados como DEMO**, para poder probar el circuito |
+| **media** | 24 imágenes de `src/assets/mockup/` — material del prototipo de diseño, con gate propio (`GATE_REAL_MEDIA`) | Igual: **DEMO**, y además el modelo exige `usage_rights_confirmed_at` para el camino feliz |
+| **legal** | Los 3 son **borradores sin cuerpo** (`status: draft`, `GATE_LEGAL_COPY`: *"real privacy policy copy has not been supplied"*) | Título real, cuerpo **con el aviso de que está en preparación**: no se inventa copy legal |
+
+**Nada de esto es contenido real del cliente** salvo los datos de empresa de `settings`. El copy de las 7 páginas **sí es real**, pero vive en Git por decisión D-F y **no** pasa por la API.
+
+## Tareas
+
+- [x] **P1** Arreglar el defecto de `strict_locale_site_keys`: dice `electrobertels` donde todo lo demás dice `electro-bertels` (dos sitios en `Modules/Website/config/config.php`), así que `PublicLocalePolicy::isStrict()` es false para este sitio y los legales caen a neerlandés en vez de devolver null para un idioma no aprobado. Encontrado por la otra sesión al pinchar el contrato; está en trunk porque el merge trajo su línea
+- [x] **P2** `SiteSettingSeeder`: las claves reales del whitelist con los valores aprobados. Sin `vat_number`
+- [x] **P3** `ProjectSeeder` (DEMO): los 6 casos con sus imágenes, con la marca de demo **visible**
+- [x] **P4** (desbloqueado: ver abajo) `MediaSlotSeeder`: los slots de `MediaSlot::SUGGESTED_SLOTS` apuntando a media de proyecto (la validación lo exige)
+- [x] **P5** `LegalDocumentSeeder`: los 3 `doc_id`, título real y cuerpo de "en preparación"
+- [ ] **P6** Verificar cada uno **por HTTP** contra el backend servido, no solo con tests
+- [ ] **P7** Enlazar el sitio de Astro para que consuma el API (la superficie `settings` ya está escrita; las demás son el trabajo que el propio documento del sitio lista)
+
+## Regla de trabajo de esta feature
+
+Una superficie por vez: se siembra, se **mira el endpoint**, y recién ahí la siguiente. Nada se da por bueno porque el test pase.
+
+
+## P1 y P2: hechos y verificados (2026-10-03)
+
+**P1 — la clave del sitio, corregida.** `strict_locale_site_keys` y
+`consent_version_required_site_keys` listaban `electrobertels` (sin guion) mientras el sitio se
+llama `electro-bertels` en su `key`, su panel, su seeder y los tests. `isStrict()` compara contra
+esa lista, así que nunca coincidía y el idioma estricto quedaba apagado. Corregido en los cuatro
+sitios donde estaba. **Consecuencia declarada:** la misma lista mal escrita dejaba **opcional**
+`consent_version` en el intake de Bertels; ahora es **requerido**, y el formulario del frontend
+todavía no lo envía (lo dice el propio código del controlador). No rompe nada hoy porque el sitio
+no consume la API todavía; rompería el primer formulario real.
+
+**P2 — el seeder de ajustes, con los datos reales.** Trece claves del whitelist con los valores de
+`facts.snapshot.json` del cliente. `vat_number` y `contact_consent_version` **no** se siembran, a
+propósito y con el motivo escrito en el propio seeder.
+
+**Verificado con el juez correcto: el script del sitio.** `node scripts/dynamic/sync-content.mjs
+--surface=settings --check` contra nuestro trunk devuelve **`✔ the snapshot is already up to
+date`** — es decir, nuestro API reproduce **exactamente** el snapshot congelado que el sitio
+considera correcto. En el camino, su validador rechazó el primer intento por un detalle real:
+
+    opening_hours.day_key must be one of sunday, monday, tuesdayToFriday, saturday
+
+El snapshot del sitio llama `dayKey` a ese campo (son sus tipos internos) y **el contrato del API
+usa `day_key`**. Los valores eran correctos; la forma no. Y su `--check` hizo lo que tenía que
+hacer: **fallar sin tocar el snapshot**. Corregido.
+
+**Trampa mía, declarada:** en la primera versión del seeder escribí horarios y URLs de mapas
+**inventados** (09:00-17:00 continuo, una URL de maps fabricada). Los reales son distintos: la
+clave de cuatro días `tuesdayToFriday` con **corte de mediodía** y el sábado solo por la mañana.
+Se reescribió copiando los valores del snapshot. Es exactamente el error que esta tarea existe
+para no cometer.
+
+
+## P3: los proyectos DEMO, sembrados y servidos (2026-10-03)
+
+Los 6 del sitio, copiados de sus YAML (no reescritos a mano): título, descripción, categoría,
+ubicación, el caso completo del que lo trae (`work_story`, `challenge`, `solution`, `result` y sus
+3 imágenes de galería con sus pies de foto) y las 9 imágenes copiadas a
+`Modules/Website/resources/assets/demo-projects/` (344K).
+
+**`year` va nulo y no se inventa** — el YAML tampoco lo trae. Igual los `facts` del caso (segmento,
+técnica, duración…): el modelo no tiene dónde guardarlos, así que se pierden. Declarado, no
+escondido.
+
+**Cómo se marca DEMO, y qué marca de verdad.** El `title` empieza por `DEMO · `, y el `client`
+lleva el aviso completo en neerlandés. **Pero el API no sirve `client`**: el `ProjectResource` no
+lo expone entre sus campos. Así que la marca que ve un visitante es **el título**, y el aviso del
+`client` no llega a ninguna página. Se deja escrito igual porque documenta la intención, pero
+nadie debe creer que es la red de seguridad.
+
+**Verificado por HTTP, con los nombres de campo del resource** (mi primera comprobación pidió
+`client` y `api_featured_image_url`, que **no existen** — el resource sirve `featured_image` como
+objeto con `thumb`/`optimized` y sus variantes AVIF): 6 proyectos, título marcado, imagen hero en
+los seis, 3 imágenes de galería y el caso completo en el destacado, `year` nulo.
+
+**Y lo que pasa en otro idioma es lo correcto:** con `Accept-Language: en`, el título vuelve
+`null`. Es el sitio estricto funcionando —no inventa una traducción que no existe— y lo que
+rellena esos idiomas es el motor de CLA-611.
+
+⚠️ **Detalle observado, no arreglado aquí:** en algunos proyectos la URL del `thumb` apunta al
+original en lugar de a una conversión, porque las conversiones de esas imágenes todavía no se han
+generado (van por la cola). Con el worker en marcha terminan de generarse.
+
+
+## P4 — bloqueado por un hueco del backend, no por falta de datos (2026-10-03)
+
+El mapeo slot → imagen **ya está resuelto** y basado en leer el árbol, no en los nombres: es la
+tabla S2.1 de `odd/tasks/dynamic-content-sync.md` del repo del sitio. Siete slots tienen imagen
+(`over-ons.team`, `over-ons.cert-1..4`, `home.featured-diagram`, `home.shop-photo`), los tres
+hero son placeholders vacíos por diseño (`GATE_REAL_MEDIA`: *"3 hero slots are empty"*), y
+`winkel.photo` es un slot que la web **nunca** renderiza.
+
+**Lo que impide sembrarlo:** todos esos slot apuntan a `media_id`, y `media` exige dueño
+(`model_type` y `model_id` son NOT NULL), y el **único** modelo del módulo con media es
+`Project`. Las siete imágenes son **imágenes de sitio** —equipo, certificados, diagrama, tienda—,
+no fotos de obra: colgarlas de un proyecto las metería en la galería de ese proyecto, que el API
+publica (`gallery` y `detail_gallery`). Un certificado apareciendo como foto de obra es
+exactamente el tipo de dato falso que esta tarea existe para no producir.
+
+Y no se puede rodear: la media sin dueño no existe en este esquema, y crear un proyecto que haga
+de contenedor sería inventar una entidad para tapar el hueco.
+
+**El hueco, dicho con precisión:** el backend modela **slots de sitio** pero sólo sabe guardar
+media **de registro**. Su propio documento ya lo nombra como *"a backend gap to be ticketed, not
+guessed away"*. La salida natural es que el sitio pueda tener media propia (`Site` con
+`InteractsWithMedia`, o un dueño específico para slots), y entonces esta siembra es trivial.
+
+**Decisión del usuario sobre los derechos, que sí queda registrada:** cuando ese hueco se cierre,
+las imágenes del prototipo se siembran **marcadas como DEMO y sin fecha falsa** — el valor de
+`usage_rights_confirmed_at` dirá que **no** están confirmados, en vez de afirmar una confirmación
+que no existe. El endpoint sólo sirve un slot con esa propiedad *rellena*, así que la marca debe
+ser un texto explícito, nunca una fecha inventada.
+
+
+## P5: los legales, y el efecto de P1 por fin medido (2026-10-03)
+
+Los tres documentos, con el texto que **existe hoy**, que no es el texto legal: título real
+(`Privacyverklaring`, `Cookiebeleid`, `Algemene voorwaarden`) y **el aviso de "en preparación"
+como cuerpo**, copiado de su propio contenido. Escribir aquí una política inventada sería lo peor
+que podría hacer este seeder, y no se hizo.
+
+**`version` y `effective_date` van marcados como lo que son**, por decisión del usuario: la versión
+dice `DEMO` y la fecha de entrada en vigor es la de hoy. Ninguna de las dos significa nada
+legalmente —el documento que entraría en vigor no existe— y el esquema las exige no nulas, así que
+la alternativa era no sembrar.
+
+**Y aquí queda medido el efecto de P1**, que estaba prometido para cuando existieran legales:
+
+| Idioma | `title` | `body` | `translation_status` |
+| --- | --- | --- | --- |
+| `nl` (el que tiene contenido) | `Privacyverklaring` | el aviso | `machine` |
+| `en` (sin contenido) | **`null`** | **`null`** | `missing` |
+
+En inglés **no** devuelve el texto neerlandés: devuelve `null`. Eso es la política de idioma
+estricto funcionando, y era el defecto que P1 corrigió —la clave del sitio estaba escrita sin el
+guion, `isStrict()` nunca coincidía, y con el idioma estricto apagado estos campos caían a
+neerlandés. Ahora mismo, con la clave bien, el comportamiento es el correcto y está comprobado por
+HTTP en los dos idiomas.
+
+
+## P4 desbloqueado: el sitio tiene su propia media (2026-10-03)
+
+Decisión del usuario: *«crea sus propios dueños si es una buena práctica»*. **Lo es**, y por eso se
+hizo: una foto de equipo o un certificado **no** es una foto de obra, así que su dueño natural es el
+**sitio**, no un proyecto. Es aditivo (`media` de Spatie es polimórfico, no toca el esquema) y no
+cambia nada de Claesen.
+
+Lo que se hizo:
+
+1. **`Site` gana media** (`InteractsWithMedia` + colección `imagery`, mismo disco y formatos que las
+   colecciones de proyecto).
+2. Las **conversiones** salen a un trait compartido, `Modules\Core\Models\Concerns\SiteImageConversions`,
+   con los mismos tamaños y calidades que ya tenía `Project`. Vive en **Core** y no en Website
+   porque lo usan los dos, y un modelo de Core no debe depender de Website: la dirección se respeta.
+   ⚠️ El método se llama `registerSiteImageConversions`, **no** `registerMediaConversions`: ese
+   último es el hook de `InteractsWithMedia` y dos traits con el mismo método en la misma clase son
+   un **fatal** (`has not been applied ... because of collision`). Se descubrió rompiendo el
+   arranque de la app, que es una forma cara de aprenderlo.
+3. `Project::MEDIA_MIME_TYPES` **sigue resolviendo** aunque la constante viva en el trait, porque las
+   constantes de trait pasan a ser de la clase. Su test de contrato (`ProjectMediaContractTest`,
+   7/7) es la prueba.
+4. El selector de media del panel (`MediaSlotResource::mediaOptions`) ahora ofrece también la media
+   del sitio, no sólo la de proyectos. Antes era imposible elegirla.
+5. `MediaSlotSeeder`: los **7 slots con imagen** de la tabla S2.1 del sitio. Los **3 hero no se
+   siembran** (no existe imagen suya: su repo los documenta vacíos por diseño) y `winkel.photo`
+   tampoco (*«the API offers a slot the site never renders»*).
+6. **Derechos de uso marcados como lo que son**: el valor dice que **no** están confirmados
+   (imágenes del prototipo), nunca una fecha. El API sólo sirve el slot si esa propiedad está
+   rellena, así que el texto es lo que permite probar el circuito sin afirmar una confirmación.
+
+**Verificado por HTTP**: 7 slots servidos con `url` de conversión (los originales siguen privados),
+`width`, `height` y `checksum` `sha256:…` — exactamente el contrato que su documento fijó.
+
+⚠️ **Defecto del caché de `conversionMeta()`: sigue abierto** (el `mime_type` de ese mismo método ya se arregló, ver abajo):
+`MediaSlotController::conversionMeta()` cachea el resultado **vacío** durante una hora con una clave
+que incluye el `updated_at` del media pero **no** el hecho de que la conversión ya exista. Consecuencia:
+recién sembrado, mientras la cola genera las conversiones, el endpoint responde `width`/`height`/
+`checksum` en `null` **y los sigue respondiendo hasta una hora después** de que el fichero exista.
+Se comprobó vaciando la caché: los valores aparecen de inmediato. El arreglo natural es no cachear el
+caso vacío, o incluir en la clave la existencia de la conversión.
+
+### El contrato real de `alt` y `caption` (y lo que costó descubrirlo)
+
+El sync del sitio (`scripts/dynamic/sync-content.mjs --surface=media`, escrito por la línea del
+sitio) **valida** el payload antes de tocar su snapshot. La primera corrida contra este backend
+rechazó la superficie entera con `alt must be an object keyed by locale` / `caption must be an
+object keyed by locale` para los 7 slots, y **dejó su snapshot intacto** — que es el comportamiento
+correcto: un snapshot a medias es peor que ninguno.
+
+Dos cosas estaban mal:
+
+1. **Faltaban los textos.** El `alt` tiene que ser un objeto por idioma. Se copió del **contenido
+   real del cliente**, no se inventó: `over-ons.history.photoAlt`, `home.media.knxSchemaAlt`,
+   `home.media.winkelPhotoAlt` y `certifications.slotLabels`, en los cuatro idiomas. El token
+   `{{addressFull}}` de la foto de la tienda se guarda **tal cual**, porque lo resuelve el propio
+   sitio al renderizar. El `caption` va **vacío**: el contenido no tiene pies de foto para estos
+   slots, y un objeto vacío dice «no hay» sin inventar texto.
+2. **Un array vacío no es un objeto.** `localeMap()` devuelve un array de PHP, y un array vacío se
+   serializa como `[]` — una **lista**. El contrato pide un objeto. Se arregló en
+   `MediaSlotController::serialize()` con un cast `(object)`, el mismo defecto que ya había aparecido
+   en el manifiesto de publicación y se había resuelto igual. `MediaSlotsApiTest` gana un test de
+   regresión que **se verificó quitando el cast**: con él `"caption":{}`, sin él `"caption":[]` y el
+   test falla.
+
+De paso: el valor de derechos decía «DEMO — niet bevestigd» con una raya, y al escribirlo a MySQL
+llegaba rota (`DEMO ? niet bevestigd`). Quedó con guion ASCII — el único trabajo de ese texto es
+**no mentir**, así que no puede llegar ilegible.
+
+### Dónde se traba de verdad la superficie `media` (medido, no supuesto)
+
+Con el contrato ya válido, `--check` avanza hasta la descarga y falla ahí:
+
+```
+home.featured-diagram: could not download http://localhost/storage/29/conversions/domotica-optimized.webp (fetch failed)
+```
+
+Son **dos** causas, ambas del lado del backend y ninguna en el sembrador:
+
+1. **La media está en el disco `local`, no en `public`.** `$media->disk` = `local`, y
+   `public/storage` no existe en este worktree. `url()` devuelve entonces una ruta relativa
+   (`/storage/24/…`) que no sirve nadie: pedirla da **403** (rutas `GET|PUT storage/{path}` del
+   propio framework, no de nginx). La media del **sitio web** tiene que ser descargable por un
+   consumidor anónimo; la de KNX es privada **a propósito** (URLs firmadas), así que esto es una
+   decisión de arquitectura, no un detalle. **No se decidió acá.**
+2. **`APP_URL=http://localhost`** (sin puerto) en el entorno local, así que la URL absoluta apunta
+   al puerto 80. Es configuración de entorno; en producción importa que sea el host real.
+
+Ninguna de las dos se arregla desde el sembrador, y las dos bloquean la superficie `media` del sitio.
+**Los tests no las detectan** porque `MediaSlotsApiTest` usa `Storage::fake('public')`: el disco real
+de producción nunca se ejerce. Queda anotado como riesgo, no como algo resuelto.
+
+### La descarga: qué era, qué arreglé y qué queda
+
+Con el contrato ya válido, el `--check` del sitio avanza hasta la descarga y falla ahí. **Medido**, no
+supuesto:
+
+**(a) Faltaba `public/storage`.** `php artisan storage:link` no había corrido nunca en el worktree y
+`public/storage` está gitignoreado, así que **nada** bajo `/storage/…` se servía: la URL de la
+conversión respondía **403**. Arreglado, y agregado a `levantar-servidores.sh` (idempotente) para que
+un worktree nuevo sirva la media sin pasos manuales. Verificado:
+
+| ruta | antes | ahora |
+|---|---|---|
+| `/storage/29/conversions/domotica-optimized.webp` (conversión) | 403 | **200 · 58 390 bytes** |
+| `/storage/24/eb-about-team.webp` (**el original**) | 403 | **403** |
+
+El original sigue bloqueado porque vive en el disco `local` y el API nunca lo serializa: se arregló la
+descarga **sin** tocar la decisión de privacidad, que tiene un test detrás
+(`PrivateMediaOriginalsTest`).
+
+**(b) `APP_URL`.** El API no devuelve una ruta: devuelve una **URL absoluta** derivada de `APP_URL`
+(`AppServiceProvider` reescribe `filesystems.disks.public.url`), y en el entorno local el `.env` dice
+`http://localhost`, sin puerto. Así que el API publica `http://localhost/storage/29/…`, que no existe
+para nadie. Dos cosas aprendidas midiendo:
+
+- Pasar `APP_URL` como **variable de entorno del contenedor no alcanza**: en este montaje el `.env`
+  gana en el contexto HTTP (CLI sí la ve — lo que me hizo creer durante un rato que estaba arreglado).
+- El repo ya se comió este problema una vez: CLA-444, en fieldops, con URLs absolutas guardadas desde
+  `Storage::disk('public')->url()`. Se resolvió guardando **ruta relativa** y resolviéndola del lado
+  del cliente. Por eso esto **no** se decide acá: queda como decisión pendiente en
+  `docs/ai/known-risks.md`.
+
+**No se tocó** `useDisk('local')` ni la privacidad de los originales: el diseño ya era el correcto
+(original privado, conversiones públicas) y lo que faltaba era el enlace, no la política.
+
+### Cerrado: el origen de la URL sale de la request (decisión D, 2026-10-04)
+
+Quedaba un solo tramo: el API publicaba `http://localhost/storage/…` porque armaba la URL desde
+`APP_URL` (y en el entorno local el `.env` dice `http://localhost`). Dos caminos se descartaron
+**midiéndolos**, no por gusto:
+
+- **Ruta relativa**: es lo que el repo ya hizo en fieldops (CLA-444), pero acá **rompe al consumidor**:
+  el contrato del sync del sitio exige URL absoluta — `isAbsoluteHttpUrl()` y
+  `url must be an absolute http(s) URL` en su validador — así que devolver `/storage/…` habría cambiado
+  un fallo de descarga por un fallo de contrato, sobre una superficie que hoy valida verde.
+- **`APP_URL` correcto**: arregla este entorno, pero deja el API dependiente de que la máquina que
+  genera la URL sea la misma a la que llega el consumidor, que es exactamente lo que rompió producción
+  la vez anterior.
+
+**Implementado**: `MediaSlotController` arma el origen con `getSchemeAndHttpHost()` y **el camino con
+el disco** (`/storage/…`, vía `parse_url(Storage::disk(...)->url(...))`), así el `storage:link` sigue
+siendo la única fuente de verdad del layout. La respuesta lleva `Vary: Host`: el cuerpo ahora depende
+del host y el endpoint se sirve `public, max-age=60`, así que sin eso un caché compartido podría
+servirle a un host la URL del otro. (`Vary` es una lista y el CORS aporta `Origin`: el test afirma
+pertenencia, no igualdad — lo aprendí porque mi primera aserción fue demasiado estricta.)
+
+Tests: `the media url origin follows the request host` (y se actualizó el que afirmaba
+`$media->getUrl('optimized')`, que es justo el acoplamiento que se eliminó). **Verificado de punta a
+punta** con el `--check` del sync del sitio: `media: 7 mapped slot(s) verified (checksum, dimensions,
+format)`. Su snapshot queda pendiente de su lado: su propio mensaje dice qué hacer («run the sync
+without --check and commit the result»), y es su archivo.
+
+### `mime_type` describía el original (2026-10-04)
+
+Lo encontró la línea del sitio y era real. `MediaSlotController` servía `$media->mime_type`, que es
+el del **original** — así que un original PNG convertido a WebP anunciaba `image/png` mientras el
+bytes descargados eran WebP. Un consumidor que confíe en el campo para elegir decodificador queda
+mal informado.
+
+Engañoso: **3 de los 7** slots lo mostraban, y los otros 4 **parecían** correctos sin serlo — sus
+originales ya eran WebP, así que el campo coincidía **sin haber mirado la conversión**.
+
+Arreglado leyendo el mime del **archivo de la conversión** en `conversionMeta()`, donde ya se abría
+ese mismo archivo para las dimensiones y el checksum: cero lecturas nuevas, una sola fuente. Si
+`getimagesize()` no puede con el archivo, el campo queda `null` y `serialize()` cae al del original
+antes que emitir vacío (su contrato exige una cadena no vacía).
+
+Test nuevo (`the mime type describes the conversion not the original`) **verificado quitando el
+arreglo**: con él `image/webp`, sin él `image/png` y falla. La conversión del test se **genera** como
+WebP de verdad — si el test dejara los bytes PNG, seguiría pasando con el bug presente, porque ahí
+los dos mimes coinciden de casualidad.
+
+### Las páginas legales vuelven a esta tabla (2026-10-04)
+
+Me corrijo: el seeder decía, en un comentario mío, que los tres legales quedaban **deliberadamente
+fuera** porque «su compuerta es su propio `status: draft` en el contenido». Eso es falso. El sitio los
+declara como page ids de primera clase, al lado de los otros siete:
+
+```
+home, particulieren, bedrijven, winkel, projecten, over-ons, contact   ·   legal-privacy, legal-cookies, legal-terms
+```
+
+Son **diez**, no ocho (mi migración decía «ocho páginas»). Una fila ausente y una fila sin publicar
+significan lo mismo para el build — no indexable — pero sólo la segunda puede revisarse y
+**aprobarse**. Al no materializarlas, el cliente no tenía forma de aprobarlas: ése era el hueco.
+
+Se siembran, y con una diferencia deliberada: **`machine` en todos los locales, incluido el default**.
+En las otras siete, el locale por defecto arranca `published` porque su copy es real y está aprobada
+(D-F). El copy legal **no** lo está: su cuerpo sigue siendo el aviso de «en preparación» y el sitio
+tiene `GATE_LEGAL_COPY`. Marcar `published` pondría en el manifest una aprobación que nunca ocurrió, y
+el manifest es justamente lo que decide qué puede indexarse. Si esa lectura no es la que querés, es
+**una línea** del seeder.
+
+Resultado: **40 pares** (10 × 4). El manifest sigue sirviendo **7 páginas** — y eso no es un pendiente,
+es la compuerta funcionando: los legales aparecerán cuando alguien los apruebe en la pantalla. La
+pantalla de revisión de CLA-611 ya los lista sola (filtra por `site_id` + `translatable_type`, sin
+lista de tipos), así que no hay que registrar ningún tipo traducible.

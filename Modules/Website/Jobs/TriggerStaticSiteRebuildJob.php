@@ -8,6 +8,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Modules\Core\Models\ActivityLogEntry;
+use Modules\Core\Models\Site;
+use Modules\Core\Services\OrganizationContext;
 use Modules\Website\Models\PublicationState;
 use Modules\Website\Services\StaticSitePublicationService;
 
@@ -21,14 +24,33 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
     public array $backoff = [30, 60, 120];
 
     public function __construct(
+        public readonly int    $siteId,
         public readonly string $dispatchKey,
         public readonly string $reason,
         public readonly bool   $force,
+        /**
+         * Optional per-key publish: site_settings key names to limit the
+         * rebuild to. Null means full sync (unchanged historical behaviour).
+         * Carried as plain scalar data so SerializesModels round-trips it
+         * untouched across queue/retry — it plays no part in the
+         * dispatch_key supersede check below, so it cannot change what
+         * "stale" means.
+         */
+        public readonly ?array $keys = null,
     ) {}
 
     public function handle(StaticSitePublicationService $service): void
     {
-        $state = PublicationState::current();
+        // F3/CLA-472 (ADR D6): this job is the first real consumer that
+        // needs BelongsToSite-scoped queries to resolve correctly inside a
+        // background job — PublicationState::current($this->siteId) below
+        // would otherwise throw MissingOrganizationContext (no HTTP
+        // middleware or authenticated user exists here to have set one).
+        // Setting it explicitly from the job's own scalar payload is exactly
+        // what D6 already prescribed for this situation.
+        app(OrganizationContext::class)->setSite(Site::query()->find($this->siteId));
+
+        $state = PublicationState::current($this->siteId);
 
         // Debounce: a newer requestRebuild() generated a different dispatch_key.
         // This job is stale — abort silently. The newer job will handle the rebuild.
@@ -40,7 +62,13 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
             return;
         }
 
-        $result = $service->sendWebhook($this->reason, $this->force);
+        // Marca de agua de «qué cambió»: el id más alto del log **antes** de pedir el rebuild.
+        // Se toma antes y no después a propósito — un cambio que llegue mientras el webhook
+        // viaja queda del lado de «pendiente», que es el error seguro: mostrar un cambio ya
+        // publicado molesta, esconder uno pendiente hace creer que la web está al día.
+        $watermark = ActivityLogEntry::query()->max('id');
+
+        $result = $service->sendWebhook($this->siteId, $this->reason, $this->force, $this->keys);
 
         if ($result->success) {
             // Re-check before marking accepted: another admin save may have
@@ -49,7 +77,25 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
             // new job handles the next rebuild.
             $state->refresh();
             if ($state->dispatch_key === $this->dispatchKey) {
-                $state->markAccepted();
+                // Una publicación por sección no puede mover la marca de agua de todo el sitio:
+                // sólo cubrió sus propias claves. Con claves se acepta sin tocarla, para que los
+                // badges de las demás secciones (y del sitio) sigan contando desde la última
+                // publicación que sí las cubrió.
+                $publishedKeys = $this->keys === [] ? null : $this->keys;
+
+                $state->markAccepted($publishedKeys === null ? $watermark : null);
+
+                $service->recordPublicationEvent('accepted', $this->siteId, [
+                    'dispatch_key' => $this->dispatchKey,
+                    'reason'       => $this->reason,
+                    // La cobertura de la publicación: sin claves fue de todo el sitio, con
+                    // claves de las que viajan acá (el sitio trata «sin claves» como sync
+                    // completo, y el evento registrado dice lo mismo que lo que recibió).
+                    // La marca de agua capturada va al lado: es el corte desde el que cuenta
+                    // cada sección que esta publicación cubrió, y así no se infiere.
+                    'keys'         => $publishedKeys,
+                    'watermark'    => $watermark,
+                ]);
             }
             return;
         }
@@ -73,7 +119,9 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        $state = PublicationState::current();
+        app(OrganizationContext::class)->setSite(Site::query()->find($this->siteId));
+
+        $state = PublicationState::current($this->siteId);
 
         if ($state->dispatch_key !== $this->dispatchKey) {
             Log::info('Static site rebuild failed but was superseded — not marking error.', [
@@ -86,6 +134,14 @@ class TriggerStaticSiteRebuildJob implements ShouldQueue
         $state->markError(
             sprintf('[%s] %s', get_class($exception), $exception->getMessage())
         );
+
+        // El resultado, en el log de actividad: sin esto la solicitud queda sin desenlace y el
+        // historial no puede responder "¿y qué pasó con esa publicación?".
+        app(StaticSitePublicationService::class)->recordPublicationEvent('failed', $this->siteId, [
+            'dispatch_key' => $this->dispatchKey,
+            'reason'       => $this->reason,
+            'error'        => sprintf('[%s] %s', get_class($exception), $exception->getMessage()),
+        ]);
 
         Log::error('Static site rebuild job exhausted all retries.', [
             'dispatch_key' => $this->dispatchKey,

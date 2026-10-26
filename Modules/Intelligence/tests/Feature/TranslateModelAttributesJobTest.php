@@ -24,7 +24,7 @@ class TranslateModelAttributesJobTest extends TestCase
     private function makeType(array $translations): TerrainType
     {
         $id = DB::table('fo_terrain_types')->insertGetId([
-            'type'       => json_encode($translations),
+            'type' => json_encode($translations),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -50,7 +50,7 @@ class TranslateModelAttributesJobTest extends TestCase
         $gemini = $this->mock(GeminiService::class);
         $gemini->expects('translateAndDetect')
             ->once()
-            ->with('Sportveld', ['de'])
+            ->with('Sportveld', ['de'], null, [], 0)
             ->andReturn(['detected_locale' => 'nl', 'translations' => ['de' => 'Sportplatz']]);
 
         $this->job($model)->handle($gemini);
@@ -113,10 +113,10 @@ class TranslateModelAttributesJobTest extends TestCase
         $gemini = $this->mock(GeminiService::class);
         $gemini->expects('translateAndDetect')
             ->once()
-            ->with('Sportveld', ['fr', 'de'])
+            ->with('Sportveld', ['fr', 'de'], null, [], 0)
             ->andReturn([
                 'detected_locale' => 'nl',
-                'translations'    => ['fr' => 'Terrain de sport'],
+                'translations' => ['fr' => 'Terrain de sport'],
             ]);
 
         $this->job($model)->handle($gemini);

@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Modules\Core\Filament\Auth\EmailAuthenticationWithBrand;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -22,6 +24,9 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Modules\Core\Http\Middleware\AssignCorrelationId;
+use Modules\Core\Http\Middleware\ResolveOrganizationContext;
+use Modules\Core\Http\Middleware\UpdateUserActivity;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -41,7 +46,7 @@ class AdminPanelProvider extends PanelProvider
 
             FilamentView::registerRenderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
-                static fn(): string => view('core::filament.auth.microsoft-login-errors')->render(),
+                static fn(): string => view('core::filament.auth.login-alerts')->render(),
             );
 
             FilamentView::registerRenderHook(
@@ -49,12 +54,91 @@ class AdminPanelProvider extends PanelProvider
                 static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
 
-            // CLA-580 — split-screen brand panel, scoped to the login page only
-            // (never on other fi-simple-layout pages) via the login route name.
+            // CLA-611: el aviso de «este no es tu panel». Sólo en la pantalla de login (no en
+            // reseteo de contraseña ni en el desafío de MFA) y en los dos paneles, porque el
+            // hook es global. Explica lo que hoy no explica nadie: que un usuario de la otra
+            // empresa no puede entrar aquí, en vez de devolverlo al formulario en silencio.
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                static fn(): string => request()?->routeIs('filament.*.auth.login')
+                    ? view('core::filament.auth.other-panel-hint')->render()
+                    : '',
+            );
+
+            // CLA-603 — split-screen login from the approved mockup (now the dual-brand
+            // two-panel auth layout of odd/tasks/backoffice-auth-redesign.md). Registered
+            // here because FilamentView::registerRenderHook is global and this
+            // provider is already where the backoffice's cross-panel render hooks
+            // live: the gate below covers EVERY panel's auth screens (login,
+            // logout, password reset, MFA challenge) — admin *and* bertels. The
+            // theme restyles .fi-simple-layout itself, so it and the brand column
+            // must share the exact same gate.
+            $isAuthScreen = static fn (): bool => (bool) request()?->routeIs('filament.*.auth.*');
+
             FilamentView::registerRenderHook(
                 PanelsRenderHook::SIMPLE_LAYOUT_START,
-                static fn(): string => request()?->routeIs('filament.admin.auth.login')
+                static fn(): string => $isAuthScreen()
                     ? view('core::filament.auth.brand-panel')->render()
+                    : '',
+            );
+
+            // Plain <style> instead of Tailwind utilities on purpose: the bertels
+            // panel has no ->viteTheme(), so utilities used only by the login views
+            // are never generated there — the 416px Microsoft icon of CLA-603 was
+            // exactly that (h-5 w-5 resolved to nothing).
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::HEAD_END,
+                static fn(): string => $isAuthScreen()
+                    ? view('core::filament.auth.login-theme')->render()
+                    : '',
+            );
+
+            // CLA-601 — the mockup's sign-in column is deliberately light
+            // regardless of the panel's own dark default (admin sets
+            // ->defaultThemeMode(Dark)): a real two-tone split (dark brand / light
+            // functional form), not a uniformly dark page. Filament's own base
+            // (non-dark) theme is already a coherent, accessible light design.
+            //
+            // Two narrower fixes were tried first and empirically failed (kept here
+            // so the next person doesn't retry them): a one-shot
+            // classList.remove('dark') at HEAD_END, and overriding the
+            // --default-theme-mode CSS custom property the base layout also sets.
+            // Both lose the race against vendor/filament/filament/resources/js/
+            // dark-mode.js, which re-adds the class from an Alpine.effect()
+            // reacting to Alpine.store('theme') — that effect (re)runs once Alpine
+            // initialises, which in this app's HTML only happens once livewire.js's
+            // own <script src> tag executes, itself emitted by Livewire AFTER any
+            // renderHook content (verified via curl on the raw response: our hook's
+            // markup is on an earlier line than that script tag, in every hook
+            // position tried, including BODY_END) — so nothing we render can run
+            // its own classList mutation later than Alpine's.
+            // A MutationObserver sidesteps the ordering fight entirely: it fires on
+            // every future mutation of <html>'s class attribute, however many times
+            // something else re-adds 'dark', for as long as this page lives —
+            // correct regardless of exactly when Alpine boots. Never touches
+            // localStorage/Alpine.store, so it's a display-only override scoped to
+            // the auth screens; the rest of the app keeps whatever the user's own
+            // theme preference actually is.
+            FilamentView::registerRenderHook(
+                PanelsRenderHook::HEAD_END,
+                static fn(): string => $isAuthScreen()
+                    ? <<<'HTML'
+                        <script>
+                            (function () {
+                                var html = document.documentElement;
+                                var strip = function () {
+                                    if (html.classList.contains('dark')) {
+                                        html.classList.remove('dark');
+                                    }
+                                };
+                                strip();
+                                new MutationObserver(strip).observe(html, {
+                                    attributes: true,
+                                    attributeFilter: ['class'],
+                                });
+                            })();
+                        </script>
+                        HTML
                     : '',
             );
 
@@ -121,8 +205,32 @@ HTML
             ->id('admin')
             ->path('')
             ->login(\Modules\Core\Filament\Pages\Auth\Login::class)
+            // CLA-603: the mockup's forgot/reset screens, backed by this
+            // project's own reset mechanism (PasswordResetService) instead of
+            // Filament's password_reset_tokens broker — see the pages' docblocks.
+            ->passwordReset(
+                \Modules\Core\Filament\Pages\Auth\RequestPasswordReset::class,
+                \Modules\Core\Filament\Pages\Auth\ResetPassword::class,
+            )
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
+            // CLA-464 (ADR D8): required only for super_admin/admin, not every
+            // internal role with panel access — see the middleware's own
+            // docblock for why the role gate lives there and not in a Closure
+            // passed to requiresMultiFactorAuthentication() (evaluated once at
+            // boot, no per-request user). Applies to the local-password login
+            // (Modules\Core\Filament\Pages\Auth\Login carries Filament's MFA
+            // challenge verbatim, CLA-363) and its set-up requirement. Sessions
+            // signed in through MicrosoftAuthController carry a server-side
+            // marker (Modules\Core\Support\AuthenticatedVia) and skip both:
+            // Entra ID is their second factor, which the tenant enforces
+            // outside this repo (Conditional Access / Security Defaults).
+            ->multiFactorAuthentication([
+                AppAuthentication::make(),
+                EmailAuthenticationWithBrand::make(),
+            ])
+            ->multiFactorAuthenticationRequiredMiddlewareName(\Modules\Core\Http\Middleware\EnsureAdminRoleMultiFactorAuthenticationIsEnabled::class)
+            ->requiresMultiFactorAuthentication()
             ->navigationGroups([
                 NavigationGroup::make('Workforce & Performance')
                     ->label(fn () => __('navigation.groups.workforce_performance'))
@@ -160,6 +268,10 @@ HTML
             ->font('Outfit')
             ->sidebarCollapsibleOnDesktop()
             ->collapsibleNavigationGroups()
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => view('core::filament.organization-indicator')->render(),
+            )
             ->brandLogo(asset('img/brand-logo-light.png'))
             ->darkModeBrandLogo(asset('img/brand-logo-dark.png'))
             ->brandLogoHeight('3rem')
@@ -221,6 +333,21 @@ HTML
                 \Modules\Core\Http\Middleware\BrowserLocaleMiddleware::class,
                 \Modules\Core\Http\Middleware\EnsurePasswordIsSet::class,
                 \Modules\Core\Http\Middleware\EnsurePanelAccess::class,
+                // F2/CLA-465 real fix, found while building it: this panel
+                // builds its OWN explicit middleware list rather than the
+                // 'web' group alias, so bootstrap/app.php's
+                // $middleware->web(append: [...]) NEVER reached this panel's
+                // routes — confirmed with a real request (Cache::has() proof
+                // for UpdateUserActivity's own side effect returned false
+                // before this fix). AssignCorrelationId/UpdateUserActivity/
+                // ResolveOrganizationContext all belong here explicitly.
+                AssignCorrelationId::class,
+                UpdateUserActivity::class,
+                ResolveOrganizationContext::class,
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
+            ])
+            ->persistentMiddleware([
+                \Modules\Core\Http\Middleware\EnsureUserBelongsToPanelSite::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
@@ -238,6 +365,15 @@ HTML
                     ->icon('heroicon-o-shield-check')
                     ->group(fn () => __('navigation.groups.content_website'))
                     ->sort(11),
+                // F1/P4+P6 (CLA-460 cont.): audited panel-switch selector.
+                // Ungrouped on purpose — a cross-cutting super_admin action,
+                // not Website content. No real Bertels user exists yet (D10),
+                // so this stays gated to super_admin until P5/P7.
+                NavigationItem::make(fn () => __('navigation.switch_to_bertels'))
+                    ->url(fn () => route('core.switch-panel', ['panel' => 'bertels', 'from' => 'admin']))
+                    ->icon('heroicon-o-building-office-2')
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin'))
+                    ->sort(100),
             ]);
     }
 }

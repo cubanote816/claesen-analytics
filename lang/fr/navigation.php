@@ -11,4 +11,6 @@ return [
         'safety_vca' => 'Sécurité & VCA',
         'field_operations' => 'Opérations de terrain',
     ],
+    'switch_to_bertels' => 'Passer à Electro Bertels',
+    'switch_to_claesen' => 'Passer à Claesen',
 ];

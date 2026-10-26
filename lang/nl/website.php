@@ -76,6 +76,8 @@ return [
             'assigned_to' => 'Toegewezen aan',
             'follow_up_date' => 'Opvolgdatum',
             'internal_notes' => 'Interne opmerkingen',
+            'tags' => 'Labels',
+            'first_response_sla' => 'Eerste reactie',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -95,17 +97,22 @@ return [
             'other' => 'Overig',
         ],
         'status_options' => [
-            'pending' => 'In afwachting',
-            'contacted' => 'Gecontacteerd',
+            'new' => 'Nieuw',
+            'assigned' => 'Toegewezen',
             'in_progress' => 'In behandeling',
-            'completed' => 'Voltooid',
-            'cancelled' => 'Geannuleerd',
+            'waiting_client' => 'Wacht op klant',
+            'closed' => 'Gesloten',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Laag',
             'medium' => 'Gemiddeld',
             'high' => 'Hoog',
             'urgent' => 'Urgent',
+        ],
+        'actions' => [
+            'export' => 'CSV exporteren',
+            'erase' => 'Wissen (AVG)',
         ],
     ],
     'activities' => [
@@ -148,10 +155,40 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    // WU4: quién publicó, cuándo y qué cambió. El «qué cambió» sale del log de actividad que
+    // ya existía, acotado a lo posterior a la última publicación aceptada — no de un hash
+    // nuevo. Ver odd/tasks/publish-to-live-website.md.
+    'publication_history' => [
+        'label' => 'Publicaties',
+        'changes_heading' => 'Wijzigingen sinds de laatste publicatie',
+        'empty' => 'Nog geen publicaties',
+        'empty_changes' => 'Geen wijzigingen sinds de laatste publicatie',
+        'fields' => [
+            'when'           => 'Wanneer',
+            'who'            => 'Wie',
+            'event'          => 'Wat',
+            'reason'         => 'Reden',
+            'error'          => 'Fout',
+            'subject'        => 'Onderdeel',
+            'fields_changed' => 'Gewijzigde velden',
+        ],
+        'events' => [
+            'requested' => 'Aangevraagd',
+            'accepted'  => 'Geaccepteerd',
+            'failed'    => 'Mislukt',
+        ],
+        // En el idioma de quien mira, no el nombre de la clase.
+        'subjects' => [
+            'sitesetting'  => 'Instelling',
+            'project'      => 'Project',
+            'mediaslot'    => 'Mediaslot',
+            'announcement' => 'Mededeling',
+        ],
+    ],
     'publication' => [
         'status' => [
             'idle'     => 'Geen wijzigingen',
-            'pending'  => 'In de wachtrij',
+            'pending'  => 'Wijzigingen niet gepubliceerd',
             'accepted' => 'Publicatie aangevraagd',
             'error'    => 'Publicatiefout',
         ],
@@ -169,6 +206,243 @@ return [
             'publish_now_confirm_title'  => 'Publicatie starten',
             'publish_now_confirm_body'   => 'Dit vraagt een volledige herbouw van de website aan. De huidige versie blijft actief tot de bouw klaar is.',
             'publish_now_success'        => 'Publicatie aangevraagd',
+            'publish_section'                 => 'Deze pagina publiceren',
+            'publish_section_confirm_title'   => ':page publiceren',
+            'publish_section_confirm_body'    => 'Alleen de wijzigingen van :page worden naar de website gestuurd. Wijzigingen op de andere pagina\'s behouden voorlopig hun gepubliceerde waarden.',
+            'publish_section_confirm_pending' => 'Wijzigingen op deze pagina die wachten op publicatie: :count',
+            'publish_section_confirm_submit'  => ':page publiceren',
+            'publish_section_success'         => 'De publicatie van :page is aangevraagd',
+            'publish_section_disabled'        => 'Publiceren is uitgeschakeld in deze omgeving — de website is niet bijgewerkt.',
+            'publish_section_no_drift'        => 'Niets te publiceren — deze pagina komt al overeen met de gepubliceerde site.',
+            'publish_section_unverified'      => 'Kon niet controleren of er iets te publiceren viel — de publicatie is alsnog aangevraagd.',
+        ],
+    ],
+    // CLA-481 (media slots): estas claves no existían en ningún fichero de idioma, así que
+    // la pantalla del panel enseñaba `website.media_slots.plural_label` en crudo, también
+    // en la barra de pestañas del clúster. El texto sigue el vocabulario del propio código
+    // (un slot es un nombre estable —`home.hero`— que apunta a un media de un proyecto),
+    // no una interpretación libre; si el equipo de esa pantalla prefiere otra redacción,
+    // esta es la que hay que cambiar.
+    'media_slots' => [
+        'label' => 'Mediaslot',
+        'plural_label' => 'Mediaslots',
+        'fields' => [
+            'slot' => 'Slot',
+            'slot_helper' => 'Naam die de website gebruikt, bijvoorbeeld home.hero. De website moet mee als je die wijzigt.',
+            'media' => 'Media van een project',
+            'media_invalid' => 'Deze media hoort niet bij een project van deze site.',
+        ],
+    ],
+
+    'page_publication_review' => [
+        'label' => 'Pagina-publicaties',
+        'fields' => [
+            'page' => 'Pagina',
+            'locale' => 'Taal',
+            'status' => 'Status',
+            'reviewed_at' => 'Nagekeken',
+            'reviewed_by' => 'Nagekeken door',
+        ],
+        // El vocabulario interno, dicho como lo dice quien aprueba: «Nagekeken» ya es
+        // la etiqueta de `reviewed_at` en esta misma pantalla, así que el estado usa
+        // la misma palabra en vez de inventar otra.
+        'statuses' => [
+            'machine' => 'Concept',
+            'reviewed' => 'Nagekeken',
+            'published' => 'Gepubliceerd',
+        ],
+        // Los códigos ISO no le dicen nada a quien aprueba una traducción.
+        'locales' => [
+            'nl' => 'Nederlands',
+            'fr' => 'Frans',
+            'en' => 'Engels',
+            'de' => 'Duits',
+        ],
+        // Copiados del menú del propio sitio (electrobertels-official,
+        // src/content/chrome/nl.yaml): son los nombres que el cliente ya aprobó para
+        // esas páginas, no una invención de esta pantalla. Si allí cambian, hay que
+        // volver a copiarlos: el backend no lee ese repositorio.
+        'pages' => [
+            'home' => 'Home',
+            'particulieren' => 'Particulieren',
+            'bedrijven' => 'Bedrijven & industrie',
+            'winkel' => 'Winkel',
+            'projecten' => 'Projecten',
+            'over-ons' => 'Over ons',
+            'contact' => 'Contact & prijsaanvraag',
+        // Los títulos salen del contenido del sitio (es su copy), no de acá.
+        // Los legales sólo existen en nl allá, por eso no hay versión en inglés de estos.
+            'legal-privacy' => 'Privacyverklaring',
+            'legal-cookies' => 'Cookiebeleid',
+            'legal-terms' => 'Algemene voorwaarden',
+            'legal-privacy' => 'Privacyverklaring',
+            'legal-cookies' => 'Cookiebeleid',
+            'legal-terms' => 'Algemene voorwaarden',
+        ],
+
+        'actions' => [
+            'approve' => 'Goedkeuren',
+            'publish' => 'Publiceren',
+            'retire' => 'Terugtrekken',
+            'publish_confirm' => 'Deze pagina wordt indexeerbaar in deze taal. Doorgaan?',
+            'retire_confirm' => 'Deze pagina wordt niet langer indexeerbaar in deze taal. Doorgaan?',
+        ],
+        'notifications' => [
+            'updated' => 'Publicatiestatus bijgewerkt',
+        ],
+    ],
+
+    'translation_review' => [
+        'label' => 'Vertaalreview',
+        'fields' => [
+            'subject' => 'Onderwerp',
+            'attribute' => 'Veld',
+            'locale' => 'Taal',
+            'status' => 'Status',
+            'error' => 'Fout',
+            'updated_at' => 'Bijgewerkt',
+        ],
+        // Los siete estados del ciclo de vida (documentados en TranslationState), dichos
+        // como los diría quien aprueba. «Nagekeken» es la misma palabra que ya usa la
+        // columna, y es también la que usa la pantalla de publicaciones de páginas.
+        'statuses' => [
+            'missing' => 'Ontbreekt',
+            'machine' => 'Concept',
+            'stale' => 'Verouderd',
+            'needs_review' => 'Na te kijken',
+            'reviewed' => 'Nagekeken',
+            'published' => 'Gepubliceerd',
+            'failed' => 'Mislukt',
+        ],
+
+        'actions' => [
+            'edit' => 'Bewerken',
+            'edit_value' => 'Vertaling (:locale)',
+            'approve' => 'Goedkeuren',
+            'publish' => 'Publiceren',
+            'retranslate' => 'Opnieuw vertalen (AI)',
+            'retranslate_confirm' => 'De goedgekeurde waarde wordt overschreven door een nieuwe AI-vertaling en moet opnieuw worden goedgekeurd. Doorgaan?',
+        ],
+        'notifications' => [
+            'updated' => 'Vertaalstatus bijgewerkt',
+        ],
+    ],
+
+    'announcements' => [
+        'label' => 'Mededeling',
+        'plural_label' => 'Mededelingen',
+        'message_helper' => 'Wordt getoond in de huidige taal van deze beheerdersweergave.',
+        'starts_at_helper' => 'Leeg = direct actief zodra gepubliceerd.',
+        'ends_at_helper' => 'Leeg = blijft actief tot handmatig gearchiveerd.',
+        'status' => [
+            'draft' => 'Concept',
+            'published' => 'Gepubliceerd',
+            'archived' => 'Gearchiveerd',
+        ],
+    ],
+    // WU-S2: la división de Ajustes en seis páginas, tal como la declara el prototipo
+    // aprobado. `settings_sections.*.label` es el nombre en el menú y el título de la página, y
+    // `.description` es la línea que va debajo del título.
+    // WU-S1: los cuatro grupos del submenú de Website, del prototipo. El valor tiene que ser el
+    // **mismo** entre los ítems de un grupo (Filament agrupa por texto), así que la etiqueta se
+    // resuelve en un solo sitio.
+    // WU-S3: la barra de cambios sin guardar. Sustituye al botón «Save» del final del formulario.
+    'settings_bar' => [
+        'unsaved'    => 'Niet-opgeslagen wijzigingen',
+        'discard'    => 'Verwerpen',
+        'save_draft' => 'Concept opslaan',
+        'discarded'  => 'Wijzigingen verworpen',
+    ],
+    'nav_groups' => [
+        'publishing'    => 'Publiceren',
+        'content'       => 'Inhoud',
+        'site_settings' => 'Site-instellingen',
+        'inbox'         => 'Postvak',
+    ],
+    'settings_sections' => [
+        'general' => [
+            'label' => 'Algemeen',
+            'description' => 'Juridische identiteit voor de footer, de juridische pagina\'s en de zoekdata.',
+        ],
+        'contact' => [
+            'label' => 'Contact',
+            'description' => 'Telefoon, WhatsApp en e-mail zoals ze op de site verschijnen.',
+        ],
+        'address' => [
+            'label' => 'Adres en kaarten',
+            'description' => 'Waar de zaak is en hoe bezoekers die vinden.',
+        ],
+        'hours' => [
+            'label' => 'Openingsuren',
+            'description' => 'Weekrooster in de footer en op de contactpagina.',
+        ],
+        'social' => [
+            'label' => 'Sociale links',
+            'description' => 'Profielen waarnaar de footer linkt.',
+        ],
+        'privacy' => [
+            'label' => 'Privacy en toestemming',
+            'description' => 'Embeds die van cookies afhangen en het bijhouden van toestemming.',
+        ],
+    ],
+    'site_settings' => [
+
+        // Het adres wordt per deel bewerkt, niet als JSON: het is een vaste vorm en een
+        // typefout binnen een JSON-blob blijft geldige JSON, dus ze glipt erdoor.
+        'address' => [
+            'street' => 'Straat en nummer',
+            'postal_code' => 'Postcode',
+            'city' => 'Gemeente',
+            'country_code' => 'Landcode (2 letters)',
+        ],
+        // De openingsuren worden per dag bewerkt, niet als JSON: `hours: null` IS
+        // "gesloten" in het contract, dus de schakelaar wordt daaruit afgeleid.
+        'opening_hours' => [
+            'day' => 'Dag',
+            'closed' => 'Gesloten',
+            'ranges' => 'Openingsuren',
+            'opens' => 'Van',
+            'closes' => 'Tot',
+            'add_day' => 'Dag toevoegen',
+            'add_range' => 'Periode toevoegen',
+            // De sleutels zijn contractdata; alleen het label wordt vertaald.
+            'days' => [
+                'sunday' => 'Zondag',
+                'monday' => 'Maandag',
+                'tuesdayToFriday' => 'Dinsdag t/m vrijdag',
+                'saturday' => 'Zaterdag',
+            ],
+        ],
+        'label' => 'Site-instellingen',
+        'save' => 'Opslaan',
+        'saved' => 'Instellingen opgeslagen',
+        'fields' => [
+            'hours' => 'Openingstijden',
+            'phone' => 'Telefoon',
+            'email' => 'E-mail',
+            'address' => 'Adres',
+            'social_links' => 'Social media links (JSON)',
+            'legal_name' => 'Wettelijke naam',
+            'founded_year' => 'Oprichtingsjaar',
+            'phone_display' => 'Telefoon (weergave)',
+            'phone_tel' => 'Telefoon (tel: link)',
+            'whatsapp_display' => 'WhatsApp (weergave)',
+            'whatsapp_url' => 'WhatsApp (URL)',
+            'address_structured' => 'Adres (gestructureerd)',
+            'address_country' => 'Land (vertaalbaar)',
+            'maps_embed_url' => 'Maps insluiten (URL)',
+            'maps_directions_url' => 'Maps route (URL)',
+            'maps_consent_mode' => 'Maps toestemming',
+            'vat_number' => 'BTW-nummer',
+            'opening_hours' => 'Openingstijden (gestructureerd)',
+            'contact_consent_version' => 'Toestemmingsversie contactformulier',
+        ],
+        'hints' => [
+            'address' => 'Claesen: vrije tekenreeks, ongewijzigd door het Claesen-frontend gelezen. Niet bewerken voor Electro Bertels.',
+            'address_structured' => 'Electro Bertels: gestructureerde bron — JSON met street, postal_code, city, country_code. Het Claesen-frontend leest dit veld niet.',
+            'founded_year' => 'JSON-geheel getal, bijv. 1977',
+            'opening_hours' => 'Eén rij per dag. "Gesloten" betekent: geen openingsuren.',
+            'maps_consent_mode' => 'always | on_consent | never',
         ],
     ],
 ];

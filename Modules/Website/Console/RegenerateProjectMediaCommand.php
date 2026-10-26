@@ -3,6 +3,7 @@
 namespace Modules\Website\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Modules\Website\Models\Project;
 use Spatie\MediaLibrary\Conversions\ConversionCollection;
 use Spatie\MediaLibrary\Conversions\FileManipulator;
@@ -14,9 +15,34 @@ class RegenerateProjectMediaCommand extends Command
                             {--collection= : Only regenerate a specific collection (featured_image|gallery)}
                             {--project= : Only regenerate media for this project ID}';
 
-    protected $description = 'Regenerate WebP conversions for all existing project media';
+    protected $description = 'Regenerate WebP/AVIF conversions for all existing project media';
+
+    private const LOCK_KEY = 'website:regenerate-media:lock';
+
+    private const LOCK_SECONDS = 3600;
 
     public function handle(): int
+    {
+        // F3/CLA-467 "regeneración idempotente y sin solapamiento": two
+        // concurrent runs (an admin re-running it manually while a
+        // scheduled/previous invocation is still churning through media)
+        // would otherwise both write the same conversion files at once.
+        $lock = Cache::lock(self::LOCK_KEY, self::LOCK_SECONDS);
+
+        if (! $lock->get()) {
+            $this->warn('Another website:regenerate-media run is already in progress. Skipping.');
+
+            return self::SUCCESS;
+        }
+
+        try {
+            return $this->regenerate();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function regenerate(): int
     {
         $query = Media::where('model_type', Project::class);
 

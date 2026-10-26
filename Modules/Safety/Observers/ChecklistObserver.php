@@ -23,7 +23,7 @@ class ChecklistObserver
         );
 
         if ($shouldNotify) {
-            $users = User::role(['project_manager', 'super_admin'])->get();
+            $users = User::role(['project_manager', 'super_admin'])->inOrganization()->get();
             
             foreach ($users as $user) {
                 $notification = Notification::make()

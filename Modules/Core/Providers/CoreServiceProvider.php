@@ -28,6 +28,8 @@ class CoreServiceProvider extends ServiceProvider
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
 
+        \Modules\Core\Support\VerifiedLivewirePage::listen();
+
         \Livewire\Livewire::component('session-keeper', \Modules\Core\Livewire\SessionKeeper::class);
 
         // CLA-347: revoke tokens/session immediately when a user is deactivated.
@@ -41,6 +43,24 @@ class CoreServiceProvider extends ServiceProvider
     {
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
+
+        // F1/P2 (docs/ai/adr-multi-organization.md, decision D6): scoped, never
+        // singleton — the queue worker resets scoped bindings between jobs.
+        $this->app->scoped(\Modules\Core\Services\OrganizationContext::class);
+
+        // CLA-611: aterrizar en el panel equivocado redirige al propio, en vez de dejar a la
+        // persona en el formulario con el código de MFA ya gastado. Se ata el **contrato** que
+        // Filament resuelve al final del login (su propio punto de extensión).
+        $this->app->bind(
+            \Filament\Auth\Http\Responses\Contracts\LoginResponse::class,
+            \Modules\Core\Filament\Auth\RedirectToAccessiblePanel::class,
+        );
+        // F2/CLA-465: same D6 reasoning — one correlation id per request/job,
+        // never leaking into the next one in a persistent queue worker.
+        $this->app->scoped(\Modules\Core\Services\CorrelationIdContext::class);
+
+        // The verified page of a Livewire update request (CurrentPage): same scoped reasoning.
+        $this->app->scoped(\Modules\Core\Support\VerifiedLivewirePage::class);
     }
 
     /**
@@ -50,6 +70,7 @@ class CoreServiceProvider extends ServiceProvider
     {
         $this->commands([
             \Modules\Core\Console\Commands\QaResetEnvironmentCommand::class,
+            \Modules\Core\Console\Commands\BackfillUserOrganizationsCommand::class,
         ]);
     }
 

@@ -1,7 +1,7 @@
 # Riesgos conocidos y deuda técnica — CAFCA Intelligence Hub
 
 > Riesgos abiertos, bloqueantes, deuda técnica y decisiones pendientes.
-> Última actualización: 2026-09-01 (FASE 0 del plan de despliegue Laravel 13)
+> Última actualización: 2026-09-17 (F0/P0 del programa multiempresa Electro Bertels)
 
 ---
 
@@ -24,6 +24,25 @@
 ---
 
 ## Riesgos abiertos — Módulo Mailing
+
+### De Mailing se comparte el transporte transaccional, no la plataforma de campañas (decisión 2026-09-17)
+
+**Estado:** decidido a nivel de arquitectura (ADR D11), sin implementar. Mailing sigue funcionando como hoy, 100 % Claesen.
+
+**Alcance real:** Bertels usará el mailer `microsoft-graph` + `MicrosoftGraphTransport` + Laravel Mail para su correo transaccional (aviso interno de lead y confirmación al cliente). **No** usará campañas, audiencias, supresión, plantillas versionadas, A/B ni follow-ups. Por eso **ninguna tabla `mailing_*` recibe `organization_id`**, y en P5b Mailing **sí** entra en la lista de módulos con middleware `organization:claesen` (sus rutas públicas por token son de prospects de Claesen por construcción).
+
+**Trabajo pendiente, en F4/CLA-473:** remitente y nombre visible por sitio — `NewConsultationRequestMail::envelope()` no fija From, así que cae a `config('mail.from.address')`, y `MicrosoftGraphTransport::getPayload()` toma `'name'` de `config('mail.from.name')` **siempre**, de modo que un correo de Bertels mostraría el nombre de Claesen incluso con la dirección corregida; destinatario interno por sitio (`config('website.consultation_notification_email')` es único global, CLA-532); plantilla y marca propias; **la confirmación al cliente no existe todavía**; y permiso de Graph para enviar como el buzón de Bertels (`POST /users/{buzón}/sendMail`).
+
+**Tenant de Microsoft 365 compartido (2026-09-17):** `electrobertels.be` está en el mismo tenant que Claesen, así que el envío transaccional de Bertels usa la misma app registration — sin credenciales por organización ni ESP. Pero eleva dos riesgos reales:
+- **`Mail.Send` de aplicación sin acotar permite enviar como cualquier buzón del tenant.** Preexistente, pero con dos empresas dentro un error en la resolución del From mandaría correo *como Claesen* desde un flujo de Bertels. Mitigación: Application Access Policy de Exchange limitada a los buzones previstos; From siempre desde configuración del sitio, nunca desde entrada del usuario. Verificar el permiso actual antes de añadir el buzón de Bertels.
+- **`AzureRoleService` asigna `viewer` cuando ningún grupo de Azure coincide, y `viewer` está en la allowlist del panel.** Con el tenant compartido, un empleado de Bertels que entre por Microsoft aterrizaría hoy en el panel de **Claesen**: deja de ser hipotético. P5a (`canAccessPanel` por organización + redirección al panel propio) pasa a ser prerrequisito duro del alta de usuarios de Bertels.
+
+**Riesgo condicional — solo si algún día se aprueban campañas para Bertels.** Entonces vuelven íntegros estos bloqueantes, todos verificados en código:
+- **Audiencia.** `SegmentResolverService` está cableado a `prospects_prospects` (CRM de federaciones de Claesen) y `mailing_messages.prospect_id` apunta ahí: enviar desde Bertels a esa lista sería fuga de datos y uso de un consentimiento ajeno (RGPD).
+- **Baja y supresión.** `mailing_suppression_list.email` es UNIQUE global y `config('mailing.unsubscribe_domain')` tiene un único valor (`claesen-verlichting.be`, usado en el `mailto:afmelden@…` de `ProspectCampaignMail`): una baja de Claesen daría de baja de Bertels y al revés.
+- **Marca y plantillas.** `campaign.blade.php`/`unsubscribe.blade.php`/`preferences.blade.php` embeden `brand-logo-dark.png` con el alt «Claesen Outdoor Lighting»; `email_templates.name` es UNIQUE global.
+- **Acceso.** `CampaignResource::canAccess()` es `auth()->check()`: cualquier usuario con panel vería las campañas de ambas empresas.
+- **Destinatarios de alertas.** `CheckDeliverabilityAlertsCommand` notifica por roles globales `super_admin`/`admin`/`campaign_manager`, y `campaign_manager` **no existe** en `RolesAndPermissionsSeeder` (hoy benigno: alcanza solo a los dos primeros).
 
 ### Ciclos indirectos en follow-ups
 
@@ -149,7 +168,74 @@ php artisan website:regenerate-media
 
 ---
 
+## Riesgos abiertos — Programa multiempresa (Electro Bertels)
+
+> Hallazgos de la auditoría F0/P0 (2026-09-17). Diseño y secuencia: `docs/ai/adr-multi-organization.md`.
+> **Regla de hierro:** hasta que la fase P5 (enforcement) esté completa y verificada, **no debe existir ningún usuario real de Electro Bertels**. Los riesgos 1 y 4 se materializan en el momento en que un usuario de Bertels recibe cualquiera de los roles actuales.
+
+### 1. CRÍTICO — Los roles de Spatie son globales, así que un rol basta para entrar a Claesen
+
+`config/permission.php` tiene `teams => false` y los permisos cuelgan de los roles. `User::hasPanelAccess()` decide el acceso al backoffice solo por rol (`super_admin`, `admin`, `financial_manager`, `hr_manager`, `viewer`), y `admin` arrastra `fieldops.view-all-clients`. Un usuario de Bertels con rol `admin` vería el panel de Claesen, `/api/v1/fieldops/*` completo, `/api/v1/safety/*` y `/api/v1/employees/*`.
+**Control:** organización explícita en el usuario + `canAccessPanel`/`EnsurePanelAccess` por panel + middleware de organización en las rutas de los módulos de Claesen (fases P2/P5a/P5b).
+
+### 2. CRÍTICO — La API pública de Website no conoce el sitio
+
+`/v1/website/projects`, `/categories`, `/years` y `/{slug}` devuelven todos los `website_projects` publicados, sin noción de sitio (verificado: no hay ninguna referencia a `site_id` en rutas, controlador, `PortfolioService` ni repositorio). Un proyecto de Bertels aparecería en la web de Claesen.
+**Control:** `site_id` + rutas legacy ligadas explícitamente al sitio de Claesen (P3) antes de crear el primer proyecto de Bertels.
+
+### 3. CRÍTICO — `Gate::before` concede todo a `super_admin`
+
+`app/Providers/AppServiceProvider.php:46` devuelve `true` para cualquier ability. En Laravel 13, un valor no nulo en `Gate::before` **es** el resultado: ninguna policy puede denegar acceso cruzado a `super_admin`.
+**Control:** frontera de organización antes del privilegio, y lista explícita de abilities de plataforma (P5c, decisión D5 del ADR).
+
+### 4. CRÍTICO — Los destinatarios de notificaciones se eligen por rol global
+
+Siete puntos sin filtro de organización: `MaintenanceRequestService.php:514`, `MaintenanceRequestAlertService.php:131`, `CheckSafetyComplianceCommand.php:32`, `ChecklistObserver.php:26`, `InspectionReminderService.php:39`, `InspectionController.php:138`, `CheckDeliverabilityAlertsCommand.php:156`. Datos operativos de Claesen llegarían por email y en la campana a usuarios de Bertels con esos roles.
+**Control:** filtro por organización en cada consulta de destinatarios (P5d).
+
+### 5. CRÍTICO — La publicación del sitio estático sigue teniendo un único webhook global
+
+**Actualizado (CLA-548, 2026-09-18):** `website_publication_states` ya tiene `site_id` (`UNIQUE`) y `PublicationState::current(?int $siteId = null)` ya no usa `find(1)` — resuelve por `firstOrCreate(['site_id' => ...])`, default a Claesen. El riesgo real no está cerrado por esto: `config/static_site.php` sigue definiendo un único `webhook_url`/`webhook_secret` para toda la instalación, así que publicar un registro de Bertels seguiría reconstruyendo el sitio estático de Claesen — el estado ya es direccionable por sitio, pero el destino del webhook todavía no lo es.
+**Control:** webhook y secreto por sitio, jobs con `siteId` explícito (F3/F4, según el ticket CLA-548 lo deja documentado como fuera de su alcance).
+
+### 6. CRÍTICO — Media privada de FieldOps accesible solo con rol de panel
+
+`GET /fieldops/media/{media}` está protegida por `auth` + `EnsurePanelAccess` (rol), sin comprobar propietario. Los ids son secuenciales.
+**Control:** middleware de organización + resolución del propietario (P5b/P5c).
+
+### 7. ALTO — `/api/v1/employees/*` solo exige `auth:sanctum`
+
+**Preexistente, no introducido por el programa multiempresa:** cualquier token válido (incluido el de una cuenta `client`) puede leer horas, rankings y detalles de proyectos del ERP. Con usuarios de Bertels el alcance empeora.
+**Control:** organización + rol en ese grupo de rutas (P5b). Conviene un ticket propio por ser un gap actual de Claesen.
+
+### 8. ALTO — Otros vectores pendientes de cierre
+
+- Los recursos Website (`ProjectResource`, `ConsultationRequestResource`) no declaran `canAccess()`: cualquier rol con panel edita proyectos públicos y leads (preexistente).
+- El selector «Asignado a» de las solicitudes lista todos los usuarios de la base de datos.
+- `AzureRoleService` asigna `viewer` como fallback, y `viewer` está en la lista de acceso al panel.
+- `POST /v1/website/consultations` y `/contact-email` no tienen throttle ni antispam, y el segundo crea además un `Prospect` en el CRM de Claesen.
+- Fuga de contexto entre jobs en workers de larga vida si `OrganizationContext` se registrara como `singleton` (el ADR lo fija como `scoped`).
+- Viabilidad del doble panel (login compartido, callback de Azure, SPA entre paneles, middleware persistente de Livewire): requiere spike en P6.
+
+### 9. MEDIO — Constraints y datos a revisar antes del enforcement
+
+- `website_projects.slug` es único global: debe pasar a `UNIQUE(site_id, slug)`, junto con la regla `->unique()` y el auto-slug de `ProjectResource`.
+- `WEBSITE_CONSULTATION_EMAIL` es un único destinatario global de avisos de lead.
+- Los originales de media de Website viven en el disco `public`; el plan exige original privado y variantes publicadas para Bertels.
+- `website_messages` no tiene ningún consumidor enrutado (`WebsiteController` no está en rutas): clasificado como **UNCERTAIN**, no se toca sin decisión.
+- No hay MFA configurado en el panel (Filament 5 lo soporta de forma nativa); es gate previo al primer login real de Bertels.
+
+---
+
 ## Deuda técnica
+
+### ~~`OrganizationsSchemaTest` afirma que Website no tiene `site_id` — quedó desactualizado por CLA-547~~ RESUELTO (2026-09-18)
+
+**Encontrado en CLA-549, corregido el mismo día por instrucción explícita del usuario, commit `00fc2f4`.** `Modules/Core/tests/Feature/OrganizationsSchemaTest::test_no_website_data_is_touched_by_this_migration` (CLA-458/P1, commit `4c3288a`) afirmaba `assertFalse(Schema::hasColumn('website_projects', 'site_id'))` (y lo mismo para `website_consultation_requests`) — cierto en P1, pero **CLA-547 (P3a) agregó exactamente esa columna** a ambas tablas sin que nadie actualizara este test, porque el cierre de CLA-547 solo corrió `Modules/Website/tests` + `ClaesenBaseline`, no la suite completa de `Modules/Core/tests` donde vive este archivo. Renombrado a `test_this_migration_never_added_an_organization_id_column_to_website` y las 2 aserciones sobre `site_id` invertidas a `assertTrue` (declarado); las 2 sobre `organization_id` se conservan sin cambios, siguen siendo ciertas (D3: nunca se agrega a tablas site-owned). Verificado: `OrganizationsSchemaTest` 14/14; `Modules/Core/tests` completo **158/158, 0 fallos** (antes 156/158 — el otro fallo, `AccessAnalyticsTest`/`ViteManifestNotFoundException`, se resolvió de paso al construir los assets de Vite en la misma sesión, `npm ci && npm run build`).
+
+### `core:link-users-to-employees` nunca estuvo registrado como comando real (encontrado en CLA-459, 2026-09-18)
+
+`Modules/Core/Providers/CoreServiceProvider.php::registerCommands()` no tiene auto-discovery de directorios — cada comando de consola debe listarse explícitamente en `$this->commands([...])`. Antes de CLA-459 esa lista solo tenía `QaResetEnvironmentCommand`. `LinkUsersToEmployeesCommand.php` (CLA-171, documentado en `CLAUDE.md` → "Sprint User Provisioning" con el comando `php artisan core:link-users-to-employees --dry-run`) **nunca se agregó a esa lista** — `php artisan list` confirma que no existe como comando invocable, desde que se creó. El backfill de producción documentado en `CLAUDE.md` nunca pudo haberse ejecutado tal como está escrito. Encontrado al registrar `BackfillUserOrganizationsCommand` (CLA-459) y verificar primero que el patrón de registro explícito seguía siendo necesario. **No corregido en CLA-459** (fuera de su alcance) — fix trivial: una línea en `registerCommands()`. Sin ticket todavía.
 
 ### ~~`env()` en runtime fuera de `config/*.php` — incompatible con `config:cache`~~ RESUELTO (CLA-532, 2026-09-09)
 
@@ -199,6 +285,266 @@ Los resources de Website (`ConsultationRequestResource`, `ProjectResource`) est�
 
 ---
 
+---
+
+### La media del sitio se publica con una URL que puede no ser alcanzable (CLA-611, 2026-10-04)
+
+`GET /v1/website/media/slots` sirve **URLs absolutas** construidas desde `APP_URL` (el
+`AppServiceProvider` reescribe `filesystems.disks.public.url` con `rtrim(config('app.url')).'/storage'`).
+Dos consecuencias, ambas comprobadas:
+
+1. **`php artisan storage:link` es obligatorio en cada despliegue.** `public/storage` no existe por
+   defecto y está gitignoreado, así que un worktree o un servidor recién clonado no sirve **nada** bajo
+   `/storage/…`: la URL responde **403** y el build del sitio se cae. Las **conversiones** viven ahí
+   (son públicas; el original sigue en el disco `local` y **también** responde 403, que es lo correcto).
+   Ya está agregado a `levantar-servidores.sh`; en producción tiene que correr igual.
+2. ~~**`APP_URL` tiene que ser el host público real.**~~ **RESUELTO (2026-10-04).** Era el mismo
+   patrón que ya rompió producción una vez (`fieldops-decisions-log.md`, CLA-444): servir una URL
+   absoluta derivada de `APP_URL` cuando el `APP_URL` interno no coincide con el dominio público. Ojo
+   con el detalle que costó encontrar: pasar `APP_URL` como variable de entorno del contenedor **no
+   alcanza** en este montaje — en el contexto HTTP gana el `.env` (medido con dos `Host` distintos).
+
+   **Decisión: `GET /v1/website/media/slots` toma el origen de la request** (`getSchemeAndHttpHost()`),
+   no de `APP_URL`, y la respuesta lleva **`Vary: Host`** porque el cuerpo cambia según el host y el
+   endpoint se sirve `public, max-age=60`. La ruta sigue saliendo del disco (`/storage/…`), así que el
+   `storage:link` sigue siendo la única fuente de verdad del layout. `APP_URL` **sigue importando**
+   para otras URLs absolutas (enlaces de correo, reseteo), solo que ya no para esta superficie.
+
+   Verificado de punta a punta con el `--check` del sync del sitio: los 7 slots se descargan y se
+   validan (`checksum, dimensions, format`).
+
+### Los tests usan `Storage::fake('public')` y no ejercen el disco real
+
+`MediaSlotsApiTest` falsea el disco público, así que un `storage:link` faltante o una `APP_URL`
+equivocada **no** fallan en la suite: el test pasa y el consumidor real no puede bajar el archivo. Fue
+exactamente lo que pasó. La verificación válida es externa (el `--check` del sync del sitio, que
+descarga de verdad) y por eso se corre contra el servidor levantado.
+
+### El panel se sirve con `php artisan serve`, que atiende una petición por vez (2026-10-04)
+
+No es un problema de producción —ahí va nginx + php-fpm— pero sí del entorno donde se prueba y se
+muestra el panel, y se midió: **10 peticiones en paralelo a `/bertels/login` tardaban 6,37 s**, o sea
+10 × 0,64 s exactamente en serie, con **un solo** proceso `php -S`. Una página del panel pide decenas
+de assets, así que el navegador espera en fila y termina expirando; y una única petición que un cliente
+abandona deja el proceso atascado (se lo vio en estado `R`) y el panel **entero** sin responder, ni
+siquiera `/login`.
+
+Mitigado en `levantar-servidores.sh` pasando **`PHP_CLI_SERVER_WORKERS=4`**: `php -S` hace fork y la
+misma prueba baja a **3,97 s** (no 4× menos, porque hay contención de base de datos, pero una petición
+trabada ya no bloquea a las demás). **Los worktrees nuevos no lo traen**: si el panel se siente lento o
+se congela, es esto antes que el código.
+
+Lo que lo resuelve de raíz es servir con **nginx + php-fpm**, que es el stack real de Sail. No se hizo:
+las imágenes disponibles en esta máquina son sólo `sail-8.x/app` (la de PHP), y la de nginx requiere un
+`pull` que no se intentó.
+
+### El sitio necesita su origen en CORS ~~y el de producción falta confirmar~~ (2026-10-04) — RESUELTO
+
+El formulario de contacto vive en **otro origen** que la API, así que sin su origen en
+`config/cors.php` el **navegador bloquea cada envío** con `Failed to fetch` — mientras el endpoint
+responde **201 a `curl`**, porque `curl` no aplica CORS. Ese contraste es lo que hacía invisible el
+problema desde la terminal: se comprobó con un navegador real, desde dos orígenes, y el diferencial
+fue concluyente (8080 bloqueado, 5173 con 201).
+
+**RESUELTO (2026-10-04)**: el dominio de producción quedó **confirmado por el usuario** como
+`https://www.electrobertels.be`. Al verificarlo apareció un hueco que no se veía: con
+`Origin: https://electrobertels.be` —el dominio **sin `www`**— la respuesta **no** traía cabecera CORS
+(el `www.` sí, y el preflight daba 204). Es el mismo sitio, así que si alguien entra sin `www` y el
+sitio no redirige, el formulario falla con «Failed to fetch» exactamente igual que antes. Se agregaron
+**los dos** orígenes a `config/cors.php` y ahora ambos devuelven `Access-Control-Allow-Origin`.
+
+**La señal para diagnosticar esto rápido, y quedó escrita**: `curl` funciona y el navegador no. Es
+CORS, no el endpoint — `curl` no aplica CORS. Cualquier API consumida desde otro origen se verifica
+**con navegador**, nunca sólo con `curl`.
+
+### La suite no puede correr sobre una base de datos vacía — **causa encontrada** (2026-10-04 → 2026-10-07)
+
+**Actualización 2026-10-07: es una carrera entre worktrees que comparten la base de tests.**
+Reproducido en vivo, con evidencia, y con la hipótesis anterior corregida:
+
+| Evidencia | Medición |
+| --- | --- |
+| Base de tests del worktree de KNX | `/home/totti/claesen/electrobertels-knx-api/phpunit.xml:40` → `DB_DATABASE=claesen_analytics_web_testing` — **la misma del trunk** |
+| Procesos vivos en ese contenedor al momento del fallo | **dos** `php artisan test` a la vez (85 s y 45 s de antigüedad) |
+| Mi corrida de `WebsiteSettingsPagesTest` con esos procesos vivos | `1824 Failed to open the referenced table 'roles'` — **idéntico al reporte original** (12 fallos) |
+| Estado de la tabla durante el fallo | `roles` **existe**, `ENGINE=InnoDB`, 0 filas — o sea, no era «no existe» |
+| La misma corrida después de que esos procesos terminaron | `14 passed / 4 failed` — **el fallo de base desapareció**, y los 4 restantes eran errores reales de mi código |
+
+**El mecanismo:** `RefreshDatabase` corre `migrate:fresh` **una vez por proceso**, y eso **dropea todas
+las tablas** de la base de esa conexión. Con dos procesos sobre la misma base, uno dropea `roles`
+mientras el otro agrega la clave foránea de `model_has_roles` hacia ella. El `1824` no dice «no
+existe», dice *«no puedo abrirla»*: exactamente lo que se ve cuando la tabla está siendo dropeada o
+recreada en ese instante.
+
+**Por qué el reporte decía «falla siempre» y a mí no me reproducía:** no dependía de la máquina, sino
+de si había **un vecino migrando**. Quien corre la suite mientras otro worktree la corre recibe encima
+un `migrate:fresh` ajeno; quien corre solo, nunca lo ve. Las verificaciones «limpias» del 2026-10-06
+pasaron porque en ese momento nadie más estaba migrando, y la regla que usé entonces —comprobar que no
+hubiera tests corriendo **antes** de correr los míos— es justamente la que lo evita.
+
+**La corrección:** el fallo **era del entorno y no del código**, como se concluyó; lo que estaba mal
+era la **causa** hipotetizada (un diccionario corrupto del volumen de Sail). Era concurrencia sobre una
+base compartida.
+
+**La regla práctica, para la próxima vez:** antes de creerle a un fallo de base en esta máquina, mirar
+si **otro worktree está testeando**:
+
+```sh
+for c in $(docker ps --format '{{.Names}}'); do
+  echo -n "$c: "; docker exec "$c" sh -lc 'ps -eo args | grep -c "[a]rtisan test"' 2>/dev/null || echo "-"
+done
+```
+
+Si hay alguno, esperar y reintentar. El arreglo de fondo —que **no** se aplicó porque vive en otro
+worktree, no en este repo— es que cada worktree use **su propia base de tests**, o que las corridas se
+serialicen. Mientras tanto, un `1824` acá significa «hay otro proceso migrando», no «el repo está roto».
+
+Lo que se midió el 2026-10-06, y sigue siendo válido (no era concluyente porque en ese momento no
+había ningún otro proceso migrando, que es justamente la condición que lo dispara):
+
+| Prueba | Comando | Resultado |
+| --- | --- | --- |
+| Base descartable limpia, `APP_ENV=testing` | `php artisan migrate:fresh` | **EXIT=0** · `create_permission_tables … DONE` |
+| Base de tests real (`claesen_analytics_web_testing`) | `php artisan migrate:fresh` | **EXIT=0** · idem |
+| **Cero tablas** + suite | `db:wipe` → `php artisan test tests/Feature/SiteSettingsPageTest.php` | **6 passed (21 assertions)**; `RefreshDatabase` migró desde cero |
+
+`roles` / `model_has_roles` / `role_has_permissions` quedan `ENGINE=InnoDB` correctos. Servidor: MySQL
+**8.4.8**, `lower_case_table_names=0`, `foreign_key_checks=1`, `sql_mode` sin nada inusual.
+
+**Hipótesis que quedó descartada, y se deja escrita porque era plausible:** el `1824` de MySQL es
+*«no puedo **abrir** la tabla padre»*, no *«no existe»* → se imaginó un diccionario de datos corrupto
+en el **volumen local de Sail** (un `roles` a medio crear por una migración abortada). La lectura del
+error era correcta; la causa, no: ver la actualización del 2026-10-07 arriba.
+
+**Consecuencia, y es la parte que importa:** el fallo era **del entorno, no del código**. Lo confirma
+que el CI ya tenía el paso correcto desde antes — `.github/workflows/tests.yml:105-106` corre
+`php artisan migrate --force --no-interaction` (comentario: *«Proves migrate-from-zero»*) sobre un
+servicio `mysql:8.4` limpio (`tests.yml:36-39`). **Por eso no se agrega un paso de CI: ya existe.**
+
+**Lo que sí quedaba flojo, y queda anotado:** el CI **no corrió nunca sobre la punta actual de
+`electrobertels/trunk`** (los últimos runs son del 2026-09-23 y la rama está 24 commits adelante de
+`origin`). La guarda existía; nadie la había ejercitado sobre este código.
+
+**Y el enmascaramiento que hay que recordar, porque es reutilizable:** `RefreshDatabase` **no vuelve a
+migrar** si la base ya existe. Una suite verde **no prueba** que un checkout limpio arranque; sólo lo
+prueba una base vacía. Cualquier verificación de tipo «instalación limpia» tiene que partir de cero.
+
+El reporte original, tal como se registró el 2026-10-04:
+
+Reproducible y determinista: `php artisan migrate:fresh` contra la base de tests **falla siempre** en
+`2026_01_28_093946_create_permission_tables`, con
+
+```
+SQLSTATE[HY000]: General error: 1824 Failed to open the referenced table 'roles'
+… alter table `model_has_roles` add constraint `model_has_roles_role_id_foreign`
+  foreign key (`role_id`) references `roles` (`id`) on delete cascade
+```
+
+Es decir: la migración **no encuentra la tabla `roles` que ella misma acaba de crear** unas líneas
+antes. La creación está normal (`bigIncrements('id')`, `name`, `guard_name`, `timestamps()`, un
+`unique`), `config('permission.table_names')` tiene los cinco nombres correctos, no hay caché de
+config, y no existe otra migración que toque `roles`. **No encontré la causa.** *(Superado el
+2026-10-07: era una carrera por base compartida — ver arriba.)*
+
+**Por qué importa**: mientras la base de tests ya existía, `RefreshDatabase` no volvía a migrar y
+todo pasaba; el problema aparece **desde cero**, o sea en una máquina nueva, en CI, o en cualquier
+instalación limpia. El mismo día esto bloqueó la verificación de un cambio en la pantalla de ajustes:
+los 8 tests del archivo fallaban con **0 aserciones** (fallo de `setUp`, no del código).
+
+**Ojo con el diagnóstico fácil**: primero lo atribuí a una carrera entre dos procesos migrando a la
+vez (había abortado una corrida). Al repetirlo limpio, falla igual. **No es una carrera.**
+
+**Trabajo relacionado que quedó sin shippear por esto**: la edición de `opening_hours` como
+`Repeater` (un día por fila, con `Select` de los cuatro días que el contrato acepta y `Toggle` de
+cerrado). Estaba escrito y su test corregido — el fracaso anterior era **del test**, que metía a
+propósito un día inválido y la validación del `Select` abortaba el guardado entero, correctamente —
+pero sin poder correr los tests no se puede afirmar que la pantalla renderice ni que guarde bien, así
+que se revirtió. Mejor un campo JSON incómodo que una pantalla rota.
+
+**Resuelto el 2026-10-06:** el `Repeater` está implementado y verificado —tests, **navegador real**
+(Playwright contra el panel) y el juez del sitio `--surface=settings --check`→ en la misma unidad de
+trabajo en que se corrigió este registro. Ver `odd/tasks/site-settings-screen-forms.md`.
+
+## Riesgos abiertos — Programa multiempresa Electro Bertels
+
+### El aviso interno no se puede entregar sin credenciales de Microsoft Graph (2026-10-06)
+
+**Qué:** el destinatario del aviso interno ya está puesto por sitio (`sites.mail_notification_email`,
+migración `2026_10_06_120000`), pero **ninguna** entrega de correo de consultas llega: las filas de
+`website_email_deliveries` quedan en `failed` con
+`[Modules\Mailing\Exceptions\MailConfigurationException] delivery attempt failed.`
+
+**Por qué:** las mails de consulta salen por el mailer **nombrado** `microsoft-graph`
+(`SendConsultationEmailJob`: `Mail::mailer('microsoft-graph')->send(...)`), **no** por el mailer por
+defecto. En este entorno `mail.mailers.microsoft-graph.{client_id,tenant_id,client_secret}` están
+**vacíos** (comprobados como booleanos, sin leer valores), así que `MicrosoftGraphService` lanza
+`MailConfigurationException`.
+
+**Mailpit no participa de ese camino.** Los códigos de MFA sí llegan a `localhost:8025` porque salen por
+el mailer por defecto (SMTP). Levantar Mailpit no arregla esto, y su ausencia tampoco lo causaba.
+
+**Es deliberado y preexistente**, no un defecto nuevo: `ConsultationEmailDeliveryTest` afirma
+exactamente este comportamiento con credenciales sin configurar, y el job registra **solo el nombre de
+la clase** de excepción (nunca `getMessage()`, que puede devolver el payload de Graph con direcciones).
+
+**Medido:** un POST real a cada sitio (201) crea **dos** filas de entrega por lead —antes del cambio del
+destinatario, una sola, porque el aviso interno se omitía— y las dos quedan `failed` tras 2 intentos con
+Mailpit levantado. La causa es la credencial ausente, no el buzón y no el destinatario.
+
+**Qué NO se hizo:** configurar credenciales (no existen en este entorno y es una decisión de negocio u
+ops), y no se tocó el mailer por defecto. Es la misma decisión externa que este documento ya lista para
+F4 (identidad remitente y proveedor de correo de Bertels, tenant de Microsoft 365) y no se resuelve
+desde el repo.
+
+**Consecuencia para el cierre de F4:** poner el destinatario era necesario y **no suficiente**. Hasta que
+existan credenciales, el aviso interno no llega a nadie en ningún entorno sin ellas.
+
+### Un test de media estaba acoplado a `APP_URL` sin puerto — RESUELTO (2026-10-06)
+
+**Qué:** `Modules/Website/tests/Feature/MediaSlotsApiTest` falla con
+`Failed asserting that 'http://localhost:8004/storage/…' starts with "http://localhost/storage/"`. El
+test hace una request **relativa** (`getJson('/v1/website/media/slots')`), así que Laravel le antepone
+`config('app.url')`; el endpoint construye la URL desde el host de la request —que pasa a ser ese— y la
+aserción la compara contra `http://localhost/storage/` **hardcodeado**. Con `APP_URL` sin puerto pasa;
+con puerto, falla.
+
+**Medido, no razonado:** la única variable que cambié fue `APP_URL`. Con `http://localhost:8004` (el
+del contenedor) → **1 fallo**; con `http://localhost` → **8/8 passed**. El `.env` del disco dice
+`http://localhost` (mtime del 2026-09-28): **el puerto lo aporta el entorno del contenedor**, no el
+repo.
+
+**Por qué es un riesgo:** la suite del trunk **no está verde en el entorno que el equipo usa**. Un
+fallo permanente y conocido es exactamente el ruido donde se esconden los fallos reales — la misma
+familia de problema que enmascaró el bloqueante de base vacía: el verde dependía del entorno y no del
+código.
+
+**Resuelto (2026-10-06, `a9b8dfd`), con el GO del usuario:** la request del test ahora **nombra su
+propio host** —como ya hacía su test hermano `test_the_media_url_origin_follows_the_request_host`—, así
+que la aserción es autocontenida y no afirma nada sobre `APP_URL`. **Verificado en las dos
+condiciones**: 8/8 con el `APP_URL` del contenedor y 8/8 con `APP_URL=http://localhost`.
+
+**Lección que queda**: un test que arma una request **relativa** hereda `config('app.url')` como host,
+así que cualquier literal de host en sus aserciones lo ata al entorno. Si el host importa, se escribe
+explícito en la request.
+
+### Acceso al panel: usuarios con `organization_id` nulo (CLA-611, 2026-09-29)
+
+**Qué:** `User::canAccessPanel()` rechaza en el panel `admin` a un usuario cuya organización
+esté definida y no sea la de Claesen. Un usuario con `organization_id` **nulo** sigue
+admitido, porque así están los usuarios sembrados (`DatabaseSeeder` nunca lo asignó) y
+porque los anteriores a P2 también lo están.
+
+**Por qué es un riesgo:** nulo es "sin organización conocida", no "de Claesen". Un usuario
+de otra organización con el campo sin rellenar entraría al panel de Claesen. Hoy no existe
+ninguno (ADR D10), y el alta de un usuario de Bertels define su organización primero.
+
+**Mitigación existente:** `php artisan core:backfill-user-organizations --apply` (F1/P2 del
+programa) asigna a Claesen todo usuario sin organización; es idempotente y tiene `--dry-run`
+por defecto. Debe ejecutarse antes de que exista el primer usuario real de Bertels.
+
+**Qué NO se hizo:** cerrar el caso nulo en el código. Habría dejado fuera al equipo actual
+en cualquier entorno recién sembrado, que es un fallo peor que el que se estaba arreglando.
+
 ## Decisiones pendientes
 
 | Decisión | Contexto | Responsable |
@@ -208,6 +554,18 @@ Los resources de Website (`ConsultationRequestResource`, `ProjectResource`) est�
 | Enforcement de preferencias de categoría en envío | Actualmente no bloqueado técnicamente | Equipo técnico |
 | Añadir monitoreo de NotifyAstroFrontendJob | Fallos silenciosos si token GitHub expira | Equipo técnico |
 | Confirmar hostname del portal cliente | Configuración OAuth/CORS/Sanctum de `CLIENT_PORTAL_URL` | Orelvys |
+| ~~¿Electro Bertels usa algún módulo hoy de Claesen?~~ **Resuelta 2026-09-17: solo Mailing, como sistema de envío** (ADR D11) | Mailing pasa a propiedad por fila; el resto sigue exclusivo de Claesen | — |
+| ~~¿Campañas o solo transaccional?~~ **Resuelta 2026-09-17: solo transaccional por ahora** (ADR D11) | El tramo Mailing se reduce a F4/CLA-473 | — |
+| ¿Fuente de audiencia de Bertels? **Aparcada** mientras no haya campañas; no puede ser `prospects` | Solo una futura decisión de campañas (ADR D11) | Orelvys |
+| ~~¿`electrobertels.be` en el mismo tenant de Microsoft 365?~~ **Resuelta 2026-09-17: sí, lo comparten** (ADR D11) | Sin credenciales por organización ni ESP; exige Application Access Policy y confirmar si los usuarios de Bertels también están en ese tenant | — |
+| Proveedor de identidad de los usuarios de Bertels (mismo tenant Azure, otro tenant o email/contraseña) | Bloquea P5a y la decisión de MFA | Orelvys |
+| Vía de acceso del personal de Bertels al backoffice (hoy LAN + túnel) | Bloquea P6 | Orelvys |
+| Roles y responsable de administrar los usuarios de Bertels en la primera entrega | Bloquea P6 | Orelvys |
+| Identidad remitente y proveedor de correo de Bertels (SPF/DKIM/DMARC) | Bloquea F4 | Orelvys |
+| MFA del panel: Azure SSO/MFA, MFA nativo de Filament o ambos | Gate previo al primer login real de Bertels (ADR D8) | Orelvys |
+| Autorizar consulta de conteo de solo lectura en producción | Dimensionar los backfills de P2/P3 | Orelvys |
+| Assets de marca aprobados para el panel de Bertels | Bloquea P6 | Orelvys |
+| ~~Cómo sirve el API la media del sitio: URL absoluta desde `APP_URL` o ruta relativa~~ **Resuelta 2026-10-04: el origen sale de la request** (`getSchemeAndHttpHost()`), la ruta del disco, y `Vary: Host`. Se descartó el relativo porque el contrato del sync del sitio exige URL absoluta (`isAbsoluteHttpUrl`) y habría roto una superficie que hoy valida verde | El sync descarga `url`; con la URL atada a `APP_URL` publicaba orígenes inalcanzables (precedente CLA-444) | — |
 
 ---
 
@@ -223,3 +581,11 @@ Eliminar o marcar como resuelto cuando:
 - El riesgo ya no existe (se implementó la solución)
 - Se tomó la decisión que estaba pendiente
 - El bloqueante se levantó
+
+## DST: naive local timestamps are ambiguous in the repeated hour (found 2026-10-25)
+
+- **What:** `config('app.timezone')` is `Europe/Brussels`, and `timestamp` columns (e.g. `fo_maintenance_records.problem_reported_at` / `problem_solved_at`) are stored as naive wall-clock values. On the last Sunday of October the 02:00–03:00 hour happens twice; a value written in the first (CEST) occurrence reads back as CET, one hour later. Durations across that hour are off by 1 h (e.g. `avg_resolution_time` in `MaintenanceRecordController::correctiveStats()`), and ordering inside the hour can flip.
+- **Evidence:** CI run `40185082197` failed `MaintenanceRecordTenantScopeTest:271` with 4.5 instead of 4 when it ran at 10:39Z on 2026-10-25; reproduced by a naive round-trip of `2026-10-25 02:39:53 CEST`. Details in `odd/tasks/release-trunk-to-main.md` L11.
+- **Test impact:** a test that anchors fixtures on `now()` fails whenever any `anchor − N hours` fixture lands in the repeated hour (or in the skipped hour in March) — several windows across the whole DST-change day, not one (corrected 2026-10-25: CI run `40231576334` failed at 20:38Z with 3.5, the `subHours(20)` fixture). `MaintenanceRecordTenantScopeTest` now pins its clock to a mid-June instant; other `now()`-anchored duration tests may still be exposed.
+- **Fix (not done):** store UTC (`app.timezone=UTC` + convert at the edges) or `timestampTz`-like handling — a data/format change that needs its own ticket, backfill plan and review.
+

@@ -4,8 +4,10 @@ namespace Modules\Website\Tests\Feature;
 
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Modules\Core\Models\Site;
 use Modules\Website\App\Enums\PublicationStatus;
 use Modules\Website\DTOs\WebhookResult;
 use Modules\Website\Jobs\GenerateGalleryMediaMetadataJob;
@@ -79,7 +81,7 @@ class StaticSitePublishTest extends TestCase
         Queue::fake();
         config(['static_site.enabled' => false]);
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
 
         Queue::assertNothingPushed();
         // PublicationState row should not even be created
@@ -92,7 +94,7 @@ class StaticSitePublishTest extends TestCase
     {
         Queue::fake();
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
 
         Queue::assertPushed(TriggerStaticSiteRebuildJob::class);
         $state = PublicationState::current();
@@ -105,10 +107,10 @@ class StaticSitePublishTest extends TestCase
     {
         Queue::fake();
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
         $key1 = PublicationState::current()->dispatch_key;
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
         $key2 = PublicationState::current()->dispatch_key;
 
         $this->assertNotEquals($key1, $key2);
@@ -118,7 +120,7 @@ class StaticSitePublishTest extends TestCase
     {
         Queue::fake();
 
-        $this->svc->requestRebuild('manual', force: true);
+        $this->svc->requestRebuild(reason: 'manual', force: true);
 
         Queue::assertPushed(TriggerStaticSiteRebuildJob::class, fn ($job) => $job->force === true);
     }
@@ -130,20 +132,20 @@ class StaticSitePublishTest extends TestCase
         Queue::fake();
         Http::fake(['*' => Http::response('', 202)]);
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
         $staleKey = PublicationState::current()->dispatch_key;
 
-        $this->svc->requestRebuild('content_changed');
+        $this->svc->requestRebuild(reason: 'content_changed');
         $activeKey = PublicationState::current()->dispatch_key;
 
         $this->assertNotEquals($staleKey, $activeKey);
 
         // Stale job aborts — state stays pending (not accepted)
-        (new TriggerStaticSiteRebuildJob($staleKey, 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), $staleKey, 'content_changed', false))->handle($this->svc);
         $this->assertSame(PublicationStatus::PENDING, PublicationState::current()->status);
 
         // Active job succeeds
-        (new TriggerStaticSiteRebuildJob($activeKey, 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), $activeKey, 'content_changed', false))->handle($this->svc);
         $this->assertSame(PublicationStatus::ACCEPTED, PublicationState::current()->status);
     }
 
@@ -153,7 +155,7 @@ class StaticSitePublishTest extends TestCase
     {
         Http::fake(['*' => Http::response('', 202)]);
 
-        $result = $this->svc->sendWebhook('content_changed', false);
+        $result = $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
 
         $this->assertTrue($result->success);
         $this->assertSame(202, $result->statusCode);
@@ -164,7 +166,7 @@ class StaticSitePublishTest extends TestCase
     {
         Http::fake(['*' => Http::response('Bad Gateway', 502)]);
 
-        $result = $this->svc->sendWebhook('content_changed', false);
+        $result = $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
 
         $this->assertFalse($result->success);
         $this->assertSame(502, $result->statusCode);
@@ -179,7 +181,7 @@ class StaticSitePublishTest extends TestCase
             return Http::response('', 202);
         }]);
 
-        $this->svc->sendWebhook('content_changed', false);
+        $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
 
         $ts  = (int) ($captured->header('X-Webhook-Timestamp')[0] ?? 0);
         $sig = $captured->header('X-Webhook-Signature')[0] ?? '';
@@ -201,7 +203,7 @@ class StaticSitePublishTest extends TestCase
             return Http::response('', 202);
         }]);
 
-        $this->svc->sendWebhook('manual', force: true);
+        $this->svc->sendWebhook(Site::claesenId(), reason: 'manual', force: true);
 
         $payload = json_decode($captured->body(), true);
         $this->assertSame('backend',  $payload['source']);
@@ -214,10 +216,92 @@ class StaticSitePublishTest extends TestCase
     {
         config(['static_site.webhook_url' => null]);
 
-        $result = $this->svc->sendWebhook('content_changed', false);
+        $result = $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
 
         $this->assertFalse($result->success);
         $this->assertSame(0, $result->statusCode);
+    }
+
+    // ─── Per-key publish (`keys` in the webhook payload) ─────────────────────
+
+    public function test_send_webhook_without_keys_payload_is_exactly_today_s(): void
+    {
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false);
+
+        // Written from the current implementation's real output, field by
+        // field, in build order: absent keys must mean byte-identical intent.
+        // assertSame (===) also catches any extra field or reorder.
+        $payload = json_decode($captured->body(), true);
+        $this->assertSame([
+            'source'      => 'backend',
+            'environment' => 'testing',
+            'reason'      => 'content_changed',
+            'force'       => false,
+        ], $payload);
+    }
+
+    public function test_send_webhook_with_empty_keys_array_omits_keys_entirely(): void
+    {
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false, []);
+
+        // An empty array must not appear: the site treats absent `keys` as a
+        // full sync, and a gained empty `keys` would change that behaviour
+        // for every existing caller.
+        $payload = json_decode($captured->body(), true);
+        $this->assertArrayNotHasKey('keys', $payload);
+        $this->assertSame([
+            'source'      => 'backend',
+            'environment' => 'testing',
+            'reason'      => 'content_changed',
+            'force'       => false,
+        ], $payload);
+    }
+
+    public function test_send_webhook_with_keys_contains_exactly_those_keys_in_order(): void
+    {
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        $keys = ['site_settings.navigation', 'general', 'footer'];
+        $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false, $keys);
+
+        $payload = json_decode($captured->body(), true);
+        $this->assertSame($keys, $payload['keys']);
+        // Exactly the four base fields plus `keys` — nothing else changed.
+        $this->assertSame(
+            ['source', 'environment', 'reason', 'force', 'keys'],
+            array_keys($payload),
+        );
+        $this->assertSame('backend', $payload['source']);
+        $this->assertSame('testing', $payload['environment']);
+        $this->assertSame('content_changed', $payload['reason']);
+        $this->assertFalse($payload['force']);
+    }
+
+    public function test_send_webhook_with_keys_still_reports_failure_on_non_202(): void
+    {
+        Http::fake(['*' => Http::response('Bad Gateway', 502)]);
+
+        $result = $this->svc->sendWebhook(Site::claesenId(), 'content_changed', false, ['general']);
+
+        $this->assertFalse($result->success);
+        $this->assertSame(502, $result->statusCode);
+        $this->assertNotNull($result->errorMessage);
     }
 
     // ─── WebhookResult DTO ────────────────────────────────────────────────────
@@ -243,7 +327,7 @@ class StaticSitePublishTest extends TestCase
     public function test_job_superseded_key_aborts_silently(): void
     {
         $s = $this->freshState('A');
-        (new TriggerStaticSiteRebuildJob('B', 'test', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'B', 'test', false))->handle($this->svc);
         $s->refresh();
         $this->assertSame(PublicationStatus::PENDING, $s->status);
     }
@@ -252,12 +336,84 @@ class StaticSitePublishTest extends TestCase
     {
         $s = $this->freshState('C');
         Http::fake(['*' => Http::response('', 202)]);
-        (new TriggerStaticSiteRebuildJob('C', 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'C', 'content_changed', false))->handle($this->svc);
         $s->refresh();
         $this->assertSame(PublicationStatus::ACCEPTED, $s->status);
         $this->assertNotNull($s->last_accepted_at);
         $this->assertNull($s->dispatch_key);
         $this->assertNull($s->pending_since);
+    }
+
+    public function test_job_carries_keys_through_to_the_webhook_payload(): void
+    {
+        $this->freshState('K');
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        $keys = ['general', 'site_settings.navigation'];
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'K', 'content_changed', false, $keys))
+            ->handle($this->svc);
+
+        $payload = json_decode($captured->body(), true);
+        $this->assertSame($keys, $payload['keys']);
+        $this->assertSame('content_changed', $payload['reason']);
+        $this->assertFalse($payload['force']);
+    }
+
+    public function test_job_without_keys_sends_payload_without_keys(): void
+    {
+        $this->freshState('L');
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response('', 202);
+        }]);
+
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'L', 'content_changed', false))
+            ->handle($this->svc);
+
+        $payload = json_decode($captured->body(), true);
+        $this->assertArrayNotHasKey('keys', $payload);
+    }
+
+    public function test_job_keys_survive_queue_serialization(): void
+    {
+        // SerializesModels round-trip: what a queue worker unserializes on
+        // retry must be exactly what was dispatched.
+        $keys = ['general', 'footer'];
+        $job = new TriggerStaticSiteRebuildJob(Site::claesenId(), 'M', 'content_changed', false, $keys);
+
+        $restored = unserialize(serialize($job));
+
+        $this->assertSame($keys, $restored->keys);
+        $this->assertSame('M', $restored->dispatchKey);
+    }
+
+    public function test_request_rebuild_forwards_keys_to_the_dispatched_job(): void
+    {
+        Queue::fake();
+
+        $this->svc->requestRebuild(reason: 'content_changed', keys: ['general', 'footer']);
+
+        Queue::assertPushed(
+            TriggerStaticSiteRebuildJob::class,
+            fn (TriggerStaticSiteRebuildJob $job) => $job->keys === ['general', 'footer'],
+        );
+    }
+
+    public function test_request_rebuild_without_keys_dispatches_job_with_null_keys(): void
+    {
+        Queue::fake();
+
+        $this->svc->requestRebuild(reason: 'content_changed');
+
+        Queue::assertPushed(
+            TriggerStaticSiteRebuildJob::class,
+            fn (TriggerStaticSiteRebuildJob $job) => $job->keys === null,
+        );
     }
 
     public function test_job_202_but_key_changed_mid_flight_does_not_mark_accepted(): void
@@ -268,7 +424,7 @@ class StaticSitePublishTest extends TestCase
             $s->markPending();
             return Http::response('', 202);
         }]);
-        (new TriggerStaticSiteRebuildJob('D', 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'D', 'content_changed', false))->handle($this->svc);
         $s->refresh();
         $this->assertSame(PublicationStatus::PENDING, $s->status);
         $this->assertSame('E', $s->dispatch_key);
@@ -279,7 +435,7 @@ class StaticSitePublishTest extends TestCase
         $this->freshState('F');
         Http::fake(['*' => Http::response('err', 502)]);
         $this->expectException(\RuntimeException::class);
-        (new TriggerStaticSiteRebuildJob('F', 'content_changed', false))->handle($this->svc);
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'F', 'content_changed', false))->handle($this->svc);
     }
 
     public function test_job_stays_pending_while_retries_in_flight(): void
@@ -287,7 +443,7 @@ class StaticSitePublishTest extends TestCase
         $s = $this->freshState('F');
         Http::fake(['*' => Http::response('err', 502)]);
         try {
-            (new TriggerStaticSiteRebuildJob('F', 'content_changed', false))->handle($this->svc);
+            (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'F', 'content_changed', false))->handle($this->svc);
         } catch (\RuntimeException) {}
         $s->refresh();
         $this->assertSame(PublicationStatus::PENDING, $s->status);
@@ -296,7 +452,7 @@ class StaticSitePublishTest extends TestCase
     public function test_job_failed_with_matching_key_marks_error(): void
     {
         $s = $this->freshState('F');
-        (new TriggerStaticSiteRebuildJob('F', 'content_changed', false))
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'F', 'content_changed', false))
             ->failed(new \RuntimeException('connection refused'));
         $s->refresh();
         $this->assertSame(PublicationStatus::ERROR, $s->status);
@@ -308,16 +464,166 @@ class StaticSitePublishTest extends TestCase
     {
         $s = $this->freshState('G');
         $s->recordDispatch('H');
-        (new TriggerStaticSiteRebuildJob('G', 'content_changed', false))
+        (new TriggerStaticSiteRebuildJob(Site::claesenId(), 'G', 'content_changed', false))
             ->failed(new \RuntimeException('timeout'));
         $s->refresh();
         $this->assertSame(PublicationStatus::PENDING, $s->status);
         $this->assertNull($s->last_error);
     }
 
+    // ─── Drift check (GET /drift before a per-section publish) ────────────────
+
+    public function test_check_drift_returns_false_when_the_site_reports_nothing_would_change(): void
+    {
+        Http::fake(['*' => Http::response(['checked' => true, 'drift' => false, 'keys' => null])]);
+
+        $this->assertFalse($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_true_when_the_site_reports_drift(): void
+    {
+        Http::fake(['*' => Http::response(['checked' => true, 'drift' => true, 'keys' => ['email']])]);
+
+        $this->assertTrue($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_sends_the_keys_as_a_comma_separated_query_parameter(): void
+    {
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response(['checked' => true, 'drift' => false]);
+        }]);
+
+        $this->svc->checkDrift(Site::claesenId(), ['email', 'phone_display']);
+
+        // El cliente HTTP percent-encodea la coma (%2C): el receiver la decodifica y lee
+        // exactamente la misma lista — se asevera lo que el servidor recibe.
+        $this->assertSame('keys=email,phone_display', urldecode(parse_url($captured->url(), PHP_URL_QUERY)));
+    }
+
+    /**
+     * /drift vive al lado de /health en el mismo receiver: la URL se **deriva** del endpoint
+     * que el sitio ya tiene, no de una configuración nueva.
+     */
+    public function test_check_drift_derives_the_url_from_the_sites_health_url(): void
+    {
+        $site = Site::factory()->create([
+            'static_site_health_url'  => 'http://site-frontend:9100/health',
+            'static_site_webhook_url' => 'http://site-frontend:9100/rebuild',
+        ]);
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response(['checked' => true, 'drift' => false]);
+        }]);
+
+        $this->svc->checkDrift($site->id, ['email']);
+
+        $this->assertSame('http://site-frontend:9100/drift', preg_replace('/\?.*/', '', $captured->url()));
+    }
+
+    public function test_check_drift_derives_the_url_from_the_sites_webhook_url_when_it_has_no_health_url(): void
+    {
+        $site = Site::factory()->create([
+            'static_site_health_url'  => null,
+            'static_site_webhook_url' => 'http://site-frontend:9100/rebuild',
+        ]);
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response(['checked' => true, 'drift' => false]);
+        }]);
+
+        $this->svc->checkDrift($site->id, ['email']);
+
+        $this->assertStringStartsWith('http://site-frontend:9100/drift', $captured->url());
+    }
+
+    public function test_check_drift_falls_back_to_the_global_health_url_for_a_site_without_its_own(): void
+    {
+        config(['static_site.health_url' => 'http://global-frontend:9000/health']);
+        $site = Site::factory()->create([
+            'static_site_health_url'  => null,
+            'static_site_webhook_url' => null,
+        ]);
+        $captured = null;
+        Http::fake(['*' => function ($req) use (&$captured) {
+            $captured = $req;
+            return Http::response(['checked' => true, 'drift' => false]);
+        }]);
+
+        $this->svc->checkDrift($site->id, ['email']);
+
+        $this->assertStringStartsWith('http://global-frontend:9000/drift', $captured->url());
+    }
+
+    /** Sin URL conocida no hay pregunta que hacer: null es «no se pudo comprobar». */
+    public function test_check_drift_returns_null_when_no_url_is_configured(): void
+    {
+        config(['static_site.health_url' => null, 'static_site.webhook_url' => null]);
+        $site = Site::factory()->create([
+            'static_site_health_url'  => null,
+            'static_site_webhook_url' => null,
+        ]);
+        Http::fake();
+
+        $this->assertNull($this->svc->checkDrift($site->id, ['email']));
+
+        Http::assertNothingSent();
+    }
+
+    public function test_check_drift_returns_null_on_the_invalid_keys_error(): void
+    {
+        Http::fake(['*' => Http::response(
+            ['checked' => false, 'drift' => null, 'error' => 'invalid-keys', 'keys' => null],
+            400,
+        )]);
+
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_null_on_an_error_status(): void
+    {
+        Http::fake(['*' => Http::response('Bad Gateway', 502)]);
+
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_null_on_a_timeout(): void
+    {
+        Http::fake(['*' => fn () => throw new ConnectionException('cURL error 28: Connection timed out')]);
+
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_null_on_an_unreachable_host(): void
+    {
+        Http::fake(['*' => fn () => throw new ConnectionException('cURL error 7: Failed to connect to port 9000')]);
+
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
+    public function test_check_drift_returns_null_on_a_body_outside_its_contract(): void
+    {
+        // `drift` tiene que ser bool: un «definitely» o un cuerpo sin la clave no responden
+        // la pregunta y jamás pueden interpretarse como «no hay cambios».
+        Http::fake(['*' => Http::response(['checked' => true, 'drift' => 'definitely'])]);
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+
+        Http::fake(['*' => Http::response(['checked' => true])]);
+        $this->assertNull($this->svc->checkDrift(Site::claesenId(), ['email']));
+    }
+
     // ─── Observers ────────────────────────────────────────────────────────────
 
-    public function test_project_observer_dispatches_rebuild_on_all_five_events(): void
+    /**
+     * Deliberate publishing (2026-10-06): all five events mark the site dirty and none of
+     * them asks for a rebuild. This test used to be named
+     * ..._dispatches_rebuild_on_all_five_events — that is the behaviour the user removed, so
+     * asserting it would be asserting the bug.
+     */
+    public function test_project_observer_marks_dirty_on_all_five_events_and_publishes_none(): void
     {
         Queue::fake();
         $observer = app(ProjectObserver::class);
@@ -327,7 +633,8 @@ class StaticSitePublishTest extends TestCase
             $observer->$event($project);
         }
 
-        Queue::assertPushed(TriggerStaticSiteRebuildJob::class, 5);
+        Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
+        $this->assertSame(PublicationStatus::PENDING, PublicationState::current()->status);
     }
 
     public function test_media_observer_dispatches_gallery_metadata_job_for_gallery_media(): void
@@ -342,7 +649,7 @@ class StaticSitePublishTest extends TestCase
         Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
     }
 
-    public function test_media_observer_dispatches_rebuild_for_non_gallery_project_media(): void
+    public function test_media_observer_marks_dirty_for_non_gallery_project_media(): void
     {
         Queue::fake();
         $observer = app(MediaObserver::class);
@@ -352,7 +659,8 @@ class StaticSitePublishTest extends TestCase
             $observer->saved($media);
         }
 
-        Queue::assertPushed(TriggerStaticSiteRebuildJob::class, 2);
+        Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
+        $this->assertSame(PublicationStatus::PENDING, PublicationState::current()->status);
     }
 
     public function test_media_observer_ignores_non_project_media(): void
@@ -364,10 +672,14 @@ class StaticSitePublishTest extends TestCase
         $observer->saved($media);
         $observer->deleted($media);
 
+        // Asserted against the table, not only the queue: since publishing became explicit
+        // nothing pushes, so "nothing pushed" would pass even with the model_type guard
+        // deleted. What must actually hold is that no site was marked dirty either.
         Queue::assertNothingPushed();
+        $this->assertDatabaseCount('website_publication_states', 0);
     }
 
-    public function test_media_observer_dispatches_rebuild_on_delete_for_any_collection(): void
+    public function test_media_observer_marks_dirty_on_delete_for_any_collection(): void
     {
         Queue::fake();
         $observer = app(MediaObserver::class);
@@ -377,7 +689,8 @@ class StaticSitePublishTest extends TestCase
             $observer->deleted($media);
         }
 
-        Queue::assertPushed(TriggerStaticSiteRebuildJob::class, 3);
+        Queue::assertNotPushed(TriggerStaticSiteRebuildJob::class);
+        $this->assertSame(PublicationStatus::PENDING, PublicationState::current()->status);
     }
 
     // ─── Manual rebuild button (force=true) ───────────────────────────────────
@@ -386,7 +699,7 @@ class StaticSitePublishTest extends TestCase
     {
         Queue::fake();
 
-        $this->svc->requestRebuild('manual', force: true);
+        $this->svc->requestRebuild(reason: 'manual', force: true);
 
         Queue::assertPushed(TriggerStaticSiteRebuildJob::class, fn ($job) =>
             $job->force === true && $job->reason === 'manual'

@@ -311,6 +311,23 @@ Pendiente (sin ticket abierto todavía): integración real en Safety PWA (`/home
 
 ---
 
+## Programa multiempresa Electro Bertels — F0–F4 + P1–P6 hechos, P7 pendiente (rama de trabajo: `electrobertels/site-content-api`, cortada de `origin/electrobertels/org-indicator`)
+
+> Diseño y reglas de secuencia: `docs/ai/adr-multi-organization.md` (leer antes de tocar organización, sitio, contexto o enforcement). Detalle por ticket: `docs/ai/multiorg-decisions-log.md`.
+> **Rama (corregido 2026-09-27):** el trabajo multiempresa continúa en `electrobertels/site-content-api`, cortada de `origin/electrobertels/org-indicator` (que contiene CLA-598/599/600). La rama local `electrobertels/trunk` está **obsoleta**: solo-local, sin upstream, 0 commits propios, 29 commits por detrás de `origin/electrobertels/trunk-merge-main` — no cortar trabajo nuevo de ahí. Las dos ramas publicadas (`trunk-merge-main`, `org-indicator`) están **5 commits por detrás de `origin/main`** (faltan CLA-578 y CLA-594) — reconciliar antes del PR.
+
+- Una app Laravel, una BD, **un panel Filament por organización** (`admin` = Claesen, `bertels`). `users.organization_id` define la pertenencia; `site_id` es la fuente de verdad del dominio compartido de Website.
+- Secuencia no negociable: estructura → contexto → autorización → enforcement. El enforcement se gobierna con `ORGANIZATIONS_ENFORCE` (`config('organizations.enforce')`); rollback = `false` + `infrastructure/scripts/reload-config.sh`.
+- `OrganizationContext` es un binding `scoped`, nunca `singleton`. `Gate::before` aplica primero la frontera de organización y luego el privilegio de `super_admin`.
+- Regla de hierro (D10): no debe existir ningún usuario real de Bertels hasta que P5 esté verificada; el alta de Electro Bertels ocurre al final de P7. MFA (D8) es gate previo al primer login real de Bertels.
+- De Mailing solo se comparte el transporte transaccional (D11), nunca la plataforma de campañas. El tenant de Microsoft 365 es compartido: el From se resuelve desde configuración del sitio, nunca de entrada de usuario.
+- **Pendiente (P7):** `NOT NULL`, flag activo en producción, alta de Bertels y decisión de MFA; bloqueado por staging (CLA-530/531/525).
+- **Integrado (2026-09-28):** las tres líneas del programa están en `electrobertels/trunk` — `org-indicator` (CLA-598/599/600), `knx-api` (CLA-602/604/609) y `login-per-company` (CLA-603) — con la suite completa verde en cada paso (2099 passed / 0 failed al cierre) y empujado a `origin`. `site-content-api` queda **fuera a propósito** (trabajo en vuelo de CLA-481/484/611). Defectos destapados y detalle: `handoff.md`.
+- **Reconciliado con `main` (2026-09-29):** `main` no tenía solo CLA-601 — había recibido dos PRs con CLA-578 (reporting/scheduling de FieldOps) y CLA-594 (conteos por complejo) que ninguna línea del programa tenía. Mergeados en `electrobertels/trunk` (`0ba65c1`), con los 4 conflictos del área de login resueltos a favor del diseño por-empresa. Suite completa: **2117 passed / 3 skipped / 0 failed**. Detalle en `handoff.md`.
+- **Integrada la línea de contenido web en `trunk` (2026-10-01):** `site-content-api` (media slots, legales, glosario, estados de traducción) + el gate de publicación (manifiesto, seeder, pantalla de aprobación, acceso a paneles). Un defecto que solo aparecía al juntar las dos líneas: la entrada a la app KNX de oficina colgaba de `canAccessPanel('bertels')`, que ahora también admite al cliente — se cerró con `User::canOpenKnxOffice()`. Suite completa: **2181 passed / 3 skipped / 0 failed**.
+
+---
+
 ## Sprint FieldOps — EN CURSO (rama de trabajo: `fieldops-backend-fixes`)
 
 > Auditoria comparativa 2026-07-03 contra el satélite anterior `api-claesen-sport-app`. Ver `handoff.md` para el detalle completo.

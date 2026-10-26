@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Mailing\Http\Controllers\MailingController;
 use Modules\Mailing\Http\Controllers\UnsubscribeController;
 
-Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
+Route::middleware(['auth:sanctum', 'organization:claesen'])->prefix('v1')->group(function () {
     Route::apiResource('mailings', MailingController::class)->names('mailing');
 });
 

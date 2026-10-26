@@ -1,0 +1,11 @@
+{
+    "name": "Knx",
+    "alias": "knx",
+    "description": "Electro Bertels KNX installation management — API for the Kantoor (office) and Veld (field) apps.",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Knx\\Providers\\KnxServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,174 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Modules\Knx\Http\Controllers\Auth\AuthController;
+use Modules\Knx\Http\Controllers\Auth\SessionController;
+use Modules\Knx\Http\Controllers\ClientController;
+use Modules\Knx\Http\Controllers\ConflictController;
+use Modules\Knx\Http\Controllers\DashboardController;
+use Modules\Knx\Http\Controllers\AcceptanceTestController;
+use Modules\Knx\Http\Controllers\DocumentController;
+use Modules\Knx\Http\Controllers\EventStreamController;
+use Modules\Knx\Http\Controllers\Field\FieldDeviceController;
+use Modules\Knx\Http\Controllers\Field\FieldIssueController;
+use Modules\Knx\Http\Controllers\Field\FieldProjectController;
+use Modules\Knx\Http\Controllers\Field\FieldVisitController;
+use Modules\Knx\Http\Controllers\Field\FieldSessionController;
+use Modules\Knx\Http\Controllers\Field\FieldTodayController;
+use Modules\Knx\Http\Middleware\EnsureKnxApp;
+use Modules\Knx\Http\Controllers\FunctionSpecController;
+use Modules\Knx\Http\Controllers\ReportController;
+use Modules\Knx\Http\Controllers\FieldNotificationController;
+use Modules\Knx\Http\Controllers\PlanningController;
+use Modules\Knx\Http\Controllers\ZoneController;
+use Modules\Knx\Http\Controllers\ProjectController;
+
+/*
+ * KNX installation API — the contract consumed by Kantoor (office) and Veld
+ * (field). See docs/BACKEND-API.md and docs/BACKEND-API-ZONES.md in the
+ * electro-bertels-kantoor repo.
+ *
+ * Everything lives under /api/v1/knx (this provider's `api` prefix plus the
+ * v1/knx below) and, except the session endpoints, behind `auth:sanctum` and
+ * `organization:electro-bertels` so no Claesen token can reach it.
+ */
+
+Route::prefix('v1/knx')->name('knx.')->group(function (): void {
+    // K1 — session. Login/refresh are unauthenticated by definition and throttled
+    // like the rest of the app's logins; logout needs a token to revoke.
+    Route::post('auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:5,1')
+        ->name('auth.login');
+
+    Route::post('auth/refresh', [AuthController::class, 'refresh'])
+        ->middleware('throttle:10,1')
+        ->name('auth.refresh');
+
+    Route::post('auth/logout', [AuthController::class, 'logout'])
+        ->middleware('auth:sanctum')
+        ->name('auth.logout');
+
+    // Shared reads: one payload, both apps. Kept deliberately small — anything that
+    // mutates office data stays in the office group.
+    Route::middleware(['auth:sanctum', 'organization:electro-bertels', EnsureKnxApp::class.':'.EnsureKnxApp::ANY])
+        ->group(function (): void {
+            Route::get('zones', [ZoneController::class, 'index'])->name('zones.index');
+            Route::get('zones/{id}', [ZoneController::class, 'show'])->name('zones.show');
+        });
+
+    // Veld: same tenant and same token machinery, a different app. The guard is what
+    // stops a technician's token from reading the office API and vice versa.
+    Route::middleware(['auth:sanctum', 'organization:electro-bertels', EnsureKnxApp::class.':'.EnsureKnxApp::FIELD])
+        ->prefix('field')
+        ->name('field.')
+        ->group(function (): void {
+            Route::get('session', [FieldSessionController::class, 'show'])->name('session');
+            Route::get('today', [FieldTodayController::class, 'index'])->name('today');
+
+            // V11.b — the project the app caches to work offline. `{code}` is
+            // constrained for the same reason as the office routes: it must never
+            // swallow the nested paths below it.
+            Route::get('projects/{code}', [FieldProjectController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.show');
+            Route::get('projects/{code}/plans', [FieldProjectController::class, 'plans'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans');
+
+            // V11.c — registering an apparatus from site. Idempotent by the app's own
+            // `clientId`, so this is a POST the client may safely repeat.
+            Route::post('projects/{code}/devices', [FieldDeviceController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.devices.store');
+
+            // V11.d — an incident reported from site. Also idempotent by `clientId`.
+            Route::post('projects/{code}/issues', [FieldIssueController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.issues.store');
+
+            // V11.e — closing a visit, in one of the three phases. Idempotent too.
+            Route::post('projects/{code}/visits', [FieldVisitController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.visits.store');
+        });
+
+    // Signed downloads live outside the authenticated group on purpose: an `<a href>`
+    // from the browser cannot carry a bearer token. The signature IS the credential,
+    // and it expires (see DocumentResource / ExportRecordResource).
+    Route::middleware('signed')->group(function (): void {
+        Route::get('documents/{id}/download', [DocumentController::class, 'download'])->name('documents.download');
+        Route::get('exports/{id}/download', [ReportController::class, 'download'])->name('exports.download');
+    });
+
+    Route::middleware(['auth:sanctum', 'organization:electro-bertels', EnsureKnxApp::class.':'.EnsureKnxApp::OFFICE])
+        ->group(function (): void {
+        Route::get('me/session', [SessionController::class, 'show'])->name('me.session');
+
+        // K7b — the dashboard aggregate (its inputs all exist now).
+        Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard.show');
+
+        // K2 — clients and projects.
+        Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::get('clients/{id}', [ClientController::class, 'show'])->name('clients.show');
+
+        Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+        // {code} is a string ("C1618"), not a numeric id: constrain it so it can
+        // never swallow the nested routes below (stats, devices, activity...).
+        Route::get('projects/{code}', [ProjectController::class, 'show'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.show');
+        Route::get('projects/{code}/stats', [ProjectController::class, 'stats'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.stats');
+
+        // K3 — the dossier of a project.
+        Route::get('projects/{code}/devices', [ProjectController::class, 'devices'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.devices');
+        Route::get('projects/{code}/activity', [ProjectController::class, 'activity'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.activity');
+        // V11.e — the closures signed off from site. The office is the reader: the
+        // field app only ever sends them.
+        Route::get('projects/{code}/visits', [ProjectController::class, 'visits'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.visits');
+        // K4 — the field inbox. ack-all is declared first: it would otherwise be
+        // a candidate match for {id} in a stricter route model binding setup.
+        Route::post('notifications/ack-all', [FieldNotificationController::class, 'ackAll'])->name('notifications.ack-all');
+        Route::get('notifications', [FieldNotificationController::class, 'index'])->name('notifications.index');
+        Route::post('notifications/{id}/ack', [FieldNotificationController::class, 'ack'])->name('notifications.ack');
+        // K5 — technicians and planning.
+        Route::get('technicians', [PlanningController::class, 'technicians'])->name('technicians.index');
+
+        Route::get('planning', [PlanningController::class, 'index'])->name('planning.index');
+        Route::put('planning', [PlanningController::class, 'store'])->name('planning.store');
+        Route::delete('planning', [PlanningController::class, 'destroy'])->name('planning.destroy');
+        // K6 — the Conflictencentrum.
+        Route::get('conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
+        Route::get('conflicts/{id}', [ConflictController::class, 'show'])->name('conflicts.show');
+        Route::patch('conflicts/{id}', [ConflictController::class, 'update'])->name('conflicts.update');
+        // K7 — readiness writes. The reads live in the shared group below: Veld uses
+        // the same payload (its contract says so), but only the office changes checks.
+        Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
+        // K8 — documents and reports.
+        Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
+        Route::get('documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
+
+        Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
+        Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
+        // K10 — server-sent events (optional per §6; polling keeps working without it).
+        Route::get('events', [EventStreamController::class, 'stream'])->name('events.stream');
+
+        // K9 — functional specs and acceptance tests.
+        Route::get('projects/{code}/functions', [FunctionSpecController::class, 'index'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.functions');
+        Route::patch('functions/{id}', [FunctionSpecController::class, 'update'])->name('functions.update');
+
+        Route::get('projects/{code}/tests', [AcceptanceTestController::class, 'index'])
+            ->where('code', '[A-Za-z0-9._-]+')
+            ->name('projects.tests');
+        Route::patch('tests/{id}', [AcceptanceTestController::class, 'update'])->name('tests.update');
+    });
+});

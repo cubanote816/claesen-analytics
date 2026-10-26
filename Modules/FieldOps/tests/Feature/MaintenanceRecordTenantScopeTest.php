@@ -201,6 +201,10 @@ class MaintenanceRecordTenantScopeTest extends TestCase
     {
         $clientA = FoClient::factory()->create();
         $clientB = FoClient::factory()->create();
+        // Pin the clock: the app stores naive Europe/Brussels timestamps, so fixtures that
+        // straddle a DST change read back an hour off (docs/ai/known-risks.md, DST). A
+        // mid-June anchor keeps the hour offsets below exact on every run date.
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-06-15 12:00:00', 'Europe/Brussels'));
         $anchor = now();
         $correctiveType = \Modules\FieldOps\Models\FoMaintenanceType::factory()->corrective()->create();
 

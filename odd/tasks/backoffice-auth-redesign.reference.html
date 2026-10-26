@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backoffice auth screens — design reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Design tokens ===== */
+:root{
+  --brand-bg:#07111E;
+  --brand-text:#C3CEDF;
+  --brand-muted:#9FB0C7;
+  --claesen:#2FD3E6;
+  --bertels:#FF7A1A;
+  --page-bg:#F6F8FB;
+  --ink:#0B1727;
+  --ink-2:#4A586B;
+  --ink-3:#3F4D61;
+  --border:#C5CEDB;
+  --divider:#D3DAE5;
+  --primary:#1B66C0;
+  --primary-hover:#155AAD;
+  --primary-tint:#E3EEFB;
+  --focus:#7DB3F2;
+  --error:#8F1236;
+  --error-bg:#FDEDF1;
+  --error-border:#F3B7C6;
+  --font-display:'Sora','Inter',sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{margin:0;font-family:var(--font-body);background:var(--page-bg);color:var(--ink)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+/* ===== Layout ===== */
+.screen{min-height:100vh;display:none;flex-wrap:wrap}
+.screen.is-active{display:flex}
+.brand{
+  position:relative;overflow:hidden;flex:1 1 560px;min-width:0;
+  background-color:var(--brand-bg);
+  background-image:
+    radial-gradient(60% 50% at 100% 0%,rgba(34,118,210,.30),rgba(7,17,30,0) 70%),
+    linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:auto,48px 48px,48px 48px;
+  padding:clamp(32px,5vw,72px);
+  display:flex;flex-direction:column;justify-content:space-between;gap:56px;color:#fff;
+}
+.brand__rings{position:absolute;right:-240px;bottom:-260px;pointer-events:none}
+.brand__logos{position:relative;display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.brand__logos img{height:52px;width:auto;display:block}
+.brand__sep{width:1px;height:36px;background:rgba(255,255,255,.2)}
+.brand__body{position:relative;display:flex;flex-direction:column;gap:36px;max-width:560px}
+.brand__title{margin:0;font-family:var(--font-display);font-weight:600;font-size:clamp(34px,4vw,52px);line-height:1.08;letter-spacing:-.02em;text-wrap:balance}
+.brand__lead{margin:16px 0 0;font-size:17px;line-height:1.6;color:var(--brand-text);text-wrap:pretty}
+.companies{display:flex;flex-direction:column;gap:12px;margin:0;padding:0;list-style:none}
+.company{display:flex;align-items:flex-start;gap:16px;padding:18px 20px;border-radius:14px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10)}
+.company__dot{flex:none;width:10px;height:10px;margin-top:7px;border-radius:50%}
+.company__name{display:block;font-family:var(--font-display);font-weight:600;font-size:16px;margin-bottom:4px}
+.company__desc{display:block;font-size:15px;line-height:1.5;color:var(--brand-text)}
+.brand__foot{position:relative;margin:0;font-size:13px;color:var(--brand-muted)}
+
+.panel{flex:1 1 480px;min-width:0;padding:48px clamp(20px,5vw,72px);display:flex;align-items:center;justify-content:center;background:var(--page-bg)}
+.stack{width:100%;max-width:420px;display:flex;flex-direction:column;gap:28px}
+.form{display:flex;flex-direction:column;gap:28px}
+.fields{display:flex;flex-direction:column;gap:20px}
+.field{display:flex;flex-direction:column;gap:8px}
+.actions{display:flex;flex-direction:column;gap:20px}
+
+/* ===== Type ===== */
+.h2{margin:0;font-family:var(--font-display);font-weight:600;font-size:34px;letter-spacing:-.02em;color:var(--ink)}
+.lede{margin:8px 0 0;font-size:16px;line-height:1.5;color:var(--ink-2);text-wrap:pretty}
+.label{font-size:14px;font-weight:600;color:var(--ink)}
+.label .req{color:var(--primary)}
+.hint{font-size:13px;color:var(--ink-2)}
+.field-error{font-size:13px;font-weight:500;color:var(--error)}
+
+/* ===== Controls ===== */
+.input{width:100%;height:52px;padding:0 16px;font:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--border);border-radius:12px}
+.input:focus{border-color:var(--primary)}
+.input::placeholder{color:#6B7686}
+.input-wrap{position:relative;display:flex;align-items:center}
+.input-wrap .input{padding-right:84px}
+.toggle{position:absolute;right:6px;height:44px;min-width:64px;padding:0 12px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);cursor:pointer}
+.row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;column-gap:16px}
+.check{display:flex;align-items:center;gap:12px;min-height:44px;font-size:15px;color:#2C3A4E;cursor:pointer}
+.check input{width:20px;height:20px;margin:0;accent-color:var(--primary);cursor:pointer}
+.link{display:inline-flex;align-items:center;min-height:44px;font-size:15px;font-weight:600;color:var(--primary);text-decoration:none}
+.link--muted{color:var(--ink-3);gap:8px;align-self:flex-start}
+.btn{display:flex;align-items:center;justify-content:center;gap:12px;height:54px;border-radius:12px;font:inherit;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;border:0}
+.btn--primary{background:var(--primary);color:#fff}
+.btn--primary:hover{background:var(--primary-hover)}
+.btn--secondary{background:#fff;color:var(--ink);border:1px solid var(--border)}
+.btn--secondary:hover{background:#F1F5FA}
+.or{display:flex;align-items:center;gap:16px;font-size:12px;font-weight:600;letter-spacing:.08em;color:#5A6779}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--divider)}
+.alert{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:var(--error-bg);border:1px solid var(--error-border);color:var(--error);font-size:14px;line-height:1.4}
+.alert svg{flex:none}
+.status-icon{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:16px;background:var(--primary-tint);color:var(--primary)}
+.state{display:flex;flex-direction:column;gap:28px}
+.state[hidden]{display:none}
+.btn-stack{display:flex;flex-direction:column;gap:12px}
+
+/* ===== Mobile / tablet (stacked): compact brand header, form first ===== */
+@media (max-width:1039px){
+  .screen{align-content:flex-start}
+  .brand{flex:1 1 100%;padding:20px;gap:0}
+  .brand__rings,.brand__body,.brand__foot{display:none}
+  .brand__logos{gap:16px}
+  .brand__logos img{height:36px}
+  .panel{align-items:flex-start;padding:32px 20px 96px}
+}
+
+/* ===== Reference-only switcher (NOT part of the design — do not port) ===== */
+.ref-bar{position:fixed;z-index:10;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:4px;padding:4px;background:#0B1727;border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.ref-bar a{color:#C3CEDF;font-size:13px;font-weight:600;text-decoration:none;padding:10px 16px;border-radius:999px}
+.ref-bar a[aria-current=page]{background:#fff;color:#0B1727}
+</style>
+</head>
+<body>
+
+<!-- ============ 1. SIGN IN ============ -->
+<div class="screen" id="signin">
+  <aside class="brand">
+    <svg class="brand__rings" aria-hidden="true" width="640" height="640" viewBox="0 0 640 640" fill="none"><circle cx="320" cy="320" r="120" stroke="rgba(255,255,255,.07)"/><circle cx="320" cy="320" r="200" stroke="rgba(255,255,255,.06)"/><circle cx="320" cy="320" r="280" stroke="rgba(255,255,255,.05)"/><circle cx="320" cy="320" r="360" stroke="rgba(255,255,255,.04)"/></svg>
+    <div class="brand__logos">
+      <img src="data:image/png;base64,…B64…" alt="Claesen Outdoor Lighting">
+      <div class="brand__sep" aria-hidden="true"></div>
+      <img src="data:image/png;base64,…B64…" alt="Electro Bertels">
+    </div>
+    <div class="brand__body">
+      <div>
+        <h1 class="brand__title">Two trades, one shared backoffice</h1>
+        <p class="brand__lead">Sports lighting and electrical installations — one shared backoffice for both companies.</p>
+      </div>
+      <ul class="companies">
+        <li class="company"><span class="company__dot" style="background:var(--claesen)" aria-hidden="true"></span><div><span class="company__name">Claesen</span><span class="company__desc">Outdoor &amp; stadium sports lighting, every level</span></div></li>
+        <li class="company"><span class="company__dot" style="background:var(--bertels)" aria-hidden="true"></span><div><span class="company__name">Electro Bertels</span><span class="company__desc">Electrical installations &amp; home automation for homes, businesses and industry</span></div></li>
+      </ul>
+    </div>
+    <p class="brand__foot">© 2026 · All rights reserved</p>
+  </aside>
+
+  <main class="panel">
+    <form class="stack" data-demo>
+      <div>
+        <h2 class="h2">Sign in</h2>
+        <p class="lede">Welcome back. Enter your details to continue.</p>
+      </div>
+
+      <!-- Render only when auth fails (e.g. Laravel $errors->first('email')). Demo: press "Sign in". -->
+      <div class="alert" role="alert" id="signin-error" hidden>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></svg>
+        <span>These credentials do not match our records.</span>
+      </div>
+
+      <div class="fields">
+        <div class="field">
+          <label class="label" for="si-email">Email address <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="si-email" name="email" type="email" required autocomplete="username" placeholder="you@company.com">
+        </div>
+        <div class="field">
+          <label class="label" for="si-password">Password <span class="req" aria-hidden="true">*</span></label>
+          <div class="input-wrap">
+            <input class="input" id="si-password" name="password" type="password" required autocomplete="current-password" placeholder="Enter your password">
+            <button class="toggle" type="button" data-toggle="si-password" aria-label="Show password">Show</button>
+          </div>
+        </div>
+        <div class="row">
+          <label class="check"><input type="checkbox" name="remember"> Remember me for 30 days</label>
+          <a class="link" href="#forgot">Forgot password?</a>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn--primary" type="submit">Sign in</button>
+        <div class="or" aria-hidden="true">OR</div>
+        <button class="btn btn--secondary" type="button">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+          Sign in with Microsoft
+        </button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<!-- ============ 2. FORGOT PASSWORD ============ -->
+<div class="screen" id="forgot">
+  <aside class="brand">
+    <svg class="brand__rings" aria-hidden="true" width="640" height="640" viewBox="0 0 640 640" fill="none"><circle cx="320" cy="320" r="120" stroke="rgba(255,255,255,.07)"/><circle cx="320" cy="320" r="200" stroke="rgba(255,255,255,.06)"/><circle cx="320" cy="320" r="280" stroke="rgba(255,255,255,.05)"/><circle cx="320" cy="320" r="360" stroke="rgba(255,255,255,.04)"/></svg>
+    <div class="brand__logos">
+      <img src="data:image/png;base64,…B64…" alt="Claesen Outdoor Lighting">
+      <div class="brand__sep" aria-hidden="true"></div>
+      <img src="data:image/png;base64,…B64…" alt="Electro Bertels">
+    </div>
+    <div class="brand__body">
+      <div>
+        <h1 class="brand__title">Two trades, one shared backoffice</h1>
+        <p class="brand__lead">Sports lighting and electrical installations — one shared backoffice for both companies.</p>
+      </div>
+      <ul class="companies">
+        <li class="company"><span class="company__dot" style="background:var(--claesen)" aria-hidden="true"></span><div><span class="company__name">Claesen</span><span class="company__desc">Outdoor &amp; stadium sports lighting, every level</span></div></li>
+        <li class="company"><span class="company__dot" style="background:var(--bertels)" aria-hidden="true"></span><div><span class="company__name">Electro Bertels</span><span class="company__desc">Electrical installations &amp; home automation for homes, businesses and industry</span></div></li>
+      </ul>
+    </div>
+    <p class="brand__foot">© 2026 · All rights reserved</p>
+  </aside>
+
+  <main class="panel">
+    <div class="stack">
+      <a class="link link--muted" href="#signin">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        Back to sign in
+      </a>
+
+      <form class="form" id="forgot-form" data-demo>
+        <div>
+          <h2 class="h2">Forgot your password?</h2>
+          <p class="lede">Enter the email linked to your account and we'll send you a link to reset it.</p>
+        </div>
+        <div class="field">
+          <label class="label" for="fp-email">Email address <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="fp-email" name="email" type="email" required autocomplete="username" placeholder="you@company.com">
+        </div>
+        <button class="btn btn--primary" type="submit">Send reset link</button>
+      </form>
+
+      <!-- Shown after submit. ALWAYS show it, whether or not the account exists. -->
+      <div class="state" id="forgot-sent" role="status" hidden>
+        <div class="status-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7.5l8.5 6 8.5-6"/></svg>
+        </div>
+        <div>
+          <h2 class="h2">Check your inbox</h2>
+          <p class="lede">If an account exists for <strong id="forgot-email" style="color:var(--ink);font-weight:600;word-break:break-all">your email</strong>, you'll receive a link to reset your password shortly.</p>
+        </div>
+        <div class="btn-stack">
+          <a class="btn btn--primary" href="#signin">Back to sign in</a>
+          <button class="btn btn--secondary" type="button" id="forgot-retry">Use a different email</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ 3. RESET PASSWORD ============ -->
+<div class="screen" id="reset">
+  <aside class="brand">
+    <svg class="brand__rings" aria-hidden="true" width="640" height="640" viewBox="0 0 640 640" fill="none"><circle cx="320" cy="320" r="120" stroke="rgba(255,255,255,.07)"/><circle cx="320" cy="320" r="200" stroke="rgba(255,255,255,.06)"/><circle cx="320" cy="320" r="280" stroke="rgba(255,255,255,.05)"/><circle cx="320" cy="320" r="360" stroke="rgba(255,255,255,.04)"/></svg>
+    <div class="brand__logos">
+      <img src="data:image/png;base64,…B64…" alt="Claesen Outdoor Lighting">
+      <div class="brand__sep" aria-hidden="true"></div>
+      <img src="data:image/png;base64,…B64…" alt="Electro Bertels">
+    </div>
+    <div class="brand__body">
+      <div>
+        <h1 class="brand__title">Two trades, one shared backoffice</h1>
+        <p class="brand__lead">Sports lighting and electrical installations — one shared backoffice for both companies.</p>
+      </div>
+      <ul class="companies">
+        <li class="company"><span class="company__dot" style="background:var(--claesen)" aria-hidden="true"></span><div><span class="company__name">Claesen</span><span class="company__desc">Outdoor &amp; stadium sports lighting, every level</span></div></li>
+        <li class="company"><span class="company__dot" style="background:var(--bertels)" aria-hidden="true"></span><div><span class="company__name">Electro Bertels</span><span class="company__desc">Electrical installations &amp; home automation for homes, businesses and industry</span></div></li>
+      </ul>
+    </div>
+    <p class="brand__foot">© 2026 · All rights reserved</p>
+  </aside>
+
+  <main class="panel">
+    <div class="stack">
+      <form class="form" id="reset-form" data-demo>
+        <div>
+          <h2 class="h2">Set a new password</h2>
+          <p class="lede">Choose a password you haven't used before. You'll use it to sign in from now on.</p>
+        </div>
+        <div class="fields">
+          <div class="field">
+            <label class="label" for="rp-new">New password <span class="req" aria-hidden="true">*</span></label>
+            <div class="input-wrap">
+              <input class="input" id="rp-new" name="password" type="password" required minlength="8" autocomplete="new-password" aria-describedby="rp-hint">
+              <button class="toggle" type="button" data-toggle="rp-new rp-confirm" aria-label="Show passwords">Show</button>
+            </div>
+            <span class="hint" id="rp-hint">At least 8 characters.</span>
+          </div>
+          <div class="field">
+            <label class="label" for="rp-confirm">Confirm new password <span class="req" aria-hidden="true">*</span></label>
+            <input class="input" id="rp-confirm" name="password_confirmation" type="password" required autocomplete="new-password">
+            <span class="field-error" id="rp-mismatch" role="alert" hidden>The two passwords don't match.</span>
+          </div>
+        </div>
+        <button class="btn btn--primary" type="submit">Update password</button>
+      </form>
+
+      <div class="state" id="reset-done" role="status" hidden>
+        <div class="status-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </div>
+        <div>
+          <h2 class="h2">Password updated</h2>
+          <p class="lede">Your password has been changed. Sign in with your new password to continue.</p>
+        </div>
+        <a class="btn btn--primary" href="#signin">Go to sign in</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Reference-only: screen switcher. NOT part of the design. -->
+<nav class="ref-bar" aria-label="Design reference screens">
+  <a href="#signin">Sign in</a><a href="#forgot">Forgot password</a><a href="#reset">Reset password</a>
+</nav>
+
+<script>
+/* Demo behaviour only: lets you click through the design. Port the real behaviour to the app's own stack. */
+(function(){
+  var ids=['signin','forgot','reset'];
+  function show(){
+    var h=(location.hash||'#signin').slice(1); if(ids.indexOf(h)<0) h='signin';
+    ids.forEach(function(id){document.getElementById(id).classList.toggle('is-active',id===h)});
+    document.querySelectorAll('.ref-bar a').forEach(function(a){a.toggleAttribute('aria-current',false);if(a.getAttribute('href')==='#'+h)a.setAttribute('aria-current','page')});
+    window.scrollTo(0,0);
+  }
+  window.addEventListener('hashchange',show); show();
+
+  document.querySelectorAll('[data-toggle]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var inputs=btn.getAttribute('data-toggle').split(' ').map(function(id){return document.getElementById(id)});
+      var reveal=inputs[0].type==='password';
+      inputs.forEach(function(i){i.type=reveal?'text':'password'});
+      btn.textContent=reveal?'Hide':'Show';
+      btn.setAttribute('aria-label',(reveal?'Hide':'Show')+(inputs.length>1?' passwords':' password'));
+    });
+  });
+
+  document.querySelectorAll('form[data-demo]').forEach(function(f){f.addEventListener('submit',function(e){e.preventDefault()})});
+  document.querySelector('#signin form').addEventListener('submit',function(){document.getElementById('signin-error').hidden=false});
+
+  var fForm=document.getElementById('forgot-form'),fSent=document.getElementById('forgot-sent');
+  fForm.addEventListener('submit',function(){document.getElementById('forgot-email').textContent=document.getElementById('fp-email').value||'your email';fForm.hidden=true;fSent.hidden=false});
+  document.getElementById('forgot-retry').addEventListener('click',function(){fSent.hidden=true;fForm.hidden=false});
+
+  var rForm=document.getElementById('reset-form'),rDone=document.getElementById('reset-done');
+  rForm.addEventListener('submit',function(){
+    var ok=document.getElementById('rp-new').value===document.getElementById('rp-confirm').value;
+    document.getElementById('rp-mismatch').hidden=ok;
+    if(ok){rForm.hidden=true;rDone.hidden=false}
+  });
+})();
+</script>
+</body>
+</html>

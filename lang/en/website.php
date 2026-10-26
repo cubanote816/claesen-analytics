@@ -76,6 +76,8 @@ return [
             'assigned_to' => 'Assigned To',
             'follow_up_date' => 'Follow-up Date',
             'internal_notes' => 'Internal Notes',
+            'tags' => 'Tags',
+            'first_response_sla' => 'First response',
         ],
         'categories' => [
             'sport' => 'Sport',
@@ -95,17 +97,22 @@ return [
             'other' => 'Other',
         ],
         'status_options' => [
-            'pending' => 'Pending',
-            'contacted' => 'Contacted',
+            'new' => 'New',
+            'assigned' => 'Assigned',
             'in_progress' => 'In Progress',
-            'completed' => 'Completed',
-            'cancelled' => 'Cancelled',
+            'waiting_client' => 'Waiting on Client',
+            'closed' => 'Closed',
+            'spam' => 'Spam',
         ],
         'priority_options' => [
             'low' => 'Low',
             'medium' => 'Medium',
             'high' => 'High',
             'urgent' => 'Urgent',
+        ],
+        'actions' => [
+            'export' => 'Export CSV',
+            'erase' => 'Erase (GDPR)',
         ],
     ],
     'activities' => [
@@ -148,10 +155,39 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    // WU4: who published, when, and what changed. "What changed" comes from the activity log
+    // that already existed, narrowed to everything after the last accepted publication — not
+    // from a new hash. See odd/tasks/publish-to-live-website.md.
+    'publication_history' => [
+        'label' => 'Publications',
+        'changes_heading' => 'Changes since the last publication',
+        'empty' => 'No publications yet',
+        'empty_changes' => 'No changes since the last publication',
+        'fields' => [
+            'when'           => 'When',
+            'who'            => 'Who',
+            'event'          => 'What',
+            'reason'         => 'Reason',
+            'error'          => 'Error',
+            'subject'        => 'Part',
+            'fields_changed' => 'Changed fields',
+        ],
+        'events' => [
+            'requested' => 'Requested',
+            'accepted'  => 'Accepted',
+            'failed'    => 'Failed',
+        ],
+        'subjects' => [
+            'sitesetting'  => 'Setting',
+            'project'      => 'Project',
+            'mediaslot'    => 'Media slot',
+            'announcement' => 'Announcement',
+        ],
+    ],
     'publication' => [
         'status' => [
             'idle'     => 'No changes',
-            'pending'  => 'Queued',
+            'pending'  => 'Changes not published',
             'accepted' => 'Publication requested',
             'error'    => 'Publication error',
         ],
@@ -169,6 +205,236 @@ return [
             'publish_now_confirm_title'  => 'Start publication',
             'publish_now_confirm_body'   => 'This will request a full rebuild of the website. The current version stays live until the build completes.',
             'publish_now_success'        => 'Publication requested',
+            'publish_section'                => 'Publish this page',
+            'publish_section_confirm_title'  => 'Publish :page',
+            'publish_section_confirm_body'   => 'Only the changes of :page will be sent to the website. Changes on the other pages keep their published values for now.',
+            'publish_section_confirm_pending' => 'Changes on this page waiting to be published: :count',
+            'publish_section_confirm_submit'  => 'Publish :page',
+            'publish_section_success'         => 'The publication of :page was requested',
+            'publish_section_disabled'        => 'Publishing is disabled in this environment — the website was not updated.',
+            'publish_section_no_drift'        => 'Nothing to publish — this page already matches the published site.',
+            'publish_section_unverified'      => 'It could not be checked whether anything needed publishing — the publication was requested anyway.',
+        ],
+    ],
+    // CLA-481 (media slots): this block was missing from every language file, so the panel
+    // printed `website.media_slots.plural_label` verbatim — including in the cluster's tab
+    // bar. The wording follows the code's own vocabulary (a slot is a stable name such as
+    // `home.hero` pointing at a project's media) rather than a free interpretation; if the
+    // team behind that screen prefers other words, this is what to change.
+    'media_slots' => [
+        'label' => 'Media slot',
+        'plural_label' => 'Media slots',
+        'fields' => [
+            'slot' => 'Slot',
+            'slot_helper' => 'The name the website uses, for example home.hero. Changing it means changing the website too.',
+            'media' => 'Media from a project',
+            'media_invalid' => 'This media does not belong to a project of this site.',
+        ],
+    ],
+
+    'page_publication_review' => [
+        'label' => 'Page publications',
+        'fields' => [
+            'page' => 'Page',
+            'locale' => 'Locale',
+            'status' => 'Status',
+            'reviewed_at' => 'Reviewed',
+            'reviewed_by' => 'Reviewed by',
+        ],
+        // The internal vocabulary, in the words of the person approving: the state
+        // reads «Reviewed» because the `reviewed_at` column already does, instead of
+        // inventing a second word for the same thing.
+        'statuses' => [
+            'machine' => 'Draft',
+            'reviewed' => 'Reviewed',
+            'published' => 'Published',
+        ],
+        // ISO codes mean nothing to the person approving a translation.
+        'locales' => [
+            'nl' => 'Dutch',
+            'fr' => 'French',
+            'en' => 'English',
+            'de' => 'German',
+        ],
+        // Copied from the site's own menu (electrobertels-official,
+        // src/content/chrome/en.yaml): the names the client already approved for those
+        // pages, not names invented by this screen. If they change there, copy them
+        // again: the backend does not read that repository.
+        'pages' => [
+            'home' => 'Home',
+            'particulieren' => 'Residential',
+            'bedrijven' => 'Business & industry',
+            'winkel' => 'Shop',
+            'projecten' => 'Projects',
+            'over-ons' => 'About us',
+            'contact' => 'Contact & quote request',
+        // Chrome del panel, no copy del cliente: el contenido legal del sitio sólo
+        // existe en nl, así que estas etiquetas son nuestras y por eso se traducen.
+            'legal-privacy' => 'Privacy statement',
+            'legal-cookies' => 'Cookie policy',
+            'legal-terms' => 'Terms and conditions',
+        ],
+
+        'actions' => [
+            'approve' => 'Approve',
+            'publish' => 'Publish',
+            'retire' => 'Retire',
+            'publish_confirm' => 'This page will become indexable in this locale. Continue?',
+            'retire_confirm' => 'This page will stop being indexable in this locale. Continue?',
+        ],
+        'notifications' => [
+            'updated' => 'Publication status updated',
+        ],
+    ],
+
+    'translation_review' => [
+        'label' => 'Translation review',
+        'fields' => [
+            'subject' => 'Subject',
+            'attribute' => 'Field',
+            'locale' => 'Locale',
+            'status' => 'Status',
+            'error' => 'Error',
+            'updated_at' => 'Updated',
+        ],
+        // The seven lifecycle states (documented on TranslationState), in the words of the
+        // person approving. «Reviewed» is the word the column already uses, and the same one
+        // the page-publication screen uses.
+        'statuses' => [
+            'missing' => 'Missing',
+            'machine' => 'Draft',
+            'stale' => 'Outdated',
+            'needs_review' => 'Needs review',
+            'reviewed' => 'Reviewed',
+            'published' => 'Published',
+            'failed' => 'Failed',
+        ],
+
+        'actions' => [
+            'edit' => 'Edit',
+            'edit_value' => 'Translation (:locale)',
+            'approve' => 'Approve',
+            'publish' => 'Publish',
+            'retranslate' => 'Retranslate (AI)',
+            'retranslate_confirm' => 'The approved value will be overwritten by a fresh AI translation and must be approved again. Continue?',
+        ],
+        'notifications' => [
+            'updated' => 'Translation status updated',
+        ],
+    ],
+
+    'announcements' => [
+        'label' => 'Announcement',
+        'plural_label' => 'Announcements',
+        'message_helper' => 'Shown in the current language of this admin view.',
+        'starts_at_helper' => 'Empty = active immediately once published.',
+        'ends_at_helper' => 'Empty = stays active until manually archived.',
+        'status' => [
+            'draft' => 'Draft',
+            'published' => 'Published',
+            'archived' => 'Archived',
+        ],
+    ],
+    // WU-S2: the split of Site settings into six pages, as the approved prototype declares it.
+    // WU-S1: the four groups of the Website submenu, from the prototype. The value has to be the
+    // SAME across the items of a group (Filament groups by text), so it resolves in one place.
+    // WU-S3: the unsaved-changes bar. It replaces the Save button at the end of the form.
+    'settings_bar' => [
+        'unsaved'    => 'Unsaved changes',
+        'discard'    => 'Discard',
+        'save_draft' => 'Save draft',
+        'discarded'  => 'Changes discarded',
+    ],
+    'nav_groups' => [
+        'publishing'    => 'Publishing',
+        'content'       => 'Content',
+        'site_settings' => 'Site settings',
+        'inbox'         => 'Inbox',
+    ],
+    'settings_sections' => [
+        'general' => [
+            'label' => 'General',
+            'description' => 'Legal identity used in the footer, legal pages and search data.',
+        ],
+        'contact' => [
+            'label' => 'Contact',
+            'description' => 'Phone, WhatsApp and email shown across the site.',
+        ],
+        'address' => [
+            'label' => 'Address & maps',
+            'description' => 'Where the shop is and how visitors find it.',
+        ],
+        'hours' => [
+            'label' => 'Opening hours',
+            'description' => 'Weekly schedule shown in the footer and on the contact page.',
+        ],
+        'social' => [
+            'label' => 'Social links',
+            'description' => 'Profiles linked from the footer.',
+        ],
+        'privacy' => [
+            'label' => 'Privacy & consent',
+            'description' => 'Cookie-dependent embeds and consent tracking.',
+        ],
+    ],
+    'site_settings' => [
+
+        // The address is edited as parts, not as JSON: it is a fixed shape, and a typo
+        // inside a JSON blob stays valid JSON, so it slips through.
+        'address' => [
+            'street' => 'Street and number',
+            'postal_code' => 'Postal code',
+            'city' => 'City',
+            'country_code' => 'Country code (2 letters)',
+        ],
+        // Opening hours are edited day by day, not as JSON: `hours: null` IS "closed"
+        // in the contract, so the switch is derived from it.
+        'opening_hours' => [
+            'day' => 'Day',
+            'closed' => 'Closed',
+            'ranges' => 'Opening hours',
+            'opens' => 'From',
+            'closes' => 'To',
+            'add_day' => 'Add a day',
+            'add_range' => 'Add a period',
+            // The keys are contract data; only the label is translated.
+            'days' => [
+                'sunday' => 'Sunday',
+                'monday' => 'Monday',
+                'tuesdayToFriday' => 'Tuesday to Friday',
+                'saturday' => 'Saturday',
+            ],
+        ],
+        'label' => 'Site settings',
+        'save' => 'Save',
+        'saved' => 'Settings saved',
+        'fields' => [
+            'hours' => 'Opening hours',
+            'phone' => 'Phone',
+            'email' => 'Email',
+            'address' => 'Address',
+            'social_links' => 'Social media links (JSON)',
+            'legal_name' => 'Legal name',
+            'founded_year' => 'Founding year',
+            'phone_display' => 'Phone (display)',
+            'phone_tel' => 'Phone (tel: link)',
+            'whatsapp_display' => 'WhatsApp (display)',
+            'whatsapp_url' => 'WhatsApp (URL)',
+            'address_structured' => 'Address (structured)',
+            'address_country' => 'Country (translatable)',
+            'maps_embed_url' => 'Maps embed (URL)',
+            'maps_directions_url' => 'Maps directions (URL)',
+            'maps_consent_mode' => 'Maps consent',
+            'vat_number' => 'VAT number',
+            'opening_hours' => 'Opening hours (structured)',
+            'contact_consent_version' => 'Contact form consent version',
+        ],
+        'hints' => [
+            'address' => 'Claesen: verbatim string, read unchanged by the Claesen frontend. Do not edit for Electro Bertels.',
+            'address_structured' => 'Electro Bertels: structured source — JSON with street, postal_code, city, country_code. The Claesen frontend does not read this field.',
+            'founded_year' => 'JSON integer, e.g. 1977',
+            'opening_hours' => 'One row per day. "Closed" means no opening hours.',
+            'maps_consent_mode' => 'always | on_consent | never',
         ],
     ],
 ];

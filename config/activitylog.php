@@ -1,8 +1,8 @@
 <?php
 
+use Modules\Core\Models\ActivityLogEntry;
 use Spatie\Activitylog\Actions\CleanActivityLogAction;
 use Spatie\Activitylog\Actions\LogActivityAction;
-use Spatie\Activitylog\Models\Activity;
 
 return [
 
@@ -40,7 +40,8 @@ return [
      * It should implement the Spatie\Activitylog\Contracts\Activity interface
      * and extend Illuminate\Database\Eloquent\Model.
      */
-    'activity_model' => Activity::class,
+    // CLA-465: organization-aware, append-only subclass — see its docblock.
+    'activity_model' => ActivityLogEntry::class,
 
     /*
      * These attributes will be excluded from logging for all models.

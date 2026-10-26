@@ -36,7 +36,7 @@ class InspectionReminderService
         $cutoff    = Carbon::now()->subDays($days);
         $graceDate = Carbon::now()->subDays($graceDays);
 
-        $managers = User::role('project_manager')->get();
+        $managers = User::role('project_manager')->inOrganization()->get();
 
         return $managers
             ->filter(function (User $user) use ($graceDate): bool {

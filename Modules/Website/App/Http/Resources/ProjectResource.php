@@ -3,6 +3,7 @@
 namespace Modules\Website\App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\Website\Services\PublicLocalePolicy;
 
 class ProjectResource extends JsonResource
 {
@@ -21,47 +22,60 @@ class ProjectResource extends JsonResource
 
             // Work Details — translatable (nl/en/fr/de via Gemini auto-translate).
             // Null means the field was never filled on this project.
-            'work_story'  => $this->resolveLocaleValue($this->getTranslations('work_story')),
-            'challenge'   => $this->resolveLocaleValue($this->getTranslations('challenge')),
-            'solution'    => $this->resolveLocaleValue($this->getTranslations('solution')),
-            'result'      => $this->resolveLocaleValue($this->getTranslations('result')),
+            'work_story' => $this->resolveLocaleValue($this->getTranslations('work_story')),
+            'challenge' => $this->resolveLocaleValue($this->getTranslations('challenge')),
+            'solution' => $this->resolveLocaleValue($this->getTranslations('solution')),
+            'result' => $this->resolveLocaleValue($this->getTranslations('result')),
 
             'category' => $this->category,
             'location' => $this->resolveLocaleValue($this->getTranslations('location')),
             'year' => $this->year,
             'featured' => $this->featured,
             'order_index' => $this->order_index,
+            // F3/CLA-467: the original file lives on a private disk (see
+            // Modules\Website\Models\Project::registerMediaCollections()) —
+            // never $media->getUrl()/getFirstMediaUrl(collection) without a
+            // conversion name. Only conversion URLs (public disk) are ever
+            // serialized, so there is no field here an outsider could use
+            // to reach or enumerate an original.
             'featured_image' => [
-                'original' => $this->getFirstMediaUrl('featured_image'),
-                'optimized' => $this->getFirstMediaUrl('featured_image', 'optimized') ?: $this->getFirstMediaUrl('featured_image'),
+                'optimized' => $this->getFirstMediaUrl('featured_image', 'optimized'),
                 'thumb' => $this->getFirstMediaUrl('featured_image', 'thumb'),
+                'optimized_avif' => $this->getFirstMediaUrl('featured_image', 'optimized_avif'),
+                'thumb_avif' => $this->getFirstMediaUrl('featured_image', 'thumb_avif'),
             ],
             'gallery' => $this->getMedia('gallery')->map(function ($media) {
                 return [
-                    'id'        => $media->id,
-                    'name'      => $media->name,
-                    'original'  => $media->getUrl(),
-                    'optimized' => $media->getUrl('optimized') ?: $media->getUrl(),
-                    'gallery'   => $media->getUrl('gallery'),
-                    'thumb'     => $media->getUrl('thumb'),
-                    'caption'   => $this->resolveLocaleValue($media->getCustomProperty('caption')),
-                    'alt'       => $this->resolveLocaleValue($media->getCustomProperty('alt')),
+                    'id' => $media->id,
+                    'name' => $media->name,
+                    'optimized' => $media->getUrl('optimized'),
+                    'gallery' => $media->getUrl('gallery'),
+                    'thumb' => $media->getUrl('thumb'),
+                    'optimized_avif' => $media->getUrl('optimized_avif'),
+                    'gallery_avif' => $media->getUrl('gallery_avif'),
+                    'thumb_avif' => $media->getUrl('thumb_avif'),
+                    'caption' => $this->resolveLocaleValue($media->getCustomProperty('caption')),
+                    'alt' => $this->resolveLocaleValue($media->getCustomProperty('alt')),
+                    'focal_point' => $media->getCustomProperty('focal_point', ['x' => 0.5, 'y' => 0.5]),
                     'mime_type' => $media->mime_type,
-                    'size'      => $media->size,
+                    'size' => $media->size,
                 ];
             }),
             // Always an array — empty [] when no images have been uploaded yet.
             'detail_gallery' => $this->getMedia('detail_gallery')->map(function ($media) {
                 return [
-                    'id'        => $media->id,
-                    'original'  => $media->getUrl(),
-                    'optimized' => $media->getUrl('optimized') ?: $media->getUrl(),
-                    'gallery'   => $media->getUrl('gallery'),
-                    'thumb'     => $media->getUrl('thumb'),
-                    'caption'   => $this->resolveLocaleValue($media->getCustomProperty('caption')),
-                    'alt'       => $this->resolveLocaleValue($media->getCustomProperty('alt')),
+                    'id' => $media->id,
+                    'optimized' => $media->getUrl('optimized'),
+                    'gallery' => $media->getUrl('gallery'),
+                    'thumb' => $media->getUrl('thumb'),
+                    'optimized_avif' => $media->getUrl('optimized_avif'),
+                    'gallery_avif' => $media->getUrl('gallery_avif'),
+                    'thumb_avif' => $media->getUrl('thumb_avif'),
+                    'caption' => $this->resolveLocaleValue($media->getCustomProperty('caption')),
+                    'alt' => $this->resolveLocaleValue($media->getCustomProperty('alt')),
+                    'focal_point' => $media->getCustomProperty('focal_point', ['x' => 0.5, 'y' => 0.5]),
                     'mime_type' => $media->mime_type,
-                    'size'      => $media->size,
+                    'size' => $media->size,
                 ];
             })->values(),
             'related' => ProjectResource::collection($this->whenLoaded('related')),
@@ -71,24 +85,34 @@ class ProjectResource extends JsonResource
 
     /**
      * Resolve a translatable custom property value for the current locale.
-     * Fallback chain: requested locale → nl → en → first available → null.
+     *
+     * Site-scoped policy (CLA-611 G9, approver decision 3): strict sites
+     * (config('website.public_api.strict_locale_site_keys'), e.g. Electro
+     * Bertels) get ONLY the requested locale — a missing translation is
+     * null, never Dutch/English. Claesen keeps the historical tolerant
+     * chain locale → nl → en → first available, frozen by
+     * PortfolioApiTest, byte-identical.
      */
     private function resolveLocaleValue(mixed $value): ?string
     {
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             return $value ?: null;
         }
 
         $locale = app()->getLocale();
 
+        if (PublicLocalePolicy::isStrict()) {
+            return PublicLocalePolicy::resolve($value, $locale);
+        }
+
         foreach ([$locale, 'nl', 'en'] as $candidate) {
-            if (!empty($value[$candidate])) {
+            if (! empty($value[$candidate])) {
                 return $value[$candidate];
             }
         }
 
         foreach ($value as $text) {
-            if (!empty($text)) {
+            if (! empty($text)) {
                 return $text;
             }
         }

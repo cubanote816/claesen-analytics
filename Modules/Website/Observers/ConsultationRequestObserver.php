@@ -2,15 +2,70 @@
 
 namespace Modules\Website\Observers;
 
+use Modules\Core\Models\User;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Services\ConsultationService;
 use Illuminate\Support\Facades\Auth;
+use RuntimeException;
 
 class ConsultationRequestObserver
 {
     public function __construct(
         protected ConsultationService $service
     ) {}
+
+    /**
+     * F4/CLA-477 of the multi-organization program — docs/ai/adr-multi-organization.md.
+     *
+     * Runs on every real save (the Filament edit form's own Eloquent
+     * ->save() — ConsultationService::updateStatus() bypasses this via
+     * updateQuietly() and does the equivalent inline, see its own
+     * docblock).
+     */
+    public function saving(ConsultationRequest $consultationRequest): void
+    {
+        $statusBeforeThisSave = $consultationRequest->getOriginal('status') ?? ConsultationRequest::STATUS_NEW;
+
+        if ($consultationRequest->isDirty('assigned_to') && $consultationRequest->assigned_to) {
+            $this->assertAssigneeBelongsToSameOrganization($consultationRequest);
+
+            // "Estados nuevo, asignado, ..." — a lead genuinely acquiring an
+            // owner is what the 'assigned' state means; only auto-advances
+            // out of 'new', never overrides a status someone already moved
+            // forward by hand (in_progress/waiting_client/closed/spam). Must
+            // run BEFORE the SLA stamp check below — it can itself be the
+            // only reason status ends up dirty in this save (assigning a
+            // 'new' lead with no other field touched).
+            if ($consultationRequest->status === ConsultationRequest::STATUS_NEW) {
+                $consultationRequest->status = ConsultationRequest::STATUS_ASSIGNED;
+            }
+        }
+
+        if ($consultationRequest->isDirty('status')) {
+            $consultationRequest->maybeStampFirstResponse($statusBeforeThisSave, $consultationRequest->status);
+        }
+    }
+
+    /**
+     * "Responsable debe pertenecer a la misma empresa" — gated by
+     * config('organizations.enforce') (D4), same as every other
+     * cross-organization check in this program: inert for Claesen today,
+     * real the moment enforcement is on. Site has no BelongsToSite scope
+     * of its own, so this resolves cleanly regardless of enforcement state.
+     */
+    private function assertAssigneeBelongsToSameOrganization(ConsultationRequest $consultationRequest): void
+    {
+        if (! config('organizations.enforce')) {
+            return;
+        }
+
+        $site = $consultationRequest->site;
+        $assignee = User::find($consultationRequest->assigned_to);
+
+        if ($site && $assignee && $site->organization_id !== $assignee->organization_id) {
+            throw new RuntimeException('Cannot assign a consultation request to a user outside its site\'s organization.');
+        }
+    }
 
     /**
      * Handle the ConsultationRequest "updated" event.

@@ -57,16 +57,22 @@ class MicrosoftGraphTransport extends AbstractTransport
                 ],
                 'toRecipients' => [],
                 'replyTo' => [],
+                // F4/CLA-473: the sender NAME used to always be the global
+                // config('mail.from.name'), even when the Mailable's own
+                // From already carried a different one (e.g. a per-site
+                // name — see Modules\Website\Mail\NewConsultationRequestMail)
+                // — only the address respected the Mailable. Both fields
+                // now respect it the same way.
                 'from' => [
                     'emailAddress' => [
                         'address' => $email->getFrom()[0]->getAddress() ?? config('mail.from.address'),
-                        'name' => config('mail.from.name'),
+                        'name' => $email->getFrom()[0]->getName() ?: config('mail.from.name'),
                     ],
                 ],
                 'sender' => [
                     'emailAddress' => [
                         'address' => $email->getFrom()[0]->getAddress() ?? config('mail.from.address'),
-                        'name' => config('mail.from.name'),
+                        'name' => $email->getFrom()[0]->getName() ?: config('mail.from.name'),
                     ],
                 ],
             ],

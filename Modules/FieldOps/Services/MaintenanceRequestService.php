@@ -512,6 +512,7 @@ PROMPT;
         User::query()
             ->where('is_active', true)
             ->whereHas('roles', fn ($query) => $query->whereIn('name', ['admin', 'super_admin']))
+            ->inOrganization()
             ->each(fn (User $user) => $user->notify(new ClientRequestNotification($request, $event)));
     }
 }
