@@ -20,7 +20,7 @@
 - [ ] **Backup de archivos de media** (`storage/app/public` y `storage/app/private` de `/srv/www/claesen/shared`): `website:migrate-media-to-private-disk` mueve 109 originales.
 - [ ] **Avisar a los admins** que, si entran con email + contraseña, en el primer acceso se les va a pedir configurar MFA; con "Sign in with Microsoft" no.
 - [ ] **Confirmar en Entra ID** que Conditional Access o Security Defaults exigen MFA a las cuentas de `claesen-verlichting.be` y `electrobertels.be` (la exención de S2c se apoya en eso). *Parcial 2026-10-26:* log de una cuenta admin con "Multifactor authentication", políticas "Per-user MFA, Security Defaults" (L23). Falta: per-user MFA *Enabled/Enforced* en el resto de los admins del backoffice y confirmar que el log es de la app del backoffice.
-- [ ] **Mail de producción funcionando** (el código MFA por mail sale por el mailer por defecto). Si no se puede confirmar, los admins con contraseña deben elegir la app autenticadora.
+- [x] **Mail de producción funcionando** (el código MFA por mail sale por el mailer por defecto, a través de la cola). *Confirmado por el usuario 2026-10-26* (sin comprobación técnica del worker de la cola ni de `failed_jobs`). Si algún admin con contraseña no recibe el código, que elija la app autenticadora.
 - [ ] Confirmar en `shared/.env` (sin mostrar valores): `KNX_ENABLED` y `ORGANIZATIONS_ENFORCE` **no** están definidos o están en `false`; `WEBSITE_RETENTION_ENABLED` no está en `true`. Confirmado el 2026-10-25 para los dos primeros (L13).
 - [ ] Ventana de deploy fuera del horario de uso (el deploy entra en modo mantenimiento).
 

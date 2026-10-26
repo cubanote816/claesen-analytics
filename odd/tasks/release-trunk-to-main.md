@@ -75,3 +75,5 @@ Merging to `main` deploys to `prod-priv-01` (`.github/workflows/deploy.yml`, pus
 
 **L23 — 2026-10-26, Entra MFA evidence (user-supplied sign-in log, one account):** sign-in of "Orelvys Cuellar (Claesen Outdoor Lighting)" at 2026-10-26T12:32:07Z, Request ID `68616d28-da7c-4bfb-92be-c95f42d10e00`: Authentication requirement "Multifactor authentication", Status Success, "MFA requirement satisfied by claim in the token" (previously satisfied in the same Microsoft session), authentication policies applied "Per-user MFA, Security Defaults". This confirms the S2c assumption for that account. Still open: (a) the other backoffice admins have per-user MFA Enabled/Enforced (Security Defaults alone prompts regular users only "when necessary"); (b) the log's Application field is the backoffice app registration (not shown in the pasted excerpt).
 
+**L24 — 2026-10-26, user (verbatim):** "el mail de produccion trabaja. no recuerdo lo de claude en el servidor" — production mail recorded as user-confirmed; the server-side checks (MAIL_MAILER, queue worker running, mail failures in failed_jobs, one test mail) were not run.
+
