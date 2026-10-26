@@ -77,3 +77,7 @@ Merging to `main` deploys to `prod-priv-01` (`.github/workflows/deploy.yml`, pus
 
 **L24 — 2026-10-26, user (verbatim):** "el mail de produccion trabaja. no recuerdo lo de claude en el servidor" — production mail recorded as user-confirmed; the server-side checks (MAIL_MAILER, queue worker running, mail failures in failed_jobs, one test mail) were not run.
 
+**L25 — 2026-10-26, user (verbatim):** "ya estamos listo para el marge. puedes proceder"
+
+**L26 — 2026-10-26, S4 merge + deploy evidence (parent):** CI run `40324924192` on `8c65ab1` green (PHPUnit + Static checks). PR #29 marked ready and merged with a merge commit, guarded by `--match-head-commit 8c65ab117beb07645b6b3ba1402d55c7700a9e5e` → merge commit `c65d92b` on `main`. Deploy run `40326562993`: step Deploy **success** — all 10 `deploy.sh` steps logged, `[ 0/10]` "Backup OK", `[ 2/10]` cloned into `/srv/www/claesen/releases/20261026135740`, `[ 6/10]` "Running migrations" with exactly 56 `DONE` and no FAIL/SQLSTATE, `[ 10/10]` maintenance mode left; step "Verify deployment" failure with `curl` exit 7 (the known false negative). Pending: the manual post-deploy commands and verification on the server (checklist "Inmediatamente después" / "Verificación").
+
