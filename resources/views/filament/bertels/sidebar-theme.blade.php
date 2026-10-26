@@ -4,6 +4,10 @@
     Registered on PanelsRenderHook::HEAD_END by BertelsPanelProvider only — the Claesen admin
     panel never receives this <style>, which is what keeps its sidebar untouched.
 
+    Every selector (and the --bsb-* properties) is scoped to `body.fi-panel-bertels`: both panels
+    run in SPA mode and Livewire's navigate merges <head>, so an unscoped rule would survive a
+    panel switch and restyle the other panel.
+
     Plain <style>, never Tailwind utilities: the bertels panel has no ->viteTheme(), so utilities
     used only by a view are never generated here (CLAUDE.md rule 11). It restyles Filament's own
     sidebar markup (groups, items, badges, active state) rather than replacing it, so the
@@ -16,7 +20,7 @@
     #3a3a3d 9.1:1.
 --}}
 <style id="bertels-sidebar-theme">
-    :root {
+    body.fi-panel-bertels {
         --bsb-bg: #262628;
         --bsb-text: #e8e6e3;
         --bsb-muted: #9a9893;
@@ -26,8 +30,8 @@
         --bsb-badge-bg: #3a3a3d;
     }
 
-    /* Surface. The extra `html` raises specificity over Filament's `.dark` variants. */
-    html .fi-sidebar {
+    /* Surface. The body class scopes every rule to this panel and keeps specificity above Filament's `.dark` variants. */
+    body.fi-panel-bertels .fi-sidebar {
         background-color: var(--bsb-bg);
         color: var(--bsb-text);
         font-weight: 600;
@@ -36,38 +40,38 @@
         box-shadow: none;
     }
 
-    html .fi-sidebar-header {
+    body.fi-panel-bertels .fi-sidebar-header {
         background-color: var(--bsb-bg);
         box-shadow: none;
     }
 
-    html .fi-sidebar-close-overlay {
+    body.fi-panel-bertels .fi-sidebar-close-overlay {
         background-color: rgba(0, 0, 0, 0.6);
     }
 
-    html .fi-sidebar-nav {
+    body.fi-panel-bertels .fi-sidebar-nav {
         padding: 22px 10px;
         row-gap: 14px;
     }
 
-    html .fi-sidebar-nav-groups {
+    body.fi-panel-bertels .fi-sidebar-nav-groups {
         margin-inline: 0;
         row-gap: 14px;
     }
 
-    html .fi-sidebar-group-items {
+    body.fi-panel-bertels .fi-sidebar-group-items {
         row-gap: 2px;
     }
 
     /* Group header: muted 10px/500 label + the chevron-up Filament already renders (it rotates when collapsed). */
-    html .fi-sidebar-group-btn {
+    body.fi-panel-bertels .fi-sidebar-group-btn {
         padding: 4px 5px;
         column-gap: 0;
         justify-content: space-between;
         user-select: none;
     }
 
-    html .fi-sidebar-group-label {
+    body.fi-panel-bertels .fi-sidebar-group-label {
         flex: 1;
         font-size: 10px;
         font-weight: 500;
@@ -75,32 +79,32 @@
         color: var(--bsb-muted);
     }
 
-    html .fi-sidebar-group-collapse-btn {
+    body.fi-panel-bertels .fi-sidebar-group-collapse-btn {
         width: 18px;
         height: 18px;
         color: var(--bsb-muted);
     }
 
-    html .fi-sidebar-group-collapse-btn .fi-icon {
+    body.fi-panel-bertels .fi-sidebar-group-collapse-btn .fi-icon {
         width: 11px;
         height: 11px;
         color: var(--bsb-muted);
     }
 
     /* Item: compact row, muted 13px icon, 5px radius. */
-    html .fi-sidebar-item-btn {
+    body.fi-panel-bertels .fi-sidebar-item-btn {
         column-gap: 9px;
         padding: 6px 7px;
         border-radius: 5px;
         color: inherit;
     }
 
-    html .fi-sidebar-item-btn:hover,
-    html .fi-sidebar-item-btn:focus-visible {
+    body.fi-panel-bertels .fi-sidebar-item-btn:hover,
+    body.fi-panel-bertels .fi-sidebar-item-btn:focus-visible {
         background-color: var(--bsb-hover);
     }
 
-    html .fi-sidebar-item-label {
+    body.fi-panel-bertels .fi-sidebar-item-label {
         flex: 1;
         font-size: 11px;
         font-weight: 600;
@@ -108,8 +112,8 @@
         color: var(--bsb-text);
     }
 
-    html .fi-sidebar-item-icon,
-    html .fi-sidebar-item-btn > .fi-icon {
+    body.fi-panel-bertels .fi-sidebar-item-icon,
+    body.fi-panel-bertels .fi-sidebar-item-btn > .fi-icon {
         width: 13px;
         height: 13px;
         flex: none;
@@ -117,24 +121,24 @@
     }
 
     /* Active item: orange label + icon on a slightly lighter row. */
-    html .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    body.fi-panel-bertels .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
         background-color: var(--bsb-active-bg);
     }
 
-    html .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-label,
-    html .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-icon,
-    html .fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-icon {
+    body.fi-panel-bertels .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-label,
+    body.fi-panel-bertels .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-icon,
+    body.fi-panel-bertels .fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-icon {
         color: var(--bsb-accent);
     }
 
     /* Pending-count badge: small grey chip, whatever colour the page asked for (warning / danger).
        The container's own 1.5 line-height would make badged rows taller than plain ones. */
-    html .fi-sidebar-item-badge-ctn {
+    body.fi-panel-bertels .fi-sidebar-item-badge-ctn {
         display: flex;
         line-height: 1;
     }
 
-    html .fi-sidebar-item-btn .fi-badge {
+    body.fi-panel-bertels .fi-sidebar-item-btn .fi-badge {
         min-width: 0;
         padding: 1px 5px;
         border-radius: 3px;
@@ -147,21 +151,21 @@
         box-shadow: none;
     }
 
-    html .fi-sidebar-item-btn .fi-badge .fi-badge-label {
+    body.fi-panel-bertels .fi-sidebar-item-btn .fi-badge .fi-badge-label {
         font-size: 8px;
         color: var(--bsb-text);
     }
 
     /* Keyboard focus stays visible on the dark surface. */
-    html .fi-sidebar :focus-visible {
+    body.fi-panel-bertels .fi-sidebar :focus-visible {
         outline: 2px solid var(--bsb-accent);
         outline-offset: 1px;
     }
 
     /* Drawer (below lg): same look, but touch-sized rows. */
     @media (max-width: 63.99rem) {
-        html .fi-sidebar-item-btn,
-        html .fi-sidebar-group-btn {
+        body.fi-panel-bertels .fi-sidebar-item-btn,
+        body.fi-panel-bertels .fi-sidebar-group-btn {
             min-height: 40px;
             align-items: center;
         }

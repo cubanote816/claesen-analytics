@@ -353,6 +353,9 @@ HTML
                 Authenticate::class,
             ])
             ->spa()
+            // The audited panel switch is a redirect into the other panel. As a Livewire navigate the
+            // old <head> is merged, not replaced, so the other panel's theme CSS leaks across.
+            ->spaUrlExceptions(['*/switch-panel/*'])
             ->defaultThemeMode(\Filament\Enums\ThemeMode::Dark)
             ->navigationItems([
                 NavigationItem::make(fn () => __('website.v1_demo_link'))
