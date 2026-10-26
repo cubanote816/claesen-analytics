@@ -109,6 +109,50 @@ final class BertelsSidebarTest extends TestCase
     }
 
     /**
+     * Every class sidebar-theme.blade.php styles must exist in Filament's rendered sidebar, and every
+     * item must carry its label text: the app overrides Filament's sidebar item view, and after the
+     * 5.10 upgrade that override rendered empty labels (Filament passes `label`, not the slot) while
+     * every colour and contrast check still passed.
+     */
+    public function test_the_bertels_sidebar_markup_has_every_class_the_theme_targets_and_visible_labels(): void
+    {
+        $html = $this->actingAs($this->superAdmin())
+            ->get('/bertels/website/settings-general')
+            ->assertSuccessful()
+            ->getContent();
+
+        foreach ([
+            'fi-sidebar', 'fi-sidebar-header', 'fi-sidebar-nav', 'fi-sidebar-nav-groups', 'fi-sidebar-group-items',
+            'fi-sidebar-group-btn', 'fi-sidebar-group-label', 'fi-sidebar-group-collapse-btn', 'fi-sidebar-item-btn',
+            'fi-sidebar-item-label', 'fi-sidebar-item-icon', 'fi-sidebar-item fi-active',
+        ] as $class) {
+            $this->assertStringContainsString($class, $html, "The theme targets .{$class}, but Filament no longer renders it.");
+        }
+
+        $this->assertSidebarItemLabelsAreRendered($html);
+    }
+
+    public function test_the_claesen_admin_sidebar_items_render_their_label_text(): void
+    {
+        $html = $this->actingAs($this->superAdmin())->get('/')->assertSuccessful()->getContent();
+
+        $this->assertSidebarItemLabelsAreRendered($html);
+    }
+
+    private function assertSidebarItemLabelsAreRendered(string $html): void
+    {
+        $count = preg_match_all('/<span\b[^>]*\bclass="fi-sidebar-item-label"[^>]*>(.*?)<\/span>/s', $html, $matches);
+
+        $this->assertGreaterThan(0, $count, 'The sidebar renders no item labels at all.');
+
+        foreach ($matches[1] as $inner) {
+            $text = trim(html_entity_decode(strip_tags((string) preg_replace('/<!--.*?-->/s', '', $inner))));
+
+            $this->assertNotSame('', $text, 'A sidebar item renders an empty label: ' . trim($inner));
+        }
+    }
+
+    /**
      * The cluster publishes flat items on the bertels panel (one per page, each in its own group,
      * "Website" first in Content) and keeps the nested shape everywhere else.
      */

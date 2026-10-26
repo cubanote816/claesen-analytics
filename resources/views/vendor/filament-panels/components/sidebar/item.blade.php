@@ -16,6 +16,15 @@
        icono, para no tener las dos cosas a la vez.
 
     Contexto completo: `odd/tasks/publish-to-live-website.md`, slice S1.
+
+    Base: Filament 5.10.3. Esta copia salió de 5.7 y quedó desfasada: desde 5.10 Filament pasa el
+    texto como prop `label` (`:label="$item->getLabel()"`), no como slot. Sin declarar `label` en
+    `@props`, el valor caía en `$attributes` (`<li label="…">`) y el `<span
+    class="fi-sidebar-item-label">` salía **vacío** en los dos paneles. Se re-basó sobre la vista
+    5.10: `label` en `@props`, `$tooltip`/`$labelText`, `{{ $label ?? $slot }}`, el `x-on:click` con
+    `$store.sidebar.isMobile`, el tooltip `filamentSidebarTooltip`, y `:label` (no slot) en la
+    recursión. Al actualizar Filament, volver a comparar con la vista del vendor; hay un test que
+    falla si algún ítem sale sin texto.
 --}}
 
 @props([
@@ -29,6 +38,7 @@
     'first' => false,
     'grouped' => false,
     'icon' => null,
+    'label' => null,
     'last' => false,
     'shouldOpenUrlInNewTab' => false,
     'sidebarCollapsible' => true,
@@ -38,7 +48,11 @@
 ])
 
 @php
+    use Illuminate\Contracts\Support\Htmlable;
+
     $sidebarCollapsible = $sidebarCollapsible && filament()->isSidebarCollapsibleOnDesktop();
+    $tooltip = $label ?? $slot;
+    $labelText = ($tooltip instanceof Htmlable) ? trim(html_entity_decode(strip_tags($tooltip->toHtml()), ENT_QUOTES | ENT_HTML5, 'UTF-8')) : $tooltip;
 @endphp
 
 <li
@@ -56,20 +70,16 @@
         @if ($active)
             aria-current="page"
         @endif
-        x-on:click="window.matchMedia(`(max-width: 1024px)`).matches && $store.sidebar.close()"
+        x-on:click="$store.sidebar.isMobile && $store.sidebar.close()"
         @if ($sidebarCollapsible && (! $subNavigation))
-            x-bind:aria-label="$store.sidebar.isOpen ? null : @js(trim(strip_tags($slot->toHtml())))"
-            x-data="{ tooltip: false }"
-            x-effect="
-                tooltip = $store.sidebar.isOpen
-                    ? false
-                    : {
-                          content: @js($slot->toHtml()),
-                          placement: document.dir === 'rtl' ? 'left' : 'right',
-                          theme: $store.theme,
-                      }
+            x-bind:aria-label="$store.sidebar.isOpen ? null : @js($labelText)"
+            x-data="filamentSidebarTooltip"
+            x-tooltip="
+                getTooltip({
+                    content: @js(($tooltip instanceof Htmlable) ? $tooltip->toHtml() : $tooltip),
+                    allowHTML: @js($tooltip instanceof Htmlable),
+                })
             "
-            x-tooltip.html="tooltip"
         @endif
         class="fi-sidebar-item-btn"
     >
@@ -127,7 +137,7 @@
             @endif
             class="fi-sidebar-item-label"
         >
-            {{ $slot }}
+            {{ $label ?? $slot }}
         </span>
 
         @if (filled($badge))
@@ -187,15 +197,14 @@
                     :first="$loop->first"
                     grouped
                     :icon="$childItemIcon"
+                    :label="$childItem->getLabel()"
                     :last="$loop->last"
                     :should-open-url-in-new-tab="$shouldChildItemOpenUrlInNewTab"
                     sub-grouped
                     :sub-navigation="$subNavigation"
                     :url="$childItemUrl"
                     :attributes="\Filament\Support\prepare_inherited_attributes($childItemExtraAttributes)"
-                >
-                    {{ $childItem->getLabel() }}
-                </x-filament-panels::sidebar.item>
+                />
             @endforeach
         </ul>
     @endif
