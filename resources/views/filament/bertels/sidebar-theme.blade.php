@@ -2,24 +2,7 @@
     Bertels panel sidebar (design source of truth: odd/tasks/bertels-sidebar.reference.html).
 
     Registered on PanelsRenderHook::HEAD_END by BertelsPanelProvider only — the Claesen admin
-    panel never receives this <style>, which is what keeps its sidebar untouched.
-
-    Every selector (and the --bsb-* properties) is scoped to `body.fi-panel-bertels`: both panels
-    run in SPA mode and Livewire's navigate merges <head>, so an unscoped rule would survive a
-    panel switch and restyle the other panel.
-
-    Plain <style>, never Tailwind utilities: the bertels panel has no ->viteTheme(), so utilities
-    used only by a view are never generated here (CLAUDE.md rule 11). It restyles Filament's own
-    sidebar markup (groups, items, badges, active state) rather than replacing it, so the
-    collapsible groups, the active state and the mobile drawer keep working natively.
-
-    The sidebar is dark in BOTH colour modes, like the reference: it is a fixed brand surface, not
-    part of the page theme, so none of the rules below has a `.dark` variant. The width (180px)
-    comes from ->sidebarWidth() on the panel. Contrast (WCAG): text #e8e6e3 on #262628 12.1:1,
-    group label / icon #9a9893 on #262628 5.2:1, active #f07a2a on #333336 4.5:1, badge #e8e6e3 on
-    #3a3a3d 9.1:1.
---}}
-<style id="bertels-sidebar-theme">
+    panel never receives this <style id="bertels-sidebar-theme">
     body.fi-panel-bertels {
         --bsb-bg: #262628;
         --bsb-text: #e8e6e3;
@@ -34,10 +17,13 @@
     body.fi-panel-bertels .fi-sidebar {
         background-color: var(--bsb-bg);
         color: var(--bsb-text);
-        font-weight: 600;
-        font-size: 11px;
         --tw-ring-color: transparent;
         box-shadow: none;
+    }
+
+    /* The Claesen theme draws a 1px divider on the dark sidebar; mirror it (in a palette colour) so the content box is the same width. */
+    body.fi-panel-bertels:where(.dark *) .fi-sidebar {
+        border-right: 1px solid var(--bsb-hover);
     }
 
     body.fi-panel-bertels .fi-sidebar-header {
@@ -49,53 +35,19 @@
         background-color: rgba(0, 0, 0, 0.6);
     }
 
-    body.fi-panel-bertels .fi-sidebar-nav {
-        padding: 22px 10px;
-        row-gap: 14px;
-    }
-
-    body.fi-panel-bertels .fi-sidebar-nav-groups {
-        margin-inline: 0;
-        row-gap: 14px;
-    }
-
-    body.fi-panel-bertels .fi-sidebar-group-items {
-        row-gap: 2px;
-    }
-
-    /* Group header: muted 10px/500 label + the chevron-up Filament already renders (it rotates when collapsed). */
+    /* Group header: muted label + the chevron Filament already renders (it rotates when collapsed). */
     body.fi-panel-bertels .fi-sidebar-group-btn {
-        padding: 4px 5px;
-        column-gap: 0;
-        justify-content: space-between;
         user-select: none;
     }
 
-    body.fi-panel-bertels .fi-sidebar-group-label {
-        flex: 1;
-        font-size: 10px;
-        font-weight: 500;
-        line-height: 1.4;
-        color: var(--bsb-muted);
-    }
-
-    body.fi-panel-bertels .fi-sidebar-group-collapse-btn {
-        width: 18px;
-        height: 18px;
-        color: var(--bsb-muted);
-    }
-
+    body.fi-panel-bertels .fi-sidebar-group-label,
+    body.fi-panel-bertels .fi-sidebar-group-collapse-btn,
     body.fi-panel-bertels .fi-sidebar-group-collapse-btn .fi-icon {
-        width: 11px;
-        height: 11px;
         color: var(--bsb-muted);
     }
 
-    /* Item: compact row, muted 13px icon, 5px radius. */
+    /* Item: light label, muted icon. */
     body.fi-panel-bertels .fi-sidebar-item-btn {
-        column-gap: 9px;
-        padding: 6px 7px;
-        border-radius: 5px;
         color: inherit;
     }
 
@@ -105,18 +57,11 @@
     }
 
     body.fi-panel-bertels .fi-sidebar-item-label {
-        flex: 1;
-        font-size: 11px;
-        font-weight: 600;
-        line-height: 1.3;
         color: var(--bsb-text);
     }
 
     body.fi-panel-bertels .fi-sidebar-item-icon,
     body.fi-panel-bertels .fi-sidebar-item-btn > .fi-icon {
-        width: 13px;
-        height: 13px;
-        flex: none;
         color: var(--bsb-muted);
     }
 
@@ -131,20 +76,8 @@
         color: var(--bsb-accent);
     }
 
-    /* Pending-count badge: small grey chip, whatever colour the page asked for (warning / danger).
-       The container's own 1.5 line-height would make badged rows taller than plain ones. */
-    body.fi-panel-bertels .fi-sidebar-item-badge-ctn {
-        display: flex;
-        line-height: 1;
-    }
-
+    /* Pending-count badge: grey chip, whatever colour the page asked for (warning / danger). */
     body.fi-panel-bertels .fi-sidebar-item-btn .fi-badge {
-        min-width: 0;
-        padding: 1px 5px;
-        border-radius: 3px;
-        font-size: 8px;
-        font-weight: 600;
-        line-height: 1.4;
         background-color: var(--bsb-badge-bg);
         color: var(--bsb-text);
         --tw-ring-shadow: 0 0 #0000;
@@ -152,7 +85,6 @@
     }
 
     body.fi-panel-bertels .fi-sidebar-item-btn .fi-badge .fi-badge-label {
-        font-size: 8px;
         color: var(--bsb-text);
     }
 
@@ -160,14 +92,5 @@
     body.fi-panel-bertels .fi-sidebar :focus-visible {
         outline: 2px solid var(--bsb-accent);
         outline-offset: 1px;
-    }
-
-    /* Drawer (below lg): same look, but touch-sized rows. */
-    @media (max-width: 63.99rem) {
-        body.fi-panel-bertels .fi-sidebar-item-btn,
-        body.fi-panel-bertels .fi-sidebar-group-btn {
-            min-height: 40px;
-            align-items: center;
-        }
     }
 </style>

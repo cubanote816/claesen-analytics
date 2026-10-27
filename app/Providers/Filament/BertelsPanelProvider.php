@@ -87,6 +87,7 @@ class BertelsPanelProvider extends PanelProvider
             // equivalent among the assets handed over for this spike, so light mode
             // uses the square icon-only mark instead (472x452, same file as the
             // favicon) rather than stretching a badly-fitted asset.
+            ->font('Outfit')
             ->brandName('Electro Bertels')
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
@@ -94,12 +95,13 @@ class BertelsPanelProvider extends PanelProvider
             )
             ->brandLogo(asset('img/bertels-favicon.jpg'))
             ->darkModeBrandLogo(asset('img/bertels-brand-logo-dark.png'))
-            ->brandLogoHeight('2.5rem')
-            // Sidebar redesign (odd/tasks/bertels-sidebar.reference.html): 180px wide, four
-            // collapsible groups in the prototype's order. The look lives in one plain <style>
-            // (this panel has no Vite theme, so Tailwind utilities are not available here — see
-            // DESIGN.md) registered on this panel only, so the Claesen admin sidebar is untouched.
-            ->sidebarWidth('11.25rem')
+            ->brandLogoHeight('3rem')
+            // Sidebar redesign (odd/tasks/bertels-sidebar.reference.html): four collapsible groups
+            // in the prototype's order. Only the COLOURS are Bertels' own: they live in one plain
+            // <style> (this panel has no Vite theme, so Tailwind utilities are not available here —
+            // see DESIGN.md) registered on this panel only. Dimensions and typography are the
+            // shared panel layout (same sidebar width, font and logo height as `admin`, which keeps
+            // Filament's default 20rem width), so switching panels causes no visual jump.
             ->navigationGroups(WebsiteNavigationGroups::navigationGroups())
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
