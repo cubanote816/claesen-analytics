@@ -52,7 +52,8 @@ En `/srv/www/claesen/current`, como el usuario que corre la app:
 ## Rollback
 
 - **Antes de dar de alta a Bertels:** volver al release anterior (symlink `current` al release previo + `reload php8.4-fpm`) y `php artisan migrate:rollback --step=56 --force` (ensayado: vuelve limpio a 183). Ojo: `remap_consultation_request_statuses_to_lead_workflow` pierde `cancelled` al volver, y los datos escritos después del deploy en tablas o columnas nuevas se pierden.
-- **Después de dar de alta a Bertels:** `migrate:rollback` **falla** a mitad (`create_organizations_and_sites_tables.php:60`) y deja el esquema a medio volver. El rollback es **restaurar el backup previo al deploy**.
+- **Bertels quedó dado de alta el 2026-10-27** (organización id 2, sitio id 2). Desde ahí rige lo siguiente.
+- **Después de dar de alta a Bertels:** `migrate:rollback` **falla** a mitad (`create_organizations_and_sites_tables.php:60`) y deja el esquema a medio volver. El rollback es **restaurar el backup previo al deploy** (o el previo al alta: `/opt/claesen/backups/prod-db-pre-bertels-20261027T144502Z.sql.gz`).
 
 ## Fuera de este release (pendiente)
 
