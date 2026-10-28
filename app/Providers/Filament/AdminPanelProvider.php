@@ -256,6 +256,8 @@ HTML
                 NavigationGroup::make('User Management')
                     ->label(fn () => __('navigation.groups.user_management'))
                     ->icon('heroicon-o-cog-6-tooth'),
+                \App\Filament\Guides\Ets6ProjectArchiveGuide::panelNavigationGroup()
+                    ->icon('heroicon-o-book-open'),
             ])
             ->colors([
                 'primary' => Color::hex('#00aeef'), // Claesen Cyan
@@ -316,6 +318,8 @@ HTML
             })
             ->pages([
                 Dashboard::class,
+                // Guides & Procedures: shared with the bertels panel, so registered explicitly.
+                \App\Filament\Guides\Ets6ProjectArchiveGuide::class,
             ])
             ->widgets([
                 // Default widgets removed to clean up the dashboard

@@ -11,6 +11,7 @@ return [
         'safety_vca' => 'Safety & VCA',
         'mailing' => 'Mailing',
         'field_operations' => 'Field Operations',
+        'guides_procedures' => 'Guides & Procedures',
     ],
     'knx' => 'KNX',
     'switch_to_bertels' => 'Switch to Electro Bertels',

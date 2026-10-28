@@ -2,7 +2,7 @@ panel_id=admin
 panel_path=<root>
 panel_is_default=yes
 spa_mode=yes
-navigation_groups=Workforce & Performance,Growth & Acquisition,Mailing,Safety & VCA,Content & Website,Intelligence Hub,Field Operations,User Management
+navigation_groups=Workforce & Performance,Growth & Acquisition,Mailing,Safety & VCA,Content & Website,Intelligence Hub,Field Operations,User Management,Guides & Procedures
 resource App\Filament\Clusters\Website\Resources\AnnouncementResource | model=Modules\Website\Models\Announcement | slug=announcements | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\ConsultationRequestResource | model=Modules\Website\Models\ConsultationRequest | slug=consultation-requests | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\MediaSlotResource | model=Modules\Website\Models\MediaSlot | slug=media-slots | navigation=yes | record_title=- | globally_searchable=no
@@ -50,6 +50,7 @@ page App\Filament\Clusters\Website\Pages\PublicationHistoryPage
 page App\Filament\Clusters\Website\Pages\SocialLinksSettingsPage
 page App\Filament\Clusters\Website\Pages\TranslationReviewPage
 page App\Filament\Clusters\Website\WebsiteCluster
+page App\Filament\Guides\Ets6ProjectArchiveGuide
 page Filament\Pages\Dashboard
 page Modules\Core\Filament\Pages\AccessAnalyticsPage
 page Modules\Employee\Filament\Pages\EmployeeDayStats

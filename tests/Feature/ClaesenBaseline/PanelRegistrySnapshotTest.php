@@ -82,6 +82,9 @@ final class PanelRegistrySnapshotTest extends TestCase
         //
         // WU-S2 (2026-10-07): the single site-settings page became six, one per section of
         // the approved prototype. It is a declared change of the same surface, not a new one.
+        //
+        // Guides & Procedures (2026-10-28): the internal ETS6 Project Archive guide, shared with
+        // the admin panel and gated to super_admin (Ets6ProjectArchiveGuide::canAccess()).
         $panel = Filament::getPanel('bertels');
 
         $this->assertSame('bertels', $panel->getId());
@@ -99,6 +102,7 @@ final class PanelRegistrySnapshotTest extends TestCase
         $this->assertSame(
             $this->sorted([
                 Dashboard::class,
+                \App\Filament\Guides\Ets6ProjectArchiveGuide::class,
                 \App\Filament\Clusters\Website\Pages\AddressSettingsPage::class,
                 \App\Filament\Clusters\Website\Pages\ContactSettingsPage::class,
                 \App\Filament\Clusters\Website\Pages\GeneralSettingsPage::class,

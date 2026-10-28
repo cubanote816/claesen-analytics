@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
+use App\Filament\Guides\Ets6ProjectArchiveGuide;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Modules\Core\Filament\Auth\EmailAuthenticationWithBrand;
 use Filament\Http\Middleware\Authenticate;
@@ -102,7 +103,10 @@ class BertelsPanelProvider extends PanelProvider
             // see DESIGN.md) registered on this panel only. Dimensions and typography are the
             // shared panel layout (same sidebar width, font and logo height as `admin`, which keeps
             // Filament's default 20rem width), so switching panels causes no visual jump.
-            ->navigationGroups(WebsiteNavigationGroups::navigationGroups())
+            ->navigationGroups([
+                ...WebsiteNavigationGroups::navigationGroups(),
+                Ets6ProjectArchiveGuide::panelNavigationGroup(),
+            ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): string => view('filament.bertels.sidebar-theme')->render(),
@@ -121,6 +125,8 @@ class BertelsPanelProvider extends PanelProvider
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
             ->pages([
                 Dashboard::class,
+                // Guides & Procedures: same page as the admin panel, in the Bertels skin.
+                Ets6ProjectArchiveGuide::class,
             ])
             ->widgets([])
             // F1/P4+P6 (CLA-460 cont.): the same audited switch back to
