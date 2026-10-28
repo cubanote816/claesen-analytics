@@ -593,5 +593,5 @@ Eliminar o marcar como resuelto cuando:
 
 - **What:** `KnxDemoSeeder::at()` stamps fixtures "today at HH:MM" and moves a still-future hour one day back. Results that sort by time therefore depend on when the suite runs: `KnxConflictsTest` swapped its two critical conflicts (09:42 vs 08:15) when CI ran at 08:21 Europe/Brussels (run `40648706385`).
 - **Fixed:** `KnxConflictsTest` now pins the clock to `2026-06-15 12:00 Europe/Brussels` before seeding (RED reproduced by pinning to the CI instant).
-- **Still exposed:** 18 other `Modules/Knx/tests/Feature/*` files seed `KnxDemoSeeder` without pinning the clock; none failed so far. Fix when KNX work resumes: pin the clock in a shared base/trait, or make the seeder take an anchor time.
+- **Fixed for all (2026-10-28):** the next CI run failed `KnxFieldInboxTest` for the same reason (run `40650339031`), so every KNX test that seeds `KnxDemoSeeder` now uses `Modules\Knx\Tests\Concerns\PinsKnxDemoClock` (clock pinned to 2026-06-15 12:00 Brussels before seeding). Exception: `KnxFieldIdempotencyRaceTest` (separate DB connection for the race; never failed). Long-term option: make the seeder take an anchor time instead of reading `now()`.
 

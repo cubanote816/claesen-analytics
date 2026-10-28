@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Tests\Feature;
 
+use Modules\Knx\Tests\Concerns\PinsKnxDemoClock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Modules\Core\Models\Organization;
@@ -25,6 +26,7 @@ use Tests\TestCase;
  */
 final class KnxFieldIssueTest extends TestCase
 {
+    use PinsKnxDemoClock;
     use RefreshDatabase;
 
     /** Taken in the fixture: a device sits at this address in C1618. */

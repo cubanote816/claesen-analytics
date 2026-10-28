@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Tests\Feature;
 
+use Modules\Knx\Tests\Concerns\PinsKnxDemoClock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
@@ -22,6 +23,7 @@ use Tests\TestCase;
  */
 final class KnxConflictsTest extends TestCase
 {
+    use PinsKnxDemoClock;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -33,11 +35,6 @@ final class KnxConflictsTest extends TestCase
         // demo seed replaces the tenant's rows.
         Organization::factory()->create(['slug' => 'electro-bertels']);
 
-        // Pin the clock: the demo seed stamps conflicts "today at HH:MM" and moves a
-        // still-future hour a day back (KnxDemoSeeder::at()), so between 08:15 and 09:42
-        // the two critical conflicts swapped order and the list assertion failed.
-        // Midday on a non-DST-change date keeps every fixture hour in the past.
-        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-06-15 12:00:00', 'Europe/Brussels'));
         $this->seed(KnxDemoSeeder::class);
 
         $this->actingAs(

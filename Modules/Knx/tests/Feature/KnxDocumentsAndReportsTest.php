@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Tests\Feature;
 
+use Modules\Knx\Tests\Concerns\PinsKnxDemoClock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Modules\Core\Models\Organization;
@@ -26,6 +27,7 @@ use Tests\TestCase;
  */
 final class KnxDocumentsAndReportsTest extends TestCase
 {
+    use PinsKnxDemoClock;
     use RefreshDatabase;
 
     protected function setUp(): void
