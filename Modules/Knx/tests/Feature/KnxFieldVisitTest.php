@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Tests\Feature;
 
+use Modules\Knx\Tests\Concerns\PinsKnxDemoClock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
@@ -33,6 +34,7 @@ use Tests\TestCase;
  */
 final class KnxFieldVisitTest extends TestCase
 {
+    use PinsKnxDemoClock;
     use RefreshDatabase;
 
     private const CLIENT_ID = 'feed0000-1111-4222-8333-444455556666';

@@ -82,13 +82,91 @@ final class BertelsSidebarTest extends TestCase
         $response->assertDontSee('fi-sidebar-sub-group-items', escape: false);
     }
 
-    public function test_the_bertels_sidebar_style_hook_and_width_are_present(): void
+    public function test_the_bertels_sidebar_style_hook_is_present_and_the_width_is_the_admin_width(): void
     {
         $this->actingAs($this->superAdmin())
             ->get('/bertels')
             ->assertSuccessful()
             ->assertSee('<style id="bertels-sidebar-theme">', escape: false)
-            ->assertSee('--sidebar-width: 11.25rem', escape: false);
+            ->assertSee('--sidebar-width: 20rem', escape: false)
+            ->assertDontSee('--sidebar-width: 11.25rem', escape: false);
+    }
+
+    /**
+     * Only the colours are Bertels' own. Switching panels must not change a single dimension, so the
+     * layout settings are read from both panels and compared instead of being restated here.
+     */
+    public function test_the_bertels_panel_shares_the_admin_panel_layout_settings(): void
+    {
+        $admin = Filament::getPanel('admin');
+        $bertels = Filament::getPanel('bertels');
+
+        $this->assertSame($admin->getSidebarWidth(), $bertels->getSidebarWidth());
+        $this->assertSame($admin->getFontFamily(), $bertels->getFontFamily());
+        $this->assertSame($admin->getFontProvider(), $bertels->getFontProvider());
+        $this->assertSame($admin->getFontUrl(), $bertels->getFontUrl());
+        $this->assertSame($admin->getBrandLogoHeight(), $bertels->getBrandLogoHeight());
+        $this->assertSame('Outfit', $bertels->getFontFamily());
+    }
+
+    /**
+     * Regression: an unterminated Blade comment in the theme view printed its raw text as visible
+     * content above the layout, pushing the Bertels topbar/sidebar/content ~48px lower than Claesen.
+     * Nothing but the style block may come out of the hook.
+     */
+    public function test_the_bertels_theme_view_renders_only_its_style_block_and_no_stray_text(): void
+    {
+        $html = view('filament.bertels.sidebar-theme')->render();
+
+        $this->assertStringStartsWith('<style id="bertels-sidebar-theme">', ltrim($html));
+        $this->assertStringEndsWith('</style>', rtrim($html));
+        $this->assertStringNotContainsString('{{--', $html);
+        $this->assertStringNotContainsString('--}}', $html);
+
+        $page = $this->actingAs($this->superAdmin())->get('/bertels/website/settings-general')->assertSuccessful()->getContent();
+
+        $this->assertStringNotContainsString('{{--', $page);
+        $this->assertStringNotContainsString('Bertels panel sidebar (design source', $page);
+    }
+
+    /**
+     * The shared header override renders `.claesen-page-header-*` on both panels, but only the Claesen Vite
+     * theme styled them. Bertels must carry the same spacing rules (scoped), and Claesen must not get them twice.
+     */
+    public function test_the_bertels_panel_ports_the_claesen_page_header_spacing(): void
+    {
+        $theme = (string) file_get_contents(resource_path('css/filament/admin/theme.css'));
+        $this->assertStringContainsString('.claesen-page-header-breadcrumbs {', $theme);
+        $this->assertSame(1, preg_match('/\.claesen-page-header-breadcrumbs \{\s*display: none;\s*margin-bottom: 0\.75rem;/', $theme));
+
+        $bertels = $this->actingAs($this->superAdmin())->get('/bertels')->assertSuccessful()->getContent();
+        $this->assertSame(1, preg_match('/<style id="bertels-layout-theme">(.*?)<\/style>/s', $bertels, $match));
+        $this->assertMatchesRegularExpression('/body\.fi-panel-bertels \.claesen-page-header-breadcrumbs \{\s*display: none;\s*margin-bottom: 0\.75rem;/', $match[1]);
+        $this->assertMatchesRegularExpression('/@media \(min-width: 640px\) \{\s*body\.fi-panel-bertels \.claesen-page-header-breadcrumbs \{\s*display: block;/', $match[1]);
+        $this->assertDoesNotMatchRegularExpression('/(^|[},])\s*\.claesen-page-header/m', $match[1]);
+    }
+
+    /**
+     * The theme is a colour skin: no size, spacing or typography declaration may survive in it, or
+     * the Bertels sidebar would drift from the Claesen one again.
+     */
+    public function test_the_bertels_theme_does_not_hard_code_dimensions_or_typography(): void
+    {
+        $html = $this->actingAs($this->superAdmin())->get('/bertels')->assertSuccessful()->getContent();
+
+        $this->assertSame(1, preg_match('/<style id="bertels-sidebar-theme">(.*?)<\/style>/s', $html, $match));
+
+        $css = (string) preg_replace('/\/\*.*?\*\//s', '', $match[1]);
+
+        foreach (['180px', '11px', '10px', '8px', '13px', '11.25rem'] as $oldSize) {
+            $this->assertStringNotContainsString($oldSize, $css, "The old Bertels size {$oldSize} is still hard-coded.");
+        }
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/(?<![\w-])(font-size|font-weight|font-family|line-height|letter-spacing|padding[\w-]*|margin[\w-]*|width|height|min-height|min-width|gap|column-gap|row-gap|border-radius)\s*:/',
+            $css,
+            'The Bertels theme must only set colours; dimensions and typography come from the shared panel layout.',
+        );
     }
 
     public function test_the_claesen_admin_sidebar_does_not_get_the_bertels_style_or_flat_items(): void
