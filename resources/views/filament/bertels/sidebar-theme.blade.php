@@ -2,7 +2,27 @@
     Bertels panel sidebar (design source of truth: odd/tasks/bertels-sidebar.reference.html).
 
     Registered on PanelsRenderHook::HEAD_END by BertelsPanelProvider only — the Claesen admin
-    panel never receives this <style id="bertels-sidebar-theme">
+    panel never receives this style block, which is what keeps its sidebar untouched.
+
+    Every selector (and the --bsb-* properties) is scoped to `body.fi-panel-bertels`: both panels
+    run in SPA mode and Livewire's navigate merges <head>, so an unscoped rule would survive a
+    panel switch and restyle the other panel.
+
+    Plain CSS, never Tailwind utilities: the bertels panel has no ->viteTheme(), so utilities
+    used only by a view are never generated here (CLAUDE.md rule 11).
+
+    COLOURS ONLY: every dimension and typography value (sidebar width, item height/padding/gap,
+    label / group / badge sizes, icon size, logo height, font family, page spacing) is Filament's
+    own default, the same one the Claesen admin panel gets, so switching panels causes no visual
+    jump (DESIGN.md). Do not add sizes here; change them on the panel (->sidebarWidth(), ->font(),
+    ->brandLogoHeight()).
+
+    The sidebar is dark in BOTH colour modes, like the reference, so no rule has a `.dark` variant
+    (except the 1px divider that mirrors Claesen's). Contrast (WCAG): text #e8e6e3 on #262628
+    12.1:1, group label / icon #9a9893 on #262628 5.2:1, active #f07a2a on #333336 4.5:1, badge
+    #e8e6e3 on #3a3a3d 9.1:1.
+--}}
+<style id="bertels-sidebar-theme">
     body.fi-panel-bertels {
         --bsb-bg: #262628;
         --bsb-text: #e8e6e3;

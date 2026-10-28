@@ -110,6 +110,43 @@ final class BertelsSidebarTest extends TestCase
     }
 
     /**
+     * Regression: an unterminated Blade comment in the theme view printed its raw text as visible
+     * content above the layout, pushing the Bertels topbar/sidebar/content ~48px lower than Claesen.
+     * Nothing but the style block may come out of the hook.
+     */
+    public function test_the_bertels_theme_view_renders_only_its_style_block_and_no_stray_text(): void
+    {
+        $html = view('filament.bertels.sidebar-theme')->render();
+
+        $this->assertStringStartsWith('<style id="bertels-sidebar-theme">', ltrim($html));
+        $this->assertStringEndsWith('</style>', rtrim($html));
+        $this->assertStringNotContainsString('{{--', $html);
+        $this->assertStringNotContainsString('--}}', $html);
+
+        $page = $this->actingAs($this->superAdmin())->get('/bertels/website/settings-general')->assertSuccessful()->getContent();
+
+        $this->assertStringNotContainsString('{{--', $page);
+        $this->assertStringNotContainsString('Bertels panel sidebar (design source', $page);
+    }
+
+    /**
+     * The shared header override renders `.claesen-page-header-*` on both panels, but only the Claesen Vite
+     * theme styled them. Bertels must carry the same spacing rules (scoped), and Claesen must not get them twice.
+     */
+    public function test_the_bertels_panel_ports_the_claesen_page_header_spacing(): void
+    {
+        $theme = (string) file_get_contents(resource_path('css/filament/admin/theme.css'));
+        $this->assertStringContainsString('.claesen-page-header-breadcrumbs {', $theme);
+        $this->assertSame(1, preg_match('/\.claesen-page-header-breadcrumbs \{\s*display: none;\s*margin-bottom: 0\.75rem;/', $theme));
+
+        $bertels = $this->actingAs($this->superAdmin())->get('/bertels')->assertSuccessful()->getContent();
+        $this->assertSame(1, preg_match('/<style id="bertels-layout-theme">(.*?)<\/style>/s', $bertels, $match));
+        $this->assertMatchesRegularExpression('/body\.fi-panel-bertels \.claesen-page-header-breadcrumbs \{\s*display: none;\s*margin-bottom: 0\.75rem;/', $match[1]);
+        $this->assertMatchesRegularExpression('/@media \(min-width: 640px\) \{\s*body\.fi-panel-bertels \.claesen-page-header-breadcrumbs \{\s*display: block;/', $match[1]);
+        $this->assertDoesNotMatchRegularExpression('/(^|[},])\s*\.claesen-page-header/m', $match[1]);
+    }
+
+    /**
      * The theme is a colour skin: no size, spacing or typography declaration may survive in it, or
      * the Bertels sidebar would drift from the Claesen one again.
      */

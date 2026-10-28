@@ -107,6 +107,11 @@ class BertelsPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn (): string => view('filament.bertels.sidebar-theme')->render(),
             )
+            // Page-header spacing the Claesen Vite theme gives the shared header override (bertels has no theme).
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => view('filament.bertels.layout-theme')->render(),
+            )
             ->favicon(asset('img/bertels-favicon.jpg'))
             // No discoverResources/Pages/Widgets on purpose — F3/F4 give
             // Bertels its own resources once P5 enforcement exists.
