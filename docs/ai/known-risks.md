@@ -589,3 +589,9 @@ Eliminar o marcar como resuelto cuando:
 - **Test impact:** a test that anchors fixtures on `now()` fails whenever any `anchor − N hours` fixture lands in the repeated hour (or in the skipped hour in March) — several windows across the whole DST-change day, not one (corrected 2026-10-25: CI run `40231576334` failed at 20:38Z with 3.5, the `subHours(20)` fixture). `MaintenanceRecordTenantScopeTest` now pins its clock to a mid-June instant; other `now()`-anchored duration tests may still be exposed.
 - **Fix (not done):** store UTC (`app.timezone=UTC` + convert at the edges) or `timestampTz`-like handling — a data/format change that needs its own ticket, backfill plan and review.
 
+## KNX tests depend on the wall-clock hour (found 2026-10-28)
+
+- **What:** `KnxDemoSeeder::at()` stamps fixtures "today at HH:MM" and moves a still-future hour one day back. Results that sort by time therefore depend on when the suite runs: `KnxConflictsTest` swapped its two critical conflicts (09:42 vs 08:15) when CI ran at 08:21 Europe/Brussels (run `40648706385`).
+- **Fixed:** `KnxConflictsTest` now pins the clock to `2026-06-15 12:00 Europe/Brussels` before seeding (RED reproduced by pinning to the CI instant).
+- **Still exposed:** 18 other `Modules/Knx/tests/Feature/*` files seed `KnxDemoSeeder` without pinning the clock; none failed so far. Fix when KNX work resumes: pin the clock in a shared base/trait, or make the seeder take an anchor time.
+
