@@ -224,6 +224,67 @@
             flex-shrink: 0;
         }
 
+        .ets6-guide__folders {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .ets6-guide__folders li {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 14px 20px;
+        }
+
+        .ets6-guide__folders li + li {
+            border-top: 1px solid var(--g-divider);
+        }
+
+        .ets6-guide__folder-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ets6-guide__folder-where {
+            font-size: 12px;
+            color: var(--g-faint);
+        }
+
+        .ets6-guide__folder-path {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ets6-guide__folder-path code {
+            user-select: all;
+            overflow-wrap: anywhere;
+            padding: 4px 8px;
+        }
+
+        .ets6-guide__copy {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--g-accent-text);
+            background: var(--g-accent-bg);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 4px 12px;
+            cursor: pointer;
+        }
+
+        .ets6-guide__copy:hover {
+            border-color: var(--g-accent);
+        }
+
+        .ets6-guide [x-cloak] {
+            display: none !important;
+        }
+
         .ets6-guide__section {
             display: flex;
             flex-direction: column;
@@ -429,11 +490,53 @@
                 <span class="ets6-guide__badge">ETS6 · 6.4 or later</span>
             </div>
             <dl class="ets6-guide__settings">
-                <div><dt>Archive folder</dt><dd>One shared network folder for the whole team</dd></div>
+                <div><dt>Archive folder</dt><dd>The Project Archive folder below</dd></div>
                 <div><dt>Collaboration mode</dt><dd class="ets6-guide__on">Enabled</dd></div>
                 <div><dt>Automatic backup on close</dt><dd class="ets6-guide__on">Enabled</dd></div>
                 <div><dt>Versions retained</dt><dd>10 per project (the maximum)</dd></div>
             </dl>
+        </div>
+
+        <div class="ets6-guide__card">
+            <div class="ets6-guide__card-head">
+                <div>
+                    <div class="ets6-guide__card-title">Network folders</div>
+                    <div class="ets6-guide__card-note">Copy these paths into ETS6. Use the network path, not a drive letter: drive letters differ per PC.</div>
+                </div>
+            </div>
+            <ul class="ets6-guide__folders">
+                @foreach ($folders as $folder)
+                    <li x-data="{ copied: false, flash() { this.copied = true; setTimeout(() => this.copied = false, 1500) } }">
+                        <div class="ets6-guide__folder-meta">
+                            <span class="ets6-guide__card-title">{{ $folder['label'] }}</span>
+                            <span class="ets6-guide__folder-where">{{ $folder['location'] }}</span>
+                        </div>
+                        <div class="ets6-guide__folder-path">
+                            <code x-ref="path">{{ $folder['path'] }}</code>
+                            <button
+                                type="button"
+                                class="ets6-guide__copy"
+                                data-copy-path
+                                x-on:click="
+                                    if (window.isSecureContext && navigator.clipboard) {
+                                        navigator.clipboard.writeText($refs.path.textContent.trim()).then(() => flash())
+                                    } else {
+                                        const range = document.createRange()
+                                        range.selectNodeContents($refs.path)
+                                        const selection = window.getSelection()
+                                        selection.removeAllRanges()
+                                        selection.addRange(range)
+                                        if (document.execCommand('copy')) flash()
+                                    }
+                                "
+                            >
+                                <span x-show="! copied">Copy</span>
+                                <span x-show="copied" x-cloak>Copied</span>
+                            </button>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
         </div>
 
         <section class="ets6-guide__section">
@@ -443,7 +546,7 @@
             </div>
             <ol class="ets6-guide__card ets6-guide__steps">
                 <li><span>1</span><span>Open <b>Settings → Data Storage</b> in ETS6.</span></li>
-                <li><span>2</span><span>Under <b>Project Archive</b>, set the directory to the team's shared network folder. Every user needs read and write access to it.</span></li>
+                <li><span>2</span><span>Under <b>Project Archive</b>, set the directory to the Project Archive folder listed under <b>Network folders</b>. Every user needs read and write access to it.</span></li>
                 <li><span>3</span><span>Enable <b>Collaboration mode</b>.</span></li>
                 <li><span>4</span><span>Enable <b>automatic backup of archived projects on project close</b>. This option only exists when Collaboration mode is on.</span></li>
                 <li><span>5</span><span>Use the same number of retained versions on every PC (up to 10), so everyone knows how many versions are kept.</span></li>
@@ -508,7 +611,7 @@
                 <div class="ets6-guide__card ets6-guide__callout ets6-guide__callout--warn"><span class="ets6-guide__label">Requirement</span><p><b>No "broken" devices.</b> Resolve or mark them operational, otherwise the project cannot be archived.</p></div>
                 <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Status icons</span><p><b>Green</b> means local and archive are in sync. Any other colour means they differ: click the icon to see who changed what and when before you decide.</p></div>
                 <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Important versions</span><p><b>Pin</b> a version before handover or commissioning. Pinned versions are not deleted when the retained-version limit is reached.</p></div>
-                <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Several archive locations</span><p><b>Linked folders</b> (Settings → Data Storage) add other archive folders, such as another network share, to the same Archived Projects view.</p></div>
+                <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Several archive locations</span><p><b>Linked folders</b> (Settings → Data Storage) add other archive folders, such as another network share, to the same Archived Projects view.@if (count($folders) > 1) Add the Linked folder listed under Network folders.@endif</p></div>
                 <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">After a restore</span><p>Some device plug-ins change project data right after a restore. If the status is no longer green, back up again to get back in sync.</p></div>
             </div>
         </section>

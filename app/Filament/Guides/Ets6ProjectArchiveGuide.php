@@ -97,11 +97,44 @@ class Ets6ProjectArchiveGuide extends Page
         return Filament::getCurrentPanel()?->getId() === 'bertels';
     }
 
+    /**
+     * The folders this panel's team copies into ETS6. UNC paths on purpose: drive letters differ per PC.
+     * Claesen has no linked folder (none was given), so its list is only the Project Archive.
+     *
+     * @return list<array{label: string, location: string, path: string}>
+     */
+    public static function networkFolders(): array
+    {
+        if (static::isBertels()) {
+            return [
+                [
+                    'label' => 'Project Archive',
+                    'location' => 'Settings → Data Storage → Project Archive',
+                    'path' => '\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive',
+                ],
+                [
+                    'label' => 'Linked folder',
+                    'location' => 'Settings → Data Storage → Linked folders',
+                    'path' => '\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_Claesen_ProjectArchive',
+                ],
+            ];
+        }
+
+        return [
+            [
+                'label' => 'Project Archive',
+                'location' => 'Settings → Data Storage → Project Archive',
+                'path' => '\\\\RSBertels\\ClaesenGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive',
+            ],
+        ];
+    }
+
     /** @return array<string, mixed> */
     protected function getViewData(): array
     {
         return [
             'skin' => static::isBertels() ? 'bertels' : 'claesen',
+            'folders' => static::networkFolders(),
         ];
     }
 }

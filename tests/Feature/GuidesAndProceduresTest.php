@@ -16,7 +16,7 @@ use Tests\TestCase;
  * "Guides & Procedures": the internal ETS6 Project Archive guide, in both panels.
  *
  * Design sources: the Electro Bertels mockup is used as-is; the Claesen one carries the same
- * content in the Claesen identity (DESIGN.md). Neither guide names a company in its footer.
+ * content in the Claesen identity (DESIGN.md). Neither guide names a company in its footer; the network paths in the body do.
  *
  * Access is super_admin only, in BOTH panels (user decision): the bertels panel also admits the
  * client organisation's users, and an internal procedure is not theirs to read.
@@ -71,6 +71,18 @@ final class GuidesAndProceduresTest extends TestCase
         return substr($html, $start, $end - $start);
     }
 
+    /** The guide's footer element only. */
+    private function footerMarkup(string $html): string
+    {
+        $start = strpos($html, '<footer class="ets6-guide__footer"');
+        $this->assertNotFalse($start, 'The guide footer is missing from the page.');
+
+        $end = strpos($html, '</footer>', $start);
+        $this->assertNotFalse($end, 'The guide footer is not closed.');
+
+        return substr($html, $start, $end - $start);
+    }
+
     public function test_a_super_admin_reads_the_guide_in_the_claesen_skin(): void
     {
         $response = $this->actingAs($this->userWithRole('super_admin'))
@@ -97,24 +109,47 @@ final class GuidesAndProceduresTest extends TestCase
             ->assertDontSee('ets6-guide--claesen', escape: false);
     }
 
-    public function test_the_claesen_guide_names_no_company(): void
+    public function test_the_claesen_guide_footer_names_no_company(): void
     {
         $response = $this->actingAs($this->userWithRole('super_admin'))->get(self::ADMIN_GUIDE);
 
-        $guide = $this->guideMarkup($response->getContent());
+        $footer = $this->footerMarkup($response->getContent());
 
-        $this->assertStringNotContainsStringIgnoringCase('Claesen', str_replace('ets6-guide--claesen', '', $guide));
-        $this->assertStringNotContainsStringIgnoringCase('Bertels', $guide);
+        $this->assertStringNotContainsStringIgnoringCase('Claesen', $footer);
+        $this->assertStringNotContainsStringIgnoringCase('Bertels', $footer);
     }
 
-    public function test_the_bertels_guide_names_no_company(): void
+    public function test_the_bertels_guide_footer_names_no_company(): void
+    {
+        $response = $this->actingAs($this->userWithRole('super_admin'))->get(self::BERTELS_GUIDE);
+
+        $footer = $this->footerMarkup($response->getContent());
+
+        $this->assertStringNotContainsStringIgnoringCase('Claesen', $footer);
+        $this->assertStringNotContainsStringIgnoringCase('Bertels', $footer);
+    }
+
+    public function test_the_bertels_guide_lists_its_network_folders(): void
     {
         $response = $this->actingAs($this->userWithRole('super_admin'))->get(self::BERTELS_GUIDE);
 
         $guide = $this->guideMarkup($response->getContent());
 
-        $this->assertStringNotContainsStringIgnoringCase('Claesen', $guide);
-        $this->assertStringNotContainsStringIgnoringCase('Bertels', str_replace('ets6-guide--bertels', '', $guide));
+        $this->assertStringContainsString('\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive', $guide);
+        $this->assertStringContainsString('\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_Claesen_ProjectArchive', $guide);
+        $this->assertSame(2, substr_count($guide, 'data-copy-path'));
+        $this->assertStringNotContainsString('ClaesenGedeeld', $guide);
+    }
+
+    public function test_the_claesen_guide_lists_its_network_folder(): void
+    {
+        $response = $this->actingAs($this->userWithRole('super_admin'))->get(self::ADMIN_GUIDE);
+
+        $guide = $this->guideMarkup($response->getContent());
+
+        $this->assertStringContainsString('\\\\RSBertels\\ClaesenGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive', $guide);
+        $this->assertSame(1, substr_count($guide, 'data-copy-path'));
+        $this->assertStringNotContainsString('BertelsGedeeld', $guide);
     }
 
     public function test_the_claesen_sidebar_offers_the_guide_to_a_super_admin(): void
