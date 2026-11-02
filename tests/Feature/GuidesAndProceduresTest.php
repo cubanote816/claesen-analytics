@@ -152,6 +152,48 @@ final class GuidesAndProceduresTest extends TestCase
         $this->assertStringNotContainsString('BertelsGedeeld', $guide);
     }
 
+    /** @var list<string> */
+    private const AUDITED_PHRASES = [
+        'Keep local project',
+        'Lock the archive copy for others',
+        'Restore overwrites your local copy',
+        'one person at a time',
+        'Compare Versions',
+        'Import Copy',
+        'Number of automatically retained project versions',
+        'The local project store is single-user',
+        'Keep every PC on the same ETS6 version',
+    ];
+
+    /** @var list<string> */
+    private const REMOVED_PHRASES = ['Keep project locally', 'who changed what', 'Save as'];
+
+    public function test_the_bertels_guide_carries_the_audited_ets6_wording(): void
+    {
+        $response = $this->actingAs($this->userWithRole('super_admin'))->get(self::BERTELS_GUIDE)->assertSuccessful();
+
+        foreach ([...self::AUDITED_PHRASES, 'Linked Folders → Add Link', 'add it once with'] as $text) {
+            $response->assertSee($text);
+        }
+
+        foreach (self::REMOVED_PHRASES as $text) {
+            $response->assertDontSee($text);
+        }
+    }
+
+    public function test_the_claesen_guide_carries_the_audited_ets6_wording_without_a_linked_folder_step(): void
+    {
+        $response = $this->actingAs($this->userWithRole('super_admin'))->get(self::ADMIN_GUIDE)->assertSuccessful();
+
+        foreach (self::AUDITED_PHRASES as $text) {
+            $response->assertSee($text);
+        }
+
+        foreach ([...self::REMOVED_PHRASES, 'add it once with'] as $text) {
+            $response->assertDontSee($text);
+        }
+    }
+
     public function test_the_claesen_sidebar_offers_the_guide_to_a_super_admin(): void
     {
         $this->actingAs($this->userWithRole('super_admin'))

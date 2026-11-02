@@ -485,15 +485,16 @@
             <div class="ets6-guide__card-head">
                 <div>
                     <div class="ets6-guide__card-title">Recommended settings</div>
-                    <div class="ets6-guide__card-note">Apply the same values on every PC.</div>
+                    <div class="ets6-guide__card-note">Apply the same values on every PC. Version 6.4 or later is needed for the automatic backup on close.</div>
                 </div>
                 <span class="ets6-guide__badge">ETS6 · 6.4 or later</span>
             </div>
             <dl class="ets6-guide__settings">
+                <div><dt>ETS6 version</dt><dd>The same on every PC, 6.4 or later</dd></div>
                 <div><dt>Archive folder</dt><dd>The Project Archive folder below</dd></div>
                 <div><dt>Collaboration mode</dt><dd class="ets6-guide__on">Enabled</dd></div>
                 <div><dt>Automatic backup on close</dt><dd class="ets6-guide__on">Enabled</dd></div>
-                <div><dt>Versions retained</dt><dd>10 per project (the maximum)</dd></div>
+                <div><dt>Automatically retained versions</dt><dd>10 per project (the maximum)</dd></div>
             </dl>
         </div>
 
@@ -548,8 +549,11 @@
                 <li><span>1</span><span>Open <b>Settings → Data Storage</b> in ETS6.</span></li>
                 <li><span>2</span><span>Under <b>Project Archive</b>, set the directory to the Project Archive folder listed under <b>Network folders</b>. Every user needs read and write access to it.</span></li>
                 <li><span>3</span><span>Enable <b>Collaboration mode</b>.</span></li>
-                <li><span>4</span><span>Enable <b>automatic backup of archived projects on project close</b>. This option only exists when Collaboration mode is on.</span></li>
-                <li><span>5</span><span>Use the same number of retained versions on every PC (up to 10), so everyone knows how many versions are kept.</span></li>
+                <li><span>4</span><span>Enable <b>Automatically backup archived projects on project close</b>. This option only appears once Collaboration mode is on.</span></li>
+                <li><span>5</span><span>Set <b>Number of automatically retained project versions</b> to 10 on every PC, so everyone knows how many versions are kept.</span></li>
+                @if (count($folders) > 1)
+                    <li><span>6</span><span>Under <b>Linked Folders</b>, check that the Linked folder listed under <b>Network folders</b> is there. If it is missing, add it once with <b>Add Link</b>: ETS stores the link in the shared archive folder, so everyone using that archive sees it.</span></li>
+                @endif
             </ol>
         </section>
 
@@ -562,7 +566,7 @@
                 <li><span>1</span><span>Check that every device in the project is marked <b>operational</b>. ETS refuses to archive a project that has devices marked "broken".</span></li>
                 <li><span>2</span><span>In the local project list, open the project's quick-actions menu (or right-click) and choose <b>Backup to Archive</b>.</span></li>
                 <li><span>3</span><span>Pick the destination folder in the archive. You can create a new subfolder from the same dialog.</span></li>
-                <li><span>4</span><span>Add a short comment (for example <code>initial version</code>) and keep <b>Keep project locally</b> ticked if you will continue working on it.</span></li>
+                <li><span>4</span><span>Add a short comment (for example <code>initial version</code>) Tick <b>Keep local project</b> if you will continue working on it, and then <b>Lock the archive copy for others</b>: without it, the backup releases the lock.</span></li>
                 <li><span>5</span><span>The project now appears under <b>Archived Projects</b> with a green checkmark: local copy and archive are in sync.</span></li>
             </ol>
         </section>
@@ -570,11 +574,11 @@
         <section class="ets6-guide__section">
             <div>
                 <div class="ets6-guide__section-head"><span class="ets6-guide__num">03</span><h2>Daily workflow</h2></div>
-                <p class="ets6-guide__note">With automatic backup enabled, ETS saves a new version when you close the project. The step you must not skip is the lock: ETS does not stop someone else from opening the same project.</p>
+                <p class="ets6-guide__note">Collaboration mode is one person at a time: ETS never merges edits made in parallel. With automatic backup enabled, ETS saves a new version when you close the project. The step you must not skip is the lock: ETS does not stop someone else from opening the same project.</p>
             </div>
             <div class="ets6-guide__flow">
-                <div class="ets6-guide__card"><span class="ets6-guide__flow-step">STEP 1</span><div class="ets6-guide__flow-title">Restore + Lock</div><div class="ets6-guide__flow-text">Restore the latest version from the archive and accept the lock when ETS asks. If you already have the latest version locally, use <b>Lock</b> from the tile.</div></div>
-                <div class="ets6-guide__card"><span class="ets6-guide__flow-step">STEP 2</span><div class="ets6-guide__flow-title">Work</div><div class="ets6-guide__flow-text">Edit as usual. The status icon shows when your local copy differs from the archive.</div></div>
+                <div class="ets6-guide__card"><span class="ets6-guide__flow-step">STEP 1</span><div class="ets6-guide__flow-title">Restore + Lock</div><div class="ets6-guide__flow-text">Restore the latest version from the archive and accept the lock when ETS asks. <b>Restore overwrites your local copy</b>: local changes not in the archive are lost. If you already have the latest version locally, use <b>Lock</b> from the project's context menu.</div></div>
+                <div class="ets6-guide__card"><span class="ets6-guide__flow-step">STEP 2</span><div class="ets6-guide__flow-title">Work</div><div class="ets6-guide__flow-text">Edit as usual. A blue spinner on the project tile means your local copy has changes that are not in the archive yet.</div></div>
                 <div class="ets6-guide__card"><span class="ets6-guide__flow-step">STEP 3</span><div class="ets6-guide__flow-title">Close</div><div class="ets6-guide__flow-text">On close, ETS creates a new archive version, but only if your copy is newer and there is no conflict. Otherwise it asks you to resolve it.</div></div>
                 <div class="ets6-guide__card"><span class="ets6-guide__flow-step">STEP 4</span><div class="ets6-guide__flow-title">Release</div><div class="ets6-guide__flow-text">Use <b>Release</b> on the tile when you finish, even if you continue tomorrow, so nobody is left waiting.</div></div>
             </div>
@@ -583,20 +587,20 @@
         <section class="ets6-guide__section">
             <div>
                 <div class="ets6-guide__section-head"><span class="ets6-guide__num">04</span><h2>When two copies have diverged</h2></div>
-                <p class="ets6-guide__note"><b>ETS does not merge projects.</b> When two copies differ you choose one whole version; the built-in project comparison shows what is different so you can decide.</p>
+                <p class="ets6-guide__note"><b>ETS does not merge projects.</b> When two copies differ you choose one whole version; <b>Compare Versions</b> shows what is different so you can decide.</p>
             </div>
             <div class="ets6-guide__card">
                 <div class="ets6-guide__card-head ets6-guide__case-head"><span class="ets6-guide__tag">Same project</span><span class="ets6-guide__card-title">Both copies come from the same archived project</span></div>
                 <ul class="ets6-guide__list">
-                    <li>ETS detects it as a newer or conflicting version and opens the status dialog, where you can back up your copy, restore the archive copy, or compare them.</li>
+                    <li>Click the blue spinner on the project tile: the status dialog compares the dates and users of the last changes and offers <b>Backup to Archive</b>, <b>Restore</b>, <b>Compare Versions</b> and <b>Close</b>.</li>
                     <li>If only one side changed, back up or restore that side. Nothing is lost.</li>
                     <li>If both sides changed, open both and copy the missing parts by hand before the final backup. Whichever version you keep replaces the other completely.</li>
                 </ul>
             </div>
             <div class="ets6-guide__card">
-                <div class="ets6-guide__card-head ets6-guide__case-head"><span class="ets6-guide__tag">Separate project</span><span class="ets6-guide__card-title">The copy was duplicated or rebuilt</span></div>
+                <div class="ets6-guide__card-head ets6-guide__case-head"><span class="ets6-guide__tag">Separate project</span><span class="ets6-guide__card-title">The copy was imported as a copy or rebuilt</span></div>
                 <ul class="ets6-guide__list">
-                    <li>A "Save as" or duplicated project is a different project for ETS. Backing it up creates a new entry in the archive, not a new version.</li>
+                    <li>A project imported with <b>Import Copy</b> gets a new project ID, so for ETS it is a different project. Backing it up creates a new entry in the archive, not a new version.</li>
                     <li>Merge by hand: restore the main copy, open the other one next to it and copy over what is missing.</li>
                     <li>Back up the main copy and remove the duplicate from the archive so nobody restores it by mistake.</li>
                 </ul>
@@ -607,18 +611,20 @@
         <section class="ets6-guide__section">
             <div class="ets6-guide__section-head"><span class="ets6-guide__num">05</span><h2>Good practices</h2></div>
             <div class="ets6-guide__callouts">
-                <div class="ets6-guide__card ets6-guide__callout ets6-guide__callout--warn"><span class="ets6-guide__label">Watch out</span><p><b>The lock is a signal, not a block.</b> Another user can still copy a locked project or even force the lock to be released. The workflow only works if everyone respects it.</p></div>
+                <div class="ets6-guide__card ets6-guide__callout ets6-guide__callout--warn"><span class="ets6-guide__label">Watch out</span><p><b>The lock is a signal, not a block.</b> Another user can still copy a locked project or even force the lock to be released. Hover a locked project to see who locked it, when, and on which computer.</p></div>
                 <div class="ets6-guide__card ets6-guide__callout ets6-guide__callout--warn"><span class="ets6-guide__label">Requirement</span><p><b>No "broken" devices.</b> Resolve or mark them operational, otherwise the project cannot be archived.</p></div>
-                <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Status icons</span><p><b>Green</b> means local and archive are in sync. Any other colour means they differ: click the icon to see who changed what and when before you decide.</p></div>
+                <div class="ets6-guide__card ets6-guide__callout ets6-guide__callout--warn"><span class="ets6-guide__label">Local projects stay local</span><p><b>The local project store is single-user.</b> Never move it to a network or cloud folder: share projects only through the archive, or by export and import.</p></div>
+                <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Status icons</span><p>A <b>green checkmark</b> means local and archive are in sync. A <b>blue spinner</b> means your local copy has changes to back up. A <b>black lock</b> means the archive copy is locked. The status dialog shows who changed it and when; <b>Compare Versions</b> shows what changed.</p></div>
+                <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Same ETS version</span><p><b>Keep every PC on the same ETS6 version.</b> A project saved with a newer version may not open in an older one.</p></div>
                 <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Important versions</span><p><b>Pin</b> a version before handover or commissioning. Pinned versions are not deleted when the retained-version limit is reached.</p></div>
-                <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Several archive locations</span><p><b>Linked folders</b> (Settings → Data Storage) add other archive folders, such as another network share, to the same Archived Projects view.@if (count($folders) > 1) Add the Linked folder listed under Network folders.@endif</p></div>
+                <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">Several archive locations</span><p><b>Linked Folders</b> (Settings → Data Storage → Add Link) add other archive folders, such as another network share, to the same Archived Projects view.</p></div>
                 <div class="ets6-guide__card ets6-guide__callout"><span class="ets6-guide__label">After a restore</span><p>Some device plug-ins change project data right after a restore. If the status is no longer green, back up again to get back in sync.</p></div>
             </div>
         </section>
 
         <footer class="ets6-guide__footer">
             <span>Based on ETS6 6.4</span>
-            <span>Source: <a href="https://support.knx.org/hc/en-us/articles/360019850580-Project-archive" target="_blank" rel="noopener noreferrer">KNX Support: Project archive</a> · <a href="https://support.knx.org/hc/en-us/articles/360020712719" target="_blank" rel="noopener noreferrer">Data Storage settings</a></span>
+            <span>Source: <a href="https://support.knx.org/hc/en-us/articles/360019850580-Project-archive" target="_blank" rel="noopener noreferrer">KNX Support: Project archive</a> · <a href="https://support.knx.org/hc/en-us/articles/360020712719" target="_blank" rel="noopener noreferrer">Data Storage settings</a> · <a href="https://support.knx.org/hc/en-us/articles/9649204695058-Linked-folders" target="_blank" rel="noopener noreferrer">Linked folders</a></span>
         </footer>
     </div>
 </x-filament-panels::page>
