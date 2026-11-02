@@ -114,7 +114,7 @@ class Ets6ProjectArchiveGuide extends Page
                 ],
                 [
                     'label' => 'Linked folder',
-                    'location' => 'Settings → Data Storage → Linked folders',
+                    'location' => 'Settings → Data Storage → Linked Folders → Add Link',
                     'path' => '\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_Claesen_ProjectArchive',
                 ],
             ];
