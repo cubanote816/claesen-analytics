@@ -10,6 +10,7 @@ return [
         'analyse_intelligentie' => 'Analyse & Intelligenz',
         'safety_vca' => 'Sicherheit & VCA',
         'field_operations' => 'Feldeinsätze',
+        'guides_procedures' => 'Anleitungen & Verfahren',
     ],
     'switch_to_bertels' => 'Zu Electro Bertels wechseln',
     'switch_to_claesen' => 'Zu Claesen wechseln',
