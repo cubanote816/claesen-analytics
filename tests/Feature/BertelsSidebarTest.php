@@ -79,7 +79,8 @@ final class BertelsSidebarTest extends TestCase
 
         // No leftover "Content & Website" parent group or nested sub-group.
         $response->assertDontSee('data-group-label="' . e(__('navigation.groups.content_website')) . '"', escape: false);
-        $response->assertDontSee('fi-sidebar-sub-group-items', escape: false);
+        // Markup only: the shared sidebar-density <style> names the class in a selector (CLA-643).
+        $response->assertDontSee('class="fi-sidebar-sub-group-items"', escape: false);
     }
 
     public function test_the_bertels_sidebar_style_hook_is_present_and_the_width_is_the_admin_width(): void
