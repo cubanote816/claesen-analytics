@@ -1,17 +1,64 @@
 @php
     $site = \Modules\Core\Models\Site::forPanel();
     $organization = $site?->organization;
+    $panelId = filament()->getId();
+    $canSwitch = auth()->user()?->hasRole('super_admin') ?? false;
+    $targetPanel = $panelId === 'bertels' ? 'admin' : 'bertels';
 @endphp
 
 @if ($organization)
-    {{-- CLA-600: which company this panel is working on. Filament's own badge on purpose:
-         the Bertels panel has no custom Vite theme, so arbitrary Tailwind classes would not compile there. --}}
-    <x-filament::badge
-        :color="$site->id === \Modules\Core\Models\Site::claesenId() ? 'gray' : 'primary'"
-        icon="heroicon-m-building-office-2"
-        data-organization-indicator="{{ $organization->slug }}"
-        title="{{ __('navigation.organization_indicator_hint') }}"
-    >
-        {{ $organization->name }}
-    </x-filament::badge>
+    @if ($canSwitch)
+        {{-- The switch remains an audited, full-page navigation; only super_admin sees the control. --}}
+        <x-filament::dropdown placement="bottom-end" :teleport="true" data-organization-selector="{{ $panelId }}">
+            <x-slot name="trigger">
+                <button type="button" class="fi-organization-selector-trigger"
+                    aria-label="{{ __('navigation.organization_selector_label', ['organization' => $organization->name]) }}">
+                    <x-filament::badge
+                        :color="$site->id === \Modules\Core\Models\Site::claesenId() ? 'gray' : 'primary'"
+                        icon="heroicon-m-building-office-2"
+                        data-organization-indicator="{{ $organization->slug }}"
+                        title="{{ __('navigation.organization_indicator_hint') }}"
+                    >
+                        {{ $organization->name }}
+                    </x-filament::badge>
+                    <x-filament::icon icon="heroicon-m-chevron-down" style="width: 1rem; height: 1rem;" />
+                </button>
+            </x-slot>
+
+            <x-filament::dropdown.list>
+                <x-filament::dropdown.list.item
+                    tag="a"
+                    :href="route('core.switch-panel', ['panel' => $targetPanel, 'from' => $panelId])"
+                    :spa-mode="false"
+                    icon="heroicon-m-building-office-2"
+                >
+                    {{ $targetPanel === 'admin' ? __('navigation.switch_to_claesen') : __('navigation.switch_to_bertels') }}
+                </x-filament::dropdown.list.item>
+            </x-filament::dropdown.list>
+        </x-filament::dropdown>
+        <style>
+            .fi-organization-selector-trigger {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.25rem;
+                border-radius: 0.5rem;
+                cursor: pointer;
+            }
+
+            .fi-organization-selector-trigger:focus-visible {
+                outline: 2px solid currentColor;
+                outline-offset: 2px;
+            }
+        </style>
+    @else
+        {{-- Other users see the current company, never a link to a panel they cannot enter. --}}
+        <x-filament::badge
+            :color="$site->id === \Modules\Core\Models\Site::claesenId() ? 'gray' : 'primary'"
+            icon="heroicon-m-building-office-2"
+            data-organization-indicator="{{ $organization->slug }}"
+            title="{{ __('navigation.organization_indicator_hint') }}"
+        >
+            {{ $organization->name }}
+        </x-filament::badge>
+    @endif
 @endif

@@ -16,5 +16,6 @@ return [
     'knx' => 'KNX',
     'switch_to_bertels' => 'Switch to Electro Bertels',
     'organization_indicator_hint' => 'Company this panel is working on',
+    'organization_selector_label' => 'Change company (currently :organization)',
     'switch_to_claesen' => 'Switch to Claesen',
 ];
