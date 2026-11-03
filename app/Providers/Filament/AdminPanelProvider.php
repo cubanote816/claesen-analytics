@@ -270,6 +270,11 @@ HTML
             ->font('Outfit')
             ->sidebarCollapsibleOnDesktop()
             ->collapsibleNavigationGroups()
+            // CLA-643: compact sidebar density, shared with the bertels panel (DESIGN.md).
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => view('filament.shared.sidebar-density')->render(),
+            )
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): string => view('core::filament.organization-indicator')->render(),

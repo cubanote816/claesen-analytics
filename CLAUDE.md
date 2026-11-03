@@ -134,6 +134,8 @@ El detalle completo de cada cierre técnico (CLA-515 a CLA-532) se archivó en `
 
 `DESIGN.md` en la raíz del repo documenta la paleta real (Claesen Cyan `#00aeef`/Lime `#a5d610`/Magenta `#e6007e`/Amber `#fcd34d` + acento Orange `#f97316` "signature"), tipografía (Outfit para UI digital, sans-serif genérica para PDFs) y componentes clave, siguiendo la especificación abierta [`google-labs-code/design.md`](https://github.com/google-labs-code/design.md) (formato YAML front-matter + Markdown, **no es un MCP** — es un CLI local sin auth: `npx @google/design.md lint DESIGN.md`). Es documentación derivada de `AdminPanelProvider.php`/`tailwind.config.js`/`app.css`, no una fuente nueva de verdad — si esos archivos cambian, `DESIGN.md` debe actualizarse junto con ellos. Lint en verde (0 errores); quedan 3 warnings de contraste WCAG AA documentados en el propio archivo como hallazgo conocido y deliberadamente no corregido (ajustar los colores reales de producción es una decisión aparte, no tomada en este ticket).
 
+**Densidad del sidebar (CLA-643, 2026-11-03):** los dos paneles comparten un `<style id="sidebar-density">` plano (`resources/views/filament/shared/sidebar-density.blade.php`, enganchado a `HEAD_END` en `AdminPanelProvider` **y** `BertelsPanelProvider`) que compacta el sidebar al estilo de Google AI Studio: encabezados de grupo 11px en mayúsculas sin ícono (expandido), filas de ~32px, íconos de 20px, 16px entre grupos. Solo tamaños, nunca colores. Todo cambio de dimensión del sidebar va en esa vista (no en el tema Vite de Claesen ni en el skin de Bertels), para que los dos paneles midan igual. Detalle: `DESIGN.md` → «Sidebar density».
+
 ---
 
 ## Sprint User Provisioning — USR-001 / CLA-171 (rama: FieldOps)
