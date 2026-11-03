@@ -136,7 +136,7 @@ El sidebar de los dos paneles (Claesen `admin` y Electro Bertels) usa una densid
 
 ## Company selector in the topbar (CLA-644)
 
-La cabecera muestra la empresa activa en ambos paneles (`Modules/Core/resources/views/filament/organization-indicator.blade.php`). Para `super_admin`, ese indicador es un botón accesible que abre el desplegable nativo de Filament con la **otra empresa**; para los demás usuarios sigue siendo una insignia informativa, sin enlace de cambio. El menú lateral se reserva para navegación de páginas: ya no tiene «Switch to…» bajo Dashboard. El enlace del desplegable conserva `core.switch-panel` con `from` y navegación de página completa (sin SPA); la ruta sigue auditando y autorizando el cambio, sin cambiar el contexto de empresa en sesión.
+La cabecera muestra la empresa activa en ambos paneles (`Modules/Core/resources/views/filament/organization-indicator.blade.php`). Para `super_admin`, ese indicador es un botón accesible que abre el desplegable nativo de Filament con la **otra empresa**; para los demás usuarios sigue siendo una insignia informativa, sin enlace de cambio. El menú lateral se reserva para navegación de páginas: ya no tiene «Switch to…» bajo Dashboard. El enlace del desplegable conserva `core.switch-panel` con `from` y navegación de página completa (sin SPA); la ruta sigue auditando y autorizando el cambio, sin cambiar el contexto de empresa en sesión. Si el sitio Bertels aún no existe en la base local, la cabecera usa **el nombre configurado del panel** («Electro Bertels») para que `super_admin` pueda regresar a Claesen; no emite `data-organization-indicator` ni inventa un registro de organización.
 
 ## Bertels sidebar (deliberate exception: colors only)
 

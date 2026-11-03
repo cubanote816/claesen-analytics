@@ -113,10 +113,13 @@ final class OrganizationIndicatorTest extends TestCase
         $this->assertStringNotContainsString('/switch-panel/', $html);
     }
 
-    public function test_the_bertels_panel_shows_no_indicator_when_its_site_does_not_exist(): void
+    public function test_bertels_super_admin_can_switch_back_even_without_a_local_site(): void
     {
-        $this->get('/bertels')
-            ->assertOk()
-            ->assertDontSee('data-organization-indicator', false);
+        $html = $this->get('/bertels')->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-organization-selector="bertels"', $html);
+        $this->assertStringContainsString('Electro Bertels', $html);
+        $this->assertStringContainsString('href="'.route('core.switch-panel', ['panel' => 'admin', 'from' => 'bertels']).'"', $html);
+        $this->assertStringNotContainsString('data-organization-indicator=', $html, 'Do not pretend a missing site has an organization record.');
     }
 }
