@@ -129,27 +129,56 @@ final class GuidesAndProceduresTest extends TestCase
         $this->assertStringNotContainsStringIgnoringCase('Bertels', $footer);
     }
 
-    public function test_the_bertels_guide_lists_its_network_folders(): void
+    /**
+     * CLA-645: both panels list the exact same two network folders — Project Archive under
+     * BertelsGedeeld, Linked folder under ClaesenGedeeld. The previous Bertels Linked folder path
+     * wrongly routed through BertelsGedeeld; the previous Claesen guide had a different, single
+     * ClaesenGedeeld Project Archive path. The user explicitly chose to unify on these two paths.
+     */
+    public function test_the_bertels_guide_lists_both_network_folders(): void
     {
         $response = $this->actingAs($this->userWithRole('super_admin'))->get(self::BERTELS_GUIDE);
 
         $guide = $this->guideMarkup($response->getContent());
 
         $this->assertStringContainsString('\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive', $guide);
-        $this->assertStringContainsString('\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_Claesen_ProjectArchive', $guide);
+        $this->assertStringContainsString('\\\\RSBertels\\ClaesenGedeeld\\Projecten\\Automation\\_ETS6_Claesen_ProjectArchive', $guide);
         $this->assertSame(2, substr_count($guide, 'data-copy-path'));
-        $this->assertStringNotContainsString('ClaesenGedeeld', $guide);
+        $this->assertStringNotContainsString('\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_Claesen_ProjectArchive', $guide);
     }
 
-    public function test_the_claesen_guide_lists_its_network_folder(): void
+    public function test_the_claesen_guide_lists_both_network_folders(): void
     {
         $response = $this->actingAs($this->userWithRole('super_admin'))->get(self::ADMIN_GUIDE);
 
         $guide = $this->guideMarkup($response->getContent());
 
-        $this->assertStringContainsString('\\\\RSBertels\\ClaesenGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive', $guide);
-        $this->assertSame(1, substr_count($guide, 'data-copy-path'));
-        $this->assertStringNotContainsString('BertelsGedeeld', $guide);
+        $this->assertStringContainsString('\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive', $guide);
+        $this->assertStringContainsString('\\\\RSBertels\\ClaesenGedeeld\\Projecten\\Automation\\_ETS6_Claesen_ProjectArchive', $guide);
+        $this->assertSame(2, substr_count($guide, 'data-copy-path'));
+        $this->assertStringNotContainsString('\\\\RSBertels\\ClaesenGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive', $guide);
+    }
+
+    public function test_both_panels_render_the_exact_same_network_folders_markup(): void
+    {
+        $bertelsGuide = $this->guideMarkup(
+            $this->actingAs($this->userWithRole('super_admin'))->get(self::BERTELS_GUIDE)->getContent()
+        );
+        $claesenGuide = $this->guideMarkup(
+            $this->actingAs($this->userWithRole('super_admin'))->get(self::ADMIN_GUIDE)->getContent()
+        );
+
+        $extractFolders = function (string $guide): string {
+            $start = strpos($guide, 'ets6-guide__folders');
+            $this->assertNotFalse($start, 'Network folders list is missing.');
+
+            $end = strpos($guide, '</ul>', $start);
+            $this->assertNotFalse($end, 'Network folders list is not closed.');
+
+            return substr($guide, $start, $end - $start);
+        };
+
+        $this->assertSame($extractFolders($bertelsGuide), $extractFolders($claesenGuide));
     }
 
     /** @var list<string> */
@@ -181,15 +210,21 @@ final class GuidesAndProceduresTest extends TestCase
         }
     }
 
-    public function test_the_claesen_guide_carries_the_audited_ets6_wording_without_a_linked_folder_step(): void
+    /**
+     * CLA-641 pinned that only Bertels got the linked-folder step, because Claesen had no
+     * linked folder to give. CLA-645 unified the folders across both panels (user decision),
+     * so Claesen now carries that step too — with CLA-641's audited wording, which stays the
+     * wording verified against real ETS6 6.4.1 screenshots.
+     */
+    public function test_the_claesen_guide_carries_the_same_audited_ets6_wording(): void
     {
         $response = $this->actingAs($this->userWithRole('super_admin'))->get(self::ADMIN_GUIDE)->assertSuccessful();
 
-        foreach (self::AUDITED_PHRASES as $text) {
+        foreach ([...self::AUDITED_PHRASES, 'Linked Folders → Add Link', 'add it once with'] as $text) {
             $response->assertSee($text);
         }
 
-        foreach ([...self::REMOVED_PHRASES, 'add it once with'] as $text) {
+        foreach (self::REMOVED_PHRASES as $text) {
             $response->assertDontSee($text);
         }
     }

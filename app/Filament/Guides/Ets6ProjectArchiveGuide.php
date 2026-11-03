@@ -98,33 +98,28 @@ class Ets6ProjectArchiveGuide extends Page
     }
 
     /**
-     * The folders this panel's team copies into ETS6. UNC paths on purpose: drive letters differ per PC.
-     * Claesen has no linked folder (none was given), so its list is only the Project Archive.
+     * The folders the team copies into ETS6. UNC paths on purpose: drive letters differ per PC.
+     *
+     * CLA-645: identical on both panels (user decision) — both companies work out of the same
+     * Project Archive share, with Electro Bertels' own Linked folder for Claesen's projects. The
+     * former per-panel paths were wrong: Bertels' Linked folder routed through BertelsGedeeld
+     * instead of ClaesenGedeeld, and Claesen's guide pointed at a separate, now-unused
+     * ClaesenGedeeld Project Archive path.
      *
      * @return list<array{label: string, location: string, path: string}>
      */
     public static function networkFolders(): array
     {
-        if (static::isBertels()) {
-            return [
-                [
-                    'label' => 'Project Archive',
-                    'location' => 'Settings → Data Storage → Project Archive',
-                    'path' => '\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive',
-                ],
-                [
-                    'label' => 'Linked folder',
-                    'location' => 'Settings → Data Storage → Linked Folders → Add Link',
-                    'path' => '\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_Claesen_ProjectArchive',
-                ],
-            ];
-        }
-
         return [
             [
                 'label' => 'Project Archive',
                 'location' => 'Settings → Data Storage → Project Archive',
-                'path' => '\\\\RSBertels\\ClaesenGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive',
+                'path' => '\\\\RSBertels\\BertelsGedeeld\\Projecten\\Automation\\_ETS6_ProjectArchive',
+            ],
+            [
+                'label' => 'Linked folder',
+                'location' => 'Settings → Data Storage → Linked Folders → Add Link',
+                'path' => '\\\\RSBertels\\ClaesenGedeeld\\Projecten\\Automation\\_ETS6_Claesen_ProjectArchive',
             ],
         ];
     }
