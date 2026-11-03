@@ -14,4 +14,5 @@ return [
     ],
     'switch_to_bertels' => 'Passer à Electro Bertels',
     'switch_to_claesen' => 'Passer à Claesen',
+    'organization_selector_label' => 'Changer d’entreprise (actuellement :organization)',
 ];

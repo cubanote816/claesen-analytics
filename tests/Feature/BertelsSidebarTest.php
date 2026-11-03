@@ -62,12 +62,11 @@ final class BertelsSidebarTest extends TestCase
 
         $this->assertCount(4, $groupMarkers);
 
-        // Top-level items first (reference: Dashboard, KNX, Switch to Claesen), then the groups.
+        // Top-level items first (Dashboard, KNX), then the groups; panel switching moved to the topbar (CLA-644).
         $response->assertSeeInOrder([
             'fi-sidebar-nav',
             __('filament-panels::pages/dashboard.title'),
             __('navigation.knx'),
-            __('navigation.switch_to_claesen'),
             ...$groupMarkers,
         ], escape: false);
 
