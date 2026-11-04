@@ -1,19 +1,17 @@
 <?php
 
 return [
-    'other_panel' => [
-        'hint' => 'Do you belong to :company?',
-        'link' => 'Sign in through your own company\'s panel',
-    ],
     'divider_or' => 'OR',
     'microsoft_login' => 'Sign in with Microsoft',
     // CLA-601: dual-brand login copy. Claesen and Electro Bertels are two
-    // separate trades sharing this one backoffice: the headline/intro name the
-    // shared platform and one card per trade names what each company does.
+    // separate trades sharing this one backoffice: one card per trade names what each
+    // company does. CLA-646: the headline/intro no longer name the companies by trade
+    // (that read as "pick a portal"); they tell anyone with a corporate email, from
+    // either company, to sign in right here.
     'brand_logo_claesen_alt' => 'Claesen Outdoor Lighting',
     'brand_logo_bertels_alt' => 'Electro Bertels',
-    'brand_headline' => 'Two trades, one shared backoffice',
-    'brand_intro' => 'Sports lighting and electrical installations — one shared backoffice for both companies.',
+    'brand_headline' => 'Sign in with your corporate email',
+    'brand_intro' => 'One portal for Claesen and Electro Bertels — use your corporate email, whichever company you work with.',
     'brand_company_claesen' => 'Claesen',
     'brand_company_claesen_desc' => 'Outdoor & stadium sports lighting, every level',
     'brand_company_bertels' => 'Electro Bertels',

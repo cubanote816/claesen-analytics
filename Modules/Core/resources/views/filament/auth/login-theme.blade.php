@@ -473,13 +473,14 @@
         background-color: var(--auth-primary-hover) !important;
     }
 
-    /* Divider + Microsoft button (microsoft-login-button.blade.php).
-       The grid gap between blocks is 28px; the design wants 20px inside the actions group. */
+    /* Divider + Microsoft button (microsoft-login-button.blade.php). CLA-646: renders BEFORE
+       the form now, so the 8px overlap closes the gap toward what's below it (the form),
+       not above. The grid gap between blocks is 28px; the design wants 20px inside the group. */
     .cafca-login-alt {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        margin-top: -8px;
+        margin-bottom: -8px;
     }
 
     .cafca-login-divider {
@@ -527,24 +528,6 @@
 
     .cafca-login-microsoft svg {
         flex: none;
-    }
-
-    /* "Do you belong to the other company?" hint (other-panel-hint.blade.php) */
-    .cafca-login-other-panel {
-        margin: 0;
-        text-align: center;
-        font-size: 14px;
-        line-height: 1.5;
-        color: var(--auth-ink-2);
-    }
-
-    .cafca-login-other-panel a {
-        display: inline-flex;
-        align-items: center;
-        min-height: 44px;
-        font-weight: 600;
-        color: var(--auth-primary);
-        text-decoration: underline;
     }
 
     /* ---------- Forgot password (password-reset-request.blade.php) ---------- */

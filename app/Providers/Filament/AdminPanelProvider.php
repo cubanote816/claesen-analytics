@@ -49,21 +49,20 @@ class AdminPanelProvider extends PanelProvider
                 static fn(): string => view('core::filament.auth.login-alerts')->render(),
             );
 
+            // CLA-646: Microsoft is the team's usual sign-in method, so it renders BEFORE the
+            // email/password form (login-alerts, registered above, stays first so a failed-login
+            // banner is always on top). Global hook: one registration covers both panels.
             FilamentView::registerRenderHook(
-                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
                 static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
 
-            // CLA-611: el aviso de «este no es tu panel». Sólo en la pantalla de login (no en
-            // reseteo de contraseña ni en el desafío de MFA) y en los dos paneles, porque el
-            // hook es global. Explica lo que hoy no explica nadie: que un usuario de la otra
-            // empresa no puede entrar aquí, en vez de devolverlo al formulario en silencio.
-            FilamentView::registerRenderHook(
-                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
-                static fn(): string => request()?->routeIs('filament.*.auth.login')
-                    ? view('core::filament.auth.other-panel-hint')->render()
-                    : '',
-            );
+            // CLA-646: the static «wrong panel?» hint (CLA-611) was removed. RedirectToAccessiblePanel
+            // (bound as the login LoginResponse) already handles the case it existed for: valid
+            // credentials on the wrong panel are authenticated and silently redirected to the right
+            // one, with or without MFA. The static hint only added doubt to every correct-panel
+            // visitor, which is what this ticket's headline change set out to remove. Do not re-add it
+            // without re-checking whether RedirectToAccessiblePanel still covers the failure mode.
 
             // CLA-603 — split-screen login from the approved mockup (now the dual-brand
             // two-panel auth layout of odd/tasks/backoffice-auth-redesign.md). Registered

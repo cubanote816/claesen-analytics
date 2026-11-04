@@ -70,8 +70,8 @@ final class AuthLayoutSignInTest extends TestCase
         $response->assertOk();
 
         foreach ([
-            'Two trades, one shared backoffice',
-            'Sports lighting and electrical installations — one shared backoffice for both companies.',
+            'Sign in with your corporate email',
+            'One portal for Claesen and Electro Bertels — use your corporate email, whichever company you work with.',
             'Outdoor & stadium sports lighting, every level',
             'Electrical installations & home automation for homes, businesses and industry',
             'Sign in',
@@ -83,6 +83,15 @@ final class AuthLayoutSignInTest extends TestCase
         ] as $text) {
             $response->assertSeeText($text);
         }
+
+        // CLA-646: Microsoft is the team's usual sign-in method, so it renders before the
+        // email/password form, not after it.
+        $html = $response->getContent();
+        $this->assertLessThan(
+            strpos($html, 'type="email"'),
+            strpos($html, 'cafca-login-microsoft'),
+            'the Microsoft button must render before the email field',
+        );
 
         // Brand logos: the existing transparent assets, with descriptive alt text.
         $response->assertSee('img/claesen-logo-login.png', false);
@@ -123,10 +132,10 @@ final class AuthLayoutSignInTest extends TestCase
         $response = $this->withHeaders(['Accept-Language' => 'nl'])->get('/login');
 
         $response->assertOk();
-        $response->assertSeeText('Twee vakgebieden, één gedeeld backoffice');
+        $response->assertSeeText('Meld je aan met je bedrijfsmail');
         $response->assertSeeText('Aanmelden met Microsoft');
         $response->assertSeeText('Wachtwoord vergeten?');
-        $response->assertDontSeeText('Two trades, one shared backoffice');
+        $response->assertDontSeeText('Sign in with your corporate email');
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('panelLogins')]
