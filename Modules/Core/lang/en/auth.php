@@ -1,24 +1,17 @@
 <?php
 
 return [
-    'divider_or' => 'OR',
+    // CLA-647: a short phrase now, not a single word ("OR") — Microsoft comes first, this is
+    // the transition into the password form below it.
+    'divider_or' => 'or sign in with email and password',
     'microsoft_login' => 'Sign in with Microsoft',
-    // CLA-601: dual-brand login copy. Claesen and Electro Bertels are two
-    // separate trades sharing this one backoffice: one card per trade names what each
-    // company does. CLA-646: the headline/intro no longer name the companies by trade
-    // (that read as "pick a portal"); they tell anyone with a corporate email, from
-    // either company, to sign in right here.
+    // CLA-601: dual-brand login copy, both companies, one backoffice. CLA-647: the two
+    // per-company cards and the lead paragraph are gone — one headline says it all.
     'brand_logo_claesen_alt' => 'Claesen Outdoor Lighting',
     'brand_logo_bertels_alt' => 'Electro Bertels',
-    'brand_headline' => 'Sign in with your corporate email',
-    'brand_intro' => 'One portal for Claesen and Electro Bertels — use your corporate email, whichever company you work with.',
-    'brand_company_claesen' => 'Claesen',
-    'brand_company_claesen_desc' => 'Outdoor & stadium sports lighting, every level',
-    'brand_company_bertels' => 'Electro Bertels',
-    'brand_company_bertels_desc' => 'Electrical installations & home automation for homes, businesses and industry',
+    'brand_headline' => 'Staff portal for Claesen and Electro Bertels',
     'brand_footer' => '© :year · All rights reserved',
     'heading' => 'Sign in',
-    'subheading' => 'Welcome back. Enter your details to continue.',
     'email_placeholder' => 'you@company.com',
     'password_placeholder' => 'Enter your password',
     'remember' => 'Remember me for 30 days',

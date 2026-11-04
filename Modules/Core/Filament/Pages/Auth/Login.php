@@ -61,11 +61,14 @@ class Login extends BaseLogin
             : __('core::auth.heading');
     }
 
+    /** CLA-647: "Welcome back. Enter your details to continue." added no instruction the
+     *  heading, fields and labels didn't already give — dropped for the sign-in step. The MFA
+     *  challenge step keeps Filament's own subheading (its code-entry instructions). */
     public function getSubheading(): string|\Illuminate\Contracts\Support\Htmlable|null
     {
         return filled($this->userUndertakingMultiFactorAuthentication)
             ? parent::getSubheading()
-            : __('core::auth.subheading');
+            : null;
     }
 
     protected function getEmailFormComponent(): \Filament\Schemas\Components\Component

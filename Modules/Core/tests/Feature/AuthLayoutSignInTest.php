@@ -70,28 +70,32 @@ final class AuthLayoutSignInTest extends TestCase
         $response->assertOk();
 
         foreach ([
-            'Sign in with your corporate email',
-            'One portal for Claesen and Electro Bertels — use your corporate email, whichever company you work with.',
-            'Outdoor & stadium sports lighting, every level',
-            'Electrical installations & home automation for homes, businesses and industry',
+            'Staff portal for Claesen and Electro Bertels',
             'Sign in',
-            'Welcome back. Enter your details to continue.',
             'Remember me for 30 days',
             'Forgot password?',
             'Sign in with Microsoft',
+            'or sign in with email and password',
             '© '.now()->year.' · All rights reserved',
         ] as $text) {
             $response->assertSeeText($text);
         }
 
-        // CLA-646: Microsoft is the team's usual sign-in method, so it renders before the
-        // email/password form, not after it.
+        // CLA-646/647: Microsoft is the team's usual sign-in method — it renders before the
+        // email/password form, and the "or sign in with email and password" transition sits
+        // between them.
         $html = $response->getContent();
-        $this->assertLessThan(
-            strpos($html, 'type="email"'),
-            strpos($html, 'cafca-login-microsoft'),
-            'the Microsoft button must render before the email field',
-        );
+        $microsoftPos = strpos($html, 'cafca-login-microsoft');
+        $dividerPos = strpos($html, 'or sign in with email and password');
+        $emailPos = strpos($html, 'type="email"');
+
+        $this->assertLessThan($dividerPos, $microsoftPos, 'the Microsoft button must render before the divider');
+        $this->assertLessThan($emailPos, $dividerPos, 'the divider must render before the email field');
+
+        // CLA-647: the "Welcome back..." subheading and the two company cards are gone.
+        $response->assertDontSeeText('Welcome back. Enter your details to continue.');
+        $response->assertDontSeeText('Outdoor & stadium sports lighting, every level');
+        $response->assertDontSeeText('Electrical installations & home automation for homes, businesses and industry');
 
         // Brand logos: the existing transparent assets, with descriptive alt text.
         $response->assertSee('img/claesen-logo-login.png', false);
@@ -132,10 +136,11 @@ final class AuthLayoutSignInTest extends TestCase
         $response = $this->withHeaders(['Accept-Language' => 'nl'])->get('/login');
 
         $response->assertOk();
-        $response->assertSeeText('Meld je aan met je bedrijfsmail');
+        $response->assertSeeText('Personeelsportaal van Claesen en Electro Bertels');
         $response->assertSeeText('Aanmelden met Microsoft');
+        $response->assertSeeText('of meld je aan met e-mail en wachtwoord');
         $response->assertSeeText('Wachtwoord vergeten?');
-        $response->assertDontSeeText('Sign in with your corporate email');
+        $response->assertDontSeeText('Staff portal for Claesen and Electro Bertels');
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('panelLogins')]
