@@ -1,23 +1,14 @@
 <?php
 
 return [
-    'other_panel' => [
-        'hint' => 'Hoor je bij :company?',
-        'link' => 'Meld je aan via het panel van je eigen bedrijf',
-    ],
-    'divider_or' => 'OF',
+    'divider_or' => 'of meld je aan met e-mail en wachtwoord',
     'microsoft_login' => 'Aanmelden met Microsoft',
     'brand_logo_claesen_alt' => 'Claesen Outdoor Lighting',
     'brand_logo_bertels_alt' => 'Electro Bertels',
-    'brand_headline' => 'Twee vakgebieden, één gedeeld backoffice',
-    'brand_intro' => 'Sportverlichting en elektrische installaties — één gedeeld backoffice voor beide bedrijven.',
-    'brand_company_claesen' => 'Claesen',
-    'brand_company_claesen_desc' => 'Buiten- en stadionverlichting voor sport, op elk niveau',
-    'brand_company_bertels' => 'Electro Bertels',
-    'brand_company_bertels_desc' => 'Elektrische installaties & domotica voor woning, bedrijf en industrie',
+    'brand_headline' => 'Personeelsportaal',
+    'brand_headline_detail' => 'van Claesen en Electro Bertels',
     'brand_footer' => '© :year · Alle rechten voorbehouden',
     'heading' => 'Aanmelden',
-    'subheading' => 'Welkom terug. Vul je gegevens in om verder te gaan.',
     'email_placeholder' => 'jij@bedrijf.be',
     'password_placeholder' => 'Vul je wachtwoord in',
     'remember' => 'Onthoud mij 30 dagen',

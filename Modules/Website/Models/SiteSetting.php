@@ -86,9 +86,9 @@ class SiteSetting extends Model
      * second site today even with enforcement off).
      *
      * CLA-522 pattern, applied here for the same reason: this app's real
-     * cache store is 'database' (config/cache.php's serializable_classes
-     * => false, a Laravel 13 default) and unserialize()s with
-     * allowed_classes => false, which can never reconstruct an Eloquent
+     * cache store is 'database' and unserialize()s with a narrow
+     * allowed_classes list (config/cache.php's serializable_classes, dates
+     * only since CLA-649), which can never reconstruct an Eloquent
      * Collection — Cache::remember()-ing one directly comes back as
      * __PHP_Incomplete_Class on the very next request. Caching the plain
      * array form and rehydrating to a real Collection on read survives

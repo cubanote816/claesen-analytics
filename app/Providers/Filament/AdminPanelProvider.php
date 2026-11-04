@@ -49,21 +49,20 @@ class AdminPanelProvider extends PanelProvider
                 static fn(): string => view('core::filament.auth.login-alerts')->render(),
             );
 
+            // CLA-646: Microsoft is the team's usual sign-in method, so it renders BEFORE the
+            // email/password form (login-alerts, registered above, stays first so a failed-login
+            // banner is always on top). Global hook: one registration covers both panels.
             FilamentView::registerRenderHook(
-                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
                 static fn(): string => view('core::filament.auth.microsoft-login-button')->render(),
             );
 
-            // CLA-611: el aviso de «este no es tu panel». Sólo en la pantalla de login (no en
-            // reseteo de contraseña ni en el desafío de MFA) y en los dos paneles, porque el
-            // hook es global. Explica lo que hoy no explica nadie: que un usuario de la otra
-            // empresa no puede entrar aquí, en vez de devolverlo al formulario en silencio.
-            FilamentView::registerRenderHook(
-                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
-                static fn(): string => request()?->routeIs('filament.*.auth.login')
-                    ? view('core::filament.auth.other-panel-hint')->render()
-                    : '',
-            );
+            // CLA-646: the static «wrong panel?» hint (CLA-611) was removed. RedirectToAccessiblePanel
+            // (bound as the login LoginResponse) already handles the case it existed for: valid
+            // credentials on the wrong panel are authenticated and silently redirected to the right
+            // one, with or without MFA. The static hint only added doubt to every correct-panel
+            // visitor, which is what this ticket's headline change set out to remove. Do not re-add it
+            // without re-checking whether RedirectToAccessiblePanel still covers the failure mode.
 
             // CLA-603 — split-screen login from the approved mockup (now the dual-brand
             // two-panel auth layout of odd/tasks/backoffice-auth-redesign.md). Registered
@@ -270,6 +269,11 @@ HTML
             ->font('Outfit')
             ->sidebarCollapsibleOnDesktop()
             ->collapsibleNavigationGroups()
+            // CLA-643: compact sidebar density, shared with the bertels panel (DESIGN.md).
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => view('filament.shared.sidebar-density')->render(),
+            )
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): string => view('core::filament.organization-indicator')->render(),
@@ -372,15 +376,8 @@ HTML
                     ->icon('heroicon-o-shield-check')
                     ->group(fn () => __('navigation.groups.content_website'))
                     ->sort(11),
-                // F1/P4+P6 (CLA-460 cont.): audited panel-switch selector.
-                // Ungrouped on purpose — a cross-cutting super_admin action,
-                // not Website content. No real Bertels user exists yet (D10),
-                // so this stays gated to super_admin until P5/P7.
-                NavigationItem::make(fn () => __('navigation.switch_to_bertels'))
-                    ->url(fn () => route('core.switch-panel', ['panel' => 'bertels', 'from' => 'admin']))
-                    ->icon('heroicon-o-building-office-2')
-                    ->visible(fn () => auth()->user()?->hasRole('super_admin'))
-                    ->sort(100),
+                // CLA-644: switching panels lives in the company selector in the topbar,
+                // not among navigation items. The audited route and guard are unchanged.
             ]);
     }
 }

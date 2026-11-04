@@ -12,10 +12,11 @@
     used only by a view are never generated here (CLAUDE.md rule 11).
 
     COLOURS ONLY: every dimension and typography value (sidebar width, item height/padding/gap,
-    label / group / badge sizes, icon size, logo height, font family, page spacing) is Filament's
-    own default, the same one the Claesen admin panel gets, so switching panels causes no visual
-    jump (DESIGN.md). Do not add sizes here; change them on the panel (->sidebarWidth(), ->font(),
-    ->brandLogoHeight()).
+    label / group / badge sizes, icon size, logo height, font family, page spacing) is the one the
+    Claesen admin panel gets too (Filament's defaults plus the shared `sidebar-density` style both
+    panels hook, CLA-643), so switching panels causes no visual jump (DESIGN.md). Do not add sizes
+    here; change them on the panel (->sidebarWidth(), ->font(), ->brandLogoHeight()) or in
+    `filament/shared/sidebar-density.blade.php`.
 
     The sidebar is dark in BOTH colour modes, like the reference, so no rule has a `.dark` variant
     (except the 1px divider that mirrors Claesen's). Contrast (WCAG): text #e8e6e3 on #262628

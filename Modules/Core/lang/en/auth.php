@@ -1,26 +1,22 @@
 <?php
 
 return [
-    'other_panel' => [
-        'hint' => 'Do you belong to :company?',
-        'link' => 'Sign in through your own company\'s panel',
-    ],
-    'divider_or' => 'OR',
+    // CLA-647: a short phrase now, not a single word ("OR") — Microsoft comes first, this is
+    // the transition into the password form below it.
+    'divider_or' => 'or sign in with email and password',
     'microsoft_login' => 'Sign in with Microsoft',
-    // CLA-601: dual-brand login copy. Claesen and Electro Bertels are two
-    // separate trades sharing this one backoffice: the headline/intro name the
-    // shared platform and one card per trade names what each company does.
+    // CLA-601: dual-brand login copy, both companies, one backoffice. CLA-647: the two
+    // per-company cards and the lead paragraph are gone — one headline says it all.
     'brand_logo_claesen_alt' => 'Claesen Outdoor Lighting',
     'brand_logo_bertels_alt' => 'Electro Bertels',
-    'brand_headline' => 'Two trades, one shared backoffice',
-    'brand_intro' => 'Sports lighting and electrical installations — one shared backoffice for both companies.',
-    'brand_company_claesen' => 'Claesen',
-    'brand_company_claesen_desc' => 'Outdoor & stadium sports lighting, every level',
-    'brand_company_bertels' => 'Electro Bertels',
-    'brand_company_bertels_desc' => 'Electrical installations & home automation for homes, businesses and industry',
+    // CLA-647 (follow-up): split into two lines of different weight — a single-size,
+    // single-weight headline let both company names dominate the screen and compete
+    // with the form's own "Sign in". "Staff portal" stays the big line; who it's for
+    // is a smaller line right under it, inside the same <h1> (one heading, read together).
+    'brand_headline' => 'Staff portal',
+    'brand_headline_detail' => 'for Claesen and Electro Bertels',
     'brand_footer' => '© :year · All rights reserved',
     'heading' => 'Sign in',
-    'subheading' => 'Welcome back. Enter your details to continue.',
     'email_placeholder' => 'you@company.com',
     'password_placeholder' => 'Enter your password',
     'remember' => 'Remember me for 30 days',

@@ -111,6 +111,11 @@ class BertelsPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn (): string => view('filament.bertels.sidebar-theme')->render(),
             )
+            // CLA-643: compact sidebar density, shared with the admin panel (DESIGN.md).
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => view('filament.shared.sidebar-density')->render(),
+            )
             // Page-header spacing the Claesen Vite theme gives the shared header override (bertels has no theme).
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
@@ -153,10 +158,7 @@ class BertelsPanelProvider extends PanelProvider
                     // Sin esto, el cliente vería la entrada a una app de personal. La
                     // ruta vuelve a comprobarlo; aquí solo se evita ofrecérsela.
                     ->visible(fn (): bool => (bool) config('knx.enabled') && (bool) auth()->user()?->canOpenKnxOffice()),
-                NavigationItem::make(fn () => __('navigation.switch_to_claesen'))
-                    ->url(fn () => route('core.switch-panel', ['panel' => 'admin', 'from' => 'bertels']))
-                    ->icon('heroicon-o-arrow-uturn-left')
-                    ->visible(fn () => auth()->user()?->hasRole('super_admin')),
+                // CLA-644: switching panels lives in the company selector in the topbar.
             ])
             ->middleware([
                 EncryptCookies::class,

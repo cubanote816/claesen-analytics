@@ -62,12 +62,11 @@ final class BertelsSidebarTest extends TestCase
 
         $this->assertCount(4, $groupMarkers);
 
-        // Top-level items first (reference: Dashboard, KNX, Switch to Claesen), then the groups.
+        // Top-level items first (Dashboard, KNX), then the groups; panel switching moved to the topbar (CLA-644).
         $response->assertSeeInOrder([
             'fi-sidebar-nav',
             __('filament-panels::pages/dashboard.title'),
             __('navigation.knx'),
-            __('navigation.switch_to_claesen'),
             ...$groupMarkers,
         ], escape: false);
 
@@ -79,7 +78,8 @@ final class BertelsSidebarTest extends TestCase
 
         // No leftover "Content & Website" parent group or nested sub-group.
         $response->assertDontSee('data-group-label="' . e(__('navigation.groups.content_website')) . '"', escape: false);
-        $response->assertDontSee('fi-sidebar-sub-group-items', escape: false);
+        // Markup only: the shared sidebar-density <style> names the class in a selector (CLA-643).
+        $response->assertDontSee('class="fi-sidebar-sub-group-items"', escape: false);
     }
 
     public function test_the_bertels_sidebar_style_hook_is_present_and_the_width_is_the_admin_width(): void

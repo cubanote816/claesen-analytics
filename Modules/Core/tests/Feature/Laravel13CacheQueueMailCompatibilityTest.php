@@ -14,15 +14,30 @@ use Tests\TestCase;
 /**
  * CLA-522 — certifica los subsistemas operativos (cache / queue / scheduler /
  * mail) bajo Laravel 13 + Symfony 8. El unico cambio de comportamiento real es
- * cache.serializable_classes => false (CLA-519), cuyo impacto se corrigio en
- * EmployeeDashboardRankingService (ver EmployeeRankingsTest).
+ * cache.serializable_classes (CLA-519), cuyo impacto se corrigio en
+ * EmployeeDashboardRankingService (ver EmployeeRankingsTest). CLA-649 lo paso de
+ * `false` a una allow-list de solo fechas: sigue sin admitir clases de aplicacion.
  */
 class Laravel13CacheQueueMailCompatibilityTest extends TestCase
 {
+    /**
+     * App cache payloads stay scalar/array. The only objects that may come back are dates
+     * (CLA-649, for Filament's email MFA): whatever is on the list has to be a date type,
+     * so no model, DTO or other application class can ever be rebuilt from the cache.
+     */
     public function test_cache_serialization_is_locked_down(): void
     {
-        // Laravel 13 skeleton default; app cache payloads must be scalar/array.
-        $this->assertFalse(config('cache.serializable_classes'));
+        $allowed = config('cache.serializable_classes');
+
+        $this->assertIsArray($allowed);
+        $this->assertNotEmpty($allowed);
+
+        foreach ($allowed as $class) {
+            $this->assertTrue(
+                is_a($class, \DateTimeInterface::class, true) || $class === \DateTimeZone::class,
+                "[{$class}] is not a date type and must not be unserializable from the cache.",
+            );
+        }
     }
 
     public function test_the_scheduler_has_no_duplicate_command_entries(): void

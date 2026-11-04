@@ -27,7 +27,10 @@ class ProspectFactory extends Factory
             ProspectLocation::create([
                 'prospect_id'  => $prospect->id,
                 'contact_type' => 'headquarters',
-                'email'        => fake()->safeEmail(),
+                // CLA-651: the column is uniquely indexed and faker's safeEmail pool is
+                // small, so a long suite eventually repeats one and the run dies on a
+                // duplicate key that has nothing to do with the test being written.
+                'email'        => fake()->unique()->safeEmail(),
             ]);
         });
     }

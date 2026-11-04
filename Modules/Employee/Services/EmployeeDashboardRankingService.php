@@ -31,9 +31,10 @@ class EmployeeDashboardRankingService implements EmployeeRankingContract
             $ttl     = $this->cacheTtl($endDate);
             $cacheKey = 'employee.rankings.' . md5($startDate . $endDate);
 
-            // Cache the array form, not the Collection: Laravel 13's
-            // cache.serializable_classes => false makes DatabaseStore reject any
-            // object on read (__PHP_Incomplete_Class). ->toArray() flattens the
+            // Cache the array form, not the Collection: cache.serializable_classes
+            // allows only date classes (CLA-519, widened for dates in CLA-649), so
+            // DatabaseStore returns any other object as __PHP_Incomplete_Class on
+            // read. ->toArray() flattens the
             // nested `rankings` Collection too, so the payload is a pure array.
             $payload = Cache::remember(
                 $cacheKey,

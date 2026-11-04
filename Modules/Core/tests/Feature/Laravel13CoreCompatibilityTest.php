@@ -18,9 +18,25 @@ class Laravel13CoreCompatibilityTest extends TestCase
         $this->assertSame('13', explode('.', $this->app->version())[0]);
     }
 
+    /**
+     * CLA-519 set this to `false` (no class at all). CLA-649 had to widen it: Filament's
+     * email MFA caches an `expiresAt` Carbon and rejects every code when it comes back as
+     * `__PHP_Incomplete_Class`. It stays an allow-list, and only dates are on it.
+     *
+     * The list is pinned exactly on purpose — adding a class here decides what may be
+     * rebuilt from cache storage, so it should never pass unnoticed.
+     */
     public function test_laravel_13_security_configuration_is_explicit(): void
     {
-        $this->assertFalse(config('cache.serializable_classes'));
+        $this->assertSame([
+            \DateTime::class,
+            \DateTimeImmutable::class,
+            \DateTimeZone::class,
+            \Carbon\Carbon::class,
+            \Carbon\CarbonImmutable::class,
+            \Illuminate\Support\Carbon::class,
+        ], config('cache.serializable_classes'));
+
         $this->assertSame('php', config('session.serialization'));
     }
 

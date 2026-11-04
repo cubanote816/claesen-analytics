@@ -1,5 +1,6 @@
 <?php
 
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 
 return [
@@ -119,11 +120,26 @@ return [
     | Serializable Classes
     |--------------------------------------------------------------------------
     |
-    | No PHP classes may be unserialized from cache storage. Application cache
-    | entries use scalar or array payloads, so an allow-list is not required.
+    | Which PHP classes may be unserialized back out of cache storage. This stays
+    | a deliberate allow-list: anything absent returns as __PHP_Incomplete_Class,
+    | so the cache is not a general object-injection surface (CLA-519).
+    |
+    | Dates are on the list because they are not optional (CLA-649). Filament's
+    | email MFA caches ['hash' => string, 'expiresAt' => Carbon] and its
+    | verifyCode() requires that value to be a DateTimeInterface on the way out.
+    | With `false` it came back incomplete and EVERY code was rejected, which only
+    | the database store shows: phpunit.xml runs on the array store, which does not
+    | serialize and therefore cannot observe it. See CacheSerializableClassesTest.
     |
     */
 
-    'serializable_classes' => false,
+    'serializable_classes' => [
+        DateTime::class,
+        DateTimeImmutable::class,
+        DateTimeZone::class,
+        Carbon\Carbon::class,
+        CarbonImmutable::class,
+        Illuminate\Support\Carbon::class,
+    ],
 
 ];

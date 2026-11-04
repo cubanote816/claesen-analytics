@@ -75,7 +75,6 @@
     /* ---------- Left brand panel ---------- */
     .cafca-login-brand {
         position: relative;
-        overflow: hidden;
         flex: 1 1 560px;
         min-width: 0;
         box-sizing: border-box;
@@ -93,11 +92,18 @@
         background-size: auto, 48px 48px, 48px 48px;
     }
 
+    /* CLA-647: this wrapper (not the panel) clips the rings — see brand-panel.blade.php. */
+    .cafca-login-brand__clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
     .cafca-login-brand__rings {
         position: absolute;
         right: -240px;
         bottom: -260px;
-        pointer-events: none;
     }
 
     .cafca-login-brand__logos {
@@ -136,55 +142,20 @@
         line-height: 1.08;
         letter-spacing: -.02em;
         text-wrap: balance;
+        text-align: left;
     }
 
-    .cafca-login-brand__lead {
-        margin: 16px 0 0;
-        font-size: 17px;
-        line-height: 1.6;
-        color: var(--auth-brand-text);
-        text-wrap: pretty;
-    }
-
-    .cafca-login-brand__companies {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-
-    .cafca-login-brand__company {
-        display: flex;
-        align-items: flex-start;
-        gap: 16px;
-        padding: 18px 20px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, .045);
-        border: 1px solid rgba(255, 255, 255, .10);
-    }
-
-    .cafca-login-brand__dot {
-        flex: none;
-        width: 10px;
-        height: 10px;
-        margin-top: 7px;
-        border-radius: 50%;
-    }
-
-    .cafca-login-brand__company-name {
+    /* CLA-647 (follow-up): the "who it's for" line, lighter and smaller than the headline
+       above it so the two company names stop competing with it and with the form's own
+       "Sign in" — body font and the same muted tone the lead paragraph used to use. */
+    .cafca-login-brand__title-detail {
         display: block;
-        margin-bottom: 4px;
-        font-family: var(--auth-font-display);
-        font-weight: 600;
-        font-size: 16px;
-    }
-
-    .cafca-login-brand__company-desc {
-        display: block;
-        font-size: 15px;
-        line-height: 1.5;
+        margin-top: 8px;
+        font-family: var(--auth-font-body);
+        font-weight: 500;
+        font-size: 22px;
+        line-height: 1.3;
+        letter-spacing: normal;
         color: var(--auth-brand-text);
     }
 
@@ -473,13 +444,14 @@
         background-color: var(--auth-primary-hover) !important;
     }
 
-    /* Divider + Microsoft button (microsoft-login-button.blade.php).
-       The grid gap between blocks is 28px; the design wants 20px inside the actions group. */
+    /* Divider + Microsoft button (microsoft-login-button.blade.php). CLA-646: renders BEFORE
+       the form now, so the 8px overlap closes the gap toward what's below it (the form),
+       not above. The grid gap between blocks is 28px; the design wants 20px inside the group. */
     .cafca-login-alt {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        margin-top: -8px;
+        margin-bottom: -8px;
     }
 
     .cafca-login-divider {
@@ -496,11 +468,11 @@
         background: var(--auth-divider);
     }
 
+    /* CLA-647: the label is now a short phrase ("or use your password"), not a single
+       word ("OR") — sentence case reads better than shouting a whole phrase in caps. */
     .cafca-login-divider__label {
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: .08em;
-        text-transform: uppercase;
+        font-size: 13px;
+        font-weight: 500;
         color: #5A6779;
     }
 
@@ -527,24 +499,6 @@
 
     .cafca-login-microsoft svg {
         flex: none;
-    }
-
-    /* "Do you belong to the other company?" hint (other-panel-hint.blade.php) */
-    .cafca-login-other-panel {
-        margin: 0;
-        text-align: center;
-        font-size: 14px;
-        line-height: 1.5;
-        color: var(--auth-ink-2);
-    }
-
-    .cafca-login-other-panel a {
-        display: inline-flex;
-        align-items: center;
-        min-height: 44px;
-        font-weight: 600;
-        color: var(--auth-primary);
-        text-decoration: underline;
     }
 
     /* ---------- Forgot password (password-reset-request.blade.php) ---------- */
