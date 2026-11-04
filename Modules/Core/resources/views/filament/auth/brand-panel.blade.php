@@ -32,10 +32,14 @@
         <img src="{{ asset('img/bertels-logo-dark.png') }}" alt="{{ __('core::auth.brand_logo_bertels_alt') }}">
     </div>
 
-    {{-- CLA-647: the two company cards and the lead paragraph are gone — the single headline
-         now says what they both did (that this is one staff portal for both companies). --}}
+    {{-- CLA-647: the two company cards and the lead paragraph are gone. One <h1>, two
+         weights: "Staff portal" stays the big line, who it's for is the smaller line
+         right under it — same heading (read together by assistive tech), lighter block. --}}
     <div class="cafca-login-brand__body">
-        <h1 class="cafca-login-brand__title">{{ __('core::auth.brand_headline') }}</h1>
+        <h1 class="cafca-login-brand__title">
+            {{ __('core::auth.brand_headline') }}
+            <span class="cafca-login-brand__title-detail">{{ __('core::auth.brand_headline_detail') }}</span>
+        </h1>
     </div>
 
     <p class="cafca-login-brand__foot">{{ __('core::auth.brand_footer', ['year' => now()->year]) }}</p>

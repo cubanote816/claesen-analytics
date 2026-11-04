@@ -9,7 +9,12 @@ return [
     // per-company cards and the lead paragraph are gone — one headline says it all.
     'brand_logo_claesen_alt' => 'Claesen Outdoor Lighting',
     'brand_logo_bertels_alt' => 'Electro Bertels',
-    'brand_headline' => 'Staff portal for Claesen and Electro Bertels',
+    // CLA-647 (follow-up): split into two lines of different weight — a single-size,
+    // single-weight headline let both company names dominate the screen and compete
+    // with the form's own "Sign in". "Staff portal" stays the big line; who it's for
+    // is a smaller line right under it, inside the same <h1> (one heading, read together).
+    'brand_headline' => 'Staff portal',
+    'brand_headline_detail' => 'for Claesen and Electro Bertels',
     'brand_footer' => '© :year · All rights reserved',
     'heading' => 'Sign in',
     'email_placeholder' => 'you@company.com',

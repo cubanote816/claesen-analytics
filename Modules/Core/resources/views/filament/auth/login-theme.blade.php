@@ -142,6 +142,21 @@
         line-height: 1.08;
         letter-spacing: -.02em;
         text-wrap: balance;
+        text-align: left;
+    }
+
+    /* CLA-647 (follow-up): the "who it's for" line, lighter and smaller than the headline
+       above it so the two company names stop competing with it and with the form's own
+       "Sign in" — body font and the same muted tone the lead paragraph used to use. */
+    .cafca-login-brand__title-detail {
+        display: block;
+        margin-top: 8px;
+        font-family: var(--auth-font-body);
+        font-weight: 500;
+        font-size: 22px;
+        line-height: 1.3;
+        letter-spacing: normal;
+        color: var(--auth-brand-text);
     }
 
     .cafca-login-brand__foot {
