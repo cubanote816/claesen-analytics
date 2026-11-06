@@ -4,6 +4,7 @@ namespace Modules\Mailing\Tests\Feature;
 
 use App\Contracts\MarketingCampaignInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Modules\Mailing\Enums\CampaignStatus;
@@ -311,26 +312,79 @@ class CampaignRunBudgetTest extends TestCase
         $this->assertSame(CampaignStatus::FAILED, Campaign::first()->status);
     }
 
+    /** Deserializes the job as a pre-deploy payload would: without dispatchKey, runId and generation. */
+    private function legacyPayload(ExecuteCampaignJob $job): ExecuteCampaignJob
+    {
+        $payload = preg_replace(
+            '/s:\d+:"(?:dispatchKey|runId|generation)";(?:s:\d+:"[^"]*";|i:\d+;|N;)/',
+            '',
+            serialize($job),
+            -1,
+            $removed
+        );
+        $this->assertSame(3, $removed);
+
+        return unserialize(preg_replace_callback(
+            '/^(O:\d+:"[^"]+":)(\d+)/',
+            fn ($m) => $m[1] . ($m[2] - $removed),
+            $payload
+        ));
+    }
+
     public function test_legacy_queued_payload_without_new_properties_still_runs(): void
     {
         $this->mockMailer(fn () => true);
-        $p      = $this->prospect(['a@example.com']);
-        $legacy = fn () => (new \ReflectionClass(ExecuteCampaignJob::class))->newInstanceWithoutConstructor();
-        $make   = function () use ($legacy, $p) {
-            $job = $legacy();
-            foreach (['prospectIds' => [$p->id], 'templateId' => $this->inlineJob([$p->id])->templateId, 'userId' => null,
-                'description' => null, 'campaignId' => null, 'isWinnerSend' => false, 'overrideProspectIds' => null] as $k => $v) {
-                $job->$k = $v;
-            }
+        $p = $this->prospect(['a@example.com']);
 
-            return $job;
-        };
-
-        $this->handle($make());
-        $make()->failed(new \RuntimeException('legacy'));
+        $this->handle($this->legacyPayload($this->inlineJob([$p->id])));
+        $this->legacyPayload($this->inlineJob([$p->id]))->failed(new \RuntimeException('legacy'));
 
         $this->assertSame(1, Campaign::count());
         $this->assertSame(['a@example.com'], $this->sentTo);
+    }
+
+    public function test_queue_retry_of_a_run_that_already_claimed_its_generation_keeps_sending(): void
+    {
+        config(['mailing.run_budget_seconds' => 3600]);
+        $this->mockMailer(fn () => true);
+        $p       = $this->prospect(['a@example.com', 'b@example.com']);
+        $job     = $this->inlineJob([$p->id]);
+        $failing = true;
+        CampaignMessage::creating(function (CampaignMessage $m) use (&$failing) {
+            if ($failing && $m->email === 'b@example.com') {
+                throw new \RuntimeException('db died');
+            }
+        });
+
+        try {
+            $this->handle($job);
+            $this->fail('expected the run to die');
+        } catch (\RuntimeException) {
+        }
+        $campaign = Campaign::first();
+        $this->assertSame([0, $job->runId], [$campaign->run_generation, $campaign->run_owner]);
+
+        $failing = false;
+        $this->handle($job);
+
+        $this->assertSame(['a@example.com', 'b@example.com', 'b@example.com'], $this->sentTo);
+        $this->assertSame(2, CampaignMessage::where('status', 'sent')->count());
+        $this->assertSame(CampaignStatus::COMPLETED, Campaign::first()->status);
+    }
+
+    public function test_successor_is_published_only_after_the_handover_commits(): void
+    {
+        // The queue fake ignores afterCommit, so use the real database queue driver.
+        config(['mailing.run_budget_seconds' => 0, 'queue.default' => 'database']);
+        $this->mockMailer(fn () => true);
+        $p = $this->prospect(['a@example.com', 'b@example.com']);
+
+        DB::beginTransaction();
+        $this->handle($this->inlineJob([$p->id]));
+        $this->assertSame(0, DB::table('jobs')->count());
+        DB::commit();
+
+        $this->assertSame(1, DB::table('jobs')->count());
     }
 
     public function test_two_successors_of_the_same_generation_never_send_an_address_twice(): void

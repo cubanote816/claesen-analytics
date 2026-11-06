@@ -400,11 +400,19 @@ class ExecuteCampaignJob implements ShouldQueue
         $generation = $this->generation ?? 0;
 
         // Claim: only one run may own a generation; the same runId may re-claim (queue retry).
-        $claimed = $campaign->status === CampaignStatus::SENDING
-            && Campaign::where('id', $campaign->id)
+        // Decide by re-reading the row: MySQL reports 0 affected rows when run_owner already
+        // holds this runId, so the update count cannot tell a retry from a stale run.
+        if ($campaign->status === CampaignStatus::SENDING) {
+            Campaign::where('id', $campaign->id)
                 ->where('run_generation', $generation)
                 ->where(fn ($q) => $q->whereNull('run_owner')->orWhere('run_owner', $this->runId))
-                ->update(['run_owner' => $this->runId]) === 1;
+                ->update(['run_owner' => $this->runId]);
+            $campaign->refresh();
+        }
+
+        $claimed = $campaign->status === CampaignStatus::SENDING
+            && $campaign->run_generation === $generation
+            && $campaign->run_owner === $this->runId;
 
         if (! $claimed) {
             // Handover committed (G+1, unowned) but its successor is not running: re-publish it.
