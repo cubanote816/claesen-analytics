@@ -23,11 +23,11 @@ Production evidence (2026-11-04, campaigns 21-23, failed_job 1191):
 
 | ID | Specs | Route | Commit |
 |----|-------|-------|--------|
-| T1 | S1, S2, S5, S6 | worker, test-first | — (implemented, uncommitted) |
-| T2 | S3, S4 (+ migration) | worker, test-first | — (implemented, uncommitted) |
-| T3 | S7, S8, docs/handoff | worker + parent check | — (S7/S8 implemented; handoff pending) |
-| T4 | S9 (+ S3/S5 retry idempotency of skips and counters) | worker, test-first | — (implemented, uncommitted) |
-| T5 | S10 (verifier findings: timing, replay, stale failed, closed campaign, failed handover) | worker, test-first | — (implemented, uncommitted) |
+| T1 | S1, S2, S5, S6 | worker, test-first | 4933860, f9ba4f6, 2dd11ab, b5cd2eb |
+| T2 | S3, S4 (+ migration) | worker, test-first | 4933860, f9ba4f6, 2dd11ab, b5cd2eb |
+| T3 | S7, S8, docs/handoff | worker + parent check | 4933860, f9ba4f6, 2dd11ab, b5cd2eb |
+| T4 | S9 (+ S3/S5 retry idempotency of skips and counters) | worker, test-first | 4933860, f9ba4f6, 2dd11ab, b5cd2eb |
+| T5 | S10 (verifier findings: timing, replay, stale failed, closed campaign, failed handover) | worker, test-first | 4933860, f9ba4f6, 2dd11ab, b5cd2eb |
 
 ## Log
 
@@ -40,3 +40,4 @@ Production evidence (2026-11-04, campaigns 21-23, failed_job 1191):
 - L7 (2026-11-06): Implemented S10: `run_generation` column (same migration), generation-checked inline runs with atomic handover, generation-scoped `failed()`, closed-campaign exit, job `$timeout` 85, default budget 20 s measured from the start of `handle()` and checked before every send and skip write (idempotent no-op skips do not count as progress). Crash window documented in the job docblock.
 - L8 (2026-11-06): Handover (generation advance + successor dispatch) now runs in one `DB::transaction`; if `dispatch()` throws, the generation rolls back and the queue retry of the same run hands over again. Dispatch stays immediate (no afterCommit).
 - L9 (2026-11-06): Native review review-ef8b17dfa40787be escalated: its validator rejected f9ba4f6 (run_owner retry regression: MySQL reports 0 affected rows when `run_owner` already holds the value, so a queue retry of a claimed run exited as stale; plus missing tests). Fixed here: the claim now decides by re-reading the campaign row. Added tests for the retry, publication after commit, and a real legacy-payload deserialization. Durable recovery relies on the queue's own redelivery (`retry_after` 90 s re-runs the parent, which re-publishes an unclaimed successor). A watchdog for campaigns stuck in `sending` is a follow-up.
+- L10 (parent, 2026-11-06): native review review-ef8b17dfa40787be escalated (validator rejected f9ba4f6: MySQL 0-affected-rows on an unchanged run_owner claim). Fixed in 2dd11ab. Second native review review-e29607f1396bbce4 required one correction (orphaned handover when the successor push fails on the parent's final attempt) -> b5cd2eb; targeted validator APPROVED, acknowledgement burned. Non-blocking advisories (follow-up ticket): cross-prospect address deduplication; existing-campaign and A/B paths still run unbudgeted in a single job. Final: Mailing 241 passed / 2 skipped / 0 failed.
