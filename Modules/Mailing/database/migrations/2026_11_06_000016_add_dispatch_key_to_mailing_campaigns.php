@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::table('mailing_campaigns', function (Blueprint $table) {
             $table->string('dispatch_key', 64)->nullable()->unique();
             $table->unsignedInteger('run_generation')->default(0);
+            $table->string('run_owner', 64)->nullable();
         });
     }
 
@@ -18,7 +19,7 @@ return new class extends Migration
     {
         Schema::table('mailing_campaigns', function (Blueprint $table) {
             $table->dropUnique(['dispatch_key']);
-            $table->dropColumn(['dispatch_key', 'run_generation']);
+            $table->dropColumn(['dispatch_key', 'run_generation', 'run_owner']);
         });
     }
 };

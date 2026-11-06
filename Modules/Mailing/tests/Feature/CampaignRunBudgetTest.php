@@ -26,8 +26,6 @@ class CampaignRunBudgetTest extends TestCase
     /** @var array<int, string> */
     private array $sentTo = [];
 
-    private bool $thrown = false;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -222,7 +220,7 @@ class CampaignRunBudgetTest extends TestCase
         $this->assertLessThan($job->timeout, $config['run_budget_seconds'] + 30 + 15 + 2);
     }
 
-    public function test_replayed_delivery_does_not_dispatch_a_second_successor(): void
+    public function test_replayed_delivery_may_republish_but_only_one_successor_can_claim(): void
     {
         Queue::fake();
         config(['mailing.run_budget_seconds' => 0]);
@@ -234,7 +232,9 @@ class CampaignRunBudgetTest extends TestCase
         $this->handle($job);
         $this->handle($retry);
 
-        Queue::assertPushed(ExecuteCampaignJob::class, 1);
+        // The replay may re-publish the same successor (harmless: only one can claim it).
+        Queue::assertPushed(ExecuteCampaignJob::class, 2);
+        $this->assertTrue(Queue::pushed(ExecuteCampaignJob::class)->every(fn ($j) => $j->generation === 1));
         $this->assertSame(1, Campaign::count());
         $this->assertSame(['a@example.com'], $this->sentTo);
         $this->assertSame(1, Campaign::first()->run_generation);
@@ -311,48 +311,61 @@ class CampaignRunBudgetTest extends TestCase
         $this->assertSame(CampaignStatus::FAILED, Campaign::first()->status);
     }
 
-    public function test_failed_successor_dispatch_rolls_back_the_handover_so_the_run_can_retry_it(): void
+    public function test_legacy_queued_payload_without_new_properties_still_runs(): void
     {
+        $this->mockMailer(fn () => true);
+        $p      = $this->prospect(['a@example.com']);
+        $legacy = fn () => (new \ReflectionClass(ExecuteCampaignJob::class))->newInstanceWithoutConstructor();
+        $make   = function () use ($legacy, $p) {
+            $job = $legacy();
+            foreach (['prospectIds' => [$p->id], 'templateId' => $this->inlineJob([$p->id])->templateId, 'userId' => null,
+                'description' => null, 'campaignId' => null, 'isWinnerSend' => false, 'overrideProspectIds' => null] as $k => $v) {
+                $job->$k = $v;
+            }
+
+            return $job;
+        };
+
+        $this->handle($make());
+        $make()->failed(new \RuntimeException('legacy'));
+
+        $this->assertSame(1, Campaign::count());
+        $this->assertSame(['a@example.com'], $this->sentTo);
+    }
+
+    public function test_two_successors_of_the_same_generation_never_send_an_address_twice(): void
+    {
+        Queue::fake();
         config(['mailing.run_budget_seconds' => 0]);
         $this->mockMailer(fn () => true);
-        $p   = $this->prospect(['a@example.com', 'b@example.com', 'c@example.com']);
+        $p     = $this->prospect(['a@example.com', 'b@example.com', 'c@example.com']);
+        $first = $this->inlineJob([$p->id]);
+        $this->handle($first);
+        $one = Queue::pushed(ExecuteCampaignJob::class)->first();
+        $two = new ExecuteCampaignJob($one->prospectIds, $one->templateId, null, null, null, false, null, $one->dispatchKey, 1);
+
+        $this->handle($one);
+        $this->handle($two);
+
+        $this->assertSame(['a@example.com', 'b@example.com'], $this->sentTo);
+        $this->assertSame(1, Campaign::count());
+    }
+
+    public function test_lost_successor_push_is_republished_by_rerunning_the_parent(): void
+    {
+        Queue::fake();
+        config(['mailing.run_budget_seconds' => 0]);
+        $this->mockMailer(fn () => true);
+        $p   = $this->prospect(['a@example.com', 'b@example.com']);
         $job = $this->inlineJob([$p->id]);
 
-        $pushed = [];
-        $queue  = Mockery::mock(\Illuminate\Contracts\Queue\Queue::class);
-        $queue->shouldReceive('push')->andReturnUsing(function ($command) use (&$pushed) {
-            if ($pushed === [] && ! $this->thrown) {
-                $this->thrown = true;
-                throw new \RuntimeException('redis down');
-            }
-            $pushed[] = $command;
-
-            return 1;
-        });
-        $factory = Mockery::mock(\Illuminate\Contracts\Queue\Factory::class);
-        $factory->shouldReceive('connection')->andReturn($queue);
-        $this->app->instance(\Illuminate\Contracts\Queue\Factory::class, $factory);
-
-        try {
-            $this->handle($job);
-            $this->fail('dispatch should have thrown');
-        } catch (\RuntimeException $e) {
-            $this->assertSame('redis down', $e->getMessage());
-        }
-
-        $campaign = Campaign::first();
-        $this->assertSame(0, $campaign->run_generation);
-        $this->assertSame(CampaignStatus::SENDING, $campaign->status);
-        $this->assertSame([], $pushed);
-
-        // Queue retry of the same run (generation 0) hands over again.
+        $this->handle($job);
+        Queue::fake(); // the first successor push is lost
         $this->handle($job);
 
+        Queue::assertPushed(ExecuteCampaignJob::class, 1);
+        Queue::assertPushed(ExecuteCampaignJob::class, fn ($next) => $next->generation === 1 && $next->dispatchKey === $job->dispatchKey);
+        $this->assertSame(['a@example.com'], $this->sentTo);
         $this->assertSame(1, Campaign::first()->run_generation);
-        $this->assertCount(1, $pushed);
-        $this->assertSame(1, $pushed[0]->generation);
-        $this->assertSame($job->dispatchKey, $pushed[0]->dispatchKey);
-        // The retry does not resend 'a'; it makes progress on 'b' before handing over again.
-        $this->assertSame(['a@example.com', 'b@example.com'], $this->sentTo);
     }
 }

@@ -41,6 +41,9 @@ class ExecuteCampaignJob implements ShouldQueue
      */
     public $timeout = 85;
 
+    /** Identifies this run for the claim on mailing_campaigns.run_owner; stable across queue retries. */
+    public ?string $runId = null;
+
     /**
      * @param  array       $prospectIds   Used only when $campaignId is null (inline path).
      * @param  int         $templateId    Used only when $campaignId is null (inline path).
@@ -70,12 +73,22 @@ class ExecuteCampaignJob implements ShouldQueue
         public ?int $generation = null,
     ) {
         $this->dispatchKey ??= (string) Str::uuid();
+        $this->runId = (string) Str::uuid();
+    }
+
+    /** Payloads serialized before these properties existed leave them uninitialized. */
+    private function normalizeLegacyPayload(): void
+    {
+        $this->dispatchKey ??= $this->job?->uuid() ?? (string) Str::uuid();
+        $this->runId       ??= $this->job?->uuid() ?? (string) Str::uuid();
+        $this->generation  ??= 0;
     }
 
     public function handle(MarketingCampaignInterface $mailer, SuppressionService $suppression): void
     {
         // The time budget is measured from here, before the audience is loaded.
         $startedAt      = microtime(true);
+        $this->normalizeLegacyPayload();
         $originalLocale = App::getLocale();
 
         try {
@@ -91,6 +104,8 @@ class ExecuteCampaignJob implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
+        $this->normalizeLegacyPayload();
+
         // Inline path: only the current generation may close the campaign.
         $query = $this->campaignId !== null
             ? Campaign::where('id', $this->campaignId)
@@ -384,11 +399,25 @@ class ExecuteCampaignJob implements ShouldQueue
 
         $generation = $this->generation ?? 0;
 
-        if ($campaign->status !== CampaignStatus::SENDING || $campaign->run_generation !== $generation) {
+        // Claim: only one run may own a generation; the same runId may re-claim (queue retry).
+        $claimed = $campaign->status === CampaignStatus::SENDING
+            && Campaign::where('id', $campaign->id)
+                ->where('run_generation', $generation)
+                ->where(fn ($q) => $q->whereNull('run_owner')->orWhere('run_owner', $this->runId))
+                ->update(['run_owner' => $this->runId]) === 1;
+
+        if (! $claimed) {
+            // Handover committed (G+1, unowned) but its successor is not running: re-publish it.
+            // Duplicates are harmless because only one successor can claim.
+            if ($campaign->status === CampaignStatus::SENDING
+                && $campaign->run_generation === $generation + 1
+                && $campaign->run_owner === null) {
+                $this->dispatchSuccessor($generation + 1);
+            }
+
             Log::info('ExecuteCampaignJob: stale or closed inline run — exiting without sending.', [
                 'campaign_id'  => $campaign->id,
                 'dispatch_key' => $this->dispatchKey,
-                'status'       => $campaign->status->value,
                 'generation'   => $generation,
                 'current'      => $campaign->run_generation,
             ]);
@@ -399,26 +428,31 @@ class ExecuteCampaignJob implements ShouldQueue
             deadline: $startedAt + (int) config('mailing.run_budget_seconds', 20));
 
         if ($budgetExhausted) {
-            // Atomic handover: only the run that advances the generation dispatches the successor.
-            // Advance and dispatch share one transaction: if dispatch() throws, the generation
-            // rolls back so the queue retry of this same run can hand over again.
+            // Release the generation and publish the successor only after the update commits,
+            // so a fast worker never sees the old generation.
             DB::transaction(function () use ($campaign, $generation): void {
                 $advanced = Campaign::where('id', $campaign->id)
                     ->where('run_generation', $generation)
-                    ->update(['run_generation' => $generation + 1]);
+                    ->where('run_owner', $this->runId)
+                    ->update(['run_generation' => $generation + 1, 'run_owner' => null]);
 
                 if ($advanced === 1) {
-                    self::dispatch(
-                        prospectIds: $this->prospectIds,
-                        templateId:  $this->templateId,
-                        userId:      $this->userId,
-                        description: $this->description,
-                        dispatchKey: $this->dispatchKey,
-                        generation:  $generation + 1,
-                    );
+                    $this->dispatchSuccessor($generation + 1);
                 }
             });
         }
+    }
+
+    private function dispatchSuccessor(int $generation): void
+    {
+        self::dispatch(
+            prospectIds: $this->prospectIds,
+            templateId:  $this->templateId,
+            userId:      $this->userId,
+            description: $this->description,
+            dispatchKey: $this->dispatchKey,
+            generation:  $generation,
+        )->afterCommit();
     }
 
     // -------------------------------------------------------------------------

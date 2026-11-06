@@ -38,6 +38,7 @@ class Campaign extends Model
         'preference_category_snapshot',
         'dispatch_key',
         'run_generation',
+        'run_owner',
         'total_count',
         'sent_count',
         'failed_count',
