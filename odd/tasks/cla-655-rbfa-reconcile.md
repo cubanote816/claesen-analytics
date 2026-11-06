@@ -19,10 +19,10 @@ Deadline: before the scheduled run 2026-12-01 03:30 (`prospects:sync-rbfa-graphq
 
 | ID | Specs | Route | Commit |
 |----|-------|-------|--------|
-| T1 | S1, S2, S3, S5, S6 (ClubPersister) | worker, test-first | implemented, uncommitted |
-| T2 | S4 (province hint through source + persister) | worker, test-first | implemented, uncommitted |
-| T3 | S7, S8 (command-level, idempotent re-run), docs | worker + parent check | implemented, uncommitted; pending parent check |
-| T4 | S1b, S5 (verifier findings: VAT leading zero, existing-location collision wording) | worker, test-first | implemented, uncommitted |
+| T1 | S1, S2, S3, S5, S6 (ClubPersister) | worker, test-first | ed08e8c |
+| T2 | S4 (province hint through source + persister) | worker, test-first | ed08e8c |
+| T3 | S7, S8 (command-level, idempotent re-run), docs | worker + parent check | ed08e8c |
+| T4 | S1b, S5 (verifier findings: VAT leading zero, existing-location collision wording) | worker, test-first | ed08e8c |
 
 ## Log
 
@@ -32,3 +32,4 @@ Deadline: before the scheduled run 2026-12-01 03:30 (`prospects:sync-rbfa-graphq
 - L4 (worker, 2026-11-06): T1–T3 implemented, uncommitted. Prospects suite 145 passed. `ClubPersister::reconcile()` returns `{prospect, ambiguous, skipped_locations}`; `persist()` now returns `?Prospect` (null when ambiguous). Command-level tests were written after the implementation (no RED run for them).
 - L5 (user decisions, 2026-11-06): (1) an email held by another location of the SAME prospect is the same contact: no skip, no record; only another prospect's email is skipped + recorded. (2) An ambiguous legacy match counts neither as persisted nor as failed in the RBFA command (warning event kept); `persistAll` unchanged. (3) Legacy candidate lookup is narrowed in SQL (REGEXP_REPLACE on VAT digits / normalized name), exact rule re-checked in PHP.
 - L6 (worker, 2026-11-06): T4 implemented, uncommitted. S1b: VAT canonical form = digits without leading zeros in PHP and SQL (`TRIM(LEADING '0' FROM REGEXP_REPLACE(...))`); all-zero counts as no VAT. S5: `reconcile()` report gains `skipped_emails`; an existing location keeps a colliding email empty, fills its other fields, and the RBFA command logs "Email X skipped for location Y". New-location collisions still use `skipped_locations`.
+- L7 (parent, 2026-11-06): committed in ed08e8c. Independent verification findings (VAT leading zero, existing-location email skip) fixed before commit. Native review assess: reviewDue false (under budget). Prospects 152 passed / 0 failed.
