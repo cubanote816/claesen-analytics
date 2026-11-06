@@ -577,8 +577,13 @@ base y cae a `APP_URL` si está vacía. Antes se usaba `route()` absoluto, que
 emitía el host interno `APP_URL` (p. ej. `backoffice.claesen.local`): los
 destinatarios externos no podían resolverlo, por eso las aperturas daban 0 y los
 clics fallaban con `DNS_PROBE_FINISHED_NXDOMAIN`. **Requisito de infra:** el
-dominio de `MAILING_TRACKING_DOMAIN` debe enrutar `/mailing/track/*` (y las de
-preferencias) hacia esta app Laravel; si apunta a otro sitio, los links darán 404.
+dominio de `MAILING_TRACKING_DOMAIN` debe enrutar `/mailing/track/*` hacia esta
+app Laravel; si apunta a otro sitio, los links darán 404. El valor de producción
+es `https://service.claesen-verlichting.be` (`www.` es el sitio de marketing y
+devuelve 404 en esas rutas; `backend.` ya no existe). Las dos rutas se exponen
+con el snippet `infrastructure/nginx/sbapu03/snippets/mailing-tracking.conf`,
+incluido en el vhost de `service.`; el orden de puesta en marcha está en
+`docs/ai/production-readiness.md` → «Dominio público de tracking».
 Tests: `tests/Feature/TrackingDomainTest.php`.
 
 ---
