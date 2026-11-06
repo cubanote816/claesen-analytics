@@ -9,7 +9,18 @@ return [
     | Delay in milliseconds between individual sends inside ExecuteCampaignJob.
     | Keeps Microsoft Graph rate limits happy without blocking a full worker.
     */
-    'send_delay_ms' => env('MAILING_SEND_DELAY_MS', 500),
+    'send_delay_ms' => env('MAILING_SEND_DELAY_MS', 2000),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Run time budget
+    |--------------------------------------------------------------------------
+    | Seconds an inline ExecuteCampaignJob run may keep starting new sends before it
+    | re-dispatches itself with the same dispatch key. Must stay below the queue
+    | job $timeout (85 s) and the redis retry_after (90 s). Worst case per run:
+    | 20 budget + 30 Graph request + 15 OAuth + 2 delay + startup < 85 < 90.
+    */
+    'run_budget_seconds' => env('MAILING_RUN_BUDGET_SECONDS', 20),
 
     /*
     |--------------------------------------------------------------------------
@@ -42,22 +53,30 @@ return [
     |--------------------------------------------------------------------------
     | Default sender
     |--------------------------------------------------------------------------
+    | Campaign sender (CLA-656). Falls back to the global mail sender until
+    | MAILING_FROM_ADDRESS / MAILING_FROM_NAME are set. reply_to falls back to
+    | mail.from.address at runtime (ProspectCampaignMail).
     */
-    'from_address' => env('MAIL_FROM_ADDRESS', 'info@claesen-verlichting.be'),
-    'from_name'    => env('MAIL_FROM_NAME', 'Claesen Verlichting'),
+    'from_address' => env('MAILING_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'info@claesen-verlichting.be')),
+    'from_name'    => env('MAILING_FROM_NAME', env('MAIL_FROM_NAME', 'Claesen Verlichting')),
+    'reply_to'     => env('MAILING_REPLY_TO'),
 
     /*
     |--------------------------------------------------------------------------
     | NDR bounce inbox
     |--------------------------------------------------------------------------
-    | Dedicated mailbox that receives Non-Delivery Reports (NDRs).
+    | Mailbox that receives Non-Delivery Reports (NDRs). NDRs return to the
+    | sender, so it defaults to the campaign sender (CLA-656).
     | The Graph app must have Mail.Read permission for this mailbox.
     | Processed messages are marked as read (not deleted).
     |
     | MAI-029: add X-Mailing-Token header to outgoing emails for exact NDR
     | correlation with mailing_messages. Until then, correlation is by email only.
     */
-    'ndr_inbox'      => env('MAILING_NDR_INBOX', 'bounces@claesen-verlichting.be'),
+    'ndr_inbox'      => env('MAILING_NDR_INBOX', env('MAILING_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'info@claesen-verlichting.be'))),
+    // Non-bounce messages found in the NDR inbox are moved here (left unread) so they
+    // never starve the batch of unread inbox messages.
+    'ndr_unprocessed_folder' => env('MAILING_NDR_UNPROCESSED_FOLDER', 'Mailing - not processed'),
     'ndr_batch_size' => env('MAILING_NDR_BATCH_SIZE', 50),
 
     /*
