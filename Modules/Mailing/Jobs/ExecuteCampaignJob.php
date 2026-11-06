@@ -668,7 +668,7 @@ class ExecuteCampaignJob implements ShouldQueue
                 $trackingToken = Str::random(64);
 
                 $trackedBody  = $this->rewriteLinksForTracking($parsedBody, $campaign, $trackingToken);
-                $pixelUrl     = route('mailing.track.open', $trackingToken) . '.gif';
+                $pixelUrl     = $this->trackingUrl('mailing.track.open', $trackingToken) . '.gif';
                 $trackedBody .= "\n" . '<img src="' . $pixelUrl . '" width="1" height="1" alt="" style="display:none;">';
 
                 $errorMessage = null;
@@ -792,6 +792,24 @@ class ExecuteCampaignJob implements ShouldQueue
     // Link rewriting
     // -------------------------------------------------------------------------
 
+    /**
+     * Build an absolute tracking URL on the public tracking domain.
+     *
+     * Open-pixel and click links must be reachable by recipients outside the
+     * local network, so they use mailing.tracking_domain (public) instead of
+     * route()'s absolute host (APP_URL, which is the internal backoffice). The
+     * route path is generated relative and prefixed with the configured base;
+     * when tracking_domain is empty it falls back to APP_URL (current behaviour).
+     *
+     * @param  string|array<int, string>  $parameters
+     */
+    private function trackingUrl(string $routeName, string|array $parameters): string
+    {
+        $base = config('mailing.tracking_domain') ?: config('app.url');
+
+        return rtrim((string) $base, '/') . route($routeName, $parameters, absolute: false);
+    }
+
     private function rewriteLinksForTracking(string $html, Campaign $campaign, string $trackingToken): string
     {
         return preg_replace_callback(
@@ -811,7 +829,7 @@ class ExecuteCampaignJob implements ShouldQueue
                     ['original_url' => $originalUrl, 'created_at' => now()]
                 );
 
-                $trackingUrl = route('mailing.track.click', [$trackingToken, $hash]);
+                $trackingUrl = $this->trackingUrl('mailing.track.click', [$trackingToken, $hash]);
 
                 return "href={$quote}{$trackingUrl}{$quote}";
             },

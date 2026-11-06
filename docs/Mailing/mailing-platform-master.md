@@ -570,6 +570,17 @@ Nadie puede lanzar una campaña sin que un `admin` o `campaign_manager` la aprue
 - Aperturas duplicadas en < 30 segundos del mismo IP se ignoran (Apple MPP mitigation)
 - El evento se guarda con `metadata.user_agent` completo
 
+#### Corrección dominio público (CLA-654/656)
+La URL del píxel y de los clics se genera con `ExecuteCampaignJob::trackingUrl()`,
+que usa `config('mailing.tracking_domain')` (var `MAILING_TRACKING_DOMAIN`) como
+base y cae a `APP_URL` si está vacía. Antes se usaba `route()` absoluto, que
+emitía el host interno `APP_URL` (p. ej. `backoffice.claesen.local`): los
+destinatarios externos no podían resolverlo, por eso las aperturas daban 0 y los
+clics fallaban con `DNS_PROBE_FINISHED_NXDOMAIN`. **Requisito de infra:** el
+dominio de `MAILING_TRACKING_DOMAIN` debe enrutar `/mailing/track/*` (y las de
+preferencias) hacia esta app Laravel; si apunta a otro sitio, los links darán 404.
+Tests: `tests/Feature/TrackingDomainTest.php`.
+
 ---
 
 ### MAI-014 — Tracking click redirect
@@ -593,6 +604,9 @@ Nadie puede lanzar una campaña sin que un `admin` o `campaign_manager` la aprue
 - El redirect llega a la URL original en < 200ms
 - El evento `clicked` se registra correctamente
 - Un hash inválido hace redirect a `config('app.url')` sin error 500
+
+> Nota CLA-654/656: los enlaces de clic del body se reescriben usando el dominio
+> público `MAILING_TRACKING_DOMAIN` (ver corrección en MAI-013), no `APP_URL`.
 
 ---
 
