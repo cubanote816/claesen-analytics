@@ -13,6 +13,8 @@ use Mockery;
 use Modules\Prospects\DataObjects\NormalizedClub;
 use Modules\Prospects\DataSource\RbfaGraphqlSource;
 use Modules\Prospects\Models\Prospect;
+use Modules\Prospects\Models\ProspectLocation;
+use Modules\Prospects\Models\Region;
 use Modules\Prospects\Models\SyncHistory;
 use Tests\TestCase;
 
@@ -373,5 +375,139 @@ class SyncRbfaGraphqlCommandTest extends TestCase
         $this->assertSame('Surviving Club '.self::CLUB_OK, $survivor->name);
 
         $this->assertSame('failed', $this->history()->status);
+    }
+
+    // -------------------------------------------------------------------------
+    // CLA-655 — reconcile with existing clubs, fill-only
+    // -------------------------------------------------------------------------
+
+    /** @param array<string, array<string, mixed>> $infoByClub */
+    private function fakeClubs(array $infoByClub): void
+    {
+        Http::fake([
+            'datalake-prod2018.rbfa.be/*' => function (Request $request) use ($infoByClub) {
+                $body = json_decode($request->body(), true) ?: [];
+
+                if (($body['operationName'] ?? null) === 'GetSeriesRankings') {
+                    return Http::response($this->seriesRankingsPayload(array_keys($infoByClub)));
+                }
+
+                return Http::response($this->clubInfoPayload($infoByClub[$body['variables']['clubId']]));
+            },
+        ]);
+    }
+
+    private function legacyProspect(array $attributes): Prospect
+    {
+        return Prospect::create(array_replace([
+            'type' => 'football_club', 'federation' => 'VL-VV', 'language' => 'nl', 'external_id' => null,
+            'region_id' => Region::firstOrCreate(['name' => 'Overige'], ['slug' => 'overige'])->id,
+        ], $attributes));
+    }
+
+    private function snapshot(): array
+    {
+        return [
+            Prospect::query()->orderBy('id')->get()->toArray(),
+            ProspectLocation::query()->orderBy('id')->get()->toArray(),
+        ];
+    }
+
+    private function warningMessages(): string
+    {
+        $warnings = array_filter($this->history()->logs ?? [], fn (array $e) => $e['type'] === 'warning');
+
+        return implode("\n", array_column($warnings, 'message'));
+    }
+
+    public function test_s4_province_hint_sets_region_when_postal_code_is_missing(): void
+    {
+        config(['rbfa.provinces' => ['Limburg' => ['CHP_TEST1']]]);
+        $this->fakeClubs([self::CLUB_OK => ['name' => 'No Postal Club']]);
+
+        $this->runCommand();
+
+        $this->assertSame('Limburg', Prospect::query()->where('name', 'No Postal Club')->firstOrFail()->region->name);
+    }
+
+    public function test_s1_legacy_club_is_reused_not_duplicated_and_keeps_null_external_id(): void
+    {
+        $legacy = $this->legacyProspect(['name' => 'Legacy Club', 'vat_number' => '0123.456.789']);
+        $this->fakeClubs([self::CLUB_OK => [
+            'name' => 'Renamed Upstream', 'vatNumber' => 'BE0123456789', 'postalCode' => '2000',
+            'contacts' => [['mail' => 'club@legacy.test']],
+        ]]);
+
+        $this->runCommand();
+
+        $this->assertDatabaseCount('prospects_prospects', 1);
+        $fresh = $legacy->fresh();
+        $this->assertNull($fresh->external_id);
+        $this->assertSame('Legacy Club', $fresh->name);
+        $this->assertSame('Antwerpen', $fresh->region->name);
+        $this->assertDatabaseHas('prospects_locations', ['prospect_id' => $legacy->id, 'email' => 'club@legacy.test']);
+    }
+
+    public function test_s6_ambiguous_legacy_and_skipped_location_are_recorded_as_sync_events(): void
+    {
+        $this->legacyProspect(['name' => 'Twin Club']);
+        $this->legacyProspect(['name' => 'Twin Club']);
+        $holder = $this->legacyProspect(['name' => 'Holder']);
+        ProspectLocation::create(['prospect_id' => $holder->id, 'contact_type' => 'headquarters', 'address' => 'x', 'email' => 'taken@club.test']);
+        $this->fakeClubs([
+            self::CLUB_FAIL => ['name' => 'Twin Club'],
+            self::CLUB_OK => ['name' => 'Colliding Club', 'contacts' => [['mail' => 'taken@club.test']]],
+        ]);
+
+        $this->runCommand();
+
+        $warnings = $this->warningMessages();
+        $this->assertStringContainsString('VL-RBFA-'.self::CLUB_FAIL, $warnings);
+        $this->assertStringContainsString('VL-RBFA-'.self::CLUB_OK.'::hq', $warnings);
+        $this->assertStringContainsString('taken@club.test', $warnings);
+        $this->assertDatabaseHas('prospects_prospects', ['external_id' => 'VL-RBFA-'.self::CLUB_OK]);
+        $this->assertDatabaseMissing('prospects_prospects', ['external_id' => 'VL-RBFA-'.self::CLUB_FAIL]);
+        $this->assertDatabaseCount('prospects_prospects', 4);
+
+        // An ambiguous club is neither persisted nor failed.
+        $messages = array_column($this->history()->logs ?? [], 'message');
+        $this->assertStringContainsString('processed 1 | persisted 1 | failed 0', implode("\n", $messages));
+    }
+
+    public function test_s5_existing_location_email_collision_is_recorded_as_email_skipped(): void
+    {
+        $holder = $this->legacyProspect(['name' => 'Holder']);
+        ProspectLocation::create(['prospect_id' => $holder->id, 'contact_type' => 'headquarters', 'address' => 'x', 'email' => 'taken@club.test']);
+        $existing = $this->legacyProspect(['name' => 'Known Club', 'external_id' => 'VL-RBFA-'.self::CLUB_OK]);
+        ProspectLocation::create([
+            'prospect_id' => $existing->id, 'external_id' => 'VL-RBFA-'.self::CLUB_OK.'::hq',
+            'contact_type' => 'headquarters', 'address' => 'Kept 1',
+        ]);
+        $this->fakeClubs([self::CLUB_OK => ['name' => 'Known Club', 'contacts' => [['mail' => 'taken@club.test', 'phone' => '012']]]]);
+
+        $this->runCommand();
+
+        $warnings = $this->warningMessages();
+        $this->assertStringContainsString('Email taken@club.test skipped', $warnings);
+        $this->assertStringContainsString('VL-RBFA-'.self::CLUB_OK.'::hq', $warnings);
+        $this->assertStringNotContainsString('Location VL-RBFA', $warnings);
+        $this->assertDatabaseHas('prospects_locations', ['prospect_id' => $existing->id, 'email' => null, 'phone' => '012']);
+    }
+
+    public function test_s8_running_the_same_sync_twice_creates_and_changes_nothing(): void
+    {
+        $this->legacyProspect(['name' => 'Legacy Club', 'vat_number' => '0123456789']);
+        $this->fakeClubs([
+            self::CLUB_FAIL => ['name' => 'Legacy Club', 'vatNumber' => '0123456789', 'postalCode' => '2000', 'contacts' => [['mail' => 'a@club.test']]],
+            self::CLUB_OK => ['name' => 'Fresh Club', 'contacts' => [['mail' => 'b@club.test', 'phone' => '012']]],
+        ]);
+
+        $this->runCommand();
+        $first = $this->snapshot();
+        $this->assertCount(2, $first[0]);
+
+        $this->runCommand();
+
+        $this->assertSame($first, $this->snapshot());
     }
 }

@@ -14,8 +14,18 @@ trait HandlesClubRegions
      */
     protected function getRegionIdFromPostalCode($zip): int
     {
+        return $this->findRegionIdFromPostalCode($zip) ?? $this->getFallbackRegionId();
+    }
+
+    /**
+     * Map a Belgian postal code to a Region ID, or null when it matches no region.
+     *
+     * @param string|int|null $zip
+     */
+    protected function findRegionIdFromPostalCode($zip): ?int
+    {
         if (!$zip) {
-            return $this->getFallbackRegionId();
+            return null;
         }
 
         $code = (int) $zip;
@@ -36,14 +46,15 @@ trait HandlesClubRegions
             default => null,
         };
 
-        if ($regionName) {
-            $region = Region::where('name', $regionName)->first();
-            if ($region) {
-                return $region->id;
-            }
-        }
+        return $regionName ? Region::where('name', $regionName)->value('id') : null;
+    }
 
-        return $this->getFallbackRegionId();
+    /**
+     * Resolve a region by its name (e.g. an RBFA discovery province), or null when unknown.
+     */
+    protected function findRegionIdByName(?string $name): ?int
+    {
+        return $name ? Region::where('name', $name)->value('id') : null;
     }
 
     /**

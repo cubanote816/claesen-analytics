@@ -32,6 +32,7 @@ class RbfaGraphQLSourceTest extends TestCase
         $this->assertSame('Main Street 1, 2000, Antwerpen', $clubs[0]->headquarters?->address);
         $this->assertSame('CLUB1', $clubs[0]->headquarters?->sourceLocationId);
         $this->assertSame('secretary@example.test', $clubs[0]->headquarters?->email);
+        $this->assertSame('Antwerpen', $clubs[0]->regionHint);
     }
 
     public function test_federation_is_derived_from_postal_code(): void

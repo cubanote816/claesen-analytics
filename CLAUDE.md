@@ -475,6 +475,7 @@ php artisan website:regenerate-media --project=<id>
 - **DB:** MySQL 8.4 (no PostgreSQL — cross-join con `prospects_prospects`)
 - **KPI principal:** clics y CTR, no aperturas (Apple MPP invalida open rate)
 - **Audiencias:** `Modules/Prospects` es fuente de verdad. Mailing solo referencia `prospect_id`.
+- **Sync de federaciones (CLA-655):** los sync nunca sobrescriben un dato existente (fill-only) ni escriben `external_id` en prospectos legacy; reconcilian por VAT canónico o nombre. Detalle en `docs/ai/context-map.md`.
 
 ### Mapa MAI — Estado
 
