@@ -6,6 +6,7 @@ use Modules\Prospects\Models\Prospect;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
@@ -56,7 +57,15 @@ class ProspectCampaignMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: $this->dynamicSubject);
+        $fromAddress = config('mailing.from_address') ?: config('mail.from.address');
+        $fromName    = config('mailing.from_name') ?: config('mail.from.name');
+        $replyTo     = config('mailing.reply_to') ?: config('mail.from.address');
+
+        return new Envelope(
+            from: new Address($fromAddress, $fromName),
+            replyTo: [new Address($replyTo)],
+            subject: $this->dynamicSubject,
+        );
     }
 
     public function content(): Content

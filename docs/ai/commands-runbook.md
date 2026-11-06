@@ -97,9 +97,9 @@ php artisan mailing:parse-bounces --dry-run   # previsualiza sin cambios
 ```
 
 **Notas:**
-- Requiere `MAILING_NDR_INBOX` configurado en `.env`
-- Requiere permisos `Mail.Read` en la app Azure para ese buzón
-- Marca los mensajes NDR como leídos (no los elimina)
+- Buzón: `MAILING_NDR_INBOX`; si no está, usa el remitente de campañas (`MAILING_FROM_ADDRESS`), porque los rebotes vuelven al remitente (Graph no permite otro Return-Path). CLA-656.
+- Requiere `Mail.ReadWrite` de aplicación **solo sobre ese buzón** (Exchange RBAC for Applications, alcance limitado; nunca tenant-wide).
+- Marca como leídos SOLO los rebotes reconocidos (no los elimina). Lo que no es un rebote (respuestas automáticas, correo humano) se **mueve sin leer** a la carpeta `MAILING_NDR_UNPROCESSED_FOLDER` (por defecto `Mailing - not processed`), para que no ocupe el lote del parser ni quede escondido.
 - Procesa en lotes de `MAILING_NDR_BATCH_SIZE` (por defecto: 50)
 - Los hard bounces añaden al contacto a `mailing_suppression_list`
 
