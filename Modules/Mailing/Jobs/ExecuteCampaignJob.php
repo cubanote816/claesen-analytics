@@ -10,6 +10,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\Mailing\Enums\CampaignStatus;
@@ -22,9 +23,23 @@ use Modules\Mailing\Models\TrackedLink;
 use Modules\Mailing\Services\SuppressionService;
 use Modules\Prospects\Models\Prospect;
 
+/**
+ * Inline runs are chained: each run sends until its time budget is spent, advances the campaign's
+ * run_generation and dispatches a successor carrying the new generation. Only the run whose
+ * generation equals the campaign's may send, so replayed or stale deliveries exit without effect.
+ *
+ * Known, accepted limit: a crash between Graph accepting a send and the message row being written
+ * can resend that one address on the next run.
+ */
 class ExecuteCampaignJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /**
+     * Below the redis retry_after (90 s) so a running job is never redelivered mid-run.
+     * Worst case: 20 s budget + 30 s Graph + 15 s OAuth + 2 s delay + startup < 85 s.
+     */
+    public $timeout = 85;
 
     /**
      * @param  array       $prospectIds   Used only when $campaignId is null (inline path).
@@ -37,6 +52,11 @@ class ExecuteCampaignJob implements ShouldQueue
      * @param  array|null  $overrideProspectIds Follow-up: exact audience provided by DispatchFollowUpsCommand.
      *                                          When present, resolveAudience() is NOT called — prevents
      *                                          sending to more prospects than intended.
+     * @param  string|null $dispatchKey     Idempotency key for the inline path. Generated once in the
+     *                                      constructor so it is serialized with the job and identical
+     *                                      across retries; stored on mailing_campaigns.dispatch_key.
+     * @param  int|null    $generation      Inline chain position (null = first dispatch = 0); must equal
+     *                                      mailing_campaigns.run_generation for the run to proceed.
      */
     public function __construct(
         public array $prospectIds = [],
@@ -46,17 +66,23 @@ class ExecuteCampaignJob implements ShouldQueue
         public ?int $campaignId = null,
         public bool $isWinnerSend = false,
         public ?array $overrideProspectIds = null,
-    ) {}
+        public ?string $dispatchKey = null,
+        public ?int $generation = null,
+    ) {
+        $this->dispatchKey ??= (string) Str::uuid();
+    }
 
     public function handle(MarketingCampaignInterface $mailer, SuppressionService $suppression): void
     {
+        // The time budget is measured from here, before the audience is loaded.
+        $startedAt      = microtime(true);
         $originalLocale = App::getLocale();
 
         try {
             if ($this->campaignId !== null) {
                 $this->executeExistingCampaign($mailer, $suppression);
             } else {
-                $this->executeInlineCampaign($mailer, $suppression);
+                $this->executeInlineCampaign($mailer, $suppression, $startedAt);
             }
         } finally {
             App::setLocale($originalLocale);
@@ -65,17 +91,20 @@ class ExecuteCampaignJob implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        if ($this->campaignId === null) {
-            return;
-        }
+        // Inline path: only the current generation may close the campaign.
+        $query = $this->campaignId !== null
+            ? Campaign::where('id', $this->campaignId)
+            : Campaign::where('dispatch_key', $this->dispatchKey)
+                ->where('run_generation', $this->generation ?? 0);
 
-        $updated = Campaign::where('id', $this->campaignId)
+        $updated = $query
             ->where('status', CampaignStatus::SENDING->value)
-            ->update(['status' => CampaignStatus::FAILED->value]);
+            ->update(['status' => CampaignStatus::FAILED->value, 'finished_at' => now()]);
 
         if ($updated) {
             Log::error('ExecuteCampaignJob: job failed — campaign set to failed', [
                 'campaign_id'    => $this->campaignId,
+                'dispatch_key'   => $this->dispatchKey,
                 'is_winner_send' => $this->isWinnerSend,
                 'error'          => $exception->getMessage(),
             ]);
@@ -317,7 +346,7 @@ class ExecuteCampaignJob implements ShouldQueue
     // Inline/legacy path (campaignId not provided — Filament bulk action / FAB)
     // -------------------------------------------------------------------------
 
-    private function executeInlineCampaign(MarketingCampaignInterface $mailer, SuppressionService $suppression): void
+    private function executeInlineCampaign(MarketingCampaignInterface $mailer, SuppressionService $suppression, float $startedAt): void
     {
         $template = EmailTemplate::findOrFail($this->templateId);
         $snapshot = Campaign::buildSnapshotFrom($template);
@@ -341,15 +370,55 @@ class ExecuteCampaignJob implements ShouldQueue
             return;
         }
 
-        $campaign = Campaign::create([
-            'created_by'  => $this->userId,
-            'description' => $this->description,
-            'total_count' => $allProspects->count(),
-            'status'      => CampaignStatus::SENDING,
-            ...$snapshot,
-        ]);
+        // Retries and continuations reuse the campaign created by the first run.
+        $campaign = Campaign::where('dispatch_key', $this->dispatchKey)->first()
+            ?? Campaign::create([
+                'created_by'     => $this->userId,
+                'description'    => $this->description,
+                'total_count'    => $allProspects->count(),
+                'status'         => CampaignStatus::SENDING,
+                'dispatch_key'   => $this->dispatchKey,
+                'run_generation' => 0,
+                ...$snapshot,
+            ]);
 
-        $this->sendToProspects($campaign, $allProspects, $mailer, $suppression);
+        $generation = $this->generation ?? 0;
+
+        if ($campaign->status !== CampaignStatus::SENDING || $campaign->run_generation !== $generation) {
+            Log::info('ExecuteCampaignJob: stale or closed inline run — exiting without sending.', [
+                'campaign_id'  => $campaign->id,
+                'dispatch_key' => $this->dispatchKey,
+                'status'       => $campaign->status->value,
+                'generation'   => $generation,
+                'current'      => $campaign->run_generation,
+            ]);
+            return;
+        }
+
+        $budgetExhausted = $this->sendToProspects($campaign, $allProspects, $mailer, $suppression,
+            deadline: $startedAt + (int) config('mailing.run_budget_seconds', 20));
+
+        if ($budgetExhausted) {
+            // Atomic handover: only the run that advances the generation dispatches the successor.
+            // Advance and dispatch share one transaction: if dispatch() throws, the generation
+            // rolls back so the queue retry of this same run can hand over again.
+            DB::transaction(function () use ($campaign, $generation): void {
+                $advanced = Campaign::where('id', $campaign->id)
+                    ->where('run_generation', $generation)
+                    ->update(['run_generation' => $generation + 1]);
+
+                if ($advanced === 1) {
+                    self::dispatch(
+                        prospectIds: $this->prospectIds,
+                        templateId:  $this->templateId,
+                        userId:      $this->userId,
+                        description: $this->description,
+                        dispatchKey: $this->dispatchKey,
+                        generation:  $generation + 1,
+                    );
+                }
+            });
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -364,7 +433,15 @@ class ExecuteCampaignJob implements ShouldQueue
         ?string $abVariant = null,
         ?string $subjectOverride = null,
         bool $completeAfter = true,
-    ): void {
+        ?float $deadline = null,
+    ): bool {
+        // $attempted counts real writes (sends and new skip rows) so every run makes progress
+        // before it honours the deadline; idempotent no-ops do not count.
+        $attempted = 0;
+        $exhausted = function () use (&$attempted, $deadline): bool {
+            return $deadline !== null && $attempted > 0 && microtime(true) >= $deadline;
+        };
+
         // All content must come from immutable campaign snapshots
         $subjectTemplate = $subjectOverride ?? $campaign->subject_snapshot;
 
@@ -408,7 +485,10 @@ class ExecuteCampaignJob implements ShouldQueue
 
             // 1. Global unsubscribe
             if ($prospect->unsubscribed_at !== null) {
-                CampaignMessage::create([
+                if ($exhausted()) {
+                    return true;
+                }
+                $attempted += (int) $this->recordSkip($campaign, [
                     'campaign_id'   => $campaign->id,
                     'prospect_id'   => $prospect->id,
                     'user_id'       => $this->userId,
@@ -418,32 +498,25 @@ class ExecuteCampaignJob implements ShouldQueue
                     'error_message' => __('prospects::resource.options.status.unsubscribed'),
                     'ab_variant'    => $abVariant,
                     'sent_at'       => now(),
-                ]);
-                $campaign->increment('skipped_count');
+                ], perAddress: false);
                 continue;
             }
 
-            // 2. Suppression list (hard bounce / spam — global prohibition)
-            if ($suppression->isSuppressed($primaryEmail)) {
-                $reason = $suppression->getReason($primaryEmail)?->value ?? 'suppressed';
-                CampaignMessage::create([
-                    'campaign_id'   => $campaign->id,
-                    'prospect_id'   => $prospect->id,
-                    'user_id'       => $this->userId,
-                    'email'         => $primaryEmail,
-                    'status'        => $reason === 'unsubscribed' ? 'unsubscribed' : 'skipped',
-                    'template_name' => $campaign->template_name,
-                    'error_message' => 'suppressed: ' . $reason,
-                    'ab_variant'    => $abVariant,
-                    'sent_at'       => now(),
-                ]);
-                $campaign->increment('skipped_count');
-                continue;
-            }
-
-            // 3. Category preference opt-out (commercial only)
+            // 2. Category preference opt-out (commercial only). A suppressed primary address
+            // keeps precedence and is recorded with its suppression reason.
             if (isset($optedOutIds[$prospect->id])) {
-                CampaignMessage::create([
+                if ($suppression->isSuppressed($primaryEmail)) {
+                    if ($exhausted()) {
+                        return true;
+                    }
+                    $attempted += (int) $this->recordSuppressedSkip($campaign, $prospect, $primaryEmail, $suppression, $abVariant);
+                    continue;
+                }
+
+                if ($exhausted()) {
+                    return true;
+                }
+                $attempted += (int) $this->recordSkip($campaign, [
                     'campaign_id'   => $campaign->id,
                     'prospect_id'   => $prospect->id,
                     'user_id'       => $this->userId,
@@ -453,14 +526,16 @@ class ExecuteCampaignJob implements ShouldQueue
                     'error_message' => 'category_opted_out:' . $prefCategory,
                     'ab_variant'    => $abVariant,
                     'sent_at'       => now(),
-                ]);
-                $campaign->increment('skipped_count');
+                ], perAddress: false);
                 continue;
             }
 
-            // 4. No email address
+            // 3. No email address
             if (empty($emails)) {
-                CampaignMessage::create([
+                if ($exhausted()) {
+                    return true;
+                }
+                $attempted += (int) $this->recordSkip($campaign, [
                     'campaign_id'   => $campaign->id,
                     'prospect_id'   => $prospect->id,
                     'user_id'       => $this->userId,
@@ -469,12 +544,11 @@ class ExecuteCampaignJob implements ShouldQueue
                     'template_name' => $campaign->template_name,
                     'ab_variant'    => $abVariant,
                     'sent_at'       => now(),
-                ]);
-                $campaign->increment('skipped_count');
+                ], perAddress: false);
                 continue;
             }
 
-            // 5. Send
+            // 4. Send (one message per address; suppression is checked per address)
             $unsubscribeUrl = sprintf(
                 'https://claesen-verlichting.be/afmelden/?p=%s&t=%s&l=%s',
                 $prospect->id,
@@ -494,64 +568,94 @@ class ExecuteCampaignJob implements ShouldQueue
                 $campaign->body_snapshot
             );
 
-            $trackingToken = Str::random(64);
-
-            $trackedBody  = $this->rewriteLinksForTracking($parsedBody, $campaign, $trackingToken);
-            $pixelUrl     = route('mailing.track.open', $trackingToken) . '.gif';
-            $trackedBody .= "\n" . '<img src="' . $pixelUrl . '" width="1" height="1" alt="" style="display:none;">';
-
-            $errorMessage = null;
-            try {
-                Log::info('ExecuteCampaignJob: sending', [
-                    'prospect_id'  => $prospect->id,
-                    'campaign_id'  => $campaign->id,
-                    'ab_variant'   => $abVariant,
-                    'is_commercial' => $isCommercial,
-                ]);
-                $isSuccess = $mailer->sendCampaign(
-                    $prospect, $emails, $parsedSubject, $trackedBody,
-                    $unsubscribeUrl, $trackingToken, $isCommercial
-                );
-            } catch (\Exception $e) {
-                $isSuccess    = false;
-                $errorMessage = $e->getMessage();
-                Log::error('ExecuteCampaignJob: mailer exception', [
-                    'error'       => $errorMessage,
-                    'prospect_id' => $prospect->id,
-                    'campaign_id' => $campaign->id,
-                ]);
-            }
-
-            $isSuccess ? $sentCount++ : $failedCount++;
-
             foreach ($emails as $recipientEmail) {
-                CampaignMessage::create([
-                    'campaign_id'      => $campaign->id,
-                    'prospect_id'      => $prospect->id,
-                    'user_id'          => $this->userId,
-                    'email'            => $recipientEmail,
-                    'template_name'    => $campaign->template_name,
-                    'subject_snapshot' => $parsedSubject,
-                    'body_snapshot'    => $parsedBody,
-                    'status'           => $isSuccess ? 'sent' : 'failed',
-                    'error_message'    => $isSuccess ? null : ($errorMessage ?? __('prospects::resource.notifications.error_mailer')),
-                    'tracking_token'   => $trackingToken,
-                    'ab_variant'       => $abVariant,
-                    'sent_at'          => now(),
-                ]);
+                // Retry/continuation safety: an address that already has an outcome in this
+                // campaign (delivered or failed) is never sent again.
+                if (CampaignMessage::where('campaign_id', $campaign->id)
+                    ->where('email', $recipientEmail)
+                    ->whereIn('status', ['sent', 'failed'])
+                    ->exists()) {
+                    continue;
+                }
+
+                // Suppression list (hard bounce / spam — global prohibition), per address
+                if ($suppression->isSuppressed($recipientEmail)) {
+                    if ($exhausted()) {
+                        return true;
+                    }
+                    $attempted += (int) $this->recordSuppressedSkip($campaign, $prospect, $recipientEmail, $suppression, $abVariant);
+                    continue;
+                }
+
+                // Time budget: always make progress (one send per run), then stop starting new sends.
+                if ($exhausted()) {
+                    return true;
+                }
+                $attempted++;
+
+                // Each recipient gets its own token for the open pixel and click links.
+                $trackingToken = Str::random(64);
+
+                $trackedBody  = $this->rewriteLinksForTracking($parsedBody, $campaign, $trackingToken);
+                $pixelUrl     = route('mailing.track.open', $trackingToken) . '.gif';
+                $trackedBody .= "\n" . '<img src="' . $pixelUrl . '" width="1" height="1" alt="" style="display:none;">';
+
+                $errorMessage = null;
+                try {
+                    Log::info('ExecuteCampaignJob: sending', [
+                        'prospect_id'   => $prospect->id,
+                        'campaign_id'   => $campaign->id,
+                        'ab_variant'    => $abVariant,
+                        'is_commercial' => $isCommercial,
+                    ]);
+                    $isSuccess = $mailer->sendCampaign(
+                        $prospect, [$recipientEmail], $parsedSubject, $trackedBody,
+                        $unsubscribeUrl, $trackingToken, $isCommercial
+                    );
+                } catch (\Throwable $e) {
+                    $isSuccess    = false;
+                    $errorMessage = $e->getMessage();
+                    Log::error('ExecuteCampaignJob: mailer exception', [
+                        'error'       => $errorMessage,
+                        'prospect_id' => $prospect->id,
+                        'campaign_id' => $campaign->id,
+                    ]);
+                }
+
+                // Message row and counter move together so counters always equal the rows.
+                DB::transaction(function () use ($campaign, $prospect, $recipientEmail, $parsedSubject, $parsedBody, $isSuccess, $errorMessage, $trackingToken, $abVariant): void {
+                    CampaignMessage::create([
+                        'campaign_id'      => $campaign->id,
+                        'prospect_id'      => $prospect->id,
+                        'user_id'          => $this->userId,
+                        'email'            => $recipientEmail,
+                        'template_name'    => $campaign->template_name,
+                        'subject_snapshot' => $parsedSubject,
+                        'body_snapshot'    => $parsedBody,
+                        'status'           => $isSuccess ? 'sent' : 'failed',
+                        'error_message'    => $isSuccess ? null : ($errorMessage ?? __('prospects::resource.notifications.error_mailer')),
+                        'tracking_token'   => $trackingToken,
+                        'ab_variant'       => $abVariant,
+                        'sent_at'          => now(),
+                    ]);
+                    $campaign->increment($isSuccess ? 'sent_count' : 'failed_count');
+                });
+
+                $isSuccess ? $sentCount++ : $failedCount++;
+
+                // Exchange Online allows 30 messages/minute per mailbox: pace every recipient send.
+                usleep(config('mailing.send_delay_ms', 2000) * 1000);
             }
-
-            usleep(config('mailing.send_delay_ms', 500) * 1000);
-        }
-
-        if ($sentCount > 0) {
-            $campaign->increment('sent_count', $sentCount);
-        }
-        if ($failedCount > 0) {
-            $campaign->increment('failed_count', $failedCount);
         }
 
         if ($completeAfter) {
+            // Chained (deadline) runs judge the whole campaign, not just this run.
+            if ($deadline !== null) {
+                $campaign->refresh();
+                $sentCount   = $campaign->sent_count;
+                $failedCount = $campaign->failed_count;
+            }
+
             $finalStatus = ($sentCount === 0 && $failedCount > 0)
                 ? CampaignStatus::FAILED
                 : CampaignStatus::COMPLETED;
@@ -561,6 +665,56 @@ class ExecuteCampaignJob implements ShouldQueue
                 'finished_at' => now(),
             ]);
         }
+
+        return false;
+    }
+
+    private function recordSuppressedSkip(
+        Campaign $campaign,
+        Prospect $prospect,
+        string $email,
+        SuppressionService $suppression,
+        ?string $abVariant,
+    ): bool {
+        $reason = $suppression->getReason($email)?->value ?? 'suppressed';
+
+        return $this->recordSkip($campaign, [
+            'campaign_id'   => $campaign->id,
+            'prospect_id'   => $prospect->id,
+            'user_id'       => $this->userId,
+            'email'         => $email,
+            'status'        => $reason === 'unsubscribed' ? 'unsubscribed' : 'skipped',
+            'template_name' => $campaign->template_name,
+            'error_message' => 'suppressed: ' . $reason,
+            'ab_variant'    => $abVariant,
+            'sent_at'       => now(),
+        ], perAddress: true);
+    }
+
+    /**
+     * Writes a skip row and bumps skipped_count atomically. Idempotent per campaign + prospect
+     * (+ address for per-address skips), so retried or continued runs never duplicate it.
+     */
+    private function recordSkip(Campaign $campaign, array $attributes, bool $perAddress): bool
+    {
+        $existing = CampaignMessage::where('campaign_id', $campaign->id)
+            ->where('prospect_id', $attributes['prospect_id'])
+            ->whereIn('status', ['skipped', 'unsubscribed']);
+
+        if ($perAddress) {
+            $existing->where('email', $attributes['email']);
+        }
+
+        if ($existing->exists()) {
+            return false;
+        }
+
+        DB::transaction(function () use ($campaign, $attributes): void {
+            CampaignMessage::create($attributes);
+            $campaign->increment('skipped_count');
+        });
+
+        return true;
     }
 
     // -------------------------------------------------------------------------

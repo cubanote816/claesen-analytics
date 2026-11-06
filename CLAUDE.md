@@ -475,6 +475,7 @@ php artisan website:regenerate-media --project=<id>
 - **DB:** MySQL 8.4 (no PostgreSQL — cross-join con `prospects_prospects`)
 - **KPI principal:** clics y CTR, no aperturas (Apple MPP invalida open rate)
 - **Audiencias:** `Modules/Prospects` es fuente de verdad. Mailing solo referencia `prospect_id`.
+- **Envío inline (CLA-654):** un envío, un `tracking_token` y una fila de `mailing_messages` por dirección (nunca un To con varias direcciones). El job inline trabaja en tramos de `MAILING_RUN_BUDGET_SECONDS` (20 s) y se re-encola con el mismo `dispatch_key`; solo avanza el tramo cuya `run_generation` coincide con la de la campaña. Restricción: `$timeout` del job (85) < redis `retry_after` (90), y el worker de producción corre sin `--timeout`. `MAILING_SEND_DELAY_MS` ≥ 2000 por el límite de Exchange (30 msg/min). Los caminos de campaña existente y A/B todavía no tienen continuación.
 
 ### Mapa MAI — Estado
 

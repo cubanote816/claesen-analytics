@@ -9,7 +9,18 @@ return [
     | Delay in milliseconds between individual sends inside ExecuteCampaignJob.
     | Keeps Microsoft Graph rate limits happy without blocking a full worker.
     */
-    'send_delay_ms' => env('MAILING_SEND_DELAY_MS', 500),
+    'send_delay_ms' => env('MAILING_SEND_DELAY_MS', 2000),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Run time budget
+    |--------------------------------------------------------------------------
+    | Seconds an inline ExecuteCampaignJob run may keep starting new sends before it
+    | re-dispatches itself with the same dispatch key. Must stay below the queue
+    | job $timeout (85 s) and the redis retry_after (90 s). Worst case per run:
+    | 20 budget + 30 Graph request + 15 OAuth + 2 delay + startup < 85 < 90.
+    */
+    'run_budget_seconds' => env('MAILING_RUN_BUDGET_SECONDS', 20),
 
     /*
     |--------------------------------------------------------------------------
