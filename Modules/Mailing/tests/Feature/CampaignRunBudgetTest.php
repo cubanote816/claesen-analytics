@@ -422,4 +422,49 @@ class CampaignRunBudgetTest extends TestCase
         $this->assertSame(['a@example.com'], $this->sentTo);
         $this->assertSame(1, Campaign::first()->run_generation);
     }
+
+    public function test_final_attempt_failure_republishes_an_orphaned_handover(): void
+    {
+        Queue::fake();
+        config(['mailing.run_budget_seconds' => 0]);
+        $this->mockMailer(fn () => true);
+        $p   = $this->prospect(['a@example.com', 'b@example.com']);
+        $job = $this->inlineJob([$p->id]);
+
+        $this->handle($job);
+        Queue::fake(); // the successor push was lost
+        $job->failed(new \RuntimeException('push failed'));
+
+        Queue::assertPushed(ExecuteCampaignJob::class, 1);
+        Queue::assertPushed(ExecuteCampaignJob::class, fn ($next) => $next->generation === 1);
+        $this->assertSame(CampaignStatus::SENDING, Campaign::first()->status);
+    }
+
+    public function test_final_attempt_failure_closes_the_campaign_when_the_queue_is_still_down(): void
+    {
+        config(['mailing.run_budget_seconds' => 0]);
+        $this->mockMailer(fn () => true);
+        $p   = $this->prospect(['a@example.com', 'b@example.com']);
+        $job = $this->inlineJob([$p->id]);
+
+        $pushes = 0;
+        $queue  = Mockery::mock(\Illuminate\Contracts\Queue\Queue::class);
+        $queue->shouldReceive('push')->andReturnUsing(function () use (&$pushes) {
+            if (++$pushes > 1) {
+                throw new \RuntimeException('redis down');
+            }
+
+            return 1;
+        });
+        $factory = Mockery::mock(\Illuminate\Contracts\Queue\Factory::class);
+        $factory->shouldReceive('connection')->andReturn($queue);
+        $this->app->instance(\Illuminate\Contracts\Queue\Factory::class, $factory);
+
+        $this->handle($job); // handover commits, first push succeeds (and is then treated as lost)
+        $job->failed(new \RuntimeException('final attempt'));
+
+        $campaign = Campaign::first();
+        $this->assertSame(CampaignStatus::FAILED, $campaign->status);
+        $this->assertNotNull($campaign->finished_at);
+    }
 }

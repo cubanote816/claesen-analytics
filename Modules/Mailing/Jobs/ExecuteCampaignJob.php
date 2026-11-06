@@ -123,6 +123,35 @@ class ExecuteCampaignJob implements ShouldQueue
                 'is_winner_send' => $this->isWinnerSend,
                 'error'          => $exception->getMessage(),
             ]);
+        } elseif ($this->campaignId === null) {
+            $this->recoverOrphanedHandover();
+        }
+    }
+
+    /**
+     * The handover (generation G+1, unowned) committed but the successor push failed on this run's
+     * last attempt. Publish it once more; if the queue is still down, close the campaign.
+     */
+    private function recoverOrphanedHandover(): void
+    {
+        $orphaned = fn () => Campaign::where('dispatch_key', $this->dispatchKey)
+            ->where('status', CampaignStatus::SENDING->value)
+            ->where('run_generation', ($this->generation ?? 0) + 1)
+            ->whereNull('run_owner');
+
+        if (! $orphaned()->exists()) {
+            return;
+        }
+
+        try {
+            $this->dispatchSuccessor(($this->generation ?? 0) + 1);
+        } catch (\Throwable $e) {
+            if ($orphaned()->update(['status' => CampaignStatus::FAILED->value, 'finished_at' => now()])) {
+                Log::error('ExecuteCampaignJob: successor could not be published — campaign set to failed', [
+                    'dispatch_key' => $this->dispatchKey,
+                    'error'        => $e->getMessage(),
+                ]);
+            }
         }
     }
 
