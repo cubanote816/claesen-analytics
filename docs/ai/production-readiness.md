@@ -82,7 +82,6 @@ php artisan migrate --force
 ### Variables de entorno requeridas
 
 ```env
-MAILING_NDR_INBOX=<inbox para NDR bounces>
 MAILING_SEND_DELAY_MS=<delay en ms entre envíos; mínimo 2000 (Exchange Online: 30 mensajes/min por buzón). No usar 500>
 MAILING_RUN_BUDGET_SECONDS=<segundos de envío por tramo del job inline; por defecto 20. Debe cumplir 20 + 47 + arranque < 85 ($timeout del job) < 90 (redis retry_after)>
 MAILING_FROM_ADDRESS=<remitente de campañas; buzón compartido dedicado, ej. sport@claesen-verlichting.be. Sin valor = MAIL_FROM_ADDRESS>
@@ -90,7 +89,6 @@ MAILING_FROM_NAME=<nombre visible de las campañas, ej. "Bert Bertels | Claesen 
 MAILING_REPLY_TO=<a dónde van las respuestas humanas; sin valor = MAIL_FROM_ADDRESS>
 MAILING_NDR_INBOX=<buzón de rebotes; sin valor = MAILING_FROM_ADDRESS (los NDR vuelven al remitente)>
 MAILING_NDR_UNPROCESSED_FOLDER=<carpeta donde se mueven sin leer los mensajes que no son rebotes; por defecto "Mailing - not processed">
-MAILING_SEND_DELAY_MS=<delay en ms entre envíos, ej: 500>
 MAILING_UNSUBSCRIBE_DOMAIN=<dominio para links de baja>
 MAILING_TRACKING_DOMAIN=<dominio para tracking, por defecto APP_URL>
 ```
