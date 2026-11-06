@@ -76,14 +76,16 @@ class ParseNdrBouncesCommand extends Command
             $email = $parser->extractEmail($subject, $body);
 
             if (! $email) {
-                $this->warn("  [SKIP] Could not extract email — Graph ID: {$messageId}");
-                Log::warning('mailing:parse-bounces: unrecognized NDR format', [
+                $this->line("  [SKIP] Not a bounce — Graph ID: {$messageId}");
+                Log::info('mailing:parse-bounces: not a bounce, moving to unprocessed folder', [
                     'graph_message_id' => $messageId,
                     'subject'          => $subject,
                 ]);
                 $stats['skipped']++;
+                // Not a recognised bounce: keep it unread, but move it out of the
+                // inbox so it cannot fill the unread batch and starve real NDRs.
                 if (! $dryRun) {
-                    $graph->markMessageRead($mailbox, $messageId);
+                    $this->moveToUnprocessed($graph, $mailbox, $messageId);
                 }
                 continue;
             }
@@ -123,6 +125,19 @@ class ParseNdrBouncesCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    private function moveToUnprocessed(MicrosoftGraphService $graph, string $mailbox, string $messageId): void
+    {
+        try {
+            $graph->moveMessageToFolder($mailbox, $messageId, (string) config('mailing.ndr_unprocessed_folder'));
+        } catch (\RuntimeException $e) {
+            Log::error('mailing:parse-bounces — could not move non-bounce message.', [
+                'graph_message_id' => $messageId,
+                'error'            => $e->getMessage(),
+            ]);
+            $this->warn("  [MOVE FAILED] {$messageId}: {$e->getMessage()}");
+        }
     }
 
     private function handleHard(

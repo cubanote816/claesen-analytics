@@ -475,6 +475,7 @@ php artisan website:regenerate-media --project=<id>
 - **DB:** MySQL 8.4 (no PostgreSQL — cross-join con `prospects_prospects`)
 - **KPI principal:** clics y CTR, no aperturas (Apple MPP invalida open rate)
 - **Audiencias:** `Modules/Prospects` es fuente de verdad. Mailing solo referencia `prospect_id`.
+- **Remitente de campañas (CLA-656):** las campañas salen de `MAILING_FROM_ADDRESS` (buzón compartido dedicado `sport@`, oculto de la libreta) con Reply-To `MAILING_REPLY_TO`; el resto del correo de la app sigue con `MAIL_FROM_ADDRESS`. Los rebotes vuelven al remitente, por eso `MAILING_NDR_INBOX` cae en él. El parser solo marca leídos los rebotes; lo demás lo mueve sin leer a una carpeta. Nunca apuntar el parser a un buzón humano sin esta garantía.
 
 ### Mapa MAI — Estado
 

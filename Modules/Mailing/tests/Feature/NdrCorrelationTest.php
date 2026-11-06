@@ -154,4 +154,100 @@ class NdrCorrelationTest extends TestCase
             'event_type' => MessageEventType::BOUNCED_HARD->value,
         ]);
     }
+
+    // CLA-656 / S4 — non-bounce messages must stay unread; recognised bounces are still marked read.
+    public function test_non_bounce_message_is_not_marked_read_but_bounce_is(): void
+    {
+        config([
+            'mailing.ndr_inbox' => 'sport@claesen-verlichting.be',
+            'mail.mailers.microsoft-graph.client_id'     => 'test-client-id',
+            'mail.mailers.microsoft-graph.tenant_id'     => 'test-tenant-id',
+            'mail.mailers.microsoft-graph.client_secret' => 'test-client-secret',
+        ]);
+        \Illuminate\Support\Facades\Cache::put('microsoft_graph_token', 'fake-token', 60);
+
+        $human = ['id' => 'human-1', 'subject' => 'Hallo, vraag over verlichting', 'body' => ['content' => 'Kunnen jullie mij bellen?']];
+        $ndr   = $this->makeNdrMessage('ndr-1', self::EMAIL, null);
+
+        \Illuminate\Support\Facades\Http::fake([
+            '*/mailFolders/inbox/messages*' => \Illuminate\Support\Facades\Http::response(['value' => [$human, $ndr]], 200),
+            '*/mailFolders?*'               => \Illuminate\Support\Facades\Http::response(['value' => [['id' => 'folder-1']]], 200),
+            '*/messages/*/move'             => \Illuminate\Support\Facades\Http::response([], 201),
+            '*/messages/*'                  => \Illuminate\Support\Facades\Http::response([], 200),
+        ]);
+
+        $this->artisan('mailing:parse-bounces')->assertSuccessful();
+
+        \Illuminate\Support\Facades\Http::assertSent(fn ($r) => $r->method() === 'PATCH' && str_ends_with($r->url(), '/messages/ndr-1'));
+        \Illuminate\Support\Facades\Http::assertNotSent(fn ($r) => $r->method() === 'PATCH' && str_ends_with($r->url(), '/messages/human-1'));
+    }
+
+    // CLA-656 / S4 — non-bounce messages are moved to the unprocessed folder (unread), the folder is resolved once per run.
+    public function test_non_bounce_messages_are_moved_to_unprocessed_folder_once_per_run(): void
+    {
+        $Http = \Illuminate\Support\Facades\Http::class;
+        config([
+            'mailing.ndr_inbox' => 'sport@claesen-verlichting.be',
+            'mailing.ndr_unprocessed_folder' => 'Mailing - not processed',
+            'mail.mailers.microsoft-graph.client_id'     => 'test-client-id',
+            'mail.mailers.microsoft-graph.tenant_id'     => 'test-tenant-id',
+            'mail.mailers.microsoft-graph.client_secret' => 'test-client-secret',
+        ]);
+        \Illuminate\Support\Facades\Cache::put('microsoft_graph_token', 'fake-token', 60);
+
+        $a = ['id' => 'human-1', 'subject' => 'Automatisch antwoord: afwezig', 'body' => ['content' => 'Out of office']];
+        $b = ['id' => 'human-2', 'subject' => 'Vraag', 'body' => ['content' => 'Bel mij']];
+        $ndr = $this->makeNdrMessage('ndr-1', self::EMAIL, null);
+
+        $Http::fake([
+            '*/mailFolders/inbox/messages*' => $Http::response(['value' => [$a, $b, $ndr]], 200),
+            '*/mailFolders?*'               => $Http::sequence()->push(['value' => []], 200),
+            '*/mailFolders'                 => $Http::response(['id' => 'folder-new', 'displayName' => 'Mailing - not processed'], 201),
+            '*/messages/*/move'             => $Http::response([], 201),
+            '*/messages/*'                  => $Http::response([], 200),
+        ]);
+
+        $this->artisan('mailing:parse-bounces')->assertSuccessful();
+
+        foreach (['human-1', 'human-2'] as $id) {
+            $Http::assertSent(fn ($r) => $r->method() === 'POST'
+                && str_ends_with($r->url(), "/users/sport@claesen-verlichting.be/messages/{$id}/move")
+                && $r['destinationId'] === 'folder-new');
+            $Http::assertNotSent(fn ($r) => $r->method() === 'PATCH' && str_ends_with($r->url(), "/messages/{$id}"));
+        }
+        $Http::assertSent(fn ($r) => $r->method() === 'PATCH' && str_ends_with($r->url(), '/messages/ndr-1'));
+        $Http::assertNotSent(fn ($r) => str_ends_with($r->url(), '/messages/ndr-1/move'));
+
+        $lookups = $Http::recorded(fn ($r) => $r->method() === 'GET' && str_contains($r->url(), '/mailFolders?'));
+        $creates = $Http::recorded(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/mailFolders'));
+        $this->assertCount(1, $lookups);
+        $this->assertCount(1, $creates);
+        $this->assertSame('Mailing - not processed', $creates->first()[0]['displayName'] ?? $creates->first()[0]->data()['displayName']);
+    }
+
+    public function test_move_failure_is_logged_and_run_continues(): void
+    {
+        $Http = \Illuminate\Support\Facades\Http::class;
+        config([
+            'mailing.ndr_inbox' => 'sport@claesen-verlichting.be',
+            'mail.mailers.microsoft-graph.client_id'     => 'test-client-id',
+            'mail.mailers.microsoft-graph.tenant_id'     => 'test-tenant-id',
+            'mail.mailers.microsoft-graph.client_secret' => 'test-client-secret',
+        ]);
+        \Illuminate\Support\Facades\Cache::put('microsoft_graph_token', 'fake-token', 60);
+
+        $human = ['id' => 'human-1', 'subject' => 'Vraag', 'body' => ['content' => 'Bel mij']];
+        $ndr   = $this->makeNdrMessage('ndr-1', self::EMAIL, null);
+
+        $Http::fake([
+            '*/mailFolders/inbox/messages*' => $Http::response(['value' => [$human, $ndr]], 200),
+            '*/mailFolders?*'               => $Http::response([], 403),
+            '*/messages/*'                  => $Http::response([], 200),
+        ]);
+
+        $this->artisan('mailing:parse-bounces')->assertSuccessful();
+
+        $Http::assertSent(fn ($r) => $r->method() === 'PATCH' && str_ends_with($r->url(), '/messages/ndr-1'));
+        $Http::assertNotSent(fn ($r) => $r->method() === 'PATCH' && str_ends_with($r->url(), '/messages/human-1'));
+    }
 }

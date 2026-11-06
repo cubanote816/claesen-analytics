@@ -42,22 +42,30 @@ return [
     |--------------------------------------------------------------------------
     | Default sender
     |--------------------------------------------------------------------------
+    | Campaign sender (CLA-656). Falls back to the global mail sender until
+    | MAILING_FROM_ADDRESS / MAILING_FROM_NAME are set. reply_to falls back to
+    | mail.from.address at runtime (ProspectCampaignMail).
     */
-    'from_address' => env('MAIL_FROM_ADDRESS', 'info@claesen-verlichting.be'),
-    'from_name'    => env('MAIL_FROM_NAME', 'Claesen Verlichting'),
+    'from_address' => env('MAILING_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'info@claesen-verlichting.be')),
+    'from_name'    => env('MAILING_FROM_NAME', env('MAIL_FROM_NAME', 'Claesen Verlichting')),
+    'reply_to'     => env('MAILING_REPLY_TO'),
 
     /*
     |--------------------------------------------------------------------------
     | NDR bounce inbox
     |--------------------------------------------------------------------------
-    | Dedicated mailbox that receives Non-Delivery Reports (NDRs).
+    | Mailbox that receives Non-Delivery Reports (NDRs). NDRs return to the
+    | sender, so it defaults to the campaign sender (CLA-656).
     | The Graph app must have Mail.Read permission for this mailbox.
     | Processed messages are marked as read (not deleted).
     |
     | MAI-029: add X-Mailing-Token header to outgoing emails for exact NDR
     | correlation with mailing_messages. Until then, correlation is by email only.
     */
-    'ndr_inbox'      => env('MAILING_NDR_INBOX', 'bounces@claesen-verlichting.be'),
+    'ndr_inbox'      => env('MAILING_NDR_INBOX', env('MAILING_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'info@claesen-verlichting.be'))),
+    // Non-bounce messages found in the NDR inbox are moved here (left unread) so they
+    // never starve the batch of unread inbox messages.
+    'ndr_unprocessed_folder' => env('MAILING_NDR_UNPROCESSED_FOLDER', 'Mailing - not processed'),
     'ndr_batch_size' => env('MAILING_NDR_BATCH_SIZE', 50),
 
     /*

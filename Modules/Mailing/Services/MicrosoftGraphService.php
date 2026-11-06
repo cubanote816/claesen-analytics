@@ -25,6 +25,9 @@ class MicrosoftGraphService
     protected ?string $clientSecret;
     protected string $baseUrl = 'https://graph.microsoft.com/v1.0';
 
+    /** @var array<string, string> Folder ids cached per "mailbox|name" for the lifetime of this instance. */
+    protected array $folderIds = [];
+
     public function __construct()
     {
         // CLA-532: read only from config() (config:cache-safe). config/mail.php
@@ -150,6 +153,84 @@ class MicrosoftGraphService
         }
 
         return $response->json('value', []);
+    }
+
+    /**
+     * Move a message to a top-level folder of the mailbox (created when missing).
+     * The message keeps its read state.
+     *
+     * @throws \RuntimeException on 403/404 or any other Graph failure.
+     */
+    public function moveMessageToFolder(string $mailbox, string $messageId, string $folderName): void
+    {
+        $token = $this->getAccessToken();
+
+        if (! $token) {
+            throw new \RuntimeException('Microsoft Graph: failed to obtain access token to move a message.');
+        }
+
+        $folderId = $this->resolveFolderId($token, $mailbox, $folderName);
+
+        $response = Http::withToken($token)
+            ->timeout(15)
+            ->post("{$this->baseUrl}/users/{$mailbox}/messages/{$messageId}/move", ['destinationId' => $folderId]);
+
+        $this->assertFolderResponse($response, $mailbox, "move message {$messageId}");
+    }
+
+    private function resolveFolderId(string $token, string $mailbox, string $folderName): string
+    {
+        $cacheKey = "{$mailbox}|{$folderName}";
+
+        if (isset($this->folderIds[$cacheKey])) {
+            return $this->folderIds[$cacheKey];
+        }
+
+        $escaped  = str_replace("'", "''", $folderName);
+        $response = Http::withToken($token)
+            ->timeout(15)
+            ->get("{$this->baseUrl}/users/{$mailbox}/mailFolders", ['$filter' => "displayName eq '{$escaped}'"]);
+
+        $this->assertFolderResponse($response, $mailbox, "look up folder '{$folderName}'");
+
+        $id = $response->json('value.0.id');
+
+        if (! $id) {
+            $response = Http::withToken($token)
+                ->timeout(15)
+                ->post("{$this->baseUrl}/users/{$mailbox}/mailFolders", ['displayName' => $folderName]);
+
+            $this->assertFolderResponse($response, $mailbox, "create folder '{$folderName}'");
+            $id = $response->json('id');
+        }
+
+        if (! $id) {
+            throw new \RuntimeException("Microsoft Graph: no id returned for folder '{$folderName}' in {$mailbox}.");
+        }
+
+        return $this->folderIds[$cacheKey] = $id;
+    }
+
+    private function assertFolderResponse(\Illuminate\Http\Client\Response $response, string $mailbox, string $action): void
+    {
+        if ($response->status() === 403) {
+            throw new \RuntimeException(
+                "Microsoft Graph: 403 Forbidden to {$action} in mailbox {$mailbox}. "
+                . 'Grant Mail.ReadWrite application permission for this mailbox.'
+            );
+        }
+
+        if ($response->status() === 404) {
+            throw new \RuntimeException(
+                "Microsoft Graph: 404 Not Found to {$action} in mailbox {$mailbox}. Verify the mailbox exists."
+            );
+        }
+
+        if ($response->failed()) {
+            throw new \RuntimeException(
+                "Microsoft Graph: failed to {$action} in {$mailbox}. Status: {$response->status()}. Body: {$response->body()}"
+            );
+        }
     }
 
     /**
