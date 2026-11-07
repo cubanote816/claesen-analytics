@@ -107,7 +107,7 @@ Orden, cada paso antes del siguiente:
 
 Los correos ya enviados conservan la URL interna; la corrección aplica a los envíos posteriores.
 
-Pendiente aparte: la app no declara proxies de confianza (`trustProxies`), así que la IP guardada en los eventos de apertura y clic es la del proxy, no la del destinatario. El conteo no se ve afectado: la deduplicación de 30 s es por mensaje.
+IP del cliente (CLA-661): todo lo que entra por el túnel desde `192.168.60.10` llega con `REMOTE_ADDR` 127.0.0.1. `bootstrap/app.php` confía solo en ese salto y solo en `X-Forwarded-For` (`trustProxies(at: '127.0.0.1', headers: HEADER_X_FORWARDED_FOR)`), así que `$request->ip()` es la IP que agrega el borde y el tracking, Turnstile, el anti-spam y los límites `throttle` (incluido el del login) trabajan por IP real. Requisito para que no se pueda falsear: **todo `location` de `192.168.60.10` que haga `proxy_pass` a `127.0.0.1:9443` tiene que definir `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`** (auditado el 2026-11-07: safety, fieldops, service y el snippet de tracking). Un vhost nuevo que lo omita deja pasar el `X-Forwarded-For` del cliente. La decisión de URLs de storage (`AppServiceProvider::servesLocalStorageUrls`) lee `REMOTE_ADDR`, no `ip()`.
 
 ### Scheduler (debe estar en crontab)
 

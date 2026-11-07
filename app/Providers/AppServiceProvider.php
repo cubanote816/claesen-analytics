@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\MarketingCampaignInterface;
+use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -102,11 +103,22 @@ class AppServiceProvider extends ServiceProvider
         // las peticiones proxied desde sbapu03 vía túnel también llegan con ese mismo Host
         // (backoffice.claesen.local, forzado por proxy_set_header en sbapu03) pero con
         // REMOTE_ADDR 127.0.0.1 — esas deben seguir usando MEDIA_URL para los visitantes públicos.
-        if (! $this->app->runningInConsole()
-            && request()->getHost() === parse_url(config('app.url'), PHP_URL_HOST)
-            && request()->ip() !== '127.0.0.1'
-        ) {
+        if (! $this->app->runningInConsole() && self::servesLocalStorageUrls(request())) {
             config(['filesystems.disks.public.url' => rtrim(config('app.url'), '/').'/storage']);
         }
+    }
+
+    /**
+     * Whether this request is a direct LAN request to the backoffice host.
+     *
+     * Reads the connection address, not ip(): since CLA-661 the tunnel hop is a
+     * trusted proxy, so ip() returns the public visitor behind it, who must keep
+     * MEDIA_URL. ip() would only stay correct here because boot() happens to run
+     * before the TrustProxies middleware.
+     */
+    public static function servesLocalStorageUrls(Request $request): bool
+    {
+        return $request->getHost() === parse_url(config('app.url'), PHP_URL_HOST)
+            && $request->server('REMOTE_ADDR') !== '127.0.0.1';
     }
 }
