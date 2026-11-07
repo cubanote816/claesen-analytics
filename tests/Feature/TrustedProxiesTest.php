@@ -24,6 +24,23 @@ class TrustedProxiesTest extends TestCase
             'scheme' => $request->getScheme(),
             'port' => $request->getPort(),
         ]));
+
+        Route::get('/__test/limited', fn () => response()->json(['ok' => true]))
+            ->middleware('throttle:1,1');
+    }
+
+    public function test_rotating_the_spoofed_entries_cannot_reset_a_client_throttle_bucket(): void
+    {
+        foreach ([
+            ['127.0.0.1', '198.51.100.1, 203.0.113.20', 200],
+            ['127.0.0.1', '198.51.100.2, 203.0.113.20', 429],
+            ['127.0.0.1', '198.51.100.1, 203.0.113.21', 200],
+        ] as [$remote, $forwarded, $status]) {
+            $this->withServerVariables(['REMOTE_ADDR' => $remote])
+                ->withHeaders(['X-Forwarded-For' => $forwarded])
+                ->get('/__test/limited')
+                ->assertStatus($status);
+        }
     }
 
     public function test_tunnel_request_resolves_the_address_appended_by_the_edge(): void
