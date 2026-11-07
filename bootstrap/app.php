@@ -23,6 +23,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // CLA-661: public traffic reaches this app through the reverse SSH tunnel
+        // from 192.168.60.10, so it always connects from 127.0.0.1. The edge appends
+        // the real client to X-Forwarded-For; trust only that hop and only that
+        // header (never the forwarded host, scheme or port).
+        $middleware->trustProxies(at: '127.0.0.1', headers: Request::HEADER_X_FORWARDED_FOR);
         $middleware->prepend(ResolveSessionCookieDomain::class);
         // The OAuth hint cookie is read by ResolveSessionCookieDomain, which is prepended
         // before EncryptCookies runs — so it must stay unencrypted to be readable there.

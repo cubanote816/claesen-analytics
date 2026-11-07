@@ -48,6 +48,23 @@ class TrackingControllerTest extends TestCase
         ]);
     }
 
+    public function test_open_pixel_stores_the_client_ip_forwarded_through_the_tunnel(): void
+    {
+        // CLA-661: public opens arrive from 127.0.0.1 via the 192.168.60.10 tunnel.
+        $message = CampaignMessage::factory()->sent()->create();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1'])
+             ->withHeaders(['X-Forwarded-For' => '198.51.100.66, 203.0.113.30'])
+             ->get('/mailing/track/open/' . $message->tracking_token . '.gif')
+             ->assertOk();
+
+        $event = MessageEvent::where('message_id', $message->id)
+            ->where('event_type', MessageEventType::OPENED->value)
+            ->sole();
+
+        $this->assertSame('203.0.113.30', $event->metadata['ip']);
+    }
+
     public function test_open_pixel_sets_cache_control_no_store(): void
     {
         $response = $this->get('/mailing/track/open/' . Str::random(64));
