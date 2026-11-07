@@ -90,8 +90,24 @@ MAILING_REPLY_TO=<a dónde van las respuestas humanas; sin valor = MAIL_FROM_ADD
 MAILING_NDR_INBOX=<buzón de rebotes; sin valor = MAILING_FROM_ADDRESS (los NDR vuelven al remitente)>
 MAILING_NDR_UNPROCESSED_FOLDER=<carpeta donde se mueven sin leer los mensajes que no son rebotes; por defecto "Mailing - not processed">
 MAILING_UNSUBSCRIBE_DOMAIN=<dominio para links de baja>
-MAILING_TRACKING_DOMAIN=<dominio para tracking, por defecto APP_URL>
+MAILING_TRACKING_DOMAIN=<host público para píxel y clics: https://service.claesen-verlichting.be. Sin valor = APP_URL (interno, no funciona fuera de la red)>
 ```
+
+### Dominio público de tracking (CLA-654/656)
+
+El píxel de apertura y los links de clic de las campañas se generan sobre `MAILING_TRACKING_DOMAIN`. `APP_URL` (`backoffice.claesen.local`) solo resuelve dentro de la red privada. `www.claesen-verlichting.be` es el sitio de marketing y devuelve 404 en `/mailing/track/*`. `backend.claesen-verlichting.be` ya no está disponible (NXDOMAIN). Las tres cosas se comprobaron el 2026-11-07. El host público es `service.claesen-verlichting.be`, que está en `sbapu03` y ya reenvía `/api/` al backend: no hace falta DNS ni TLS nuevos.
+
+Orden, cada paso antes del siguiente:
+
+1. **Nginx en `sbapu03`:** copiar `infrastructure/nginx/sbapu03/snippets/mailing-tracking.conf` a `/etc/nginx/snippets/` y agregar `include /etc/nginx/snippets/mailing-tracking.conf;` dentro del `server { }` HTTPS de `service.claesen-verlichting.be`. Ese vhost no está en este repo. Confirmar que el `proxy_pass` del snippet coincide con el del `location /api/` de ese vhost. Después: `sudo nginx -t && sudo systemctl reload nginx`. El snippet solo deja pasar `GET`/`HEAD` sobre las dos rutas con el formato exacto de token y hash; el resto de `/mailing/track/` da 404 y nada más de `/mailing/` (incluido `preferences`) se expone. Usa `^~`, así que una regla de assets estáticos como `location ~* \.(gif|...)$` no se queda con el píxel.
+2. **Comprobar el proxy antes de tocar la app:** `curl -I https://service.claesen-verlichting.be/mailing/track/open/<64 caracteres alfanuméricos>.gif` → `200` con `Content-Type: image/gif`.
+3. **Backend (`shared/.env` en `prod-priv-01`):** `MAILING_TRACKING_DOMAIN=https://service.claesen-verlichting.be`, luego `infrastructure/scripts/reload-config.sh` (con `opcache.validate_timestamps=0`, sin recargar php-fpm sigue vivo el valor viejo; ver CLA-232) y reiniciar los queue workers.
+4. **Deploy del código:** mergear a `main` **despliega** (`.github/workflows/deploy.yml` corre en `push` a `main`). Sin la variable, el código nuevo usa `APP_URL` y se comporta como antes.
+5. **Verificación desde fuera de la red:** enviar una campaña de prueba, abrirla y hacer clic, y comprobar que se registren los eventos de apertura y clic.
+
+Los correos ya enviados conservan la URL interna; la corrección aplica a los envíos posteriores.
+
+Pendiente aparte: la app no declara proxies de confianza (`trustProxies`), así que la IP guardada en los eventos de apertura y clic es la del proxy, no la del destinatario. El conteo no se ve afectado: la deduplicación de 30 s es por mensaje.
 
 ### Scheduler (debe estar en crontab)
 
