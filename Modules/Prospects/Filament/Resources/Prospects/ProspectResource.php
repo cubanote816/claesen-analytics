@@ -147,6 +147,15 @@ class ProspectResource extends Resource
                                 TextInput::make('email')
                                     ->label(__('prospects::resource.fields.email'))
                                     ->email()
+                                    // prospects_locations.email is uniquely indexed; validate it
+                                    // here so a duplicate shows a form error instead of a 500
+                                    // UniqueConstraintViolation. ignoreRecord lets a location keep
+                                    // its own email on edit.
+                                    ->unique(
+                                        table: 'prospects_locations',
+                                        column: 'email',
+                                        ignoreRecord: true,
+                                    )
                                     ->columnSpanFull(),
                                 TextInput::make('phone')
                                     ->label(__('prospects::resource.fields.phone'))
@@ -318,6 +327,14 @@ class ProspectResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('website')
                     ->label(__('prospects::resource.fields.website')),
+                // Searchable by a location's email (stored on the locations relationship,
+                // not on the prospect row). Hidden by default to keep the table compact;
+                // the global search box still matches it via the whereHas query.
+                TextColumn::make('primary_email')
+                    ->label(__('prospects::resource.fields.email'))
+                    ->state(fn (Prospect $record): ?string => $record->locations->firstWhere(fn ($loc): bool => filled($loc->email))?->email)
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas('locations', fn (Builder $q) => $q->where('email', 'like', "%{$search}%"))),
                 IconColumn::make('has_email')
                     ->label(__('prospects::resource.fields.email'))
                     ->boolean()
