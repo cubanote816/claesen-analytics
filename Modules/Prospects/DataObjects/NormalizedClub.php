@@ -23,6 +23,7 @@ final readonly class NormalizedClub
         public ?string $channel = null,
         public ?ClubLocation $headquarters = null,
         public array $venues = [],
+        public ?string $regionHint = null,
     ) {
     }
 
@@ -57,6 +58,7 @@ final readonly class NormalizedClub
             channel: $raw['channel'] ?? null,
             headquarters: self::locationFrom($raw['headquarters'] ?? null),
             venues: array_map(self::locationFrom(...), $venues),
+            regionHint: $raw['regionHint'] ?? null,
         );
     }
 
