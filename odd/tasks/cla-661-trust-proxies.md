@@ -14,12 +14,15 @@ Branch `fix/cla-661-trust-proxies` from `main` (41d67bd). Traffic that enters th
 
 | ID | Specs | Route | Commit |
 |---|---|---|---|
-| T1 | S1, S2, S3, S4, S5 | inline: `bootstrap/app.php`, `app/Providers/AppServiceProvider.php`, tests, docs | — |
-| T2 | S1–S5 | gentle-ai-verify (Risk: item 2) | — |
-| T3 | — | push branch and PR (user decides merge, which deploys) | — |
+| T1 | S1, S2, S3, S4, S5 | inline: `bootstrap/app.php`, `app/Providers/AppServiceProvider.php`, tests, docs | da0032b |
+| T2 | S1–S5 | gentle-ai-verify (Risk: item 2) | throttle test from the verifier's advisory: next commit |
+| T3 | — | push branch and PR (user decides merge, which deploys) | PR #41, merged 47f01dc |
 
 ## Log
 
 - **L1** (user, 2026-11-07, to the production instance): "Propagá la IP real del cliente por X-Forwarded-For". Then, after the audit and plan in this session: "go".
 - **L2** Audit (read-only, production instance + user sudo on 192.168.60.10): every location proxying to 127.0.0.1:9443 on 192.168.60.10 sets `X-Forwarded-For $proxy_add_x_forwarded_for` and `X-Real-IP $remote_addr` (safety `/sanctum/` `/api/`, fieldops `/api/`, service `/sanctum/` `/api/`, tracking snippet). `backend-public.conf` on 192.168.254.106 does not use the tunnel. No local client calls 127.0.0.1:443.
+- **L4** T1 evidence: RED observed on this branch's code for S1, S3, S4 (S2 and the loopback case pin unchanged behaviour); GREEN 7/7. Pint violations in the three edited files already exist on `main` (same fixers); new test files pass Pint.
+- **L5** T2 independent verify: S1–S4 PASS (Symfony `getClientIps` takes the rightmost untrusted entry; trust is global via `trustProxies`; no other trust configuration). S5 UNVERIFIED: MySQL/Sail unavailable (Docker not reachable in WSL) — left to CI on the PR. Advisory adopted: spoof rotation cannot reset a throttle bucket (RED with `main`'s bootstrap: 429 where 200 expected; GREEN 8/8).
 - **L3** Behaviour changes on deploy: `throttle:*` and the login limiter (`core-login:{email}|{ip}`) go from one shared bucket for all tunnel users to per-IP; Turnstile, anti-spam, access analytics and tracking store real IPs from then on (history stays 127.0.0.1).
+- **L6** CI on PR #41: 2503 passed, 3 skipped, 0 failed (S5 included). Merged as 47f01dc (user: "si todo esta bien hacer el merge"). Release 20261107160752: message 52 events 35–38 (before the deploy) store 127.0.x.x; events 42–44 (16:21, after it) store public IPs. The deploy hung about 10 minutes restarting a queue worker (fixed in CLA-662).
