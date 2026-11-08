@@ -13,8 +13,8 @@ Branch `fix/cla-662-deploy-worker-restart` from `main` (47f01dc). The PR #41 dep
 
 | ID | Specs | Route | Commit |
 |---|---|---|---|
-| T1 | S1–S3 | inline: `infrastructure/scripts/deploy.sh`, `docs/ai/known-risks.md` | — |
-| T2 | S1–S4 | gentle-ai-verify (Risk: item 5) | — |
+| T1 | S1–S3 | inline: `infrastructure/scripts/deploy.sh`, `docs/ai/known-risks.md` | bfe9f54 |
+| T2 | S1–S4 | gentle-ai-verify (Risk: item 5) | S3 warning fix: next commit |
 | T3 | S4 | server diff (read-only), install on `/opt` (user, sudo), then PR merge whose deploy is the first live run | — |
 
 ## Log
@@ -22,3 +22,4 @@ Branch `fix/cla-662-deploy-worker-restart` from `main` (47f01dc). The PR #41 dep
 - **L1** (user, 2026-11-07): "soluciona el 1." Item 1 was: "El deploy se colgó en el reinicio de workers … supervisor lo iba a esperar hasta una hora con la app en mantenimiento."
 - **L2** Production evidence (read-only): Runner → `sudo bash /opt/claesen/scripts/deploy.sh main` → child `sudo supervisorctl restart claesen-worker:*` for 6:48; `claesen-worker_01` (launched 16:08:26, idle, 0 CPU, SIGTERM caught) logged "waiting for claesen-worker_01 to stop" about 2025 times; `stopwaitsecs=3600`; `storage/framework/down` present the whole time.
 - **L3** Simulation (stub `git`/`php`/`supervisorctl`/`sudo`, isolated APP_DIR): the old script reproduces the hang (`start` exits 7 → `restart claesen-worker:*` → never reaches `artisan up`). The new script runs `queue:restart` → `up` → `start` → scheduler `restart` → `status` and completes; with a hanging scheduler, `timeout` cuts it, prints `ADVERTENCIA`, and the deploy completes.
+- **L4** T2 independent verify: S4 PASS; S1 and S2 PASS by source (`up` before every supervisorctl call; a worker paused in maintenance honours `queue:restart` and exits without reserving jobs, `Illuminate/Queue/Worker.php:258–264,405–442`), but UNVERIFIED dynamically because the verifier's scratch helper failed and it does not retry. **S3 FAIL**: worker `start` and `status` swallowed their failures with no `ADVERTENCIA`. Fixed: `start` ignores only "already started" and warns on timeout (124); `status` warns when anything is not RUNNING or it times out. Parent re-ran the simulation over six scenarios (old: hangs before `up`; new: normal, stopped workers, worker start hang, scheduler hang, FATAL worker): all complete with the expected warnings.

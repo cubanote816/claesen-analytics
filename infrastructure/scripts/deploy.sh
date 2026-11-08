@@ -91,11 +91,16 @@ php "$APP_DIR/current/artisan" up
 # manda SIGTERM a workers que queue:restart acaba de relanzar y, si uno no
 # sale, supervisor espera stopwaitsecs (3600 s). Pasó en el deploy del PR #41
 # (2026-11-07) con la app en mantenimiento. `start` solo levanta los parados.
-timeout 60 sudo supervisorctl start 'claesen-worker:*' >/dev/null 2>&1 || true
+worker_rc=0
+timeout 60 sudo supervisorctl start 'claesen-worker:*' >/dev/null 2>&1 || worker_rc=$?
+if [ "$worker_rc" -eq 124 ]; then
+    echo "  ADVERTENCIA: supervisorctl start de los workers no respondió en 60 s — revisar supervisorctl status"
+fi
 # El scheduler no escucha queue:restart: necesita restart para cargar el release.
 timeout 120 sudo supervisorctl restart claesen-scheduler \
     || echo "  ADVERTENCIA: claesen-scheduler no se reinició en 120 s — revisar supervisorctl status"
-timeout 30 sudo supervisorctl status 'claesen-worker:*' claesen-scheduler || true
+timeout 30 sudo supervisorctl status 'claesen-worker:*' claesen-scheduler \
+    || echo "  ADVERTENCIA: algún worker o el scheduler no está RUNNING (o supervisorctl no respondió en 30 s)"
 
 # Limpiar releases antiguas
 ls -dt "$RELEASES_DIR"/*/  2>/dev/null | tail -n +$((KEEP_RELEASES + 1)) | xargs sudo rm -rf 2>/dev/null || true
