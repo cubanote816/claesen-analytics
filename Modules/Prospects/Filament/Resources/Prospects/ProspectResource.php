@@ -327,6 +327,14 @@ class ProspectResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('website')
                     ->label(__('prospects::resource.fields.website')),
+                // Searchable by a location's email (stored on the locations relationship,
+                // not on the prospect row). Hidden by default to keep the table compact;
+                // the global search box still matches it via the whereHas query.
+                TextColumn::make('primary_email')
+                    ->label(__('prospects::resource.fields.email'))
+                    ->state(fn (Prospect $record): ?string => $record->locations->firstWhere(fn ($loc): bool => filled($loc->email))?->email)
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas('locations', fn (Builder $q) => $q->where('email', 'like', "%{$search}%"))),
                 IconColumn::make('has_email')
                     ->label(__('prospects::resource.fields.email'))
                     ->boolean()
