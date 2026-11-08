@@ -147,6 +147,15 @@ class ProspectResource extends Resource
                                 TextInput::make('email')
                                     ->label(__('prospects::resource.fields.email'))
                                     ->email()
+                                    // prospects_locations.email is uniquely indexed; validate it
+                                    // here so a duplicate shows a form error instead of a 500
+                                    // UniqueConstraintViolation. ignoreRecord lets a location keep
+                                    // its own email on edit.
+                                    ->unique(
+                                        table: 'prospects_locations',
+                                        column: 'email',
+                                        ignoreRecord: true,
+                                    )
                                     ->columnSpanFull(),
                                 TextInput::make('phone')
                                     ->label(__('prospects::resource.fields.phone'))
