@@ -177,6 +177,71 @@ class AdminPanelProvider extends PanelProvider
     .dark .fi-topbar-ctn {
         border-bottom-color: rgba(255, 255, 255, 0.08) !important;
     }
+
+    /* The fixed topbar above sits at z-index 10000 (over the prospects FAB at
+       9999). Filament modals/slide-overs default to z-index 40, so without this
+       they render *behind* the topbar and their header/close button are unreadable.
+       Lift every modal overlay and window above the topbar so it covers the
+       whole viewport as intended. Stacked modals keep their +10 ordering. */
+    .fi-modal > .fi-modal-close-overlay,
+    .fi-modal > .fi-modal-window-ctn {
+        z-index: 10010 !important;
+    }
+
+    .fi-modal.fi-modal-open ~ .fi-modal.fi-modal-open > .fi-modal-close-overlay,
+    .fi-modal.fi-modal-open ~ .fi-modal.fi-modal-open > .fi-modal-window-ctn {
+        z-index: 10020 !important;
+    }
+
+    /* Record-list tabs (Prospects: Real Prospects / Testers / All). Filament's
+       schema tabs run a JS "overflow" measurement that, with the fixed topbar,
+       mis-measures and collapses them into a floating, vertical overflow panel
+       (position:fixed) that overlaps the page. Force them to stay inline as a
+       centered, contained segmented control and kill the floating fallback. */
+    .fi-sc-tabs > .fi-tabs {
+        width: fit-content;
+        max-width: 100%;
+        margin-inline: auto;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        overflow: visible !important;
+        padding: 0.3rem;
+        border-radius: 0.85rem;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        background: rgba(15, 23, 42, 0.03);
+    }
+
+    .dark .fi-sc-tabs > .fi-tabs {
+        border-color: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* Keep every tab visible inline (override the JS x-show display:none) and
+       never render the detached overflow trigger/panel. */
+    .fi-sc-tabs > .fi-tabs > .fi-sc-tabs-tablist > .fi-tabs-item {
+        display: inline-flex !important;
+    }
+
+    .fi-sc-tabs .fi-sc-tabs-header-overflow,
+    .fi-sc-tabs .fi-sc-tabs-header-overflow-open,
+    .fi-sc-tabs .fi-sc-tabs-overflow-panel {
+        display: none !important;
+    }
+
+    .fi-sc-tabs .fi-tabs-item {
+        border-radius: 0.6rem;
+        padding-inline: 1rem;
+        padding-block: 0.5rem;
+    }
+
+    .fi-sc-tabs .fi-tabs-item.fi-active {
+        background: #00aeef;
+    }
+
+    .fi-sc-tabs .fi-tabs-item.fi-active .fi-tabs-item-label {
+        color: #ffffff !important;
+    }
 </style>
 HTML
             );
