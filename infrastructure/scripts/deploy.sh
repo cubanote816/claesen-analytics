@@ -4,7 +4,7 @@ set -euo pipefail
 APP_DIR="/srv/www/claesen"
 SHARED_DIR="$APP_DIR/shared"
 RELEASES_DIR="$APP_DIR/releases"
-KEEP_RELEASES=3
+KEEP_RELEASES=4
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 RELEASE_DIR="$RELEASES_DIR/$TIMESTAMP"
 REPO="https://github.com/cubanote816/claesen-analytics.git"
@@ -77,14 +77,30 @@ sudo rm -rf "$APP_DIR/current" && sudo ln -s "$RELEASE_DIR" "$APP_DIR/current"
 # usar reload-config.sh en vez de repetir esto a mano.
 sudo systemctl reload php8.4-fpm
 
-# Reiniciar colas de forma elegante
+# Antes de `up`: cada worker (pausado por el modo mantenimiento) ve la señal,
+# sale, y supervisor (autorestart) lo relanza sobre el release nuevo, así que
+# ningún job corre con código viejo contra el esquema ya migrado.
 php "$APP_DIR/current/artisan" queue:restart || true
-sudo supervisorctl start claesen-worker:*   2>/dev/null || sudo supervisorctl restart claesen-worker:* 2>/dev/null || true
-sudo supervisorctl start claesen-scheduler  2>/dev/null || sudo supervisorctl restart claesen-scheduler 2>/dev/null || true
 
 # ── 10. SALIR DE MANTENIMIENTO ───────────────
 echo "[10/10] Saliendo de mantenimiento..."
 php "$APP_DIR/current/artisan" up
+
+# Supervisor va después de `up` y con límite de tiempo (CLA-662): si se traba,
+# el sitio ya está arriba. Nunca `supervisorctl restart` de los workers: le
+# manda SIGTERM a workers que queue:restart acaba de relanzar y, si uno no
+# sale, supervisor espera stopwaitsecs (3600 s). Pasó en el deploy del PR #41
+# (2026-11-07) con la app en mantenimiento. `start` solo levanta los parados.
+worker_rc=0
+timeout 60 sudo supervisorctl start 'claesen-worker:*' >/dev/null 2>&1 || worker_rc=$?
+if [ "$worker_rc" -eq 124 ]; then
+    echo "  ADVERTENCIA: supervisorctl start de los workers no respondió en 60 s — revisar supervisorctl status"
+fi
+# El scheduler no escucha queue:restart: necesita restart para cargar el release.
+timeout 120 sudo supervisorctl restart claesen-scheduler \
+    || echo "  ADVERTENCIA: claesen-scheduler no se reinició en 120 s — revisar supervisorctl status"
+timeout 30 sudo supervisorctl status 'claesen-worker:*' claesen-scheduler \
+    || echo "  ADVERTENCIA: algún worker o el scheduler no está RUNNING (o supervisorctl no respondió en 30 s)"
 
 # Limpiar releases antiguas
 ls -dt "$RELEASES_DIR"/*/  2>/dev/null | tail -n +$((KEEP_RELEASES + 1)) | xargs sudo rm -rf 2>/dev/null || true
