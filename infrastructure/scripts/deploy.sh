@@ -4,7 +4,7 @@ set -euo pipefail
 APP_DIR="/srv/www/claesen"
 SHARED_DIR="$APP_DIR/shared"
 RELEASES_DIR="$APP_DIR/releases"
-KEEP_RELEASES=3
+KEEP_RELEASES=4
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 RELEASE_DIR="$RELEASES_DIR/$TIMESTAMP"
 REPO="https://github.com/cubanote816/claesen-analytics.git"
