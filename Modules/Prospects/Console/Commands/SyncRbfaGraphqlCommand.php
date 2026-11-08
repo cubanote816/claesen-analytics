@@ -48,8 +48,33 @@ class SyncRbfaGraphqlCommand extends Command
 
             foreach ($clubs as $club) {
                 try {
-                    $this->persister->persist($club);
-                    $this->markPersisted();
+                    $report = $this->persister->reconcile($club);
+
+                    if ($report['ambiguous']) {
+                        $this->logSyncEvent(
+                            "RBFA club {$club->externalId} ({$club->name}) matches several existing prospects; skipped.",
+                            'warning',
+                            '⚠️',
+                        );
+                    } else {
+                        $this->markPersisted();
+                    }
+
+                    foreach ($report['skipped_locations'] as $skipped) {
+                        $this->logSyncEvent(
+                            "Location {$skipped['location']} skipped: email {$skipped['email']} already exists.",
+                            'warning',
+                            '⚠️',
+                        );
+                    }
+
+                    foreach ($report['skipped_emails'] as $skipped) {
+                        $this->logSyncEvent(
+                            "Email {$skipped['email']} skipped for location {$skipped['location']}: already used by another prospect.",
+                            'warning',
+                            '⚠️',
+                        );
+                    }
                 } catch (Throwable $exception) {
                     $this->markFailed();
                     $this->logSyncEvent(

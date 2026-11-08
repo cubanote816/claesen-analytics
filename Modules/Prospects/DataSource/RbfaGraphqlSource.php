@@ -197,6 +197,7 @@ class RbfaGraphqlSource implements FederationDataSource
             'vatNumber' => $info['vatNumber'] ?? null,
             'contactPerson' => $contactName,
             'channel' => $club['channel'],
+            'regionHint' => $club['province'],
             'headquarters' => new ClubLocation(
                 address: $address,
                 contactName: $contactName,

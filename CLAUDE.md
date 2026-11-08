@@ -477,6 +477,7 @@ php artisan website:regenerate-media --project=<id>
 - **Audiencias:** `Modules/Prospects` es fuente de verdad. Mailing solo referencia `prospect_id`.
 - **Envío inline (CLA-654):** un envío, un `tracking_token` y una fila de `mailing_messages` por dirección (nunca un To con varias direcciones). El job inline trabaja en tramos de `MAILING_RUN_BUDGET_SECONDS` (20 s) y se re-encola con el mismo `dispatch_key`; solo avanza el tramo cuya `run_generation` coincide con la de la campaña. Restricción: `$timeout` del job (85) < redis `retry_after` (90), y el worker de producción corre sin `--timeout`. `MAILING_SEND_DELAY_MS` ≥ 2000 por el límite de Exchange (30 msg/min). Los caminos de campaña existente y A/B todavía no tienen continuación.
 - **Remitente de campañas (CLA-656):** las campañas salen de `MAILING_FROM_ADDRESS` (buzón compartido dedicado `sport@`, oculto de la libreta) con Reply-To `MAILING_REPLY_TO`; el resto del correo de la app sigue con `MAIL_FROM_ADDRESS`. Los rebotes vuelven al remitente, por eso `MAILING_NDR_INBOX` cae en él. El parser solo marca leídos los rebotes; lo demás lo mueve sin leer a una carpeta. Nunca apuntar el parser a un buzón humano sin esta garantía.
+- **Sync de federaciones (CLA-655):** los sync nunca sobrescriben un dato existente (fill-only) ni escriben `external_id` en prospectos legacy; reconcilian por VAT canónico o nombre. Detalle en `docs/ai/context-map.md`.
 
 ### Mapa MAI — Estado
 
