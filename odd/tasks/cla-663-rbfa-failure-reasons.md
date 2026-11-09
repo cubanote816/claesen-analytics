@@ -14,10 +14,10 @@
 
 | # | Task | Estado | Commit |
 |---|------|--------|--------|
-| T1 | RED: tests por S# en `RbfaGraphQLSourceTest` y `SyncRbfaGraphqlCommandTest` | hecho | 74791d21 |
-| T2 | GREEN: `RbfaGraphqlSource` calcula el motivo; el comando agrupa y registra | hecho | 74791d21 |
-| T3 | Docs: runbook + handoff | hecho | 74791d21 |
-| T4 | Suite `Modules/Prospects/tests` (165 passed) + `git diff --check` | hecho | 74791d21 |
+| T1 | RED: tests por S# en `RbfaGraphQLSourceTest` y `SyncRbfaGraphqlCommandTest` | hecho | c9dfeccc |
+| T2 | GREEN: `RbfaGraphqlSource` calcula el motivo; el comando agrupa y registra | hecho | c9dfeccc |
+| T3 | Docs: runbook + handoff | hecho | c9dfeccc |
+| T4 | Suite `Modules/Prospects/tests` (165 passed) + `git diff --check` | hecho | c9dfeccc |
 
 ## Log
 
