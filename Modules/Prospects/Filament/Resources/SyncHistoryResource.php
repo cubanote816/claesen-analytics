@@ -231,7 +231,7 @@ class SyncHistoryResource extends Resource
 
                                     TextEntry::make('message')
                                         ->label(false)
-                                        ->columnSpan(6),
+                                        ->columnSpan(7),
 
                                     TextEntry::make('type')
                                         ->label(false)
@@ -242,7 +242,8 @@ class SyncHistoryResource extends Resource
                                             'info' => 'info',
                                             default => 'gray',
                                         })
-                                        ->columnSpan(1),
+                                        // Two of ten columns: one is narrower than the "error" badge and clips it (CLA-665).
+                                        ->columnSpan(2),
                                 ]),
                             ])
                             ->columnSpanFull(),
