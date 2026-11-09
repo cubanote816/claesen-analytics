@@ -9,6 +9,7 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Mockery;
 use Modules\Prospects\DataObjects\NormalizedClub;
 use Modules\Prospects\DataSource\RbfaGraphqlSource;
@@ -509,5 +510,124 @@ class SyncRbfaGraphqlCommandTest extends TestCase
         $this->runCommand();
 
         $this->assertSame($first, $this->snapshot());
+    }
+
+    // -------------------------------------------------------------------------
+    // CLA-663 — the stored sync history says why each series failed
+    // -------------------------------------------------------------------------
+
+    private const ACCESS_DENIED_HTML = '<HTML><HEAD> <TITLE>Access Denied</TITLE> </HEAD><BODY> <H1>Access Denied</H1> '
+        .'You don\'t have permission to access "http&#58;&#47;&#47;datalake&#45;prod2018.rbfa.be&#47;graphql" on this server.<P> '
+        .'Reference&#32;&#35;18&#46;abc123 </BODY></HTML>';
+
+    private const ACCESS_DENIED_REASON = 'HTTP 200 text/html: Access Denied Access Denied You don\'t have permission to access '
+        .'"http://datalake-prod2018.rbfa.be/graphql" on this server. Reference #18.abc123';
+
+    private function fakeAccessDenied(): void
+    {
+        Http::fake([
+            'datalake-prod2018.rbfa.be/*' => Http::response(self::ACCESS_DENIED_HTML, 200, ['Content-Type' => 'text/html']),
+        ]);
+    }
+
+    public function test_s3_all_series_failing_stores_grouped_reasons_before_the_final_error(): void
+    {
+        config(['rbfa.provinces' => ['Antwerpen' => ['CHP_A', 'CHP_B'], 'Limburg' => ['CHP_C']]]);
+        $this->fakeAccessDenied();
+
+        $this->artisan('prospects:sync-rbfa-graphql')->assertExitCode(1);
+
+        $history = $this->history();
+        $this->assertSame('failed', $history->status);
+        $messages = array_column($history->logs, 'message');
+        $reasonIndex = array_search('3 series failed: '.self::ACCESS_DENIED_REASON, $messages, true);
+        $finalIndex = array_search('Error: All RBFA discovery series failed.', $messages, true);
+        $this->assertNotFalse($reasonIndex, 'Grouped reason line missing: '.implode(' | ', $messages));
+        $this->assertNotFalse($finalIndex);
+        $this->assertLessThan($finalIndex, $reasonIndex);
+        $this->assertSame(['error', '❌'], [$history->logs[$reasonIndex]['type'], $history->logs[$reasonIndex]['icon']]);
+    }
+
+    public function test_s3_distinct_reasons_are_grouped_with_their_own_counts(): void
+    {
+        config(['rbfa.provinces' => ['Antwerpen' => ['CHP_A', 'CHP_B', 'CHP_C']]]);
+        Http::fake([
+            'datalake-prod2018.rbfa.be/*' => function (Request $request) {
+                $series = json_decode($request->body(), true)['variables']['seriesId'];
+
+                return $series === 'CHP_C'
+                    ? Http::response(['errors' => [['message' => 'PersistedQueryNotFound']]])
+                    : Http::response(self::ACCESS_DENIED_HTML, 200, ['Content-Type' => 'text/html']);
+            },
+        ]);
+
+        $this->artisan('prospects:sync-rbfa-graphql')->assertExitCode(1);
+
+        $messages = array_column($this->history()->logs, 'message');
+        $this->assertContains('2 series failed: '.self::ACCESS_DENIED_REASON, $messages);
+        $this->assertContains('1 series failed: HTTP 200 application/json: PersistedQueryNotFound', $messages);
+    }
+
+    public function test_s4_all_series_failing_writes_exactly_one_warning_with_reasons_and_counts(): void
+    {
+        config(['rbfa.provinces' => ['Antwerpen' => ['CHP_A', 'CHP_B'], 'Limburg' => ['CHP_C']]]);
+        $this->fakeAccessDenied();
+        Log::spy();
+
+        $this->artisan('prospects:sync-rbfa-graphql')->assertExitCode(1);
+
+        Log::shouldHaveReceived('warning')->once()->withArgs(
+            fn (string $message, array $context = []) => str_contains($message, 'All RBFA discovery series failed')
+                && ($context['reasons'] ?? null) === [self::ACCESS_DENIED_REASON => 3]
+        );
+    }
+
+    public function test_s5_partial_failure_uses_the_new_reason_and_still_persists_survivors(): void
+    {
+        config(['rbfa.provinces' => ['Antwerpen' => ['CHP_BAD', 'CHP_OK']]]);
+        Log::spy();
+        Http::fake([
+            'datalake-prod2018.rbfa.be/*' => function (Request $request) {
+                $body = json_decode($request->body(), true);
+
+                if (($body['variables']['seriesId'] ?? null) === 'CHP_BAD') {
+                    return Http::response(self::ACCESS_DENIED_HTML, 200, ['Content-Type' => 'text/html']);
+                }
+
+                return ($body['operationName'] ?? null) === 'GetSeriesRankings'
+                    ? Http::response($this->seriesRankingsPayload([self::CLUB_OK]))
+                    : Http::response($this->clubInfoPayload(['name' => 'Survivor']));
+            },
+        ]);
+
+        $this->artisan('prospects:sync-rbfa-graphql')->assertExitCode(1);
+
+        $history = $this->history();
+        $this->assertSame('failed', $history->status);
+        $this->assertSame(1, $history->records_count);
+        $this->assertContains(
+            'Series CHP_BAD (Antwerpen) failed: '.self::ACCESS_DENIED_REASON,
+            array_column($this->errorLogs($history), 'message')
+        );
+        $this->assertContains('RBFA source completed with 1 failure(s).', array_map(
+            fn (string $m) => str_replace('Error: ', '', $m),
+            array_column($this->errorLogs($history), 'message')
+        ));
+        Log::shouldNotHaveReceived('warning');
+        $this->assertDatabaseHas('prospects_prospects', ['external_id' => 'VL-RBFA-'.self::CLUB_OK, 'name' => 'Survivor']);
+    }
+
+    public function test_s5_successful_run_still_persists_clubs_and_completes(): void
+    {
+        $this->fakeRbfa(fn () => Http::response($this->clubInfoPayload()));
+
+        $this->artisan('prospects:sync-rbfa-graphql')->assertExitCode(0);
+
+        $history = $this->history();
+        $this->assertSame('completed', $history->status);
+        $this->assertSame(2, $history->records_count);
+        $this->assertSame([], $this->errorLogs($history));
+        $this->assertDatabaseHas('prospects_prospects', ['external_id' => 'VL-RBFA-'.self::CLUB_OK, 'name' => 'Surviving Club '.self::CLUB_OK]);
+        $this->assertDatabaseHas('prospects_prospects', ['external_id' => 'VL-RBFA-'.self::CLUB_FAIL, 'name' => 'Test Club']);
     }
 }

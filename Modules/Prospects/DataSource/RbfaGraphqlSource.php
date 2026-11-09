@@ -15,11 +15,13 @@ class RbfaGraphqlSource implements FederationDataSource
 {
     public const DEFAULT_URL = 'https://datalake-prod2018.rbfa.be/graphql';
 
+    private const REASON_LIMIT = 200;
+
     private const DISCOVERY_HASH = '0a53124a9bc8872b686f22d80fd545622dbaf4b27a7596e1207b097b92c87953';
 
     private const ENRICHMENT_HASH = '7c1bd99f0001a20d60208c60d4fb7c99aefdb810b9ee1c4de21a6d6ba4804b58';
 
-    /** @var array<int, array{series: string, province: string, status: int|string}> */
+    /** @var array<int, array{series: string, province: string, status: string}> */
     private array $failures = [];
 
     private string $apiUrl;
@@ -80,7 +82,7 @@ class RbfaGraphqlSource implements FederationDataSource
                         : null;
 
                     if (! $response->successful() || $rankings === null) {
-                        $this->recordFailure($seriesId, $province, $response->successful() ? 'unparseable' : $response->status());
+                        $this->recordFailure($seriesId, $province, $this->responseReason($response));
                         continue;
                     }
 
@@ -99,7 +101,7 @@ class RbfaGraphqlSource implements FederationDataSource
                         }
                     }
                 } catch (Throwable $exception) {
-                    $this->recordFailure($seriesId, $province, $exception->getMessage());
+                    $this->recordFailure($seriesId, $province, $this->exceptionReason($exception));
                 } finally {
                     ($this->throttle)();
                 }
@@ -121,20 +123,20 @@ class RbfaGraphqlSource implements FederationDataSource
                 $info = $response->successful() ? ($response->json()['data']['clubInfo'] ?? null) : null;
 
                 if (! $response->successful() || $info === null) {
-                    $this->recordFailure($club['id'], $club['province'], $response->successful() ? 'unparseable' : $response->status());
+                    $this->recordFailure($club['id'], $club['province'], $this->responseReason($response));
                     continue;
                 }
 
                 $normalized[] = $this->normalize($club, $info);
             } catch (Throwable $exception) {
-                $this->recordFailure($club['id'], $club['province'], $exception->getMessage());
+                $this->recordFailure($club['id'], $club['province'], $this->exceptionReason($exception));
             }
         }
 
         return $normalized;
     }
 
-    /** @return array<int, array{series: string, province: string, status: int|string}> */
+    /** @return array<int, array{series: string, province: string, status: string}> */
     public function failures(): array
     {
         return $this->failures;
@@ -243,7 +245,37 @@ class RbfaGraphqlSource implements FederationDataSource
         return null;
     }
 
-    private function recordFailure(string $series, string $province, int|string $status): void
+    private function responseReason(Response $response): string
+    {
+        $contentType = trim(explode(';', $response->header('Content-Type'))[0]);
+        $json = $response->json();
+        $detail = is_array($json) ? ($json['errors'][0]['message'] ?? null) : null;
+
+        if (! is_string($detail) || $detail === '') {
+            $detail = $this->bodySnippet($response->body());
+        }
+
+        return sprintf('HTTP %d %s: %s', $response->status(), $contentType !== '' ? $contentType : 'unknown', $detail);
+    }
+
+    private function exceptionReason(Throwable $exception): string
+    {
+        return class_basename($exception).': '.$this->truncate($exception->getMessage());
+    }
+
+    private function bodySnippet(string $body): string
+    {
+        $text = html_entity_decode(strip_tags(preg_replace('/<[^>]*>/', ' ', mb_substr($body, 0, 5000))), ENT_QUOTES | ENT_HTML5);
+
+        return $this->truncate(trim(preg_replace('/\s+/u', ' ', $text)));
+    }
+
+    private function truncate(string $text): string
+    {
+        return mb_strlen($text) > self::REASON_LIMIT ? mb_substr($text, 0, self::REASON_LIMIT).'…' : $text;
+    }
+
+    private function recordFailure(string $series, string $province, string $status): void
     {
         $this->failures[] = compact('series', 'province', 'status');
     }

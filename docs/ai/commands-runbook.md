@@ -322,6 +322,10 @@ php artisan prospects:sync-tpv            # TPV
 php artisan prospects:sync-val            # VAL
 ```
 
+**Motivos de fallo de `prospects:sync-rbfa-graphql` (CLA-663):** cada serie (o club en el enriquecimiento) que falla guarda su motivo: `HTTP <código> <content-type>: <inicio de la respuesta sin HTML>` (p. ej. la página «Access Denied» de Akamai con HTTP 200 `text/html`, o el primer mensaje GraphQL como `PersistedQueryNotFound`) o `<Clase de excepción>: <mensaje>` (máx. ~200 caracteres). Dónde verlos:
+- `SyncHistory.logs` (pantalla de historial): líneas `❌ Series <id> (<provincia>) failed: <motivo>` si el fallo es parcial; si fallan **todas** las series, líneas agrupadas `❌ <N> series failed: <motivo>` antes de `Error: All RBFA discovery series failed.`
+- `storage/logs/laravel.log`: un único `WARNING All RBFA discovery series failed.` con los motivos y sus recuentos, solo cuando fallan todas.
+
 **Notas:**
 - Todos los syncs son idempotentes
 - Usan `firstOrCreate` / `updateOrCreate` para evitar duplicados
