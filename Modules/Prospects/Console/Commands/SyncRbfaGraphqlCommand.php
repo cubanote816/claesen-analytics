@@ -3,6 +3,7 @@
 namespace Modules\Prospects\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Modules\Prospects\DataSource\RbfaGraphqlSource;
 use Modules\Prospects\Exceptions\DataSourceException;
 use Modules\Prospects\Services\ClubPersister;
@@ -32,6 +33,8 @@ class SyncRbfaGraphqlCommand extends Command
             $this->startSyncLog($this->option('user'), $this->option('history'));
             $this->info('Starting RBFA synchronization...');
 
+            $source = null;
+
             try {
                 $limit = $this->option('limit');
                 $source = $this->source->selected(
@@ -40,6 +43,7 @@ class SyncRbfaGraphqlCommand extends Command
                 );
                 $clubs = $source->fetchClubs();
             } catch (DataSourceException $exception) {
+                $this->recordAllSeriesFailed($source?->failures() ?? []);
                 $this->error($exception->getMessage());
                 $this->failSyncLog($exception->getMessage());
 
@@ -107,5 +111,20 @@ class SyncRbfaGraphqlCommand extends Command
 
             return self::SUCCESS;
         });
+    }
+
+    /** @param array<int, array{series: string, province: string, status: string}> $failures */
+    private function recordAllSeriesFailed(array $failures): void
+    {
+        $reasons = array_count_values(array_column($failures, 'status'));
+        if ($reasons === []) {
+            return;
+        }
+
+        foreach ($reasons as $reason => $count) {
+            $this->logSyncEvent("{$count} series failed: {$reason}", 'error', '❌');
+        }
+
+        Log::warning('All RBFA discovery series failed.', ['reasons' => $reasons]);
     }
 }
