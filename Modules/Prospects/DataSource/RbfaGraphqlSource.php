@@ -267,7 +267,11 @@ class RbfaGraphqlSource implements FederationDataSource
     {
         $text = html_entity_decode(strip_tags(preg_replace('/<[^>]*>/', ' ', mb_substr($body, 0, 5000))), ENT_QUOTES | ENT_HTML5);
 
-        return $this->truncate(trim(preg_replace('/\s+/u', ' ', $text)));
+        $text = trim(preg_replace('/\s+/u', ' ', $text));
+
+        // Per-request identifiers (e.g. Akamai "Reference #18.458a1402.1794173441.251facdb") would make
+        // every failure unique; mask them so identical failures group together.
+        return $this->truncate(preg_replace('/(?<!\w)(?=[0-9a-f.]*\d)[0-9a-f]+(?:\.[0-9a-f]+)+/i', '…', $text));
     }
 
     private function truncate(string $text): string

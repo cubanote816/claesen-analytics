@@ -521,7 +521,7 @@ class SyncRbfaGraphqlCommandTest extends TestCase
         .'Reference&#32;&#35;18&#46;abc123 </BODY></HTML>';
 
     private const ACCESS_DENIED_REASON = 'HTTP 200 text/html: Access Denied Access Denied You don\'t have permission to access '
-        .'"http://datalake-prod2018.rbfa.be/graphql" on this server. Reference #18.abc123';
+        .'"http://datalake-prod2018.rbfa.be/graphql" on this server. Reference #…';
 
     private function fakeAccessDenied(): void
     {
@@ -566,6 +566,33 @@ class SyncRbfaGraphqlCommandTest extends TestCase
         $messages = array_column($this->history()->logs, 'message');
         $this->assertContains('2 series failed: '.self::ACCESS_DENIED_REASON, $messages);
         $this->assertContains('1 series failed: HTTP 200 application/json: PersistedQueryNotFound', $messages);
+    }
+
+    public function test_s3_akamai_reference_ids_do_not_split_the_grouped_reason(): void
+    {
+        config(['rbfa.provinces' => ['Antwerpen' => ['CHP_A', 'CHP_B']]]);
+        $page = fn (string $ref) => '<HTML><HEAD> <TITLE>Access Denied</TITLE> </HEAD><BODY> <H1>Access Denied</H1> '
+            .'You don\'t have permission to access "http&#58;&#47;&#47;datalake&#45;prod2018&#46;rbfa&#46;be&#47;graphql" on this server.<P> '
+            .'Reference&#32;&#35;'.str_replace('.', '&#46;', $ref).' <P>https&#58;&#47;&#47;errors&#46;edgesuite&#46;net&#47;'
+            .str_replace('.', '&#46;', $ref).'</BODY></HTML>';
+        Http::fake([
+            'datalake-prod2018.rbfa.be/*' => function (Request $request) use ($page) {
+                $series = json_decode($request->body(), true)['variables']['seriesId'];
+                $ref = $series === 'CHP_A' ? '18.458a1402.1794173441.251facdb' : '18.512b3302.1794173450.9c0fdbad';
+
+                return Http::response($page($ref), 200, ['Content-Type' => 'text/html']);
+            },
+        ]);
+
+        $this->artisan('prospects:sync-rbfa-graphql')->assertExitCode(1);
+
+        $grouped = array_values(array_filter(
+            array_column($this->history()->logs, 'message'),
+            fn (string $message) => str_contains($message, 'series failed:'),
+        ));
+        $this->assertCount(1, $grouped, implode(' | ', $grouped));
+        $this->assertStringStartsWith('2 series failed: HTTP 200 text/html: Access Denied', $grouped[0]);
+        $this->assertStringNotContainsString('458a1402', $grouped[0]);
     }
 
     public function test_s4_all_series_failing_writes_exactly_one_warning_with_reasons_and_counts(): void

@@ -22,3 +22,4 @@
 ## Log
 
 - L1: Diagnóstico aprobado por el usuario: «Sí, en un ticket aparte» — que el sync marque una respuesta HTML o no JSON como error y guarde el código HTTP y el inicio de la respuesta de cada serie.
+- L3 (parent review): the Akamai page carries a per-request `Reference #…` inside the first 200 characters, so every series got a distinct reason and S3 grouping would have produced ~140 lines in production. RED: new test `test_s3_akamai_reference_ids_do_not_split_the_grouped_reason` (2 lines, expected 1). Fix: dotted hex/digit identifiers are masked as `…` in the body snippet. Prospects suite 166 passed (589 assertions).

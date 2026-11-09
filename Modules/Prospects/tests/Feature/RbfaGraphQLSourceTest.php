@@ -105,7 +105,7 @@ class RbfaGraphQLSourceTest extends TestCase
         .'Reference&#32;&#35;18&#46;abc123 </BODY></HTML>';
 
     private const ACCESS_DENIED_REASON = 'HTTP 200 text/html: Access Denied Access Denied You don\'t have permission to access '
-        .'"http://datalake-prod2018.rbfa.be/graphql" on this server. Reference #18.abc123';
+        .'"http://datalake-prod2018.rbfa.be/graphql" on this server. Reference #…';
 
     private function rawResponse(string $body, int $status = 200, string $contentType = 'text/html'): Response
     {
