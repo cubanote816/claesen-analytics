@@ -166,6 +166,8 @@ class FieldProjectController extends Controller
                     'areaM2' => $room->area_m2 !== null ? (float) $room->area_m2 : null,
                     'source' => $room->source,
                     'state' => $room->state,
+                    'geometry' => $room->effectiveGeometry(),
+                    'holes' => $room->holes ?? [],
                 ])
                 ->values()
                 ->all(),

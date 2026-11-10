@@ -954,6 +954,10 @@ paths:
                     areaM2: 137.0
                     source: "manual"
                     state: "confirmed"
+                    geometry: "manual"
+                    holes: []
+                    geometryNote: null
+                    processingVersion: null
         "404": { $ref: "#/components/responses/NotFound" }
     put:
       tags: [plans]
@@ -962,7 +966,13 @@ paths:
         `rooms` es `present|array`: la clave es obligatoria pero puede venir vacía (limpiar la página
         es válido, la misma lección de KNX-18). `roomId` es `distinct` dentro del cuerpo.
         `carryOverFrom` copia como base el conjunto de la MISMA página del documento origen y lo
-        copiado vuelve a `proposed`: es un punto de partida, no una confirmación heredada.
+        copiado vuelve a `proposed`: es un punto de partida, no una confirmación heredada y
+        conserva `geometry`, `holes`, `geometryNote` y `processingVersion` (KNX-48).
+        Topología (KNX-48): el anillo exterior debe ser simple, con área y como mucho 2000
+        vértices; cada agujero simple, estrictamente dentro del exterior sin tocarlo, y los
+        agujeros disjuntos entre sí. Una topología inválida es `422` con error en
+        `rooms.N.polygon` o `rooms.N.holes`; `geometryNote` incoherente con `geometry`, en
+        `rooms.N.geometryNote`.
       parameters:
         - $ref: "#/components/parameters/Code"
         - $ref: "#/components/parameters/DocumentId"
@@ -1004,8 +1014,58 @@ paths:
                       areaM2: { type: number, nullable: true }
                       source: { type: string, enum: [manual, pdf, dwg] }
                       state: { type: string, enum: [proposed, confirmed] }
+                      geometry:
+                        type: string
+                        enum: [contour, area, manual]
+                        nullable: true
+                        description: >-
+                          Procedencia del polígono. Si se omite, el servidor guarda el valor heredado:
+                          `manual` si `source` es `manual`, `area` en el resto. La respuesta siempre trae uno de los tres.
+                      holes:
+                        type: array
+                        nullable: true
+                        maxItems: 50
+                        description: Agujeros del polígono (huecos, pilares). Por defecto `[]`; la respuesta siempre es un array.
+                        items:
+                          type: array
+                          minItems: 3
+                          maxItems: 2000
+                          items:
+                            type: array
+                            minItems: 2
+                            maxItems: 2
+                            items: { type: number, minimum: 0, maximum: 1 }
+                      geometryNote:
+                        type: string
+                        nullable: true
+                        enum: [area-mismatch, open, shared, in-barrier, too-small, no-vector]
+                        description: >-
+                          Motivo de revisión. `area-mismatch` solo con `contour`; `open`, `shared`,
+                          `in-barrier`, `too-small` y `no-vector` solo con `area`; `null` con `manual`.
+                      processingVersion: { type: string, nullable: true, maxLength: 32, description: "Versión del procesamiento del cliente, p. ej. `kantoor-plan/3`; se devuelve tal cual." }
       responses:
-        "200": { description: "El conjunto resultante, misma forma que el GET" }
+        "200":
+          description: "El conjunto resultante, misma forma que el GET"
+          content:
+            application/json:
+              example:
+                documentId: "89"
+                revision: "Rev. H"
+                page: 1
+                pageWidthPt: 4309.0
+                pageHeightPt: 2591.0
+                proposalStatus: "none"
+                rooms:
+                  - roomId: "31"
+                    polygon: [[0.1, 0.1], [0.5, 0.1], [0.5, 0.5], [0.1, 0.5]]
+                    labelAt: [0.3, 0.3]
+                    areaM2: 137.0
+                    source: "pdf"
+                    state: "proposed"
+                    geometry: "contour"
+                    holes: [[[0.2, 0.2], [0.3, 0.2], [0.3, 0.3]]]
+                    geometryNote: null
+                    processingVersion: "kantoor-plan/3"
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
   /exports/{id}/download:

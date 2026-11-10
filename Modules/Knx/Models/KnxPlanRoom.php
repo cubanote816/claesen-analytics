@@ -36,6 +36,21 @@ class KnxPlanRoom extends Model
 
     public const STATES = [self::STATE_PROPOSED, self::STATE_CONFIRMED];
 
+    public const GEOMETRY_CONTOUR = 'contour';
+
+    public const GEOMETRY_AREA = 'area';
+
+    public const GEOMETRY_MANUAL = 'manual';
+
+    public const GEOMETRIES = [self::GEOMETRY_CONTOUR, self::GEOMETRY_AREA, self::GEOMETRY_MANUAL];
+
+    /** What each geometry may say about itself; `null` (no note) is always allowed. */
+    public const NOTES_BY_GEOMETRY = [
+        self::GEOMETRY_CONTOUR => ['area-mismatch'],
+        self::GEOMETRY_AREA => ['open', 'shared', 'in-barrier', 'too-small', 'no-vector'],
+        self::GEOMETRY_MANUAL => [],
+    ];
+
     protected $table = 'knx_plan_rooms';
 
     protected $fillable = [
@@ -49,6 +64,10 @@ class KnxPlanRoom extends Model
         'area_m2',
         'source',
         'state',
+        'geometry',
+        'holes',
+        'geometry_note',
+        'processing_version',
         'placed_by_employee_id',
         'page_width_pt',
         'page_height_pt',
@@ -60,8 +79,25 @@ class KnxPlanRoom extends Model
             'page' => 'integer',
             'polygon' => 'array',
             'label_at' => 'array',
+            'holes' => 'array',
             'area_m2' => 'decimal:2',
         ];
+    }
+
+    /**
+     * The geometry a row saved before KNX-48 (or a PUT that omits it) stands for: the
+     * only generator that wrote `source: pdf` produced rectangles from the label's m²,
+     * never contours, so anything but a hand-drawn room is an `area` approximation.
+     */
+    public static function defaultGeometry(string $source): string
+    {
+        return $source === self::SOURCE_MANUAL ? self::GEOMETRY_MANUAL : self::GEOMETRY_AREA;
+    }
+
+    /** The stored geometry, or the legacy default for a row that has none. */
+    public function effectiveGeometry(): string
+    {
+        return $this->geometry ?? self::defaultGeometry((string) $this->source);
     }
 
     public function project(): BelongsTo
