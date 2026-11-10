@@ -100,6 +100,8 @@ return [
             'athletics_club' => 'Athlétisme',
             'tennis_padel_club' => 'Tennis & Padel',
             'hockey_club' => 'Hockey',
+            'table_tennis_club' => 'Tennis de table',
+            'sports_infrastructure' => 'Infrastructure sportive',
         ],
     ],
 
