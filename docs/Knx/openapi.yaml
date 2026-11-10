@@ -1068,6 +1068,77 @@ paths:
                     processingVersion: "kantoor-plan/3"
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/plans/{documentId}/clean-profile:
+    get:
+      tags: [plans]
+      summary: Perfil de limpieza (rol por grupo/capa) de una página de un plano (KNX-48)
+      description: >-
+        Mapa opaco `{groupId: rol}` por documento y página; el servidor nunca lee el PDF. Sin perfil
+        guardado es un `200` con `roles: {}` (siempre un objeto JSON) y `revision`, `processingVersion` y
+        `updatedAt` a `null`. `revision` es la revisión del documento al último guardado y
+        `documentRevision` la actual: si difieren, el perfil se hizo para otra revisión.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                documentId: "89"
+                page: 1
+                revision: "Rev. H"
+                documentRevision: "Rev. H"
+                processingVersion: "kantoor-plan/3"
+                roles: { "layer:A-WALL": "wall", "layer:A-FURN": "hidden" }
+                updatedAt: "2026-11-10T09:00:00+00:00"
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    put:
+      tags: [plans]
+      summary: Reemplaza el perfil de limpieza de una página (idempotente)
+      description: >-
+        Reemplaza el mapa entero de la página; `roles: {}` es válido y borra los overrides. La
+        revisión se estampa en el servidor con la del documento. Más de 500 entradas, una clave de
+        0 o más de 255 caracteres o un rol fuera del enum es `422` (`roles.<groupId>`).
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [page, roles]
+              properties:
+                page: { type: integer, minimum: 1 }
+                roles:
+                  type: object
+                  maxProperties: 500
+                  additionalProperties: { type: string, enum: [wall, window, door, stair, lift, void, hidden, unknown] }
+                processingVersion: { type: string, nullable: true, maxLength: 32 }
+      responses:
+        "200":
+          description: El perfil resultante, misma forma que el GET
+          content:
+            application/json:
+              example:
+                documentId: "89"
+                page: 1
+                revision: "Rev. H"
+                documentRevision: "Rev. H"
+                processingVersion: "kantoor-plan/3"
+                roles: { "layer:A-WALL": "wall" }
+                updatedAt: "2026-11-10T09:00:00+00:00"
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /exports/{id}/download:
     get:
       tags: [reports]
