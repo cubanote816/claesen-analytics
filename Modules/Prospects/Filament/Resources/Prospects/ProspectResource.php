@@ -34,6 +34,9 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Str;
 use Filament\Actions\Action;
 use Filament\Tables\Enums\FiltersLayout;
 use Illuminate\Database\Eloquent\Builder;
@@ -280,6 +283,59 @@ class ProspectResource extends Resource
             ]);
     }
 
+    /** CLA-668: federation code → readable label. Unknown codes are shown as-is. */
+    private const FEDERATION_LABELS = [
+        'RBFA' => 'Voetbal (RBFA)',
+        'VL-VV' => 'Voetbal Vlaanderen (VL-VV)',
+        'FR-ACFF' => 'Football ACFF (FR-ACFF)',
+        'VAL' => 'Vlaamse Atletiekliga (VAL)',
+        'VL-VAL' => 'Vlaamse Atletiekliga (VL-VAL)',
+        'LBFA' => 'Ligue Belge Francophone d\'Athlétisme (LBFA)',
+        'FR-LBFA' => 'Ligue Belge Francophone d\'Athlétisme (FR-LBFA)',
+        'TPV' => 'Tennis & Padel Vlaanderen (TPV)',
+        'VL-TPV' => 'Tennis & Padel Vlaanderen (VL-TPV)',
+        'AFT' => 'Association Francophone de Tennis (AFT)',
+        'FR-AFT' => 'Association Francophone de Tennis (FR-AFT)',
+        'FR-AFTT' => 'Association Francophone de Tennis de Table (FR-AFTT)',
+        'VHL' => 'Vlaamse Hockey Liga (VHL)',
+        'VL-VHL' => 'Vlaamse Hockey Liga (VL-VHL)',
+        'LFH' => 'Ligue Francophone de Hockey (LFH)',
+        'FR-LFH' => 'Ligue Francophone de Hockey (FR-LFH)',
+        'ARBH-KBHB' => 'Koninklijke Belgische Hockeybond (ARBH-KBHB)',
+        'BR-CAD' => 'Brussels Cadastre (BR-CAD)',
+    ];
+
+    public static function sportLabel(string $type): string
+    {
+        $key = "prospects::resource.options.sport_types.{$type}";
+
+        return Lang::has($key) ? __($key) : Str::of($type)->replace('_', ' ')->lower()->ucfirst()->toString();
+    }
+
+    public static function federationLabel(string $code): string
+    {
+        return self::FEDERATION_LABELS[$code] ?? $code;
+    }
+
+    /** @return array<string, string> sport types present in the data, keyed by raw value. */
+    public static function sportFilterOptions(): array
+    {
+        return Prospect::query()->whereNotNull('type')->where('type', '!=', '')
+            ->distinct()->orderBy('type')->pluck('type')
+            ->mapWithKeys(fn (string $type): array => [$type => static::sportLabel($type)])
+            ->all();
+    }
+
+    /** @return array<string, string> federations present in the data (for the given sport, if any). */
+    public static function federationFilterOptions(?string $type = null): array
+    {
+        return Prospect::query()->whereNotNull('federation')->where('federation', '!=', '')
+            ->when(filled($type), fn (Builder $query): Builder => $query->where('type', $type))
+            ->distinct()->orderBy('federation')->pluck('federation')
+            ->mapWithKeys(fn (string $code): array => [$code => static::federationLabel($code)])
+            ->all();
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -396,85 +452,54 @@ class ProspectResource extends Resource
                         }
                         return $indicators;
                     }),
-                Filter::make('type_filter')
+                Filter::make('sport_federation')
+                    ->columnSpanFull()
                     ->form([
                         Select::make('type')
                             ->label(__('prospects::resource.fields.type_sport'))
-                            ->options([
-                                'football_club' => __('prospects::resource.options.sport_types.football_club'),
-                                'athletics_club' => __('prospects::resource.options.sport_types.athletics_club'),
-                                'tennis_padel_club' => __('prospects::resource.options.sport_types.tennis_padel_club'),
-                                'hockey_club' => __('prospects::resource.options.sport_types.hockey_club'),
-                            ])
-                            ->live(),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['type'],
-                                fn(Builder $query, $type): Builder => $query->where('type', $type),
-                            );
-                    })
-                    ->indicateUsing(function (array $data): array {
-                        $indicators = [];
-                        if ($data['type'] ?? null) {
-                            $label = match ($data['type']) {
-                                'football_club' => __('prospects::resource.options.sport_types.football_club'),
-                                'athletics_club' => __('prospects::resource.options.sport_types.athletics_club'),
-                                'tennis_padel_club' => __('prospects::resource.options.sport_types.tennis_padel_club'),
-                                'hockey_club' => __('prospects::resource.options.sport_types.hockey_club'),
-                                default => $data['type'],
-                            };
-                            $indicators['type'] = __('prospects::resource.fields.type_sport') . ': ' . $label;
-                        }
-                        return $indicators;
-                    }),
-                Filter::make('federation_filter')
-                    ->form([
+                            ->options(fn (): array => static::sportFilterOptions())
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
+                                // A federation only makes sense for the sport it belongs to.
+                                $federation = $get('federation');
+                                if (filled($federation) && ! array_key_exists($federation, static::federationFilterOptions($state))) {
+                                    $set('federation', null);
+                                }
+                            }),
                         Select::make('federation')
                             ->label(__('prospects::resource.fields.federation'))
-                            ->options([
-                                'RBFA' => 'RBFA (Voetbal)',
-                                'VL-VV' => 'Voetbal (VL-VV)',
-                                'FR-ACFF' => 'Football (FR-ACFF)',
-                                'VAL' => 'VAL (Atletiek NL)',
-                                'VL-VAL' => 'Atletiek (VAL)',
-                                'LBFA' => 'LBFA (Atletiek FR)',
-                                'FR-LBFA' => 'Atletiek (LBFA)',
-                                'TPV' => 'Tennis & Padel VL.',
-                                'VL-TPV' => 'Tennis & Padel (TPV)',
-                                'AFT' => 'AFT (Tennis FR)',
-                                'FR-AFT' => 'Tennis (AFT)',
-                                'VHL' => 'VHL (Hockey NL)',
-                                'VL-VHL' => 'Hockey (VHL)',
-                                'LFH' => 'LFH (Hockey FR)',
-                                'FR-LFH' => 'Hockey (LFH)',
-                                'ARBH-KBHB' => 'ARBH (Koninklijk)',
-                            ])
-                            ->live(),
+                            ->options(fn (Get $get): array => static::federationFilterOptions($get('type')))
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
+                                if (blank($state) || filled($get('type'))) {
+                                    return;
+                                }
+
+                                $types = Prospect::query()->where('federation', $state)->whereNotNull('type')->distinct()->pluck('type');
+                                if ($types->count() === 1) {
+                                    $set('type', $types->first());
+                                }
+                            }),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when(
-                                $data['federation'],
-                                fn(Builder $query, $fed): Builder => $query->where('federation', $fed),
-                            );
+                            ->when(filled($data['type'] ?? null), fn (Builder $query): Builder => $query->where('type', $data['type']))
+                            ->when(filled($data['federation'] ?? null), fn (Builder $query): Builder => $query->where('federation', $data['federation']));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if ($data['federation'] ?? null) {
-                            $indicators['federation'] = __('prospects::resource.fields.federation') . ': ' . $data['federation'];
+                        if (filled($data['type'] ?? null)) {
+                            $indicators['type'] = __('prospects::resource.fields.type_sport') . ': ' . static::sportLabel($data['type']);
+                        }
+                        if (filled($data['federation'] ?? null)) {
+                            $indicators['federation'] = __('prospects::resource.fields.federation') . ': ' . static::federationLabel($data['federation']);
                         }
                         return $indicators;
                     }),
             ])
             ->filtersLayout(FiltersLayout::Dropdown)
             ->filtersFormColumns(1)
-            ->filtersApplyAction(
-                fn(Action $action) => $action
-                    ->label(__('prospects::resource.actions.apply_filters'))
-                    ->close(),
-            )
+            ->deferFilters(false)
             ->recordActions([
                 ViewAction::make()
                     ->label(fn () => new \Illuminate\Support\HtmlString('<span class="hidden xl:inline">' . __('filament-actions::view.single.label') . '</span>')),
