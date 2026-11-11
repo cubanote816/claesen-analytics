@@ -56,6 +56,12 @@ Modules/Cafca/Services/CafcaSyncService.php
 - **Aprobar nunca envía** (CLA-669). Una campaña `approved` con `scheduled_at` sale por `mailing:dispatch-scheduled`; sin `scheduled_at` solo sale con la acción **«Send now»** (vista y listado de campañas, roles `admin`/`campaign_manager`). La acción no aparece si otra campaña no cancelada la usa como follow-up (`Campaign::isFollowUpChild()`): esos hijos se aprueban sin fecha a propósito y los envía `mailing:dispatch-followups`. No se mira `followup_dispatched_at`: se marca en el padre al encolar el hijo, que sigue `approved` hasta que corre el worker.
 - **Reclamar antes de despachar.** Todo camino nuevo que despache `ExecuteCampaignJob` para una campaña existente debe pasarla atómicamente de `approved` a `sending` y despachar solo si ganó el reclamo (`Campaign::claimForImmediateSend()`, `DispatchScheduledCampaignsCommand`): el job no reclama si el estado ya es `sending`, así que dos despachos sin reclamo envían dos veces. Si encolar el job falla, el reclamo se libera (`sending → approved`, `Campaign::dispatchImmediateSend()`): todavía no existe ningún job y la campaña queda lista para reintentar.
 
+### Reglas de audiencia
+
+- **Audiencia manual** (CLA-671): los prospects elegidos en el formulario se guardan en `audience_filters` como `{"prospect_ids": [...]}`. `Campaign::resolveAudience()` los resuelve con `SegmentResolverService` pasando **solo** `prospect_ids`, así que se aplican las mismas exclusiones que a cualquier audiencia (sin baja, sin supresión) y unas `rules` sueltas nunca la amplían. Una lista vacía no resuelve a nadie.
+- El buscador del selector solo ofrece prospects suscriptos con al menos un email (`CampaignForm::searchProspects()`, máx. 50).
+- La vista de campaña muestra el tipo de audiencia y su **tamaño actual** (no el histórico enviado: ese es `total_count`).
+
 ### Reglas de supresión
 
 - **No enviar a contactos suprimidos.** `SuppressionService` debe consultarse antes de cada envío.

@@ -13,6 +13,9 @@ use Modules\Prospects\Models\Prospect;
  *  - Only prospects with unsubscribed_at IS NULL are included.
  *  - Suppressed prospects (prospect_id in mailing_suppression_list) are excluded.
  *
+ * An optional `prospect_ids` key (manual audience) restricts the result to those
+ * prospects, ANDed with the invariants; an empty list matches nothing.
+ *
  * These invariants are applied OUTSIDE the rule group closure so that an OR rule
  * cannot accidentally include a suppressed or unsubscribed prospect.
  */
@@ -37,6 +40,10 @@ class SegmentResolverService
             $this->applySuppression($query);
         }
 
+        if (array_key_exists('prospect_ids', $filters)) {
+            $query->whereIn('prospects_prospects.id', self::strictIds($filters['prospect_ids']));
+        }
+
         $rules = $filters['rules'] ?? [];
         if (! empty($rules)) {
             $query->where(function (Builder $ruleQuery) use ($filters): void {
@@ -58,6 +65,27 @@ class SegmentResolverService
         return $this->query($filters, $excludeSuppressed)
             ->pluck('prospects_prospects.id')
             ->toArray();
+    }
+
+    /**
+     * Keeps only positive integer ids (ints or digit-only strings). Anything else is dropped,
+     * never coerced: intval() would turn true, [2] or "2oops" into a real prospect id.
+     *
+     * @return array<int>
+     */
+    private static function strictIds(mixed $values): array
+    {
+        $ids = [];
+
+        foreach (is_array($values) ? $values : [] as $value) {
+            if (is_int($value) && $value > 0) {
+                $ids[] = $value;
+            } elseif (is_string($value) && ctype_digit($value) && (int) $value > 0) {
+                $ids[] = (int) $value;
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     // -------------------------------------------------------------------------

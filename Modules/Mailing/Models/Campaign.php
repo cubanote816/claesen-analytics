@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Bus;
 use Modules\Core\Models\User;
 use Modules\Mailing\Enums\AudienceType;
@@ -317,7 +318,7 @@ class Campaign extends Model
      *
      * - ALL_SUBSCRIBED: every subscribed, non-suppressed prospect.
      * - SEGMENT: resolved dynamically via SegmentResolverService.
-     * - MANUAL: not implemented — must be resolved before dispatch.
+     * - MANUAL: the prospect_ids stored in audience_filters, minus unsubscribed/suppressed.
      *
      * @return array<int>
      */
@@ -334,13 +335,12 @@ class Campaign extends Model
                 ->pluck('id')
                 ->toArray(),
 
+            // prospect_ids belongs to the manual audience only; it must never narrow a segment.
             AudienceType::SEGMENT => app(SegmentResolverService::class)
-                ->resolveIds($this->audience_filters ?? []),
+                ->resolveIds(Arr::except($this->audience_filters ?? [], ['prospect_ids'])),
 
-            AudienceType::MANUAL => throw new \DomainException(
-                "Campaign #{$this->id}: manual audience must be resolved before dispatch. "
-                . 'Pass prospect IDs explicitly when dispatching the campaign job.'
-            ),
+            AudienceType::MANUAL => app(SegmentResolverService::class)
+                ->resolveIds(['prospect_ids' => $this->audience_filters['prospect_ids'] ?? []]),
         };
     }
 }
