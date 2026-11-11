@@ -90,6 +90,69 @@ class CampaignApproveErrorTest extends TestCase
         $this->assertStillInReview($campaign);
     }
 
+    public function test_approver_approves_a_draft_directly_from_view_and_list(): void
+    {
+        // CLA-670: approvers skip the review step.
+        $template = EmailTemplate::factory()->asOffers()->create();
+        $fromView = Campaign::factory()->create(['status' => CampaignStatus::DRAFT, 'template_id' => $template->id]);
+        $fromList = Campaign::factory()->create(['status' => CampaignStatus::DRAFT, 'template_id' => $template->id]);
+
+        Livewire::test(ViewCampaign::class, ['record' => $fromView->id])
+            ->assertActionVisible('approve')
+            ->callAction('approve')
+            ->assertNotified(__('mailing::resource.notifications.approved'));
+        Livewire::test(ListCampaigns::class)
+            ->assertTableActionVisible('approve', $fromList)
+            ->callTableAction('approve', $fromList)
+            ->assertNotified(__('mailing::resource.notifications.approved'));
+
+        foreach ([$fromView, $fromList] as $campaign) {
+            $fresh = $campaign->fresh();
+            $this->assertSame(CampaignStatus::APPROVED, $fresh->status);
+            $this->assertSame(auth()->id(), $fresh->approved_by);
+            $this->assertNotNull($fresh->approved_at);
+        }
+        Queue::assertNothingPushed();
+    }
+
+    public function test_draft_approval_runs_the_same_checks(): void
+    {
+        $template = EmailTemplate::factory()->create([
+            'category'            => TemplateCategory::COMMERCIAL,
+            'preference_category' => null,
+        ]);
+        $campaign = Campaign::factory()->create(['status' => CampaignStatus::DRAFT, 'template_id' => $template->id]);
+
+        Livewire::test(ViewCampaign::class, ['record' => $campaign->id])
+            ->callAction('approve')
+            ->assertNotified(__('mailing::resource.notifications.approve_failed'));
+
+        $fresh = $campaign->fresh();
+        $this->assertSame(CampaignStatus::DRAFT, $fresh->status);
+        $this->assertNull($fresh->approved_by);
+        $this->assertNull($fresh->approved_at);
+    }
+
+    public function test_marketer_does_not_see_approve_on_a_draft(): void
+    {
+        Role::firstOrCreate(['name' => 'marketer', 'guard_name' => 'web']);
+        $marketer = User::factory()->create();
+        $marketer->assignRole('marketer');
+        $this->actingAs($marketer);
+
+        $campaign = Campaign::factory()->create([
+            'status'      => CampaignStatus::DRAFT,
+            'template_id' => EmailTemplate::factory()->asOffers()->create()->id,
+            'created_by'  => $marketer->id,
+        ]);
+
+        Livewire::test(ViewCampaign::class, ['record' => $campaign->id])
+            ->assertActionHidden('approve')
+            ->assertActionVisible('submit');
+        Livewire::test(ListCampaigns::class)
+            ->assertTableActionHidden('approve', $campaign);
+    }
+
     public function test_valid_campaign_is_still_approved(): void
     {
         $template = EmailTemplate::factory()->asOffers()->create();

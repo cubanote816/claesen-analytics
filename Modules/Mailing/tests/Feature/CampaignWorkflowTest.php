@@ -37,13 +37,18 @@ class CampaignWorkflowTest extends TestCase
         $campaign->transitionTo(CampaignStatus::SENDING);
     }
 
-    public function test_draft_cannot_transition_directly_to_approved(): void
+    public function test_draft_can_transition_directly_to_approved(): void
     {
-        $campaign = Campaign::factory()->create(['status' => CampaignStatus::DRAFT]);
-
-        $this->expectException(\DomainException::class);
+        // CLA-670: approvers skip the review step; the policy keeps marketers out.
+        $template = EmailTemplate::factory()->asOffers()->create();
+        $campaign = Campaign::factory()->create([
+            'status'      => CampaignStatus::DRAFT,
+            'template_id' => $template->id,
+        ]);
 
         $campaign->transitionTo(CampaignStatus::APPROVED);
+
+        $this->assertSame(CampaignStatus::APPROVED, $campaign->fresh()->status);
     }
 
     public function test_review_can_be_approved(): void
@@ -151,13 +156,55 @@ class CampaignWorkflowTest extends TestCase
         $this->assertTrue($policy->approve($admin, $campaign));
     }
 
-    public function test_campaign_manager_cannot_approve_campaign_not_in_review(): void
+    public function test_campaign_manager_can_approve_draft_campaign(): void
     {
         $manager  = $this->makeUser('campaign_manager');
         $campaign = Campaign::factory()->create(['status' => CampaignStatus::DRAFT]);
         $policy   = new CampaignPolicy();
 
-        $this->assertFalse($policy->approve($manager, $campaign));
+        $this->assertTrue($policy->approve($manager, $campaign));
+        $this->assertTrue($campaign->canBeApprovedBy($manager));
+    }
+
+    public function test_marketer_cannot_approve_draft_campaign(): void
+    {
+        $marketer = $this->makeUser('marketer');
+        $campaign = Campaign::factory()->create(['status' => CampaignStatus::DRAFT]);
+        $policy   = new CampaignPolicy();
+
+        $this->assertFalse($policy->approve($marketer, $campaign));
+        $this->assertFalse($campaign->canBeApprovedBy($marketer));
+    }
+
+    public function test_approval_role_and_state_matrix(): void
+    {
+        $policy = new CampaignPolicy();
+
+        foreach (['admin', 'campaign_manager', 'marketer', 'viewer', 'technician'] as $role) {
+            $user = $this->makeUser($role);
+
+            foreach (CampaignStatus::cases() as $status) {
+                $campaign = new Campaign(['status' => $status]);
+                $expected = in_array($role, ['admin', 'campaign_manager'], true)
+                    && in_array($status, [CampaignStatus::DRAFT, CampaignStatus::REVIEW], true);
+
+                $this->assertSame($expected, $policy->approve($user, $campaign), "policy: {$role} / {$status->value}");
+                $this->assertSame($expected, $campaign->canBeApprovedBy($user), "model: {$role} / {$status->value}");
+            }
+        }
+    }
+
+    public function test_campaign_manager_cannot_approve_campaign_past_approval(): void
+    {
+        $manager = $this->makeUser('campaign_manager');
+        $policy  = new CampaignPolicy();
+
+        foreach ([CampaignStatus::APPROVED, CampaignStatus::SENDING, CampaignStatus::COMPLETED, CampaignStatus::CANCELLED] as $status) {
+            $campaign = Campaign::factory()->create(['status' => $status]);
+
+            $this->assertFalse($policy->approve($manager, $campaign), "approve allowed in {$status->value}");
+            $this->assertFalse($campaign->canBeApprovedBy($manager), "canBeApprovedBy true in {$status->value}");
+        }
     }
 
     public function test_marketer_can_only_update_own_draft_campaigns(): void
