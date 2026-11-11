@@ -3,6 +3,7 @@
 namespace Modules\Mailing\Filament\Resources\CampaignResource\Schemas;
 
 use Carbon\Carbon;
+use Illuminate\Contracts\View\View;
 use Filament\Actions\Action as FormAction;
 use Filament\Schemas\Components\Actions;
 use Filament\Forms\Components\DateTimePicker;
@@ -176,35 +177,12 @@ class CampaignForm
                                 ->label(__('mailing::resource.actions.preview_audience'))
                                 ->icon('heroicon-o-users')
                                 ->color('gray')
-                                ->action(function (Get $get): void {
-                                    $filters = $get('audience_type') === AudienceType::MANUAL->value
-                                        ? ['prospect_ids' => $get('audience_filters.prospect_ids') ?? []]
-                                        : [
-                                            'operator' => $get('audience_filters.operator') ?? 'AND',
-                                            'rules'    => $get('audience_filters.rules') ?? [],
-                                        ];
-
-                                    try {
-                                        $count = app(SegmentResolverService::class)->count($filters);
-
-                                        Notification::make()
-                                            ->title(__('mailing::resource.notifications.audience_preview', ['count' => $count]))
-                                            ->success()
-                                            ->send();
-                                    } catch (\InvalidArgumentException $e) {
-                                        Notification::make()
-                                            ->title(__('mailing::resource.notifications.segment_error'))
-                                            ->body($e->getMessage())
-                                            ->danger()
-                                            ->send();
-                                    }
-                                }),
-                        ])
-                        ->visible(fn (Get $get): bool => in_array(
-                            $get('audience_type'),
-                            [AudienceType::SEGMENT->value, AudienceType::MANUAL->value],
-                            true,
-                        )),
+                                ->modalHeading(__('mailing::resource.preview.heading'))
+                                ->modalWidth('7xl')
+                                ->modalSubmitAction(false)
+                                ->modalCancelActionLabel(__('mailing::resource.actions.close'))
+                                ->modalContent(fn (Get $get): View => self::previewContent(self::previewFilters($get))),
+                        ]),
                     ]),
 
                 Section::make(__('mailing::resource.sections.followup'))
@@ -245,6 +223,48 @@ class CampaignForm
                 Hidden::make('template_category_snapshot'),
                 Hidden::make('preference_category_snapshot'),
             ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Audience preview
+    // -------------------------------------------------------------------------
+
+    /**
+     * Filters for the preview, mirroring Campaign::resolveAudience(): all subscribed has no
+     * filters, a segment never gets prospect_ids, manual carries only prospect_ids.
+     *
+     * @param  callable(string): mixed  $get  form state getter (Filament's Get)
+     */
+    public static function previewFilters(callable $get): array
+    {
+        return match ($get('audience_type')) {
+            AudienceType::MANUAL->value => ['prospect_ids' => $get('audience_filters.prospect_ids') ?? []],
+            AudienceType::SEGMENT->value => [
+                'operator' => $get('audience_filters.operator') ?? 'AND',
+                'rules'    => $get('audience_filters.rules') ?? [],
+            ],
+            default => [],
+        };
+    }
+
+    public static function previewContent(array $filters, int $limit = 100): View
+    {
+        $total = 0;
+        $prospects = collect();
+        $error = null;
+
+        try {
+            ['total' => $total, 'prospects' => $prospects] = app(SegmentResolverService::class)->preview($filters, $limit);
+        } catch (\InvalidArgumentException $e) {
+            $error = $e->getMessage();
+        }
+
+        return view('mailing::filament.audience-preview', [
+            'total'     => $total,
+            'prospects' => $prospects,
+            'remaining' => max(0, $total - $prospects->count()),
+            'error'     => $error,
+        ]);
     }
 
     // -------------------------------------------------------------------------
