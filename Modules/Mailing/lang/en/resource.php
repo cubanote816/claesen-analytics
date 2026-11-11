@@ -84,7 +84,7 @@ return [
         'followup_delay_helper'    => 'e.g. 24 = 1 day, 72 = 3 days',
         // Scheduling
         'scheduled_at'        => 'Schedule send (optional)',
-        'scheduled_at_helper' => 'Leave empty to send immediately after approval. Time is Europe/Brussels.',
+        'scheduled_at_helper' => 'Leave empty to send manually with "Send now" once approved. Time is Europe/Brussels.',
         'timezone'            => 'Timezone',
     ],
 
@@ -120,6 +120,8 @@ return [
         'add_variable'             => 'Add variable',
         'submit_review'            => 'Submit for Review',
         'approve'                  => 'Approve',
+        'send_now'                 => 'Send now',
+        'send_now_confirm'         => 'This emails the whole audience right now and cannot be undone.',
         'cancel'                   => 'Cancel Campaign',
         'cancel_confirm'           => 'This action cannot be undone. The campaign will be permanently cancelled.',
         'add_rule'                 => 'Add rule',
@@ -141,6 +143,10 @@ return [
         'template_saved'                    => 'Template successfully saved.',
         'submitted_review'                  => 'Campaign submitted for review.',
         'approved'                          => 'Campaign approved and ready to send.',
+        'sent_now'                          => 'Campaign is being sent.',
+        'send_now_unavailable'              => 'This campaign can no longer be sent now: it was already claimed or changed.',
+        'send_now_failed'                   => 'The campaign could not be queued. It is still approved; try again later.',
+        'approve_failed'                    => 'The campaign could not be approved.',
         'cancelled'                         => 'Campaign has been cancelled.',
         'audience_preview'                  => 'Estimated audience: :count prospects',
         'segment_error'                     => 'Segment configuration error',
