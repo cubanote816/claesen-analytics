@@ -106,22 +106,44 @@
         return null;
     }
 
+    // Filament's table keeps the real selection (page, select-all and exclusions)
+    // in its `filamentTable` Alpine component; read it instead of the DOM.
+    function getTableEl() {
+        var root = getProspectsRoot();
+        return root ? root.querySelector('[x-data^="filamentTable"]') : null;
+    }
+
+    // On SPA navigation this script runs before Alpine initializes the table, and
+    // $data() then returns an empty proxy: treat the table as ready only when its
+    // selection API exists.
+    function getTableData() {
+        var el = getTableEl();
+        var data = el && window.Alpine ? window.Alpine.$data(el) : null;
+        return data && typeof data.getSelectedRecordsCount === 'function'
+            && typeof data.mountAction === 'function' ? data : null;
+    }
+
     function getCheckedRecordCount() {
-        var scope = getProspectsRoot() || document;
+        var data = getTableData();
+        return data ? data.getSelectedRecordsCount() : 0;
+    }
 
-        // Individual per-row selection
-        var n = scope.querySelectorAll('input.fi-ta-record-checkbox:checked').length;
-        if (n > 0) return n;
-
-        // Page-select mode: fall back to counting tbody rows
-        if (scope.querySelector('input.fi-ta-page-checkbox:checked')) {
-            return scope.querySelectorAll('table tbody tr').length || 1;
-        }
-
-        return 0;
+    // Subscribe to the table's reactive selection so the badge also follows async
+    // changes (select-all). Re-binds if the table element is replaced; the stale
+    // effect becomes a no-op because it no longer reads any reactive state.
+    var boundTableEl = null;
+    function bindReactiveSync() {
+        var el = getTableEl();
+        if (!el || el === boundTableEl || !window.Alpine || !window.Alpine.effect) return;
+        if (!getTableData()) return; // not initialized yet: bind on a later sync
+        boundTableEl = el;
+        window.Alpine.effect(function () {
+            if (boundTableEl === el) sync();
+        });
     }
 
     function sync() {
+        bindReactiveSync();
         if (!isProspectsPage()) {
             if (lastN !== 0) { fab.classList.remove('is-visible'); lastN = 0; }
             return;
@@ -141,38 +163,14 @@
         setTimeout(sync, 0);
     }
 
+    // Relies on Filament's `filamentTable` Alpine API (5.10.x): its mountAction()
+    // sends the table's exact selection (select-all minus exclusions) with the call,
+    // so we must not rebuild the selection from the visible checkboxes.
     window.__prospectsStartMailing = function () {
-        var table = document.querySelector('table');
-        if (!table) return;
+        var data = getTableData();
+        if (!data) return;
 
-        var el = table.closest('[wire\\:id]');
-        if (!el) {
-            var all = document.querySelectorAll('[wire\\:id]');
-            for (var i = 0; i < all.length; i++) {
-                if (all[i].contains(table)) { el = all[i]; break; }
-            }
-        }
-        if (!el) return;
-
-        var component = window.Livewire && window.Livewire.find(el.getAttribute('wire:id'));
-        if (!component) return;
-
-        // Read selected IDs from individual per-row checkboxes.
-        var selectedIds = Array.from(
-            el.querySelectorAll('input.fi-ta-record-checkbox:checked')
-        ).map(function (cb) { return cb.value; });
-
-        // Only override Livewire's selection state for individual-checkbox mode.
-        // In page-select mode (fi-ta-page-checkbox checked, individual checkboxes
-        // absent from DOM), selectedIds=[] — overriding would clear Filament's own
-        // selectedTableRecords, which already holds all page IDs.
-        if (selectedIds.length > 0) {
-            component.set('isTrackingDeselectedTableRecords', false, false);
-            component.set('selectedTableRecords', selectedIds, false);
-            component.set('deselectedTableRecords', [], false);
-        }
-
-        component.call('mountAction', 'execute_campaign', {}, { table: true, bulk: true });
+        data.mountAction('execute_campaign', {}, { table: true, bulk: true });
     };
 
     // Detect table row/checkbox clicks. In Filament V5, clicking a row fires on
