@@ -65,6 +65,15 @@ class CampaignPolicy
     }
 
     /**
+     * Send an approved campaign without a send date right now.
+     */
+    public function sendNow(User $user, Campaign $campaign): bool
+    {
+        return $campaign->canBeSentNow()
+            && $user->hasAnyRole(['admin', 'campaign_manager']);
+    }
+
+    /**
      * Cancel a campaign — only admins, never on terminal states.
      */
     public function cancel(User $user, Campaign $campaign): bool

@@ -51,6 +51,9 @@ Modules/Cafca/Services/CafcaSyncService.php
 - **Sin aprobación no hay envío.** `ExecuteCampaignJob` lanza `DomainException` si `campaign->status !== approved`.
 - El workflow de estados es: `draft → review → approved → sending → completed|failed|cancelled`.
 - Una campaña en `sending` o terminal no puede volver atrás (ver `CampaignStatus::allowedTransitions()`).
+- **Un rechazo de aprobación no es un error del servidor** (CLA-669). `transitionTo(APPROVED)` lanza `DomainException` si la campaña no tiene template o si es *commercial* sin categoría de preferencia válida; las acciones Approve (vista y listado) lo muestran como aviso rojo con el motivo y la campaña sigue en `review`. Toda acción nueva que llame a `transitionTo(APPROVED)` debe hacer lo mismo.
+- **Aprobar nunca envía** (CLA-669). Una campaña `approved` con `scheduled_at` sale por `mailing:dispatch-scheduled`; sin `scheduled_at` solo sale con la acción **«Send now»** (vista y listado de campañas, roles `admin`/`campaign_manager`). La acción no aparece si otra campaña no cancelada la usa como follow-up (`Campaign::isFollowUpChild()`): esos hijos se aprueban sin fecha a propósito y los envía `mailing:dispatch-followups`. No se mira `followup_dispatched_at`: se marca en el padre al encolar el hijo, que sigue `approved` hasta que corre el worker.
+- **Reclamar antes de despachar.** Todo camino nuevo que despache `ExecuteCampaignJob` para una campaña existente debe pasarla atómicamente de `approved` a `sending` y despachar solo si ganó el reclamo (`Campaign::claimForImmediateSend()`, `DispatchScheduledCampaignsCommand`): el job no reclama si el estado ya es `sending`, así que dos despachos sin reclamo envían dos veces. Si encolar el job falla, el reclamo se libera (`sending → approved`, `Campaign::dispatchImmediateSend()`): todavía no existe ningún job y la campaña queda lista para reintentar.
 
 ### Reglas de supresión
 

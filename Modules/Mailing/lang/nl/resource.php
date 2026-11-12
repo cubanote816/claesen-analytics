@@ -76,12 +76,14 @@ return [
         'occurred_at'    => 'Wanneer',
         // Plannen
         'scheduled_at'        => 'Geplande verzending (optioneel)',
-        'scheduled_at_helper' => 'Leeg laten om onmiddellijk na goedkeuring te verzenden. Tijdstip is Europe/Brussels.',
+        'scheduled_at_helper' => 'Leeg laten om na goedkeuring handmatig te verzenden met "Nu verzenden". Tijdstip is Europe/Brussels.',
         'timezone'            => 'Tijdzone',
     ],
 
     'actions' => [
         'add_variable'             => 'Variabele toevoegen',
+        'send_now'                 => 'Nu verzenden',
+        'send_now_confirm'         => 'Hiermee wordt de volledige doelgroep nu gemaild. Dit kan niet ongedaan worden gemaakt.',
         'add_rule'                 => 'Regel toevoegen',
         'preview_audience'         => 'Doelgroep voorvertonen',
         'view_full_content'        => 'Volledige inhoud bekijken',
@@ -90,6 +92,10 @@ return [
     ],
 
     'notifications' => [
+        'sent_now'                       => 'Campagne wordt verzonden.',
+        'send_now_unavailable'           => 'Deze campagne kan niet meer nu worden verzonden: ze is al opgepakt of gewijzigd.',
+        'send_now_failed'                => 'De campagne kon niet in de wachtrij worden gezet. Ze blijft goedgekeurd; probeer het later opnieuw.',
+        'approve_failed'                 => 'De campagne kon niet worden goedgekeurd.',
         'audience_preview'               => 'Geschatte doelgroep: :count contacten',
         'segment_error'                  => 'Fout in segmentconfiguratie',
         'template_invalid_pref_category' => 'Sjabloon heeft een ongeldige voorkeurscategorie',

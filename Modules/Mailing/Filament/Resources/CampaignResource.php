@@ -145,9 +145,60 @@ class CampaignResource extends Resource
                     )
                     ->requiresConfirmation()
                     ->action(function (Campaign $record): void {
-                        $record->transitionTo(CampaignStatus::APPROVED, auth()->id());
+                        try {
+                            $record->transitionTo(CampaignStatus::APPROVED, auth()->id());
+                        } catch (\DomainException $e) {
+                            // Approval re-checks the template (CLA-669): show why instead of a 500.
+                            Notification::make()
+                                ->title(__('mailing::resource.notifications.approve_failed'))
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
                         Notification::make()
                             ->title(__('mailing::resource.notifications.approved'))
+                            ->success()
+                            ->send();
+                    }),
+
+                Action::make('send_now')
+                    ->label(__('mailing::resource.actions.send_now'))
+                    ->icon('heroicon-o-rocket-launch')
+                    ->color('success')
+                    // canBeSentNow() guards against Gate::before bypassing the policy for super_admin.
+                    ->visible(fn (Campaign $record): bool =>
+                        $record->canBeSentNow()
+                        && (auth()->user()?->can('sendNow', $record) ?? false)
+                    )
+                    ->requiresConfirmation()
+                    ->modalDescription(__('mailing::resource.actions.send_now_confirm'))
+                    ->action(function (Campaign $record): void {
+                        try {
+                            $queued = $record->dispatchImmediateSend();
+                        } catch (\Throwable $e) {
+                            report($e);
+                            Notification::make()
+                                ->title(__('mailing::resource.notifications.send_now_failed'))
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        if (! $queued) {
+                            Notification::make()
+                                ->title(__('mailing::resource.notifications.send_now_unavailable'))
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->title(__('mailing::resource.notifications.sent_now'))
                             ->success()
                             ->send();
                     }),

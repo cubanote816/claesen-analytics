@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Bus;
 use Modules\Core\Models\User;
 use Modules\Mailing\Enums\AudienceType;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Enums\FollowUpTrigger;
 use Modules\Mailing\Enums\TemplateCategory;
+use Modules\Mailing\Jobs\ExecuteCampaignJob;
 use Modules\Mailing\Models\EmailTemplate;
 use Modules\Mailing\Services\SegmentResolverService;
 use Modules\Prospects\Models\Prospect;
@@ -227,6 +229,83 @@ class Campaign extends Model
     {
         return $this->status === CampaignStatus::REVIEW
             && $user->hasAnyRole(['super_admin', 'admin', 'campaign_manager']);
+    }
+
+    /**
+     * True when another, non-cancelled campaign uses this one as its follow-up.
+     * mailing:dispatch-followups sends such a campaign itself. followup_dispatched_at is
+     * deliberately ignored: it is set on the parent when the child job is queued, while
+     * the child stays approved until the worker runs, so a manual send would double it.
+     */
+    public function isFollowUpChild(): bool
+    {
+        return static::query()
+            ->where('followup_campaign_id', $this->id)
+            ->where('id', '!=', $this->id)
+            ->where('status', '!=', CampaignStatus::CANCELLED->value)
+            ->exists();
+    }
+
+    /**
+     * CLA-669: the scheduler ignores campaigns with a NULL scheduled_at, so an approved
+     * campaign without a send date can only go out through an explicit "Send now".
+     */
+    public function canBeSentNow(): bool
+    {
+        return $this->status === CampaignStatus::APPROVED
+            && $this->scheduled_at === null
+            && ! $this->isFollowUpChild();
+    }
+
+    /**
+     * Atomically moves approved → sending. ExecuteCampaignJob skips its own claim when the
+     * status is already sending, so callers must claim first; only the winner may dispatch.
+     */
+    public function claimForImmediateSend(): bool
+    {
+        $claimed = static::query()
+            ->whereKey($this->id)
+            ->where('status', CampaignStatus::APPROVED->value)
+            ->whereNull('scheduled_at')
+            ->update(['status' => CampaignStatus::SENDING->value]) === 1;
+
+        if ($claimed) {
+            $this->status = CampaignStatus::SENDING;
+            $this->syncOriginalAttribute('status');
+        }
+
+        return $claimed;
+    }
+
+    /**
+     * Claims the campaign and queues its send. If queueing throws, no job exists yet, so the
+     * claim is released (sending → approved) and "Send now" stays available for a retry.
+     *
+     * @return bool false when another request already claimed the campaign
+     *
+     * @throws \Throwable when the job could not be queued; the claim is already released
+     */
+    public function dispatchImmediateSend(): bool
+    {
+        if (! $this->claimForImmediateSend()) {
+            return false;
+        }
+
+        try {
+            Bus::dispatch(new ExecuteCampaignJob(campaignId: $this->id));
+        } catch (\Throwable $e) {
+            static::query()
+                ->whereKey($this->id)
+                ->where('status', CampaignStatus::SENDING->value)
+                ->update(['status' => CampaignStatus::APPROVED->value]);
+
+            $this->status = CampaignStatus::APPROVED;
+            $this->syncOriginalAttribute('status');
+
+            throw $e;
+        }
+
+        return true;
     }
 
     // -------------------------------------------------------------------------
