@@ -108,6 +108,7 @@ return [
     'actions' => [
         'execute_campaign' => [
             'label' => 'Start Mailing Campaign',
+            'view_campaign' => 'View campaign',
             'form' => [
                 'template' => 'Choose Email Template',
                 'description' => 'Campaign Description',
@@ -148,6 +149,14 @@ return [
         'campaign_started' => [
             'title' => 'Campaign Started',
             'body' => 'Emails are being sent in the background using the selected template.',
+        ],
+        'campaign_sent_to_review' => [
+            'title' => 'Campaign Sent for Review',
+            'body' => 'The campaign was created and sent for review. An approver must approve it before it is sent.',
+        ],
+        'campaign_template_invalid' => [
+            'title' => 'Campaign Not Created',
+            'body' => ':reason',
         ],
         'partial_skip' => [
             'title' => 'Campaign Started',

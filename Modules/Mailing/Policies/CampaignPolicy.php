@@ -75,6 +75,15 @@ class CampaignPolicy
     }
 
     /**
+     * Start a campaign immediately from the Prospects bulk action, skipping review.
+     * Same roles as approval; used by "Start Mailing Campaign" (CLA-673).
+     */
+    public function sendImmediately(User $user): bool
+    {
+        return $user->hasAnyRole(['admin', 'campaign_manager']);
+    }
+
+    /**
      * Cancel a campaign — only admins, never on terminal states.
      */
     public function cancel(User $user, Campaign $campaign): bool
