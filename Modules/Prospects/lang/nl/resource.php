@@ -147,8 +147,8 @@ return [
             'body' => 'Geen van de geselecteerde prospecten kan e-mails ontvangen. Verwijder ze eerst uit de onderdrukkingslijst.',
         ],
         'campaign_started' => [
-            'title' => 'Campagne Gestart',
-            'body' => 'De e-mails worden op de achtergrond verzonden met het gekozen sjabloon.',
+            'title' => 'Verzending op de achtergrond',
+            'body' => 'Er worden :count e-mails op de achtergrond verzonden. Je kunt gewoon doorwerken; we laten het weten als het klaar is.',
         ],
         'campaign_sent_to_review' => [
             'title' => 'Campagne Ter Beoordeling Verzonden',

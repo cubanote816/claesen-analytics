@@ -41,7 +41,8 @@ class AdminPanelProvider extends PanelProvider
                 view('prospects::filament.prospects.floating-mailing-button')->render() .
                     view('core::filament.sidebar-scroll-restore')->render() .
                     view('core::filament.session-expired-modal')->render() .
-                    \Illuminate\Support\Facades\Blade::render("@livewire('session-keeper')"),
+                    \Illuminate\Support\Facades\Blade::render("@livewire('session-keeper')") .
+                    \Illuminate\Support\Facades\Blade::render("@livewire('campaign-progress-watcher')"),
             );
 
             FilamentView::registerRenderHook(

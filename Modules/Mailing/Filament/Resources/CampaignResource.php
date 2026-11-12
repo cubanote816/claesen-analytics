@@ -22,6 +22,7 @@ use Modules\Mailing\Filament\Resources\CampaignResource\Pages;
 use Modules\Mailing\Filament\Resources\CampaignResource\RelationManagers\MessagesRelationManager;
 use Modules\Mailing\Filament\Resources\CampaignResource\Schemas\CampaignForm;
 use Modules\Mailing\Models\Campaign;
+use Modules\Mailing\Support\CampaignSendTracker;
 
 class CampaignResource extends Resource
 {
@@ -176,7 +177,7 @@ class CampaignResource extends Resource
                     )
                     ->requiresConfirmation()
                     ->modalDescription(__('mailing::resource.actions.send_now_confirm'))
-                    ->action(function (Campaign $record): void {
+                    ->action(function (Campaign $record, $livewire): void {
                         try {
                             $queued = $record->dispatchImmediateSend();
                         } catch (\Throwable $e) {
@@ -198,9 +199,14 @@ class CampaignResource extends Resource
                             return;
                         }
 
+                        CampaignSendTracker::trackCampaign($record->id);
+                        $livewire->dispatch('campaign-send-tracked');
+
                         Notification::make()
                             ->title(__('mailing::resource.notifications.sent_now'))
+                            ->body(__('mailing::resource.notifications.sent_now_body'))
                             ->success()
+                            ->persistent()
                             ->send();
                     }),
 

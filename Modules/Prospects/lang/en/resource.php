@@ -147,8 +147,8 @@ return [
             'body' => 'None of the selected prospects can receive emails. Remove them from the suppression list first.',
         ],
         'campaign_started' => [
-            'title' => 'Campaign Started',
-            'body' => 'Emails are being sent in the background using the selected template.',
+            'title' => 'Sending in the background',
+            'body' => 'Sending :count emails in the background. You can keep working; we will let you know when it finishes.',
         ],
         'campaign_sent_to_review' => [
             'title' => 'Campaign Sent for Review',
