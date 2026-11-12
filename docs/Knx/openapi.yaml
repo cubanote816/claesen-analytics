@@ -1095,6 +1095,7 @@ paths:
                 documentRevision: "Rev. H"
                 processingVersion: "kantoor-plan/3"
                 roles: { "layer:A-WALL": "wall", "layer:A-FURN": "hidden" }
+                boundaries: [[[0.82, 0.1], [0.82, 0.9]]]
                 updatedAt: "2026-11-10T09:00:00+00:00"
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1105,7 +1106,10 @@ paths:
       description: >-
         Reemplaza el mapa entero de la página; `roles: {}` es válido y borra los overrides. La
         revisión se estampa en el servidor con la del documento. Más de 500 entradas, una clave de
-        0 o más de 255 caracteres o un rol fuera del enum es `422` (`roles.<groupId>`).
+        0 o más de 255 caracteres o un rol fuera del enum es `422` (`roles.<groupId>`). `boundaries`
+        son límites virtuales (barreras solo para la detección de habitaciones, nunca muros): hasta 200
+        segmentos de dos puntos en fracciones 0..1; omitido equivale a ninguno (el perfil se reemplaza
+        entero); un segmento degenerado o mal formado es `422`.
       parameters:
         - $ref: "#/components/parameters/Code"
         - $ref: "#/components/parameters/DocumentId"
@@ -1123,6 +1127,14 @@ paths:
                   maxProperties: 500
                   additionalProperties: { type: string, enum: [wall, window, door, stair, lift, void, hidden, unknown] }
                 processingVersion: { type: string, nullable: true, maxLength: 32 }
+                boundaries:
+                  type: array
+                  maxItems: 200
+                  items:
+                    type: array
+                    minItems: 2
+                    maxItems: 2
+                    items: { type: array, minItems: 2, maxItems: 2, items: { type: number, minimum: 0, maximum: 1 } }
       responses:
         "200":
           description: El perfil resultante, misma forma que el GET
@@ -1135,6 +1147,7 @@ paths:
                 documentRevision: "Rev. H"
                 processingVersion: "kantoor-plan/3"
                 roles: { "layer:A-WALL": "wall" }
+                boundaries: []
                 updatedAt: "2026-11-10T09:00:00+00:00"
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }

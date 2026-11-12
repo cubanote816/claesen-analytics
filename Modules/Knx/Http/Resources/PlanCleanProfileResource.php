@@ -32,6 +32,7 @@ class PlanCleanProfileResource extends KnxResource
             'documentRevision' => $document->revision,
             'processingVersion' => $profile?->processing_version,
             'roles' => (object) ($profile?->roles ?? []),
+            'boundaries' => $profile?->boundaries ?? [],
             'updatedAt' => $profile?->updated_at?->toIso8601String(),
         ];
     }

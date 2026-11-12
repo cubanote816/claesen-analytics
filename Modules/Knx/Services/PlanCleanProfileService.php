@@ -47,6 +47,10 @@ class PlanCleanProfileService
                 'project_id' => $document->project_id,
                 // An empty map is stored as `{}`: it is a valid "no overrides" profile.
                 'roles' => $input['roles'],
+                'boundaries' => array_map(
+                    fn (array $segment): array => array_map(fn (array $p): array => [(float) $p[0], (float) $p[1]], $segment),
+                    $input['boundaries'] ?? [],
+                ),
                 'revision' => $document->revision,
                 'processing_version' => $input['processingVersion'] ?? null,
                 'updated_by_employee_id' => $employee->getKey(),

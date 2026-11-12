@@ -58,9 +58,10 @@ final class KnxPlanCleanProfileTest extends TestCase
         $response = $this->getJson($this->url($document, '?page=1'))->assertOk();
 
         $this->assertSame(
-            ['documentId', 'page', 'revision', 'documentRevision', 'processingVersion', 'roles', 'updatedAt'],
+            ['documentId', 'page', 'revision', 'documentRevision', 'processingVersion', 'roles', 'boundaries', 'updatedAt'],
             array_keys($response->json()),
         );
+        $this->assertSame([], $response->json('boundaries'));
         $this->assertSame((string) $document->getKey(), $response->json('documentId'));
         $this->assertSame(1, $response->json('page'));
         $this->assertNull($response->json('revision'));
@@ -203,5 +204,41 @@ final class KnxPlanCleanProfileTest extends TestCase
 
         $this->getJson($this->url($document))->assertUnauthorized();
         $this->putJson($this->url($document), ['page' => 1, 'roles' => []])->assertUnauthorized();
+    }
+
+    public function test_virtual_boundaries_are_stored_with_the_roles_and_read_back_exactly_per_page(): void
+    {
+        $document = $this->document();
+        $boundaries = [[[0.82, 0.1], [0.82, 0.9]], [[0.05, 0.5], [0.12, 0.5]]];
+
+        $this->putJson($this->url($document), [
+            'page' => 1,
+            'roles' => ['layer:A-WALL' => 'wall'],
+            'boundaries' => $boundaries,
+        ])->assertOk()->assertJsonPath('boundaries', $boundaries);
+
+        $this->assertEquals($boundaries, $this->getJson($this->url($document, '?page=1'))->json('boundaries'));
+        $this->assertSame([], $this->getJson($this->url($document, '?page=2'))->json('boundaries'));
+
+        // The profile is replaced whole: a PUT without boundaries leaves none.
+        $this->putJson($this->url($document), ['page' => 1, 'roles' => ['layer:A-WALL' => 'wall']])->assertOk();
+        $this->assertSame([], $this->getJson($this->url($document, '?page=1'))->json('boundaries'));
+    }
+
+    public function test_malformed_boundaries_are_a_422_and_store_nothing(): void
+    {
+        $document = $this->document();
+        $this->putJson($this->url($document), ['page' => 1, 'roles' => [], 'boundaries' => [[[0.2, 0.2], [0.4, 0.4]]]])->assertOk();
+
+        foreach ([
+            [[[0.2, 1.2], [0.4, 0.4]]],             // off the page
+            [[[0.2, 0.2], [0.4, 0.4], [0.5, 0.5]]], // three points
+            [[[0.2], [0.4, 0.4]]],                  // one coordinate
+            [[[0.3, 0.3], [0.3, 0.3]]],             // degenerate
+            array_fill(0, 201, [[0.1, 0.1], [0.2, 0.2]]),
+        ] as $bad) {
+            $this->putJson($this->url($document), ['page' => 1, 'roles' => [], 'boundaries' => $bad])->assertStatus(422);
+        }
+        $this->assertEquals([[[0.2, 0.2], [0.4, 0.4]]], $this->getJson($this->url($document, '?page=1'))->json('boundaries'));
     }
 }

@@ -30,6 +30,7 @@ class KnxPlanCleanProfile extends Model
         'document_id',
         'page',
         'roles',
+        'boundaries',
         'revision',
         'processing_version',
         'updated_by_employee_id',
@@ -40,6 +41,7 @@ class KnxPlanCleanProfile extends Model
         return [
             'page' => 'integer',
             'roles' => 'array',
+            'boundaries' => 'array',
         ];
     }
 

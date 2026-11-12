@@ -50,9 +50,16 @@ class PlanCleanProfileController extends Controller
             // dotted wildcard rules would read as nesting.
             'roles' => ['present', 'array', 'max:500'],
             'processingVersion' => ['sometimes', 'nullable', 'string', 'max:32'],
+            // Virtual boundaries (detection-only barriers): at most 200 segments of two
+            // page-fraction points each. Omitted = none (the profile is replaced whole).
+            'boundaries' => ['sometimes', 'array', 'max:200'],
+            'boundaries.*' => ['array', 'size:2'],
+            'boundaries.*.*' => ['array', 'size:2'],
+            'boundaries.*.*.*' => ['numeric', 'between:0,1'],
         ]);
 
         $this->assertValidRoles($validated['roles']);
+        $this->assertNoDegenerateBoundary($validated['boundaries'] ?? []);
 
         /** @var KnxEmployee $employee */
         $employee = $request->attributes->get('knx_employee');
@@ -60,6 +67,20 @@ class PlanCleanProfileController extends Controller
         return PlanCleanProfileResource::make(
             $this->profiles->replace($document, $employee, $validated),
         )->resolve($request);
+    }
+
+    /**
+     * A boundary whose two ends coincide closes nothing and is rejected.
+     *
+     * @param  array<int, array<int, array<int, int|float>>>  $boundaries
+     */
+    private function assertNoDegenerateBoundary(array $boundaries): void
+    {
+        foreach ($boundaries as $i => [$a, $b]) {
+            if ((float) $a[0] === (float) $b[0] && (float) $a[1] === (float) $b[1]) {
+                throw ValidationException::withMessages(["boundaries.{$i}" => ['The two ends of a boundary must differ.']]);
+            }
+        }
     }
 
     /**
