@@ -3,6 +3,7 @@
 namespace Modules\Prospects\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Filament\Actions\Testing\TestAction;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
@@ -73,6 +74,32 @@ class StartMailingCampaignTest extends TestCase
             && $job->templateId === $template->id
             && $job->description === 'Fair follow-up');
         $this->assertSame(0, Campaign::count());
+    }
+
+    public function test_select_all_minus_exclusion_targets_every_other_prospect(): void
+    {
+        Queue::fake();
+        $template  = EmailTemplate::factory()->create();
+        $prospects = Prospect::factory()->count(4)->create();
+        $excluded  = $prospects->last();
+
+        // The state Filament's "select all" sends: tracking deselected, none selected.
+        Livewire::actingAs($this->userWithRole('admin'))
+            ->test(ManageProspects::class)
+            ->set('isTrackingDeselectedTableRecords', true)
+            ->set('selectedTableRecords', [])
+            ->set('deselectedTableRecords', [(string) $excluded->id])
+            ->callAction(TestAction::make('execute_campaign')->table()->bulk(), [
+                'description' => 'Select all',
+                'template_id' => $template->id,
+            ]);
+
+        Queue::assertPushed(ExecuteCampaignJob::class, 1);
+        Queue::assertPushed(ExecuteCampaignJob::class, function (ExecuteCampaignJob $job) use ($prospects, $excluded) {
+            $expected = $prospects->pluck('id')->diff([$excluded->id])->sort()->values()->all();
+
+            return collect($job->prospectIds)->sort()->values()->all() === $expected;
+        });
     }
 
     public function test_marketer_sends_campaign_to_review(): void
