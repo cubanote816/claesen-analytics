@@ -147,8 +147,8 @@ return [
             'body' => 'Aucun des prospects sélectionnés ne peut recevoir des e-mails. Retirez-les d\'abord de la liste de suppression.',
         ],
         'campaign_started' => [
-            'title' => 'Campagne Démarrée',
-            'body' => 'Les e-mails sont envoyés en arrière-plan avec le modèle choisi.',
+            'title' => 'Envoi en arrière-plan',
+            'body' => 'Envoi de :count e-mails en arrière-plan. Vous pouvez continuer à travailler ; nous vous préviendrons à la fin.',
         ],
         'campaign_sent_to_review' => [
             'title' => 'Campagne Envoyée en Validation',

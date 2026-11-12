@@ -97,7 +97,8 @@ return [
     ],
 
     'notifications' => [
-        'sent_now'                       => 'Campagne wordt verzonden.',
+        'sent_now'                       => 'Verzending op de achtergrond',
+        'sent_now_body'                  => 'Je kunt gewoon doorwerken; we laten het weten als het klaar is.',
         'campaign_finished_title'        => ':description is afgerond',
         'campaign_failed_title'          => ':description is mislukt',
         'campaign_finished_body'         => 'Verzonden: :sent · Mislukt: :failed · Overgeslagen: :skipped',

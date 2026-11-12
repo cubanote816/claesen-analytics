@@ -33,6 +33,8 @@ class MailingServiceProvider extends ServiceProvider
 
         Gate::policy(Campaign::class, CampaignPolicy::class);
 
+        \Livewire\Livewire::component('campaign-progress-watcher', \Modules\Mailing\Livewire\CampaignProgressWatcher::class);
+
         // Register Microsoft Graph Mail Driver
         \Illuminate\Support\Facades\Mail::extend('microsoft-graph', function (array $config) {
             return new \Modules\Mailing\Mail\Transport\MicrosoftGraphTransport(

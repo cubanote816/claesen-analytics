@@ -12,6 +12,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Actions\BulkAction;
 use Modules\Mailing\Jobs\ExecuteCampaignJob;
+use Modules\Mailing\Support\CampaignSendTracker;
 use Modules\Mailing\Enums\AudienceType;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Enums\TemplateCategory;
@@ -589,6 +590,8 @@ class ProspectResource extends Resource
 
                             if (auth()->user()?->can('sendImmediately', Campaign::class)) {
                                 static::sendCampaignNow($records, $data, $userId);
+                                // Wake the panel-wide watcher so it starts polling without a page reload (CLA-680).
+                                $livewire->dispatch('campaign-send-tracked');
                             } elseif (! static::sendCampaignToReview($records, $data, $userId)) {
                                 $livewire->deselectAllTableRecords();
                                 return;
@@ -613,17 +616,24 @@ class ProspectResource extends Resource
             'description' => $data['description'],
         ]);
 
-        ExecuteCampaignJob::dispatch(
+        $job = new ExecuteCampaignJob(
             $records->pluck('id')->toArray(),
             $data['template_id'],
             $userId,
             $data['description']
         );
+        dispatch($job);
+
+        // CLA-680: the job creates the campaign, so track it by its dispatch key.
+        CampaignSendTracker::trackDispatch($job->dispatchKey);
 
         Notification::make()
             ->title(__('prospects::resource.notifications.campaign_started.title'))
             ->success()
-            ->body(__('prospects::resource.notifications.campaign_started.body'))
+            ->persistent()
+            ->body(__('prospects::resource.notifications.campaign_started.body', [
+                'count' => $records->filter(fn ($p) => empty($p->unsubscribed_at))->count(),
+            ]))
             ->send();
     }
 

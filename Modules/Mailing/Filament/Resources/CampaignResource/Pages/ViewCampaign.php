@@ -8,6 +8,7 @@ use Filament\Resources\Pages\ViewRecord;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Filament\Resources\CampaignResource;
 use Modules\Mailing\Filament\Widgets\CampaignMetricsWidget;
+use Modules\Mailing\Support\CampaignSendTracker;
 
 class ViewCampaign extends ViewRecord
 {
@@ -110,9 +111,13 @@ class ViewCampaign extends ViewRecord
                     }
 
                     $this->refreshFormData(['status']);
+                    CampaignSendTracker::trackCampaign($this->record->id);
+                    $this->dispatch('campaign-send-tracked');
                     Notification::make()
                         ->title(__('mailing::resource.notifications.sent_now'))
+                        ->body(__('mailing::resource.notifications.sent_now_body'))
                         ->success()
+                        ->persistent()
                         ->send();
                 }),
 
