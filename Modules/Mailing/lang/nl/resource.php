@@ -93,10 +93,14 @@ return [
         'view_full_content'        => 'Volledige inhoud bekijken',
         'full_content_modal_title' => 'Volledige e-mailinhoud',
         'close'                    => 'Sluiten',
+        'view_campaign'            => 'Campagne bekijken',
     ],
 
     'notifications' => [
         'sent_now'                       => 'Campagne wordt verzonden.',
+        'campaign_finished_title'        => ':description is afgerond',
+        'campaign_failed_title'          => ':description is mislukt',
+        'campaign_finished_body'         => 'Verzonden: :sent · Mislukt: :failed · Overgeslagen: :skipped',
         'send_now_unavailable'           => 'Deze campagne kan niet meer nu worden verzonden: ze is al opgepakt of gewijzigd.',
         'send_now_failed'                => 'De campagne kon niet in de wachtrij worden gezet. Ze blijft goedgekeurd; probeer het later opnieuw.',
         'approve_failed'                 => 'De campagne kon niet worden goedgekeurd.',
