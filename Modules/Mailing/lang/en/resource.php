@@ -151,9 +151,23 @@ return [
         'send_now_failed'                   => 'The campaign could not be queued. It is still approved; try again later.',
         'approve_failed'                    => 'The campaign could not be approved.',
         'cancelled'                         => 'Campaign has been cancelled.',
-        'audience_preview'                  => 'Estimated audience: :count prospects',
         'segment_error'                     => 'Segment configuration error',
         'template_invalid_pref_category'    => 'Template has an invalid preference category',
+    ],
+
+    'preview' => [
+        'heading'        => 'Audience preview',
+        'total'          => ':count recipients',
+        'more'           => '… and :count more',
+        'note'           => 'Send-time checks can still skip a few contacts: category opt-outs and suppressed addresses.',
+        'empty'          => 'No recipients match this audience.',
+        'club'           => 'Club',
+        'sport'          => 'Sport',
+        'federation'     => 'Federation',
+        'region'         => 'Region',
+        'language'       => 'Language',
+        'contact_person' => 'Contact person',
+        'emails'         => 'Email(s)',
     ],
 
     'metrics' => [

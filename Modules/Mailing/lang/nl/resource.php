@@ -99,13 +99,27 @@ return [
         'send_now_unavailable'           => 'Deze campagne kan niet meer nu worden verzonden: ze is al opgepakt of gewijzigd.',
         'send_now_failed'                => 'De campagne kon niet in de wachtrij worden gezet. Ze blijft goedgekeurd; probeer het later opnieuw.',
         'approve_failed'                 => 'De campagne kon niet worden goedgekeurd.',
-        'audience_preview'               => 'Geschatte doelgroep: :count contacten',
         'segment_error'                  => 'Fout in segmentconfiguratie',
         'template_invalid_pref_category' => 'Sjabloon heeft een ongeldige voorkeurscategorie',
     ],
 
     'placeholders' => [
         'content_description' => 'Je kunt variabelen gebruiken zoals {{ naam }} en {{ regio }}',
+    ],
+
+    'preview' => [
+        'heading'        => 'Voorvertoning doelgroep',
+        'total'          => ':count ontvangers',
+        'more'           => '… en nog :count andere',
+        'note'           => 'Controles bij verzending kunnen nog enkele contacten overslaan: afmeldingen per categorie en geblokkeerde adressen.',
+        'empty'          => 'Geen ontvangers komen overeen met deze doelgroep.',
+        'club'           => 'Club',
+        'sport'          => 'Sport',
+        'federation'     => 'Federatie',
+        'region'         => 'Regio',
+        'language'       => 'Taal',
+        'contact_person' => 'Contactpersoon',
+        'emails'         => 'E-mail(s)',
     ],
 
     'metrics' => [

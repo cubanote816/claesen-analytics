@@ -59,6 +59,26 @@ class SegmentResolverService
         return $this->query($filters, $excludeSuppressed)->count();
     }
 
+    /**
+     * Audience preview: full total plus the first $limit prospects ordered by name.
+     * Built on query(), so it applies the same invariants as the send.
+     *
+     * @throws \InvalidArgumentException on an invalid segment rule
+     * @return array{total: int, prospects: \Illuminate\Database\Eloquent\Collection<int, Prospect>}
+     */
+    public function preview(array $filters, int $limit = 100): array
+    {
+        return [
+            'total'     => $this->count($filters),
+            'prospects' => $this->query($filters)
+                ->with(['region', 'locations'])
+                ->orderBy('prospects_prospects.name')
+                ->orderBy('prospects_prospects.id')
+                ->limit($limit)
+                ->get(),
+        ];
+    }
+
     /** @return array<int> */
     public function resolveIds(array $filters, bool $excludeSuppressed = true): array
     {
