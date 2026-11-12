@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Modules\Mailing\Enums\AudienceType;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Enums\TemplateCategory;
 use Modules\Mailing\Models\Campaign;
@@ -419,6 +420,15 @@ class ExecuteCampaignJob implements ShouldQueue
     // Inline/legacy path (campaignId not provided — Filament bulk action / FAB)
     // -------------------------------------------------------------------------
 
+    /** @return array<int, int> */
+    private function audienceProspectIds(): array
+    {
+        return array_values(array_unique(array_filter(
+            array_map('intval', $this->prospectIds),
+            fn (int $id) => $id > 0
+        )));
+    }
+
     private function executeInlineCampaign(MarketingCampaignInterface $mailer, SuppressionService $suppression, float $startedAt): void
     {
         $template = EmailTemplate::findOrFail($this->templateId);
@@ -446,12 +456,14 @@ class ExecuteCampaignJob implements ShouldQueue
         // Retries and continuations reuse the campaign created by the first run.
         $campaign = Campaign::where('dispatch_key', $this->dispatchKey)->first()
             ?? Campaign::create([
-                'created_by'     => $this->userId,
-                'description'    => $this->description,
-                'total_count'    => $allProspects->count(),
-                'status'         => CampaignStatus::SENDING,
-                'dispatch_key'   => $this->dispatchKey,
-                'run_generation' => 0,
+                'created_by'       => $this->userId,
+                'description'      => $this->description,
+                'total_count'      => $allProspects->count(),
+                'status'           => CampaignStatus::SENDING,
+                'dispatch_key'     => $this->dispatchKey,
+                'run_generation'   => 0,
+                'audience_type'    => AudienceType::MANUAL,
+                'audience_filters' => ['prospect_ids' => $this->audienceProspectIds()],
                 ...$snapshot,
             ]);
 
