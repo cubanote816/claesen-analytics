@@ -29,6 +29,29 @@ php artisan test Modules/Mailing/tests/Feature/CampaignWorkflowTest.php
 
 ---
 
+## E2E (Playwright)
+
+Specs en `tests/e2e/` (fuera de las suites de PHPUnit). Playwright **no** levanta la app: debe estar corriendo con Sail (por defecto `http://localhost:8001`).
+
+```bash
+# Instalación (una vez)
+npm ci
+npx playwright install chromium
+
+# Ejecutar
+npm run test:e2e
+E2E_BASE_URL=http://localhost:8001 npm run test:e2e   # otra URL base
+npx playwright test --ui                              # modo interactivo
+```
+
+Reporte HTML en `playwright-report/` (`npx playwright show-report`); trazas y artefactos en `test-results/e2e/`. Ambos ignorados por git.
+
+Decisiones abiertas:
+- Aún no está integrado en CI.
+- Los flujos autenticados requieren un usuario de prueba y una estrategia para MFA.
+
+---
+
 ## Scheduler
 
 ```bash
