@@ -133,6 +133,7 @@ return [
         'view_full_content'        => 'View full content',
         'full_content_modal_title' => 'Full Email Content',
         'close'                    => 'Close',
+        'view_campaign'            => 'View campaign',
     ],
 
     'options' => [
@@ -152,6 +153,9 @@ return [
         'send_now_failed'                   => 'The campaign could not be queued. It is still approved; try again later.',
         'approve_failed'                    => 'The campaign could not be approved.',
         'cancelled'                         => 'Campaign has been cancelled.',
+        'campaign_finished_title'           => ':description finished',
+        'campaign_failed_title'             => ':description failed',
+        'campaign_finished_body'            => 'Sent: :sent · Failed: :failed · Skipped: :skipped',
         'segment_error'                     => 'Segment configuration error',
         'template_invalid_pref_category'    => 'Template has an invalid preference category',
     ],

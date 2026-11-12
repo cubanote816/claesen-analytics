@@ -21,6 +21,7 @@ use Modules\Mailing\Models\ContactPreference;
 use Modules\Mailing\Models\EmailTemplate;
 use Modules\Mailing\Models\TrackedLink;
 use Modules\Mailing\Services\SuppressionService;
+use Modules\Mailing\Support\CampaignFinishedNotifier;
 use Modules\Prospects\Models\Prospect;
 
 /**
@@ -43,6 +44,9 @@ class ExecuteCampaignJob implements ShouldQueue
 
     /** Identifies this run for the claim on mailing_campaigns.run_owner; stable across queue retries. */
     public ?string $runId = null;
+
+    /** Worker locale before the send loop switches to each prospect's language; used for the finish notice. */
+    private ?string $notificationLocale = null;
 
     /**
      * @param  array       $prospectIds   Used only when $campaignId is null (inline path).
@@ -90,6 +94,7 @@ class ExecuteCampaignJob implements ShouldQueue
         $startedAt      = microtime(true);
         $this->normalizeLegacyPayload();
         $originalLocale = App::getLocale();
+        $this->notificationLocale = $originalLocale;
 
         try {
             if ($this->campaignId !== null) {
@@ -123,6 +128,9 @@ class ExecuteCampaignJob implements ShouldQueue
                 'is_winner_send' => $this->isWinnerSend,
                 'error'          => $exception->getMessage(),
             ]);
+            $this->notifyFinished($this->campaignId !== null
+                ? Campaign::find($this->campaignId)
+                : Campaign::where('dispatch_key', $this->dispatchKey)->first());
         } elseif ($this->campaignId === null) {
             $this->recoverOrphanedHandover();
         }
@@ -151,7 +159,16 @@ class ExecuteCampaignJob implements ShouldQueue
                     'dispatch_key' => $this->dispatchKey,
                     'error'        => $e->getMessage(),
                 ]);
+                $this->notifyFinished(Campaign::where('dispatch_key', $this->dispatchKey)->first());
             }
+        }
+    }
+
+    /** Called only by the code path whose update actually moved the campaign to its final state. */
+    private function notifyFinished(?Campaign $campaign): void
+    {
+        if ($campaign !== null) {
+            CampaignFinishedNotifier::notify($campaign, $this->userId, $this->notificationLocale);
         }
     }
 
@@ -205,9 +222,13 @@ class ExecuteCampaignJob implements ShouldQueue
 
     private function failCampaign(Campaign $campaign): void
     {
-        Campaign::where('id', $campaign->id)
+        $failed = Campaign::where('id', $campaign->id)
             ->whereIn('status', [CampaignStatus::APPROVED->value, CampaignStatus::SENDING->value])
             ->update(['status' => CampaignStatus::FAILED->value]);
+
+        if ($failed === 1) {
+            $this->notifyFinished($campaign);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -251,10 +272,7 @@ class ExecuteCampaignJob implements ShouldQueue
         $prospectIds = $this->overrideProspectIds ?? $campaign->resolveAudience();
 
         if (empty($prospectIds)) {
-            Campaign::where('id', $campaign->id)->update([
-                'status'      => CampaignStatus::COMPLETED->value,
-                'finished_at' => now(),
-            ]);
+            $this->completeEmptyCampaign($campaign);
             return;
         }
 
@@ -263,6 +281,20 @@ class ExecuteCampaignJob implements ShouldQueue
 
         $this->sendToProspects($campaign, $prospects, $mailer, $suppression,
             subjectOverride: $campaign->subject_snapshot);
+    }
+
+    private function completeEmptyCampaign(Campaign $campaign): void
+    {
+        $completed = Campaign::where('id', $campaign->id)
+            ->where('status', CampaignStatus::SENDING->value)
+            ->update([
+                'status'      => CampaignStatus::COMPLETED->value,
+                'finished_at' => now(),
+            ]);
+
+        if ($completed === 1) {
+            $this->notifyFinished($campaign);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -373,10 +405,7 @@ class ExecuteCampaignJob implements ShouldQueue
             Log::info('ExecuteCampaignJob: no remaining prospects for winner send — completing campaign.', [
                 'campaign_id' => $campaign->id,
             ]);
-            Campaign::where('id', $campaign->id)->update([
-                'status'      => CampaignStatus::COMPLETED->value,
-                'finished_at' => now(),
-            ]);
+            $this->completeEmptyCampaign($campaign);
             return;
         }
 
@@ -731,10 +760,24 @@ class ExecuteCampaignJob implements ShouldQueue
                 ? CampaignStatus::FAILED
                 : CampaignStatus::COMPLETED;
 
-            $campaign->update([
-                'status'      => $finalStatus,
-                'finished_at' => now(),
-            ]);
+            $transitioned = Campaign::where('id', $campaign->id)
+                ->where('status', CampaignStatus::SENDING->value)
+                ->update([
+                    'status'      => $finalStatus->value,
+                    'finished_at' => now(),
+                ]);
+
+            if ($transitioned === 1) {
+                $this->notifyFinished($campaign);
+            } elseif (Campaign::whereKey($campaign->id)->where('status', CampaignStatus::FAILED->value)->exists()) {
+                // Race kept as before CLA-677: the failed() hook closed the run while this
+                // execution was still sending; the computed outcome wins. No second notice:
+                // failed() already sent the run's single notification (S2).
+                Campaign::whereKey($campaign->id)->update([
+                    'status'      => $finalStatus->value,
+                    'finished_at' => now(),
+                ]);
+            }
         }
 
         return false;

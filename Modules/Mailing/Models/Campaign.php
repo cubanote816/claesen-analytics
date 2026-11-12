@@ -293,7 +293,8 @@ class Campaign extends Model
         }
 
         try {
-            Bus::dispatch(new ExecuteCampaignJob(campaignId: $this->id));
+            // userId: whoever pressed "Send now" receives the finished notice (CLA-677).
+            Bus::dispatch(new ExecuteCampaignJob(campaignId: $this->id, userId: auth()->id()));
         } catch (\Throwable $e) {
             static::query()
                 ->whereKey($this->id)

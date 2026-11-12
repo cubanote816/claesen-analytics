@@ -65,6 +65,11 @@ Modules/Cafca/Services/CafcaSyncService.php
 - **"Preview audience"** (CLA-672) abre un modal con el total y la lista de destinatarios (máx. 100, por nombre) para los tres tipos de audiencia. Sale de `SegmentResolverService::preview()` con los filtros de `CampaignForm::previewFilters()`, que deben seguir coincidiendo con `Campaign::resolveAudience()`; un segmento mal configurado muestra el error dentro del modal.
 - La vista de campaña muestra el tipo de audiencia y su **tamaño actual** (no el histórico enviado: ese es `total_count`).
 
+### Aviso de fin de envío (CLA-677)
+
+- Toda transición a estado final de `ExecuteCampaignJob` (completed/failed) notifica **solo si esa actualización fue la que cambió la fila** (`where status = sending`, filas afectadas = 1), para que haya un único aviso por ejecución. Un camino nuevo que cierre campañas debe seguir la misma regla y llamar a `CampaignFinishedNotifier`.
+- El aviso se escribe con `notifyNow()` (sin cola) y nunca lanza excepción hacia el job.
+
 ### Reglas de supresión
 
 - **No enviar a contactos suprimidos.** `SuppressionService` debe consultarse antes de cada envío.
