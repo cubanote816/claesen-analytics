@@ -50,6 +50,7 @@ Modules/Cafca/Services/CafcaSyncService.php
 
 - **Sin aprobación no hay envío.** `ExecuteCampaignJob` lanza `DomainException` si `campaign->status !== approved`.
 - El workflow de estados es: `draft → review → approved → sending → completed|failed|cancelled`.
+- **"Start Mailing Campaign" (Prospects) respeta el flujo** (CLA-673). Solo la ve quien puede crear campañas. `CampaignPolicy::sendImmediately()` (mismos roles que aprobar) envía en el acto con el camino inline; el resto (`marketer`) crea una campaña en `review` con audiencia manual de los suscriptos seleccionados y no envía nada.
 - **Los aprobadores pueden saltear `review`** (CLA-670). `draft → approved` está permitido en `CampaignStatus::allowedTransitions()`, pero `CampaignPolicy::approve()` solo deja aprobar a `admin`/`campaign_manager` (y `super_admin` por Gate::before); el `marketer` sigue pasando por "Submit for review". Aprobar desde `draft` hace los mismos chequeos que desde `review`.
 - Una campaña en `sending` o terminal no puede volver atrás (ver `CampaignStatus::allowedTransitions()`).
 - **Un rechazo de aprobación no es un error del servidor** (CLA-669). `transitionTo(APPROVED)` lanza `DomainException` si la campaña no tiene template o si es *commercial* sin categoría de preferencia válida; las acciones Approve (vista y listado) lo muestran como aviso rojo con el motivo y la campaña sigue en `review`. Toda acción nueva que llame a `transitionTo(APPROVED)` debe hacer lo mismo.

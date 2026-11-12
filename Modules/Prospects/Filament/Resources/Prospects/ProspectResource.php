@@ -12,6 +12,12 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Actions\BulkAction;
 use Modules\Mailing\Jobs\ExecuteCampaignJob;
+use Modules\Mailing\Enums\AudienceType;
+use Modules\Mailing\Enums\CampaignStatus;
+use Modules\Mailing\Enums\TemplateCategory;
+use Modules\Mailing\Filament\Resources\CampaignResource;
+use Modules\Mailing\Models\Campaign;
+use Modules\Mailing\Models\EmailTemplate;
 use Illuminate\Database\Eloquent\Collection;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -35,6 +41,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 use Filament\Actions\Action;
@@ -515,6 +522,7 @@ class ProspectResource extends Resource
                         ->label(__('prospects::resource.actions.execute_campaign.label'))
                         ->icon('heroicon-o-rocket-launch')
                         ->color('primary')
+                        ->visible(fn (): bool => auth()->user()?->can('create', Campaign::class) ?? false)
                         ->form([
                             TextInput::make('description')
                                 ->label(__('prospects::resource.actions.execute_campaign.form.description'))
@@ -579,24 +587,12 @@ class ProspectResource extends Resource
                                     ->send();
                             }
 
-                            \Illuminate\Support\Facades\Log::info("Dispatching Prospect Mailing Job", [
-                                'user_id' => $userId,
-                                'prospect_count' => $records->count(),
-                                'description' => $data['description'],
-                            ]);
-
-                            ExecuteCampaignJob::dispatch(
-                                $records->pluck('id')->toArray(), 
-                                $data['template_id'], 
-                                $userId,
-                                $data['description']
-                            );
-
-                            Notification::make()
-                                ->title(__('prospects::resource.notifications.campaign_started.title'))
-                                ->success()
-                                ->body(__('prospects::resource.notifications.campaign_started.body'))
-                                ->send();
+                            if (auth()->user()?->can('sendImmediately', Campaign::class)) {
+                                static::sendCampaignNow($records, $data, $userId);
+                            } elseif (! static::sendCampaignToReview($records, $data, $userId)) {
+                                $livewire->deselectAllTableRecords();
+                                return;
+                            }
 
                             // Asegurar la limpieza inmediata para el FAB
                             $livewire->deselectAllTableRecords();
@@ -604,6 +600,93 @@ class ProspectResource extends Resource
                         ->deselectRecordsAfterCompletion(),
                 ]),
             ]);
+    }
+
+    /**
+     * Approver path: mail the selected prospects right away (inline ExecuteCampaignJob).
+     */
+    private static function sendCampaignNow(Collection $records, array $data, $userId): void
+    {
+        \Illuminate\Support\Facades\Log::info("Dispatching Prospect Mailing Job", [
+            'user_id' => $userId,
+            'prospect_count' => $records->count(),
+            'description' => $data['description'],
+        ]);
+
+        ExecuteCampaignJob::dispatch(
+            $records->pluck('id')->toArray(),
+            $data['template_id'],
+            $userId,
+            $data['description']
+        );
+
+        Notification::make()
+            ->title(__('prospects::resource.notifications.campaign_started.title'))
+            ->success()
+            ->body(__('prospects::resource.notifications.campaign_started.body'))
+            ->send();
+    }
+
+    /**
+     * Review path: create a manual-audience campaign in REVIEW; nothing is sent.
+     * Returns false (and creates nothing) when the template cannot be used.
+     */
+    private static function sendCampaignToReview(Collection $records, array $data, $userId): bool
+    {
+        $template = EmailTemplate::findOrFail($data['template_id']);
+
+        try {
+            $snapshot = Campaign::buildSnapshotFrom($template);
+
+            // Mirrors the APPROVED check in Campaign::transitionTo
+            if ($snapshot['template_category_snapshot'] === TemplateCategory::COMMERCIAL->value
+                && ! in_array($snapshot['preference_category_snapshot'], array_keys(config('mailing.preference_categories', [])), true)) {
+                throw new \InvalidArgumentException(
+                    "Commercial campaigns require a valid preference category. Edit template '{$template->name}' to assign one."
+                );
+            }
+        } catch (\InvalidArgumentException $e) {
+            Notification::make()
+                ->title(__('prospects::resource.notifications.campaign_template_invalid.title'))
+                ->body(__('prospects::resource.notifications.campaign_template_invalid.body', ['reason' => $e->getMessage()]))
+                ->danger()
+                ->send();
+
+            return false;
+        }
+
+        $campaign = DB::transaction(function () use ($records, $data, $userId, $template, $snapshot) {
+            $campaign = Campaign::create([
+                ...$snapshot,
+                'description' => $data['description'],
+                'template_id' => $template->id,
+                'audience_type' => AudienceType::MANUAL,
+                'audience_filters' => [
+                    'prospect_ids' => $records->filter(fn ($p) => empty($p->unsubscribed_at))
+                        ->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+                ],
+                'status' => CampaignStatus::DRAFT,
+                'created_by' => $userId,
+                'total_count' => 0,
+            ]);
+
+            $campaign->transitionTo(CampaignStatus::REVIEW);
+
+            return $campaign;
+        });
+
+        Notification::make()
+            ->title(__('prospects::resource.notifications.campaign_sent_to_review.title'))
+            ->body(__('prospects::resource.notifications.campaign_sent_to_review.body'))
+            ->success()
+            ->actions([
+                Action::make('view')
+                    ->label(__('prospects::resource.actions.execute_campaign.view_campaign'))
+                    ->url(CampaignResource::getUrl('view', ['record' => $campaign])),
+            ])
+            ->send();
+
+        return true;
     }
 
     public static function getEloquentQuery(): Builder

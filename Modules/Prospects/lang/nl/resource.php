@@ -108,6 +108,7 @@ return [
     'actions' => [
         'execute_campaign' => [
             'label' => 'Start Mailing Campagne',
+            'view_campaign' => 'Campagne bekijken',
             'form' => [
                 'template' => 'Kies E-mail Sjabloon',
                 'description' => 'Campagne Beschrijving',
@@ -148,6 +149,14 @@ return [
         'campaign_started' => [
             'title' => 'Campagne Gestart',
             'body' => 'De e-mails worden op de achtergrond verzonden met het gekozen sjabloon.',
+        ],
+        'campaign_sent_to_review' => [
+            'title' => 'Campagne Ter Beoordeling Verzonden',
+            'body' => 'De campagne is aangemaakt en ter beoordeling verzonden. Een goedkeurder moet ze goedkeuren voordat ze wordt verzonden.',
+        ],
+        'campaign_template_invalid' => [
+            'title' => 'Campagne Niet Aangemaakt',
+            'body' => ':reason',
         ],
         'partial_skip' => [
             'title' => 'Campagne Gestart',

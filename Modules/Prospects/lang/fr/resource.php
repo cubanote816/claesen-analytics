@@ -108,6 +108,7 @@ return [
     'actions' => [
         'execute_campaign' => [
             'label' => 'Démarrer la Campagne de Mailing',
+            'view_campaign' => 'Voir la campagne',
             'form' => [
                 'template' => 'Choisir le Modèle d\'E-mail',
                 'description' => 'Description de la Campagne',
@@ -148,6 +149,14 @@ return [
         'campaign_started' => [
             'title' => 'Campagne Démarrée',
             'body' => 'Les e-mails sont envoyés en arrière-plan avec le modèle choisi.',
+        ],
+        'campaign_sent_to_review' => [
+            'title' => 'Campagne Envoyée en Validation',
+            'body' => 'La campagne a été créée et envoyée en validation. Un approbateur doit l\'approuver avant l\'envoi.',
+        ],
+        'campaign_template_invalid' => [
+            'title' => 'Campagne Non Créée',
+            'body' => ':reason',
         ],
         'master_sync_started' => [
             'title' => 'Master Sync Démarrée',
