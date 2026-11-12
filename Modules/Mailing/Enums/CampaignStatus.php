@@ -16,7 +16,8 @@ enum CampaignStatus: string
     public function allowedTransitions(): array
     {
         return match ($this) {
-            self::DRAFT     => [self::REVIEW, self::CANCELLED],
+            // DRAFT → APPROVED lets approvers skip review (CLA-670); CampaignPolicy::approve keeps marketers out.
+            self::DRAFT     => [self::REVIEW, self::APPROVED, self::CANCELLED],
             self::REVIEW    => [self::APPROVED, self::DRAFT, self::CANCELLED],
             self::APPROVED  => [self::SENDING, self::CANCELLED],
             self::SENDING   => [self::COMPLETED, self::FAILED],

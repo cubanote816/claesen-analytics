@@ -227,7 +227,7 @@ class Campaign extends Model
 
     public function canBeApprovedBy(User $user): bool
     {
-        return $this->status === CampaignStatus::REVIEW
+        return in_array($this->status, [CampaignStatus::DRAFT, CampaignStatus::REVIEW], true)
             && $user->hasAnyRole(['super_admin', 'admin', 'campaign_manager']);
     }
 

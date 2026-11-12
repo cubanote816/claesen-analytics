@@ -56,11 +56,12 @@ class CampaignPolicy
     }
 
     /**
-     * Approve a campaign in review — marketers are explicitly excluded.
+     * Approve a campaign in draft or review — marketers are explicitly excluded.
+     * Approvers may skip the review step (CLA-670); marketers still submit for review.
      */
     public function approve(User $user, Campaign $campaign): bool
     {
-        return $campaign->status === CampaignStatus::REVIEW
+        return in_array($campaign->status, [CampaignStatus::DRAFT, CampaignStatus::REVIEW], true)
             && $user->hasAnyRole(['admin', 'campaign_manager']);
     }
 
