@@ -42,6 +42,9 @@ return [
         'updated_at'       => 'Updated At',
         // Audience
         'audience_type'            => 'Audience Type',
+        'manual_prospects'         => 'Recipients',
+        'manual_prospects_helper'  => 'Search by club name or email. Only subscribed contacts with an email are listed.',
+        'audience_recipients'      => 'Current audience size',
         'segment_operator'         => 'Rule Combination',
         'segment_operator_and'     => 'Match ALL rules (AND)',
         'segment_operator_or'      => 'Match ANY rule (OR)',

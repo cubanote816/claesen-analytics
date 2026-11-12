@@ -16,6 +16,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
+use Modules\Mailing\Enums\AudienceType;
 use Modules\Mailing\Enums\CampaignStatus;
 use Modules\Mailing\Filament\Resources\CampaignResource\Pages;
 use Modules\Mailing\Filament\Resources\CampaignResource\RelationManagers\MessagesRelationManager;
@@ -244,6 +245,23 @@ class CampaignResource extends Resource
 
                             TextEntry::make('creator.name')
                                 ->label(__('mailing::resource.fields.started_by')),
+
+                            TextEntry::make('audience_type')
+                                ->label(__('mailing::resource.fields.audience_type'))
+                                ->formatStateUsing(fn (AudienceType $state): string => $state->label(app()->getLocale())),
+
+                            TextEntry::make('audience_recipients')
+                                ->label(__('mailing::resource.fields.audience_recipients'))
+                                // Malformed stored filters must not break the view page.
+                                ->getStateUsing(function (Campaign $record): ?int {
+                                    try {
+                                        return count($record->resolveAudience());
+                                    } catch (\InvalidArgumentException|\DomainException) {
+                                        return null;
+                                    }
+                                })
+                                ->placeholder('—')
+                                ->numeric(),
 
                             TextEntry::make('total_count')
                                 ->label(__('mailing::resource.fields.total_count'))

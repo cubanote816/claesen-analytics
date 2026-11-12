@@ -46,6 +46,9 @@ return [
         'updated_at'       => 'Laatst Gewijzigd',
         // Doelgroep
         'audience_type'            => 'Type Doelgroep',
+        'manual_prospects'         => 'Ontvangers',
+        'manual_prospects_helper'  => 'Zoek op clubnaam of e-mail. Alleen ingeschreven contacten met een e-mailadres worden getoond.',
+        'audience_recipients'      => 'Huidige omvang doelgroep',
         'segment_operator'         => 'Regelcombinatie',
         'segment_operator_and'     => 'Alle regels toepassen (EN)',
         'segment_operator_or'      => 'Minimaal één regel (OF)',

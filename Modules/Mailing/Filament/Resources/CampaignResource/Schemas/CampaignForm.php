@@ -22,6 +22,7 @@ use Modules\Mailing\Enums\MessageEventType;
 use Modules\Mailing\Models\Campaign;
 use Modules\Mailing\Models\EmailTemplate;
 use Modules\Mailing\Services\SegmentResolverService;
+use Modules\Prospects\Models\Prospect;
 
 class CampaignForm
 {
@@ -133,6 +134,22 @@ class CampaignForm
                             ->collapsible()
                             ->visible(fn (Get $get): bool => $get('audience_type') === AudienceType::SEGMENT->value),
 
+                        Select::make('audience_filters.prospect_ids')
+                            ->label(__('mailing::resource.fields.manual_prospects'))
+                            ->helperText(__('mailing::resource.fields.manual_prospects_helper'))
+                            ->multiple()
+                            ->searchable()
+                            ->required(fn (Get $get): bool => $get('audience_type') === AudienceType::MANUAL->value)
+                            ->getSearchResultsUsing(fn (string $search): array => self::searchProspects($search))
+                            ->getOptionLabelsUsing(fn (array $values): array => Prospect::query()
+                                ->with('region')
+                                ->whereIn('id', $values)
+                                ->get()
+                                ->mapWithKeys(fn (Prospect $p) => [$p->id => self::prospectLabel($p)])
+                                ->all())
+                            ->dehydrateStateUsing(fn (?array $state): array => array_map('intval', $state ?? []))
+                            ->visible(fn (Get $get): bool => $get('audience_type') === AudienceType::MANUAL->value),
+
                         DateTimePicker::make('scheduled_at')
                             ->label(__('mailing::resource.fields.scheduled_at'))
                             ->helperText(__('mailing::resource.fields.scheduled_at_helper'))
@@ -160,10 +177,12 @@ class CampaignForm
                                 ->icon('heroicon-o-users')
                                 ->color('gray')
                                 ->action(function (Get $get): void {
-                                    $filters = [
-                                        'operator' => $get('audience_filters.operator') ?? 'AND',
-                                        'rules'    => $get('audience_filters.rules') ?? [],
-                                    ];
+                                    $filters = $get('audience_type') === AudienceType::MANUAL->value
+                                        ? ['prospect_ids' => $get('audience_filters.prospect_ids') ?? []]
+                                        : [
+                                            'operator' => $get('audience_filters.operator') ?? 'AND',
+                                            'rules'    => $get('audience_filters.rules') ?? [],
+                                        ];
 
                                     try {
                                         $count = app(SegmentResolverService::class)->count($filters);
@@ -181,7 +200,11 @@ class CampaignForm
                                     }
                                 }),
                         ])
-                        ->visible(fn (Get $get): bool => $get('audience_type') === AudienceType::SEGMENT->value),
+                        ->visible(fn (Get $get): bool => in_array(
+                            $get('audience_type'),
+                            [AudienceType::SEGMENT->value, AudienceType::MANUAL->value],
+                            true,
+                        )),
                     ]),
 
                 Section::make(__('mailing::resource.sections.followup'))
@@ -222,6 +245,42 @@ class CampaignForm
                 Hidden::make('template_category_snapshot'),
                 Hidden::make('preference_category_snapshot'),
             ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Manual audience prospect search
+    // -------------------------------------------------------------------------
+
+    /**
+     * Subscribed prospects with at least one non-empty location email, matching the
+     * search on name or location email. Max 50. Returns [id => label].
+     *
+     * @return array<int,string>
+     */
+    public static function searchProspects(string $search): array
+    {
+        $term = '%'.addcslashes($search, '\\%_').'%';
+
+        return Prospect::query()
+            ->with('region')
+            ->whereNull('unsubscribed_at')
+            ->whereHas('locations', fn ($q) => $q->whereNotNull('email')->where('email', '!=', ''))
+            ->where(function ($q) use ($term): void {
+                $q->where('name', 'like', $term)
+                    ->orWhereHas('locations', fn ($l) => $l->where('email', 'like', $term));
+            })
+            ->orderBy('name')
+            ->limit(50)
+            ->get()
+            ->mapWithKeys(fn (Prospect $p) => [$p->id => self::prospectLabel($p)])
+            ->all();
+    }
+
+    public static function prospectLabel(Prospect $prospect): string
+    {
+        return collect([$prospect->name, $prospect->type, $prospect->federation, $prospect->region?->name])
+            ->filter(fn ($part) => filled($part))
+            ->implode(' · ');
     }
 
     // -------------------------------------------------------------------------
