@@ -60,6 +60,7 @@ Modules/Cafca/Services/CafcaSyncService.php
 ### Reglas de audiencia
 
 - **Audiencia manual** (CLA-671): los prospects elegidos en el formulario se guardan en `audience_filters` como `{"prospect_ids": [...]}`. `Campaign::resolveAudience()` los resuelve con `SegmentResolverService` pasando **solo** `prospect_ids`, así que se aplican las mismas exclusiones que a cualquier audiencia (sin baja, sin supresión) y unas `rules` sueltas nunca la amplían. Una lista vacía no resuelve a nadie.
+- El formulario rechaza cualquier valor de la selección manual que no sea el ID de un prospect existente (`CampaignForm::isValidProspectSelection()`, CLA-674): nunca se convierte con `intval()` antes de validar.
 - El buscador del selector solo ofrece prospects suscriptos con al menos un email (`CampaignForm::searchProspects()`, máx. 50).
 - **"Preview audience"** (CLA-672) abre un modal con el total y la lista de destinatarios (máx. 100, por nombre) para los tres tipos de audiencia. Sale de `SegmentResolverService::preview()` con los filtros de `CampaignForm::previewFilters()`, que deben seguir coincidiendo con `Campaign::resolveAudience()`; un segmento mal configurado muestra el error dentro del modal.
 - La vista de campaña muestra el tipo de audiencia y su **tamaño actual** (no el histórico enviado: ese es `total_count`).

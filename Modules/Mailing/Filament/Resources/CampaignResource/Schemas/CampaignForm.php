@@ -148,6 +148,12 @@ class CampaignForm
                                 ->get()
                                 ->mapWithKeys(fn (Prospect $p) => [$p->id => self::prospectLabel($p)])
                                 ->all())
+                            // CLA-674: reject anything that is not an existing prospect id before intval() runs.
+                            ->rule(fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                                if (! self::isValidProspectSelection($value)) {
+                                    $fail(__('mailing::resource.fields.manual_prospects_invalid'));
+                                }
+                            })
                             ->dehydrateStateUsing(fn (?array $state): array => array_map('intval', $state ?? []))
                             ->visible(fn (Get $get): bool => $get('audience_type') === AudienceType::MANUAL->value),
 
@@ -294,6 +300,32 @@ class CampaignForm
             ->get()
             ->mapWithKeys(fn (Prospect $p) => [$p->id => self::prospectLabel($p)])
             ->all();
+    }
+
+    /**
+     * True when every value is a positive int (or digit-only string) of an existing prospect.
+     * intval() would otherwise turn true, [2] or "2oops" into a real prospect id.
+     */
+    public static function isValidProspectSelection(mixed $value): bool
+    {
+        if (! is_array($value)) {
+            return false;
+        }
+
+        $ids = [];
+        foreach ($value as $item) {
+            if (is_int($item) && $item > 0) {
+                $ids[] = $item;
+            } elseif (is_string($item) && ctype_digit($item) && (int) $item > 0) {
+                $ids[] = (int) $item;
+            } else {
+                return false;
+            }
+        }
+
+        $ids = array_values(array_unique($ids));
+
+        return $ids === [] || Prospect::query()->whereIn('id', $ids)->count() === count($ids);
     }
 
     public static function prospectLabel(Prospect $prospect): string

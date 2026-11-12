@@ -48,6 +48,7 @@ return [
         'audience_type'            => 'Type Doelgroep',
         'manual_prospects'         => 'Ontvangers',
         'manual_prospects_helper'  => 'Zoek op clubnaam of e-mail. Alleen ingeschreven contacten met een e-mailadres worden getoond.',
+        'manual_prospects_invalid' => 'De selectie bevat een ongeldig of onbekend contact. Kies contacten uit de lijst.',
         'audience_recipients'      => 'Huidige omvang doelgroep',
         'segment_operator'         => 'Regelcombinatie',
         'segment_operator_and'     => 'Alle regels toepassen (EN)',

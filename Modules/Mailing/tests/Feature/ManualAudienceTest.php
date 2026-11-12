@@ -129,6 +129,38 @@ class ManualAudienceTest extends TestCase
         $this->assertDatabaseCount('mailing_campaigns', 0);
     }
 
+    // ---- CLA-674: malformed ids are a validation error, never coerced --------
+
+    public static function malformedSelections(): array
+    {
+        return [
+            'digits with suffix' => [fn (int $id) => [$id.'oops']],
+            'boolean true'       => [fn (int $id) => [true]],
+            'nested array'       => [fn (int $id) => [[$id]]],
+            'zero'               => [fn (int $id) => ['0']],
+            'negative'           => [fn (int $id) => [(string) -$id]],
+            'unknown prospect'   => [fn (int $id) => [(string) ($id + 1000)]],
+            'valid plus garbage' => [fn (int $id) => [(string) $id, 'x']],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('malformedSelections')]
+    public function test_malformed_manual_selection_is_rejected(\Closure $selection): void
+    {
+        $this->actAsAdmin();
+        $p = $this->prospect('Club A', 'a@example.com');
+
+        Livewire::test(CreateCampaign::class)
+            ->fillForm($this->formData([
+                'audience_type' => AudienceType::MANUAL->value,
+                'audience_filters' => ['prospect_ids' => $selection($p->id)],
+            ]))
+            ->call('create')
+            ->assertHasFormErrors(['audience_filters.prospect_ids']);
+
+        $this->assertDatabaseCount('mailing_campaigns', 0);
+    }
+
     public function test_selector_is_hidden_unless_audience_is_manual(): void
     {
         $this->actAsAdmin();
