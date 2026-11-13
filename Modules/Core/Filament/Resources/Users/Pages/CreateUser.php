@@ -52,6 +52,10 @@ class CreateUser extends CreateRecord
             ];
         }
 
+        if (($data['account_type'] ?? 'internal') === 'external') {
+            return $this->externalWorkerData($data);
+        }
+
         $employee = Employee::find($data['employee_id'] ?? null);
 
         abort_if(! $employee, 422, 'Empleado no encontrado.');
@@ -85,6 +89,51 @@ class CreateUser extends CreateRecord
             'password' => null,
             'password_set_at' => null,
             'role_ids' => $data['role_ids'] ?? [],   // preserved for handleRecordCreation()
+        ];
+    }
+
+    /**
+     * CLA-683: an internal worker who is not in Cafca. No employee record and no
+     * password: they set one with the one-time activation code (CLA-653). Corporate
+     * addresses keep the Cafca employee + Azure path, and Super Admin / Client are
+     * never granted here.
+     */
+    private function externalWorkerData(array $data): array
+    {
+        $name = trim((string) ($data['external_name'] ?? ''));
+        abort_if($name === '', 422, 'A name is required for an external worker account.');
+
+        $normalizedEmail = strtolower(trim((string) ($data['external_email'] ?? '')));
+        abort_if(! filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL), 422, 'Invalid email address.');
+
+        $domain = config('core.company_email_domain');
+        abort_if(
+            str_ends_with($normalizedEmail, '@'.$domain),
+            422, "Use the Internal employee type for @{$domain} addresses."
+        );
+        abort_if(
+            User::whereRaw('LOWER(TRIM(email)) = ?', [$normalizedEmail])->exists(),
+            422, 'A user with this email already exists.'
+        );
+
+        $roleIds = collect($data['role_ids'] ?? [])->filter()->unique()->values()->all();
+        abort_if($roleIds === [], 422, 'At least one role is required.');
+        abort_if(
+            Role::query()->whereKey($roleIds)->count() !== count($roleIds),
+            422, 'One or more selected roles do not exist.'
+        );
+        abort_if(
+            Role::query()->whereKey($roleIds)->whereIn('name', CreateUserForm::EXTERNAL_FORBIDDEN_ROLES)->exists(),
+            422, 'External worker accounts cannot have the Super Admin or Client role.'
+        );
+
+        return [
+            'employee_id' => null,
+            'name' => $name,
+            'email' => $normalizedEmail,
+            'password' => null,
+            'password_set_at' => null,
+            'role_ids' => $roleIds,
         ];
     }
 

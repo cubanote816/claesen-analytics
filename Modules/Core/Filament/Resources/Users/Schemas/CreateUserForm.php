@@ -19,6 +19,9 @@ use Spatie\Permission\Models\Role;
 
 class CreateUserForm
 {
+    /** CLA-683: roles an external worker (not in Cafca) can never receive. */
+    public const EXTERNAL_FORBIDDEN_ROLES = ['super_admin', 'client'];
+
     public static function configure(Schema $schema): Schema
     {
         $domain = config('core.company_email_domain');
@@ -31,6 +34,7 @@ class CreateUserForm
                             ->label(__('users/resource.fields.account_type'))
                             ->options([
                                 'internal' => __('users/resource.fields.internal_account'),
+                                'external' => __('users/resource.fields.external_account'),
                                 'client' => __('users/resource.fields.client_account'),
                             ])
                             ->default('internal')
@@ -69,8 +73,8 @@ class CreateUserForm
                                 $email = $state ? (Employee::find($state)?->email ?? '') : '';
                                 $set('email', $email);
                             })
-                            ->required(fn (Get $get): bool => $get('account_type') !== 'client')
-                            ->visible(fn (Get $get): bool => $get('account_type') !== 'client'),
+                            ->required(fn (Get $get): bool => $get('account_type') === 'internal')
+                            ->visible(fn (Get $get): bool => $get('account_type') === 'internal'),
 
                         TextInput::make('email')
                             ->label(__('users/resource.fields.email'))
@@ -78,7 +82,23 @@ class CreateUserForm
                             ->disabled()
                             ->dehydrated(false)
                             ->placeholder(__('users/resource.fields.email_placeholder'))
-                            ->visible(fn (Get $get): bool => $get('account_type') !== 'client'),
+                            ->visible(fn (Get $get): bool => $get('account_type') === 'internal'),
+
+                        // CLA-683: internal workers who are not in Cafca. They sign in with a
+                        // password set through the one-time activation code (CLA-653).
+                        TextInput::make('external_name')
+                            ->label(__('users/resource.fields.name'))
+                            ->required(fn (Get $get): bool => $get('account_type') === 'external')
+                            ->maxLength(255)
+                            ->visible(fn (Get $get): bool => $get('account_type') === 'external'),
+
+                        TextInput::make('external_email')
+                            ->label(__('users/resource.fields.email'))
+                            ->helperText(__('users/resource.fields.external_email_hint', ['domain' => $domain]))
+                            ->email()
+                            ->required(fn (Get $get): bool => $get('account_type') === 'external')
+                            ->maxLength(255)
+                            ->visible(fn (Get $get): bool => $get('account_type') === 'external'),
 
                         TextInput::make('client_name')
                             ->label(__('users/resource.fields.name'))
@@ -121,15 +141,27 @@ class CreateUserForm
                         // handleRecordCreation() can syncRoles() inside the DB transaction.
                         CheckboxList::make('role_ids')
                             ->label(__('users/resource.fields.roles'))
-                            ->options(fn () => Role::orderBy('sort')
-                                ->pluck('name', 'id')
-                                ->map(fn ($name) => \Illuminate\Support\Str::headline($name))
-                                ->toArray())
+                            ->options(fn (Get $get): array => self::roleOptions((string) $get('account_type')))
                             ->columns(2)
                             ->gridDirection('row')
                             ->required(fn (Get $get): bool => $get('account_type') !== 'client')
                             ->visible(fn (Get $get): bool => $get('account_type') !== 'client'),
                     ]),
             ]);
+    }
+
+    /**
+     * Role checkboxes offered for an account type: every role, except that an
+     * external worker never sees Super Admin or Client (also refused server-side).
+     *
+     * @return array<int, string> role id => headline name
+     */
+    public static function roleOptions(string $accountType): array
+    {
+        return Role::orderBy('sort')
+            ->when($accountType === 'external', fn ($query) => $query->whereNotIn('name', self::EXTERNAL_FORBIDDEN_ROLES))
+            ->pluck('name', 'id')
+            ->map(fn ($name) => \Illuminate\Support\Str::headline($name))
+            ->toArray();
     }
 }
