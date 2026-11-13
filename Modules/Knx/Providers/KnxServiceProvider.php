@@ -8,6 +8,8 @@ use Illuminate\Support\ServiceProvider;
 use Modules\Knx\Console\Commands\KnxImportWorklistCommand;
 use Modules\Knx\Console\Commands\KnxNotificationDigestCommand;
 use Modules\Knx\Http\Middleware\AssertDocumentedSuccessCode;
+use Modules\Knx\Services\PlanAnalysis\OpenAiApiKeyCredentials;
+use Modules\Knx\Services\PlanAnalysis\OpenAiCredentialSource;
 use Nwidart\Modules\Traits\PathNamespace;
 
 /**
@@ -57,6 +59,14 @@ class KnxServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->register(RouteServiceProvider::class);
+
+        // Plan analysis (KNX-48, plano IA): the OpenAI adapter takes its bearer token from
+        // a credential source; today only the API key. Another source (a "Sign in with
+        // ChatGPT" plan token) would be bound here without touching the adapter.
+        $this->app->bind(
+            OpenAiCredentialSource::class,
+            OpenAiApiKeyCredentials::class,
+        );
 
         // `knx:import-worklist`: loads a governed KNX worklist into a project's boards
         // (KNX-3). Registered here because the module had no commands before.

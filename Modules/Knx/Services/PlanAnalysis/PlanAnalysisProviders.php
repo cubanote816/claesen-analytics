@@ -31,6 +31,18 @@ class PlanAnalysisProviders
         return (bool) config("knx.plan_analysis.providers.{$id}.external", true);
     }
 
+    /**
+     * The provider implementation for a configured id.
+     */
+    public function provider(string $id): PlanAnalysisProvider
+    {
+        return match ($id) {
+            SyntheticPlanAnalysisProvider::ID => app(SyntheticPlanAnalysisProvider::class),
+            OpenAiPlanAnalysisProvider::ID => app(OpenAiPlanAnalysisProvider::class),
+            default => throw new PlanAnalysisFailed('unavailable', "Unknown plan-analysis provider `{$id}`."),
+        };
+    }
+
     public function isAvailable(string $id): bool
     {
         if (! $this->exists($id) || ! (bool) config("knx.plan_analysis.providers.{$id}.enabled", false)) {

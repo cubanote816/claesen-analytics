@@ -1,0 +1,42 @@
+{
+  "description": "Synthetic example for Kantoor's e2e/fixtures/plan-clean.pdf, page 2: the synthetic house drawn without layers, so every group is a paint style (scripts/make-clean-plan-fixture.py maps each former layer to its own style).",
+  "match": {
+    "groupIds": [
+      "style:f:#000000",
+      "style:s:#0066cc:0.5",
+      "style:s:#cc4c00:0.6",
+      "style:s:#663399:0.4",
+      "style:s:#008080:0.7",
+      "style:s:#990033:0.35"
+    ]
+  },
+  "groupRoles": [
+    { "groupId": "style:f:#000000", "role": "wall", "confidence": 0.95, "reason": "Solid black fills tracing the building outline and the partitions." },
+    { "groupId": "style:s:#0066cc:0.5", "role": "window", "confidence": 0.85, "reason": "Thin double lines inside the outer walls." },
+    { "groupId": "style:s:#cc4c00:0.6", "role": "door", "confidence": 0.9, "reason": "Quarter arcs with a leaf at wall openings." },
+    { "groupId": "style:s:#663399:0.4", "role": "stair", "confidence": 0.85, "reason": "Parallel treads in the hall." },
+    { "groupId": "style:s:#008080:0.7", "role": "lift", "confidence": 0.8, "reason": "Square shaft with a cross." },
+    { "groupId": "style:s:#990033:0.35", "role": "void", "confidence": 0.75, "reason": "Rectangles with a cross inside rooms: floor openings." },
+    { "groupId": "style:s:#80591a:0.3", "role": "hidden", "confidence": 0.8, "reason": "Furniture outlines." },
+    { "groupId": "style:s:#3399e6:0.45", "role": "hidden", "confidence": 0.8, "reason": "Sanitary fixtures." },
+    { "groupId": "style:fs:#ff0000:#ff0000:0.25", "role": "hidden", "confidence": 0.9, "reason": "Electrical symbols." },
+    { "groupId": "style:s:#ff0000:0.25", "role": "hidden", "confidence": 0.9, "reason": "Electrical circuits." },
+    { "groupId": "style:s:#009900:0.2", "role": "hidden", "confidence": 0.85, "reason": "Dimension lines." },
+    { "groupId": "style:s:#b200b2:0.15", "role": "hidden", "confidence": 0.8, "reason": "Grid lines." },
+    { "groupId": "style:s:#b200b2:0.4", "role": "hidden", "confidence": 0.7, "reason": "Grid bubbles." },
+    { "groupId": "style:s:#4c4c4c:0.9", "role": "hidden", "confidence": 0.85, "reason": "Title block frame." },
+    { "groupId": "style:s:#e69900:0.55", "role": "hidden", "confidence": 0.7, "reason": "Annotation leaders." }
+  ],
+  "rooms": [
+    { "text": "Woonkamer", "confidence": 0.9, "reason": "Large L-shaped space named by its label." },
+    { "text": "WC", "confidence": 0.9, "reason": "Small closed space named by its label." },
+    { "text": "Berging", "confidence": 0.9, "reason": "Small closed space named by its label." },
+    { "text": "Hal", "confidence": 0.85, "reason": "Hall with the stair, named by its label." },
+    { "text": "Slaapkamer", "confidence": 0.9, "reason": "Closed space named by its label." },
+    { "text": "Badkamer", "confidence": 0.9, "reason": "Closed space named by its label." },
+    { "text": "Technische ruimte", "confidence": 0.85, "reason": "Small closed space named by its label." }
+  ],
+  "uncertain": [
+    { "text": "Carport", "reason": "Named space that is open to the outside: no closed boundary in the drawing." }
+  ]
+}
