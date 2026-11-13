@@ -23,6 +23,18 @@ return [
         // con dos empresas no puede ser el nombre de las dos.
         'salutation' => 'Met vriendelijke groeten,',
     ],
+    // CLA-685: welkomstmail van een External worker; de 72 komt uit
+    // PasswordResetService::WELCOME_CODE_TTL_MINUTES.
+    'account_activation' => [
+        'subject' => 'Maak je wachtwoord aan — :company',
+        'greeting' => 'Hallo :name,',
+        'line_intro' => 'Er is een account voor je aangemaakt in de :company-backoffice. Gebruik de knop hieronder om je wachtwoord te kiezen.',
+        'action' => 'Wachtwoord aanmaken',
+        'line_validity' => 'Deze link is :hours uur geldig en kan maar één keer worden gebruikt.',
+        'line_network' => 'De backoffice is alleen bereikbaar vanaf het privénetwerk: verbind via VPN of op kantoor.',
+        'line_expired' => 'Is de link verlopen? Vraag dan een beheerder om de activatiemail opnieuw te versturen.',
+        'salutation' => 'Met vriendelijke groeten,',
+    ],
     'sign_in_code' => [
         'greeting' => 'Hallo :name,',
         'salutation' => 'Met vriendelijke groeten,',

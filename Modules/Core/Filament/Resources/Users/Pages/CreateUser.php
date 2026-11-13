@@ -15,6 +15,7 @@ use Modules\Core\Filament\Resources\Users\Schemas\CreateUserForm;
 use Modules\Core\Filament\Resources\Users\UserResource;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
+use Modules\Core\Services\PasswordResetService;
 use Modules\FieldOps\Models\FoClient;
 use Spatie\Permission\Models\Role;
 
@@ -147,6 +148,22 @@ class CreateUser extends CreateRecord
         if ($condition) {
             throw ValidationException::withMessages(['data.'.$field => $message]);
         }
+    }
+
+    /**
+     * CLA-685: only an External worker is emailed their activation link (Internal
+     * employees sign in with Microsoft, Client contacts have their own invitation).
+     * Deferred to the commit so a creation that rolls back never emails anyone.
+     */
+    protected function afterCreate(): void
+    {
+        $user = $this->getRecord();
+
+        if (! $user instanceof User || ($this->data['account_type'] ?? 'internal') !== 'external') {
+            return;
+        }
+
+        DB::afterCommit(fn () => app(PasswordResetService::class)->sendActivationEmail($user));
     }
 
     protected function handleRecordCreation(array $data): Model

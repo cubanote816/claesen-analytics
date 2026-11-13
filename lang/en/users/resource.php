@@ -47,6 +47,10 @@ return [
         'revoke_sessions' => 'Revoke sessions',
         'revoke_sessions_confirm_title' => 'Revoke all active sessions?',
         'revoke_sessions_confirm_body' => 'This immediately logs this user out of every device. They will need to sign in again.',
+        'resend_activation' => 'Resend activation email',
+        'resend_activation_confirm_title' => 'Resend the activation email?',
+        'resend_activation_confirm_body' => 'A new link valid for 72 hours is emailed to this user. The previous link stops working.',
+        'resend_activation_done' => 'Activation email sent.',
         'revoke_sessions_done' => 'All active sessions for this user were revoked.',
     ],
 ];
