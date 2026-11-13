@@ -272,7 +272,9 @@ class GraphTransientRetryTest extends TestCase
         $campaign = $this->runCampaign();
 
         $this->assertSame(1, $campaign->failed_count);
-        $this->assertSame(__('prospects::resource.notifications.error_mailer'), CampaignMessage::first()->error_message);
+        // The fallback is translated in the prospect's language, as the send loop does.
+        $locale = Prospect::first()->language ?? 'nl';
+        $this->assertSame(__('prospects::resource.notifications.error_mailer', [], $locale), CampaignMessage::first()->error_message);
         Sleep::assertNeverSlept();
     }
 
