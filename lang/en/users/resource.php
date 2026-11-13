@@ -13,6 +13,8 @@ return [
         'account_type' => 'Account type',
         'internal_account' => 'Internal employee',
         'client_account' => 'Client contact',
+        'external_account' => 'External worker (not in Cafca)',
+        'external_email_hint' => 'For internal workers without a Cafca record. Addresses @:domain must use Internal employee. They set their password with a one-time activation code (php artisan core:issue-activation-code).',
         'clients' => 'Authorized clients',
         'clients_hint' => 'Client contacts can only access FieldOps data belonging to these clients.',
         'client_pivot_is_active' => 'Active for this client',

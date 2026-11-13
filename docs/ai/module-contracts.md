@@ -22,6 +22,7 @@
 ## Módulo Core
 
 - **Código de activación (CLA-653):** una cuenta local creada desde Users queda con `password = null` y solo puede ponerse su primera contraseña con un código de un solo uso. `PasswordResetService::issueActivationCode()` es el **único** lugar que genera el código (64 caracteres, guarda solo el hash, TTL `CODE_TTL_MINUTES`); lo usan `sendResetLink()` (olvidé mi contraseña, solo cuentas con setup completo) y `core:issue-activation-code {email} [--panel=admin|bertels]` (cuentas activas, locales —sin `microsoft_id`— y **sin** setup completo). El comando imprime el código y el enlace al panel elegido: la salida es una credencial. No crea cuentas.
+- **Tipos de cuenta en Users > Create (CLA-683):** *Internal employee* = empleado activo de Cafca con correo `@claesen-verlichting.be` (entra por Azure); *External worker* = trabajador interno **que no está en Cafca**: nombre y correo libres, `employee_id = null`, organización Claesen, sin contraseña hasta usar el código de activación; **nunca** un correo `@claesen-verlichting.be` ni los roles `super_admin` / `client` (el formulario no los ofrece y `CreateUser::externalWorkerData()` los rechaza con 422); *Client contact* = rol `client` y clientes de FieldOps.
 
 ---
 

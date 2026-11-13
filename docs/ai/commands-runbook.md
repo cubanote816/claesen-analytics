@@ -195,7 +195,7 @@ php artisan core:issue-activation-code persona@electrobertels.be --panel=bertels
 - Rechaza, con salida distinta de cero: dirección desconocida, dirección que coincide con **más de una** cuenta (mayúsculas/espacios), cuenta desactivada, cuenta de Microsoft (esas autentican por Entra y no tienen contraseña local) y cuenta que **ya** completó el setup — para esa última está el reset del login.
 - El código se **imprime**, no se envía por correo: la cuenta recién creada puede no tener buzón todavía, y quien corre el comando ya tiene acceso al servidor.
 - **Tratar la salida como credencial:** es de un solo uso y dura `PasswordResetService::CODE_TTL_MINUTES` (60 min), pero hasta usarse alcanza para fijar la contraseña de esa cuenta. Entregarlo por un canal privado.
-- No reemplaza el alta: las cuentas internas se siguen creando desde un empleado real y activo con correo corporativo.
+- No reemplaza el alta: las cuentas se crean en Users (*Internal employee* desde Cafca, o *External worker* para quien no está en Cafca, CLA-683); este comando solo les da el código para su primera contraseña.
 
 ---
 

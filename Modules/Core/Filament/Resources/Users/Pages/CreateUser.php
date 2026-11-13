@@ -9,6 +9,7 @@ use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Modules\Cafca\Models\Employee;
 use Modules\Core\Filament\Resources\Users\Schemas\CreateUserForm;
 use Modules\Core\Filament\Resources\Users\UserResource;
@@ -52,6 +53,10 @@ class CreateUser extends CreateRecord
             ];
         }
 
+        if (($data['account_type'] ?? 'internal') === 'external') {
+            return $this->externalWorkerData($data);
+        }
+
         $employee = Employee::find($data['employee_id'] ?? null);
 
         abort_if(! $employee, 422, 'Empleado no encontrado.');
@@ -86,6 +91,62 @@ class CreateUser extends CreateRecord
             'password_set_at' => null,
             'role_ids' => $data['role_ids'] ?? [],   // preserved for handleRecordCreation()
         ];
+    }
+
+    /**
+     * CLA-683: an internal worker who is not in Cafca. No employee record and no
+     * password: they set one with the one-time activation code (CLA-653). Corporate
+     * addresses keep the Cafca employee + Azure path, and Super Admin / Client are
+     * never granted here.
+     */
+    private function externalWorkerData(array $data): array
+    {
+        $name = trim((string) ($data['external_name'] ?? ''));
+        $this->refuseIf($name === '', 'external_name', 'A name is required for an external worker account.');
+
+        $normalizedEmail = strtolower(trim((string) ($data['external_email'] ?? '')));
+        $this->refuseIf(! filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL), 'external_email', 'Invalid email address.');
+
+        $domain = config('core.company_email_domain');
+        $this->refuseIf(
+            str_ends_with($normalizedEmail, '@'.$domain),
+            'external_email', "Use the Internal employee type for @{$domain} addresses."
+        );
+        $this->refuseIf(
+            User::whereRaw('LOWER(TRIM(email)) = ?', [$normalizedEmail])->exists(),
+            'external_email', 'A user with this email already exists.'
+        );
+
+        $roleIds = collect($data['role_ids'] ?? [])->filter()->unique()->values()->all();
+        $this->refuseIf($roleIds === [], 'role_ids', 'At least one role is required.');
+        $this->refuseIf(
+            Role::query()->whereKey($roleIds)->count() !== count($roleIds),
+            'role_ids', 'One or more selected roles do not exist.'
+        );
+        $this->refuseIf(
+            Role::query()->whereKey($roleIds)->whereIn('name', CreateUserForm::EXTERNAL_FORBIDDEN_ROLES)->exists(),
+            'role_ids', 'External worker accounts cannot have the Super Admin or Client role.'
+        );
+
+        return [
+            'employee_id' => null,
+            'name' => $name,
+            'email' => $normalizedEmail,
+            'password' => null,
+            'password_set_at' => null,
+            'role_ids' => $roleIds,
+        ];
+    }
+
+    /**
+     * A refusal on the external worker path is shown under its form field (the
+     * email is typed by hand, so it is the expected way to fail), not as an error page.
+     */
+    private function refuseIf(bool $condition, string $field, string $message): void
+    {
+        if ($condition) {
+            throw ValidationException::withMessages(['data.'.$field => $message]);
+        }
     }
 
     protected function handleRecordCreation(array $data): Model

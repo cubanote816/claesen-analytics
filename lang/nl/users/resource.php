@@ -13,6 +13,8 @@ return [
         'account_type' => 'Accounttype',
         'internal_account' => 'Interne medewerker',
         'client_account' => 'Klantcontact',
+        'external_account' => 'Externe medewerker (niet in Cafca)',
+        'external_email_hint' => 'Voor interne medewerkers zonder Cafca-fiche. Adressen @:domain gebruiken Interne medewerker. Het wachtwoord wordt ingesteld met een eenmalige activatiecode (php artisan core:issue-activation-code).',
         'clients' => 'Toegestane klanten',
         'clients_hint' => 'Klantcontacten hebben alleen toegang tot FieldOps-gegevens van deze klanten.',
         'client_pivot_is_active' => 'Actief voor deze klant',
