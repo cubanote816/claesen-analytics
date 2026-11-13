@@ -1209,6 +1209,110 @@ paths:
               example: { provider: openai, external: true, available: false, authorized: false, grantedAt: null, grantedBy: null }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/plans/{documentId}/analyses:
+    get:
+      tags: [plans]
+      summary: Última propuesta de IA de una página del plano (KNX-48, plano IA)
+      description: >-
+        Propuesta validada, nunca un modelo confirmado. Sin análisis es un `200` con `analysis: null`.
+        `revision` es la del documento al analizar; `documentRevision`, la actual.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                documentId: "89"
+                documentRevision: "Rev. H"
+                analysis:
+                  id: "12"
+                  page: 2
+                  revision: "Rev. H"
+                  provider: synthetic
+                  model: synthetic-examples
+                  schemaVersion: plan-analysis/1
+                  proposal:
+                    groupRoles: [{ groupId: "style:f:#000000", role: wall, confidence: 0.95, reason: "Solid black fills." }]
+                    rooms: [{ name: Woonkamer, textId: t0, x: 0.19, y: 0.34, confidence: 0.9, reason: "Named by its label." }]
+                    uncertain: [{ x: 0.8, y: 0.7, reason: "Open to the outside." }]
+                    dropped: { groupRoles: 0, rooms: 0, uncertain: 0, names: 0 }
+                  usage: { inputTokens: null, outputTokens: null }
+                  createdAt: "2026-11-13T09:00:00+00:00"
+                  createdBy: "Lien Smet"
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [plans]
+      summary: Pide a UN proveedor autorizado una propuesta para una página
+      description: >-
+        Orden: documento del proyecto (`404`), entrada válida (`422`), autorización del documento para
+        ese proveedor (`403` `plan_analysis_not_authorized`), proveedor disponible en este entorno (`409`
+        `plan_analysis_unavailable`), presupuesto (`429` `plan_analysis_budget_exhausted`), imagen dentro
+        del límite (`413`); un fallo del proveedor es `502` (`plan_analysis_refused`, `_incomplete`,
+        `_invalid_output`, `_provider_error`). Nunca se usa otro proveedor como alternativa. La respuesta
+        se valida contra lo enviado: solo grupos enviados y roles del enum, puntos dentro de la página, y
+        un nombre solo si `textId` es un texto enviado (el nombre ES ese texto); lo descartado se cuenta en
+        `dropped`. No se guardan la imagen ni el resumen.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [page, provider, image, pageWidthPt, pageHeightPt, groups, texts]
+              properties:
+                page: { type: integer, minimum: 1 }
+                provider: { type: string, example: synthetic }
+                image: { type: string, description: "PNG de la página en base64" }
+                pageWidthPt: { type: number, exclusiveMinimum: 0 }
+                pageHeightPt: { type: number, exclusiveMinimum: 0 }
+                groups:
+                  type: array
+                  maxItems: 2000
+                  items:
+                    type: object
+                    required: [id, kind, name, paths, strokeWidth, strokeColor, closedPct, curvedPct]
+                    properties:
+                      id: { type: string, maxLength: 255 }
+                      kind: { type: string, enum: [layer, style] }
+                      name: { type: string, nullable: true }
+                      paths: { type: integer, minimum: 0 }
+                      strokeWidth: { type: number, nullable: true }
+                      strokeColor: { type: string, nullable: true }
+                      closedPct: { type: integer, minimum: 0, maximum: 100 }
+                      curvedPct: { type: integer, minimum: 0, maximum: 100 }
+                texts:
+                  type: array
+                  maxItems: 5000
+                  items:
+                    type: object
+                    required: [id, text, x, y]
+                    properties:
+                      id: { type: string, maxLength: 64 }
+                      text: { type: string, maxLength: 500 }
+                      x: { type: number, minimum: 0, maximum: 1 }
+                      y: { type: number, minimum: 0, maximum: 1 }
+      responses:
+        "201":
+          description: La propuesta guardada, misma forma que el GET
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { description: "Documento no autorizado para ese proveedor (`plan_analysis_not_authorized`)" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: "Proveedor no disponible en este entorno (`plan_analysis_unavailable`)" }
+        "413": { description: "Imagen sobre el límite (`plan_analysis_image_too_large`)" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { description: "Presupuesto agotado (`plan_analysis_budget_exhausted`)" }
+        "502": { description: "El proveedor falló o respondió algo inutilizable" }
   /exports/{id}/download:
     get:
       tags: [reports]

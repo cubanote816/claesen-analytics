@@ -25,6 +25,7 @@ use Modules\Knx\Http\Controllers\IntentController;
 use Modules\Knx\Http\Controllers\NotificationPreferenceController;
 use Modules\Knx\Http\Controllers\OfficeIssueController;
 use Modules\Knx\Http\Controllers\PlanAiAuthorizationController;
+use Modules\Knx\Http\Controllers\PlanAnalysisController;
 use Modules\Knx\Http\Controllers\PlanCleanProfileController;
 use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
@@ -325,6 +326,14 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->where('provider', '[a-z0-9_-]+')
                 ->name('projects.plans.ai-authorizations.destroy');
+            // KNX-48 (plano IA) — the AI proposal of a page: POST runs ONE authorized
+            // provider and stores the validated proposal; GET reads the latest one.
+            Route::get('projects/{code}/plans/{documentId}/analyses', [PlanAnalysisController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.analyses.show');
+            Route::post('projects/{code}/plans/{documentId}/analyses', [PlanAnalysisController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.analyses.store');
 
             Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
             Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
