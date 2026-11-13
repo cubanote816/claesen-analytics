@@ -8,6 +8,7 @@
 
 namespace Modules\Mailing\Mail\Transport;
 
+use Modules\Mailing\Exceptions\MailDeliveryException;
 use Modules\Mailing\Services\MicrosoftGraphService;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
@@ -36,6 +37,11 @@ class MicrosoftGraphTransport extends AbstractTransport
 
         if (!$this->graphService->sendMail($from, $payload)) {
             Log::error("Microsoft Graph Transport: Failed to send email via Graph API.");
+            // CLA-681: carry the structured Graph reason (status + code) up to the caller.
+            $reason = $this->graphService->lastFailureReason();
+            if ($reason !== null) {
+                throw new MailDeliveryException($reason);
+            }
             throw new \Exception("Failed to send email via Microsoft Graph API.");
         }
     }

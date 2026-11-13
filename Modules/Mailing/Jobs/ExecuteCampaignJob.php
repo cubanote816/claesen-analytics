@@ -20,6 +20,7 @@ use Modules\Mailing\Models\CampaignMessage;
 use Modules\Mailing\Models\ContactPreference;
 use Modules\Mailing\Models\EmailTemplate;
 use Modules\Mailing\Models\TrackedLink;
+use Modules\Mailing\Services\MicrosoftGraphService;
 use Modules\Mailing\Services\SuppressionService;
 use Modules\Mailing\Support\CampaignFinishedNotifier;
 use Modules\Prospects\Models\Prospect;
@@ -44,6 +45,9 @@ class ExecuteCampaignJob implements ShouldQueue
 
     /** Identifies this run for the claim on mailing_campaigns.run_owner; stable across queue retries. */
     public ?string $runId = null;
+
+    /** CLA-681: one Graph retry window for the whole run when no run budget applies (existing / A/B runs). */
+    private ?float $retryDeadline = null;
 
     /** Worker locale before the send loop switches to each prospect's language; used for the finish notice. */
     private ?string $notificationLocale = null;
@@ -92,6 +96,7 @@ class ExecuteCampaignJob implements ShouldQueue
     {
         // The time budget is measured from here, before the audience is loaded.
         $startedAt      = microtime(true);
+        $this->retryDeadline = $startedAt + (float) config('mailing.graph_retry_window_seconds', 20);
         $this->normalizeLegacyPayload();
         $originalLocale = App::getLocale();
         $this->notificationLocale = $originalLocale;
@@ -708,6 +713,9 @@ class ExecuteCampaignJob implements ShouldQueue
                         'ab_variant'    => $abVariant,
                         'is_commercial' => $isCommercial,
                     ]);
+                    // CLA-681: Graph transient retries must fit the run budget, or the run-wide
+                    // retry window, so retries across many messages cannot outlive the job timeout.
+                    MicrosoftGraphService::setSendDeadline($deadline ?? $this->retryDeadline);
                     $isSuccess = $mailer->sendCampaign(
                         $prospect, [$recipientEmail], $parsedSubject, $trackedBody,
                         $unsubscribeUrl, $trackingToken, $isCommercial
@@ -720,6 +728,8 @@ class ExecuteCampaignJob implements ShouldQueue
                         'prospect_id' => $prospect->id,
                         'campaign_id' => $campaign->id,
                     ]);
+                } finally {
+                    MicrosoftGraphService::setSendDeadline(null);
                 }
 
                 // Message row and counter move together so counters always equal the rows.
