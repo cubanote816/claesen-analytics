@@ -65,6 +65,7 @@ Modules/Cafca/Services/CafcaSyncService.php
 - El buscador del selector solo ofrece prospects suscriptos con al menos un email (`CampaignForm::searchProspects()`, máx. 50).
 - **"Preview audience"** (CLA-672) abre un modal con el total y la lista de destinatarios (máx. 100, por nombre) para los tres tipos de audiencia. Sale de `SegmentResolverService::preview()` con los filtros de `CampaignForm::previewFilters()`, que deben seguir coincidiendo con `Campaign::resolveAudience()`; un segmento mal configurado muestra el error dentro del modal.
 - La vista de campaña muestra el tipo de audiencia y su **tamaño actual** (no el histórico enviado: ese es `total_count`).
+- Las campañas inline ("Start Mailing Campaign" inmediato de Prospects) se guardan como audiencia manual con los IDs de prospects despachados (CLA-682); las anteriores conservan `all_subscribed` en la BD (sin migrar), así que su vista muestra toda la base como «tamaño actual de audiencia» — solo es visualización.
 
 ### Aviso de fin de envío (CLA-677)
 
