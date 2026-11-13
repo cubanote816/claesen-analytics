@@ -124,6 +124,51 @@ return [
     */
     'office_mailbox' => env('KNX_OFFICE_MAILBOX', 'kantoor@electrobertels.be'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Plan analysis by an AI provider (KNX-48, plano IA)
+    |--------------------------------------------------------------------------
+    |
+    | A provider PROPOSES group roles and spaces for one plan page; the geometry is
+    | always rebuilt from the PDF's own vectors in Kantoor. Nothing is ever sent unless
+    | a person authorized that document for that provider (knx_plan_ai_authorizations).
+    |
+    | - `synthetic`: answers from synthetic examples, never leaves the server, and only
+    |   runs in the local and testing environments.
+    | - `openai`: Responses API adapter. Switched OFF and without a model by default;
+    |   enabling it needs the activation checklist (credentials and models, retention
+    |   terms, budget) done first. The credential is an API key read here; a future
+    |   "Sign in with ChatGPT" plan token would be another credential source.
+    |
+    | `budget` is enforced by the backend for EXTERNAL providers: calls per day (0 = none
+    | allowed), output tokens per call, retries and the request timeout.
+    |
+    */
+    'plan_analysis' => [
+        'schema_version' => 'plan-analysis/1',
+        'providers' => [
+            'synthetic' => [
+                'external' => false,
+                'enabled' => (bool) env('KNX_PLAN_ANALYSIS_SYNTHETIC', true),
+            ],
+            'openai' => [
+                'external' => true,
+                'enabled' => (bool) env('KNX_PLAN_ANALYSIS_OPENAI_ENABLED', false),
+                'model' => env('KNX_PLAN_ANALYSIS_OPENAI_MODEL'),
+                'base_url' => env('KNX_PLAN_ANALYSIS_OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+                'api_key' => env('KNX_PLAN_ANALYSIS_OPENAI_API_KEY'),
+                'image_detail' => env('KNX_PLAN_ANALYSIS_OPENAI_IMAGE_DETAIL', 'high'),
+            ],
+        ],
+        'budget' => [
+            'max_calls_per_day' => (int) env('KNX_PLAN_ANALYSIS_MAX_CALLS_PER_DAY', 0),
+            'max_output_tokens' => (int) env('KNX_PLAN_ANALYSIS_MAX_OUTPUT_TOKENS', 4000),
+            'max_retries' => (int) env('KNX_PLAN_ANALYSIS_MAX_RETRIES', 0),
+            'timeout_seconds' => (int) env('KNX_PLAN_ANALYSIS_TIMEOUT_SECONDS', 60),
+            'max_image_bytes' => (int) env('KNX_PLAN_ANALYSIS_MAX_IMAGE_BYTES', 8 * 1024 * 1024),
+        ],
+    ],
+
     'zone_check_keys' => [
         'installed',
         'power',

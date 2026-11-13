@@ -1152,6 +1152,63 @@ paths:
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/plans/{documentId}/ai-authorizations:
+    get:
+      tags: [plans]
+      summary: Autorización por proveedor para enviar este plano a una IA (KNX-48, plano IA)
+      description: >-
+        Una entrada por proveedor configurado. Sin autorización el documento NUNCA se envía a ese
+        proveedor (`authorized: false` por defecto). `external` indica si el proveedor está fuera del
+        servidor; `available`, si puede correr en este entorno (el adaptador `openai` viene apagado).
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                documentId: "89"
+                providers:
+                  - { provider: synthetic, external: false, available: true, authorized: false, grantedAt: null, grantedBy: null }
+                  - { provider: openai, external: true, available: false, authorized: true, grantedAt: "2026-11-13T09:00:00+00:00", grantedBy: "Lien Smet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/plans/{documentId}/ai-authorizations/{provider}:
+    put:
+      tags: [plans]
+      summary: Autoriza enviar este documento a un proveedor (idempotente)
+      description: >-
+        Cubre un documento (una revisión) y un proveedor; una revisión nueva empieza sin autorización.
+        Un proveedor desconocido es `404`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+        - { name: provider, in: path, required: true, schema: { type: string, example: openai } }
+      responses:
+        "200":
+          description: La entrada resultante, misma forma que un elemento de `providers`
+          content:
+            application/json:
+              example: { provider: openai, external: true, available: false, authorized: true, grantedAt: "2026-11-13T09:00:00+00:00", grantedBy: "Lien Smet" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [plans]
+      summary: Revoca la autorización (idempotente; efecto inmediato)
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+        - { name: provider, in: path, required: true, schema: { type: string, example: openai } }
+      responses:
+        "200":
+          description: La entrada resultante, con `authorized` en `false`
+          content:
+            application/json:
+              example: { provider: openai, external: true, available: false, authorized: false, grantedAt: null, grantedBy: null }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /exports/{id}/download:
     get:
       tags: [reports]
