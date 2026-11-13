@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\Http;
  * URL), the answer is constrained with Structured Outputs (`text.format` json_schema,
  * `strict: true`), and `store: false` keeps OpenAI from storing the response as
  * application state. Refusals, incomplete answers and HTTP errors become
- * PlanAnalysisFailed; nothing is retried beyond the configured budget.
+ * PlanAnalysisFailed; nothing is retried beyond the configured budget, and every attempt
+ * first checks the document's authorization.
  */
 class OpenAiPlanAnalysisProvider implements PlanAnalysisProvider
 {
@@ -48,7 +49,7 @@ TXT;
         return self::ID;
     }
 
-    public function analyze(PlanAnalysisInput $input): PlanAnalysisResult
+    public function analyze(PlanAnalysisInput $input, callable $maySend): PlanAnalysisResult
     {
         $token = $this->credentials->bearerToken();
         if (! $this->providers->isAvailable(self::ID) || $token === null) {
@@ -58,10 +59,8 @@ TXT;
             throw new PlanAnalysisFailed('image_too_large');
         }
 
-        $this->budget->reserve(self::ID);
-
         $model = (string) config('knx.plan_analysis.providers.openai.model');
-        $response = $this->send($token, $this->body($model, $input));
+        $response = $this->send($token, $this->body($model, $input), $maySend);
 
         return new PlanAnalysisResult(
             provider: self::ID,
@@ -114,25 +113,33 @@ TXT;
     }
 
     /**
+     * Every attempt is a separate request: before EACH one the document must still be
+     * authorized and a call of today's budget is reserved. Only HTTP 429 and 5xx are
+     * retried; a connection error (a timeout may hide a request OpenAI already processed
+     * and billed) and any other status fail at once.
+     *
      * @param  array<string, mixed>  $body
+     * @param  callable(): bool  $maySend
      * @return array<string, mixed>
      */
-    private function send(string $token, array $body): array
+    private function send(string $token, array $body, callable $maySend): array
     {
         $url = rtrim((string) config('knx.plan_analysis.providers.openai.base_url'), '/').'/responses';
         $attempts = 1 + $this->budget->maxRetries();
 
         for ($attempt = 1; ; $attempt++) {
+            if (! $maySend()) {
+                throw new PlanAnalysisFailed('not_authorized', 'This document is no longer authorized for this provider.');
+            }
+            $this->budget->reserve(self::ID);
+
             try {
                 /** @var Response $response */
                 $response = Http::withToken($token)
                     ->acceptJson()
                     ->timeout($this->budget->timeoutSeconds())
                     ->post($url, $body);
-            } catch (ConnectionException $e) {
-                if ($attempt < $attempts) {
-                    continue;
-                }
+            } catch (ConnectionException) {
                 throw new PlanAnalysisFailed('provider_error', 'OpenAI could not be reached.');
             }
 

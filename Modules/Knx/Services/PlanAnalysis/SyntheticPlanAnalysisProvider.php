@@ -25,10 +25,13 @@ class SyntheticPlanAnalysisProvider implements PlanAnalysisProvider
         return self::ID;
     }
 
-    public function analyze(PlanAnalysisInput $input): PlanAnalysisResult
+    public function analyze(PlanAnalysisInput $input, callable $maySend): PlanAnalysisResult
     {
         if (! $this->providers->isAvailable(self::ID)) {
             throw new PlanAnalysisFailed('unavailable', 'The synthetic plan-analysis provider only runs in local and testing.');
+        }
+        if (! $maySend()) {
+            throw new PlanAnalysisFailed('not_authorized', 'This document is not authorized for this provider.');
         }
 
         $example = $this->exampleFor($input);

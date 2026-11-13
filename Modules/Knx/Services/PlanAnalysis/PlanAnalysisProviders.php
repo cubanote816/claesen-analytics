@@ -52,8 +52,10 @@ class PlanAnalysisProviders
         return match ($id) {
             // Synthetic examples are a development aid: never in staging or production.
             'synthetic' => app()->environment(['local', 'testing']),
+            // Ready when a model is chosen and the bound credential source has a token
+            // (today the API key; another source needs no key).
             'openai' => filled(config('knx.plan_analysis.providers.openai.model'))
-                && filled(config('knx.plan_analysis.providers.openai.api_key')),
+                && app(OpenAiCredentialSource::class)->bearerToken() !== null,
             default => false,
         };
     }

@@ -224,6 +224,23 @@ final class KnxPlanAnalysisTest extends TestCase
         $this->assertSame(0, KnxPlanAnalysis::query()->count());
     }
 
+    public function test_a_failing_provider_is_a_502_stores_nothing_and_falls_back_to_nothing(): void
+    {
+        $document = $this->document();
+        $this->enableOpenAi();
+        $this->putJson("{$this->base($document)}/ai-authorizations/openai")->assertOk();
+        // The synthetic provider is authorized too: it must NOT be used as a fallback.
+        $this->putJson("{$this->base($document)}/ai-authorizations/synthetic")->assertOk();
+        Http::fake(['https://openai.test/v1/responses' => Http::response(['error' => 'boom'], 500)]);
+
+        $this->postJson("{$this->base($document)}/analyses", $this->body('openai'))
+            ->assertStatus(502)
+            ->assertJsonPath('code', 'plan_analysis_provider_error');
+
+        Http::assertSentCount(1);
+        $this->assertSame(0, KnxPlanAnalysis::query()->count());
+    }
+
     public function test_bad_input_is_a_422(): void
     {
         $document = $this->document();

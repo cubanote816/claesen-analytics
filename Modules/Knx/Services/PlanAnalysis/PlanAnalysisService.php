@@ -41,7 +41,10 @@ class PlanAnalysisService
             throw new PlanAnalysisFailed('unavailable', 'This provider is not available in this environment.');
         }
 
-        $result = $this->providers->provider($provider)->analyze($input);
+        $result = $this->providers->provider($provider)->analyze(
+            $input,
+            fn (): bool => $this->isAuthorized($document, $provider),
+        );
         $proposal = $this->validator->validate($input, $result->proposal);
 
         // Read back what was stored, so the POST answer and a later GET are identical

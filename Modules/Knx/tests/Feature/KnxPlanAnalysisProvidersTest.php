@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Tests\Feature;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -12,6 +13,7 @@ use Modules\Knx\Services\PlanAnalysis\OpenAiCredentialSource;
 use Modules\Knx\Services\PlanAnalysis\OpenAiPlanAnalysisProvider;
 use Modules\Knx\Services\PlanAnalysis\PlanAnalysisFailed;
 use Modules\Knx\Services\PlanAnalysis\PlanAnalysisInput;
+use Modules\Knx\Services\PlanAnalysis\PlanAnalysisProviders;
 use Modules\Knx\Services\PlanAnalysis\SyntheticPlanAnalysisProvider;
 use Tests\TestCase;
 
@@ -102,7 +104,7 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
     {
         Http::fake();
 
-        $reason = $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input()));
+        $reason = $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true));
 
         $this->assertSame('unavailable', $reason);
         $this->assertFalse(config('knx.plan_analysis.providers.openai.enabled'));
@@ -116,7 +118,7 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         Http::fake();
         $this->enableOpenAi(callsPerDay: 0);
 
-        $this->assertSame('budget_exhausted', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input())));
+        $this->assertSame('budget_exhausted', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true)));
         Http::assertNothingSent();
     }
 
@@ -126,7 +128,7 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         $proposal = ['groupRoles' => [['groupId' => 'style:f:#000000', 'role' => 'wall', 'confidence' => 0.9, 'reason' => 'fills']], 'rooms' => [], 'uncertain' => []];
         Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed($proposal))]);
 
-        $result = app(OpenAiPlanAnalysisProvider::class)->analyze($this->input("\x89PNG-bytes"));
+        $result = app(OpenAiPlanAnalysisProvider::class)->analyze($this->input("\x89PNG-bytes"), fn (): bool => true);
 
         $this->assertSame('openai', $result->provider);
         $this->assertSame('test-model-2026', $result->model);
@@ -169,9 +171,9 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
             ->push(['status' => 'completed', 'output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'not json']]]]]);
         $provider = app(OpenAiPlanAnalysisProvider::class);
 
-        $this->assertSame('refused', $this->failure(fn () => $provider->analyze($this->input())));
-        $this->assertSame('incomplete', $this->failure(fn () => $provider->analyze($this->input())));
-        $this->assertSame('invalid_output', $this->failure(fn () => $provider->analyze($this->input())));
+        $this->assertSame('refused', $this->failure(fn () => $provider->analyze($this->input(), fn (): bool => true)));
+        $this->assertSame('incomplete', $this->failure(fn () => $provider->analyze($this->input(), fn (): bool => true)));
+        $this->assertSame('invalid_output', $this->failure(fn () => $provider->analyze($this->input(), fn (): bool => true)));
     }
 
     public function test_without_retries_a_server_error_fails_after_one_request(): void
@@ -179,7 +181,7 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         $this->enableOpenAi(retries: 0);
         Http::fake(['https://openai.test/v1/responses' => Http::response(['error' => 'boom'], 500)]);
 
-        $this->assertSame('provider_error', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input())));
+        $this->assertSame('provider_error', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true)));
         Http::assertSentCount(1);
     }
 
@@ -190,10 +192,79 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
             ->push(['error' => 'busy'], 503)
             ->push($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
 
-        $result = app(OpenAiPlanAnalysisProvider::class)->analyze($this->input());
+        $result = app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true);
 
         $this->assertSame([], $result->proposal['rooms']);
         Http::assertSentCount(2);
+    }
+
+    public function test_retries_cannot_exceed_the_remaining_daily_calls(): void
+    {
+        $this->enableOpenAi(callsPerDay: 1, retries: 1);
+        Http::fake(['https://openai.test/v1/responses' => Http::sequence()
+            ->push(['error' => 'busy'], 503)
+            ->push($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
+
+        $this->assertSame('budget_exhausted', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true)));
+        Http::assertSentCount(1);
+    }
+
+    public function test_a_connection_error_is_never_retried(): void
+    {
+        // A timeout may hide a request OpenAI already processed (and billed).
+        $this->enableOpenAi(retries: 2);
+        $attempts = 0;
+        Http::fake(function () use (&$attempts) {
+            $attempts++;
+            throw new ConnectionException('timeout');
+        });
+
+        $this->assertSame('provider_error', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true)));
+        $this->assertSame(1, $attempts);
+    }
+
+    public function test_nothing_is_sent_once_the_document_may_no_longer_be_sent(): void
+    {
+        $this->enableOpenAi(retries: 2);
+        Http::fake(['https://openai.test/v1/responses' => Http::response(['error' => 'busy'], 503)]);
+
+        // Not allowed from the start: no request at all.
+        $this->assertSame('not_authorized', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => false)));
+        Http::assertNothingSent();
+
+        // Revoked after the first attempt: the retry is not sent.
+        $checks = 0;
+        $this->assertSame('not_authorized', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze(
+            $this->input(),
+            function () use (&$checks): bool {
+                return ++$checks === 1;
+            },
+        )));
+        Http::assertSentCount(1);
+    }
+
+    public function test_another_credential_source_needs_no_api_key(): void
+    {
+        $this->enableOpenAi();
+        config(['knx.plan_analysis.providers.openai.api_key' => null]);
+        $this->app->bind(OpenAiCredentialSource::class, fn () => new class implements OpenAiCredentialSource
+        {
+            public function id(): string
+            {
+                return 'plan-token';
+            }
+
+            public function bearerToken(): ?string
+            {
+                return 'token-without-api-key';
+            }
+        });
+        Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
+
+        $this->assertTrue(app(PlanAnalysisProviders::class)->isAvailable('openai'));
+        app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true);
+
+        Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer token-without-api-key'));
     }
 
     public function test_a_client_error_is_never_retried(): void
@@ -201,7 +272,7 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         $this->enableOpenAi(retries: 3);
         Http::fake(['https://openai.test/v1/responses' => Http::response(['error' => 'bad request'], 400)]);
 
-        $this->assertSame('provider_error', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input())));
+        $this->assertSame('provider_error', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true)));
         Http::assertSentCount(1);
     }
 
@@ -211,9 +282,9 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
         $provider = app(OpenAiPlanAnalysisProvider::class);
 
-        $provider->analyze($this->input());
+        $provider->analyze($this->input(), fn (): bool => true);
 
-        $this->assertSame('budget_exhausted', $this->failure(fn () => $provider->analyze($this->input())));
+        $this->assertSame('budget_exhausted', $this->failure(fn () => $provider->analyze($this->input(), fn (): bool => true)));
         Http::assertSentCount(1);
     }
 
@@ -223,7 +294,7 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         config(['knx.plan_analysis.budget.max_image_bytes' => 10]);
         Http::fake();
 
-        $this->assertSame('image_too_large', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(str_repeat('x', 11)))));
+        $this->assertSame('image_too_large', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(str_repeat('x', 11)), fn (): bool => true)));
         Http::assertNothingSent();
     }
 
@@ -247,14 +318,14 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         });
         Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
 
-        app(OpenAiPlanAnalysisProvider::class)->analyze($this->input());
+        app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true);
 
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer token-from-another-source'));
     }
 
     public function test_the_synthetic_provider_answers_from_its_example_with_the_input_texts(): void
     {
-        $result = app(SyntheticPlanAnalysisProvider::class)->analyze($this->input());
+        $result = app(SyntheticPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true);
 
         $this->assertSame('synthetic', $result->provider);
         $roles = array_column($result->proposal['groupRoles'], 'role', 'groupId');
@@ -279,7 +350,7 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
     {
         $input = new PlanAnalysisInput(1, 595.0, 842.0, 'png', [['id' => 'layer:X', 'kind' => 'layer', 'name' => 'X', 'paths' => 1, 'strokeWidth' => null, 'strokeColor' => null, 'closedPct' => 0, 'curvedPct' => 0]], []);
 
-        $result = app(SyntheticPlanAnalysisProvider::class)->analyze($input);
+        $result = app(SyntheticPlanAnalysisProvider::class)->analyze($input, fn (): bool => true);
 
         $this->assertSame([], $result->proposal['groupRoles']);
         $this->assertSame([], $result->proposal['rooms']);
@@ -290,6 +361,6 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
     {
         $this->app['env'] = 'production';
 
-        $this->assertSame('unavailable', $this->failure(fn () => app(SyntheticPlanAnalysisProvider::class)->analyze($this->input())));
+        $this->assertSame('unavailable', $this->failure(fn () => app(SyntheticPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true)));
     }
 }
