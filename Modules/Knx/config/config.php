@@ -169,6 +169,27 @@ return [
         ],
     ],
 
+    /*
+    | "Sign in with ChatGPT" (official flow, a private web app with a REGISTERED client).
+    | Off until OpenAI registration exists: with no client_id / redirect_uri the connection
+    | endpoints answer "not configured" and list the missing settings. The registered
+    | redirect_uri is the Kantoor page `/auth/chatgpt/callback` of each environment.
+    | `token_auth`: `none` (public client, PKCE only) or `client_secret_basic`
+    | (confidential client: the secret travels ONLY in the HTTP Basic header).
+    */
+    'chatgpt' => [
+        'client_id' => env('KNX_CHATGPT_CLIENT_ID'),
+        'client_secret' => env('KNX_CHATGPT_CLIENT_SECRET'),
+        'token_auth' => env('KNX_CHATGPT_TOKEN_AUTH', 'none'),
+        'redirect_uri' => env('KNX_CHATGPT_REDIRECT_URI'),
+        'discovery_url' => env('KNX_CHATGPT_DISCOVERY_URL', 'https://auth.openai.com/.well-known/openid-configuration'),
+        'resource' => env('KNX_CHATGPT_RESOURCE', 'https://api.openai.com/v1'),
+        'scopes' => [
+            'identity' => ['openid', 'profile', 'email', 'offline_access'],
+            'plan' => ['resource.invoke', 'chatgpt.tokens.use.direct'],
+        ],
+    ],
+
     'zone_check_keys' => [
         'installed',
         'power',

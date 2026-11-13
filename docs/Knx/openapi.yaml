@@ -1209,6 +1209,80 @@ paths:
               example: { provider: openai, external: true, available: false, authorized: false, grantedAt: null, grantedBy: null }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /chatgpt/connection:
+    get:
+      tags: [plans]
+      summary: Estado de MI conexión «Sign in with ChatGPT» (prueba)
+      description: >-
+        Cada empleado conecta su propia cuenta. El inicio de sesión (`connected`) y el permiso para
+        consumir la suscripción (`planPermission`) son independientes. `missingSettings` lista los
+        ajustes que faltan para el registro (apagado hasta que existan). Nunca devuelve tokens.
+        `status`: `not_connected` | `connected` | `needs_sign_in`.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                configured: true
+                missingSettings: []
+                connected: true
+                status: connected
+                identity: { email: lien@example.test, name: Lien Smet }
+                planPermission: true
+                scopes: [openid, profile, email, offline_access, resource.invoke, chatgpt.tokens.use.direct]
+                accessExpiresAt: "2026-11-13T10:00:00+00:00"
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+    delete:
+      tags: [plans]
+      summary: Desconecta mi cuenta de ChatGPT (idempotente)
+      responses:
+        "200":
+          description: El estado resultante (misma forma que `GET`), sin conexión
+          content:
+            application/json:
+              example: { configured: true, missingSettings: [], connected: false, status: not_connected, identity: null, planPermission: false, scopes: [], accessExpiresAt: null }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /chatgpt/connection/start:
+    post:
+      tags: [plans]
+      summary: Inicia el inicio de sesión con ChatGPT (flujo oficial con PKCE)
+      description: >-
+        Devuelve la URL de autorización a la que navega el navegador. `state`, `nonce` y el verificador
+        PKCE viven solo en el servidor, 10 minutos, de un solo uso y ligados a quien lo inició. Sin
+        registro (`client_id`/`redirect_uri`) responde `409 chatgpt_not_configured` con `missingSettings`.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example: { authorizationUrl: "https://auth.openai.com/api/accounts/authorize?client_id=oaiapp_…&response_type=code&…" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409": { description: "No configurado (`chatgpt_not_configured`, con `missingSettings`)" }
+  /chatgpt/connection/callback:
+    post:
+      tags: [plans]
+      summary: Cierra el inicio de sesión con el `state` y el `code` (o el `error`) del navegador
+      description: >-
+        Cuerpo `{state, code?, error?, error_description?}`. `signIn: ok` con `planPermission` solo
+        verdadero si el servidor concedió `resource.invoke` y `chatgpt.tokens.use.direct` (un ID token
+        válido por sí solo no autoriza el plan). `error=access_denied` es `200 signIn: declined` sin
+        intercambio. `state` ausente/caducado/usado/ajeno es `422 chatgpt_state_invalid`; fallo del
+        ID token `422 chatgpt_id_token_invalid`; fallo del intercambio `502 chatgpt_token_exchange_failed`.
+        En cualquier fallo no se guarda nada.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                signIn: ok
+                planPermission: true
+                status: { configured: true, missingSettings: [], connected: true, status: connected, identity: { email: lien@example.test, name: Lien Smet }, planPermission: true, scopes: [openid, resource.invoke, chatgpt.tokens.use.direct], accessExpiresAt: "2026-11-13T10:00:00+00:00" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "409": { description: "No configurado (`chatgpt_not_configured`)" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "502": { description: "El endpoint de tokens falló (`chatgpt_token_exchange_failed`)" }
   /projects/{code}/plans/{documentId}/analyses:
     get:
       tags: [plans]

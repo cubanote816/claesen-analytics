@@ -6,6 +6,7 @@ use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\BoardController;
+use Modules\Knx\Http\Controllers\ChatGptConnectionController;
 use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\DashboardController;
@@ -326,6 +327,15 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->where('provider', '[a-z0-9_-]+')
                 ->name('projects.plans.ai-authorizations.destroy');
+            // "Sign in with ChatGPT" (prueba): each employee connects their OWN account.
+            Route::get('chatgpt/connection', [ChatGptConnectionController::class, 'show'])
+                ->name('chatgpt.connection.show');
+            Route::post('chatgpt/connection/start', [ChatGptConnectionController::class, 'start'])
+                ->name('chatgpt.connection.start');
+            Route::post('chatgpt/connection/callback', [ChatGptConnectionController::class, 'callback'])
+                ->name('chatgpt.connection.callback');
+            Route::delete('chatgpt/connection', [ChatGptConnectionController::class, 'destroy'])
+                ->name('chatgpt.connection.destroy');
             // KNX-48 (plano IA) — the AI proposal of a page: POST runs ONE authorized
             // provider and stores the validated proposal; GET reads the latest one.
             Route::get('projects/{code}/plans/{documentId}/analyses', [PlanAnalysisController::class, 'show'])
