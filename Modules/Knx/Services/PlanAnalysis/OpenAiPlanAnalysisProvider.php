@@ -22,7 +22,7 @@ class OpenAiPlanAnalysisProvider implements PlanAnalysisProvider
 {
     public const ID = 'openai';
 
-    private const INSTRUCTIONS = <<<'TXT'
+    public const INSTRUCTIONS = <<<'TXT'
 You analyse ONE page of an architectural or installation floor plan for an electrical contractor.
 You get the rendered page and a summary of the PDF: stroke groups (id, style, counts) and texts (id, text, position).
 Coordinates are page fractions: x from left (0) to right (1), y from top (0) to bottom (1).

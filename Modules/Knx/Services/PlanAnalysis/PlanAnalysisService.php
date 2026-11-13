@@ -37,11 +37,11 @@ class PlanAnalysisService
         if (! $this->isAuthorized($document, $provider)) {
             throw new PlanAnalysisFailed('not_authorized', 'This document is not authorized for this provider.');
         }
-        if (! $this->providers->isAvailable($provider)) {
+        if (! $this->providers->isAvailable($provider, $employee)) {
             throw new PlanAnalysisFailed('unavailable', 'This provider is not available in this environment.');
         }
 
-        $result = $this->providers->provider($provider)->analyze(
+        $result = $this->providers->provider($provider, $employee)->analyze(
             $input,
             fn (): bool => $this->isAuthorized($document, $provider),
         );

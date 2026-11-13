@@ -176,6 +176,32 @@ final class ChatGptConnections
         });
     }
 
+    /**
+     * The employee's access token, refreshed first when it has expired (or is about to).
+     * The connection comes back too: a refresh can change the granted scopes.
+     *
+     * @return array{connection: KnxChatGptConnection, token: string}
+     *
+     * @throws ChatGptFailed `needs_sign_in` (no usable tokens) or `refresh_failed`
+     */
+    public function usableToken(KnxChatGptConnection $connection): array
+    {
+        if ($connection->status !== KnxChatGptConnection::STATUS_CONNECTED) {
+            throw new ChatGptFailed('needs_sign_in', 'This connection needs a new sign-in.');
+        }
+
+        if ($connection->access_token === null || $connection->access_expires_at === null
+            || $connection->access_expires_at->subSeconds(60)->isPast()) {
+            $connection = $this->refresh($connection);
+        }
+
+        if ($connection->access_token === null) {
+            throw new ChatGptFailed('needs_sign_in', 'This connection has no access token.');
+        }
+
+        return ['connection' => $connection, 'token' => $connection->access_token];
+    }
+
     public function disconnect(KnxEmployee $employee): void
     {
         KnxChatGptConnection::query()

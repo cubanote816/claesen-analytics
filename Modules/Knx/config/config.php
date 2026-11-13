@@ -150,14 +150,24 @@ return [
             'synthetic' => [
                 'external' => false,
                 'enabled' => (bool) env('KNX_PLAN_ANALYSIS_SYNTHETIC', true),
+                'billing' => 'simulation',
             ],
             'openai' => [
                 'external' => true,
+                'billing' => 'api',
                 'enabled' => (bool) env('KNX_PLAN_ANALYSIS_OPENAI_ENABLED', false),
                 'model' => env('KNX_PLAN_ANALYSIS_OPENAI_MODEL'),
                 'base_url' => env('KNX_PLAN_ANALYSIS_OPENAI_BASE_URL', 'https://api.openai.com/v1'),
                 'api_key' => env('KNX_PLAN_ANALYSIS_OPENAI_API_KEY'),
                 'image_detail' => env('KNX_PLAN_ANALYSIS_OPENAI_IMAGE_DETAIL', 'high'),
+            ],
+            // "Sign in with ChatGPT": the employee's OWN plan, never an API key. Available per
+            // employee (see PlanAnalysisProviders); the model has no default on purpose.
+            'chatgpt' => [
+                'external' => true,
+                'billing' => 'subscription',
+                'model' => env('KNX_PLAN_ANALYSIS_CHATGPT_MODEL'),
+                'max_calls_per_day' => (int) env('KNX_PLAN_ANALYSIS_CHATGPT_MAX_CALLS_PER_DAY', 20),
             ],
         ],
         'budget' => [

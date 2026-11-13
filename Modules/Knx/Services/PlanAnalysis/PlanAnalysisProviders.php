@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Services\PlanAnalysis;
 
+use Modules\Knx\Models\KnxEmployee;
+
 /**
  * The configured plan-analysis providers (config `knx.plan_analysis.providers`).
  *
@@ -31,20 +33,34 @@ class PlanAnalysisProviders
         return (bool) config("knx.plan_analysis.providers.{$id}.external", true);
     }
 
+    /** How the provider is paid: `simulation`, `subscription` or `api` (unknown counts as `api`). */
+    public function billing(string $id): string
+    {
+        return (string) config("knx.plan_analysis.providers.{$id}.billing", 'api');
+    }
+
     /**
-     * The provider implementation for a configured id.
+     * The provider implementation for a configured id. `chatgpt` acts for ONE employee.
      */
-    public function provider(string $id): PlanAnalysisProvider
+    public function provider(string $id, ?KnxEmployee $employee = null): PlanAnalysisProvider
     {
         return match ($id) {
             SyntheticPlanAnalysisProvider::ID => app(SyntheticPlanAnalysisProvider::class),
             OpenAiPlanAnalysisProvider::ID => app(OpenAiPlanAnalysisProvider::class),
+            ChatGptPlanAnalysisProvider::ID => $employee === null
+                ? throw new PlanAnalysisFailed('unavailable', 'The ChatGPT plan needs an employee.')
+                : app(ChatGptPlanAnalysisProvider::class)->forEmployee($employee),
             default => throw new PlanAnalysisFailed('unavailable', "Unknown plan-analysis provider `{$id}`."),
         };
     }
 
-    public function isAvailable(string $id): bool
+    public function isAvailable(string $id, ?KnxEmployee $employee = null): bool
     {
+        // The ChatGPT plan belongs to each employee: no employee, no plan.
+        if ($id === ChatGptPlanAnalysisProvider::ID) {
+            return $this->exists($id) && app(ChatGptPlanAnalysisProvider::class)->availableFor($employee);
+        }
+
         if (! $this->exists($id) || ! (bool) config("knx.plan_analysis.providers.{$id}.enabled", false)) {
             return false;
         }

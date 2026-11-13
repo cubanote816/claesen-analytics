@@ -58,9 +58,9 @@ final class KnxPlanAiAuthorizationTest extends TestCase
         $response = $this->getJson($this->url($document))->assertOk();
 
         $this->assertSame((string) $document->getKey(), $response->json('documentId'));
-        $this->assertSame(['synthetic', 'openai'], array_column($response->json('providers'), 'provider'));
+        $this->assertSame(['synthetic', 'openai', 'chatgpt'], array_column($response->json('providers'), 'provider'));
         foreach ($response->json('providers') as $entry) {
-            $this->assertSame(['provider', 'external', 'available', 'authorized', 'grantedAt', 'grantedBy'], array_keys($entry));
+            $this->assertSame(['provider', 'external', 'billing', 'available', 'authorized', 'grantedAt', 'grantedBy'], array_keys($entry));
             $this->assertFalse($entry['authorized']);
             $this->assertNull($entry['grantedAt']);
             $this->assertNull($entry['grantedBy']);
@@ -71,6 +71,9 @@ final class KnxPlanAiAuthorizationTest extends TestCase
         $this->assertFalse($byProvider['openai']['available']);
         $this->assertFalse($byProvider['synthetic']['external']);
         $this->assertTrue($byProvider['synthetic']['available']);
+        $this->assertSame(['simulation', 'api', 'subscription'], array_column($byProvider, 'billing'));
+        // The ChatGPT plan is per employee: nobody has connected one here.
+        $this->assertFalse($byProvider['chatgpt']['available']);
     }
 
     public function test_a_grant_covers_that_document_and_that_provider_only(): void

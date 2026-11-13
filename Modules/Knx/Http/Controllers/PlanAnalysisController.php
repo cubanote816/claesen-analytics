@@ -36,6 +36,13 @@ class PlanAnalysisController extends Controller
         'incomplete' => 502,
         'invalid_output' => 502,
         'provider_error' => 502,
+        'needs_sign_in' => 409,
+        'plan_usage_limit' => 429,
+        'plan_not_eligible' => 403,
+        'plan_policy' => 403,
+        'plan_not_accepted' => 403,
+        'plan_unavailable' => 503,
+        'plan_unsupported_capability' => 502,
     ];
 
     public function __construct(
@@ -103,10 +110,13 @@ class PlanAnalysisController extends Controller
                 texts: $this->texts($validated['texts']),
             ));
         } catch (PlanAnalysisFailed $e) {
-            return response()->json([
+            return response()->json(array_filter([
                 'message' => $e->getMessage(),
                 'code' => 'plan_analysis_'.$e->reason,
-            ], self::FAILURE_STATUS[$e->reason] ?? 502);
+                'providerCode' => $e->providerCode,
+                'providerParam' => $e->providerParam,
+                'requestId' => $e->requestId,
+            ], fn (mixed $value): bool => $value !== null), self::FAILURE_STATUS[$e->reason] ?? 502);
         }
 
         return response()->json([
@@ -155,6 +165,7 @@ class PlanAnalysisController extends Controller
             'page' => $analysis->page,
             'revision' => $analysis->document_revision,
             'provider' => $analysis->provider,
+            'billing' => $this->providers->billing($analysis->provider),
             'model' => $analysis->model,
             'schemaVersion' => $analysis->schema_version,
             'proposal' => $analysis->proposal,

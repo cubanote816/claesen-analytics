@@ -19,6 +19,7 @@ final class ChatGptFailed extends RuntimeException
         public readonly string $reason,
         string $message = '',
         public readonly array $missingSettings = [],
+        public readonly ?ChatGptApiError $api = null,
     ) {
         parent::__construct($message !== '' ? $message : $reason);
     }

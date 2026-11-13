@@ -24,7 +24,7 @@ class PlanAnalysisBudget
             return;
         }
 
-        $limit = $this->maxCallsPerDay();
+        $limit = $this->limitFor($provider);
         if ($limit <= 0) {
             throw new PlanAnalysisFailed('budget_exhausted', 'No external plan-analysis calls are allowed (max_calls_per_day = 0).');
         }
@@ -34,6 +34,14 @@ class PlanAnalysisBudget
         if ((int) Cache::increment($key) > $limit) {
             throw new PlanAnalysisFailed('budget_exhausted', "The daily limit of {$limit} plan-analysis calls is used up.");
         }
+    }
+
+    /** A provider's own `max_calls_per_day` when configured, else the global one. */
+    public function limitFor(string $provider): int
+    {
+        $own = config("knx.plan_analysis.providers.{$provider}.max_calls_per_day");
+
+        return $own !== null ? (int) $own : $this->maxCallsPerDay();
     }
 
     public function maxCallsPerDay(): int

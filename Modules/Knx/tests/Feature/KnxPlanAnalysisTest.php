@@ -124,6 +124,7 @@ final class KnxPlanAnalysisTest extends TestCase
         $this->assertSame(2, $post->json('analysis.page'));
         $this->assertSame('Rev. C', $post->json('analysis.revision'));
         $this->assertSame('synthetic', $post->json('analysis.provider'));
+        $this->assertSame('simulation', $post->json('analysis.billing'));
         $this->assertSame('synthetic-examples', $post->json('analysis.model'));
         $this->assertSame('plan-analysis/1', $post->json('analysis.schemaVersion'));
         $this->assertSame('Lien Smet', $post->json('analysis.createdBy'));

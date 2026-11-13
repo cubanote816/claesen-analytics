@@ -1159,7 +1159,9 @@ paths:
       description: >-
         Una entrada por proveedor configurado. Sin autorización el documento NUNCA se envía a ese
         proveedor (`authorized: false` por defecto). `external` indica si el proveedor está fuera del
-        servidor; `available`, si puede correr en este entorno (el adaptador `openai` viene apagado).
+        servidor; `billing`, cómo se paga: `simulation` (sin coste), `subscription` (el plan ChatGPT de
+        QUIEN pregunta) o `api` (clave de API de pago); `available`, si puede correr en este entorno para
+        la persona que consulta (`openai` viene apagado; `chatgpt` exige su conexión con permiso de plan).
       parameters:
         - $ref: "#/components/parameters/Code"
         - $ref: "#/components/parameters/DocumentId"
@@ -1171,8 +1173,9 @@ paths:
               example:
                 documentId: "89"
                 providers:
-                  - { provider: synthetic, external: false, available: true, authorized: false, grantedAt: null, grantedBy: null }
-                  - { provider: openai, external: true, available: false, authorized: true, grantedAt: "2026-11-13T09:00:00+00:00", grantedBy: "Lien Smet" }
+                  - { provider: synthetic, external: false, billing: simulation, available: true, authorized: false, grantedAt: null, grantedBy: null }
+                  - { provider: openai, external: true, billing: api, available: false, authorized: true, grantedAt: "2026-11-13T09:00:00+00:00", grantedBy: "Lien Smet" }
+                  - { provider: chatgpt, external: true, billing: subscription, available: true, authorized: false, grantedAt: null, grantedBy: null }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
   /projects/{code}/plans/{documentId}/ai-authorizations/{provider}:
@@ -1191,7 +1194,7 @@ paths:
           description: La entrada resultante, misma forma que un elemento de `providers`
           content:
             application/json:
-              example: { provider: openai, external: true, available: false, authorized: true, grantedAt: "2026-11-13T09:00:00+00:00", grantedBy: "Lien Smet" }
+              example: { provider: openai, external: true, billing: api, available: false, authorized: true, grantedAt: "2026-11-13T09:00:00+00:00", grantedBy: "Lien Smet" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
     delete:
@@ -1206,7 +1209,7 @@ paths:
           description: La entrada resultante, con `authorized` en `false`
           content:
             application/json:
-              example: { provider: openai, external: true, available: false, authorized: false, grantedAt: null, grantedBy: null }
+              example: { provider: openai, external: true, billing: api, available: false, authorized: false, grantedAt: null, grantedBy: null }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
   /chatgpt/connection:
@@ -1283,6 +1286,46 @@ paths:
         "409": { description: "No configurado (`chatgpt_not_configured`)" }
         "422": { $ref: "#/components/responses/ValidationError" }
         "502": { description: "El endpoint de tokens falló (`chatgpt_token_exchange_failed`)" }
+  /chatgpt/diagnostic:
+    post:
+      tags: [plans]
+      summary: Prueba «Sign in with ChatGPT» paso a paso, con un plano sintético (prueba)
+      description: >-
+        Cuerpo opcional `{model?}`. Pasos en orden: `registration`, `sign_in`, `plan_permission`, `models`,
+        `synthetic_analysis`; se detiene en el primero que no esté `ok` y el resto es `skipped` (sin
+        ninguna llamada posterior). `status`: `ok` | `failed` | `skipped` | `needs_input` (sin `model`,
+        `models` lista los modelos y pide elegir uno). `reason` explica el fallo (`not_configured`,
+        `not_signed_in`, `needs_sign_in`, `plan_permission_missing`, `refresh_failed`, `model_not_available`,
+        `plan_usage_limit`, `plan_unsupported_capability`, ...). `models.detail` trae cada modelo con
+        `imageInput` (`yes`/`no`/`unknown`: sin dato explícito del proveedor es `unknown`) e
+        `imageGeneration: unsupported` (nunca se llama). El análisis usa SOLO el plano sintético del
+        servidor, gasta el presupuesto de `chatgpt`, no guarda nada y nunca usa una clave de API ni cambia
+        de facturación. Siempre `200`: una prueba detenida es un resultado.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model: { type: string, maxLength: 128, nullable: true }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                provider: chatgpt
+                billing: subscription
+                steps:
+                  - { key: registration, status: ok, reason: null, detail: null }
+                  - { key: sign_in, status: ok, reason: null, detail: { identity: { email: lien@example.test, name: Lien Smet } } }
+                  - { key: plan_permission, status: ok, reason: null, detail: { scopes: [openid, resource.invoke, chatgpt.tokens.use.direct] } }
+                  - { key: models, status: needs_input, reason: model_required, detail: { models: [{ slug: gpt-x, displayName: GPT X, imageInput: unknown }], imageGeneration: unsupported } }
+                  - { key: synthetic_analysis, status: skipped, reason: null, detail: null }
+                stoppedAt: models
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /projects/{code}/plans/{documentId}/analyses:
     get:
       tags: [plans]
@@ -1309,6 +1352,7 @@ paths:
                   page: 2
                   revision: "Rev. H"
                   provider: synthetic
+                  billing: simulation
                   model: synthetic-examples
                   schemaVersion: plan-analysis/1
                   proposal:
@@ -1330,7 +1374,12 @@ paths:
         ese proveedor (`403` `plan_analysis_not_authorized`), proveedor disponible en este entorno (`409`
         `plan_analysis_unavailable`), presupuesto (`429` `plan_analysis_budget_exhausted`), imagen dentro
         del límite (`413`); un fallo del proveedor es `502` (`plan_analysis_refused`, `_incomplete`,
-        `_invalid_output`, `_provider_error`). Nunca se usa otro proveedor como alternativa. La respuesta
+        `_invalid_output`, `_provider_error`). Con `chatgpt` (plan del propio empleado, solo disponible si ESA
+        persona está conectada con permiso de plan) los fallos llevan `code` y, si existen, `providerCode`,
+        `providerParam` y `requestId`: `429 plan_analysis_plan_usage_limit`, `403
+        plan_analysis_plan_not_eligible|plan_policy|plan_not_accepted`, `503 plan_analysis_plan_unavailable`,
+        `502 plan_analysis_plan_unsupported_capability` y `409 plan_analysis_needs_sign_in`. Nunca se usa otro
+        proveedor ni otra facturación como alternativa. La respuesta
         se valida contra lo enviado: solo grupos enviados y roles del enum, puntos dentro de la página, y
         un nombre solo si `textId` es un texto enviado (el nombre ES ese texto); lo descartado se cuenta en
         `dropped`. No se guardan la imagen ni el resumen.
@@ -1380,13 +1429,14 @@ paths:
         "201":
           description: La propuesta guardada, misma forma que el GET
         "401": { $ref: "#/components/responses/Unauthenticated" }
-        "403": { description: "Documento no autorizado para ese proveedor (`plan_analysis_not_authorized`)" }
+        "403": { description: "Documento no autorizado para ese proveedor (`plan_analysis_not_authorized`) o el plan lo rechaza (`plan_analysis_plan_not_eligible`, `_plan_policy`, `_plan_not_accepted`)" }
         "404": { $ref: "#/components/responses/NotFound" }
-        "409": { description: "Proveedor no disponible en este entorno (`plan_analysis_unavailable`)" }
+        "409": { description: "Proveedor no disponible (`plan_analysis_unavailable`) o la persona debe iniciar sesión de nuevo (`plan_analysis_needs_sign_in`)" }
         "413": { description: "Imagen sobre el límite (`plan_analysis_image_too_large`)" }
         "422": { $ref: "#/components/responses/ValidationError" }
-        "429": { description: "Presupuesto agotado (`plan_analysis_budget_exhausted`)" }
+        "429": { description: "Presupuesto agotado (`plan_analysis_budget_exhausted`) o límite de uso del plan (`plan_analysis_plan_usage_limit`)" }
         "502": { description: "El proveedor falló o respondió algo inutilizable" }
+        "503": { description: "El plan de ChatGPT no está disponible (`plan_analysis_plan_unavailable`)" }
   /exports/{id}/download:
     get:
       tags: [reports]

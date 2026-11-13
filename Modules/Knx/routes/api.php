@@ -7,6 +7,7 @@ use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\BoardController;
 use Modules\Knx\Http\Controllers\ChatGptConnectionController;
+use Modules\Knx\Http\Controllers\ChatGptDiagnosticController;
 use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\DashboardController;
@@ -336,6 +337,8 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
                 ->name('chatgpt.connection.callback');
             Route::delete('chatgpt/connection', [ChatGptConnectionController::class, 'destroy'])
                 ->name('chatgpt.connection.destroy');
+            Route::post('chatgpt/diagnostic', [ChatGptDiagnosticController::class, 'run'])
+                ->name('chatgpt.diagnostic');
             // KNX-48 (plano IA) — the AI proposal of a page: POST runs ONE authorized
             // provider and stores the validated proposal; GET reads the latest one.
             Route::get('projects/{code}/plans/{documentId}/analyses', [PlanAnalysisController::class, 'show'])

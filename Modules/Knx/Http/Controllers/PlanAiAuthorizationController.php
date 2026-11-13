@@ -25,15 +25,16 @@ class PlanAiAuthorizationController extends Controller
 
     public function __construct(private readonly PlanAnalysisProviders $providers) {}
 
-    public function index(string $code, string $documentId): array
+    public function index(Request $request, string $code, string $documentId): array
     {
         $document = $this->planDocument($code, $documentId);
         $grants = $this->grants($document);
+        $employee = $request->attributes->get('knx_employee');
 
         return [
             'documentId' => (string) $document->getKey(),
             'providers' => array_map(
-                fn (string $id): array => $this->entry($id, $grants[$id] ?? null),
+                fn (string $id): array => $this->entry($id, $grants[$id] ?? null, $employee),
                 $this->providers->ids(),
             ),
         ];
@@ -52,10 +53,10 @@ class PlanAiAuthorizationController extends Controller
             ['project_id' => $document->project_id, 'granted_by_employee_id' => $employee->getKey()],
         );
 
-        return $this->entry($provider, $grant->load('grantedBy'));
+        return $this->entry($provider, $grant->load('grantedBy'), $employee);
     }
 
-    public function destroy(string $code, string $documentId, string $provider): array
+    public function destroy(Request $request, string $code, string $documentId, string $provider): array
     {
         $document = $this->planDocument($code, $documentId);
         abort_unless($this->providers->exists($provider), 404);
@@ -65,7 +66,7 @@ class PlanAiAuthorizationController extends Controller
             ->where('provider', $provider)
             ->delete();
 
-        return $this->entry($provider, null);
+        return $this->entry($provider, null, $request->attributes->get('knx_employee'));
     }
 
     /**
@@ -81,12 +82,13 @@ class PlanAiAuthorizationController extends Controller
             ->all();
     }
 
-    private function entry(string $provider, ?KnxPlanAiAuthorization $grant): array
+    private function entry(string $provider, ?KnxPlanAiAuthorization $grant, ?KnxEmployee $employee): array
     {
         return [
             'provider' => $provider,
             'external' => $this->providers->isExternal($provider),
-            'available' => $this->providers->isAvailable($provider),
+            'billing' => $this->providers->billing($provider),
+            'available' => $this->providers->isAvailable($provider, $employee),
             'authorized' => $grant !== null,
             'grantedAt' => $grant?->created_at?->toIso8601String(),
             'grantedBy' => $grant?->grantedBy?->name,
