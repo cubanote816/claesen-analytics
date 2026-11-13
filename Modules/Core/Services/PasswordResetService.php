@@ -50,6 +50,26 @@ class PasswordResetService
             return;
         }
 
+        $code = $this->issueActivationCode($user);
+
+        $user->notify(new PasswordResetNotification(
+            $code,
+            $resetUrl === null ? null : $resetUrl($user, $code),
+        ));
+    }
+
+    /**
+     * Mints a one-time code for this account and stores only its hash.
+     *
+     * Deliberately decides nothing about *who* deserves one: `sendResetLink()`
+     * keeps the forgot-password rules, and CLA-653's `core:issue-activation-code`
+     * keeps the provisioning ones, which are not the same rules (a brand-new
+     * account has no password yet, and that is precisely why it needs a code).
+     * What stays shared here is the part that must never drift: the code's
+     * length, its hashing and its lifetime.
+     */
+    public function issueActivationCode(User $user): string
+    {
         $code = Str::random(64);
 
         $user->forceFill([
@@ -57,10 +77,7 @@ class PasswordResetService
             'activation_code_expires_at' => now()->addMinutes(self::CODE_TTL_MINUTES),
         ])->saveQuietly();
 
-        $user->notify(new PasswordResetNotification(
-            $code,
-            $resetUrl === null ? null : $resetUrl($user, $code),
-        ));
+        return $code;
     }
 
     /**

@@ -19,6 +19,12 @@
 
 ---
 
+## Módulo Core
+
+- **Código de activación (CLA-653):** una cuenta local creada desde Users queda con `password = null` y solo puede ponerse su primera contraseña con un código de un solo uso. `PasswordResetService::issueActivationCode()` es el **único** lugar que genera el código (64 caracteres, guarda solo el hash, TTL `CODE_TTL_MINUTES`); lo usan `sendResetLink()` (olvidé mi contraseña, solo cuentas con setup completo) y `core:issue-activation-code {email} [--panel=admin|bertels]` (cuentas activas, locales —sin `microsoft_id`— y **sin** setup completo). El comando imprime el código y el enlace al panel elegido: la salida es una credencial. No crea cuentas.
+
+---
+
 ## Módulo Cafca
 
 ### Reglas
