@@ -178,6 +178,27 @@ php artisan mailing:check-deliverability-alerts --dry-run   # previsualiza sin c
 
 ---
 
+## Módulo Core
+
+### `core:issue-activation-code`
+
+**Función:** Emite el código de activación de un solo uso que una cuenta recién provisionada necesita para ponerse su **primera** contraseña (CLA-653). Imprime el código y el enlace de reset; **no crea cuentas**.
+
+```bash
+php artisan core:issue-activation-code persona@claesen-verlichting.be
+php artisan core:issue-activation-code persona@electrobertels.be --panel=bertels
+```
+
+**Por qué existe:** el alta desde el recurso Users guarda `password = null, password_set_at = null`, y `PasswordResetService::sendResetLink()` rechaza toda cuenta que no completó el setup — es decir, exactamente la que nunca tuvo contraseña. Sin esto, una cuenta local nueva no podía iniciar sesión nunca, y «olvidé mi contraseña» también la rechazaba.
+
+**Notas:**
+- Rechaza, con salida distinta de cero: dirección desconocida, dirección que coincide con **más de una** cuenta (mayúsculas/espacios), cuenta desactivada, cuenta de Microsoft (esas autentican por Entra y no tienen contraseña local) y cuenta que **ya** completó el setup — para esa última está el reset del login.
+- El código se **imprime**, no se envía por correo: la cuenta recién creada puede no tener buzón todavía, y quien corre el comando ya tiene acceso al servidor.
+- **Tratar la salida como credencial:** es de un solo uso y dura `PasswordResetService::CODE_TTL_MINUTES` (60 min), pero hasta usarse alcanza para fijar la contraseña de esa cuenta. Entregarlo por un canal privado.
+- No reemplaza el alta: las cuentas internas se siguen creando desde un empleado real y activo con correo corporativo.
+
+---
+
 ## Módulo Safety
 
 ### `safety:check-compliance`

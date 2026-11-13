@@ -71,6 +71,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->commands([
             \Modules\Core\Console\Commands\QaResetEnvironmentCommand::class,
             \Modules\Core\Console\Commands\BackfillUserOrganizationsCommand::class,
+            \Modules\Core\Console\Commands\IssueActivationCodeCommand::class,
         ]);
     }
 
