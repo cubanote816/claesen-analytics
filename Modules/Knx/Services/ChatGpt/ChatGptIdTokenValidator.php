@@ -19,6 +19,9 @@ final class ChatGptIdTokenValidator
 {
     private const LEEWAY_SECONDS = 60;
 
+    /** Accepted ID-token signature algorithms (OpenAI signs with RS256). */
+    private const ALGORITHMS = ['RS256'];
+
     public function __construct(
         private readonly ChatGptSettings $settings,
         private readonly ChatGptDiscovery $discovery,
@@ -30,6 +33,12 @@ final class ChatGptIdTokenValidator
         $document = $this->discovery->document();
 
         try {
+            // Only the asymmetric algorithm OpenAI signs with; never `none` or a symmetric one.
+            $header = json_decode((string) JWT::urlsafeB64Decode(explode('.', $idToken)[0] ?? ''), true);
+            if (! is_array($header) || ! in_array($header['alg'] ?? null, self::ALGORITHMS, true)) {
+                throw new ChatGptFailed('id_token_invalid', 'The ID token algorithm is not allowed.');
+            }
+
             $jwks = Http::acceptJson()->timeout(10)->get($document['jwks_uri'])->throw()->json();
             $keys = JWK::parseKeySet(is_array($jwks) ? $jwks : [], 'RS256');
 
@@ -42,8 +51,15 @@ final class ChatGptIdTokenValidator
             }
         } catch (ConnectionException) {
             throw new ChatGptFailed('id_token_invalid', 'The signing keys could not be fetched.');
+        } catch (ChatGptFailed $e) {
+            throw $e;
         } catch (Throwable) {
             throw new ChatGptFailed('id_token_invalid', 'The ID token signature or timing is invalid.');
+        }
+
+        // The library only checks `exp` when it is present: a token must carry one.
+        if (! is_int($claims['exp'] ?? null) && ! is_float($claims['exp'] ?? null)) {
+            throw new ChatGptFailed('id_token_invalid', 'The ID token has no expiration.');
         }
 
         if (($claims['iss'] ?? null) !== $document['issuer']) {

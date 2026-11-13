@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Services\ChatGpt;
 
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Modules\Knx\Models\KnxChatGptConnection;
 use Modules\Knx\Models\KnxEmployee;
@@ -133,6 +134,16 @@ final class ChatGptConnections
     {
         $this->settings->assertConfigured();
 
+        try {
+            return $this->refreshLocked($connection);
+        } catch (LockTimeoutException) {
+            // Another request is refreshing this connection right now: temporary, keep everything.
+            throw new ChatGptFailed('refresh_failed', 'The ChatGPT connection is being refreshed; try again.');
+        }
+    }
+
+    private function refreshLocked(KnxChatGptConnection $connection): KnxChatGptConnection
+    {
         return Cache::lock('knx:chatgpt:refresh:'.$connection->getKey(), 30)->block(10, function () use ($connection): KnxChatGptConnection {
             $current = $connection->fresh();
 

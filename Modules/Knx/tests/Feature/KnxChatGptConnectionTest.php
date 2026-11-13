@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Tests\Feature;
 
+use Fiber;
 use Firebase\JWT\JWT;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
@@ -18,6 +22,7 @@ use Modules\Knx\Models\KnxChatGptConnection;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Services\ChatGpt\ChatGptConnections;
 use Modules\Knx\Services\ChatGpt\ChatGptFailed;
+use Modules\Knx\Services\ChatGpt\ChatGptTransactions;
 use Tests\TestCase;
 
 /**
@@ -310,6 +315,8 @@ final class KnxChatGptConnectionTest extends TestCase
             'wrong nonce' => ['claims' => ['nonce' => 'not-the-nonce']],
             'expired' => ['claims' => ['exp' => time() - 3600, 'iat' => time() - 7200]],
             'no sub' => ['claims' => ['sub' => null]],
+            // A token that never expires is not acceptable either.
+            'no exp' => ['claims' => ['exp' => null]],
         ];
 
         foreach ($cases as $label => $case) {
@@ -322,6 +329,74 @@ final class KnxChatGptConnectionTest extends TestCase
 
         // An audience list that contains the client id is fine.
         $this->signIn([], ['aud' => ['another', self::CLIENT_ID]])->assertOk();
+    }
+
+    public function test_a_state_consumed_concurrently_has_exactly_one_winner(): void
+    {
+        // A store that pauses inside the read, so two consumers interleave exactly there.
+        $store = new class extends ArrayStore
+        {
+            public bool $pause = false;
+
+            public function get($key)
+            {
+                $value = parent::get($key);
+                if ($this->pause && str_starts_with($key, 'knx:chatgpt:tx:')) {
+                    Fiber::suspend();
+                }
+
+                return $value;
+            }
+        };
+        Cache::swap(new Repository($store));
+        $transactions = new ChatGptTransactions;
+        $state = $transactions->begin(1)['state'];
+        $store->pause = true;
+
+        $consume = function () use ($transactions, $state): ?array {
+            try {
+                return $transactions->pull($state, 1);
+            } catch (ChatGptFailed) {
+                return null;
+            }
+        };
+        $fibers = [new Fiber($consume), new Fiber($consume)];
+        foreach ($fibers as $fiber) {
+            $fiber->start();
+        }
+        foreach ($fibers as $fiber) {
+            if ($fiber->isSuspended()) {
+                $fiber->resume();
+            }
+        }
+
+        $winners = array_filter(array_map(fn (Fiber $fiber) => $fiber->getReturn(), $fibers), 'is_array');
+        $this->assertCount(1, $winners);
+    }
+
+    public function test_a_refresh_waiting_on_a_busy_lock_is_a_typed_temporary_failure(): void
+    {
+        $this->configure();
+        $this->signIn()->assertOk();
+        $connection = KnxChatGptConnection::query()->sole();
+        $before = [$connection->access_token, $connection->refresh_token];
+
+        // Another request holds the refresh lock for this connection.
+        $held = Cache::lock('knx:chatgpt:refresh:'.$connection->getKey(), 60);
+        $this->assertTrue($held->get());
+
+        try {
+            app(ChatGptConnections::class)->refresh($connection);
+            $this->fail('Expected ChatGptFailed.');
+        } catch (ChatGptFailed $e) {
+            $this->assertSame('refresh_failed', $e->reason);
+        } finally {
+            $held->release();
+        }
+
+        $connection->refresh();
+        $this->assertSame($before, [$connection->access_token, $connection->refresh_token]);
+        $this->assertSame(KnxChatGptConnection::STATUS_CONNECTED, $connection->status);
     }
 
     public function test_a_token_response_without_an_id_token_is_rejected(): void

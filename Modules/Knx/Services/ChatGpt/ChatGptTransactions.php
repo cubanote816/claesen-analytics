@@ -44,7 +44,20 @@ final class ChatGptTransactions
      */
     public function pull(string $state, int $employeeId): array
     {
-        $transaction = $state === '' ? null : Cache::pull($this->key($state));
+        $transaction = null;
+        if ($state !== '') {
+            // Read-and-delete under a lock: a concurrent consumer of the same state finds the
+            // lock taken (or, after it, nothing left) and fails like any used state.
+            $lock = Cache::lock($this->key($state).':lock', 10);
+            if ($lock->get()) {
+                try {
+                    $transaction = Cache::get($this->key($state));
+                    Cache::forget($this->key($state));
+                } finally {
+                    $lock->release();
+                }
+            }
+        }
 
         if (! is_array($transaction) || ($transaction['employee_id'] ?? null) !== $employeeId) {
             throw new ChatGptFailed('state_invalid', 'The sign-in state is missing, expired, used or not yours.');
