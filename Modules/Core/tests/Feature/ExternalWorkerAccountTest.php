@@ -19,6 +19,7 @@ use Modules\Core\Models\User;
 use Modules\Core\Services\PasswordResetService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
@@ -75,16 +76,20 @@ class ExternalWorkerAccountTest extends TestCase
         ], $overrides);
     }
 
-    private function assertRefused(array $data, string $reason): void
+    /**
+     * Refusals surface as a field error on the form (a 422 ValidationException),
+     * not as an error page, and create nothing.
+     */
+    private function assertRefused(array $data, string $reason, string $field = 'external_email'): void
     {
         $before = User::count();
 
         try {
             $this->mutate($data);
             $this->fail('The external worker account was not refused.');
-        } catch (HttpException $e) {
-            $this->assertSame(422, $e->getStatusCode());
-            $this->assertStringContainsString($reason, $e->getMessage());
+        } catch (ValidationException $e) {
+            $this->assertSame(422, $e->status);
+            $this->assertSame([$reason], $e->errors()['data.'.$field] ?? null, json_encode($e->errors()));
         }
 
         $this->assertSame($before, User::count());
@@ -125,7 +130,7 @@ class ExternalWorkerAccountTest extends TestCase
 
     public function test_it_refuses_a_missing_name(): void
     {
-        $this->assertRefused($this->external(['external_name' => '   ']), 'A name is required for an external worker account.');
+        $this->assertRefused($this->external(['external_name' => '   ']), 'A name is required for an external worker account.', 'external_name');
     }
 
     public static function forbiddenRoles(): array
@@ -141,12 +146,12 @@ class ExternalWorkerAccountTest extends TestCase
     {
         $this->assertRefused($this->external([
             'role_ids' => [$this->viewerRole->id, Role::findByName($role)->id],
-        ]), 'External worker accounts cannot have the Super Admin or Client role.');
+        ]), 'External worker accounts cannot have the Super Admin or Client role.', 'role_ids');
     }
 
     public function test_it_refuses_no_role(): void
     {
-        $this->assertRefused($this->external(['role_ids' => []]), 'At least one role is required.');
+        $this->assertRefused($this->external(['role_ids' => []]), 'At least one role is required.', 'role_ids');
     }
 
     public function test_the_form_does_not_offer_super_admin_or_client_to_external_workers(): void
@@ -280,6 +285,35 @@ class ExternalWorkerAccountTest extends TestCase
             ->fillForm(['role_ids' => [$this->viewerRole->id]])
             ->call('create')
             ->assertHasFormErrors(['employee_id' => 'required']);
+
+        $this->assertSame($before, User::count());
+    }
+
+    // CLA-683 local test: a corporate or duplicate address showed an error page;
+    // it must show as a validation error on the email field instead.
+    public static function rejectedEmails(): array
+    {
+        return [
+            'corporate' => ['someone@claesen-verlichting.be', 'Use the Internal employee type for @claesen-verlichting.be addresses.'],
+            'duplicate' => ['taken@gmail.com', 'A user with this email already exists.'],
+        ];
+    }
+
+    #[DataProvider('rejectedEmails')]
+    public function test_a_rejected_email_shows_as_a_form_error(string $email, string $message): void
+    {
+        UserFactory::new()->create(['email' => 'taken@gmail.com']);
+        $admin = UserFactory::new()->create(['is_active' => true]);
+        $admin->assignRole('super_admin');
+        $this->actingAs($admin);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $before = User::count();
+
+        Livewire::test(CreateUser::class)
+            ->fillForm($this->external(['external_email' => $email]))
+            ->call('create')
+            ->assertHasFormErrors(['external_email'])
+            ->assertSee($message);
 
         $this->assertSame($before, User::count());
     }

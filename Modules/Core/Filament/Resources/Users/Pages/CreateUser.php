@@ -9,6 +9,7 @@ use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Modules\Cafca\Models\Employee;
 use Modules\Core\Filament\Resources\Users\Schemas\CreateUserForm;
 use Modules\Core\Filament\Resources\Users\UserResource;
@@ -101,30 +102,30 @@ class CreateUser extends CreateRecord
     private function externalWorkerData(array $data): array
     {
         $name = trim((string) ($data['external_name'] ?? ''));
-        abort_if($name === '', 422, 'A name is required for an external worker account.');
+        $this->refuseIf($name === '', 'external_name', 'A name is required for an external worker account.');
 
         $normalizedEmail = strtolower(trim((string) ($data['external_email'] ?? '')));
-        abort_if(! filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL), 422, 'Invalid email address.');
+        $this->refuseIf(! filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL), 'external_email', 'Invalid email address.');
 
         $domain = config('core.company_email_domain');
-        abort_if(
+        $this->refuseIf(
             str_ends_with($normalizedEmail, '@'.$domain),
-            422, "Use the Internal employee type for @{$domain} addresses."
+            'external_email', "Use the Internal employee type for @{$domain} addresses."
         );
-        abort_if(
+        $this->refuseIf(
             User::whereRaw('LOWER(TRIM(email)) = ?', [$normalizedEmail])->exists(),
-            422, 'A user with this email already exists.'
+            'external_email', 'A user with this email already exists.'
         );
 
         $roleIds = collect($data['role_ids'] ?? [])->filter()->unique()->values()->all();
-        abort_if($roleIds === [], 422, 'At least one role is required.');
-        abort_if(
+        $this->refuseIf($roleIds === [], 'role_ids', 'At least one role is required.');
+        $this->refuseIf(
             Role::query()->whereKey($roleIds)->count() !== count($roleIds),
-            422, 'One or more selected roles do not exist.'
+            'role_ids', 'One or more selected roles do not exist.'
         );
-        abort_if(
+        $this->refuseIf(
             Role::query()->whereKey($roleIds)->whereIn('name', CreateUserForm::EXTERNAL_FORBIDDEN_ROLES)->exists(),
-            422, 'External worker accounts cannot have the Super Admin or Client role.'
+            'role_ids', 'External worker accounts cannot have the Super Admin or Client role.'
         );
 
         return [
@@ -135,6 +136,17 @@ class CreateUser extends CreateRecord
             'password_set_at' => null,
             'role_ids' => $roleIds,
         ];
+    }
+
+    /**
+     * A refusal on the external worker path is shown under its form field (the
+     * email is typed by hand, so it is the expected way to fail), not as an error page.
+     */
+    private function refuseIf(bool $condition, string $field, string $message): void
+    {
+        if ($condition) {
+            throw ValidationException::withMessages(['data.'.$field => $message]);
+        }
     }
 
     protected function handleRecordCreation(array $data): Model

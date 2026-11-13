@@ -7,7 +7,7 @@ Users > Create only accepts an active Cafca employee with a corporate address, o
 
 - S1. New account type "External worker" in Users > Create: free name + email, role checkboxes.
 - S2. Saved with `employee_id = null`, organization Claesen, `password = null`, `password_set_at = null`, `microsoft_id = null`; the password is set with the one-time activation code (CLA-653).
-- S3. Server-side refusals (422, nothing created): empty name, invalid email, email already used (case/whitespace-insensitive), a `@claesen-verlichting.be` address ("Use the Internal employee type for @claesen-verlichting.be addresses."), no role, Super Admin or Client role.
+- S3. Server-side refusals (422 validation error shown under the form field, nothing created): empty name, invalid email, email already used (case/whitespace-insensitive), a `@claesen-verlichting.be` address ("Use the Internal employee type for @claesen-verlichting.be addresses."), no role, Super Admin or Client role.
 - S4. The form does not offer Super Admin or Client to external workers; Internal employee still offers every role.
 - S5. Internal employee and Client creation unchanged.
 
@@ -22,3 +22,4 @@ Users > Create only accepts an active Cafca employee with a corporate address, o
 - L3. User: "go".
 - L4. RED: first run had 7 refusal tests passing for the wrong reason (the internal path refused "Empleado no encontrado."); tests now assert the exact reason, and all 10 failed before the implementation.
 - L5. Independent verify approved conditionally; its probes (forged attributes, activation via core:issue-activation-code, crafted payloads, default internal form) were added and pass. Known follow-up, out of scope: EditUser "Change roles" could later grant Super Admin to an external worker (no marker distinguishes them from legacy accounts without an employee).
+- L6. User local test: a corporate and a duplicate address were refused, but as a Laravel error page (abort 422). Refusals on the external path now throw a ValidationException on `data.<field>` so they show under the field. RED: 9 tests failed before the change.
