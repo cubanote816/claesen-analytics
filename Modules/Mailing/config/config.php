@@ -24,6 +24,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Microsoft Graph transient retries (CLA-681)
+    |--------------------------------------------------------------------------
+    | Only HTTP 429/503 are retried; 502/504 and connection timeouts never are
+    | (Graph may have accepted the mail — a retry could deliver it twice).
+    | graph_retry_attempts: retries after the first try (0 disables).
+    | graph_retry_backoff_seconds: wait before retry 1, 2, ... when Graph sends no
+    | Retry-After header (a Retry-After is honoured, capped at 10 s). A retry whose
+    | wait would pass the run budget above is skipped.
+    */
+    'graph_retry_attempts'        => (int) env('MAILING_GRAPH_RETRY_ATTEMPTS', 2),
+    'graph_retry_backoff_seconds' => [1, 3],
+    // Runs without a send budget (existing campaigns, A/B): no retry starts after this many
+    // seconds from the run start, so retries cannot add up past the job timeout (85 s).
+    'graph_retry_window_seconds'  => 20,
+
+    /*
+    |--------------------------------------------------------------------------
     | Bounce thresholds
     |--------------------------------------------------------------------------
     | soft_limit: number of soft bounces before auto-suppression.

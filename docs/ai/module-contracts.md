@@ -45,6 +45,7 @@ Modules/Cafca/Services/CafcaSyncService.php
 - **Siempre usar `MarketingCampaignInterface`** para enviar correos. Nunca llamar `MicrosoftGraphMailer` directamente desde controllers o jobs.
 - `MicrosoftGraphMailer` es la implementación actual. `SaaSMailer` es un stub para ESP futuro (MAI-026, bloqueado).
 - Si se añade un nuevo mailer, debe implementar `App\Contracts\MarketingCampaignInterface`.
+- **Reintentos de Graph `sendMail` (CLA-681):** solo ante HTTP **429/503** (Graph no procesó el pedido), hasta `mailing.graph_retry_attempts` (2) reintentos, esperando el `Retry-After` (tope 10 s) o el backoff `mailing.graph_retry_backoff_seconds` (1 s, 3 s), y **solo si la espera cabe en el presupuesto de la corrida** (`run_budget_seconds`, CLA-654; el job lo fija con `MicrosoftGraphService::setSendDeadline`). Las corridas sin presupuesto (campaña existente, A/B) usan una **ventana de reintentos compartida por toda la corrida** (`mailing.graph_retry_window_seconds`, 20 s desde el inicio del job), nunca reiniciada por mensaje, para no superar el timeout de 85 s. **Nunca** se reintenta 502/504, otros 4xx/5xx ni timeouts de conexión: Graph pudo haber aceptado el correo y reintentar lo duplicaría. Al fallar, `MicrosoftGraphMailer` relanza `MailDeliveryException` y `campaign_messages.error_message` guarda `graph <status> <code>[: <mensaje>]` (no localizado, mensaje ≤ 200 caracteres, sin tokens); el texto localizado genérico queda solo como respaldo cuando no hay respuesta de Graph.
 
 ### Reglas de aprobación
 
