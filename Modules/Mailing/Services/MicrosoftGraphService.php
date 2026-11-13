@@ -11,6 +11,7 @@ namespace Modules\Mailing\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Sleep;
 use Modules\Mailing\Exceptions\MailConfigurationException;
 
 class MicrosoftGraphService
@@ -24,6 +25,19 @@ class MicrosoftGraphService
     protected ?string $tenantId;
     protected ?string $clientSecret;
     protected string $baseUrl = 'https://graph.microsoft.com/v1.0';
+
+    /** Longest Retry-After (seconds) we are willing to wait for inside one send. */
+    private const MAX_RETRY_WAIT_SECONDS = 10;
+
+    /**
+     * CLA-681: absolute (microtime) deadline of the caller's run budget. The
+     * campaign job sets it around each send so a retry never overruns the budget;
+     * null = no budget (any other caller).
+     */
+    private static ?float $sendDeadline = null;
+
+    /** Reason of the last failed sendMail() ("graph <status> <code>[: <message>]"), null if none. */
+    private ?string $lastFailureReason = null;
 
     /** @var array<string, string> Folder ids cached per "mailbox|name" for the lifetime of this instance. */
     protected array $folderIds = [];
@@ -258,10 +272,33 @@ class MicrosoftGraphService
     }
 
     /**
+     * Set (or clear with null) the run-budget deadline that sendMail() retries must respect.
+     */
+    public static function setSendDeadline(?float $deadline): void
+    {
+        self::$sendDeadline = $deadline;
+    }
+
+    /**
+     * Stable, non-localized reason of the last failed sendMail(), or null when
+     * it failed without a Graph response (no token, connection error).
+     */
+    public function lastFailureReason(): ?string
+    {
+        return $this->lastFailureReason;
+    }
+
+    /**
      * Send an email via Microsoft Graph API.
+     *
+     * CLA-681: only HTTP 429/503 (Graph did not process the request) are retried,
+     * up to mailing.graph_retry_attempts times, within the caller's run budget.
+     * 502/504, other errors and connection timeouts are NOT retried: Graph may
+     * already have accepted the mail and a retry would deliver it twice.
      */
     public function sendMail(string $senderEmail, array $payload): bool
     {
+        $this->lastFailureReason = null;
         $token = $this->getAccessToken();
 
         if (! $token) {
@@ -271,24 +308,54 @@ class MicrosoftGraphService
             return false;
         }
 
-        try {
-            $response = Http::withToken($token)
-                ->timeout(30)
-                ->post("{$this->baseUrl}/users/{$senderEmail}/sendMail", $payload);
+        $maxRetries = max(0, (int) config('mailing.graph_retry_attempts', 2));
+        // Campaign runs always set a deadline (run budget or run-wide retry window); other
+        // callers without one get a per-message window so retries stay bounded.
+        $retryUntil = self::$sendDeadline
+            ?? microtime(true) + (float) config('mailing.graph_retry_window_seconds', 20);
 
-            if ($response->failed()) {
+        try {
+            for ($attempt = 0; ; $attempt++) {
+                $response = Http::withToken($token)
+                    ->timeout(30)
+                    ->post("{$this->baseUrl}/users/{$senderEmail}/sendMail", $payload);
+
+                if (! $response->failed()) {
+                    return true;
+                }
+
+                $status  = $response->status();
+                $code    = $response->json('error.code');
+                $message = $response->json('error.message');
+
+                $wait = null;
+                if ($attempt < $maxRetries && in_array($status, [429, 503], true)) {
+                    $wait = $this->retryWaitSeconds($response->header('Retry-After'), $attempt);
+                }
+
+                if ($wait !== null && microtime(true) + $wait <= $retryUntil) {
+                    Log::warning('Microsoft Graph: sendMail transient failure, retrying.', [
+                        'status'       => $status,
+                        'attempt'      => $attempt + 1,
+                        'wait_seconds' => $wait,
+                        'sender'       => $senderEmail,
+                    ]);
+                    Sleep::usleep((int) round($wait * 1_000_000));
+                    continue;
+                }
+
                 Log::error('Microsoft Graph: sendMail failed.', [
-                    'status'  => $response->status(),
+                    'status'  => $status,
                     'sender'  => $senderEmail,
                     // 'error' key from Graph (e.g. ErrorSendAsDenied, ErrorInvalidRecipients)
-                    'code'    => $response->json('error.code'),
-                    'message' => $response->json('error.message'),
+                    'code'    => $code,
+                    'message' => $message,
                     // 403 = Mail.Send not granted; 404 = sender mailbox not found in tenant
+                    'attempts' => $attempt + 1,
                 ]);
+                $this->lastFailureReason = $this->failureReason($status, $code, $message);
                 return false;
             }
-
-            return true;
         } catch (\Exception $e) {
             Log::error('Microsoft Graph: sendMail threw exception.', [
                 'message' => $e->getMessage(),
@@ -296,5 +363,38 @@ class MicrosoftGraphService
             ]);
             return false;
         }
+    }
+
+    /**
+     * Seconds to wait before retry number $attempt + 1: the Retry-After header
+     * (delta-seconds or HTTP-date, capped), else the configured backoff.
+     */
+    private function retryWaitSeconds(?string $retryAfter, int $attempt): float
+    {
+        if ($retryAfter !== null && is_numeric($retryAfter) && (float) $retryAfter >= 0) {
+            return min((float) $retryAfter, self::MAX_RETRY_WAIT_SECONDS);
+        }
+
+        if ($retryAfter !== null && ($at = strtotime($retryAfter)) !== false) {
+            return min(max(0.0, (float) ($at - time())), self::MAX_RETRY_WAIT_SECONDS);
+        }
+
+        $backoff = array_values((array) config('mailing.graph_retry_backoff_seconds', [1, 3]));
+        if ($backoff === []) {
+            return 1.0;
+        }
+
+        return (float) ($backoff[$attempt] ?? end($backoff));
+    }
+
+    private function failureReason(int $status, mixed $code, mixed $message): string
+    {
+        $reason = 'graph ' . $status . ' ' . (is_string($code) && $code !== '' ? $code : 'UnknownError');
+
+        if (is_string($message) && trim($message) !== '') {
+            $reason .= ': ' . mb_substr(trim($message), 0, 200);
+        }
+
+        return $reason;
     }
 }
