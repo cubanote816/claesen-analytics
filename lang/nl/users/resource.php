@@ -47,6 +47,10 @@ return [
         'revoke_sessions' => 'Sessies intrekken',
         'revoke_sessions_confirm_title' => 'Alle actieve sessies intrekken?',
         'revoke_sessions_confirm_body' => 'Dit logt deze gebruiker onmiddellijk uit op elk apparaat. Ze moeten opnieuw inloggen.',
+        'resend_activation' => 'Activatiemail opnieuw versturen',
+        'resend_activation_confirm_title' => 'Activatiemail opnieuw versturen?',
+        'resend_activation_confirm_body' => 'Deze gebruiker krijgt een nieuwe link per e-mail die 72 uur geldig is. De vorige link werkt dan niet meer.',
+        'resend_activation_done' => 'Activatiemail verstuurd.',
         'revoke_sessions_done' => 'Alle actieve sessies van deze gebruiker zijn ingetrokken.',
     ],
 ];

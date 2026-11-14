@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Core\Services;
 
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Modules\Core\Models\User;
+use Modules\Core\Notifications\AccountActivationNotification;
 use Modules\Core\Notifications\PasswordResetNotification;
 
 /**
@@ -27,6 +29,13 @@ class PasswordResetService
 {
     /** CLA-371: a reset code is valid for one hour. */
     public const CODE_TTL_MINUTES = 60;
+
+    /**
+     * CLA-685: the first-password link emailed to a new External worker lasts
+     * 72 hours — long enough to survive a weekend between the account being
+     * created and its owner reading the mail. Forgot-password stays at one hour.
+     */
+    public const WELCOME_CODE_TTL_MINUTES = 72 * 60;
 
     /**
      * Issues a reset code for an eligible account and emails it.
@@ -59,6 +68,23 @@ class PasswordResetService
     }
 
     /**
+     * CLA-685: issues a 72-hour code and emails the admin panel's reset link to
+     * a provisioned account. Calling it again replaces the stored hash, so the
+     * previous link stops working.
+     *
+     * Like `issueActivationCode()` it decides nothing about eligibility: the
+     * caller (CreateUser for External workers, EditUser's resend action) does.
+     */
+    public function sendActivationEmail(User $user): void
+    {
+        $code = $this->issueActivationCode($user, self::WELCOME_CODE_TTL_MINUTES);
+
+        $user->notify(new AccountActivationNotification(
+            Filament::getPanel('admin')->getResetPasswordUrl($code, $user),
+        ));
+    }
+
+    /**
      * Mints a one-time code for this account and stores only its hash.
      *
      * Deliberately decides nothing about *who* deserves one: `sendResetLink()`
@@ -66,15 +92,16 @@ class PasswordResetService
      * keeps the provisioning ones, which are not the same rules (a brand-new
      * account has no password yet, and that is precisely why it needs a code).
      * What stays shared here is the part that must never drift: the code's
-     * length, its hashing and its lifetime.
+     * length and its hashing; the lifetime is the caller's choice (CLA-685) and
+     * defaults to the forgot-password one.
      */
-    public function issueActivationCode(User $user): string
+    public function issueActivationCode(User $user, int $ttlMinutes = self::CODE_TTL_MINUTES): string
     {
         $code = Str::random(64);
 
         $user->forceFill([
             'activation_code_hash' => hash('sha256', $code),
-            'activation_code_expires_at' => now()->addMinutes(self::CODE_TTL_MINUTES),
+            'activation_code_expires_at' => now()->addMinutes($ttlMinutes),
         ])->saveQuietly();
 
         return $code;

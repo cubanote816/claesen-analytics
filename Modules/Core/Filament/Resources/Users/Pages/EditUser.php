@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Core\Filament\Resources\Users\UserResource;
 use Modules\Core\Models\User;
+use Modules\Core\Services\PasswordResetService;
 use Modules\Core\Services\StepUpAuthenticator;
 use Spatie\Permission\Models\Role;
 
@@ -23,6 +24,7 @@ class EditUser extends EditRecord
     {
         return [
             $this->changeRolesAction(),
+            $this->resendActivationAction(),
             $this->revokeSessionsAction(),
             DeleteAction::make(),
         ];
@@ -71,6 +73,40 @@ class EditUser extends EditRecord
 
                 Notification::make()
                     ->title(__('users/resource.actions.change_roles_saved'))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
+     * CLA-685: re-emails the first-password link to an account that is still waiting
+     * for it (active, local, no password yet) — the 72-hour link may have expired or
+     * been lost. Issuing a new code replaces the stored hash, so the old link dies.
+     */
+    private function resendActivationAction(): Action
+    {
+        return Action::make('resendActivationEmail')
+            ->label(__('users/resource.actions.resend_activation'))
+            ->icon('heroicon-o-envelope')
+            ->requiresConfirmation()
+            ->modalHeading(__('users/resource.actions.resend_activation_confirm_title'))
+            ->modalDescription(__('users/resource.actions.resend_activation_confirm_body'))
+            ->visible(function (): bool {
+                /** @var User $record */
+                $record = $this->getRecord();
+
+                return $record->is_active
+                    && $record->microsoft_id === null
+                    && ! $record->hasCompletedPasswordSetup();
+            })
+            ->action(function (): void {
+                /** @var User $record */
+                $record = $this->getRecord();
+
+                app(PasswordResetService::class)->sendActivationEmail($record);
+
+                Notification::make()
+                    ->title(__('users/resource.actions.resend_activation_done'))
                     ->success()
                     ->send();
             });

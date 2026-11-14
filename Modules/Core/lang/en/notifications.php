@@ -21,6 +21,18 @@ return [
         // cannot be both companies' name.
         'salutation' => 'Kind regards,',
     ],
+    // CLA-685: welcome email of an External worker; the 72 comes from
+    // PasswordResetService::WELCOME_CODE_TTL_MINUTES.
+    'account_activation' => [
+        'subject' => 'Create your password — :company',
+        'greeting' => 'Hello :name,',
+        'line_intro' => 'An account has been created for you on the :company backoffice. Use the button below to choose your password.',
+        'action' => 'Create password',
+        'line_validity' => 'This link is valid for :hours hours and can only be used once.',
+        'line_network' => 'The backoffice is only reachable from the private network: connect through the VPN or office network.',
+        'line_expired' => 'If the link has expired, ask an administrator to resend the activation email.',
+        'salutation' => 'Kind regards,',
+    ],
     'sign_in_code' => [
         'greeting' => 'Hello :name,',
         'salutation' => 'Kind regards,',
