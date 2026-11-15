@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Core\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\App;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
@@ -148,13 +149,19 @@ final class BrandedMailTemplateTest extends TestCase
     {
         $user = $this->claesenUser(['language' => 'nl', 'name' => 'Sanne Verbruggen']);
         $email = $this->send($user, new AccountActivationNotification('https://example.test/a'));
-        $notification = new AccountActivationNotification('https://example.test/a');
-        $mail = $notification->toMail($user);
+        // The send renders in the recipient's language (nl), whatever the ambient
+        // locale of the test run is, so the expected texts are built in nl too.
+        $ambient = App::getLocale();
+        App::setLocale('nl');
+        $subject = (new AccountActivationNotification('https://example.test/a'))->toMail($user)->subject;
+        $action = __('core::notifications.account_activation.action');
+        $network = __('core::notifications.account_activation.line_network');
+        App::setLocale($ambient);
 
-        $this->assertSame($mail->subject, $email->getSubject());
-        $this->assertStringContainsString(__('core::notifications.account_activation.action'), $email->getHtmlBody());
-        $this->assertStringContainsString(__('core::notifications.account_activation.line_network'), $email->getHtmlBody());
-        $this->assertStringContainsString(__('core::notifications.account_activation.line_network'), $email->getTextBody());
+        $this->assertSame($subject, $email->getSubject());
+        $this->assertStringContainsString($action, $email->getHtmlBody());
+        $this->assertStringContainsString($network, $email->getHtmlBody());
+        $this->assertStringContainsString($network, $email->getTextBody());
         $this->assertStringContainsString('https://example.test/a', $email->getTextBody());
         $this->assertStringNotContainsString('<', $email->getTextBody());
     }
