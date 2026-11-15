@@ -149,4 +149,10 @@ Luego leer el documento específico del módulo activo según la tabla en `docs/
   4. Correr la **suite completa** sobre el resultado integrado, no solo los módulos tocados. Si algo falla, no se empuja.
   5. Push sin `--force`. Si la rama remota ya existía, solo `--force-with-lease` y con aprobación explícita.
   6. Antes de abrir o mergear un PR, repetir el fetch: si `origin/main` volvió a moverse, volver al paso 1.
+- **Antes de cada merge a `main`: lo que se mergea = `origin/main` actual + solo nuestros cambios (requisito del usuario, 2026-11-15).** Un merge a `main` despliega a producción (`deploy.yml`), así que se verifica justo antes de mergear, después de un `git fetch`:
+  1. `git merge-base --is-ancestor origin/main HEAD` → la rama contiene **todo** `main` (nada de otros se pierde ni se revierte).
+  2. `git log --oneline origin/main..HEAD` y `git diff --name-only origin/main...HEAD` → **solo** nuestros commits y archivos del ticket.
+  3. El CI (`Tests`) del PR está en verde sobre ese mismo `HEAD`.
+  4. Si `origin/main` se movió entre la verificación y el merge, se repite desde el paso 1 (integrar con merge de `origin/main` si la rama ya está publicada).
+  5. Después del merge, revisar el run `Deploy to Production` y comprobar que la app responde: el paso `Verify deployment` falla desde 2026-11-13 por un motivo ajeno al código (el runner no alcanza `backoffice.claesen.local`, curl exit 7), así que no confirma nada por sí solo.
 - No marcar Done en Linear hasta recibir GO técnico.
