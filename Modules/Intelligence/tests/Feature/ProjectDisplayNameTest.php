@@ -15,6 +15,7 @@ use Modules\Performance\Models\Mirror\MirrorInvoice;
 use Modules\Performance\Models\Mirror\MirrorProject;
 use Modules\Performance\Models\Mirror\MirrorProjectLink;
 use Modules\Performance\Models\Mirror\MirrorRelation;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -237,14 +238,31 @@ class ProjectDisplayNameTest extends TestCase
             ->assertSeeInOrder(['P20260050', self::PROJECT_NAME, self::CLIENT_NAME]);
     }
 
-    public function test_billing_modal_shows_descr_as_project_name_and_relation_as_client(): void
+    /**
+     * The page picks its labels from app()->getLocale(), so pin the locale:
+     * the environment default differs between local Sail (nl) and CI (en).
+     */
+    public static function modalLocales(): array
     {
+        return [
+            'nl' => ['nl', 'Projectnaam', 'Klant'],
+            'en' => ['en', 'Project name', 'Client'],
+        ];
+    }
+
+    #[DataProvider('modalLocales')]
+    public function test_billing_modal_shows_descr_as_project_name_and_relation_as_client(
+        string $locale,
+        string $projectLabel,
+        string $clientLabel,
+    ): void {
         $alert = $this->persistedOldAlert();
         $this->actingAsAdmin();
+        app()->setLocale($locale);
 
         Livewire::test(MonthlyBillingControlPage::class)
             ->call('setPeriod', '2026-06')
             ->call('openModal', $alert->id)
-            ->assertSeeInOrder(['Projectnaam', self::PROJECT_NAME, 'Klant', self::CLIENT_NAME]);
+            ->assertSeeInOrder([$projectLabel, self::PROJECT_NAME, $clientLabel, self::CLIENT_NAME]);
     }
 }
