@@ -1372,7 +1372,7 @@ paths:
       description: >-
         Orden: documento del proyecto (`404`), entrada válida (`422`), autorización del documento para
         ese proveedor (`403` `plan_analysis_not_authorized`), proveedor disponible en este entorno (`409`
-        `plan_analysis_unavailable`), presupuesto (`429` `plan_analysis_budget_exhausted`), imagen dentro
+        `plan_analysis_unavailable`; `plan_analysis_retention_not_verified` si la política de retención de OpenAI no está verificada; `plan_analysis_pricing_unknown` si el modelo no tiene precio), presupuesto (`429` `plan_analysis_budget_exhausted`; con `openai`, límite diario en USD `plan_analysis_daily_budget_exhausted` con `resumesAt` = próxima medianoche de Europe/Brussels, y `plan_analysis_processing_call_limit` / `plan_analysis_processing_cost_limit`), imagen dentro
         del límite (`413`); un fallo del proveedor es `502` (`plan_analysis_refused`, `_incomplete`,
         `_invalid_output`, `_provider_error`). Con `chatgpt` (plan del propio empleado, solo disponible si ESA
         persona está conectada con permiso de plan) los fallos llevan `code` y, si existen, `providerCode`,
@@ -1434,7 +1434,7 @@ paths:
         "409": { description: "Proveedor no disponible (`plan_analysis_unavailable`) o la persona debe iniciar sesión de nuevo (`plan_analysis_needs_sign_in`)" }
         "413": { description: "Imagen sobre el límite (`plan_analysis_image_too_large`)" }
         "422": { $ref: "#/components/responses/ValidationError" }
-        "429": { description: "Presupuesto agotado (`plan_analysis_budget_exhausted`) o límite de uso del plan (`plan_analysis_plan_usage_limit`)" }
+        "429": { description: "Presupuesto agotado (`plan_analysis_budget_exhausted`, `plan_analysis_daily_budget_exhausted` + `resumesAt`, `plan_analysis_processing_call_limit`, `plan_analysis_processing_cost_limit`) o límite de uso del plan (`plan_analysis_plan_usage_limit`)" }
         "502": { description: "El proveedor falló o respondió algo inutilizable" }
         "503": { description: "El plan de ChatGPT no está disponible (`plan_analysis_plan_unavailable`)" }
   /exports/{id}/download:

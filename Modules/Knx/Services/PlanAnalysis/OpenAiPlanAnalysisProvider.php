@@ -7,6 +7,12 @@ namespace Modules\Knx\Services\PlanAnalysis;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Modules\Knx\Models\KnxAiSpendEntry;
+use Modules\Knx\Services\AiSpend\AiSpendContext;
+use Modules\Knx\Services\AiSpend\AiSpendEstimator;
+use Modules\Knx\Services\AiSpend\AiSpendLedger;
+use Modules\Knx\Services\AiSpend\AiSpendRefused;
+use Throwable;
 
 /**
  * OpenAI Responses API adapter (`POST /v1/responses`), switched OFF by default.
@@ -16,7 +22,8 @@ use Illuminate\Support\Facades\Http;
  * `strict: true`), and `store: false` keeps OpenAI from storing the response as
  * application state. Refusals, incomplete answers and HTTP errors become
  * PlanAnalysisFailed; nothing is retried beyond the configured budget, and every attempt
- * first checks the document's authorization.
+ * first checks the document's authorization and reserves its USD cost in the daily ledger
+ * (AiSpendLedger); it is only sent when the retention policy was verified.
  */
 class OpenAiPlanAnalysisProvider implements PlanAnalysisProvider
 {
@@ -45,6 +52,8 @@ TXT;
         private readonly PlanAnalysisProviders $providers,
         private readonly PlanAnalysisBudget $budget,
         private readonly OpenAiCredentialSource $credentials,
+        private readonly AiSpendEstimator $estimator,
+        private readonly AiSpendLedger $ledger,
     ) {}
 
     public function id(): string
@@ -54,10 +63,13 @@ TXT;
 
     public function analyze(PlanAnalysisInput $input, callable $maySend): PlanAnalysisResult
     {
-        $token = $this->credentials->bearerToken();
-        if (! $this->providers->isAvailable(self::ID) || $token === null) {
-            throw new PlanAnalysisFailed('unavailable', 'The OpenAI plan-analysis provider is switched off.');
+        if (! $this->providers->isAvailable(self::ID) || $this->credentials->bearerToken() === null) {
+            throw new PlanAnalysisFailed(
+                $this->providers->unavailableReason(self::ID) ?? 'unavailable',
+                'The OpenAI plan-analysis provider is switched off.',
+            );
         }
+        $token = (string) $this->credentials->bearerToken();
         $effort = config('knx.plan_analysis.providers.openai.reasoning_effort');
         if ($effort !== null && $effort !== '' && ! in_array($effort, self::REASONING_EFFORTS, true)) {
             throw new PlanAnalysisFailed('unavailable', 'The configured reasoning effort is not one of: '.implode(', ', self::REASONING_EFFORTS).'.');
@@ -67,15 +79,33 @@ TXT;
         }
 
         $model = (string) config('knx.plan_analysis.providers.openai.model');
-        $response = $this->send($token, $this->body($model, $input), $maySend);
+        $body = $this->body($model, $input);
+        $context = $input->spend ?? AiSpendContext::detached();
+
+        // Conservative USD reservation of ONE attempt, from the real request: the body
+        // without the image data, the image at its maximum and the whole output allowance.
+        try {
+            $reservation = $this->estimator->reservationFor(
+                $model,
+                strlen(json_encode($this->withoutImage($body), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+                1,
+                (int) $body['max_output_tokens'],
+            );
+        } catch (AiSpendRefused $refused) {
+            throw $this->failed($refused);
+        }
+
+        [$response, $entry] = $this->send($token, $body, $maySend, $context, $model, $reservation);
 
         return new PlanAnalysisResult(
             provider: self::ID,
             model: is_string($response['model'] ?? null) ? $response['model'] : $model,
             proposal: $this->proposal($response),
             usage: [
-                'inputTokens' => isset($response['usage']['input_tokens']) ? (int) $response['usage']['input_tokens'] : null,
-                'outputTokens' => isset($response['usage']['output_tokens']) ? (int) $response['usage']['output_tokens'] : null,
+                'inputTokens' => $entry->usage['inputTokens'] ?? null,
+                'cachedTokens' => $entry->usage['cachedTokens'] ?? null,
+                'outputTokens' => $entry->usage['outputTokens'] ?? null,
+                'costUsd' => $entry->status === KnxAiSpendEntry::SETTLED ? (float) $entry->actual_usd : null,
             ],
         );
     }
@@ -129,24 +159,31 @@ TXT;
 
     /**
      * Every attempt is a separate request: before EACH one the document must still be
-     * authorized and a call of today's budget is reserved. Only HTTP 429 and 5xx are
-     * retried; a connection error (a timeout may hide a request OpenAI already processed
-     * and billed) and any other status fail at once.
+     * authorized and its USD cost is reserved in the daily ledger (a refusal sends nothing).
+     * Afterwards the reservation is settled with the real cost or kept as uncertain: it is
+     * never released once the request may have reached OpenAI. Only HTTP 429 and 5xx are
+     * retried, at most `max_retries` times and never beyond the calls one processing may make;
+     * a connection error (a timeout may hide a request OpenAI already processed and billed)
+     * and any other status fail at once.
      *
      * @param  array<string, mixed>  $body
      * @param  callable(): bool  $maySend
-     * @return array<string, mixed>
+     * @return array{0: array<string, mixed>, 1: KnxAiSpendEntry}
      */
-    private function send(string $token, array $body, callable $maySend): array
+    private function send(string $token, array $body, callable $maySend, AiSpendContext $context, string $model, float $reservation): array
     {
         $url = rtrim((string) config('knx.plan_analysis.providers.openai.base_url'), '/').'/responses';
-        $attempts = 1 + $this->budget->maxRetries();
+        $attempts = max(1, min(1 + $this->budget->maxRetries(), (int) config('knx.ai_spend.max_calls_per_processing', 2)));
 
-        for ($attempt = 1; ; $attempt++) {
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
             if (! $maySend()) {
                 throw new PlanAnalysisFailed('not_authorized', 'This document is no longer authorized for this provider.');
             }
-            $this->budget->reserve(self::ID);
+            try {
+                $entry = $this->ledger->reserve($context, self::ID, AiSpendEstimator::OPERATION_PLAN_ANALYSIS, $model, $reservation);
+            } catch (AiSpendRefused $refused) {
+                throw $this->failed($refused);
+            }
 
             try {
                 /** @var Response $response */
@@ -155,19 +192,58 @@ TXT;
                     ->timeout($this->budget->timeoutSeconds())
                     ->post($url, $body);
             } catch (ConnectionException) {
+                $this->ledger->markUncertain($entry, 'connection_error', null);
                 throw new PlanAnalysisFailed('provider_error', 'OpenAI could not be reached.');
+            } catch (Throwable $e) {
+                $this->ledger->markUncertain($entry, 'send_failed', null);
+                throw $e;
             }
 
+            $requestId = $response->header('x-request-id') ?: null;
             if ($response->successful()) {
-                return (array) $response->json();
+                $json = $response->json();
+                $json = is_array($json) ? $json : [];
+                $requestId ??= is_string($json['id'] ?? null) ? substr($json['id'], 0, 100) : null;
+                $usage = is_array($json['usage'] ?? null) ? $json['usage'] : [];
+
+                return [$json, $this->ledger->settle($entry, $usage, $requestId)];
             }
-            // Only transient failures are worth another (budgeted) attempt.
+
+            // The request reached OpenAI: the cost is uncertain, the reservation stays.
+            $this->ledger->markUncertain($entry, 'http_'.$response->status(), $requestId);
+            // Only transient failures are worth another (reserved) attempt.
             if (($response->status() === 429 || $response->serverError()) && $attempt < $attempts) {
                 continue;
             }
 
-            throw new PlanAnalysisFailed('provider_error', "OpenAI answered HTTP {$response->status()}.");
+            throw new PlanAnalysisFailed('provider_error', "OpenAI answered HTTP {$response->status()}.", requestId: $requestId);
         }
+
+        throw new PlanAnalysisFailed('provider_error', 'OpenAI could not be reached.');
+    }
+
+    /**
+     * The request body as it is measured for the reservation: everything but the image data.
+     *
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>
+     */
+    private function withoutImage(array $body): array
+    {
+        foreach ($body['input'] as $m => $message) {
+            foreach ($message['content'] as $c => $part) {
+                if (($part['type'] ?? null) === 'input_image') {
+                    $body['input'][$m]['content'][$c]['image_url'] = '';
+                }
+            }
+        }
+
+        return $body;
+    }
+
+    private function failed(AiSpendRefused $refused): PlanAnalysisFailed
+    {
+        return new PlanAnalysisFailed($refused->reason, $refused->getMessage(), resumesAt: $refused->resumesAt);
     }
 
     /**

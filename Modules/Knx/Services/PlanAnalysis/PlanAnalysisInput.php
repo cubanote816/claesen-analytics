@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Services\PlanAnalysis;
 
+use Modules\Knx\Services\AiSpend\AiSpendContext;
+
 /**
  * What a provider may see of ONE plan page: the rendered page and the summary Kantoor
  * extracted from the PDF (stroke groups and texts, each with an opaque id).
@@ -27,7 +29,14 @@ final class PlanAnalysisInput
         public readonly string $imagePng,
         public readonly array $groups,
         public readonly array $texts,
+        public readonly ?AiSpendContext $spend = null,
     ) {}
+
+    /** The same page, tied to one processing for the USD ledger (ids only). */
+    public function withSpend(AiSpendContext $spend): self
+    {
+        return new self($this->page, $this->pageWidthPt, $this->pageHeightPt, $this->imagePng, $this->groups, $this->texts, $spend);
+    }
 
     /**
      * @return list<string>

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Services\PlanAnalysis;
 
+use Illuminate\Support\Str;
 use Modules\Knx\Models\KnxDocument;
 use Modules\Knx\Models\KnxEmployee;
 use Modules\Knx\Models\KnxPlanAiAuthorization;
 use Modules\Knx\Models\KnxPlanAnalysis;
+use Modules\Knx\Services\AiSpend\AiSpendContext;
+use Modules\Knx\Support\KnxTenant;
 
 /**
  * Runs one plan-page analysis: authorization → availability → provider → validation →
@@ -38,9 +41,21 @@ class PlanAnalysisService
             throw new PlanAnalysisFailed('not_authorized', 'This document is not authorized for this provider.');
         }
         if (! $this->providers->isAvailable($provider, $employee)) {
-            throw new PlanAnalysisFailed('unavailable', 'This provider is not available in this environment.');
+            throw new PlanAnalysisFailed(
+                $this->providers->unavailableReason($provider, $employee) ?? 'unavailable',
+                'This provider is not available in this environment.',
+            );
         }
 
+        // One analyze call is one plan processing: its calls and cost are capped together.
+        $input = $input->withSpend(new AiSpendContext(
+            organizationId: KnxTenant::organizationId(),
+            processingId: (string) Str::uuid(),
+            projectId: (int) $document->project_id,
+            documentId: (int) $document->getKey(),
+            page: $input->page,
+            employeeId: (int) $employee->getKey(),
+        ));
         $result = $this->providers->provider($provider, $employee)->analyze(
             $input,
             fn (): bool => $this->isAuthorized($document, $provider),
