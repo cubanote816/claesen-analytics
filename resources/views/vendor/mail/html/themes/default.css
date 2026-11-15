@@ -59,7 +59,7 @@ h3 {
 }
 
 p {
-    font-size: 16px;
+    font-size: 15px;
     margin-top: 0;
     text-align: left;
 }
@@ -96,6 +96,13 @@ img {
     word-break: break-all;
 }
 
+/* CLA-689: the break-all above lets the fallback URL wrap; a button label must never
+   break inside a word ("Wachtwoord aanm / aken" in the Gmail app). */
+.inner-body a.button {
+    white-space: nowrap;
+    word-break: normal;
+}
+
 .content-cell {
     max-width: 100vw;
     padding: 36px 40px 40px;
@@ -109,13 +116,13 @@ img {
 
 .subcopy p {
     color: #495057;
-    font-size: 14px;
-    line-height: 22px;
+    font-size: 13px;
+    line-height: 20px;
 }
 
 .footer-cell p {
     color: #c3cedf;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 20px;
     margin: 0;
 }
@@ -136,7 +143,7 @@ img {
     -webkit-text-size-adjust: none;
     border-radius: 12px;
     display: inline-block;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
     line-height: 20px;
     padding: 17px 32px;
