@@ -56,7 +56,7 @@ class AnalyzeEmployeeJob implements ShouldQueue
                 $project = $entries->first()->project;
                 return [
                     'project_id' => $entries->first()->project_id,
-                    'project_name' => $project ? $project->name : 'Unknown Project',
+                    'project_name' => $project ? (trim($project->descr ?? '') ?: $project->name) : 'Unknown Project',
                     'hours_spent' => $entries->sum('hours'),
                     'last_worked' => $entries->max('date'),
                 ];
@@ -78,7 +78,7 @@ class AnalyzeEmployeeJob implements ShouldQueue
         if (empty($activeProjects) && $history->isNotEmpty()) {
             $activeProjects = $history->where('date', '>=', now()->subDays(30))
                 ->load('project')
-                ->pluck('project.name')
+                ->map(fn ($l) => $l->project ? (trim($l->project->descr ?? '') ?: $l->project->name) : null)
                 ->unique()
                 ->filter()
                 ->values()

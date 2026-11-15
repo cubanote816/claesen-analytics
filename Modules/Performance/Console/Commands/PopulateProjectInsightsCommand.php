@@ -60,7 +60,8 @@ class PopulateProjectInsightsCommand extends Command
 
                     $fullDna = [
                         'project_id' => $projectId,
-                        'name' => trim($project->name ?? 'Unknown'),
+                        // CLA-688: project.name is the client in CAFCA; the project name is descr.
+                        'name' => trim($project->descr ?? '') ?: (trim($project->name ?? '') ?: 'Unknown'),
                         'zipcode' => trim($project->zip ?? '0000'),
                         'city' => trim($project->city ?? 'Unknown'),
                         'category' => trim($project->aard ?? 'General'),

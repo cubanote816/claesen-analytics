@@ -93,10 +93,18 @@ class ProjectInsightResource extends Resource
                     ->icon('heroicon-m-finger-print')
                     ->columns(2)
                     ->schema([
-                        TextEntry::make('project.name')
+                        // CLA-688: `project.name` is the client in CAFCA; the project name is `descr`.
+                        TextEntry::make('project.descr')
                             ->label(__('performance::project_insight.fields.project_name'))
+                            ->state(fn ($record) => trim($record->project?->descr ?? '') ?: $record->project?->name)
                             ->weight('bold')
                             ->color('primary'),
+                        TextEntry::make('client_name')
+                            ->label(app()->getLocale() === 'nl' ? 'Klant' : 'Client')
+                            ->state(fn ($record) => $record->project?->relation_id
+                                ? \Modules\Performance\Models\Mirror\MirrorRelation::find($record->project->relation_id)?->name
+                                : null)
+                            ->placeholder('N/A'),
                         TextEntry::make('project.manager.name')
                             ->label(__('performance::project_insight.fields.project_manager'))
                             ->placeholder('N/A'),

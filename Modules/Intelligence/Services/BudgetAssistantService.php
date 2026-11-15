@@ -100,7 +100,7 @@ class BudgetAssistantService
                        ($l['golden_rule'] ? "Succesfactor (te volgen): {$l['golden_rule']}." : "");
             })->filter()->implode("\n");
 
-            $projectNames = collect($similarProjects)->map(fn($p) => "- {$p['name']} ({$p['city']}, {$p['year']})")->implode("\n");
+            $projectNames = collect($similarProjects)->map(fn($p) => "- {$p['name']}" . (!empty($p['client']) ? " — klant: {$p['client']}" : "") . " ({$p['city']}, {$p['year']})")->implode("\n");
 
             // ... Prepare and Call AI ...
             $baseUrl = config('services.gemini.url', 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent');

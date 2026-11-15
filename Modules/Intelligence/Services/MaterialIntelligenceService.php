@@ -5,6 +5,7 @@ namespace Modules\Intelligence\Services;
 use Modules\Performance\Models\Mirror\MirrorMaterial;
 use Modules\Performance\Models\Mirror\MirrorCost;
 use Modules\Performance\Models\Mirror\MirrorProject;
+use Modules\Performance\Models\Mirror\MirrorRelation;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -96,10 +97,11 @@ EOT;
         $summary = "";
         foreach ($costs as $cost) {
             $project = MirrorProject::find($cost->project_id);
-            $projectName = $project ? $project->name : "Onbekend project";
+            $projectName = $project ? $project->display_name : "Onbekend project";
+            $client = $project?->relation_id ? MirrorRelation::find($project->relation_id)?->name : null;
             $projectCat = $project ? $project->category : "Onbekende categorie";
             
-            $summary .= "- Project: {$projectName} ({$projectCat})\n";
+            $summary .= "- Project: {$projectName} ({$projectCat})" . ($client ? " — klant: {$client}" : "") . "\n";
         }
 
         return $summary;

@@ -34,6 +34,12 @@
                     <span class="detail-label">Project:</span>
                     <span class="detail-value">{{ $projectData['id'] }} - {{ $projectData['name'] ?? 'Unknown' }}</span>
                 </div>
+                @if(!empty($projectData['client_name']))
+                <div class="detail-row">
+                    <span class="detail-label">Klant:</span>
+                    <span class="detail-value">{{ $projectData['client_name'] }}</span>
+                </div>
+                @endif
                 <div class="detail-row">
                     <span class="detail-label">Huidige WIP (Onderhanden Werk):</span>
                     <span class="detail-value" style="color: #ef4444;">€ {{ number_format($projectData['wip'], 2, ',', '.') }}</span>

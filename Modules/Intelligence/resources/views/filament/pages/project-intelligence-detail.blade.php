@@ -94,7 +94,7 @@
                     @endif
                 </div>
                 <h2 class="mt-1 text-xl font-semibold text-gray-900 dark:text-white">
-                    {{ $project->name }}
+                    {{ $project->display_name }}
                 </h2>
                 @if($relation)
                     <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">

@@ -7,6 +7,7 @@ namespace Modules\Safety\Services;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Modules\Performance\Models\Mirror\MirrorProject;
+use Modules\Performance\Models\Mirror\MirrorRelation;
 use Modules\Safety\Models\Inspection;
 
 class ComplianceService
@@ -22,7 +23,7 @@ class ComplianceService
      * unknown so they are grouped separately rather than promoted to top.
      *
      * @param  int|null  $days  Override the compliance_days config threshold.
-     * @return Collection<int, array{project_id:string, project_name:string, project_code:null, last_inspection_date:string|null, days_since_inspection:int|null}>
+     * @return Collection<int, array{project_id:string, project_name:string, client_name:string|null, project_code:null, last_inspection_date:string|null, days_since_inspection:int|null}>
      */
     public function getNonCompliantProjects(?int $days = null): Collection
     {
@@ -46,8 +47,12 @@ class ComplianceService
 
         $cutoff = now()->subDays($days);
 
+        // CLA-688: `project.name` is the client in CAFCA; the project name is `descr`.
+        $clients = MirrorRelation::whereIn('id', $activeProjects->pluck('relation_id')->filter()->unique()->values())
+            ->pluck('name', 'id');
+
         return $activeProjects
-            ->map(function (MirrorProject $project) use ($latestDates, $cutoff): ?array {
+            ->map(function (MirrorProject $project) use ($latestDates, $cutoff, $clients): ?array {
                 $rawDate    = $latestDates->get($project->id);
                 $lastCarbon = $rawDate ? Carbon::parse($rawDate) : null;
 
@@ -57,7 +62,8 @@ class ComplianceService
 
                 return [
                     'project_id'            => $project->id,
-                    'project_name'          => $project->name,
+                    'project_name'          => $project->display_name,
+                    'client_name'           => $project->relation_id ? $clients->get($project->relation_id) : null,
                     'project_code'          => null,
                     'last_inspection_date'  => $lastCarbon?->toDateString(),
                     'days_since_inspection' => $lastCarbon ? (int) $lastCarbon->diffInDays(now()) : null,

@@ -43,7 +43,8 @@ class ProjectIntelligenceDetail extends Page
         if (!$project) {
             abort(404);
         }
-        $this->projectName = $project->name ?? $this->projectId;
+        // CLA-688: `project.name` is the client in CAFCA; the project name is `descr`.
+        $this->projectName = $project->display_name;
     }
 
     public function getTitle(): string

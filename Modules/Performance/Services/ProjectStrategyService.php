@@ -4,6 +4,7 @@ namespace Modules\Performance\Services;
 
 use Modules\Cafca\Models\Project;
 use Modules\Performance\Models\Mirror\MirrorProject;
+use Modules\Performance\Models\Mirror\MirrorRelation;
 use Modules\Performance\Models\Mirror\MirrorInvoice;
 use Modules\Performance\Models\Mirror\MirrorCost;
 use Modules\Performance\Models\Mirror\MirrorLabor;
@@ -41,13 +42,18 @@ class ProjectStrategyService
         // 3. Gather Operational Context (Hours, categories)
         $operational = $this->getOperationalMetrics($projectId);
 
+        // CLA-688: `project.name` is the client in CAFCA; the project name is `descr`.
+        $projectName = trim($project->descr ?? '') ?: $project->name;
+        $clientName = $project->relation_id ? (MirrorRelation::find($project->relation_id)?->name ?? '-') : '-';
+
         // 4. Build Prompt
         $prompt = <<<PROMPT
 ROLE: Senior Project Strateeg voor Claesen Verlichting (Technische installaties).
 TASK: Genereer een post-mortem SWOT-analyse (DAFO) voor een AFGEROND project.
 
 PROJECT CONFIGURATIE (Geheim/Intern):
-- Naam: {$project->name}
+- Naam: {$projectName}
+- Klant: {$clientName}
 - Type: {$project->type}
 - Totale Opbrengst: €{$financials['total_invoiced']}
 - Totale Kosten: €{$financials['total_costs']}

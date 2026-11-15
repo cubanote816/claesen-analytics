@@ -7,6 +7,7 @@ use Modules\Performance\Models\Mirror\MirrorProject;
 use Modules\Performance\Models\Mirror\MirrorInvoice;
 use Modules\Performance\Models\Mirror\MirrorCost;
 use Modules\Performance\Models\Mirror\MirrorLabor;
+use Modules\Performance\Models\Mirror\MirrorRelation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -32,7 +33,7 @@ class CashFlowWatchdogService
      */
     public function generateRiskReport(): array|string
     {
-        $cacheKey = 'cashflow_watchdog_report_v21_' . app()->getLocale() . '_' . now()->format('Y-W');
+        $cacheKey = 'cashflow_watchdog_report_v22_' . app()->getLocale() . '_' . now()->format('Y-W');
         
         return Cache::remember($cacheKey, now()->addHours(2), function () {
             $activeProjects = MirrorProject::where('fl_active', 1)->get();
@@ -50,7 +51,9 @@ class CashFlowWatchdogService
                 if ($isWipTrap || $isStale) {
                     $riskData = [
                         'id' => $project->id,
-                        'name' => $project->name,
+                        // CLA-688: `project.name` is the client in CAFCA; the project name is `descr`.
+                        'name' => $project->display_name,
+                        'client_name' => $project->relation_id ? MirrorRelation::find($project->relation_id)?->name : null,
                         'wip' => $wip,
                         'stale_days' => $staleDays,
                         'total_costs' => $financials['total_costs'],
@@ -117,7 +120,7 @@ class CashFlowWatchdogService
         $recipient = config('performance.watchdog.vanguard_email');
 
         foreach ($alerts as $alert) {
-            Log::warning("VANGUARD ALERT: Critical risk on project {$alert['id']} ({$alert['name']}). WIP: €{$alert['wip']}");
+            Log::warning("VANGUARD ALERT: Critical risk on project {$alert['id']} ({$alert['name']}), client: " . ($alert['client_name'] ?? '-') . ". WIP: €{$alert['wip']}");
 
             if (empty($recipient)) {
                 Log::warning("CashFlowWatchdogService: no recipient configured (performance.watchdog.vanguard_email) — Vanguard e-mail for project {$alert['id']} not sent.");
@@ -136,7 +139,7 @@ class CashFlowWatchdogService
     private function buildAndSendStructuredPrompt(Collection $riskyProjects): array|string
     {
         $projectList = $riskyProjects->take(10)->map(function($p) {
-            return "ID: {$p['id']}, Project: {$p['name']}, WIP: €".number_format($p['wip'], 2).", Stale Days: {$p['stale_days']}, Risk: {$p['risk_level']}";
+            return "ID: {$p['id']}, Project: {$p['name']}, Client: ".($p['client_name'] ?? '-').", WIP: €".number_format($p['wip'], 2).", Stale Days: {$p['stale_days']}, Risk: {$p['risk_level']}";
         })->implode("\n");
 
         $language = app()->getLocale() === 'nl' ? 'DUTCH (NL)' : 'ENGLISH (EN)';
