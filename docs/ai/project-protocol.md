@@ -142,4 +142,11 @@ Luego leer el documento específico del módulo activo según la tabla en `docs/
 - No imprimir claves, tokens ni credenciales.
 - No incluir valores reales de variables de entorno en documentación o commits.
 - No hacer push automático salvo instrucción explícita.
+- **Antes de cada push, verificar el remoto (requisito del usuario, 2026-11-15).** Hay varios worktrees y sesiones empujando en paralelo; nunca pisar trabajo ajeno ni romper la app:
+  1. `git fetch origin --prune` y revisar `git log --oneline <base>..origin/main` (y la rama remota propia, si existe): qué entró desde que se creó la rama.
+  2. Cruzar archivos: `comm -12 <(git diff --name-only <base> origin/main | sort) <(git diff --name-only <base> HEAD | sort)`.
+  3. Integrar con `git rebase origin/main` (o merge si la rama ya está publicada). En conflictos, **conservar los cambios de ambos lados** (p. ej. filas de `handoff.md`); nunca resolver descartando el trabajo del otro.
+  4. Correr la **suite completa** sobre el resultado integrado, no solo los módulos tocados. Si algo falla, no se empuja.
+  5. Push sin `--force`. Si la rama remota ya existía, solo `--force-with-lease` y con aprobación explícita.
+  6. Antes de abrir o mergear un PR, repetir el fetch: si `origin/main` volvió a moverse, volver al paso 1.
 - No marcar Done en Linear hasta recibir GO técnico.
