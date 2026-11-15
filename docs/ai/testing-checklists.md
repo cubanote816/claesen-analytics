@@ -41,7 +41,7 @@ php artisan test --testsuite=Feature
 - Suite `Unit` → `tests/Unit/`
 - Suite `Feature` → `tests/Feature/`
 - Suite `Modules` → todos los `*Test.php` bajo `Modules/`
-- `DB_DATABASE=testing` (MySQL de test)
+- `DB_DATABASE=claesen_analytics_web_testing` (MySQL de test, sin `force`: el entorno del proceso lo sobrescribe). Desde un worktree, correr con `bin/wt-test`, que usa una base propia `testing_<worktree>` (CLA-690, ver `commands-runbook.md` → Tests)
 - `QUEUE_CONNECTION=sync` (jobs síncronos en tests)
 - `MAIL_MAILER=array` (correos en memoria)
 
