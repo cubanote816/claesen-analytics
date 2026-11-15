@@ -40,7 +40,9 @@ class AiSpendEstimator
             throw new AiSpendRefused('pricing_unknown', "No image price is configured for `{$model}`.");
         }
 
-        $inputTokens = (int) ceil(max(0, $textBytes) / 2);
+        // A byte-level BPE token decodes to at least one byte: the byte count is a true upper
+        // bound of the text tokens (bytes / 2 was only a heuristic).
+        $inputTokens = max(0, $textBytes);
         if (! $isImage) {
             $inputTokens += (int) ($price['image_input_tokens_max'] ?? 30000) * max(0, $images);
         }

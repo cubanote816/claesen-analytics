@@ -201,12 +201,23 @@ TXT;
 
             $requestId = $response->header('x-request-id') ?: null;
             if ($response->successful()) {
-                $json = $response->json();
-                $json = is_array($json) ? $json : [];
-                $requestId ??= is_string($json['id'] ?? null) ? substr($json['id'], 0, 100) : null;
-                $usage = is_array($json['usage'] ?? null) ? $json['usage'] : [];
+                try {
+                    $json = $response->json();
+                    $json = is_array($json) ? $json : [];
+                    $requestId ??= is_string($json['id'] ?? null) ? substr($json['id'], 0, 100) : null;
+                    $usage = is_array($json['usage'] ?? null) ? $json['usage'] : [];
 
-                return [$json, $this->ledger->settle($entry, $usage, $requestId)];
+                    return [$json, $this->ledger->settle($entry, $usage, $requestId)];
+                } catch (Throwable $e) {
+                    // OpenAI answered: whatever failed here, the reservation must keep counting
+                    // (uncertain) — never stay stranded as `reserved`, never be released.
+                    try {
+                        $this->ledger->markUncertain($entry, 'settle_failed', $requestId);
+                    } catch (Throwable) {
+                        // Left `reserved`: still counted, and reconcilable once stale.
+                    }
+                    throw $e;
+                }
             }
 
             // The request reached OpenAI: the cost is uncertain, the reservation stays.

@@ -40,19 +40,25 @@ class AiSpendLedger
     }
 
     /** The admin override when present, else the configured limit (USD). */
-    public function effectiveLimit(int $organizationId): float
+    /**
+     * The limit in force. `$current` = a locking read (`LOCK IN SHARE MODE`): it sees the latest
+     * committed value instead of the transaction snapshot; use it under the day lock.
+     */
+    public function effectiveLimit(int $organizationId, bool $current = false): float
     {
-        $override = KnxAiSpendSetting::query()->where('organization_id', $organizationId)->value('daily_limit_usd');
+        $query = KnxAiSpendSetting::query()->where('organization_id', $organizationId);
+        $override = ($current ? $query->sharedLock() : $query)->value('daily_limit_usd');
 
         return round(max(0.0, $override !== null ? (float) $override : (float) config('knx.ai_spend.daily_limit_usd', 0)), 6);
     }
 
     /** Settled actual costs + reserved + uncertain reservations of today. */
-    public function committedUsd(int $organizationId, ?string $day = null): float
+    public function committedUsd(int $organizationId, ?string $day = null, bool $current = false): float
     {
-        $sum = KnxAiSpendEntry::query()
+        $query = KnxAiSpendEntry::query()
             ->where('organization_id', $organizationId)
-            ->where('day', $day ?? $this->budgetDay())
+            ->where('day', $day ?? $this->budgetDay());
+        $sum = ($current ? $query->sharedLock() : $query)
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'settled' THEN COALESCE(actual_usd, 0) WHEN status IN ('reserved', 'uncertain') THEN reserved_usd ELSE 0 END), 0) AS committed")
             ->value('committed');
 
@@ -72,23 +78,33 @@ class AiSpendLedger
         $entry = DB::transaction(function () use ($context, $provider, $operation, $model, $usd): KnxAiSpendEntry {
             $orgId = $context->organizationId;
             $day = $this->budgetDay();
-            $limit = $this->effectiveLimit($orgId);
             $usd = round($usd, 6);
 
-            $this->lockDay($orgId, $day, $limit);
+            // Lock FIRST, then read with locking reads: under REPEATABLE READ a plain SELECT
+            // before the lock would fix a snapshot that misses reservations committed meanwhile.
+            $this->lockDay($orgId, $day);
+            $limit = $this->effectiveLimit($orgId, current: true);
+            $this->snapshotLimit($orgId, $day, $limit);
 
-            $committed = $this->committedUsd($orgId, $day);
+            $committed = $this->committedUsd($orgId, $day, current: true);
             if (round($committed + $usd, 6) > $limit) {
                 $remaining = round(max(0.0, $limit - $committed), 6);
                 $this->logRefusal('daily_budget_exhausted', $context, $provider, $operation, $model, $usd, $remaining);
-                throw new AiSpendRefused('daily_budget_exhausted', 'The daily OpenAI spend limit is reached.', $remaining, $this->resumesAt());
+                $resumesAt = $this->resumesAt();
+                throw new AiSpendRefused(
+                    'daily_budget_exhausted',
+                    "The daily OpenAI spend limit is reached; processing resumes at {$resumesAt} (Europe/Brussels) or when an administrator adjusts the limit.",
+                    $remaining,
+                    $resumesAt,
+                );
             }
 
             $processing = KnxAiSpendEntry::query()
                 ->where('organization_id', $orgId)
                 ->where('processing_id', $context->processingId)
-                ->where('status', '!=', KnxAiSpendEntry::RELEASED);
-            if ($processing->count() >= max(0, (int) config('knx.ai_spend.max_calls_per_processing', 2))) {
+                ->where('status', '!=', KnxAiSpendEntry::RELEASED)
+                ->sharedLock();
+            if ((clone $processing)->count() >= max(0, (int) config('knx.ai_spend.max_calls_per_processing', 2))) {
                 $this->logRefusal('processing_call_limit', $context, $provider, $operation, $model, $usd, null);
                 throw new AiSpendRefused('processing_call_limit', 'This processing used up its OpenAI calls.');
             }
@@ -182,7 +198,10 @@ class AiSpendLedger
      */
     public function reconcile(KnxAiSpendEntry $entry, float $actualUsd, int $employeeId, ?string $note): KnxAiSpendEntry
     {
-        $this->transition($entry, [KnxAiSpendEntry::UNCERTAIN], function (KnxAiSpendEntry $fresh) use ($actualUsd, $employeeId, $note): void {
+        $this->transition($entry, [KnxAiSpendEntry::UNCERTAIN, KnxAiSpendEntry::RESERVED], function (KnxAiSpendEntry $fresh) use ($actualUsd, $employeeId, $note): void {
+            if ($fresh->status === KnxAiSpendEntry::RESERVED && ! $this->isStranded($fresh)) {
+                throw new LogicException('A reservation that may still be running cannot be reconciled.');
+            }
             $fresh->fill([
                 'status' => KnxAiSpendEntry::SETTLED,
                 'actual_usd' => round($actualUsd, 6),
@@ -206,12 +225,11 @@ class AiSpendLedger
     /**
      * Creates the day row if needed and locks it (`SELECT ... FOR UPDATE`) until commit.
      */
-    private function lockDay(int $organizationId, string $day, float $limit): void
+    private function lockDay(int $organizationId, string $day): void
     {
         DB::table('knx_ai_spend_days')->insertOrIgnore([
             'organization_id' => $organizationId,
             'day' => $day,
-            'limit_usd' => $limit,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -220,10 +238,43 @@ class AiSpendLedger
             ->where('day', $day)
             ->lockForUpdate()
             ->first();
+    }
+
+    /** Records the limit the day was checked against (informative). */
+    private function snapshotLimit(int $organizationId, string $day, float $limit): void
+    {
         DB::table('knx_ai_spend_days')
             ->where('organization_id', $organizationId)
             ->where('day', $day)
             ->update(['limit_usd' => $limit, 'updated_at' => now()]);
+    }
+
+    /**
+     * Runs `$fn` in a transaction holding today's day lock, so a change (e.g. the limit) is
+     * serialized with the reservations: it applies to the next one, never in the middle of one.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $fn
+     * @return T
+     */
+    public function underDayLock(int $organizationId, callable $fn): mixed
+    {
+        return DB::transaction(function () use ($organizationId, $fn): mixed {
+            $this->lockDay($organizationId, $this->budgetDay());
+
+            return $fn();
+        });
+    }
+
+    /** A `reserved` entry older than the stale threshold never got its outcome recorded. */
+    public function isStranded(KnxAiSpendEntry $entry): bool
+    {
+        $minutes = max(1, (int) config('knx.ai_spend.stale_reservation_minutes', 15));
+
+        return $entry->status === KnxAiSpendEntry::RESERVED
+            && $entry->created_at !== null
+            && $entry->created_at->lte(now()->subMinutes($minutes));
     }
 
     /**
@@ -233,12 +284,14 @@ class AiSpendLedger
     private function transition(KnxAiSpendEntry $entry, array $from, callable $apply): void
     {
         DB::transaction(function () use ($entry, $from, $apply): void {
-            $this->lockDay($entry->organization_id, $entry->day->toDateString(), $this->effectiveLimit($entry->organization_id));
-            $entry->refresh();
-            if (! in_array($entry->status, $from, true)) {
-                throw new LogicException("A ledger entry that is `{$entry->status}` cannot take this transition.");
+            $this->lockDay($entry->organization_id, $entry->day->toDateString());
+            // A locking read: the entry as last committed, never a stale snapshot.
+            $fresh = KnxAiSpendEntry::query()->whereKey($entry->getKey())->lockForUpdate()->firstOrFail();
+            if (! in_array($fresh->status, $from, true)) {
+                throw new LogicException("A ledger entry that is `{$fresh->status}` cannot take this transition.");
             }
-            $apply($entry);
+            $apply($fresh);
+            $entry->setRawAttributes($fresh->getAttributes(), true);
         });
     }
 

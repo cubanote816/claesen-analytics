@@ -52,6 +52,40 @@ final class KnxAiSpendLedgerTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_nothing_is_read_before_the_day_lock(): void
+    {
+        // Under REPEATABLE READ the first plain SELECT fixes the snapshot: the limit, the
+        // committed sum and the caps must all be read AFTER the day row is locked.
+        $locked = false;
+        $early = [];
+        DB::listen(function ($query) use (&$locked, &$early): void {
+            $sql = strtolower($query->sql);
+            if (str_contains($sql, 'knx_ai_spend_days') && str_contains($sql, 'for update')) {
+                $locked = true;
+            }
+            if (! $locked && str_starts_with(ltrim($sql), 'select')
+                && (str_contains($sql, 'knx_ai_spend_settings') || str_contains($sql, 'knx_ai_spend_entries'))) {
+                $early[] = $sql;
+            }
+        });
+
+        $this->reserve(0.1);
+
+        $this->assertTrue($locked);
+        $this->assertSame([], $early);
+    }
+
+    public function test_the_daily_refusal_says_when_it_resumes_and_that_an_administrator_can_adjust_it(): void
+    {
+        config(['knx.ai_spend.daily_limit_usd' => 0.05]);
+
+        $refused = $this->refusal(fn () => $this->reserve(0.1));
+
+        $this->assertSame('daily_budget_exhausted', $refused->reason);
+        $this->assertStringContainsString('administrator', $refused->getMessage());
+        $this->assertStringContainsString('Europe/Brussels', $refused->getMessage());
+    }
+
     private function ledger(): AiSpendLedger
     {
         return app(AiSpendLedger::class);

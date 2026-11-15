@@ -6,6 +6,7 @@ namespace Modules\Knx\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\Core\Models\Organization;
@@ -247,6 +248,37 @@ final class KnxAiSpendAdminTest extends TestCase
             $this->assertNull($fresh->reconciled_by_employee_id);
             $this->assertEquals($actual, $fresh->actual_usd === null ? null : (float) $fresh->actual_usd);
         }
+    }
+
+    public function test_a_reservation_stranded_for_more_than_15_minutes_can_be_reconciled(): void
+    {
+        // A crash between sending and settling can leave `reserved` behind: still counting,
+        // so an administrator must be able to close it once it is clearly stale.
+        $stale = $this->entry('reserved', 0.5, null, '2026-01-15');
+        // `created_at` is not mass assignable: age the reservation explicitly.
+        $stale->forceFill(['created_at' => now()->subMinutes(20)])->save();
+
+        $this->postJson("/api/v1/knx/ai-spend/entries/{$stale->getKey()}/reconcile", ['actualUsd' => 0.2])->assertOk();
+
+        $fresh = $stale->fresh();
+        $this->assertSame('settled', $fresh->status);
+        $this->assertEquals(0.2, (float) $fresh->actual_usd);
+        $this->assertSame('reconciled', $fresh->reason);
+    }
+
+    public function test_changing_the_limit_takes_the_day_lock(): void
+    {
+        $locked = false;
+        DB::listen(function ($query) use (&$locked): void {
+            $sql = strtolower($query->sql);
+            if (str_contains($sql, 'knx_ai_spend_days') && str_contains($sql, 'for update')) {
+                $locked = true;
+            }
+        });
+
+        $this->putJson('/api/v1/knx/ai-spend/limit', ['dailyLimitUsd' => 3])->assertOk();
+
+        $this->assertTrue($locked);
     }
 
     public function test_another_organizations_entry_is_a_404(): void

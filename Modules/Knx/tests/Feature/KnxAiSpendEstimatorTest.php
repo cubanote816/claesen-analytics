@@ -47,15 +47,15 @@ final class KnxAiSpendEstimatorTest extends TestCase
 
     public function test_the_reservation_is_an_upper_bound_with_image_tokens_and_max_output(): void
     {
-        // text: 2000 bytes / 2 = 1000 tokens; image: 30000; output: 4000.
-        // (31000 * 1.00 + 4000 * 5.00) / 1e6 = 0.051
-        $this->assertSame(0.051, $this->estimator()->reservationFor('m-test', 2000, 1, 4000));
+        // text: 2000 bytes -> at most 2000 tokens (a byte-level BPE token is at least one byte);
+        // image: 30000; output: 4000. (32000 * 1.00 + 4000 * 5.00) / 1e6 = 0.052
+        $this->assertSame(0.052, $this->estimator()->reservationFor('m-test', 2000, 1, 4000));
     }
 
     public function test_the_text_estimate_rounds_up_and_the_result_rounds_up_to_six_decimals(): void
     {
-        // 3 bytes -> 2 tokens; (2 * 1.00 + 1 * 5.00) / 1e6 = 7e-6
-        $this->assertSame(0.000007, $this->estimator()->reservationFor('m-test', 3, 0, 1));
+        // 3 bytes -> at most 3 tokens; (3 * 1.00 + 1 * 5.00) / 1e6 = 8e-6
+        $this->assertSame(0.000008, $this->estimator()->reservationFor('m-test', 3, 0, 1));
         // 1 token at $0.05/1M would be 5e-8: still rounded UP to a millionth.
         config(['knx.ai_spend.models.m-test' => ['input' => 0.05, 'cached_input' => 0.01, 'output' => 0.05]]);
         $this->assertSame(0.000001, $this->estimator()->reservationFor('m-test', 1, 0, 1));
@@ -63,18 +63,19 @@ final class KnxAiSpendEstimatorTest extends TestCase
 
     public function test_above_272k_input_tokens_the_whole_request_uses_the_long_context_prices(): void
     {
-        // 540000 bytes -> 270000 text tokens + 30000 image = 300000 > 272000.
+        // 270000 bytes -> 270000 text tokens + 30000 image = 300000 > 272000.
         // input x2, output x1.5: (300000 * 2.00 + 1000 * 5.00 * 1.5) / 1e6 = 0.6075
-        $this->assertSame(0.6075, $this->estimator()->reservationFor('m-test', 540000, 1, 1000));
+        $this->assertSame(0.6075, $this->estimator()->reservationFor('m-test', 270000, 1, 1000));
         // Exactly at the threshold is NOT long context: 242000 + 30000 = 272000.
-        $this->assertSame(0.272, $this->estimator()->reservationFor('m-test', 484000, 1, 0));
+        $this->assertSame(0.272, $this->estimator()->reservationFor('m-test', 242000, 1, 0));
     }
 
     public function test_the_residency_multiplier_and_attempts_scale_the_reservation(): void
     {
         config(['knx.ai_spend.data_residency_multiplier' => 1.1]);
-        $this->assertSame(0.0561, $this->estimator()->reservationFor('m-test', 2000, 1, 4000));
-        $this->assertSame(0.1122, $this->estimator()->reservationFor('m-test', 2000, 1, 4000, attempts: 2));
+        // 0.052 (see the upper-bound test) x 1.1 residency; x 2 attempts.
+        $this->assertSame(0.0572, $this->estimator()->reservationFor('m-test', 2000, 1, 4000));
+        $this->assertSame(0.1144, $this->estimator()->reservationFor('m-test', 2000, 1, 4000, attempts: 2));
     }
 
     public function test_an_image_operation_is_priced_per_generated_image(): void

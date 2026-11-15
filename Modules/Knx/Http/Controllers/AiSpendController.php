@@ -36,10 +36,10 @@ class AiSpendController extends Controller
             'dailyLimitUsd' => ['required', 'numeric', 'min:0', 'max:'.self::MAX_USD],
         ]);
 
-        KnxAiSpendSetting::query()->updateOrCreate(
+        $this->ledger->underDayLock($employee->organization_id, fn () => KnxAiSpendSetting::query()->updateOrCreate(
             ['organization_id' => $employee->organization_id],
             ['daily_limit_usd' => round((float) $validated['dailyLimitUsd'], 6), 'updated_by_employee_id' => $employee->getKey()],
-        );
+        ));
         Log::info('knx.ai_spend.limit_changed', [
             'org' => $employee->organization_id,
             'daily_limit_usd' => round((float) $validated['dailyLimitUsd'], 6),
@@ -52,7 +52,7 @@ class AiSpendController extends Controller
     public function resetLimit(Request $request): array
     {
         $employee = $this->employee($request);
-        KnxAiSpendSetting::query()->where('organization_id', $employee->organization_id)->delete();
+        $this->ledger->underDayLock($employee->organization_id, fn () => KnxAiSpendSetting::query()->where('organization_id', $employee->organization_id)->delete());
         Log::info('knx.ai_spend.limit_reset', ['org' => $employee->organization_id, 'employee_id' => $employee->getKey()]);
 
         return $this->summary($employee->organization_id);
@@ -76,7 +76,8 @@ class AiSpendController extends Controller
             'code' => 'ai_spend_not_uncertain',
             'errors' => (object) [],
         ], 409);
-        if ($entry->status !== KnxAiSpendEntry::UNCERTAIN) {
+        // Uncertain entries, and reservations stranded long enough to never settle on their own.
+        if ($entry->status !== KnxAiSpendEntry::UNCERTAIN && ! $this->ledger->isStranded($entry)) {
             return $notUncertain;
         }
 

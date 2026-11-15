@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Modules\Core\Models\Organization;
 use Modules\Knx\Models\KnxAiSpendEntry;
+use Modules\Knx\Services\AiSpend\AiSpendEstimator;
+use Modules\Knx\Services\AiSpend\AiSpendLedger;
 use Modules\Knx\Services\PlanAnalysis\OpenAiApiKeyCredentials;
 use Modules\Knx\Services\PlanAnalysis\OpenAiCredentialSource;
 use Modules\Knx\Services\PlanAnalysis\OpenAiPlanAnalysisProvider;
@@ -38,6 +40,31 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         Http::preventStrayRequests();
         Cache::flush();
         Organization::factory()->create(['slug' => 'electro-bertels']);
+    }
+
+    public function test_an_exception_after_the_request_was_sent_leaves_the_reservation_uncertain(): void
+    {
+        $this->enableOpenAi();
+        Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
+        // The database fails while settling: OpenAI already answered, so the reservation must
+        // keep counting (uncertain), never stay stranded as `reserved` nor be released.
+        $this->app->singleton(AiSpendLedger::class, fn ($app) => new class($app->make(AiSpendEstimator::class)) extends AiSpendLedger
+        {
+            public function settle(KnxAiSpendEntry $entry, array $responseUsage, ?string $requestId): KnxAiSpendEntry
+            {
+                throw new \RuntimeException('database unavailable');
+            }
+        });
+
+        try {
+            app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true);
+            $this->fail('Expected the settlement failure to surface.');
+        } catch (\Throwable) {
+        }
+
+        $entry = KnxAiSpendEntry::query()->sole();
+        $this->assertSame('uncertain', $entry->status);
+        $this->assertSame('settle_failed', $entry->reason);
     }
 
     private function input(string $png = "\x89PNG-synthetic"): PlanAnalysisInput

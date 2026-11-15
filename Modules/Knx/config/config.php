@@ -209,6 +209,9 @@ return [
         'timezone' => 'Europe/Brussels',
         'max_calls_per_processing' => (int) env('KNX_AI_MAX_CALLS_PER_PROCESSING', 2),
         'max_cost_per_processing_usd' => (float) env('KNX_AI_MAX_COST_PER_PROCESSING_USD', 0.50),
+        // A `reserved` entry older than this never got its answer recorded (e.g. a crash
+        // between sending and settling): an administrator may reconcile it.
+        'stale_reservation_minutes' => (int) env('KNX_AI_STALE_RESERVATION_MINUTES', 15),
         'data_residency_multiplier' => (float) env('KNX_AI_DATA_RESIDENCY_MULTIPLIER', 1.0),
         'models' => [
             'gpt-6.1-terra' => ['input' => 1.00, 'cached_input' => 0.05, 'output' => 5.00, 'image_input_tokens_max' => 30000],
