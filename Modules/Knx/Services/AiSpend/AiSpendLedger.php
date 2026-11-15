@@ -175,6 +175,35 @@ class AiSpendLedger
     }
 
     /**
+     * An admin fixes the real cost of an `uncertain` reservation: it stops counting its
+     * reservation and counts the actual amount instead.
+     *
+     * @throws LogicException when the entry is not (any longer) `uncertain`
+     */
+    public function reconcile(KnxAiSpendEntry $entry, float $actualUsd, int $employeeId, ?string $note): KnxAiSpendEntry
+    {
+        $this->transition($entry, [KnxAiSpendEntry::UNCERTAIN], function (KnxAiSpendEntry $fresh) use ($actualUsd, $employeeId, $note): void {
+            $fresh->fill([
+                'status' => KnxAiSpendEntry::SETTLED,
+                'actual_usd' => round($actualUsd, 6),
+                'reason' => 'reconciled',
+                'settled_at' => now(),
+                'reconciled_by_employee_id' => $employeeId,
+                'reconciled_note' => $note === null || $note === '' ? null : $note,
+            ])->save();
+        });
+        Log::info('knx.ai_spend.reconciled', [
+            'entry_id' => $entry->getKey(),
+            'org' => $entry->organization_id,
+            'reserved_usd' => (float) $entry->reserved_usd,
+            'actual_usd' => (float) $entry->actual_usd,
+            'employee_id' => $employeeId,
+        ]);
+
+        return $entry;
+    }
+
+    /**
      * Creates the day row if needed and locks it (`SELECT ... FOR UPDATE`) until commit.
      */
     private function lockDay(int $organizationId, string $day, float $limit): void

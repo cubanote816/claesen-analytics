@@ -32,6 +32,7 @@ class KnxAiSpendEntry extends Model
         'organization_id', 'day', 'provider', 'operation', 'model', 'status',
         'reserved_usd', 'actual_usd', 'usage', 'project_id', 'document_id', 'page',
         'processing_id', 'request_id', 'reason', 'created_by_employee_id', 'settled_at',
+        'reconciled_by_employee_id', 'reconciled_note',
     ];
 
     protected function casts(): array
@@ -42,6 +43,11 @@ class KnxAiSpendEntry extends Model
             'page' => 'integer',
             'settled_at' => 'datetime',
         ];
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(KnxProject::class, 'project_id');
     }
 
     public function createdBy(): BelongsTo

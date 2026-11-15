@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Core\Http\Middleware\SetLocaleFromHeader;
 use Modules\Knx\Http\Controllers\AcceptanceTestController;
+use Modules\Knx\Http\Controllers\AiSpendController;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\BoardController;
@@ -36,6 +37,7 @@ use Modules\Knx\Http\Controllers\ProjectController;
 use Modules\Knx\Http\Controllers\ReportController;
 use Modules\Knx\Http\Controllers\RoomController;
 use Modules\Knx\Http\Controllers\ZoneController;
+use Modules\Knx\Http\Middleware\EnsureKnxAdmin;
 use Modules\Knx\Http\Middleware\EnsureKnxApp;
 
 /*
@@ -363,5 +365,13 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.tests');
             Route::patch('tests/{id}', [AcceptanceTestController::class, 'update'])->name('tests.update');
+
+            // Límite diario de gasto en USD de las llamadas a OpenAI: solo administración.
+            Route::middleware(EnsureKnxAdmin::class)->prefix('ai-spend')->name('ai-spend.')->group(function (): void {
+                Route::get('today', [AiSpendController::class, 'today'])->name('today');
+                Route::put('limit', [AiSpendController::class, 'updateLimit'])->name('limit.update');
+                Route::delete('limit', [AiSpendController::class, 'resetLimit'])->name('limit.reset');
+                Route::post('entries/{id}/reconcile', [AiSpendController::class, 'reconcile'])->name('entries.reconcile');
+            });
         });
 });
