@@ -34,6 +34,13 @@ class CoreServiceProvider extends ServiceProvider
 
         // CLA-347: revoke tokens/session immediately when a user is deactivated.
         \Modules\Core\Models\User::observe(\Modules\Core\Observers\UserObserver::class);
+
+        // CLA-686: the markdown mail header references the brand logo as `cid:`; this
+        // attaches the file inline, since the components cannot reach the message.
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Mail\Events\MessageSending::class,
+            [\Modules\Core\Support\MailBrand::class, 'embedLogo'],
+        );
     }
 
     /**

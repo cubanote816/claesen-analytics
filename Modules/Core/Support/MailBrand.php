@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Core\Support;
 
+use Illuminate\Mail\Events\MessageSending;
+use Modules\Core\Models\Organization;
 use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
+use Symfony\Component\Mime\Part\DataPart;
+use Symfony\Component\Mime\Part\File;
 
 /**
  * Who an outgoing email should appear to come from, for a given user.
@@ -51,6 +55,93 @@ final class MailBrand
     private static ?string $forThisSend = null;
 
     /**
+     * Whether the mail being sent right now is Electro Bertels'. Travels with
+     * `$forThisSend` for the same reason (the markdown components receive no
+     * notifiable) and is cleared with it. Anything that never names a company —
+     * including mails that never call `forUser()`/`forSite()` — is Claesen.
+     */
+    private static bool $bertels = false;
+
+    /**
+     * Visual identity per company (design/system.md, CLA-686). The band is the dark
+     * header/footer color, the accent the stripe and button fill, and the button label
+     * is dark because white on either accent fails WCAG AA. Logos are light-on-dark
+     * rasters, embedded in the message as CID attachments by the mail layout.
+     */
+    private const THEMES = [
+        'claesen' => [
+            'theme' => 'claesen',
+            'accent' => '#00aeef',
+            'band' => '#0b0b0f',
+            'button_text' => '#0b0b0f',
+            'logo' => 'img/brand-logo-dark.png',
+            'logo_cid' => 'claesen-logo@mail.brand',
+            'logo_width' => 180,
+        ],
+        'bertels' => [
+            'theme' => 'bertels',
+            'accent' => '#EE7203',
+            'band' => '#121212',
+            'button_text' => '#121212',
+            // brand-logo-dark's Bertels sibling, trimmed and scaled to 2x for the band.
+            'logo' => 'img/mail/bertels-logo-dark-360.png',
+            'logo_cid' => 'bertels-logo@mail.brand',
+            'logo_width' => 170,
+        ],
+    ];
+
+    /**
+     * The visual identity of the mail being sent right now.
+     *
+     * @return array{theme: string, accent: string, band: string, button_text: string, logo: string, logo_cid: string, logo_width: int}
+     */
+    public static function current(): array
+    {
+        return self::THEMES[self::$bertels ? 'bertels' : 'claesen'];
+    }
+
+    public static function accent(): string
+    {
+        return self::current()['accent'];
+    }
+
+    public static function logoPath(): string
+    {
+        return public_path(self::current()['logo']);
+    }
+
+    /**
+     * Attaches, inline, the logo the HTML body references by `cid:`.
+     *
+     * The markdown components are anonymous: they get no `$message`, so they cannot call
+     * `$message->embed()` themselves. Instead the header prints a fixed Content-ID per
+     * brand and this listener (on `MessageSending`) adds the matching file. Keying on the
+     * Content-ID found in the body — not on the static brand state — keeps it correct
+     * whatever order the `forget()` listener runs in, and does nothing for mails that do
+     * not use the branded header.
+     */
+    public static function embedLogo(MessageSending $event): void
+    {
+        $html = $event->message->getHtmlBody();
+
+        if (! is_string($html)) {
+            return;
+        }
+
+        foreach (self::THEMES as $theme) {
+            if (! str_contains($html, 'cid:'.$theme['logo_cid'])) {
+                continue;
+            }
+
+            $event->message->addPart(
+                (new DataPart(new File(public_path($theme['logo'])), $theme['theme'].'-logo.png', 'image/png'))
+                    ->asInline()
+                    ->setContentId($theme['logo_cid'])
+            );
+        }
+    }
+
+    /**
      * The name the header and footer of an outgoing mail should carry.
      *
      * Falls back to the configured app name, which is what every single-company
@@ -65,6 +156,7 @@ final class MailBrand
     public static function forget(): void
     {
         self::$forThisSend = null;
+        self::$bertels = false;
     }
 
     /**
@@ -85,6 +177,8 @@ final class MailBrand
             ?? config('mail.from.name');
 
         self::$forThisSend = (string) $name;
+        // Only two companies share the instance: whoever is not Claesen is Bertels.
+        self::$bertels = $site->organization_id !== Organization::claesenId();
 
         return [
             'address' => $site->mailFromAddress() ?? config('mail.from.address'),
@@ -102,7 +196,7 @@ final class MailBrand
         if ($site === null) {
             // Sin usuario o sin sitio no hay empresa que afirmar: se limpia en vez de
             // dejar la del envío anterior, que sería peor que el nombre genérico.
-            self::$forThisSend = null;
+            self::forget();
 
             return [
                 'address' => config('mail.from.address'),
