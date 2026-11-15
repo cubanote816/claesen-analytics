@@ -1,11 +1,31 @@
 # Commands Runbook — CAFCA Intelligence Hub
 
 > Todos los comandos Artisan del proyecto con descripción, opciones y notas operativas.
-> Última actualización: 2026-06-02 (DOCS-AI-001 / CLA-105)
+> Última actualización: 2026-11-15 (CLA-690 — `bin/wt-test`)
 
 ---
 
 ## Tests
+
+### Desde un worktree: `bin/wt-test` (CLA-690)
+
+Todos los worktrees comparten el contenedor de Sail y el MySQL. Si dos sesiones corren `php artisan test` a la vez contra la misma base de test (`claesen_analytics_web_testing`, la de `phpunit.xml`), `RefreshDatabase` de una borra las tablas de la otra (`Table migrations doesn't exist`). Desde el host, en cualquier worktree o en el checkout principal, usar:
+
+```bash
+bin/wt-test                                  # suite completa
+bin/wt-test --testsuite=Modules --filter=Mailing
+bin/wt-test --drop-db                        # borra la base de este worktree, no corre tests
+```
+
+- Base por worktree: `testing_<carpeta>_<hash8>`: carpeta en minúsculas, con todo lo que no sea `[a-z0-9]` cambiado a `_` y cortada a 47 caracteres; `hash8` = primeros 8 hex del sha256 de la ruta absoluta del checkout, para que dos carpetas con el mismo nombre saneado (`cla-690` / `cla_690`) o un worktree llamado `main` nunca compartan base (`.worktrees/cla-690` → `testing_cla_690_<hash8>`; el checkout principal → `testing_main_<hash8>`). Total máximo 64 caracteres (límite de MySQL).
+- La crea si falta (`bin/wt-test-db.php`, dentro del contenedor, con la conexión que ya tiene la app: el script nunca lee `.env` ni contraseñas). El usuario MySQL `sail` solo puede crear bases `testing%`, por eso el prefijo; el helper rechaza cualquier otro nombre.
+- Corre `php artisan test "$@"` en el contenedor como `sail` (`docker exec -u sail`, regla CLA-507) con `DB_DATABASE=testing_<carpeta>_<hash8>` y `APP_LOCALE=en` (los snapshots se generan en inglés). Los `<env>` de `phpunit.xml` no llevan `force`, así que el entorno del proceso gana. Devuelve el código de salida de los tests.
+- Solo funciona para worktrees **dentro** del checkout principal (`.worktrees/<nombre>`): el contenedor solo monta esa carpeta, en `/var/www/html`. Un worktree fuera de ahí sale con código 2 sin llamar a Docker.
+- Contenedor por defecto: `claesen_api_web_oficial-laravel.test-1`; otro con `WT_TEST_CONTAINER=<nombre> bin/wt-test`.
+- El worktree necesita lo mismo que antes para correr tests: `.env` como symlink a `../../.env` (nunca una copia), su propio `vendor/` (`docker exec -u sail -w /var/www/html/.worktrees/<nombre> claesen_api_web_oficial-laravel.test-1 composer install`) y `public/build/` para los tests de páginas.
+- **Al borrar un worktree, borrar antes su base:** `bin/wt-test --drop-db` desde el worktree (solo ese argumento: con otros sale 2 sin tocar nada), y después `git worktree remove .worktrees/<nombre>`. Las bases que quedaron huérfanas se ven con `SHOW DATABASES LIKE 'testing\_%'` y se borran desde cualquier checkout con `docker exec -u sail -w /var/www/html claesen_api_web_oficial-laravel.test-1 php bin/wt-test-db.php drop <base>`; el nombre completo lo imprime `bin/wt-test` ("wt-test: using test database ...").
+
+### Comandos de `php artisan test`
 
 ```bash
 # Suite completa
