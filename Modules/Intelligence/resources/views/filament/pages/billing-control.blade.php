@@ -458,10 +458,11 @@
                                     {{ $ma->project_id ?? $ma->invoice_id ?? ($isNl ? 'Niet beschikbaar' : 'N/A') }}
                                 </dd>
                             </div>
-                            @if($mp?->name)
+                            {{-- CLA-688: project name is descr (project.name is the client in CAFCA) --}}
+                            @if($mp && $mp->display_name !== trim((string) $mp->id))
                             <div class="flex gap-3">
                                 <dt class="w-40 flex-shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ $isNl ? 'Projectnaam' : 'Project name' }}</dt>
-                                <dd class="text-xs text-gray-700 dark:text-gray-300">{{ $mp->name }}</dd>
+                                <dd class="text-xs text-gray-700 dark:text-gray-300">{{ $mp->display_name }}</dd>
                             </div>
                             @endif
                             @if($mr?->name)
@@ -566,6 +567,8 @@
                         </h3>
                         @php
                             $evidenceLabels = [
+                                'project_name'            => $isNl ? 'Projectnaam'          : 'Project name',
+                                'client_name'             => $isNl ? 'Klant'                : 'Client',
                                 'costs_in_month'          => $isNl ? 'Kosten in periode'    : 'Costs in period',
                                 'hours_in_month'          => $isNl ? 'Uren in periode'      : 'Hours in period',
                                 'workdocs_in_month'       => $isNl ? 'Werkdocumenten'       : 'Work documents',

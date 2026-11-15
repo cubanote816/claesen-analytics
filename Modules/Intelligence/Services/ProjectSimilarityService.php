@@ -97,12 +97,17 @@ class ProjectSimilarityService
             ->get(['project_id', 'efficiency_score', 'critical_leak', 'golden_rule'])
             ->keyBy('project_id');
 
-        return $projects->map(function ($project) use ($insights) {
+        // CLA-688: `project.name` is the client in CAFCA; the project name is `descr`.
+        $clients = \Modules\Performance\Models\Mirror\MirrorRelation::whereIn('id', $projects->pluck('relation_id')->filter()->unique()->values())
+            ->pluck('name', 'id');
+
+        return $projects->map(function ($project) use ($insights, $clients) {
             $insight = $insights->get($project->id);
 
             return [
                 'id' => $project->id,
-                'name' => $project->name,
+                'name' => $project->display_name,
+                'client' => $project->relation_id ? $clients->get($project->relation_id) : null,
                 'year' => $project->last_modified_at?->year,
                 'city' => $project->city,
                 'zipcode' => $project->zipcode,

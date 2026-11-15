@@ -142,4 +142,17 @@ Luego leer el documento específico del módulo activo según la tabla en `docs/
 - No imprimir claves, tokens ni credenciales.
 - No incluir valores reales de variables de entorno en documentación o commits.
 - No hacer push automático salvo instrucción explícita.
+- **Antes de cada push, verificar el remoto (requisito del usuario, 2026-11-15).** Hay varios worktrees y sesiones empujando en paralelo; nunca pisar trabajo ajeno ni romper la app:
+  1. `git fetch origin --prune` y revisar `git log --oneline <base>..origin/main` (y la rama remota propia, si existe): qué entró desde que se creó la rama.
+  2. Cruzar archivos: `comm -12 <(git diff --name-only <base> origin/main | sort) <(git diff --name-only <base> HEAD | sort)`.
+  3. Integrar con `git rebase origin/main` (o merge si la rama ya está publicada). En conflictos, **conservar los cambios de ambos lados** (p. ej. filas de `handoff.md`); nunca resolver descartando el trabajo del otro.
+  4. Correr la **suite completa** sobre el resultado integrado, no solo los módulos tocados. Si algo falla, no se empuja.
+  5. Push sin `--force`. Si la rama remota ya existía, solo `--force-with-lease` y con aprobación explícita.
+  6. Antes de abrir o mergear un PR, repetir el fetch: si `origin/main` volvió a moverse, volver al paso 1.
+- **Antes de cada merge a `main`: lo que se mergea = `origin/main` actual + solo nuestros cambios (requisito del usuario, 2026-11-15).** Un merge a `main` despliega a producción (`deploy.yml`), así que se verifica justo antes de mergear, después de un `git fetch`:
+  1. `git merge-base --is-ancestor origin/main HEAD` → la rama contiene **todo** `main` (nada de otros se pierde ni se revierte).
+  2. `git log --oneline origin/main..HEAD` y `git diff --name-only origin/main...HEAD` → **solo** nuestros commits y archivos del ticket.
+  3. El CI (`Tests`) del PR está en verde sobre ese mismo `HEAD`.
+  4. Si `origin/main` se movió entre la verificación y el merge, se repite desde el paso 1 (integrar con merge de `origin/main` si la rama ya está publicada).
+  5. Después del merge, revisar el run `Deploy to Production` y comprobar que la app responde: el paso `Verify deployment` falla desde 2026-11-13 por un motivo ajeno al código (el runner no alcanza `backoffice.claesen.local`, curl exit 7), así que no confirma nada por sí solo.
 - No marcar Done en Linear hasta recibir GO técnico.

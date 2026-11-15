@@ -171,13 +171,16 @@ class MonthlyBillingControlPage extends Page
             ->whereNotNull('project_id')
             ->get(['project_id', 'relation_id']);
 
-        $allRows = $alertRows->merge($periodRows);
+        // CLA-688: merge as plain collections. Eloquent's merge keys models by
+        // primary key, and these rows are loaded without `id`, so it dropped
+        // every row and the table never showed project name or client.
+        $allRows = $alertRows->toBase()->merge($periodRows->toBase());
 
         $projectIds  = $allRows->pluck('project_id')->filter()->unique()->values()->all();
         $alertRelIds = $allRows->pluck('relation_id')->filter()->unique()->values()->all();
 
         $projects = $projectIds
-            ? MirrorProject::whereIn('id', $projectIds)->get(['id', 'name', 'relation_id'])->keyBy('id')
+            ? MirrorProject::whereIn('id', $projectIds)->get(['id', 'name', 'descr', 'relation_id'])->keyBy('id')
             : collect();
 
         $allRelationIds = collect($alertRelIds)

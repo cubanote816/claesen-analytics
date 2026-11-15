@@ -247,7 +247,7 @@ class EmployeePerformanceService
 
                 return [
                     'project_id' => $projectId,
-                    'project_name' => $project?->name ?? 'Unknown Project',
+                    'project_name' => $project?->display_name ?? 'Unknown Project',
                     'project_type_name' => $project?->type_label ?? 'Industrie',
                     'total_hours' => array_sum($categories),
                     'last_active' => $labors->max('date'),

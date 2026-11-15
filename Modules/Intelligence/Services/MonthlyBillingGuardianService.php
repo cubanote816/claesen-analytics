@@ -190,12 +190,11 @@ class MonthlyBillingGuardianService
                     'days_since_last_invoice' => $daysSinceLastInvoice,
                     'has_contract'            => $hasContract,
                     'has_estimate_link'       => $hasEstimate,
-                ],
+                ] + $this->projectEvidence($project, $project->relation_id),
                 'recommendation'       => sprintf(
-                    'Project %s (%s) heeft €%s aan kosten in %d-%02d zonder uitgereikte factuur. %s '
+                    'Project %s heeft €%s aan kosten in %d-%02d zonder uitgereikte factuur. %s '
                     . 'Controleer of een (deel)factuur moet worden opgemaakt in CAFCA.',
-                    $projectId,
-                    trim($project->name ?? ''),
+                    $this->projectLabel($projectId, $project, $project->relation_id),
                     number_format($costTotal, 2, ',', '.'),
                     $year,
                     $month,
@@ -233,12 +232,17 @@ class MonthlyBillingGuardianService
             ->whereRaw('(total_price - total_paid) > ?', [$minAmount])
             ->get();
 
+        $projects = MirrorProject::whereIn('id', $invoices->pluck('project_id')->filter()->unique()->values())
+            ->get()
+            ->keyBy('id');
+
         $alerts = [];
 
         foreach ($invoices as $invoice) {
             $amountOpen  = round((float) $invoice->total_price - (float) $invoice->total_paid, 2);
             $daysOverdue = (int) $invoice->date_expiration->diffInDays($today);
             $clientName  = $this->resolveClientName($invoice->relation_id);
+            $project     = $invoice->project_id ? $projects->get($invoice->project_id) : null;
 
             $alerts[] = [
                 'alert_type'    => BillingAlert::TYPE_OVERDUE_RECEIVABLE,
@@ -249,6 +253,7 @@ class MonthlyBillingGuardianService
                 'amount_open'   => $amountOpen,
                 'evidence_json' => [
                     'invoice_id'      => $invoice->id,
+                    'project_name'    => $project?->display_name,
                     'client_name'     => $clientName,
                     'amount_open'     => $amountOpen,
                     'total_price'     => round((float) $invoice->total_price, 2),
@@ -257,10 +262,12 @@ class MonthlyBillingGuardianService
                     'date_expiration' => $invoice->date_expiration->toDateString(),
                 ],
                 'recommendation' => sprintf(
-                    'Factuur %s van %s: €%s openstaand, vervallen sinds %s (%d dagen). '
+                    'Factuur %s %s: €%s openstaand, vervallen sinds %s (%d dagen). '
                     . 'Controleer betalingsstatus en stuur indien nodig een herinnering.',
                     $invoice->id,
-                    $clientName,
+                    $invoice->project_id
+                        ? 'voor project ' . $this->projectLabel($invoice->project_id, $project, $invoice->relation_id)
+                        : 'van ' . $clientName,
                     number_format($amountOpen, 2, ',', '.'),
                     $invoice->date_expiration->toDateString(),
                     $daysOverdue
@@ -285,6 +292,36 @@ class MonthlyBillingGuardianService
     protected function detectPartialPayments(int $year, int $month): array
     {
         return [];
+    }
+
+    /**
+     * CLA-688 — "P20260050 · <project name> (<client>)" for alert texts.
+     * The project name is `descr` (MirrorProject::display_name); in CAFCA
+     * `project.name` is the client, so the client always comes from the relation.
+     */
+    private function projectLabel(?string $projectId, ?MirrorProject $project, ?int $relationId): string
+    {
+        $id = trim((string) $projectId);
+        if ($id === '') {
+            return '—';
+        }
+
+        $label = $id;
+        $name  = $project?->display_name;
+        if ($name !== null && $name !== $id) {
+            $label .= ' · ' . $name;
+        }
+
+        return $label . ' (' . $this->resolveClientName($project?->relation_id ?? $relationId) . ')';
+    }
+
+    /** CLA-688 — project and client names stored with every project alert. */
+    private function projectEvidence(?MirrorProject $project, ?int $relationId): array
+    {
+        return [
+            'project_name' => $project?->display_name,
+            'client_name'  => $this->resolveClientName($project?->relation_id ?? $relationId),
+        ];
     }
 
     private function resolveClientName(?int $relationId): string
@@ -352,7 +389,7 @@ class MonthlyBillingGuardianService
                     'count_items'  => $items->count(),
                     'total_amount' => round($totalAmount, 2),
                     'cost_types'   => $costTypes,
-                ],
+                ] + $this->projectEvidence($project, $project?->relation_id),
                 'recommendation' => sprintf(
                     '%d %s voor €%s niet gemarkeerd als gefactureerd in %d-%02d voor project %s. '
                     . 'Controleer of een factuur is opgemaakt of markeer de kosten als gefactureerd in CAFCA.',
@@ -361,7 +398,7 @@ class MonthlyBillingGuardianService
                     number_format($totalAmount, 2, ',', '.'),
                     $year,
                     $month,
-                    $projectId
+                    $this->projectLabel($projectId, $project, $project?->relation_id)
                 ),
             ];
         }
@@ -436,12 +473,12 @@ class MonthlyBillingGuardianService
                     'days_since_invoice'   => $daysSince,
                     'gap_threshold_days'   => $daysWithout,
                     'never_invoiced'       => $lastDate === null,
-                ],
+                ] + $this->projectEvidence($project, $project->relation_id),
                 'recommendation' => $lastDate
                     ? sprintf(
                         'Project %s heeft %d dagen geen factuur (drempel: %d). '
                         . 'Laatste factuur: %s. Controleer of een (deel)factuur nodig is.',
-                        $projectId,
+                        $this->projectLabel($projectId, $project, $project->relation_id),
                         $daysSince,
                         $daysWithout,
                         Carbon::parse($lastDate)->toDateString()
@@ -449,7 +486,7 @@ class MonthlyBillingGuardianService
                     : sprintf(
                         'Project %s heeft nooit een factuur gehad maar toont activiteit in %d-%02d. '
                         . 'Controleer of het project facturabel is.',
-                        $projectId,
+                        $this->projectLabel($projectId, $project, $project->relation_id),
                         $year,
                         $month
                     ),
@@ -474,10 +511,15 @@ class MonthlyBillingGuardianService
             ->whereBetween('date', [$start, $end])
             ->get();
 
+        $projects = MirrorProject::whereIn('id', $creditNotes->pluck('project_id')->filter()->unique()->values())
+            ->get()
+            ->keyBy('id');
+
         $alerts = [];
 
         foreach ($creditNotes as $cn) {
             $amountOpen = round((float) $cn->total_price - (float) $cn->total_paid, 2);
+            $project    = $cn->project_id ? $projects->get($cn->project_id) : null;
 
             $alerts[] = [
                 'alert_type'    => 'credit_note',
@@ -490,15 +532,22 @@ class MonthlyBillingGuardianService
                     'invoice_id'    => $cn->id,
                     'date'          => $cn->date?->toDateString(),
                     'total_price'   => round((float) $cn->total_price, 2),
+                    'project_name'  => $project?->display_name,
                     'client_name'   => $this->resolveClientName($cn->relation_id),
                 ],
-                'recommendation' => sprintf(
-                    'Creditnota %s van %s uitgereikt op %s voor project %s. Geen actie vereist.',
-                    $cn->id,
-                    $this->resolveClientName($cn->relation_id),
-                    $cn->date?->toDateString() ?? 'onbekende datum',
-                    $cn->project_id ?? '—'
-                ),
+                'recommendation' => $cn->project_id
+                    ? sprintf(
+                        'Creditnota %s uitgereikt op %s voor project %s. Geen actie vereist.',
+                        $cn->id,
+                        $cn->date?->toDateString() ?? 'onbekende datum',
+                        $this->projectLabel($cn->project_id, $project, $cn->relation_id)
+                    )
+                    : sprintf(
+                        'Creditnota %s van %s uitgereikt op %s. Geen actie vereist.',
+                        $cn->id,
+                        $this->resolveClientName($cn->relation_id),
+                        $cn->date?->toDateString() ?? 'onbekende datum'
+                    ),
             ];
         }
 
@@ -560,11 +609,11 @@ class MonthlyBillingGuardianService
                     'invoice_count' => $invoices->count(),
                     'total_open'    => round($totalOpen, 2),
                     'invoice_ids'   => $invoices->pluck('id')->all(),
-                ],
+                ] + $this->projectEvidence($project, $project?->relation_id ?? $invoices->first()?->relation_id),
                 'recommendation' => sprintf(
                     'Project %s is inactief maar heeft %d openstaande factuur(en) met €%s onbetaald saldo. '
                     . 'Volg op bij de klant of zet het project terug op actief in CAFCA.',
-                    $projectId,
+                    $this->projectLabel($projectId, $project, $project?->relation_id ?? $invoices->first()?->relation_id),
                     $invoices->count(),
                     number_format($totalOpen, 2, ',', '.')
                 ),

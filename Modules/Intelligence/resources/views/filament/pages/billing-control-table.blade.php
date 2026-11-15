@@ -54,13 +54,18 @@
                                     $relId   = $proj?->relation_id ?? $alert->relation_id;
                                     $rel     = $relId ? $relations->get($relId) : null;
                                     $hasLink = array_key_exists($alert->project_id, $insightSet);
+                                    // CLA-688: project name is descr; project.name is the client in CAFCA.
+                                    $projName = $proj?->display_name;
+                                    $showProjName = $projName
+                                        && $projName !== trim($alert->project_id)
+                                        && strcasecmp($projName, trim((string) $rel?->name)) !== 0;
                                 @endphp
                                 <span class="font-mono font-medium text-gray-900 dark:text-white text-xs block">
                                     {{ $alert->project_id }}
                                 </span>
-                                @if($proj?->name)
+                                @if($showProjName)
                                     <span class="text-xs text-gray-600 dark:text-gray-300 block leading-tight mt-0.5">
-                                        {{ $proj->name }}
+                                        {{ $projName }}
                                     </span>
                                 @endif
                                 @if($rel?->name)
