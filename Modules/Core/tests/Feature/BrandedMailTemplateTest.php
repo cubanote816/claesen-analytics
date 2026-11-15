@@ -178,4 +178,32 @@ final class BrandedMailTemplateTest extends TestCase
 
         $this->assertSame(self::CLAESEN_ACCENT, MailBrand::accent());
     }
+
+    // CLA-689: the button label never breaks inside a word ("Wachtwoord aanm / aken"
+    // in the Gmail app), while the fallback URL in the subcopy still wraps anywhere.
+    public function test_the_button_label_never_breaks_inside_a_word(): void
+    {
+        $html = $this->send($this->claesenUser(['language' => 'nl']), new AccountActivationNotification('https://example.test/a'))->getHtmlBody();
+
+        $this->assertSame(1, preg_match('/<a [^>]*class="button button-primary"[^>]*style="([^"]*)"/', $html, $button));
+        $this->assertStringContainsString('word-break: normal', $button[1]);
+        $this->assertStringContainsString('white-space: nowrap', $button[1]);
+        $this->assertStringNotContainsString('break-all', $button[1]);
+
+        $this->assertSame(1, preg_match('/class="subcopy".*?<a [^>]*style="([^"]*)"/s', $html, $subcopy));
+        $this->assertStringContainsString('word-break: break-all', $subcopy[1]);
+    }
+
+    // CLA-689: a slightly smaller type scale (body 15px, 14px on phones; heading 18px on phones).
+    public function test_the_type_scale_is_smaller_and_shrinks_on_phones(): void
+    {
+        $html = $this->send($this->claesenUser(['language' => 'nl']), new AccountActivationNotification('https://example.test/a'))->getHtmlBody();
+
+        $this->assertSame(1, preg_match('/<p style="([^"]*)">/', $html, $paragraph));
+        $this->assertStringContainsString('font-size: 15px', $paragraph[1]);
+        $this->assertStringNotContainsString('font-size: 16px', $paragraph[1]);
+
+        $this->assertMatchesRegularExpression('/max-width: 600px\).*?\.content-cell p[^}]*font-size: 14px !important/s', $html);
+        $this->assertMatchesRegularExpression('/max-width: 600px\).*?\.content-cell h1[^}]*font-size: 18px !important/s', $html);
+    }
 }

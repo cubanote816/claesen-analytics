@@ -20,6 +20,21 @@ width: 100% !important;
 .content-cell {
 padding: 28px 24px 32px !important;
 }
+
+/* CLA-689: a slightly smaller type scale on phones. */
+.content-cell p {
+font-size: 14px !important;
+line-height: 21px !important;
+}
+
+.content-cell h1 {
+font-size: 18px !important;
+line-height: 24px !important;
+}
+
+.content-cell .button {
+padding: 14px 20px !important;
+}
 }
 
 @media only screen and (max-width: 500px) {
