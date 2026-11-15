@@ -38,6 +38,16 @@
 - Los modelos Mirror en Performance (`MirrorProject`, `MirrorCost`, etc.) son la copia MySQL local; sobre estos sí se pueden hacer queries analíticas.
 - No añadir relaciones `hasMany` / `belongsTo` que apunten de SQL Server a MySQL o viceversa sin una capa de servicio intermedia.
 
+### Regla de identidad de proyecto (CLA-173 / CLA-688, no negociable)
+
+- En CAFCA, **`project.name` guarda el nombre del cliente** (~95% de los proyectos). **El nombre real del proyecto es `project.descr`.**
+- Toda pantalla, correo, log o prompt de IA que muestre un proyecto a personas muestra tres datos: **id del proyecto · nombre del proyecto · cliente**.
+  - Nombre del proyecto: `MirrorProject::display_name` (`descr`, con fallback a `name` y luego al id). Con modelos CAFCA (sqlsrv): `trim(descr) ?: name`.
+  - Cliente: siempre el nombre de la relación (`MirrorRelation` vía `relation_id`), **nunca** `project.name`.
+- Formato de texto de referencia: `P20260050 · <nombre del proyecto> (<cliente>)` (ver `MonthlyBillingGuardianService::projectLabel()`).
+- `descr` es nullable: solo se llena con los syncs posteriores a 2026-06-24. Las vistas deben tolerar su ausencia.
+- No hacer `merge()` de Eloquent Collections cargadas sin la clave primaria: Eloquent mergea por `id` y descarta filas (causa de que Billing Control no mostrara nombre ni cliente). Usar `toBase()->merge()`.
+
 ### Archivos clave
 ```
 Modules/Cafca/Models/CafcaModel.php         ← base con ReadOnlyTrait
