@@ -69,6 +69,27 @@ class MirrorProject extends Model
         21 => 'Lopende Huur / LaaS',
     ];
 
+    /**
+     * CLA-688 — the human project name.
+     *
+     * In CAFCA `name` holds the CLIENT name in ~95% of projects; the real
+     * project name is `descr` (CLA-173). Never present `name` as the project
+     * name when `descr` is filled. Falls back to `name`, then to the id, for
+     * projects synced before `descr` existed. Show the client from the mirror
+     * relation (`relation_id`), never from `name`.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        foreach ([$this->descr, $this->name] as $candidate) {
+            $value = trim((string) $candidate);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return trim((string) $this->id);
+    }
+
     public function getTypeLabelAttribute(): string
     {
         return self::$typeLabels[$this->type] ?? "Onbekend ({$this->type})";
