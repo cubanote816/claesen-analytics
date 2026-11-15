@@ -92,6 +92,39 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         );
     }
 
+    /**
+     * The module config as shipped: evaluated with every KNX_PLAN_ANALYSIS_* / KNX_AI_* variable
+     * removed from the environment, then restored.
+     *
+     * @return array<string, mixed>
+     */
+    private function shippedConfig(): array
+    {
+        $saved = [];
+        foreach (array_keys(getenv() + $_ENV + $_SERVER) as $name) {
+            if (is_string($name) && preg_match('/^KNX_(PLAN_ANALYSIS|AI)_/', $name) === 1) {
+                $saved[$name] = [getenv($name), $_ENV[$name] ?? null, $_SERVER[$name] ?? null];
+                putenv($name);
+                unset($_ENV[$name], $_SERVER[$name]);
+            }
+        }
+        try {
+            return require base_path('Modules/Knx/config/config.php');
+        } finally {
+            foreach ($saved as $name => [$env, $envConst, $server]) {
+                if ($env !== false) {
+                    putenv("{$name}={$env}");
+                }
+                if ($envConst !== null) {
+                    $_ENV[$name] = $envConst;
+                }
+                if ($server !== null) {
+                    $_SERVER[$name] = $server;
+                }
+            }
+        }
+    }
+
     private function enableOpenAi(float $dailyLimitUsd = 1.0, int $retries = 0): void
     {
         config([
@@ -110,6 +143,8 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
             'knx.plan_analysis.providers.openai.model' => 'test-model',
             'knx.plan_analysis.providers.openai.api_key' => 'sk-test-only',
             'knx.plan_analysis.providers.openai.base_url' => 'https://openai.test/v1',
+            // Explicit: never inherit the developer's .env (e.g. a configured effort).
+            'knx.plan_analysis.providers.openai.reasoning_effort' => null,
             'knx.plan_analysis.budget.max_retries' => $retries,
             'knx.plan_analysis.budget.max_output_tokens' => 1234,
         ]);
@@ -148,14 +183,21 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
     public function test_the_openai_adapter_ships_switched_off_and_sends_nothing(): void
     {
         Http::fake();
+        // The SHIPPED defaults, whatever the developer's .env says.
+        $shipped = $this->shippedConfig();
+        config([
+            'knx.plan_analysis' => $shipped['plan_analysis'],
+            'knx.ai_spend' => $shipped['ai_spend'],
+        ]);
 
         $reason = $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true));
 
         $this->assertSame('unavailable', $reason);
-        $this->assertFalse(config('knx.plan_analysis.providers.openai.enabled'));
-        $this->assertNull(config('knx.plan_analysis.providers.openai.model'));
-        $this->assertSame(0, config('knx.plan_analysis.budget.max_calls_per_day'));
-        $this->assertSame(0.0, (float) config('knx.ai_spend.daily_limit_usd'));
+        $this->assertFalse($shipped['plan_analysis']['providers']['openai']['enabled']);
+        $this->assertNull($shipped['plan_analysis']['providers']['openai']['model']);
+        $this->assertNull($shipped['plan_analysis']['providers']['openai']['api_key']);
+        $this->assertSame(0, $shipped['plan_analysis']['budget']['max_calls_per_day']);
+        $this->assertSame(0.0, (float) $shipped['ai_spend']['daily_limit_usd']);
         Http::assertNothingSent();
     }
 
