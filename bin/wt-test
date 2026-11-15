@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# CLA-690 — run the test suite against this worktree's own test database.
+#
+# All worktrees share the Sail container and its MySQL. With one shared test
+# database, two sessions running RefreshDatabase at once drop each other's
+# tables. This script derives testing_<worktree-folder>_<hash8> (folder "main"
+# for the main checkout; hash8 = sha256 of the checkout path, so equal folder
+# names never share a database), creates it if missing and runs `php artisan test "$@"` in the
+# container against it, as the sail user.
+#
+# Usage, on the host, from a worktree or the main checkout:
+#   bin/wt-test [php artisan test options...]
+#   bin/wt-test --drop-db      drop this worktree's test database, run no tests
+#
+# WT_TEST_CONTAINER overrides the Sail container name.
+set -euo pipefail
+
+if [[ "${1:-}" == "--drop-db" && $# -gt 1 ]]; then
+    echo "wt-test: --drop-db takes no other arguments." >&2
+    exit 2
+fi
+
+container="${WT_TEST_CONTAINER:-claesen_api_web_oficial-laravel.test-1}"
+container_root=/var/www/html
+
+toplevel="$(git rev-parse --show-toplevel)"
+main="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+
+if [[ "$toplevel" == "$main" ]]; then
+    folder=main
+    workdir="$container_root"
+elif [[ "$toplevel" == "$main"/* ]]; then
+    folder="$(basename "$toplevel")"
+    workdir="$container_root/${toplevel#"$main"/}"
+else
+    echo "wt-test: $toplevel is not inside the main checkout $main;" \
+        "the Sail container only mounts the main checkout, so create worktrees under .worktrees/." >&2
+    exit 2
+fi
+
+# Lowercase, every run of other characters becomes one "_", and the name stays
+# within MySQL's 64-character identifier limit ("testing_" + 47 + "_" + hash8).
+name="$(printf '%s' "$folder" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '_')"
+name="${name#_}"
+name="${name:0:47}"
+name="${name%_}"
+if [[ -z "$name" ]]; then
+    echo "wt-test: cannot derive a database name from the folder '$folder'." >&2
+    exit 2
+fi
+hash="$(printf '%s' "$toplevel" | sha256sum | cut -c1-8)"
+database="testing_${name}_${hash}"
+
+in_container=(exec -u sail -w "$workdir")
+
+if [[ "${1:-}" == "--drop-db" ]]; then
+    exec docker "${in_container[@]}" "$container" php bin/wt-test-db.php drop "$database"
+fi
+
+docker "${in_container[@]}" "$container" php bin/wt-test-db.php create "$database" || {
+    status=$?
+    echo "wt-test: could not create the test database $database (exit $status); no tests were run." >&2
+    exit "$status"
+}
+
+exec docker "${in_container[@]}" -e "DB_DATABASE=$database" -e APP_LOCALE=en "$container" php artisan test "$@"
