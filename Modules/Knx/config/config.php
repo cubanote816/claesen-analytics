@@ -160,6 +160,9 @@ return [
                 'base_url' => env('KNX_PLAN_ANALYSIS_OPENAI_BASE_URL', 'https://api.openai.com/v1'),
                 'api_key' => env('KNX_PLAN_ANALYSIS_OPENAI_API_KEY'),
                 'image_detail' => env('KNX_PLAN_ANALYSIS_OPENAI_IMAGE_DETAIL', 'high'),
+                // Reasoning effort (`none`, `low`, `medium`, `high`, `xhigh`, `max`); unset = the
+                // model's default. Reasoning tokens are billed as output: lower is cheaper.
+                'reasoning_effort' => env('KNX_PLAN_ANALYSIS_OPENAI_REASONING_EFFORT'),
             ],
             // "Sign in with ChatGPT": the employee's OWN plan, never an API key. Available per
             // employee (see PlanAnalysisProviders); the model has no default on purpose.

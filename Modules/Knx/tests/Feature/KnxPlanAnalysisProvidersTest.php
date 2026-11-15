@@ -162,6 +162,37 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         });
     }
 
+    public function test_without_a_configured_reasoning_effort_the_request_leaves_it_to_the_model(): void
+    {
+        $this->enableOpenAi();
+        Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
+
+        app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true);
+
+        Http::assertSent(fn (Request $request): bool => ! array_key_exists('reasoning', $request->data()));
+    }
+
+    public function test_a_configured_reasoning_effort_is_sent(): void
+    {
+        $this->enableOpenAi();
+        config(['knx.plan_analysis.providers.openai.reasoning_effort' => 'low']);
+        Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
+
+        app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true);
+
+        Http::assertSent(fn (Request $request): bool => ($request->data()['reasoning'] ?? null) === ['effort' => 'low']);
+    }
+
+    public function test_an_unknown_reasoning_effort_sends_nothing(): void
+    {
+        $this->enableOpenAi();
+        config(['knx.plan_analysis.providers.openai.reasoning_effort' => 'lowest']);
+        Http::fake();
+
+        $this->assertSame('unavailable', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true)));
+        Http::assertNothingSent();
+    }
+
     public function test_a_refusal_an_incomplete_answer_and_non_json_are_failures(): void
     {
         $this->enableOpenAi();

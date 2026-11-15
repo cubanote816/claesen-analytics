@@ -22,6 +22,9 @@ class OpenAiPlanAnalysisProvider implements PlanAnalysisProvider
 {
     public const ID = 'openai';
 
+    /** Reasoning efforts the Responses API accepts; anything else is a configuration error. */
+    public const REASONING_EFFORTS = ['none', 'low', 'medium', 'high', 'xhigh', 'max'];
+
     public const INSTRUCTIONS = <<<'TXT'
 You analyse ONE page of an architectural or installation floor plan for an electrical contractor.
 You get the rendered page and a summary of the PDF: stroke groups (id, style, counts) and texts (id, text, position).
@@ -55,6 +58,10 @@ TXT;
         if (! $this->providers->isAvailable(self::ID) || $token === null) {
             throw new PlanAnalysisFailed('unavailable', 'The OpenAI plan-analysis provider is switched off.');
         }
+        $effort = config('knx.plan_analysis.providers.openai.reasoning_effort');
+        if ($effort !== null && $effort !== '' && ! in_array($effort, self::REASONING_EFFORTS, true)) {
+            throw new PlanAnalysisFailed('unavailable', 'The configured reasoning effort is not one of: '.implode(', ', self::REASONING_EFFORTS).'.');
+        }
         if (strlen($input->imagePng) > $this->budget->maxImageBytes()) {
             throw new PlanAnalysisFailed('image_too_large');
         }
@@ -85,7 +92,7 @@ TXT;
             'texts' => $input->texts,
         ];
 
-        return [
+        $body = [
             'model' => $model,
             'store' => false,
             'max_output_tokens' => $this->budget->maxOutputTokens(),
@@ -110,6 +117,14 @@ TXT;
                 ],
             ],
         ];
+
+        // Unset leaves the effort to the model's default.
+        $effort = config('knx.plan_analysis.providers.openai.reasoning_effort');
+        if (is_string($effort) && $effort !== '') {
+            $body['reasoning'] = ['effort' => $effort];
+        }
+
+        return $body;
     }
 
     /**
