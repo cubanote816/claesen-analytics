@@ -11,7 +11,7 @@ namespace Modules\Knx\Services\PlanAnalysis;
 final class PlanAnalysisResult
 {
     /**
-     * @param  array{groupRoles: list<array<string, mixed>>, rooms: list<array<string, mixed>>, uncertain: list<array<string, mixed>>}  $proposal
+     * @param  array<string, mixed>  $proposal  planKind, groupRoles, symbols, legend, rooms, uncertain (plan-analysis/2)
      * @param  array{inputTokens: ?int, outputTokens: ?int}  $usage
      */
     public function __construct(

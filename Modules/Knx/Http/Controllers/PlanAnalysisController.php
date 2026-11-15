@@ -7,6 +7,7 @@ namespace Modules\Knx\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\Knx\Http\Controllers\Concerns\ResolvesPlanDocument;
 use Modules\Knx\Models\KnxEmployee;
@@ -92,6 +93,23 @@ class PlanAnalysisController extends Controller
             'texts.*.text' => ['required', 'string', 'max:500'],
             'texts.*.x' => ['required', 'numeric', 'between:0,1'],
             'texts.*.y' => ['required', 'numeric', 'between:0,1'],
+            // Plano IA v2 (optional: a v1 client keeps working). Symbol candidates per
+            // instance and the detected legend region, in page fractions.
+            'symbols' => ['sometimes', 'array', 'max:3000'],
+            'symbols.*.id' => ['required', 'string', 'regex:/^s\d+$/', 'max:16'],
+            'symbols.*.group' => ['required', 'string', 'max:255'],
+            'symbols.*.x' => ['required', 'numeric', 'between:0,1'],
+            'symbols.*.y' => ['required', 'numeric', 'between:0,1'],
+            'symbols.*.w' => ['required', 'numeric', 'between:0,1'],
+            'symbols.*.h' => ['required', 'numeric', 'between:0,1'],
+            'symbols.*.paths' => ['required', 'integer', 'min:0'],
+            'symbols.*.nearTextIds' => ['present', 'array', 'max:3'],
+            'symbols.*.nearTextIds.*' => ['string', Rule::in(is_array($request->input('texts')) ? array_column($request->input('texts'), 'id') : [])],
+            'legend' => ['sometimes', 'nullable', 'array:x,y,w,h'],
+            'legend.x' => ['required_with:legend', 'numeric', 'between:0,1'],
+            'legend.y' => ['required_with:legend', 'numeric', 'between:0,1'],
+            'legend.w' => ['required_with:legend', 'numeric', 'between:0,1'],
+            'legend.h' => ['required_with:legend', 'numeric', 'between:0,1'],
         ]);
 
         if (! $this->providers->exists($validated['provider'])) {
@@ -113,6 +131,11 @@ class PlanAnalysisController extends Controller
                 imagePng: $png,
                 groups: $this->groups($validated['groups']),
                 texts: $this->texts($validated['texts']),
+                symbols: $this->symbols($validated['symbols'] ?? []),
+                legend: isset($validated['legend']) ? array_map('floatval', [
+                    'x' => $validated['legend']['x'], 'y' => $validated['legend']['y'],
+                    'w' => $validated['legend']['w'], 'h' => $validated['legend']['h'],
+                ]) : null,
             ));
         } catch (PlanAnalysisFailed $e) {
             return response()->json(array_filter([
@@ -162,6 +185,24 @@ class PlanAnalysisController extends Controller
             'x' => (float) $t['x'],
             'y' => (float) $t['y'],
         ], array_values($texts));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $symbols
+     * @return list<array{id: string, group: string, x: float, y: float, w: float, h: float, paths: int, nearTextIds: list<string>}>
+     */
+    private function symbols(array $symbols): array
+    {
+        return array_map(fn (array $s): array => [
+            'id' => (string) $s['id'],
+            'group' => (string) $s['group'],
+            'x' => (float) $s['x'],
+            'y' => (float) $s['y'],
+            'w' => (float) $s['w'],
+            'h' => (float) $s['h'],
+            'paths' => (int) $s['paths'],
+            'nearTextIds' => array_values(array_map('strval', $s['nearTextIds'])),
+        ], array_values($symbols));
     }
 
     private function present(KnxPlanAnalysis $analysis): array

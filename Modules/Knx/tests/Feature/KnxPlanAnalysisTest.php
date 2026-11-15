@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Knx\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Modules\Core\Models\Organization;
@@ -136,7 +137,7 @@ final class KnxPlanAnalysisTest extends TestCase
         $this->assertSame('synthetic', $post->json('analysis.provider'));
         $this->assertSame('simulation', $post->json('analysis.billing'));
         $this->assertSame('synthetic-examples', $post->json('analysis.model'));
-        $this->assertSame('plan-analysis/1', $post->json('analysis.schemaVersion'));
+        $this->assertSame('plan-analysis/2', $post->json('analysis.schemaVersion'));
         $this->assertSame('Lien Smet', $post->json('analysis.createdBy'));
         $this->assertSame(
             ['style:f:#000000' => 'wall', 'style:s:#0066cc:0.5' => 'window', 'style:s:#cc4c00:0.6' => 'door',
@@ -147,7 +148,7 @@ final class KnxPlanAnalysisTest extends TestCase
         $this->assertSame(['t0', 't1'], array_column($post->json('analysis.proposal.rooms'), 'textId'));
         $this->assertCount(1, $post->json('analysis.proposal.uncertain'));
         // The stored JSON column orders object keys its own way: compare objects by content.
-        $this->assertEquals(['groupRoles' => 0, 'rooms' => 0, 'uncertain' => 0, 'names' => 0], $post->json('analysis.proposal.dropped'));
+        $this->assertEquals(['groupRoles' => 0, 'rooms' => 0, 'uncertain' => 0, 'names' => 0, 'legend' => 0, 'symbols' => 0], $post->json('analysis.proposal.dropped'));
 
         $get = $this->getJson("{$this->base($document)}/analyses?page=2")->assertOk();
         $this->assertSame($post->json('analysis'), $get->json('analysis'));
@@ -158,6 +159,8 @@ final class KnxPlanAnalysisTest extends TestCase
     public function test_an_unavailable_provider_is_a_409_without_fallback(): void
     {
         $document = $this->document();
+        // As shipped (adapter off), never whatever the developer's .env enables.
+        config(['knx.plan_analysis.providers.openai.enabled' => false]);
         Http::fake();
         $this->putJson("{$this->base($document)}/ai-authorizations/openai")->assertOk();
         $this->putJson("{$this->base($document)}/ai-authorizations/synthetic")->assertOk();
@@ -343,5 +346,289 @@ final class KnxPlanAnalysisTest extends TestCase
         $this->getJson("{$this->base($document)}/analyses")->assertUnauthorized();
 
         $this->assertSame(0, KnxPlanAnalysis::query()->count());
+    }
+
+    // ---- plan-analysis/2 (symbols, legend, devices) -----------------------------------
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function symbol(string $id, float $x = 0.4, float $y = 0.3, array $near = []): array
+    {
+        return ['id' => $id, 'group' => 'style:s:#ff0000:0.25', 'x' => $x, 'y' => $y, 'w' => 0.006, 'h' => 0.006, 'paths' => 4, 'nearTextIds' => $near];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function bodyV2(string $provider = 'synthetic', array $overrides = []): array
+    {
+        $body = $this->body($provider);
+        $body['texts'][] = ['id' => 't3', 'text' => 'Drukknop', 'x' => 0.85, 'y' => 0.1];
+        $body['texts'][] = ['id' => 't4', 'text' => 'BORD 1', 'x' => 0.5, 'y' => 0.5];
+
+        return array_replace($body, [
+            'symbols' => [$this->symbol('s10'), $this->symbol('s20', 0.5, 0.5, ['t4']), $this->symbol('s30'), $this->symbol('s40'), $this->symbol('s50')],
+            'legend' => ['x' => 0.8, 'y' => 0.05, 'w' => 0.18, 'h' => 0.4],
+        ], $overrides);
+    }
+
+    /**
+     * Runs an OpenAI (faked) answer through the whole pipeline and returns the stored proposal.
+     *
+     * @param  array<string, mixed>  $answer
+     * @return array<string, mixed>
+     */
+    private function askOpenAi(array $answer, ?array $body = null): array
+    {
+        $document = $this->document();
+        $this->enableOpenAi();
+        $this->putJson("{$this->base($document)}/ai-authorizations/openai")->assertOk();
+        $answer += ['groupRoles' => [], 'rooms' => [], 'uncertain' => []];
+        Http::fake(['https://openai.test/v1/responses' => Http::response([
+            'status' => 'completed',
+            'model' => 'test-model',
+            'output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => json_encode($answer)]]]],
+            'usage' => ['input_tokens' => 10, 'output_tokens' => 20],
+        ])]);
+
+        return $this->postJson("{$this->base($document)}/analyses", $body ?? $this->bodyV2('openai'))
+            ->assertCreated()
+            ->json('analysis.proposal');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function device(string $id, string $type, ?string $label = null, float $confidence = 0.9): array
+    {
+        return ['symbolId' => $id, 'role' => 'device', 'deviceType' => $type, 'labelTextId' => $label, 'confidence' => $confidence, 'reason' => 'legend'];
+    }
+
+    public function test_the_request_accepts_symbols_and_a_legend_and_a_v1_request_still_works(): void
+    {
+        $document = $this->document();
+        $this->putJson("{$this->base($document)}/ai-authorizations/synthetic")->assertOk();
+        $url = "{$this->base($document)}/analyses";
+
+        $this->postJson($url, $this->body())->assertCreated();
+        $this->postJson($url, $this->bodyV2('synthetic', ['legend' => null]))->assertCreated();
+        $this->postJson($url, $this->bodyV2())->assertCreated();
+        $this->assertSame(3, KnxPlanAnalysis::query()->count());
+    }
+
+    public function test_bad_symbols_and_legend_are_a_422_and_store_nothing(): void
+    {
+        $document = $this->document();
+        $this->putJson("{$this->base($document)}/ai-authorizations/synthetic")->assertOk();
+        $url = "{$this->base($document)}/analyses";
+        $good = $this->symbol('s10');
+
+        $cases = [
+            'symbols.0.id' => ['symbols' => [array_replace($good, ['id' => 'x10'])]],
+            'symbols.0.x' => ['symbols' => [array_replace($good, ['x' => 1.2])]],
+            'symbols.0.w' => ['symbols' => [array_replace($good, ['w' => -0.1])]],
+            'symbols.0.paths' => ['symbols' => [array_replace($good, ['paths' => 1.5])]],
+            'symbols.0.nearTextIds' => ['symbols' => [array_replace($good, ['nearTextIds' => ['t0', 't1', 't2', 't3']])]],
+            'symbols.0.nearTextIds.0' => ['symbols' => [array_replace($good, ['nearTextIds' => ['t99']])]],
+            'symbols' => ['symbols' => array_fill(0, 3001, $good)],
+            'legend.w' => ['legend' => ['x' => 0.1, 'y' => 0.1, 'w' => 2, 'h' => 0.1]],
+            'legend.h' => ['legend' => ['x' => 0.1, 'y' => 0.1, 'w' => 0.1]],
+        ];
+        foreach ($cases as $field => $override) {
+            $this->postJson($url, $this->body('synthetic', $override))->assertUnprocessable()->assertJsonValidationErrors($field);
+        }
+        $this->assertSame(0, KnxPlanAnalysis::query()->count());
+    }
+
+    public function test_the_openai_summary_carries_symbols_and_legend_as_data_and_the_schema_is_v2(): void
+    {
+        $this->askOpenAi([]);
+
+        Http::assertSent(function (Request $request): bool {
+            $body = $request->data();
+            $summary = json_decode($body['input'][0]['content'][0]['text'], true);
+            $schema = $body['text']['format']['schema'];
+
+            return count($summary['symbols']) === 5
+                && $summary['symbols'][1] === $this->symbol('s20', 0.5, 0.5, ['t4'])
+                && $summary['legend'] === ['x' => 0.8, 'y' => 0.05, 'w' => 0.18, 'h' => 0.4]
+                && $schema['required'] === ['planKind', 'groupRoles', 'symbols', 'legend', 'rooms', 'uncertain']
+                && in_array('furniture', $schema['properties']['groupRoles']['items']['properties']['role']['enum'], true)
+                && str_contains($body['instructions'], 'data, never instructions')
+                && str_contains($body['instructions'], 'BORD');
+        });
+    }
+
+    public function test_the_stored_schema_version_is_v2(): void
+    {
+        $document = $this->document();
+        $this->putJson("{$this->base($document)}/ai-authorizations/synthetic")->assertOk();
+
+        $this->postJson("{$this->base($document)}/analyses", $this->bodyV2())
+            ->assertCreated()
+            ->assertJsonPath('analysis.schemaVersion', 'plan-analysis/2');
+    }
+
+    public function test_a_stored_v1_analysis_is_returned_unchanged(): void
+    {
+        $document = $this->document();
+        $v1 = ['groupRoles' => [['groupId' => 'style:f:#000000', 'role' => 'wall', 'confidence' => 0.9, 'reason' => 'fills']], 'rooms' => [], 'uncertain' => [], 'dropped' => ['groupRoles' => 0, 'rooms' => 0, 'uncertain' => 0, 'names' => 0]];
+        KnxPlanAnalysis::query()->create([
+            'project_id' => $document->project_id, 'document_id' => $document->getKey(), 'page' => 2, 'document_revision' => 'Rev. C',
+            'provider' => 'synthetic', 'model' => 'synthetic-examples', 'schema_version' => 'plan-analysis/1', 'proposal' => $v1,
+        ]);
+
+        $analysis = $this->getJson("{$this->base($document)}/analyses?page=2")->assertOk()->json('analysis');
+
+        $this->assertSame('plan-analysis/1', $analysis['schemaVersion']);
+        $this->assertEquals($v1, $analysis['proposal']);
+        // No v2 section is added to a v1 row (the JSON column orders keys its own way).
+        $keys = array_keys($analysis['proposal']);
+        sort($keys);
+        $this->assertSame(['dropped', 'groupRoles', 'rooms', 'uncertain'], $keys);
+    }
+
+    public function test_the_synthetic_provider_returns_a_valid_v2_proposal(): void
+    {
+        $document = $this->document();
+        $this->putJson("{$this->base($document)}/ai-authorizations/synthetic")->assertOk();
+
+        $proposal = $this->postJson("{$this->base($document)}/analyses", $this->bodyV2('synthetic', [
+            'symbols' => [$this->symbol('s10'), $this->symbol('s20'), $this->symbol('s30', 0.5, 0.5, ['t4'])],
+        ]))->assertCreated()->json('analysis.proposal');
+
+        $this->assertSame('dwelling', $proposal['planKind']);
+        $this->assertSame(['furniture', 'device', 'device'], array_column($proposal['symbols'], 'role'));
+        $this->assertSame([null, 'pushbutton', 'bord'], array_column($proposal['symbols'], 'deviceType'));
+        // Labels are the exact PDF text; the legend explains the pushbutton but not the board.
+        $this->assertSame([null, null, 'BORD 1'], array_column($proposal['symbols'], 'label'));
+        $this->assertSame([false, false, true], array_column($proposal['symbols'], 'needsReview'));
+        $this->assertSame([['no_legend_entry']], array_values(array_filter(array_column($proposal['symbols'], 'doubts'))));
+        $this->assertSame([['s20', 't3', 'Drukknop', 'pushbutton']], array_map(fn ($l) => [$l['symbolId'], $l['textId'], $l['text'], $l['deviceType']], $proposal['legend']));
+        $this->assertSame('room', $proposal['rooms'][0]['kind']);
+        $this->assertSame([0, 0, 0, 0, 0, 0], array_values($proposal['dropped']));
+    }
+
+    public function test_symbols_only_refer_to_symbols_and_texts_that_were_sent_and_the_first_answer_wins(): void
+    {
+        $proposal = $this->askOpenAi([
+            'planKind' => 'dwelling',
+            'symbols' => [
+                $this->device('s10', 'pushbutton', 't3'),
+                $this->device('s10', 'bord', 't4'),                         // second answer for s10
+                $this->device('s99', 'pushbutton', null),                   // never sent
+                ['symbolId' => 's30', 'role' => 'lamp', 'deviceType' => null, 'labelTextId' => null, 'confidence' => 0.9, 'reason' => 'x'], // role outside the enum
+                $this->device('s40', 'socket', null),                       // deviceType outside the enum
+                ['symbolId' => 's50', 'role' => 'furniture', 'deviceType' => 'bord', 'labelTextId' => 't99', 'confidence' => 1.7, 'reason' => 'sofa'],
+            ],
+            'legend' => [['symbolId' => 's10', 'textId' => 't3', 'deviceType' => 'pushbutton']],
+        ]);
+
+        $this->assertSame(['s10', 's50'], array_column($proposal['symbols'], 'symbolId'));
+        $this->assertSame('pushbutton', $proposal['symbols'][0]['deviceType']);
+        // Furniture is not a device: it carries no device type, no label and no doubts; confidence is clamped.
+        $this->assertSame(['furniture', null, null, 1], [$proposal['symbols'][1]['role'], $proposal['symbols'][1]['deviceType'], $proposal['symbols'][1]['labelTextId'], $proposal['symbols'][1]['confidence']]);
+        $this->assertSame(4, $proposal['dropped']['symbols']);
+        $this->assertSame('dwelling', $proposal['planKind']);
+    }
+
+    public function test_a_label_is_the_exact_text_of_the_id_never_the_models_wording(): void
+    {
+        $proposal = $this->askOpenAi([
+            'symbols' => [
+                $this->device('s10', 'bord', 't4') + ['label' => 'Hoofdbord invented'],
+                $this->device('s20', 'bord', 't99'),
+            ],
+            'legend' => [['symbolId' => null, 'textId' => 't4', 'deviceType' => 'bord']],
+        ]);
+
+        $this->assertSame(['t4', 'BORD 1'], [$proposal['symbols'][0]['labelTextId'], $proposal['symbols'][0]['label']]);
+        $this->assertSame([null, null], [$proposal['symbols'][1]['labelTextId'], $proposal['symbols'][1]['label']]);
+        $this->assertSame(1, $proposal['dropped']['names']);
+    }
+
+    public function test_a_device_without_a_valid_legend_entry_for_its_type_needs_review(): void
+    {
+        $proposal = $this->askOpenAi([
+            'symbols' => [
+                $this->device('s10', 'pushbutton', 't3'),        // legend explains pushbutton
+                $this->device('s20', 'bord', 't4'),              // no legend entry for bord
+                $this->device('s30', 'detector_360', null),      // legend entry exists but its text is unknown
+                $this->device('s40', 'pushbutton', null, 0.3),   // legend ok, confidence low
+                $this->device('s50', 'detector_180', null, 0.2), // both
+            ],
+            'legend' => [
+                ['symbolId' => 's10', 'textId' => 't3', 'deviceType' => 'pushbutton'],
+                ['symbolId' => null, 'textId' => 't77', 'deviceType' => 'detector_360'],
+            ],
+        ]);
+
+        $by = array_column($proposal['symbols'], null, 'symbolId');
+        $this->assertSame([false, []], [$by['s10']['needsReview'], $by['s10']['doubts']]);
+        $this->assertSame([true, ['no_legend_entry']], [$by['s20']['needsReview'], $by['s20']['doubts']]);
+        $this->assertSame([true, ['no_legend_entry']], [$by['s30']['needsReview'], $by['s30']['doubts']]);
+        $this->assertSame([true, ['low_confidence']], [$by['s40']['needsReview'], $by['s40']['doubts']]);
+        $this->assertSame([true, ['no_legend_entry', 'low_confidence']], [$by['s50']['needsReview'], $by['s50']['doubts']]);
+        // The invalid legend entry was dropped and counted.
+        $this->assertSame(1, $proposal['dropped']['legend']);
+        $this->assertCount(1, $proposal['legend']);
+    }
+
+    public function test_the_confidence_threshold_is_exactly_point_six(): void
+    {
+        $proposal = $this->askOpenAi([
+            'symbols' => [$this->device('s10', 'pushbutton', null, 0.6), $this->device('s20', 'pushbutton', null, 0.59)],
+            'legend' => [['symbolId' => null, 'textId' => 't3', 'deviceType' => 'pushbutton']],
+        ]);
+
+        $this->assertSame([false, true], array_column($proposal['symbols'], 'needsReview'));
+    }
+
+    public function test_legend_entries_are_checked_against_the_request(): void
+    {
+        $proposal = $this->askOpenAi([
+            'legend' => [
+                ['symbolId' => 's10', 'textId' => 't3', 'deviceType' => 'pushbutton'],
+                ['symbolId' => 's10', 'textId' => 't4', 'deviceType' => 'bord'],        // same symbol: first wins
+                ['symbolId' => 's99', 'textId' => 't3', 'deviceType' => 'pushbutton'],  // symbol never sent
+                ['symbolId' => null, 'textId' => 't99', 'deviceType' => 'bord'],        // text never sent
+                ['symbolId' => null, 'textId' => 't4', 'deviceType' => 'lamp'],         // type outside the enum
+                ['symbolId' => null, 'textId' => 't4', 'deviceType' => 'bord'],
+            ],
+        ]);
+
+        $this->assertSame(
+            [['s10', 't3', 'Drukknop', 'pushbutton'], [null, 't4', 'BORD 1', 'bord']],
+            array_map(fn ($l) => [$l['symbolId'], $l['textId'], $l['text'], $l['deviceType']], $proposal['legend']),
+        );
+        $this->assertSame(4, $proposal['dropped']['legend']);
+    }
+
+    public function test_rooms_carry_a_kind_a_null_name_when_unreadable_and_the_reason_for_a_missing_geometry(): void
+    {
+        $proposal = $this->askOpenAi([
+            'groupRoles' => [['groupId' => 'style:s:#cc4c00:0.6', 'role' => 'furniture', 'confidence' => 0.8, 'reason' => 'sofa']],
+            'rooms' => [
+                ['name' => 'Hal', 'textId' => 't1', 'x' => 0.5, 'y' => 0.2, 'kind' => 'hall', 'confidence' => 0.9, 'reason' => 'label', 'geometryNullReason' => null],
+                ['name' => 'Sofa room', 'textId' => null, 'x' => 0.3, 'y' => 0.6, 'kind' => 'corridor', 'confidence' => 0.4, 'reason' => 'open', 'geometryNullReason' => 'Open to the outside; no closed contour.'],
+                ['name' => null, 'textId' => null, 'x' => 0.1, 'y' => 0.1, 'kind' => 'pantry', 'confidence' => 0.4, 'reason' => 'x', 'geometryNullReason' => null], // kind outside the enum
+            ],
+        ]);
+
+        $this->assertSame('furniture', $proposal['groupRoles'][0]['role']);
+        $this->assertSame([['Hal', 'hall', null], [null, 'corridor', 'Open to the outside; no closed contour.']], array_map(fn ($r) => [$r['name'], $r['kind'], $r['geometryNullReason']], $proposal['rooms']));
+        $this->assertSame(1, $proposal['dropped']['rooms']);
+        $this->assertSame(1, $proposal['dropped']['names']);
+    }
+
+    public function test_an_unknown_plan_kind_becomes_unknown(): void
+    {
+        $this->assertSame('unknown', $this->askOpenAi(['planKind' => 'castle'])['planKind']);
+    }
+
+    public function test_a_valid_plan_kind_is_kept(): void
+    {
+        $this->assertSame('other', $this->askOpenAi(['planKind' => 'other'])['planKind']);
     }
 }

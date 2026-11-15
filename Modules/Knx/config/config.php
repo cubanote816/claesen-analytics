@@ -145,7 +145,7 @@ return [
     |
     */
     'plan_analysis' => [
-        'schema_version' => 'plan-analysis/1',
+        'schema_version' => 'plan-analysis/2',
         'providers' => [
             'synthetic' => [
                 'external' => false,

@@ -10,6 +10,7 @@
       "style:s:#990033:0.35"
     ]
   },
+  "planKind": "dwelling",
   "groupRoles": [
     { "groupId": "style:f:#000000", "role": "wall", "confidence": 0.95, "reason": "Solid black fills tracing the building outline and the partitions." },
     { "groupId": "style:s:#0066cc:0.5", "role": "window", "confidence": 0.85, "reason": "Thin double lines inside the outer walls." },
@@ -17,8 +18,8 @@
     { "groupId": "style:s:#663399:0.4", "role": "stair", "confidence": 0.85, "reason": "Parallel treads in the hall." },
     { "groupId": "style:s:#008080:0.7", "role": "lift", "confidence": 0.8, "reason": "Square shaft with a cross." },
     { "groupId": "style:s:#990033:0.35", "role": "void", "confidence": 0.75, "reason": "Rectangles with a cross inside rooms: floor openings." },
-    { "groupId": "style:s:#80591a:0.3", "role": "hidden", "confidence": 0.8, "reason": "Furniture outlines." },
-    { "groupId": "style:s:#3399e6:0.45", "role": "hidden", "confidence": 0.8, "reason": "Sanitary fixtures." },
+    { "groupId": "style:s:#80591a:0.3", "role": "furniture", "confidence": 0.8, "reason": "Furniture outlines, kept because this is a dwelling." },
+    { "groupId": "style:s:#3399e6:0.45", "role": "furniture", "confidence": 0.8, "reason": "Sanitary fixtures, kept because this is a dwelling." },
     { "groupId": "style:fs:#ff0000:#ff0000:0.25", "role": "hidden", "confidence": 0.9, "reason": "Electrical symbols." },
     { "groupId": "style:s:#ff0000:0.25", "role": "hidden", "confidence": 0.9, "reason": "Electrical circuits." },
     { "groupId": "style:s:#009900:0.2", "role": "hidden", "confidence": 0.85, "reason": "Dimension lines." },
@@ -27,14 +28,22 @@
     { "groupId": "style:s:#4c4c4c:0.9", "role": "hidden", "confidence": 0.85, "reason": "Title block frame." },
     { "groupId": "style:s:#e69900:0.55", "role": "hidden", "confidence": 0.7, "reason": "Annotation leaders." }
   ],
+  "symbols": [
+    { "symbolId": "s10", "role": "furniture", "deviceType": null, "labelText": null, "confidence": 0.8, "reason": "Sofa outline." },
+    { "symbolId": "s20", "role": "device", "deviceType": "pushbutton", "labelText": null, "confidence": 0.9, "reason": "Matches the pushbutton entry of this legend." },
+    { "symbolId": "s30", "role": "device", "deviceType": "bord", "labelText": "BORD 1", "confidence": 0.85, "reason": "Board symbol next to its tag; the legend has no entry for it." }
+  ],
+  "legend": [
+    { "symbolId": "s20", "text": "Drukknop", "deviceType": "pushbutton" }
+  ],
   "rooms": [
-    { "text": "Woonkamer", "confidence": 0.9, "reason": "Large L-shaped space named by its label." },
-    { "text": "WC", "confidence": 0.9, "reason": "Small closed space named by its label." },
-    { "text": "Berging", "confidence": 0.9, "reason": "Small closed space named by its label." },
-    { "text": "Hal", "confidence": 0.85, "reason": "Hall with the stair, named by its label." },
-    { "text": "Slaapkamer", "confidence": 0.9, "reason": "Closed space named by its label." },
-    { "text": "Badkamer", "confidence": 0.9, "reason": "Closed space named by its label." },
-    { "text": "Technische ruimte", "confidence": 0.85, "reason": "Small closed space named by its label." }
+    { "text": "Woonkamer", "kind": "room", "confidence": 0.9, "reason": "Large L-shaped space named by its label." },
+    { "text": "WC", "kind": "toilet", "confidence": 0.9, "reason": "Small closed space named by its label." },
+    { "text": "Berging", "kind": "storage", "confidence": 0.9, "reason": "Small closed space named by its label." },
+    { "text": "Hal", "kind": "hall", "confidence": 0.85, "reason": "Hall with the stair, named by its label." },
+    { "text": "Slaapkamer", "kind": "room", "confidence": 0.9, "reason": "Closed space named by its label." },
+    { "text": "Badkamer", "kind": "room", "confidence": 0.9, "reason": "Closed space named by its label." },
+    { "text": "Technische ruimte", "kind": "room", "confidence": 0.85, "reason": "Small closed space named by its label." }
   ],
   "uncertain": [
     { "text": "Carport", "reason": "Named space that is open to the outside: no closed boundary in the drawing." }

@@ -30,6 +30,7 @@ use Modules\Knx\Http\Controllers\OfficeIssueController;
 use Modules\Knx\Http\Controllers\PlanAiAuthorizationController;
 use Modules\Knx\Http\Controllers\PlanAnalysisController;
 use Modules\Knx\Http\Controllers\PlanCleanProfileController;
+use Modules\Knx\Http\Controllers\PlanDeviceController;
 use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\PlanRoomController;
@@ -349,6 +350,13 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::post('projects/{code}/plans/{documentId}/analyses', [PlanAnalysisController::class, 'store'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans.analyses.store');
+            // KNX-48 (plano IA v2) — the KNX devices of a page: GET the set, PUT replaces it.
+            Route::get('projects/{code}/plans/{documentId}/devices', [PlanDeviceController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.devices.show');
+            Route::put('projects/{code}/plans/{documentId}/devices', [PlanDeviceController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.devices.update');
 
             Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
             Route::post('reports', [ReportController::class, 'store'])->name('reports.store');

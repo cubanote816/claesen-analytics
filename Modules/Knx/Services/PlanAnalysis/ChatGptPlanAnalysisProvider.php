@@ -119,12 +119,7 @@ class ChatGptPlanAnalysisProvider implements PlanAnalysisProvider
      */
     public function body(string $model, PlanAnalysisInput $input): array
     {
-        $summary = [
-            'page' => $input->page,
-            'pageSizePt' => [$input->pageWidthPt, $input->pageHeightPt],
-            'groups' => $input->groups,
-            'texts' => $input->texts,
-        ];
+        $summary = $input->summary();
 
         return [
             'model' => $model,

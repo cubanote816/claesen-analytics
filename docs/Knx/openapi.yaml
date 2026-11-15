@@ -1076,7 +1076,10 @@ paths:
         Mapa opaco `{groupId: rol}` por documento y página; el servidor nunca lee el PDF. Sin perfil
         guardado es un `200` con `roles: {}` (siempre un objeto JSON) y `revision`, `processingVersion` y
         `updatedAt` a `null`. `revision` es la revisión del documento al último guardado y
-        `documentRevision` la actual: si difieren, el perfil se hizo para otra revisión.
+        `documentRevision` la actual: si difieren, el perfil se hizo para otra revisión. `symbolRoles`
+        (plano IA v2, provisional) es el mapa `{symbolId: furniture|device|hidden|unknown}` de símbolos sueltos
+        (`s<índice>`, resueltos por Kantoor con la misma `processingVersion`); sin perfil o sin símbolos es
+        siempre un objeto JSON `{}`.
       parameters:
         - $ref: "#/components/parameters/Code"
         - $ref: "#/components/parameters/DocumentId"
@@ -1094,8 +1097,9 @@ paths:
                 revision: "Rev. H"
                 documentRevision: "Rev. H"
                 processingVersion: "kantoor-plan/3"
-                roles: { "layer:A-WALL": "wall", "layer:A-FURN": "hidden" }
+                roles: { "layer:A-WALL": "wall", "layer:A-FURN": "furniture" }
                 boundaries: [[[0.82, 0.1], [0.82, 0.9]]]
+                symbolRoles: { s123: device, s140: furniture }
                 updatedAt: "2026-11-10T09:00:00+00:00"
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1109,7 +1113,9 @@ paths:
         0 o más de 255 caracteres o un rol fuera del enum es `422` (`roles.<groupId>`). `boundaries`
         son límites virtuales (barreras solo para la detección de habitaciones, nunca muros): hasta 200
         segmentos de dos puntos en fracciones 0..1; omitido equivale a ninguno (el perfil se reemplaza
-        entero); un segmento degenerado o mal formado es `422`.
+        entero); un segmento degenerado o mal formado es `422`. `roles` acepta `furniture` (mobiliario y
+        sanitarios). `symbolRoles` (hasta 3000 entradas) se reemplaza entero como `boundaries`: omitido
+        equivale a ninguno; una clave que no sea `s<dígitos>` o un rol fuera del enum es `422`.
       parameters:
         - $ref: "#/components/parameters/Code"
         - $ref: "#/components/parameters/DocumentId"
@@ -1125,7 +1131,12 @@ paths:
                 roles:
                   type: object
                   maxProperties: 500
-                  additionalProperties: { type: string, enum: [wall, window, door, stair, lift, void, hidden, unknown] }
+                  additionalProperties: { type: string, enum: [wall, window, door, stair, lift, void, furniture, hidden, unknown] }
+                symbolRoles:
+                  type: object
+                  maxProperties: 3000
+                  description: "Rol por símbolo, clave `s<índice>`"
+                  additionalProperties: { type: string, enum: [furniture, device, hidden, unknown] }
                 processingVersion: { type: string, nullable: true, maxLength: 32 }
                 boundaries:
                   type: array
@@ -1148,6 +1159,7 @@ paths:
                 processingVersion: "kantoor-plan/3"
                 roles: { "layer:A-WALL": "wall" }
                 boundaries: []
+                symbolRoles: {}
                 updatedAt: "2026-11-10T09:00:00+00:00"
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -1354,12 +1366,15 @@ paths:
                   provider: synthetic
                   billing: simulation
                   model: synthetic-examples
-                  schemaVersion: plan-analysis/1
+                  schemaVersion: plan-analysis/2
                   proposal:
+                    planKind: dwelling
                     groupRoles: [{ groupId: "style:f:#000000", role: wall, confidence: 0.95, reason: "Solid black fills." }]
-                    rooms: [{ name: Woonkamer, textId: t0, x: 0.19, y: 0.34, confidence: 0.9, reason: "Named by its label." }]
+                    symbols: [{ symbolId: s123, role: device, deviceType: pushbutton, labelTextId: t17, label: D1, confidence: 0.9, reason: "Matches the legend.", needsReview: false, doubts: [] }]
+                    legend: [{ symbolId: s9, textId: t4, text: Drukknop, deviceType: pushbutton }]
+                    rooms: [{ name: Woonkamer, textId: t0, x: 0.19, y: 0.34, kind: room, confidence: 0.9, reason: "Named by its label.", geometryNullReason: null }]
                     uncertain: [{ x: 0.8, y: 0.7, reason: "Open to the outside." }]
-                    dropped: { groupRoles: 0, rooms: 0, uncertain: 0, names: 0 }
+                    dropped: { groupRoles: 0, rooms: 0, uncertain: 0, names: 0, symbols: 0, legend: 0 }
                   usage: { inputTokens: null, outputTokens: null }
                   createdAt: "2026-11-13T09:00:00+00:00"
                   createdBy: "Lien Smet"
@@ -1382,7 +1397,15 @@ paths:
         proveedor ni otra facturación como alternativa. La respuesta
         se valida contra lo enviado: solo grupos enviados y roles del enum, puntos dentro de la página, y
         un nombre solo si `textId` es un texto enviado (el nombre ES ese texto); lo descartado se cuenta en
-        `dropped`. No se guardan la imagen ni el resumen.
+        `dropped`. No se guardan la imagen ni el resumen. Plano IA v2 (provisional): `symbols` (hasta 3000
+        candidatos por instancia) y `legend` (región de leyenda o `null`) son opcionales y viajan al
+        proveedor como datos, nunca como instrucciones; la propuesta nueva es `plan-analysis/2` (`planKind`,
+        `groupRoles` con `furniture`, `symbols`, `legend`, `rooms` con `kind` y `geometryNullReason`,
+        `uncertain`). El backend recorta: `symbolId`, `textId` y `labelTextId` deben existir en el pedido,
+        enums cerrados, la primera respuesta por id gana, y el nombre de un espacio o la etiqueta de un
+        aparato es el texto exacto del `textId`. Un aparato cuyo `deviceType` no tiene entrada de leyenda
+        válida se conserva con `needsReview: true` y duda `no_legend_entry`; con `confidence < 0.6`, duda
+        `low_confidence`. Las propuestas `plan-analysis/1` guardadas se devuelven tal cual.
       parameters:
         - $ref: "#/components/parameters/Code"
         - $ref: "#/components/parameters/DocumentId"
@@ -1425,6 +1448,33 @@ paths:
                       text: { type: string, maxLength: 500 }
                       x: { type: number, minimum: 0, maximum: 1 }
                       y: { type: number, minimum: 0, maximum: 1 }
+                symbols:
+                  type: array
+                  maxItems: 3000
+                  items:
+                    type: object
+                    required: [id, group, x, y, w, h, paths, nearTextIds]
+                    properties:
+                      id: { type: string, pattern: "^s\\d+$", description: "Índice del primer trazo del cluster" }
+                      group: { type: string, maxLength: 255 }
+                      x: { type: number, minimum: 0, maximum: 1 }
+                      y: { type: number, minimum: 0, maximum: 1 }
+                      w: { type: number, minimum: 0, maximum: 1 }
+                      h: { type: number, minimum: 0, maximum: 1 }
+                      paths: { type: integer, minimum: 0 }
+                      nearTextIds:
+                        type: array
+                        maxItems: 3
+                        items: { type: string, description: "Id de un texto del pedido" }
+                legend:
+                  type: object
+                  nullable: true
+                  required: [x, y, w, h]
+                  properties:
+                    x: { type: number, minimum: 0, maximum: 1 }
+                    y: { type: number, minimum: 0, maximum: 1 }
+                    w: { type: number, minimum: 0, maximum: 1 }
+                    h: { type: number, minimum: 0, maximum: 1 }
       responses:
         "201":
           description: La propuesta guardada, misma forma que el GET
@@ -1437,6 +1487,95 @@ paths:
         "429": { description: "Presupuesto agotado (`plan_analysis_budget_exhausted`, `plan_analysis_daily_budget_exhausted` + `resumesAt`, `plan_analysis_processing_call_limit`, `plan_analysis_processing_cost_limit`) o límite de uso del plan (`plan_analysis_plan_usage_limit`)" }
         "502": { description: "El proveedor falló o respondió algo inutilizable" }
         "503": { description: "El plan de ChatGPT no está disponible (`plan_analysis_plan_unavailable`)" }
+  /projects/{code}/plans/{documentId}/devices:
+    get:
+      tags: [plans]
+      summary: Aparatos KNX de una página del plano (KNX-48, plano IA v2, provisional)
+      description: >-
+        Capa de aparatos (BORD, pulsadores, detectores BD 180/360) de una página, separada del dibujo.
+        Posición y `bbox` en fracciones 0..1 con origen arriba a la izquierda; `symbolId` apunta al
+        símbolo original del PDF. Sin aparatos es un `200` con `devices: []`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                devices:
+                  - id: "5"
+                    provisionalId: D1
+                    type: pushbutton
+                    nx: 0.41
+                    ny: 0.22
+                    bbox: { x: 0.408, y: 0.218, w: 0.006, h: 0.006 }
+                    rotationDeg: null
+                    symbolId: s123
+                    label: D1
+                    status: proposed
+                    doubts: [no_legend_entry]
+                    analysisId: "12"
+                    updatedAt: "2026-11-16T09:00:00+00:00"
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    put:
+      tags: [plans]
+      summary: Reemplaza atómicamente los aparatos de una página
+      description: >-
+        Sustituye el conjunto entero de esa página en una transacción (las demás páginas no cambian) y
+        devuelve la lista. Hasta 1000 aparatos; `provisionalId` (`D1`..`Dn`) único en la página;
+        `type` y `status` del enum; coordenadas fuera de 0..1, `symbolId` mal formado o un `analysisId`
+        que no sea de este documento es `422` y no cambia nada. Mismo control de organización, proyecto y
+        documento que los demás endpoints de plano; un documento ajeno es `404`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [page, devices]
+              properties:
+                page: { type: integer, minimum: 1 }
+                devices:
+                  type: array
+                  maxItems: 1000
+                  items:
+                    type: object
+                    required: [provisionalId, type, nx, ny, bbox, symbolId, status, doubts]
+                    properties:
+                      provisionalId: { type: string, pattern: "^D\\d{1,6}$" }
+                      type: { type: string, enum: [bord, pushbutton, detector_180, detector_360, other_knx] }
+                      nx: { type: number, minimum: 0, maximum: 1 }
+                      ny: { type: number, minimum: 0, maximum: 1 }
+                      bbox:
+                        type: object
+                        required: [x, y, w, h]
+                        properties:
+                          x: { type: number, minimum: 0, maximum: 1 }
+                          y: { type: number, minimum: 0, maximum: 1 }
+                          w: { type: number, minimum: 0, maximum: 1 }
+                          h: { type: number, minimum: 0, maximum: 1 }
+                      rotationDeg: { type: number, nullable: true, minimum: -360, maximum: 360 }
+                      symbolId: { type: string, pattern: "^s\\d{1,9}$" }
+                      label: { type: string, nullable: true, maxLength: 255 }
+                      status: { type: string, enum: [proposed, confirmed, rejected] }
+                      doubts: { type: array, maxItems: 20, items: { type: string, maxLength: 200 } }
+                      analysisId: { type: integer, nullable: true }
+      responses:
+        "200":
+          description: El conjunto resultante de la página, misma forma que el GET
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /exports/{id}/download:
     get:
       tags: [reports]

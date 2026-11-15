@@ -5,21 +5,30 @@ declare(strict_types=1);
 namespace Modules\Knx\Services\PlanAnalysis;
 
 use Modules\Knx\Models\KnxPlanCleanProfile;
+use Modules\Knx\Models\KnxPlanDevice;
 
 /**
- * Turns a provider's untrusted answer into a proposal that only refers to what was sent.
+ * Turns a provider's untrusted answer into a `plan-analysis/2` proposal that only refers to
+ * what was sent. The model proposes; this class trims.
  *
+ * - planKind: dwelling | other | unknown (anything else is `unknown`).
  * - group roles: only group ids of the input and roles of the enum; first answer per group.
- * - rooms: a point on the page; a NAME only when `textId` is a text of the input, and then
- *   the name IS that text (never the model's wording). Without evidence the name is null.
+ * - symbols: only symbol ids of the input, role and device type of the closed enums; first
+ *   answer per symbol. A device carries the EXACT text of its `labelTextId` as label, and is
+ *   kept with `needsReview` when its type has no valid legend entry (`no_legend_entry`) or
+ *   its confidence is below 0.6 (`low_confidence`).
+ * - legend: entries whose symbol (if any) and text were sent and whose type is in the enum.
+ * - rooms: a point on the page and a kind; a NAME only when `textId` is a text of the input,
+ *   and then the name IS that text (never the model's wording). Without evidence it is null.
  * - uncertain: points on the page with a reason.
- * Everything dropped is counted in `dropped`, so the review can see it.
+ * Everything dropped is counted in `dropped`, so the review can see it. A v1-shaped answer
+ * (no `planKind`/`symbols`/`legend`) is accepted: those sections are empty and uncounted.
  */
 class PlanAnalysisValidator
 {
     /**
      * @param  array<string, mixed>  $raw
-     * @return array{groupRoles: list<array<string, mixed>>, rooms: list<array<string, mixed>>, uncertain: list<array<string, mixed>>, dropped: array<string, int>}
+     * @return array{planKind: string, groupRoles: list<array<string, mixed>>, symbols: list<array<string, mixed>>, legend: list<array<string, mixed>>, rooms: list<array<string, mixed>>, uncertain: list<array<string, mixed>>, dropped: array<string, int>}
      *
      * @throws PlanAnalysisFailed `invalid_output` when the answer is not a proposal at all
      */
@@ -28,6 +37,11 @@ class PlanAnalysisValidator
         foreach (['groupRoles', 'rooms', 'uncertain'] as $key) {
             if (! isset($raw[$key]) || ! is_array($raw[$key]) || ! array_is_list($raw[$key])) {
                 throw new PlanAnalysisFailed('invalid_output', "The answer has no `{$key}` list.");
+            }
+        }
+        foreach (['symbols', 'legend'] as $key) {
+            if (isset($raw[$key]) && (! is_array($raw[$key]) || ! array_is_list($raw[$key]))) {
+                throw new PlanAnalysisFailed('invalid_output', "The answer's `{$key}` is not a list.");
             }
         }
 
@@ -53,10 +67,23 @@ class PlanAnalysisValidator
             ];
         }
 
+        $legend = [];
+        if (isset($raw['legend'])) {
+            $dropped['legend'] = 0;
+            $legend = $this->legend($input, $texts, $raw['legend'], $dropped);
+        }
+
+        $symbols = [];
+        if (isset($raw['symbols'])) {
+            $dropped['symbols'] = 0;
+            $symbols = $this->symbols($input, $texts, $raw['symbols'], $legend, $dropped);
+        }
+
         $rooms = [];
         foreach ($raw['rooms'] as $entry) {
             $point = is_array($entry) ? $this->point($entry) : null;
-            if ($point === null) {
+            $kind = is_array($entry) ? ($entry['kind'] ?? 'other') : null;
+            if ($point === null || ! is_string($kind) || ! in_array($kind, PlanAnalysisSchema::ROOM_KINDS, true)) {
                 $dropped['rooms']++;
 
                 continue;
@@ -67,13 +94,16 @@ class PlanAnalysisValidator
             if (! $evidence && is_string($name) && trim($name) !== '') {
                 $dropped['names']++;
             }
+            $geometryNullReason = $entry['geometryNullReason'] ?? null;
             $rooms[] = [
                 'name' => $evidence ? trim($texts[$textId]) : null,
                 'textId' => $evidence ? $textId : null,
                 'x' => $point[0],
                 'y' => $point[1],
+                'kind' => $kind,
                 'confidence' => $this->confidence($entry['confidence'] ?? null),
                 'reason' => $this->reason($entry['reason'] ?? null),
+                'geometryNullReason' => is_string($geometryNullReason) && trim($geometryNullReason) !== '' ? $this->reason($geometryNullReason) : null,
             ];
         }
 
@@ -88,12 +118,109 @@ class PlanAnalysisValidator
             $uncertain[] = ['x' => $point[0], 'y' => $point[1], 'reason' => $this->reason($entry['reason'] ?? null)];
         }
 
+        $planKind = $raw['planKind'] ?? null;
+
         return [
+            'planKind' => is_string($planKind) && in_array($planKind, PlanAnalysisSchema::PLAN_KINDS, true) ? $planKind : 'unknown',
             'groupRoles' => array_values($groupRoles),
+            'symbols' => $symbols,
+            'legend' => $legend,
             'rooms' => $rooms,
             'uncertain' => $uncertain,
             'dropped' => $dropped,
         ];
+    }
+
+    /**
+     * What THIS plan's legend says. First answer per symbol (or per text, when the entry has no symbol).
+     *
+     * @param  array<string, string>  $texts
+     * @param  list<mixed>  $entries
+     * @param  array<string, int>  $dropped
+     * @return list<array{symbolId: ?string, textId: string, text: string, deviceType: string}>
+     */
+    private function legend(PlanAnalysisInput $input, array $texts, array $entries, array &$dropped): array
+    {
+        $symbols = array_flip($input->symbolIds());
+        $legend = [];
+        $seen = [];
+
+        foreach ($entries as $entry) {
+            $symbolId = is_array($entry) ? ($entry['symbolId'] ?? null) : null;
+            $textId = is_array($entry) ? ($entry['textId'] ?? null) : null;
+            $type = is_array($entry) ? ($entry['deviceType'] ?? null) : null;
+            $key = is_string($symbolId) ? 'symbol:'.$symbolId : 'text:'.(is_string($textId) ? $textId : '');
+
+            if (($symbolId !== null && (! is_string($symbolId) || ! isset($symbols[$symbolId])))
+                || ! is_string($textId) || ! isset($texts[$textId])
+                || ! is_string($type) || ! in_array($type, KnxPlanDevice::TYPES, true)
+                || isset($seen[$key])) {
+                $dropped['legend']++;
+
+                continue;
+            }
+            $seen[$key] = true;
+            $legend[] = ['symbolId' => $symbolId, 'textId' => $textId, 'text' => trim($texts[$textId]), 'deviceType' => $type];
+        }
+
+        return $legend;
+    }
+
+    /**
+     * @param  array<string, string>  $texts
+     * @param  list<mixed>  $entries
+     * @param  list<array{symbolId: ?string, textId: string, text: string, deviceType: string}>  $legend
+     * @param  array<string, int>  $dropped
+     * @return list<array<string, mixed>>
+     */
+    private function symbols(PlanAnalysisInput $input, array $texts, array $entries, array $legend, array &$dropped): array
+    {
+        $onPage = array_flip($input->symbolIds());
+        $explained = array_flip(array_column($legend, 'deviceType'));
+        $symbols = [];
+
+        foreach ($entries as $entry) {
+            $id = is_array($entry) ? ($entry['symbolId'] ?? null) : null;
+            $role = is_array($entry) ? ($entry['role'] ?? null) : null;
+            $type = is_array($entry) ? ($entry['deviceType'] ?? null) : null;
+            if (! is_string($id) || ! isset($onPage[$id]) || isset($symbols[$id])
+                || ! is_string($role) || ! in_array($role, PlanAnalysisSchema::SYMBOL_ROLES, true)
+                || ($role === 'device' && (! is_string($type) || ! in_array($type, KnxPlanDevice::TYPES, true)))) {
+                $dropped['symbols']++;
+
+                continue;
+            }
+
+            $confidence = $this->confidence($entry['confidence'] ?? null);
+            $device = $role === 'device';
+            $labelTextId = $entry['labelTextId'] ?? null;
+            $evidence = $device && is_string($labelTextId) && isset($texts[$labelTextId]);
+            if ($device && $labelTextId !== null && ! $evidence) {
+                $dropped['names']++;
+            }
+
+            $doubts = [];
+            if ($device && ! isset($explained[$type])) {
+                $doubts[] = 'no_legend_entry';
+            }
+            if ($device && $confidence < PlanAnalysisSchema::REVIEW_CONFIDENCE) {
+                $doubts[] = 'low_confidence';
+            }
+
+            $symbols[$id] = [
+                'symbolId' => $id,
+                'role' => $role,
+                'deviceType' => $device ? $type : null,
+                'labelTextId' => $evidence ? $labelTextId : null,
+                'label' => $evidence ? trim($texts[$labelTextId]) : null,
+                'confidence' => $confidence,
+                'reason' => $this->reason($entry['reason'] ?? null),
+                'needsReview' => $doubts !== [],
+                'doubts' => $doubts,
+            ];
+        }
+
+        return array_values($symbols);
     }
 
     /**
