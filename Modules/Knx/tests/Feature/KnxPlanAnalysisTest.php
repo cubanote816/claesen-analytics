@@ -548,6 +548,23 @@ final class KnxPlanAnalysisTest extends TestCase
         $this->assertSame(1, $proposal['dropped']['names']);
     }
 
+    public function test_a_symbol_inside_the_legend_region_is_never_a_device(): void
+    {
+        // The legend shows ONE sample of each symbol: it explains the plan, it is not installed
+        // (doc 108, 2026-11-16: the model proposed both legend samples as devices).
+        $body = $this->bodyV2('openai', ['symbols' => [$this->symbol('s10'), $this->symbol('s60', 0.85, 0.12)]]);
+        $proposal = $this->askOpenAi([
+            'symbols' => [$this->device('s10', 'pushbutton'), $this->device('s60', 'pushbutton')],
+            'legend' => [['symbolId' => 's60', 'textId' => 't3', 'deviceType' => 'pushbutton']],
+        ], $body);
+
+        $by = array_column($proposal['symbols'], null, 'symbolId');
+        $this->assertSame(['device', 'pushbutton', []], [$by['s10']['role'], $by['s10']['deviceType'], $by['s10']['doubts']]);
+        $this->assertSame(['hidden', null, false, []], [$by['s60']['role'], $by['s60']['deviceType'], $by['s60']['needsReview'], $by['s60']['doubts']]);
+        // The legend entry itself is kept: it is what explains s10.
+        $this->assertSame(['s60'], array_column($proposal['legend'], 'symbolId'));
+    }
+
     public function test_a_device_without_a_valid_legend_entry_for_its_type_needs_review(): void
     {
         $proposal = $this->askOpenAi([

@@ -177,6 +177,7 @@ class PlanAnalysisValidator
     {
         $onPage = array_flip($input->symbolIds());
         $explained = array_flip(array_column($legend, 'deviceType'));
+        $inLegend = $this->symbolsInLegend($input);
         $symbols = [];
 
         foreach ($entries as $entry) {
@@ -191,6 +192,11 @@ class PlanAnalysisValidator
                 continue;
             }
 
+            // A symbol inside the legend region is the legend's sample: it explains the plan, it is
+            // not installed, so it is never a device (S3: the legend is a source, not the plan).
+            if ($role === 'device' && isset($inLegend[$id])) {
+                $role = 'hidden';
+            }
             $confidence = $this->confidence($entry['confidence'] ?? null);
             $device = $role === 'device';
             $labelTextId = $entry['labelTextId'] ?? null;
@@ -221,6 +227,30 @@ class PlanAnalysisValidator
         }
 
         return array_values($symbols);
+    }
+
+    /**
+     * Ids of the sent symbols whose centre lies inside the sent legend region.
+     *
+     * @return array<string, true>
+     */
+    private function symbolsInLegend(PlanAnalysisInput $input): array
+    {
+        $legend = $input->legend;
+        if (! is_array($legend)) {
+            return [];
+        }
+        $inside = [];
+        foreach ($input->symbols as $symbol) {
+            $cx = (float) $symbol['x'] + (float) $symbol['w'] / 2;
+            $cy = (float) $symbol['y'] + (float) $symbol['h'] / 2;
+            if ($cx >= (float) $legend['x'] && $cx <= (float) $legend['x'] + (float) $legend['w']
+                && $cy >= (float) $legend['y'] && $cy <= (float) $legend['y'] + (float) $legend['h']) {
+                $inside[(string) $symbol['id']] = true;
+            }
+        }
+
+        return $inside;
     }
 
     /**
