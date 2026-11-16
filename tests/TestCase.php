@@ -3,6 +3,11 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\RawMessage;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -17,6 +22,51 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         config(['core.panel_mfa_enforced' => false]);
+
+        $this->discardMicrosoftGraphCredentials();
+    }
+
+    /**
+     * CLA-692: the suite must never send real e-mail through Microsoft Graph.
+     *
+     * SendConsultationEmailJob sends with the named Mail::mailer('microsoft-graph'),
+     * which ignores phpunit.xml's MAIL_MAILER=array, and QUEUE_CONNECTION=sync
+     * runs it inside the test. Real MICROSOFT_GRAPH_* values from a developer's
+     * .env therefore turned every consultation a test created into a real
+     * e-mail. Dropping the credentials makes MicrosoftGraphService fail with
+     * MailConfigurationException before any HTTP call, while tests that
+     * exercise the Graph transport keep setting their own credentials per case
+     * (with Http::fake()).
+     *
+     * MicrosoftGraphService reads the credentials when it is built, and
+     * MailingServiceProvider::boot() may already have resolved the mailer
+     * (when mail.always_to is set) with the environment's credentials. So the
+     * mailer gets a transport that builds the real one from the current
+     * config on every send: the environment's credentials are gone, a test's
+     * own credentials always apply, and the mailer keeps its alwaysTo however
+     * MAIL_TO_ADDRESS arrived (process environment or .env).
+     */
+    private function discardMicrosoftGraphCredentials(): void
+    {
+        config([
+            'mail.mailers.microsoft-graph.client_id' => null,
+            'mail.mailers.microsoft-graph.tenant_id' => null,
+            'mail.mailers.microsoft-graph.client_secret' => null,
+        ]);
+
+        Mail::mailer('microsoft-graph')->setSymfonyTransport(new class implements TransportInterface
+        {
+            public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
+            {
+                return Mail::createSymfonyTransport(config('mail.mailers.microsoft-graph'))
+                    ->send($message, $envelope);
+            }
+
+            public function __toString(): string
+            {
+                return 'microsoft-graph (built from config on each send, CLA-692)';
+            }
+        });
     }
 
     /**

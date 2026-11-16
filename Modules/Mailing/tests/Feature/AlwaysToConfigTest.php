@@ -30,9 +30,6 @@ class AlwaysToConfigTest extends TestCase
     /** @var array<string, string> */
     private array $overrides = [
         'MAIL_TO_ADDRESS' => 'qa@example.test',
-        'MICROSOFT_GRAPH_CLIENT_ID' => 'fake-client-id',
-        'MICROSOFT_GRAPH_TENANT_ID' => 'fake-tenant-id',
-        'MICROSOFT_GRAPH_CLIENT_SECRET' => 'fake-client-secret',
     ];
 
     protected function setUp(): void
@@ -41,8 +38,6 @@ class AlwaysToConfigTest extends TestCase
         // reads ($_SERVER / $_ENV take priority over the putenv adapter), so
         // config/mail.php and MailingServiceProvider::boot() (the real
         // Mail::mailer('microsoft-graph')->alwaysTo(...) wiring) see them.
-        // MicrosoftGraphService also needs non-empty credentials to pass
-        // assertConfigured() and reach the faked HTTP call.
         foreach ($this->overrides as $name => $value) {
             putenv("{$name}={$value}");
             $_ENV[$name] = $value;
@@ -50,6 +45,16 @@ class AlwaysToConfigTest extends TestCase
         }
 
         parent::setUp();
+
+        // MicrosoftGraphService needs non-empty credentials to pass
+        // assertConfigured() and reach the faked HTTP call. CLA-692: tests
+        // never take them from the environment, so they are set in config here;
+        // the mailer reads them on each send (tests/TestCase.php).
+        config([
+            'mail.mailers.microsoft-graph.client_id' => 'fake-client-id',
+            'mail.mailers.microsoft-graph.tenant_id' => 'fake-tenant-id',
+            'mail.mailers.microsoft-graph.client_secret' => 'fake-client-secret',
+        ]);
 
         Http::preventStrayRequests();
         Http::fake([
