@@ -8,14 +8,15 @@ use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 use League\CommonMark\Extension\Attributes\AttributesExtension;
 use RuntimeException;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * In-app user guide of one module (CLA-693).
  *
  * A guide is one Markdown file per locale in `Modules/<Module>/docs/user-guide/<locale>.md`.
- * Locales without a file fall back to English. Every guide starts with YAML front matter
+ * Locales without a file fall back to English. Every guide starts with front matter
  * (`title`, `navigation_label`, `module`) that a future per-module RAG reads with the sections.
+ * Front matter is flat `key: value` lines, parsed here on purpose: symfony/yaml is a dev-only
+ * package and production installs with `composer install --no-dev` (CLA-693 hotfix).
  *
  * UI names are never typed by hand. A placeholder points at the translation key the UI uses,
  * so a renamed button renames itself in the guide too:
@@ -206,8 +207,22 @@ final class ModuleGuide
             return [[], $source];
         }
 
-        $meta = Yaml::parse($m[1]);
+        $meta = [];
+        foreach (preg_split('/\R/', $m[1]) ?: [] as $line) {
+            if (preg_match('/^([A-Za-z0-9_]+)\s*:\s*(.*?)\s*$/', $line, $pair)) {
+                $meta[$pair[1]] = self::unquote($pair[2]);
+            }
+        }
 
-        return [is_array($meta) ? $meta : [], $m[2]];
+        return [$meta, $m[2]];
+    }
+
+    private static function unquote(string $value): string
+    {
+        if (strlen($value) >= 2 && ($value[0] === '"' || $value[0] === "'") && str_ends_with($value, $value[0])) {
+            return substr($value, 1, -1);
+        }
+
+        return $value;
     }
 }
