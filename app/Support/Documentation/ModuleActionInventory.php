@@ -14,8 +14,8 @@ use RecursiveIteratorIterator;
  * The guide coverage test (tests/Feature/Documentation/ModuleGuideCoverageTest) fails when an
  * action has no section, so a new button cannot ship without its documentation.
  *
- * Static scan of `<module>/Filament/**.php`, no Livewire boot: `Action::make('send_now')` is
- * named `send_now`; an unnamed `CreateAction::make()` takes Filament's default name from its
+ * Static scan of `<module>/Filament/**.php`, no Livewire boot: `Action::make('send_now')` (also
+ * `make(name: 'send_now')` or through a `use ... as Alias` import) is named `send_now`; an unnamed `CreateAction::make()` takes Filament's default name from its
  * class (`create`, `edit`, `delete_bulk`, ...). The anchor is `action-<scope>-<name>`:
  *
  *   Resources/CampaignResource.php, CampaignResource/Pages/*, .../Schemas/*  → campaign
@@ -27,7 +27,10 @@ use RecursiveIteratorIterator;
  */
 final class ModuleActionInventory
 {
-    private const ACTION = '/\b(\w*Action)::make\(\s*(?:([\'"])([^\'"]+)\2)?/';
+    private const MAKE = '/\b(\w+)::make\(\s*(?:name\s*:\s*)?(?:([\'"])([^\'"]+)\2)?/';
+
+    /** `use Filament\Actions\Action as Button;` makes `Button::make()` an action too. */
+    private const ALIAS = '/^\s*use\s+[\w\\\\]*?\\\\?(\w*Action)\s+as\s+(\w+)\s*;/m';
 
     /**
      * @return array<string, list<string>> anchor => files (relative to Filament/) that declare it, sorted by anchor
@@ -48,10 +51,20 @@ final class ModuleActionInventory
             }
 
             $relative = Str::after($file->getPathname(), $root . '/');
-            preg_match_all(self::ACTION, (string) file_get_contents($file->getPathname()), $matches, PREG_SET_ORDER);
+            $source = (string) file_get_contents($file->getPathname());
+
+            preg_match_all(self::ALIAS, $source, $aliases, PREG_SET_ORDER);
+            $aliasOf = array_column($aliases, 1, 2);
+
+            preg_match_all(self::MAKE, $source, $matches, PREG_SET_ORDER);
 
             foreach ($matches as $match) {
-                $name = self::actionName($match[1], $match[3] ?? '');
+                $class = str_ends_with($match[1], 'Action') ? $match[1] : ($aliasOf[$match[1]] ?? null);
+                if ($class === null) {
+                    continue;
+                }
+
+                $name = self::actionName($class, $match[3] ?? '');
                 if ($name === null) {
                     continue;
                 }

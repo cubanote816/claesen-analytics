@@ -73,7 +73,7 @@ Open [[nav:navigation.groups.mailing > mailing::resource.campaign.plural_model_l
 
 **[[label:mailing::resource.sections.campaign_details]]**
 
-- [[label:mailing::resource.fields.template]]: the email template to use. The campaign takes a copy of the template at this moment. Later changes to the template do not affect this campaign.
+- [[label:mailing::resource.fields.template]]: the email template to use. The campaign takes a copy of the subject and body at this moment. Later changes to the template's text do not affect this campaign. The template's category and preference category are read again when the campaign is [approved](#action-campaign-approve).
 - [[label:mailing::resource.fields.description]]: the name of the campaign, as you will see it in the list.
 - [[label:mailing::resource.fields.subject]]: filled in from the template. You can change it for this campaign only.
 
@@ -89,16 +89,16 @@ After you save, the campaign is created as [[enum:Modules\Mailing\Enums\Campaign
 
 In [[label:mailing::resource.sections.audience]] you choose [[label:mailing::resource.fields.audience_type]]:
 
-- [[enum:Modules\Mailing\Enums\AudienceType::all_subscribed]]: every subscribed prospect with an email address.
+- [[enum:Modules\Mailing\Enums\AudienceType::all_subscribed]]: every subscribed prospect. Prospects without an email address are skipped when the campaign is sent.
 - [[enum:Modules\Mailing\Enums\AudienceType::segment]]: prospects that match rules you define. Choose in [[label:mailing::resource.fields.segment_operator]] whether all rules or any rule must match, then press [[action:mailing::resource.actions.add_rule]] for every rule. A rule is one of:
   - [[label:mailing::resource.fields.rule_has_event]]: for example prospects who clicked in a certain campaign, optionally within the last N days.
   - [[label:mailing::resource.fields.rule_has_no_event]]: the opposite.
-  - [[label:mailing::resource.fields.rule_prospect_field]]: language, federation or region equals a value, or is one of a comma-separated list (for example `RBFA,LBFA`).
+  - [[label:mailing::resource.fields.rule_prospect_field]]: language, federation or region matches a value. Note: [[label:mailing::resource.fields.rule_operator_in]] currently treats the whole text as one value, so `RBFA,LBFA` does not match RBFA or LBFA. To target several values, add one rule per value and choose [[label:mailing::resource.fields.segment_operator_or]].
 - [[enum:Modules\Mailing\Enums\AudienceType::manual]]: you pick the contacts yourself in [[label:mailing::resource.fields.manual_prospects]]. Only subscribed contacts with an email address can be chosen.
 
 Press [[action:mailing::resource.actions.preview_audience]] to check the audience before you create the campaign. See [Preview audience](#action-campaign-preview_audience).
 
-Prospects who unsubscribed, who opted out of the template's preference category or whose address is suppressed (for example after a hard bounce) never receive the email, even if they match the audience. They show up as skipped in the [recipient list](#recipient-pages).
+Prospects who unsubscribed, who opted out of the template's preference category or whose address is suppressed (for example after a hard bounce) never receive the email, even if they match the audience. Unsubscribed and suppressed prospects are left out before sending, so they usually do not appear in the [recipient list](#recipient-pages). Contacts skipped during sending (for example without an email address) appear there with the status [[label:prospects::resource.options.status.skipped]].
 
 ## [[action:mailing::resource.actions.preview_audience]] {#action-campaign-preview_audience}
 
@@ -205,7 +205,7 @@ Remember: "[[label:mailing::resource.sections.engagement_note]]"
 
 A template is the reusable content of an email: name, category, subject and body. Open [[nav:mailing::resource.navigation_group > mailing::resource.plural_model_label]]. The list shows [[label:mailing::resource.fields.name]], [[label:mailing::resource.fields.category]], [[label:mailing::resource.fields.version]], [[label:mailing::resource.fields.subject]] and [[label:mailing::resource.fields.updated_at]]. You can filter on [[label:mailing::resource.fields.category]].
 
-Changing a template does not change campaigns that already exist: those keep their own copy. A change only applies to campaigns you create afterwards.
+Changing a template's subject or body does not change campaigns that already exist: those keep their own copy. A changed category or preference category does apply to an existing campaign that has not been approved yet, because approval reads it again.
 
 ## [[action:filament-actions::create.single.label?label=mailing::resource.model_label]] {#action-email-template-create}
 

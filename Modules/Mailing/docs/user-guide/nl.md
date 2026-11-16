@@ -41,7 +41,7 @@ Een campagne doorloopt deze stappen:
 1. [Maak de campagne aan](#action-campaign-create). Ze start als [[enum:Modules\Mailing\Enums\CampaignStatus::draft]].
 2. [Dien ze in voor beoordeling](#action-campaign-submit). De status wordt [[enum:Modules\Mailing\Enums\CampaignStatus::review]].
 3. Een campaign manager of admin [keurt ze goed](#action-campaign-approve). De status wordt [[enum:Modules\Mailing\Enums\CampaignStatus::approved]]. Wie mag goedkeuren, kan een concept ook rechtstreeks goedkeuren, zonder beoordelingsstap.
-4. De campagne wordt verstuurd: ofwel met [Nu versturen](#action-campaign-send_now), ofwel automatisch op het [ingeplande moment](#scheduling). Tijdens het versturen is de status [[enum:Modules\Mailing\Enums\CampaignStatus::sending]].
+4. De campagne wordt verstuurd: ofwel met [Nu verzenden](#action-campaign-send_now), ofwel automatisch op het [ingeplande moment](#scheduling). Tijdens het versturen is de status [[enum:Modules\Mailing\Enums\CampaignStatus::sending]].
 5. Als alle mails verwerkt zijn, wordt de campagne [[enum:Modules\Mailing\Enums\CampaignStatus::completed]]. Is er niets verstuurd en is minstens één mail mislukt, dan wordt ze [[enum:Modules\Mailing\Enums\CampaignStatus::failed]].
 
 Een concept, een campagne in beoordeling en een goedgekeurde campagne kunnen nog [geannuleerd](#action-campaign-cancel) worden (enkel admin). Alle statussen staan in [Campagnestatussen](#statuses).
@@ -73,7 +73,7 @@ Open [[nav:navigation.groups.mailing > mailing::resource.campaign.plural_model_l
 
 **[[label:mailing::resource.sections.campaign_details]]**
 
-- [[label:mailing::resource.fields.template]]: het e-mailsjabloon dat je gebruikt. De campagne neemt op dit moment een kopie van het sjabloon. Latere wijzigingen aan het sjabloon hebben geen invloed op deze campagne.
+- [[label:mailing::resource.fields.template]]: het e-mailsjabloon dat je gebruikt. De campagne neemt op dit moment een kopie van het onderwerp en de tekst. Latere wijzigingen aan de tekst van het sjabloon hebben geen invloed op deze campagne. De categorie en voorkeurscategorie van het sjabloon worden opnieuw gelezen wanneer de campagne [goedgekeurd](#action-campaign-approve) wordt.
 - [[label:mailing::resource.fields.description]]: de naam van de campagne, zoals je ze in de lijst ziet.
 - [[label:mailing::resource.fields.subject]]: ingevuld vanuit het sjabloon. Je kan het enkel voor deze campagne aanpassen.
 
@@ -89,16 +89,16 @@ Na het opslaan staat de campagne als [[enum:Modules\Mailing\Enums\CampaignStatus
 
 In [[label:mailing::resource.sections.audience]] kies je [[label:mailing::resource.fields.audience_type]]:
 
-- [[enum:Modules\Mailing\Enums\AudienceType::all_subscribed]]: elke ingeschreven prospect met een e-mailadres.
+- [[enum:Modules\Mailing\Enums\AudienceType::all_subscribed]]: elke ingeschreven prospect. Prospects zonder e-mailadres worden bij het verzenden overgeslagen.
 - [[enum:Modules\Mailing\Enums\AudienceType::segment]]: prospects die aan de regels voldoen die je opstelt. Kies bij [[label:mailing::resource.fields.segment_operator]] of alle regels of minstens één regel moet kloppen, en klik voor elke regel op [[action:mailing::resource.actions.add_rule]]. Een regel is één van:
   - [[label:mailing::resource.fields.rule_has_event]]: bijvoorbeeld prospects die in een bepaalde campagne geklikt hebben, eventueel binnen de laatste N dagen.
   - [[label:mailing::resource.fields.rule_has_no_event]]: het omgekeerde.
-  - [[label:mailing::resource.fields.rule_prospect_field]]: taal, federatie of regio is gelijk aan een waarde, of komt voor in een lijst gescheiden door komma's (bijvoorbeeld `RBFA,LBFA`).
+  - [[label:mailing::resource.fields.rule_prospect_field]]: taal, federatie of regio komt overeen met een waarde. Let op: [[label:mailing::resource.fields.rule_operator_in]] behandelt de volledige tekst momenteel als één waarde, dus `RBFA,LBFA` vindt geen RBFA of LBFA. Wil je meerdere waarden, voeg dan per waarde een regel toe en kies [[label:mailing::resource.fields.segment_operator_or]].
 - [[enum:Modules\Mailing\Enums\AudienceType::manual]]: je kiest zelf de contacten bij [[label:mailing::resource.fields.manual_prospects]]. Enkel ingeschreven contacten met een e-mailadres kunnen gekozen worden.
 
 Klik op [[action:mailing::resource.actions.preview_audience]] om de doelgroep te controleren voor je de campagne aanmaakt. Zie [Voorbeeld van de doelgroep](#action-campaign-preview_audience).
 
-Prospects die zich afgemeld hebben, die de voorkeurscategorie van het sjabloon uitgeschakeld hebben of waarvan het adres geblokkeerd is (bijvoorbeeld na een hard bounce), krijgen de mail nooit, ook al passen ze in de doelgroep. Je ziet ze als overgeslagen in de [lijst met ontvangers](#recipient-pages).
+Prospects die zich afgemeld hebben, die de voorkeurscategorie van het sjabloon uitgeschakeld hebben of waarvan het adres geblokkeerd is (bijvoorbeeld na een hard bounce), krijgen de mail nooit, ook al passen ze in de doelgroep. Afgemelde en geblokkeerde prospects worden al vóór het verzenden weggelaten, dus meestal staan ze niet in de [lijst met ontvangers](#recipient-pages). Contacten die tijdens het verzenden overgeslagen worden (bijvoorbeeld zonder e-mailadres) staan er wel, met de status [[label:prospects::resource.options.status.skipped]].
 
 ## [[action:mailing::resource.actions.preview_audience]] {#action-campaign-preview_audience}
 
@@ -111,7 +111,7 @@ Het venster herinnert je er ook aan dat bij het echte versturen nog een paar con
 Vul [[label:mailing::resource.fields.scheduled_at]] in om de campagne automatisch op een gekozen moment te versturen. De tijd is in de tijdzone Europe/Brussels (het veld [[label:mailing::resource.fields.timezone]] ligt vast). De datum mag niet in het verleden liggen.
 
 - Met een datum: zodra de campagne [goedgekeurd](#action-campaign-approve) is, wordt ze op dat moment verstuurd zonder verdere actie. De knop [[action:mailing::resource.actions.send_now]] is dan niet beschikbaar.
-- Zonder datum: je verstuurt ze zelf met [Nu versturen](#action-campaign-send_now).
+- Zonder datum: je verstuurt ze zelf met [Nu verzenden](#action-campaign-send_now).
 
 De planner controleert elke minuut, zie [Achtergrondtaken](#background-jobs).
 
@@ -132,7 +132,7 @@ Een opvolgcampagne stuurt automatisch een tweede campagne naar een deel van de d
 - [[label:mailing::resource.fields.followup_trigger]]: wie de opvolging krijgt: [[enum:Modules\Mailing\Enums\FollowUpTrigger::clicked]], [[enum:Modules\Mailing\Enums\FollowUpTrigger::not_clicked]], [[enum:Modules\Mailing\Enums\FollowUpTrigger::opened]] of [[enum:Modules\Mailing\Enums\FollowUpTrigger::not_opened]]. Openingen zijn een zwak signaal, kies dus liever voor klikken.
 - [[label:mailing::resource.fields.followup_delay_hours]]: standaard 24. Bijvoorbeeld 72 is drie dagen nadat de eerste campagne afgerond is.
 
-Een opvolgcampagne wordt door het systeem verstuurd, dus [Nu versturen](#action-campaign-send_now) is daarvoor niet beschikbaar. De controle loopt elke 5 minuten, zie [Achtergrondtaken](#background-jobs).
+Een opvolgcampagne wordt door het systeem verstuurd, dus [Nu verzenden](#action-campaign-send_now) is daarvoor niet beschikbaar. De controle loopt elke 5 minuten, zie [Achtergrondtaken](#background-jobs).
 
 ## De campagnepagina {#action-campaign-view}
 
@@ -205,7 +205,7 @@ Let op: "[[label:mailing::resource.sections.engagement_note]]"
 
 Een sjabloon is de herbruikbare inhoud van een e-mail: naam, categorie, onderwerp en tekst. Open [[nav:mailing::resource.navigation_group > mailing::resource.plural_model_label]]. De lijst toont [[label:mailing::resource.fields.name]], [[label:mailing::resource.fields.category]], [[label:mailing::resource.fields.version]], [[label:mailing::resource.fields.subject]] en [[label:mailing::resource.fields.updated_at]]. Je kan filteren op [[label:mailing::resource.fields.category]].
 
-Een wijziging aan een sjabloon verandert bestaande campagnes niet: die houden hun eigen kopie. Een wijziging geldt enkel voor campagnes die je nadien aanmaakt.
+Een wijziging aan het onderwerp of de tekst van een sjabloon verandert bestaande campagnes niet: die houden hun eigen kopie. Een gewijzigde categorie of voorkeurscategorie geldt wel voor een bestaande campagne die nog niet goedgekeurd is, omdat de goedkeuring ze opnieuw leest.
 
 ## [[action:filament-actions::create.single.label?label=mailing::resource.model_label]] {#action-email-template-create}
 
@@ -263,8 +263,8 @@ Daardoor kan het enkele minuten duren voor resultaten op de [campagnepagina](#ac
 
 ## Veelgestelde vragen {#faq}
 
-**Ik zie de knop Goedkeuren of Nu versturen niet.**
-De knop wordt enkel getoond bij de juiste status en rol. Zie [Wie mag wat](#access) en [de levenscyclus](#campaign-lifecycle). Een marketer kan niet goedkeuren, en [Nu versturen](#action-campaign-send_now) is niet beschikbaar voor campagnes met een ingeplande datum of voor opvolgcampagnes.
+**Ik zie de knop Goedkeuren of Nu verzenden niet.**
+De knop wordt enkel getoond bij de juiste status en rol. Zie [Wie mag wat](#access) en [de levenscyclus](#campaign-lifecycle). Een marketer kan niet goedkeuren, en [Nu verzenden](#action-campaign-send_now) is niet beschikbaar voor campagnes met een ingeplande datum of voor opvolgcampagnes.
 
 **Ik heb een fout gemaakt in een campagne.**
 Er is geen bewerkpagina. Zolang de campagne niet verstuurd wordt, kan een admin ze [annuleren](#action-campaign-cancel). Maak daarna een nieuwe aan.

@@ -94,6 +94,58 @@ class ModuleGuideCoverageTest extends TestCase
         ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/module'))));
     }
 
+    public function test_named_arguments_and_aliased_imports_are_inventoried(): void
+    {
+        $dir = sys_get_temp_dir() . '/guide-' . bin2hex(random_bytes(8));
+        mkdir($dir . '/Filament/Pages', 0777, true);
+        $file = $dir . '/Filament/Pages/Report.php';
+
+        try {
+            foreach ([
+                "Action::make(name: 'publish');",
+                "use Filament\\Actions\\Action as Button;\nButton::make('publish');",
+                "use Filament\\Actions\\CreateAction as NewThing;\nNewThing::make();",
+            ] as $index => $source) {
+                file_put_contents($file, "<?php\n" . $source);
+                $this->assertSame(
+                    [$index === 2 ? 'action-report-create' : 'action-report-publish'],
+                    array_keys(ModuleActionInventory::anchors($dir)),
+                    $source,
+                );
+            }
+        } finally {
+            @unlink($file);
+            @rmdir($dir . '/Filament/Pages');
+            @rmdir($dir . '/Filament');
+            @rmdir($dir);
+        }
+    }
+
+    public function test_non_action_factories_are_ignored(): void
+    {
+        $dir = sys_get_temp_dir() . '/guide-' . bin2hex(random_bytes(8));
+        mkdir($dir . '/Filament/Pages', 0777, true);
+        $file = $dir . '/Filament/Pages/Report.php';
+
+        try {
+            file_put_contents($file, "<?php\nTextColumn::make('name'); SchemaActions::make([]); BulkActionGroup::make([]);");
+            $this->assertSame([], ModuleActionInventory::anchors($dir));
+        } finally {
+            @unlink($file);
+            @rmdir($dir . '/Filament/Pages');
+            @rmdir($dir . '/Filament');
+            @rmdir($dir);
+        }
+    }
+
+    public function test_dutch_mailing_guide_names_the_real_send_button(): void
+    {
+        $html = ModuleGuide::render(ModuleGuide::directoryFor('Mailing'), 'nl')->html;
+
+        $this->assertStringContainsString('Nu verzenden', $html);
+        $this->assertStringNotContainsString('Nu versturen', $html);
+    }
+
     public function test_mailing_inventory_matches_its_screens(): void
     {
         $this->assertSame([
