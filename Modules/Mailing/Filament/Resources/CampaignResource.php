@@ -76,7 +76,7 @@ class CampaignResource extends Resource
                     ->label(__('mailing::resource.fields.status'))
                     ->badge()
                     ->color(fn (CampaignStatus $state): string => $state->color())
-                    ->formatStateUsing(fn (CampaignStatus $state): string => $state->label()),
+                    ->formatStateUsing(fn (CampaignStatus $state): string => $state->label(app()->getLocale())),
 
                 TextColumn::make('total_count')
                     ->label(__('mailing::resource.fields.total_count'))
@@ -108,7 +108,7 @@ class CampaignResource extends Resource
                 SelectFilter::make('status')
                     ->label(__('mailing::resource.fields.status'))
                     ->options(collect(CampaignStatus::cases())->mapWithKeys(
-                        fn (CampaignStatus $s) => [$s->value => $s->label()]
+                        fn (CampaignStatus $s) => [$s->value => $s->label(app()->getLocale())]
                     )),
             ])
             ->defaultSort('created_at', 'desc')
@@ -247,7 +247,7 @@ class CampaignResource extends Resource
                                 ->label(__('mailing::resource.fields.status'))
                                 ->badge()
                                 ->color(fn (CampaignStatus $state): string => $state->color())
-                                ->formatStateUsing(fn (CampaignStatus $state): string => $state->label()),
+                                ->formatStateUsing(fn (CampaignStatus $state): string => $state->label(app()->getLocale())),
 
                             TextEntry::make('creator.name')
                                 ->label(__('mailing::resource.fields.started_by')),

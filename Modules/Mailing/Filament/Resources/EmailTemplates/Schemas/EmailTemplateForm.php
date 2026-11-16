@@ -39,7 +39,7 @@ class EmailTemplateForm
                                     Select::make('category')
                                         ->label(__('mailing::resource.fields.category'))
                                         ->options(collect(TemplateCategory::cases())->mapWithKeys(
-                                            fn (TemplateCategory $c) => [$c->value => $c->label()]
+                                            fn (TemplateCategory $c) => [$c->value => $c->label(app()->getLocale())]
                                         ))
                                         ->default(TemplateCategory::COMMERCIAL->value)
                                         ->required()

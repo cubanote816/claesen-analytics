@@ -36,6 +36,7 @@ Lectura opcional, solo a demanda (no cargar por defecto): `docs/ai/decisions-log
 | Website (cualquier ticket WEB) | `docs/website-sprint-handoff.md` |
 | Safety (cualquier ticket SAF) | `docs/safety-sprint-linear-tickets.md` |
 | Contratos y reglas por módulo | `docs/ai/module-contracts.md` |
+| Guías de usuario en la app (menú Documentation) — al cambiar UI de un módulo con guía | `docs/ai/module-documentation.md` |
 | **Tests y obligatoriedad de testing** | **`docs/ai/test-gate-harness.md` ← leer antes de Plan, Review y Done** |
 | Tests técnicos por tipo de cambio | `docs/ai/testing-checklists.md` |
 | Revisar código de un PR | `docs/ai/code-review-rubric.md` |

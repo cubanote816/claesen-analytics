@@ -12,6 +12,7 @@ return [
         'mailing' => 'Mailing',
         'field_operations' => 'Field Operations',
         'guides_procedures' => 'Guides & Procedures',
+        'documentation' => 'Documentation',
     ],
     'knx' => 'KNX',
     'switch_to_bertels' => 'Switch to Electro Bertels',
