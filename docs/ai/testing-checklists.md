@@ -44,6 +44,7 @@ php artisan test --testsuite=Feature
 - `DB_DATABASE=claesen_analytics_web_testing` (MySQL de test, sin `force`: el entorno del proceso lo sobrescribe). Desde un worktree, correr con `bin/wt-test`, que usa una base propia `testing_<worktree>` (CLA-690, ver `commands-runbook.md` → Tests)
 - `QUEUE_CONNECTION=sync` (jobs síncronos en tests)
 - `MAIL_MAILER=array` (correos en memoria)
+- `MICROSOFT_GRAPH_*` vacías con `force` y, además, `tests/TestCase.php` las borra del config y purga el mailer `microsoft-graph` (CLA-692). El mailer con nombre `Mail::mailer('microsoft-graph')` ignora `MAIL_MAILER=array`: sin esta guarda, las credenciales reales del `.env` mandaban mails reales desde la suite. Un test que ejercita el transport de Graph pone sus propias credenciales por caso y usa `Http::fake()`. `tests/Feature/TestSuiteMailIsolationTest.php` lo cubre.
 
 **Nota:** los tests de módulos requieren MySQL (no SQLite). Necesita `sail up -d mysql` o un servidor MySQL disponible.
 

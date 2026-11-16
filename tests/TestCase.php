@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Mail;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -17,6 +18,55 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         config(['core.panel_mfa_enforced' => false]);
+
+        $this->discardMicrosoftGraphCredentials();
+    }
+
+    /**
+     * CLA-692: the suite must never send real e-mail through Microsoft Graph.
+     *
+     * SendConsultationEmailJob sends with the named Mail::mailer('microsoft-graph'),
+     * which ignores phpunit.xml's MAIL_MAILER=array, and QUEUE_CONNECTION=sync
+     * runs it inside the test. Real MICROSOFT_GRAPH_* values from a developer's
+     * .env therefore turned every consultation a test created into a real
+     * e-mail. Dropping the credentials makes MicrosoftGraphService fail with
+     * MailConfigurationException before any HTTP call, while tests that
+     * exercise the Graph transport keep setting their own credentials per case
+     * (with Http::fake()).
+     *
+     * MicrosoftGraphService reads the credentials when it is built. When
+     * mail.always_to is set, MailingServiceProvider::boot() already resolved
+     * the mailer with them, so its transport is rebuilt here (the mailer keeps
+     * its alwaysTo). Otherwise the mailer is purged so it resolves lazily from
+     * whatever config the test sets.
+     */
+    private function discardMicrosoftGraphCredentials(): void
+    {
+        config([
+            'mail.mailers.microsoft-graph.client_id' => null,
+            'mail.mailers.microsoft-graph.tenant_id' => null,
+            'mail.mailers.microsoft-graph.client_secret' => null,
+        ]);
+
+        $this->rebuildMicrosoftGraphTransport();
+    }
+
+    /**
+     * Make the 'microsoft-graph' mailer use the current mail.mailers.microsoft-graph
+     * config. Tests that set Graph credentials after a boot-time resolution
+     * (mail.always_to set) call this after setting them.
+     */
+    protected function rebuildMicrosoftGraphTransport(): void
+    {
+        if (! config('mail.always_to')) {
+            Mail::purge('microsoft-graph');
+
+            return;
+        }
+
+        Mail::mailer('microsoft-graph')->setSymfonyTransport(
+            Mail::createSymfonyTransport(config('mail.mailers.microsoft-graph'))
+        );
     }
 
     /**

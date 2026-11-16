@@ -44,6 +44,12 @@
              real transport by default. Tests that exercise Microsoft Graph
              behaviour set config('app.mailing_driver') = 'microsoft-graph' per case. -->
         <env name="MAILING_DRIVER" value="simulation"/>
+        <!-- CLA-692: never inherit real Microsoft Graph credentials from .env or
+             the container. tests/TestCase.php also drops them from config, so a
+             test that exercises the Graph transport sets its own per case. -->
+        <env name="MICROSOFT_GRAPH_CLIENT_ID" value="" force="true"/>
+        <env name="MICROSOFT_GRAPH_TENANT_ID" value="" force="true"/>
+        <env name="MICROSOFT_GRAPH_CLIENT_SECRET" value="" force="true"/>
         <!-- KNX release flag: off by default (production), on for the suite so the
              KNX tests exercise the module. KnxFeatureFlagTest pins the default
              and flips the flag per case. -->
