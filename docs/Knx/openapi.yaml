@@ -1420,6 +1420,10 @@ paths:
                 page: { type: integer, minimum: 1 }
                 provider: { type: string, example: synthetic }
                 image: { type: string, description: "PNG de la página en base64" }
+                referenceImage:
+                  type: string
+                  nullable: true
+                  description: "Opcional (S10): PNG en base64 sin prefijo `data:`, mismo encuadre y mismo límite de bytes que `image`; el plano atenuado con etiquetas `S<ref>` en los símbolos y `G<ref>` en los trazos de cada grupo. Si viene, cada grupo y cada símbolo debe llevar `ref` (422 si no). Se envía al modelo como segunda imagen y la reserva de gasto cuenta dos imágenes. El proveedor sintético lo ignora."
                 pageWidthPt: { type: number, exclusiveMinimum: 0 }
                 pageHeightPt: { type: number, exclusiveMinimum: 0 }
                 groups:
@@ -1437,6 +1441,7 @@ paths:
                       strokeColor: { type: string, nullable: true }
                       closedPct: { type: integer, minimum: 0, maximum: 100 }
                       curvedPct: { type: integer, minimum: 0, maximum: 100 }
+                      ref: { type: integer, minimum: 1, description: "Opcional (obligatorio con `referenceImage`): único dentro de `groups`; es el número de la etiqueta `G<ref>`" }
                 texts:
                   type: array
                   maxItems: 5000
@@ -1462,6 +1467,7 @@ paths:
                       w: { type: number, minimum: 0, maximum: 1 }
                       h: { type: number, minimum: 0, maximum: 1 }
                       paths: { type: integer, minimum: 0 }
+                      ref: { type: integer, minimum: 1, description: "Opcional (obligatorio con `referenceImage`): único dentro de `symbols`; es el número de la etiqueta `S<ref>`" }
                       nearTextIds:
                         type: array
                         maxItems: 3

@@ -77,6 +77,7 @@ class PlanAnalysisController extends Controller
             'page' => ['required', 'integer', 'min:1'],
             'provider' => ['required', 'string', 'max:32'],
             'image' => ['required', 'string'],
+            'referenceImage' => ['sometimes', 'nullable', 'string'],
             'pageWidthPt' => ['required', 'numeric', 'gt:0'],
             'pageHeightPt' => ['required', 'numeric', 'gt:0'],
             'groups' => ['present', 'array', 'max:2000'],
@@ -88,6 +89,7 @@ class PlanAnalysisController extends Controller
             'groups.*.strokeColor' => ['present', 'nullable', 'string', 'max:32'],
             'groups.*.closedPct' => ['required', 'integer', 'between:0,100'],
             'groups.*.curvedPct' => ['required', 'integer', 'between:0,100'],
+            'groups.*.ref' => ['required_with:referenceImage', 'integer', 'min:1', 'distinct'],
             'texts' => ['present', 'array', 'max:5000'],
             'texts.*.id' => ['required', 'string', 'max:64'],
             'texts.*.text' => ['required', 'string', 'max:500'],
@@ -103,6 +105,7 @@ class PlanAnalysisController extends Controller
             'symbols.*.w' => ['required', 'numeric', 'between:0,1'],
             'symbols.*.h' => ['required', 'numeric', 'between:0,1'],
             'symbols.*.paths' => ['required', 'integer', 'min:0'],
+            'symbols.*.ref' => ['required_with:referenceImage', 'integer', 'min:1', 'distinct'],
             'symbols.*.nearTextIds' => ['present', 'array', 'max:3'],
             'symbols.*.nearTextIds.*' => ['string', Rule::in(is_array($request->input('texts')) ? array_column($request->input('texts'), 'id') : [])],
             'legend' => ['sometimes', 'nullable', 'array:x,y,w,h'],
@@ -118,6 +121,13 @@ class PlanAnalysisController extends Controller
         $png = base64_decode($validated['image'], true);
         if ($png === false || ! str_starts_with($png, "\x89PNG")) {
             throw ValidationException::withMessages(['image' => ['The image must be a base64-encoded PNG.']]);
+        }
+        $referencePng = null;
+        if (isset($validated['referenceImage'])) {
+            $referencePng = base64_decode($validated['referenceImage'], true);
+            if ($referencePng === false || ! str_starts_with($referencePng, "\x89PNG")) {
+                throw ValidationException::withMessages(['referenceImage' => ['The referenceImage must be a base64-encoded PNG.']]);
+            }
         }
 
         /** @var KnxEmployee $employee */
@@ -136,6 +146,7 @@ class PlanAnalysisController extends Controller
                     'x' => $validated['legend']['x'], 'y' => $validated['legend']['y'],
                     'w' => $validated['legend']['w'], 'h' => $validated['legend']['h'],
                 ]) : null,
+                referencePng: $referencePng,
             ));
         } catch (PlanAnalysisFailed $e) {
             return response()->json(array_filter([
@@ -170,7 +181,7 @@ class PlanAnalysisController extends Controller
             'strokeColor' => $g['strokeColor'] === null ? null : (string) $g['strokeColor'],
             'closedPct' => (int) $g['closedPct'],
             'curvedPct' => (int) $g['curvedPct'],
-        ], array_values($groups));
+        ] + (isset($g['ref']) ? ['ref' => (int) $g['ref']] : []), array_values($groups));
     }
 
     /**
@@ -202,7 +213,7 @@ class PlanAnalysisController extends Controller
             'h' => (float) $s['h'],
             'paths' => (int) $s['paths'],
             'nearTextIds' => array_values(array_map('strval', $s['nearTextIds'])),
-        ], array_values($symbols));
+        ] + (isset($s['ref']) ? ['ref' => (int) $s['ref']] : []), array_values($symbols));
     }
 
     private function present(KnxPlanAnalysis $analysis): array

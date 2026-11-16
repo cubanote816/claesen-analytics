@@ -75,7 +75,8 @@ class ChatGptPlanAnalysisProvider implements PlanAnalysisProvider
         if ($model === '' || ! $this->settings->configured() || $connection === null || $connection->status !== KnxChatGptConnection::STATUS_CONNECTED) {
             throw new PlanAnalysisFailed('unavailable', 'The ChatGPT plan is not available for this employee.');
         }
-        if (strlen($input->imagePng) > $this->budget->maxImageBytes()) {
+        if (strlen($input->imagePng) > $this->budget->maxImageBytes()
+            || ($input->referencePng !== null && strlen($input->referencePng) > $this->budget->maxImageBytes())) {
             throw new PlanAnalysisFailed('image_too_large');
         }
 
@@ -119,8 +120,6 @@ class ChatGptPlanAnalysisProvider implements PlanAnalysisProvider
      */
     public function body(string $model, PlanAnalysisInput $input): array
     {
-        $summary = $input->summary();
-
         return [
             'model' => $model,
             'store' => false,
@@ -128,10 +127,7 @@ class ChatGptPlanAnalysisProvider implements PlanAnalysisProvider
             'instructions' => OpenAiPlanAnalysisProvider::INSTRUCTIONS,
             'input' => [[
                 'role' => 'user',
-                'content' => [
-                    ['type' => 'input_text', 'text' => json_encode($summary, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)],
-                    ['type' => 'input_image', 'image_url' => 'data:image/png;base64,'.base64_encode($input->imagePng)],
-                ],
+                'content' => $input->contentParts(null),
             ]],
             'text' => [
                 'format' => [

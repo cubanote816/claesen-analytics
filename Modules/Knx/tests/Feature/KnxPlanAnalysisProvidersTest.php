@@ -716,4 +716,78 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         $v1 = json_decode(app(OpenAiPlanAnalysisProvider::class)->body('test-model', $base)['input'][0]['content'][0]['text'], true);
         $this->assertSame([[], null], [$v1['symbols'], $v1['legend']]);
     }
+
+    private function inputWithReference(string $png = "\x89PNG-plan", string $reference = "\x89PNG-reference"): PlanAnalysisInput
+    {
+        $base = $this->input($png);
+
+        return new PlanAnalysisInput(
+            $base->page, $base->pageWidthPt, $base->pageHeightPt, $base->imagePng,
+            array_map(fn (array $g, int $i): array => $g + ['ref' => $i + 1], $base->groups, array_keys($base->groups)),
+            $base->texts,
+            symbols: [['id' => 's7', 'group' => 'style:s:#ff0000:0.25', 'x' => 0.4, 'y' => 0.3, 'w' => 0.006, 'h' => 0.006, 'paths' => 4, 'nearTextIds' => ['t0'], 'ref' => 1]],
+            referencePng: $reference,
+        );
+    }
+
+    public function test_the_reservation_with_a_reference_image_equals_the_estimator_for_two_images(): void
+    {
+        $this->enableOpenAi();
+        Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
+        $input = $this->inputWithReference();
+        $provider = app(OpenAiPlanAnalysisProvider::class);
+
+        $body = $provider->body('test-model', $input);
+        foreach ($body['input'][0]['content'] as $i => $part) {
+            if ($part['type'] === 'input_image') {
+                $body['input'][0]['content'][$i]['image_url'] = '';
+            }
+        }
+        $expected = app(AiSpendEstimator::class)->reservationFor('test-model', strlen(json_encode($body, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), 2, 1234);
+
+        $provider->analyze($input, fn (): bool => true);
+
+        $this->assertSame($expected, (float) KnxAiSpendEntry::query()->sole()->reserved_usd);
+        Http::assertSent(fn (Request $r): bool => count(array_filter($r->data()['input'][0]['content'], fn (array $p): bool => $p['type'] === 'input_image')) === 2);
+    }
+
+    public function test_a_request_without_a_reference_image_reserves_one_image(): void
+    {
+        $this->enableOpenAi();
+        Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
+        $input = $this->input();
+        $provider = app(OpenAiPlanAnalysisProvider::class);
+
+        $body = $provider->body('test-model', $input);
+        $body['input'][0]['content'][1]['image_url'] = '';
+        $expected = app(AiSpendEstimator::class)->reservationFor('test-model', strlen(json_encode($body, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)), 1, 1234);
+
+        $provider->analyze($input, fn (): bool => true);
+
+        $this->assertSame($expected, (float) KnxAiSpendEntry::query()->sole()->reserved_usd);
+    }
+
+    public function test_the_max_image_bytes_check_applies_to_each_image(): void
+    {
+        $this->enableOpenAi();
+        config(['knx.plan_analysis.budget.max_image_bytes' => 20]);
+        Http::fake();
+
+        $this->assertSame('image_too_large', $this->failure(fn () => app(OpenAiPlanAnalysisProvider::class)->analyze($this->inputWithReference("\x89PNG-ok", str_repeat('x', 21)), fn (): bool => true)));
+        Http::assertNothingSent();
+    }
+
+    public function test_the_chatgpt_body_carries_the_reference_image_second_and_one_image_without_it(): void
+    {
+        $provider = app(ChatGptPlanAnalysisProvider::class);
+
+        $content = $provider->body('test-model', $this->inputWithReference())['input'][0]['content'];
+        $this->assertSame(['input_text', 'input_image', 'input_text', 'input_image'], array_column($content, 'type'));
+        $this->assertSame('data:image/png;base64,'.base64_encode("\x89PNG-reference"), $content[3]['image_url']);
+        $this->assertStringStartsWith('Image 2: the same page dimmed', $content[2]['text']);
+        $this->assertSame('G1', array_key_first(json_decode($content[0]['text'], true)['refTable']['groups']));
+
+        $plain = $provider->body('test-model', $this->input())['input'][0]['content'];
+        $this->assertSame(['input_text', 'input_image'], array_column($plain, 'type'));
+    }
 }

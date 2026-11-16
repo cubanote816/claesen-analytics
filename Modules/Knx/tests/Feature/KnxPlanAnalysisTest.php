@@ -631,4 +631,168 @@ final class KnxPlanAnalysisTest extends TestCase
     {
         $this->assertSame('other', $this->askOpenAi(['planKind' => 'other'])['planKind']);
     }
+
+    // ---- S10: reference image ----------------------------------------------------------
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function bodyRef(string $provider = 'openai', array $overrides = []): array
+    {
+        $body = $this->bodyV2($provider);
+        foreach ($body['groups'] as $i => $group) {
+            $body['groups'][$i]['ref'] = $i + 1;
+        }
+        foreach ($body['symbols'] as $i => $symbol) {
+            $body['symbols'][$i]['ref'] = $i + 1;
+        }
+        $body['referenceImage'] = base64_encode("\x89PNG\r\n\x1a\nreference");
+
+        return array_replace($body, $overrides);
+    }
+
+    private function authorizeOpenAi(): string
+    {
+        $document = $this->document();
+        $this->enableOpenAi();
+        $this->putJson("{$this->base($document)}/ai-authorizations/openai")->assertOk();
+
+        return "{$this->base($document)}/analyses";
+    }
+
+    public function test_a_reference_image_goes_second_with_its_note_and_the_ref_table(): void
+    {
+        $this->askOpenAi([], $this->bodyRef());
+
+        Http::assertSentCount(1);
+        Http::assertSent(function (Request $request): bool {
+            $content = $request->data()['input'][0]['content'];
+            $images = array_values(array_filter($content, fn (array $p): bool => $p['type'] === 'input_image'));
+            $summary = json_decode($content[0]['text'], true);
+
+            return count($images) === 2
+                && $images[0]['image_url'] === 'data:image/png;base64,'.base64_encode("\x89PNG\r\n\x1a\nsynthetic")
+                && $images[1]['image_url'] === 'data:image/png;base64,'.base64_encode("\x89PNG\r\n\x1a\nreference")
+                && $content[1] === $images[0]
+                && $content[2]['type'] === 'input_text'
+                && str_starts_with($content[2]['text'], 'Image 2: the same page dimmed, with labels S<ref> on symbol candidates and G<ref> on paths of each group')
+                && $content[3] === $images[1]
+                && $summary['refTable']['symbols']['S2'] === 's20'
+                && $summary['refTable']['groups']['G1'] === 'style:f:#000000'
+                && $summary['symbols'][1]['ref'] === 2
+                && str_contains($request->data()['instructions'], 'refTable');
+        });
+    }
+
+    public function test_without_a_reference_image_exactly_one_image_is_sent(): void
+    {
+        $this->askOpenAi([]);
+
+        Http::assertSent(function (Request $request): bool {
+            $content = $request->data()['input'][0]['content'];
+            $summary = json_decode($content[0]['text'], true);
+
+            return count($content) === 2
+                && $content[1]['type'] === 'input_image'
+                && ! array_key_exists('refTable', $summary)
+                && ! array_key_exists('ref', $summary['symbols'][0])
+                && ! array_key_exists('ref', $summary['groups'][0]);
+        });
+    }
+
+    public function test_a_reference_image_without_refs_is_a_422_and_nothing_is_stored_or_sent(): void
+    {
+        $url = $this->authorizeOpenAi();
+        Http::fake();
+        $body = $this->bodyRef();
+
+        $noGroupRef = $body;
+        unset($noGroupRef['groups'][2]['ref']);
+        $noSymbolRef = $body;
+        unset($noSymbolRef['symbols'][3]['ref']);
+        $noRefs = $this->bodyV2('openai', ['referenceImage' => $body['referenceImage']]);
+
+        $this->postJson($url, $noGroupRef)->assertUnprocessable()->assertJsonValidationErrors('groups.2.ref');
+        $this->postJson($url, $noSymbolRef)->assertUnprocessable()->assertJsonValidationErrors('symbols.3.ref');
+        $this->postJson($url, $noRefs)->assertUnprocessable()->assertJsonValidationErrors(['groups.0.ref', 'symbols.0.ref']);
+
+        Http::assertNothingSent();
+        $this->assertSame(0, KnxPlanAnalysis::query()->count());
+        $this->assertSame(0, KnxAiSpendEntry::query()->count());
+    }
+
+    public function test_a_duplicate_or_invalid_ref_is_a_422(): void
+    {
+        $url = $this->authorizeOpenAi();
+        Http::fake();
+        $body = $this->bodyRef();
+
+        $dupGroup = $body;
+        $dupGroup['groups'][1]['ref'] = 1;
+        $dupSymbol = $body;
+        $dupSymbol['symbols'][2]['ref'] = 1;
+        $zero = $body;
+        $zero['symbols'][0]['ref'] = 0;
+
+        $this->postJson($url, $dupGroup)->assertUnprocessable()->assertJsonValidationErrors('groups.1.ref');
+        $this->postJson($url, $dupSymbol)->assertUnprocessable()->assertJsonValidationErrors('symbols.2.ref');
+        $this->postJson($url, $zero)->assertUnprocessable()->assertJsonValidationErrors('symbols.0.ref');
+
+        Http::assertNothingSent();
+        $this->assertSame(0, KnxPlanAnalysis::query()->count());
+    }
+
+    public function test_a_reference_image_that_is_not_a_png_is_a_422(): void
+    {
+        $url = $this->authorizeOpenAi();
+        Http::fake();
+
+        foreach ([base64_encode('GIF89a-not-a-png'), '***not base64***'] as $bad) {
+            $this->postJson($url, $this->bodyRef('openai', ['referenceImage' => $bad]))
+                ->assertUnprocessable()->assertJsonValidationErrors('referenceImage');
+        }
+
+        Http::assertNothingSent();
+        $this->assertSame(0, KnxPlanAnalysis::query()->count());
+    }
+
+    public function test_an_oversized_reference_image_is_a_413_and_nothing_is_sent(): void
+    {
+        $url = $this->authorizeOpenAi();
+        Http::fake();
+        config(['knx.plan_analysis.budget.max_image_bytes' => 40]);
+
+        $this->postJson($url, $this->bodyRef('openai', ['referenceImage' => base64_encode("\x89PNG".str_repeat('x', 60))]))
+            ->assertStatus(413)->assertJsonPath('code', 'plan_analysis_image_too_large');
+
+        Http::assertNothingSent();
+        $this->assertSame(0, KnxPlanAnalysis::query()->count());
+    }
+
+    public function test_the_synthetic_provider_ignores_the_reference_image(): void
+    {
+        $document = $this->document();
+        $this->putJson("{$this->base($document)}/ai-authorizations/synthetic")->assertOk();
+
+        $this->postJson("{$this->base($document)}/analyses", $this->bodyRef('synthetic'))
+            ->assertCreated()
+            ->assertJsonPath('analysis.schemaVersion', 'plan-analysis/2');
+        $this->assertSame(1, KnxPlanAnalysis::query()->count());
+    }
+
+    public function test_the_reservation_with_a_reference_image_counts_two_images(): void
+    {
+        $this->askOpenAi([], $this->bodyRef());
+        $withRef = (float) KnxAiSpendEntry::query()->sole()->reserved_usd;
+        KnxAiSpendEntry::query()->delete();
+        KnxPlanAnalysis::query()->delete();
+
+        $url = "{$this->base($this->document())}/analyses";
+        $this->postJson($url, $this->bodyV2('openai'))->assertCreated();
+        $without = (float) KnxAiSpendEntry::query()->sole()->reserved_usd;
+
+        // 30000 more image tokens at 1 USD / 1M, plus the (small) note and refs.
+        $this->assertGreaterThan($without + 0.03, $withRef);
+        $this->assertLessThan($without + 0.031, $withRef);
+    }
 }
