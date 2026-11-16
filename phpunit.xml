@@ -46,7 +46,10 @@
         <env name="MAILING_DRIVER" value="simulation"/>
         <!-- CLA-692: never inherit real Microsoft Graph credentials from .env or
              the container. tests/TestCase.php also drops them from config, so a
-             test that exercises the Graph transport sets its own per case. -->
+             test that exercises the Graph transport sets its own per case.
+             A value already in the real process environment wins over this
+             (Laravel reads $_SERVER first), so tests/TestCase.php is the guard
+             that holds; this only stops .env values. -->
         <env name="MICROSOFT_GRAPH_CLIENT_ID" value="" force="true"/>
         <env name="MICROSOFT_GRAPH_TENANT_ID" value="" force="true"/>
         <env name="MICROSOFT_GRAPH_CLIENT_SECRET" value="" force="true"/>

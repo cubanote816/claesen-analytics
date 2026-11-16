@@ -22,22 +22,30 @@ use Tests\TestCase;
  * application boots, the same way a real .env would, and checks that a
  * consultation created through the public API still makes no Graph request.
  */
-final class TestSuiteMailIsolationTest extends TestCase
+class TestSuiteMailIsolationTest extends TestCase
 {
     use RefreshDatabase;
-
-    private const GRAPH_ENV = [
-        'MICROSOFT_GRAPH_CLIENT_ID' => 'env-client-id',
-        'MICROSOFT_GRAPH_TENANT_ID' => 'env-tenant-id',
-        'MICROSOFT_GRAPH_CLIENT_SECRET' => 'env-client-secret',
-    ];
 
     /** @var array<string, array{env: mixed, server: mixed, putenv: string|false}> */
     private array $previousEnv = [];
 
+    /**
+     * Process environment set before the application boots, like a real .env.
+     *
+     * @return array<string, string>
+     */
+    protected function environment(): array
+    {
+        return [
+            'MICROSOFT_GRAPH_CLIENT_ID' => 'env-client-id',
+            'MICROSOFT_GRAPH_TENANT_ID' => 'env-tenant-id',
+            'MICROSOFT_GRAPH_CLIENT_SECRET' => 'env-client-secret',
+        ];
+    }
+
     protected function setUp(): void
     {
-        foreach (self::GRAPH_ENV as $name => $value) {
+        foreach ($this->environment() as $name => $value) {
             $this->previousEnv[$name] = [
                 'env' => $_ENV[$name] ?? null,
                 'server' => $_SERVER[$name] ?? null,

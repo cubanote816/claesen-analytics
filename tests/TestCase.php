@@ -4,6 +4,10 @@ namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\RawMessage;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -34,11 +38,13 @@ abstract class TestCase extends BaseTestCase
      * exercise the Graph transport keep setting their own credentials per case
      * (with Http::fake()).
      *
-     * MicrosoftGraphService reads the credentials when it is built. When
-     * mail.always_to is set, MailingServiceProvider::boot() already resolved
-     * the mailer with them, so its transport is rebuilt here (the mailer keeps
-     * its alwaysTo). Otherwise the mailer is purged so it resolves lazily from
-     * whatever config the test sets.
+     * MicrosoftGraphService reads the credentials when it is built, and
+     * MailingServiceProvider::boot() may already have resolved the mailer
+     * (when mail.always_to is set) with the environment's credentials. So the
+     * mailer gets a transport that builds the real one from the current
+     * config on every send: the environment's credentials are gone, a test's
+     * own credentials always apply, and the mailer keeps its alwaysTo however
+     * MAIL_TO_ADDRESS arrived (process environment or .env).
      */
     private function discardMicrosoftGraphCredentials(): void
     {
@@ -48,25 +54,19 @@ abstract class TestCase extends BaseTestCase
             'mail.mailers.microsoft-graph.client_secret' => null,
         ]);
 
-        $this->rebuildMicrosoftGraphTransport();
-    }
+        Mail::mailer('microsoft-graph')->setSymfonyTransport(new class implements TransportInterface
+        {
+            public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
+            {
+                return Mail::createSymfonyTransport(config('mail.mailers.microsoft-graph'))
+                    ->send($message, $envelope);
+            }
 
-    /**
-     * Make the 'microsoft-graph' mailer use the current mail.mailers.microsoft-graph
-     * config. Tests that set Graph credentials after a boot-time resolution
-     * (mail.always_to set) call this after setting them.
-     */
-    protected function rebuildMicrosoftGraphTransport(): void
-    {
-        if (! config('mail.always_to')) {
-            Mail::purge('microsoft-graph');
-
-            return;
-        }
-
-        Mail::mailer('microsoft-graph')->setSymfonyTransport(
-            Mail::createSymfonyTransport(config('mail.mailers.microsoft-graph'))
-        );
+            public function __toString(): string
+            {
+                return 'microsoft-graph (built from config on each send, CLA-692)';
+            }
+        });
     }
 
     /**

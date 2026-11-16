@@ -48,14 +48,13 @@ class AlwaysToConfigTest extends TestCase
 
         // MicrosoftGraphService needs non-empty credentials to pass
         // assertConfigured() and reach the faked HTTP call. CLA-692: tests
-        // never take them from the environment, so they are set here and the
-        // boot-resolved transport is rebuilt (the mailer keeps its alwaysTo).
+        // never take them from the environment, so they are set in config here;
+        // the mailer reads them on each send (tests/TestCase.php).
         config([
             'mail.mailers.microsoft-graph.client_id' => 'fake-client-id',
             'mail.mailers.microsoft-graph.tenant_id' => 'fake-tenant-id',
             'mail.mailers.microsoft-graph.client_secret' => 'fake-client-secret',
         ]);
-        $this->rebuildMicrosoftGraphTransport();
 
         Http::preventStrayRequests();
         Http::fake([
