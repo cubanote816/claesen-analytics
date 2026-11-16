@@ -759,6 +759,34 @@ final class KnxPlanAnalysisTest extends TestCase
         $this->assertSame(0, KnxPlanAnalysis::query()->count());
     }
 
+    public function test_a_request_with_the_maximum_symbols_validates_quickly(): void
+    {
+        // doc 108 (2026-11-16): 664 symbols with refs hit the 30 s execution limit inside the request
+        // validation (500) before anything was sent. 3000 symbols is the contract maximum.
+        $url = $this->authorizeOpenAi();
+        Http::fake();
+        $body = $this->bodyRef();
+        $texts = [];
+        for ($t = 0; $t < 400; $t++) {
+            $texts[] = ['id' => "t{$t}", 'text' => "T{$t}", 'x' => 0.5, 'y' => 0.5];
+        }
+        $body['texts'] = $texts;
+        $symbols = [];
+        for ($i = 0; $i < 3000; $i++) {
+            $symbols[] = ['id' => "s{$i}", 'group' => 'style:s:#ff0000:0.25', 'x' => 0.1, 'y' => 0.1, 'w' => 0.01, 'h' => 0.01,
+                'paths' => 3, 'ref' => $i + 1, 'nearTextIds' => ['t1', 't2', 't3']];
+        }
+        $body['symbols'] = $symbols;
+        $body['symbols'][2999]['ref'] = 7; // one duplicate: still caught
+
+        $started = microtime(true);
+        $this->postJson($url, $body)->assertUnprocessable()->assertJsonValidationErrors('symbols.2999.ref');
+        $seconds = microtime(true) - $started;
+
+        $this->assertLessThan(5, $seconds, "validation took {$seconds} s");
+        Http::assertNothingSent();
+    }
+
     public function test_a_reference_image_that_is_not_a_png_is_a_422(): void
     {
         $url = $this->authorizeOpenAi();
