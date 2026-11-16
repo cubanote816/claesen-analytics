@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Modules\Website\Models\ConsultationEmailDelivery;
 use Modules\Website\Models\ConsultationRequest;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tests\TestCase;
 
 /**
@@ -21,7 +23,13 @@ use Tests\TestCase;
  * This class puts Graph credentials into the process environment *before* the
  * application boots, the same way a real .env would, and checks that a
  * consultation created through the public API still makes no Graph request.
+ *
+ * Isolated processes, as in AlwaysToConfigTest (CLA-532): in the shared suite
+ * process a .env that lists these keys (CI copies .env.example) re-clobbers
+ * the pre-boot values, and the test would pass without proving anything.
  */
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState(false)]
 class TestSuiteMailIsolationTest extends TestCase
 {
     use RefreshDatabase;

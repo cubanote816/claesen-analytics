@@ -7,6 +7,8 @@ namespace Tests\Feature;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * CLA-692: the same isolation with MAIL_TO_ADDRESS in the environment.
@@ -17,6 +19,8 @@ use Illuminate\Support\Facades\Mail;
  * sets its own Graph credentials after setUp() must reach its faked Graph API
  * with the alwaysTo redirect intact.
  */
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState(false)]
 final class TestSuiteMailIsolationWithAlwaysToTest extends TestSuiteMailIsolationTest
 {
     protected function environment(): array
