@@ -26,6 +26,7 @@ class ModuleGuideTest extends TestCase
         $this->assertStringContainsString('<span class="doc-ui doc-ui--action">New Campaign</span>', $guide->html);
         $this->assertStringContainsString('<span class="doc-ui doc-ui--label">Subject</span>', $guide->html);
         $this->assertStringContainsString('<span class="doc-ui doc-ui--action">Send now</span>', $guide->html);
+        $this->assertStringContainsString('<span class="doc-ui doc-ui--enum">Draft</span>', $guide->html);
     }
 
     public function test_placeholders_inside_table_cells_keep_the_table(): void
@@ -42,6 +43,8 @@ class ModuleGuideTest extends TestCase
         $this->assertSame('nl', $guide->locale);
         $this->assertSame('Fixture-handleiding', $guide->title);
         $this->assertStringContainsString('<span class="doc-ui doc-ui--action">Nu verzenden</span>', $guide->html);
+        $this->assertStringContainsString('<span class="doc-ui doc-ui--action">Goedkeuren</span>', $guide->html);
+        $this->assertStringContainsString('<span class="doc-ui doc-ui--enum">Concept</span>', $guide->html);
     }
 
     public function test_locales_without_a_guide_fall_back_to_english(): void
@@ -54,11 +57,24 @@ class ModuleGuideTest extends TestCase
         }
     }
 
+    public function test_labels_follow_the_ui_locale_even_when_the_text_falls_back(): void
+    {
+        $html = ModuleGuide::render($this->fixture(), 'fr')->html;
+
+        $this->assertStringContainsString(
+            '<span class="doc-ui doc-ui--action">' . e(__('mailing::resource.actions.send_now', [], 'fr')) . '</span>',
+            $html,
+        );
+    }
+
     public function test_unknown_keys_are_reported_and_shown_as_missing(): void
     {
         $guide = ModuleGuide::render($this->fixture(), 'en');
 
-        $this->assertSame(['mailing::resource.actions.does_not_exist'], $guide->missingKeys);
+        $this->assertSame([
+            'mailing::resource.actions.does_not_exist',
+            'Modules\\Mailing\\Enums\\CampaignStatus::nope',
+        ], $guide->missingKeys);
         $this->assertStringContainsString(
             '<span class="doc-ui doc-ui--missing">mailing::resource.actions.does_not_exist</span>',
             $guide->html,

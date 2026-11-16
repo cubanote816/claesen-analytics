@@ -24,10 +24,15 @@ use Symfony\Component\Yaml\Yaml;
  *   [[label:mailing::resource.fields.subject]]        a field, column, section or tab name
  *   [[nav:navigation.groups.mailing > mailing::resource.campaign.plural_model_label]]
  *                                                     a menu path, segments joined with →
+ *   [[enum:Modules\Mailing\Enums\CampaignStatus::draft]]
+ *                                                     an enum option, via its label($locale)
  *
  * Parameters go after `?`, like a query string; each value is translated when it is a key:
  *
  *   [[action:filament-actions::create.single.label?label=mailing::resource.campaign.model_label]]
+ *
+ * Labels always follow the reader's UI locale, even when the guide text falls back to English,
+ * so the names match the screen the reader has open.
  *
  * Sections carry stable anchors (`## Send a campaign {#action-campaign-send_now}`) that
  * internal links (`[Send now](#action-campaign-send_now)`), the table of contents and the
@@ -37,7 +42,7 @@ final class ModuleGuide
 {
     public const FALLBACK_LOCALE = 'en';
 
-    private const PLACEHOLDER = '/\[\[(action|label|nav):([^\]]+)\]\]/';
+    private const PLACEHOLDER = '/\[\[(action|label|nav|enum):([^\]]+)\]\]/';
 
     public static function directoryFor(string $module): string
     {
@@ -47,7 +52,7 @@ final class ModuleGuide
     /** Locale whose file is used: the requested one when it exists, English otherwise. */
     public static function resolveLocale(string $directory, ?string $locale = null): string
     {
-        $locale = Str::before(Str::before($locale ?? app()->getLocale(), '_'), '-');
+        $locale = self::normalizeLocale($locale ?? app()->getLocale());
 
         return is_file("{$directory}/{$locale}.md") ? $locale : self::FALLBACK_LOCALE;
     }
@@ -72,7 +77,8 @@ final class ModuleGuide
 
     public static function render(string $directory, ?string $locale = null): RenderedGuide
     {
-        $locale = self::resolveLocale($directory, $locale);
+        $uiLocale = self::normalizeLocale($locale ?? app()->getLocale());
+        $locale = self::resolveLocale($directory, $uiLocale);
         [$meta, $body] = self::split(self::read($directory, $locale));
 
         $html = Str::markdown($body, [
@@ -86,11 +92,11 @@ final class ModuleGuide
         // a table cell keeps its pipes. The captured text is HTML-escaped by CommonMark.
         $html = (string) preg_replace_callback(
             self::PLACEHOLDER,
-            function (array $match) use ($locale, &$missing): string {
+            function (array $match) use ($uiLocale, &$missing): string {
                 [$text, $isMissing] = self::resolvePlaceholder(
                     $match[1],
                     html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5),
-                    $locale,
+                    $uiLocale,
                 );
                 if ($isMissing !== null) {
                     $missing[] = $isMissing;
@@ -113,9 +119,18 @@ final class ModuleGuide
         );
     }
 
-    /** @return array{0: string, 1: string|null} the text, and the unresolved key when one is missing */
+    private static function normalizeLocale(string $locale): string
+    {
+        return Str::before(Str::before($locale, '_'), '-');
+    }
+
+    /** @return array{0: string, 1: string|null} the text, and the unresolved reference when one is missing */
     private static function resolvePlaceholder(string $type, string $reference, string $locale): array
     {
+        if ($type === 'enum') {
+            return self::resolveEnum(trim($reference), $locale);
+        }
+
         $segments = $type === 'nav'
             ? array_map('trim', explode('>', $reference))
             : [trim($reference)];
@@ -139,6 +154,27 @@ final class ModuleGuide
         }
 
         return [implode(' → ', $texts), null];
+    }
+
+    /** @return array{0: string, 1: string|null} */
+    private static function resolveEnum(string $reference, string $locale): array
+    {
+        [$class, $value] = array_pad(explode('::', $reference, 2), 2, '');
+
+        if (! enum_exists($class) || ! is_subclass_of($class, \BackedEnum::class)) {
+            return ['', $reference];
+        }
+
+        try {
+            $case = $class::tryFrom($value);
+        } catch (\TypeError) {
+            $case = null;
+        }
+        if ($case === null || ! method_exists($case, 'label')) {
+            return ['', $reference];
+        }
+
+        return [(string) $case->label($locale), null];
     }
 
     /** @return list<array{id: string, text: string, level: int}> */

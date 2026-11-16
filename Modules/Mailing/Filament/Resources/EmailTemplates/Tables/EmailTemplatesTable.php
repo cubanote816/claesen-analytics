@@ -25,7 +25,7 @@ class EmailTemplatesTable
                     ->label(__('mailing::resource.fields.category'))
                     ->badge()
                     ->color(fn (TemplateCategory $state): string => $state->color())
-                    ->formatStateUsing(fn (TemplateCategory $state): string => $state->label()),
+                    ->formatStateUsing(fn (TemplateCategory $state): string => $state->label(app()->getLocale())),
 
                 TextColumn::make('version')
                     ->label(__('mailing::resource.fields.version'))
@@ -47,7 +47,7 @@ class EmailTemplatesTable
                 SelectFilter::make('category')
                     ->label(__('mailing::resource.fields.category'))
                     ->options(collect(TemplateCategory::cases())->mapWithKeys(
-                        fn (TemplateCategory $c) => [$c->value => $c->label()]
+                        fn (TemplateCategory $c) => [$c->value => $c->label(app()->getLocale())]
                     )),
             ])
             ->recordActions([

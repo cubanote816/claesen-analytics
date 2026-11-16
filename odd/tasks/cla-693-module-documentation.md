@@ -22,9 +22,12 @@
 | T3 | Mailing doc page + user guide en/nl | S1, S3, S4, S7 | inline | |
 | T4 | CI coverage test (actions, keys, en/nl parity) | S5 | inline | |
 | T5 | Convention doc, protocol DoD, handoff, Engram | S5, S6 | inline | |
+| T6 | Complete Mailing nl keys (53 missing), Mailing screens pass the UI locale to enum labels, `[[enum:FQCN::value]]` placeholder; labels follow the UI locale even when the guide text falls back | S3 | inline | |
 
 ## Log
 
 - **L1** (user, verbatim): "crea la documentacion del modulo, crearemos una nueva seccion en el menu que sera documentacion donde tendremo la documentacion de cada modulo con sus funcionalidad, con los nombre de los botones exactos con link a la funcionalidad o proceso dentro de la misma docuemntacion, esta documentacion deberia de actualizarse automaticamente cunado se crea un cambio o nueva funcionalidad. a futuro crearemos un RAG por modulo para complementarla y que el user puede lacalizar la documentacion puntual rapidamente con un chatbot."
 - **L2** (user decisions): language "Multi-idioma (en + nl)"; access "Quien tenga acceso al módulo"; menu "Grupo nuevo 'Documentation'"; auto-update "Etiquetas vivas + test CI".
 - **L3** (user): "go". T1 done: Linear CLA-693 created In Progress; branch created.
+- **L4** (evidence): T2 committed a5c2fdc6. Explorer found `fallback_locale` = nl and 53 of 155 Mailing en keys missing in nl (nl UI showed raw keys), and enum labels (`CampaignStatus`, `TemplateCategory`, `AudienceType`, `FollowUpTrigger`, `MessageEventType`) called without locale (always English).
+- **L5** (user decision): "Completar nl dentro de CLA-693" → T6.

@@ -15,7 +15,9 @@ Fill in [[label:mailing::resource.fields.subject]], then [jump to sending](#acti
 | --- | --- |
 | [[action:mailing::resource.actions.send_now]] | Sends now |
 
-Broken: [[action:mailing::resource.actions.does_not_exist]]
+A new campaign starts as [[enum:Modules\Mailing\Enums\CampaignStatus::draft]].
+
+Broken: [[action:mailing::resource.actions.does_not_exist]] [[enum:Modules\Mailing\Enums\CampaignStatus::nope]]
 
 ## No anchor here
 

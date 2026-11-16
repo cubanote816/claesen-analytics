@@ -112,7 +112,7 @@ class CampaignForm
                         Select::make('audience_type')
                             ->label(__('mailing::resource.fields.audience_type'))
                             ->options(collect(AudienceType::cases())->mapWithKeys(
-                                fn (AudienceType $t) => [$t->value => $t->label()]
+                                fn (AudienceType $t) => [$t->value => $t->label(app()->getLocale())]
                             ))
                             ->default(AudienceType::ALL_SUBSCRIBED->value)
                             ->required()
@@ -210,7 +210,7 @@ class CampaignForm
                         Select::make('followup_trigger')
                             ->label(__('mailing::resource.fields.followup_trigger'))
                             ->options(collect(FollowUpTrigger::cases())
-                                ->mapWithKeys(fn (FollowUpTrigger $t) => [$t->value => $t->label()])
+                                ->mapWithKeys(fn (FollowUpTrigger $t) => [$t->value => $t->label(app()->getLocale())])
                             )
                             ->nullable()
                             ->visible(fn (Get $get): bool => (bool) $get('followup_campaign_id')),
@@ -342,7 +342,7 @@ class CampaignForm
     private static function ruleSchema(): array
     {
         $eventTypeOptions = collect(MessageEventType::cases())
-            ->mapWithKeys(fn (MessageEventType $t) => [$t->value => $t->label()])
+            ->mapWithKeys(fn (MessageEventType $t) => [$t->value => $t->label(app()->getLocale())])
             ->toArray();
 
         $campaignOptions = Campaign::orderByDesc('created_at')

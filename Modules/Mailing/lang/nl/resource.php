@@ -5,6 +5,11 @@ return [
     'plural_model_label' => 'E-mail Sjablonen',
     'navigation_group' => 'Groei & Acquisitie',
 
+    'campaign' => [
+        'model_label'        => 'Campagne',
+        'plural_model_label' => 'Campagnes',
+    ],
+
     'system_vars' => [
         'panel_title'   => 'Systeemtokens — altijd beschikbaar in elk sjabloon',
         'name_label'    => 'Naam van het contact',
@@ -26,11 +31,17 @@ return [
         'content'          => 'Inhoud',
         'content_desc'     => 'Beheer het e-mailonderwerp en de inhoud van het bericht.',
         'audience'         => 'Doelgroep',
+        'campaign_details' => 'Campagnegegevens',
+        'campaign_summary' => 'Campagneoverzicht',
+        'approval'         => 'Goedkeuring',
+        'ab_test'          => 'A/B-onderwerptest (optioneel)',
+        'followup'         => 'Opvolging (optioneel)',
     ],
 
     'fields' => [
         'name'             => 'Naam van Sjabloon',
         'subject'          => 'Onderwerp (E-mail Subject)',
+        'subject_helper'   => 'Je kunt het onderwerp voor deze campagne aanpassen.',
         'body'             => 'E-mail Bericht',
         'body_preview'     => 'Berichtvoorvertoning',
         'body_empty'       => 'Geen berichtinhoud opgeslagen voor deze campagne.',
@@ -44,6 +55,31 @@ return [
         'variable_example' => 'Voorbeeld',
         'version'          => 'Versie',
         'updated_at'       => 'Laatst Gewijzigd',
+        'description'      => 'Campagnenaam / omschrijving',
+        'template'         => 'Sjabloon',
+        'status'           => 'Status',
+        'total_count'      => 'Totaal',
+        'success_count'    => 'Verzonden',
+        'failed_count'     => 'Mislukt',
+        'skipped_count'    => 'Overgeslagen',
+        'started_by'       => 'Gestart door',
+        'started_at'       => 'Gestart op',
+        'approved_by'      => 'Goedgekeurd door',
+        'approved_at'      => 'Goedgekeurd op',
+        'is_active'        => 'Actief',
+        'created_at'       => 'Aangemaakt op',
+        // A/B-test
+        'ab_subject_b'             => 'Onderwerp variant B',
+        'ab_subject_b_helper'      => 'Leeg laten om de A/B-test uit te schakelen. Het campagneonderwerp hierboven wordt variant A.',
+        'ab_split_percent'         => 'Verdeling % per variant',
+        'ab_split_percent_helper'  => '10 betekent 10% naar A + 10% naar B. Maximaal 50. De rest krijgt de winnaar.',
+        'ab_winner_after_hours'    => 'Winnaar kiezen na (uren)',
+        // Opvolging
+        'followup_campaign'        => 'Opvolgcampagne (kind)',
+        'followup_campaign_helper' => 'Moet een goedgekeurde campagne zijn. Ze wordt verzonden naar de gefilterde doelgroep van deze campagne.',
+        'followup_trigger'         => 'Verzenden naar contacten die...',
+        'followup_delay_hours'     => 'Wachttijd (uren na afronding)',
+        'followup_delay_helper'    => 'bv. 24 = 1 dag, 72 = 3 dagen',
         // Doelgroep
         'audience_type'            => 'Type Doelgroep',
         'manual_prospects'         => 'Ontvangers',
@@ -86,6 +122,10 @@ return [
 
     'actions' => [
         'add_variable'             => 'Variabele toevoegen',
+        'submit_review'            => 'Ter beoordeling indienen',
+        'approve'                  => 'Goedkeuren',
+        'cancel'                   => 'Campagne annuleren',
+        'cancel_confirm'           => 'Deze actie kan niet ongedaan worden gemaakt. De campagne wordt definitief geannuleerd.',
         'send_now'                 => 'Nu verzenden',
         'send_now_confirm'         => 'Hiermee wordt de volledige doelgroep nu gemaild. Dit kan niet ongedaan worden gemaakt.',
         'add_rule'                 => 'Regel toevoegen',
@@ -97,6 +137,10 @@ return [
     ],
 
     'notifications' => [
+        'template_saved'                 => 'Sjabloon succesvol opgeslagen.',
+        'submitted_review'               => 'Campagne ter beoordeling ingediend.',
+        'approved'                       => 'Campagne goedgekeurd en klaar om te verzenden.',
+        'cancelled'                      => 'Campagne is geannuleerd.',
         'sent_now'                       => 'Verzending op de achtergrond',
         'sent_now_body'                  => 'Je kunt gewoon doorwerken; we laten het weten als het klaar is.',
         'campaign_finished_title'        => ':description is afgerond',
@@ -128,7 +172,26 @@ return [
         'emails'         => 'E-mail(s)',
     ],
 
+    'options' => [
+        'placeholders' => [
+            'prospect_name'  => 'Naam van de club',
+            'contact_person' => 'Contactpersoon (secretaris)',
+            'address'        => 'Volledig adres',
+        ],
+    ],
+
     'metrics' => [
-        'ctor_note' => '* verhouding t.o.v. opens — indicatief',
+        'sent'              => 'Verzonden',
+        'delivered'         => 'Afgeleverd',
+        'opens'             => 'Unieke opens',
+        'opens_note'        => '* Indicatief — Apple MPP kan deze waarde opblazen',
+        'clicks'            => 'Unieke kliks',
+        'ctor_note'         => '* verhouding t.o.v. opens — indicatief',
+        'hard_bounces'      => 'Hard bounces',
+        'soft_bounces'      => 'Soft bounces',
+        'complained'        => 'Spamklachten',
+        'unsubscribed'      => 'Uitgeschreven',
+        'alert_high_bounce' => '⚠ Boven de drempel van 5%',
+        'alert_high_spam'   => '⚠ Boven de drempel van 0,08%',
     ],
 ];
