@@ -37,7 +37,7 @@ use Symfony\Component\HttpFoundation\Response;
  * password sign-in — even for an account that also has a microsoft_id — never
  * carries it, so it keeps the set-up requirement and the Login page challenge.
  */
-class EnsureAdminRoleMultiFactorAuthenticationIsEnabled
+class EnsureLocalPasswordMultiFactorAuthenticationIsEnabled
 {
     public function handle(Request $request, Closure $next): Response
     {

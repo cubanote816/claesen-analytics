@@ -285,7 +285,7 @@ final class PanelAccessMatrixTest extends TestCase
             'is_active' => true,
             'password_set_at' => now(),
             // CLA-464 (ADR D8): super_admin/admin are now forced to set up MFA
-            // before reaching the dashboard (EnsureAdminRoleMultiFactorAuthenticationIsEnabled).
+            // before reaching the dashboard (EnsureLocalPasswordMultiFactorAuthenticationIsEnabled).
             // This baseline is about role-based panel access, a separate
             // concern from MFA enrollment state — pre-enabling email MFA keeps
             // its original assertions (dashboard reachable / redirected to

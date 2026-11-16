@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 /**
  * CLA-464 (ADR D8) — MFA required for super_admin/admin only, via
- * EnsureAdminRoleMultiFactorAuthenticationIsEnabled (see its own docblock for
+ * EnsureLocalPasswordMultiFactorAuthenticationIsEnabled (see its own docblock for
  * why the role gate lives in that middleware rather than a Closure passed to
  * Panel::requiresMultiFactorAuthentication(), which is evaluated once at
  * boot with no per-request user).

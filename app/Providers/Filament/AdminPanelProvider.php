@@ -229,7 +229,7 @@ HTML
                 AppAuthentication::make(),
                 EmailAuthenticationWithBrand::make(),
             ])
-            ->multiFactorAuthenticationRequiredMiddlewareName(\Modules\Core\Http\Middleware\EnsureAdminRoleMultiFactorAuthenticationIsEnabled::class)
+            ->multiFactorAuthenticationRequiredMiddlewareName(\Modules\Core\Http\Middleware\EnsureLocalPasswordMultiFactorAuthenticationIsEnabled::class)
             ->requiresMultiFactorAuthentication()
             ->navigationGroups([
                 NavigationGroup::make('Workforce & Performance')

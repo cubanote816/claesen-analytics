@@ -14,7 +14,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
  * destructivas" — a fresh MFA challenge required immediately before a
  * sensitive Filament action runs, independent of and in addition to the
  * initial-login MFA already enforced by
- * Modules\Core\Http\Middleware\EnsureAdminRoleMultiFactorAuthenticationIsEnabled.
+ * Modules\Core\Http\Middleware\EnsureLocalPasswordMultiFactorAuthenticationIsEnabled.
  *
  * Deliberately does NOT reimplement code verification — every component
  * returned by challengeFormComponents() is one of Filament's own
