@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Documentation;
 
 use App\Support\Documentation\ModuleGuide;
+use Illuminate\Support\Facades\Lang;
 use Tests\TestCase;
 
 /**
@@ -101,6 +102,28 @@ class ModuleGuideTest extends TestCase
             ModuleGuide::meta($this->fixture(), 'en'),
         );
         $this->assertSame(['en', 'nl'], ModuleGuide::locales($this->fixture()));
+    }
+
+    public function test_guide_security_boundaries(): void
+    {
+        $dir = sys_get_temp_dir() . '/guide-security-' . bin2hex(random_bytes(8));
+        mkdir($dir);
+
+        try {
+            Lang::addLines(['documentation.probe' => '<img src=x onerror=alert(1)>'], 'en');
+            file_put_contents($dir . '/en.md', "<script>alert(1)</script>\n\n[x](javascript:alert%281%29)\n\n[[label:documentation.probe]]\n\n[[enum:DateTime::now]]\n");
+
+            $guide = ModuleGuide::render($dir, 'en');
+
+            $this->assertStringNotContainsString('<script', $guide->html);
+            $this->assertStringNotContainsString('<img', $guide->html);
+            $this->assertStringNotContainsString('javascript:', $guide->html);
+            $this->assertStringContainsString('&lt;img src=x onerror=alert(1)&gt;', $guide->html);
+            $this->assertSame(['DateTime::now'], $guide->missingKeys);
+        } finally {
+            @unlink($dir . '/en.md');
+            @rmdir($dir);
+        }
     }
 
     public function test_raw_html_in_a_guide_is_stripped(): void
