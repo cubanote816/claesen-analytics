@@ -58,6 +58,14 @@ Work in this order and use only ids from the summary:
    detector_360 | other_knx), as the legend says. Lamps, sockets and other installations are hidden.
    Set labelTextId to a listed text that identifies the device (its tag), else null. A look-alike symbol is
    not enough: when the classification is ambiguous give a low confidence so it is reviewed. Never invent a device.
+   Domain rules of this contractor (they decide how a legend entry maps to a device type):
+   - every switch position is a KNX pushbutton: a legend entry such as schakelaar, wisselschakelaar,
+     kruisschakelaar, drukknop, dimmer (or switch, push button) gives deviceType pushbutton for its symbols;
+   - bord only when the board is explicitly labelled BORD in the plan; a fuse box, zekeringkast, verdeelbord
+     or verdeelkast without the label BORD is hidden;
+   - the sensor of a combined luminaire (e.g. "verlichting + noodverlichting + sensor") is a presence detector:
+     detector_180 or detector_360 from its symbol, low confidence when the angle cannot be read;
+   - a smoke detector (branddetectie, optische brandmelder, rookmelder) is not a KNX device: hidden.
 5. rooms: one entry per space you can see (kind: room | corridor | hall | storage | toilet | stair | lift |
    other), with a point (x, y) well INSIDE it. `name` is only allowed when a listed text names the space:
    copy that text exactly and give its id in `textId`. Without such text, or when it is illegible, `name`

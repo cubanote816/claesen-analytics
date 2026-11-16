@@ -68,6 +68,29 @@ final class KnxPlanAnalysisProvidersTest extends TestCase
         $this->assertSame('settle_failed', $entry->reason);
     }
 
+    public function test_the_instructions_carry_the_knx_domain_rules(): void
+    {
+        // S11 (owner decision 2026-11-16): conventional switches mark KNX pushbuttons, a board is only
+        // what is labelled BORD, the sensor of a combined luminaire is a presence detector, a smoke
+        // detector is not a KNX device.
+        $this->enableOpenAi();
+        Http::fake(['https://openai.test/v1/responses' => Http::response($this->completed(['groupRoles' => [], 'rooms' => [], 'uncertain' => []]))]);
+
+        app(OpenAiPlanAnalysisProvider::class)->analyze($this->input(), fn (): bool => true);
+
+        Http::assertSent(function (Request $request): bool {
+            $text = (string) $request->data()['instructions'];
+
+            return str_contains($text, 'schakelaar')
+                && str_contains($text, 'wisselschakelaar')
+                && str_contains($text, 'drukknop')
+                && str_contains($text, 'dimmer')
+                && str_contains($text, 'explicitly labelled BORD')
+                && str_contains($text, 'presence detector')
+                && str_contains($text, 'smoke detector');
+        });
+    }
+
     private function input(string $png = "\x89PNG-synthetic"): PlanAnalysisInput
     {
         return new PlanAnalysisInput(
