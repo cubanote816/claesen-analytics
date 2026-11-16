@@ -94,6 +94,7 @@ Todo ticket debe cumplir **todos** los puntos siguientes antes de recibir GO té
 - [ ] `CLAUDE.md` actualizado si cambian reglas permanentes o estado macro de módulo
 - [ ] `handoff.md` actualizado con estado global actual
 - [ ] Documento del módulo actualizado si cambió contexto técnico
+- [ ] Guía de usuario del módulo (`Modules/<Módulo>/docs/user-guide/{en,nl}.md`) actualizada si cambió su UI o su comportamiento — `docs/ai/module-documentation.md` (CLA-693; el test de cobertura falla en CI si una acción nueva no tiene sección)
 - [ ] Commit dedicado creado
 - [ ] GO técnico recibido
 - [ ] Issue Linear marcado Done con hash del commit

@@ -2,7 +2,7 @@ panel_id=admin
 panel_path=<root>
 panel_is_default=yes
 spa_mode=yes
-navigation_groups=Workforce & Performance,Growth & Acquisition,Mailing,Safety & VCA,Content & Website,Intelligence Hub,Field Operations,User Management,Guides & Procedures
+navigation_groups=Workforce & Performance,Growth & Acquisition,Mailing,Safety & VCA,Content & Website,Intelligence Hub,Field Operations,User Management,Documentation,Guides & Procedures
 resource App\Filament\Clusters\Website\Resources\AnnouncementResource | model=Modules\Website\Models\Announcement | slug=announcements | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\ConsultationRequestResource | model=Modules\Website\Models\ConsultationRequest | slug=consultation-requests | navigation=yes | record_title=- | globally_searchable=no
 resource App\Filament\Clusters\Website\Resources\MediaSlotResource | model=Modules\Website\Models\MediaSlot | slug=media-slots | navigation=yes | record_title=- | globally_searchable=no
@@ -64,6 +64,7 @@ page Modules\Intelligence\Filament\Pages\MirrorSyncStatusPage
 page Modules\Intelligence\Filament\Pages\MonthlyBillingControlPage
 page Modules\Intelligence\Filament\Pages\OfferSimulator
 page Modules\Intelligence\Filament\Pages\ProjectIntelligenceDetail
+page Modules\Mailing\Filament\Pages\MailingDocumentation
 page Modules\Performance\Filament\Pages\EmployeeInsight
 page Modules\Prospects\Filament\Pages\SyncDashboardPage
 widget Modules\Employee\Filament\Widgets\EmployeeHoursSummaryWidget
