@@ -6,6 +6,8 @@ namespace Modules\Core\Tests\Feature;
 
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Core\Models\Organization;
+use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
 use Modules\FieldOps\Filament\Pages\MyWorkOrders;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -171,6 +173,27 @@ final class MultiFactorAuthenticationEnforcementTest extends TestCase
         $user->toggleEmailAuthentication(true);
 
         $this->actingAs($user->refresh())->get($myWorkOrders)->assertSuccessful();
+    }
+
+    /** CLA-684: the bertels panel applies the same rule to its non-admin users, who can still set up and log out. */
+    public function test_a_bertels_viewer_without_mfa_must_set_it_up_and_can_still_reach_set_up_and_logout(): void
+    {
+        $organization = Organization::factory()->create(['slug' => 'electro-bertels']);
+        Site::factory()->create([
+            'organization_id' => $organization->id,
+            'key' => 'electro-bertels',
+            'status' => Site::STATUS_ACTIVE,
+        ]);
+
+        $user = $this->userWithRole('viewer');
+        $user->forceFill(['organization_id' => $organization->id])->save();
+
+        $setUp = route('filament.bertels.auth.multi-factor-authentication.set-up-required');
+
+        $this->actingAs($user->refresh())->get('/bertels')->assertRedirect($setUp);
+        $this->get($setUp)->assertSuccessful();
+        $this->post(route('filament.bertels.auth.logout'))->assertRedirect();
+        $this->assertGuest();
     }
 
     public function test_a_guest_hitting_the_set_up_page_directly_is_redirected_to_login(): void

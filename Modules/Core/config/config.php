@@ -5,8 +5,9 @@ return [
 
     // Email domain required for Azure OAuth login. Only employees with this domain
     // can be provisioned as backoffice users. Overridable via COMPANY_EMAIL_DOMAIN.
-    // CLA-464 (ADR D8): super_admin/admin must have a second factor set up before
-    // reaching the panel. Deliberately not env()-driven so production can't turn it
+    // CLA-464 (ADR D8), widened by CLA-684: every panel session not signed in
+    // through Microsoft must have a second factor set up before reaching the
+    // panel, whatever the role. Deliberately not env()-driven so production can't turn it
     // off by configuration; the test suite disables it in tests/TestCase.php.
     'panel_mfa_enforced' => true,
 

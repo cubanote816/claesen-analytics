@@ -184,6 +184,27 @@ final class LoginMultiFactorChallengeTest extends TestCase
         Notification::assertSentTo($viewer, VerifyEmailAuthenticationWithBrand::class);
     }
 
+    public function test_a_viewer_is_refused_with_a_wrong_email_code_and_signed_in_with_the_right_one(): void
+    {
+        Notification::fake();
+
+        $viewer = $this->emailMfaUser('viewer');
+        $page = $this->submitPassword($viewer);
+        $code = $this->emailedCode($viewer);
+
+        $page->set(self::EMAIL_CODE_FIELD, $this->aCodeOtherThan($code))
+            ->call('authenticate')
+            ->assertHasErrors([self::EMAIL_CODE_FIELD])
+            ->assertNoRedirect();
+        $this->assertGuest();
+
+        $page->set(self::EMAIL_CODE_FIELD, $code)
+            ->call('authenticate')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+        $this->assertAuthenticatedAs($viewer);
+    }
+
     public function test_a_client_is_refused_at_the_first_step_and_no_code_is_sent(): void
     {
         Notification::fake();

@@ -12,8 +12,9 @@ use Symfony\Component\Mime\RawMessage;
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * The admin/super_admin MFA gate (CLA-464) redirects every panel request
-     * of a user without a second factor, which would turn every panel test
+     * The panel MFA gate (CLA-464, every non-Microsoft session since CLA-684)
+     * redirects every panel request of a user without a second factor, which
+     * would turn every panel test
      * that isn't about MFA into a 302. Tests about the gate itself re-enable
      * it after parent::setUp().
      */
