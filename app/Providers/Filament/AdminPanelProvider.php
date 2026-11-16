@@ -256,6 +256,9 @@ HTML
                 NavigationGroup::make('User Management')
                     ->label(fn () => __('navigation.groups.user_management'))
                     ->icon('heroicon-o-cog-6-tooth'),
+                // CLA-693: one user guide per module (Modules/<Module>/Filament/Pages).
+                \App\Filament\Documentation\ModuleDocumentationPage::panelNavigationGroup()
+                    ->icon('heroicon-o-document-text'),
                 \App\Filament\Guides\Ets6ProjectArchiveGuide::panelNavigationGroup()
                     ->icon('heroicon-o-book-open'),
             ])
