@@ -1,6 +1,6 @@
 # CLA-684 — Require 2FA for every local-password panel session
 
-Linear: CLA-684 (In Progress). Branch `feat/cla-684-require-2fa-local-password` from `origin/main` (17a84c58 = production), worktree `.worktrees/auth-users`.
+Linear: CLA-684 (Done). Branch `feat/cla-684-require-2fa-local-password` from `origin/main` (17a84c58 = production), worktree `.worktrees/auth-users`.
 Today `EnsureAdminRoleMultiFactorAuthenticationIsEnabled` forces a second factor only for super_admin/admin (CLA-464, ADR D8); every other panel role signs in with the password alone.
 
 ## Specs
@@ -32,3 +32,4 @@ Today `EnsureAdminRoleMultiFactorAuthenticationIsEnabled` forces a second factor
 - L7. Native review of the full range stopped with `lens_context_budget_exceeded` (route snapshot). User: "opcion 1" — history split into A `d455edb4` (pure rename, snapshot; 115 passed on its own), B `525beef6` (role gate removal + tests), C `321ca1be` (docs); final tree identical to the previous history (kept as `backup/cla-684-pre-split`).
 - L8. Native review of B+C with base A (lineage review-c2248d026989ab8c, lenses risk + reliability): approved, acknowledgement burned.
 - L9. Independent verify (Risk: item 2): request changes — no security defect found statically; it could not run tests (its /tmp scratch has no .git for bin/wt-test); S7 gaps in `tests/TestCase.php:10` and `Modules/Core/config/config.php:8-10`; proposed a bertels non-admin test and a viewer wrong-then-right code test. Fixed: both comments updated, both tests added (coverage of already-implemented behavior, no RED). `MultiFactorAuthenticationEnforcementTest|LoginMultiFactorChallengeTest`: 27 passed (109 assertions).
+- L10. Native review of 2181abfb (base 3232a28e, reliability): approved. Independent re-verify (Risk: item 2): approve, all S met (S6 out of scope); tests not executed by the verifier (no .git in its scratch). User: "go" (GO técnico). CLA-684 moved to Done; push/PR/deploy remain the user's decisions.
