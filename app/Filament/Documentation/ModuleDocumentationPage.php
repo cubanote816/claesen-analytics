@@ -65,9 +65,19 @@ abstract class ModuleDocumentationPage extends Page
         return static::groupLabel();
     }
 
+    /**
+     * Built on every panel request (the sidebar), so a broken or missing guide must never take
+     * the panel down: it falls back to the module name and reports the error (CLA-693 hotfix).
+     */
     public static function getNavigationLabel(): string
     {
-        $meta = ModuleGuide::meta(static::guideDirectory());
+        try {
+            $meta = ModuleGuide::meta(static::guideDirectory());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return static::module();
+        }
 
         return (string) ($meta['navigation_label'] ?? $meta['title'] ?? static::module());
     }
