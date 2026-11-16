@@ -167,6 +167,23 @@ final class LoginMultiFactorChallengeTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    /** CLA-684: the challenge is not reserved to admins — a viewer with a factor gets it too. */
+    public function test_a_viewer_with_email_mfa_is_challenged_and_stays_a_guest_without_the_code(): void
+    {
+        Notification::fake();
+
+        $viewer = $this->emailMfaUser('viewer');
+
+        $this->submitPassword($viewer)
+            ->assertSeeHtml('id="multiFactorChallengeForm.email_code.code"')
+            ->call('authenticate')
+            ->assertHasErrors([self::EMAIL_CODE_FIELD => 'required'])
+            ->assertNoRedirect();
+
+        $this->assertGuest();
+        Notification::assertSentTo($viewer, VerifyEmailAuthenticationWithBrand::class);
+    }
+
     public function test_a_client_is_refused_at_the_first_step_and_no_code_is_sent(): void
     {
         Notification::fake();

@@ -214,11 +214,11 @@ HTML
             )
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
-            // CLA-464 (ADR D8): required only for super_admin/admin, not every
-            // internal role with panel access — see the middleware's own
-            // docblock for why the role gate lives there and not in a Closure
-            // passed to requiresMultiFactorAuthentication() (evaluated once at
-            // boot, no per-request user). Applies to the local-password login
+            // CLA-464 (ADR D8), widened by CLA-684: required for every role
+            // whose session was not signed in through Microsoft — see the
+            // middleware's own docblock for why that decision lives there and
+            // not in a Closure passed to requiresMultiFactorAuthentication()
+            // (evaluated once at boot, no per-request session). Applies to the local-password login
             // (Modules\Core\Filament\Pages\Auth\Login carries Filament's MFA
             // challenge verbatim, CLA-363) and its set-up requirement. Sessions
             // signed in through MicrosoftAuthController carry a server-side
