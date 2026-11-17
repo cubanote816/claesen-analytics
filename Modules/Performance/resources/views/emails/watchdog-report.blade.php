@@ -53,7 +53,8 @@
         </div>
         <div class="footer">
             Dit is een automatisch gegenereerd rapport door het <b>Claesen Outdoor Lighting Platform</b>.<br>
-            Antwoorden op deze e-mail worden niet verwerkt.
+            Antwoorden op deze e-mail worden niet verwerkt.<br>
+            {{ __('core::mail.automated_notice') }}
         </div>
     </div>
 </body>

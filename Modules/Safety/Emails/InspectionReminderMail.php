@@ -24,7 +24,7 @@ class InspectionReminderMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('hostmaster@claesen-verlichting.be', 'Claesen Outdoor Lighting Platform'),
+            from: new Address((string) config('mail.from.address'), (string) config('mail.from.name')),
             subject: 'Herinnering: Veiligheidsinspectie vereist',
         );
     }

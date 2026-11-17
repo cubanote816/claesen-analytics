@@ -64,7 +64,8 @@
         </div>
         <div class="footer">
             Dit is een <b>onmiddellijke veiligheidswaarschuwing</b> van het Claesen Outdoor Lighting Platform.<br>
-            Geen verdere onmiddellijke waarschuwingen zullen voor dit project worden verzonden tot het wekelijkse rapport.
+            Geen verdere onmiddellijke waarschuwingen zullen voor dit project worden verzonden tot het wekelijkse rapport.<br>
+            {{ __('core::mail.automated_notice') }}
         </div>
     </div>
 </body>

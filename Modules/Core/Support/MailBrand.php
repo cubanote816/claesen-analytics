@@ -63,6 +63,13 @@ final class MailBrand
     private static bool $bertels = false;
 
     /**
+     * Whether the mail being sent right now is a quote mail of a site (`forSite()`),
+     * as opposed to an automatic platform mail. Quote mails are answered by people
+     * (offerte@), so they never carry the "do not reply" notice. Cleared with the rest.
+     */
+    private static bool $siteMail = false;
+
+    /**
      * Visual identity per company (design/system.md, CLA-686). The band is the dark
      * header/footer color, the accent the stripe and button fill, and the button label
      * is dark because white on either accent fails WCAG AA. Logos are light-on-dark
@@ -152,11 +159,23 @@ final class MailBrand
         return self::$forThisSend ?? (string) config('app.name');
     }
 
+    /**
+     * CLA-699: whether the default mail layout must print the "automated message, do
+     * not reply" notice. True for every Claesen automatic mail (anything that does not
+     * name a company counts as Claesen); false for Electro Bertels and for the site's
+     * quote mails.
+     */
+    public static function showsAutomatedNotice(): bool
+    {
+        return ! self::$bertels && ! self::$siteMail;
+    }
+
     /** Called after a message is sent, so nothing leaks into the next one. */
     public static function forget(): void
     {
         self::$forThisSend = null;
         self::$bertels = false;
+        self::$siteMail = false;
     }
 
     /**
@@ -170,6 +189,17 @@ final class MailBrand
      * Laravel», en las dos empresas.
      */
     public static function forSite(Site $site): array
+    {
+        $brand = self::resolveSite($site);
+        self::$siteMail = true;
+
+        return $brand;
+    }
+
+    /**
+     * @return array{address: ?string, name: ?string}
+     */
+    private static function resolveSite(Site $site): array
     {
         $name = $site->mail_from_name
             ?? $site->organization?->name
@@ -204,7 +234,18 @@ final class MailBrand
             ];
         }
 
-        return self::forSite($site);
+        $brand = self::resolveSite($site);
+        self::$siteMail = false;
+
+        // CLA-699: Claesen's automatic mail leaves from the platform sender
+        // (`mail.from.*`, backoffice@); the Claesen site's own `mail_from_address` is the
+        // QUOTE sender (offerte@) and is only used by `forSite()`. Electro Bertels keeps
+        // its site sender for everything.
+        if ($site->key === config('organizations.panel_sites.admin')) {
+            $brand['address'] = config('mail.from.address');
+        }
+
+        return $brand;
     }
 
     private static function siteFor(?User $user): ?Site

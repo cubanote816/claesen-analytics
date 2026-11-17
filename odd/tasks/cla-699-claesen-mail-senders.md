@@ -23,8 +23,10 @@ Today Graph uses the From address as the sending mailbox, and Core automatic mai
 
 ## Tasks
 
-- T1. [S2, S5] Graph alias mailbox routing in `Modules/Mailing/Mail/Transport/MicrosoftGraphTransport.php` + `config/mail.php`; unit tests (mapped alias → mailbox URL with from/sender kept; unmapped sender unchanged; case-insensitive match; empty map). Route: worker. Commit: pending.
+- T1. [S2, S5] Graph alias mailbox routing in `Modules/Mailing/Mail/Transport/MicrosoftGraphTransport.php` + `config/mail.php`; unit tests (mapped alias → mailbox URL with from/sender kept; unmapped sender unchanged; case-insensitive match; empty map). Route: worker. Commit: 2226a19a.
+  Evidence: RED `MicrosoftGraphTransportMailboxAliasTest` 4 failed / 2 passed (the 2 passing are the preserve cases: unmapped sender, empty map); GREEN `--filter=MicrosoftGraphTransport` 8 passed (26 assertions), incl. the 2 existing inline-attachment payload tests.
 - T2. [S1, S3, S4, S5] Separate Claesen automatic vs quote identity (MailBrand / Core notifications, data migration, four mails), EN/NL notice, tests (Claesen vs Bertels, campaigns From/Reply-To pinned, quote mails offerte@ without notice), docs (`module-contracts.md`, `production-readiness.md` rollout + rollback, `handoff.md`, `CLAUDE.md` if a rule changes). Route: worker. Commit: pending.
+  Evidence: RED `--filter=ClaesenMailSenderTest` 17 failed / 5 passed (the 5 are preserve cases: Bertels notifications, no notice leak into a Bertels send, Reply-To); quote test RED, campaign no-notice test preserve-pass. GREEN `ClaesenMailSenderTest` 22 passed (113 assertions); `bin/wt-test Modules/Core/tests/Feature Modules/Website/tests Modules/Mailing/tests Modules/Performance/tests Modules/Safety/tests` 1289 passed, 2 skipped. The first worker run timed out on that broad run; the parent re-ran it. Notice rendering only asserted as text (not visually checked).
 
 ## Log
 
@@ -34,3 +36,4 @@ Today Graph uses the From address as the sending mailbox, and Core automatic mai
 - L4. User: "En el transporte de la webapp, usa el ID o UPN del buzón sport@claesen-verlichting.be en /users/{id-o-UPN}/sendMail y pon backoffice@claesen-verlichting.be en message.from.emailAddress.address. Si el código usa el mismo valor para ambos, ahí es donde hay que hacer el cambio." Then "go".
 - L5. User first: "(hostmaster@ y vanguard@);estos no se usan descartalos"; after seeing the four live send paths: "aceptado cambiar a backoffice@para seguir recibiendo las notificaciones" (supersedes the exclusion).
 - L6. User created the temporary AGENTS.md exception ("hecho", uncommitted in this worktree) and asked: "cuando termines me recueras quitarla".
+- L7. T1 committed 2226a19a. T2 implemented by a worker (MailBrand::forUser uses the platform sender for the Claesen site; forSite flags quote mails; layout footer + the four custom views print `core::mail.automated_notice`; migration 2026_11_17_100000 sets the Claesen site sender to offerte@); docs: module-contracts, production-readiness runbook, handoff row.

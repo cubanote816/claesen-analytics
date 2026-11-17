@@ -3,5 +3,8 @@
 <td class="footer-cell" bgcolor="{{ $brand['band'] }}" style="background-color: {{ $brand['band'] }}; padding: 22px 40px 26px; text-align: left;">
 <p style="margin: 0; color: #ffffff; font-size: 13px; font-weight: bold; line-height: 20px;">{{ \Modules\Core\Support\MailBrand::footerName() }}</p>
 <p style="margin: 0; color: #c3cedf; font-size: 13px; line-height: 20px;">{!! trim($slot) !!}</p>
+@if(\Modules\Core\Support\MailBrand::showsAutomatedNotice())
+<p style="margin: 10px 0 0; color: #c3cedf; font-size: 12px; line-height: 18px;">{{ __('core::mail.automated_notice') }}</p>
+@endif
 </td>
 </tr>

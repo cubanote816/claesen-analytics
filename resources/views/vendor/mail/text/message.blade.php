@@ -22,6 +22,10 @@
     <x-slot:footer>
         <x-mail::footer>
             © {{ date('Y') }} {{ \Modules\Core\Support\MailBrand::footerName() }}. @lang('All rights reserved.')
+@if(\Modules\Core\Support\MailBrand::showsAutomatedNotice())
+
+            {{ __('core::mail.automated_notice') }}
+@endif
         </x-mail::footer>
     </x-slot:footer>
 </x-mail::layout>
