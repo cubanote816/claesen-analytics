@@ -3,6 +3,8 @@
 namespace Modules\Mailing\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Mailing\Enums\AudienceType;
+use Modules\Mailing\Models\Campaign;
 use Modules\Mailing\Services\SegmentResolverService;
 use Modules\Prospects\Models\Prospect;
 use Tests\TestCase;
@@ -102,5 +104,31 @@ class SegmentInOperatorTest extends TestCase
         $this->assertContains($rbfa->id, $ids);
         $this->assertContains($lbfa->id, $ids);
         $this->assertNotContains($aft->id, $ids);
+    }
+
+    public function test_empty_lists_and_stored_segment_campaign_agree_with_preview(): void
+    {
+        $rbfa = $this->prospect('RBFA');
+        $this->prospect('');
+
+        foreach (['', ' , , ', [], ' RBFA,,RBFA '] as $value) {
+            $filters = ['rules' => [[
+                'type' => 'prospect_field',
+                'field' => 'federation',
+                'operator' => 'in',
+                'value' => $value,
+            ]]];
+            $campaign = Campaign::factory()->create([
+                'audience_type' => AudienceType::SEGMENT,
+                'audience_filters' => $filters,
+            ]);
+            $expected = $value === ' RBFA,,RBFA ' ? [$rbfa->id] : [];
+            $label = var_export($value, true);
+
+            $this->assertEqualsCanonicalizing($expected, $campaign->fresh()->resolveAudience(), $label);
+            $preview = $this->resolver->preview($filters);
+            $this->assertSame(count($expected), $preview['total'], $label);
+            $this->assertEqualsCanonicalizing($expected, $preview['prospects']->modelKeys(), $label);
+        }
     }
 }
