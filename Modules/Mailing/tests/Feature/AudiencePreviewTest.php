@@ -131,11 +131,26 @@ class AudiencePreviewTest extends TestCase
         foreach (['Club', 'Sport', 'Federation', 'Region', 'Language', 'Contact person', 'Email(s)'] as $header) {
             $this->assertStringContainsString($header, $html);
         }
-        foreach (['Racing Genk', 'football', 'KBVB-X', 'Flanders', 'nl', 'Jan Peeters', 'one@example.com, two@example.com'] as $value) {
+        foreach (['Racing Genk', 'Football', 'KBVB-X', 'Flanders', 'nl', 'Jan Peeters', 'one@example.com, two@example.com'] as $value) {
             $this->assertStringContainsString($value, $html);
         }
         $this->assertStringContainsString('Send-time checks can still skip a few contacts: category opt-outs and suppressed addresses.', $html);
         $this->assertStringNotContainsString('more', $html);
+    }
+
+    /** CLA-698: the Sport column shows the same label as the Prospects list, never the stored code. */
+    public function test_modal_shows_the_sport_label_not_the_stored_code(): void
+    {
+        $this->prospect('Racing Genk', null, ['type' => 'football_club']);
+        $this->prospect('Smash BC', null, ['type' => 'padel_court']);
+
+        $html = $this->render([]);
+        $this->assertStringContainsString('<td class="px-4 py-2">Football</td>', $html);
+        $this->assertStringContainsString('<td class="px-4 py-2">Padel court</td>', $html);
+        $this->assertStringNotContainsString('football_club', $html);
+
+        app()->setLocale('nl');
+        $this->assertStringContainsString('<td class="px-4 py-2">Voetbal</td>', $this->render([]));
     }
 
     public function test_modal_shows_placeholder_for_empty_values(): void
