@@ -38,7 +38,7 @@
                             @endphp
                             <tr class="bg-white text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                                 <td class="px-4 py-2 font-medium text-gray-900 dark:text-white">{{ filled($prospect->name) ? $prospect->name : '—' }}</td>
-                                <td class="px-4 py-2">{{ filled($prospect->type) ? $prospect->type : '—' }}</td>
+                                <td class="px-4 py-2">{{ filled($prospect->type) ? \Modules\Prospects\Filament\Resources\Prospects\ProspectResource::sportLabel($prospect->type) : '—' }}</td>
                                 <td class="px-4 py-2">{{ filled($prospect->federation) ? $prospect->federation : '—' }}</td>
                                 <td class="px-4 py-2">{{ filled($prospect->region?->name) ? $prospect->region->name : '—' }}</td>
                                 <td class="px-4 py-2">{{ filled($prospect->language) ? $prospect->language : '—' }}</td>
