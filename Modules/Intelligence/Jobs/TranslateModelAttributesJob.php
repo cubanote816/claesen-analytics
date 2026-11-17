@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Jobs\SyncJob;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -80,6 +81,7 @@ class TranslateModelAttributesJob implements ShouldQueue
             : null;
 
         $changed = false;
+        $firstFailure = null;
 
         foreach ($this->attributes as $attribute) {
             $translations = $model->getTranslations($attribute);
@@ -90,12 +92,13 @@ class TranslateModelAttributesJob implements ShouldQueue
             }
 
             // G1: locales to (re)translate = empty ones + stale ones (the
-            // trait marked them when the source text changed).
+            // trait marked them when the source text changed) + failed ones
+            // (CLA-694: a locale with an old value whose retranslation failed).
             $staleLocales = TranslationState::query()
                 ->where('translatable_type', $model->getMorphClass())
                 ->where('translatable_id', $model->getKey())
                 ->where('attribute', $attribute)
-                ->where('status', TranslationState::STATUS_STALE)
+                ->whereIn('status', [TranslationState::STATUS_STALE, TranslationState::STATUS_FAILED])
                 ->pluck('locale')
                 ->all();
 
@@ -152,6 +155,8 @@ class TranslateModelAttributesJob implements ShouldQueue
                     );
                 }
             } catch (\Exception $e) {
+                $firstFailure ??= $e;
+
                 Log::error("TranslateModelAttributesJob: Gemini failed for {$this->modelClass}#{$this->modelId} attr={$attribute}: {$e->getMessage()}");
 
                 foreach ($missingLocales as $locale) {
@@ -185,6 +190,15 @@ class TranslateModelAttributesJob implements ShouldQueue
                     $hasLegacyStatusColumn ? ['ai_translation_status' => $newStatus] : [],
                     $changed ? $this->buildTranslationUpdates($model) : [],
                 ));
+        }
+
+        // CLA-694: after persisting whatever succeeded, surface the first
+        // provider failure so the queue retries with tries/backoff. On the
+        // sync queue there is no retry and the job runs inside the request
+        // that saved the model, so rethrowing would only break that save:
+        // the failed states above are the observable outcome there.
+        if ($firstFailure !== null && ! $this->job instanceof SyncJob) {
+            throw $firstFailure;
         }
     }
 

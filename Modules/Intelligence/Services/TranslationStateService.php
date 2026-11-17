@@ -84,8 +84,11 @@ class TranslationStateService
                 'source_locale' => $sourceLocale,
                 'source_hash' => $sourceHash,
                 'glossary_version' => $glossaryVersion,
+            ], fn ($value) => $value !== null) + [
+                // CLA-694: always written, so a later success clears the
+                // reason of an earlier failure instead of keeping it.
                 'error' => $error,
-            ], fn ($value) => $value !== null)
+            ]
         );
     }
 

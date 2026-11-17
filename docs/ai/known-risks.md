@@ -271,9 +271,9 @@ El roadmap maestro fija `client.claesen-verlichting.be` como hostname objetivo y
 
 Los módulos Safety y Mailing tienen suites de tests completas. El módulo Website no tiene tests Feature documentados en `Modules/Website/tests/`. Cualquier cambio en Website se valida solo manualmente.
 
-### Sin tests para Intelligence y Performance
+### Cobertura parcial de tests en Intelligence
 
-Los módulos Intelligence y Performance no tienen tests Feature explícitos en `Modules/Intelligence/tests/` ni `Modules/Performance/tests/`. Los servicios IA dependen de Gemini (servicio externo) lo que dificulta el testing sin mocks adecuados.
+**Actualizado 2026-11-16 (CLA-694):** la nota anterior («Intelligence y Performance no tienen tests») quedó desactualizada: `Modules/Intelligence/tests/Feature/` tiene 23 archivos (motor de traducción, billing guardian, mirror sync, accesos, visión, imagen). Siguen **sin tests** `BudgetAssistantService`, `ProjectSimilarityService`, `MaterialIntelligenceService`, `GenerateBudgetSimulationJob` y `GeminiService::analyzeProject/analyzeEmployee/generateMediaMetadata` (solo mockeados desde otros módulos). Performance no se re-auditó.
 
 ### Resend instalado pero no usado
 

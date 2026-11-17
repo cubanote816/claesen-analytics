@@ -337,8 +337,28 @@ Modules/FieldOps/Models/FoMaintenanceWorkOrderEvent.php
   `needs_review` (G5). Los valores `machine`/legacy pasan a `stale` y se
   reencolan (G1).
 - Un fallo del proveedor deja estado `failed` con el error visible (G3);
-  el job reintenta (3 intentos, backoff 30/60/120). El resultado vacío de
-  `generateStructuredResponse` es un fallo observable, no silencio.
+  el job reintenta (3 intentos, backoff 30/60/120). Las rutas de
+  traducción (`translateAndDetect`, `translateBatch`) lanzan
+  `GeminiProviderException` ante token ausente, HTTP fallido, error de
+  transporte o respuesta no JSON; el job registra `failed`, guarda lo que
+  sí se tradujo y vuelve a lanzar la excepción para que la cola reintente,
+  y en cada intento retoma los locales `stale` **y** `failed` (CLA-694).
+  **Excepción:** en la cola `sync` no hay reintento y el job corre dentro
+  del request que guardó el modelo, así que **no** vuelve a lanzar: el
+  estado `failed` es el resultado observable y el guardado no se rompe.
+  `generateStructuredResponse` sigue sin lanzar (devuelve `[]`) para sus
+  otros consumidores (FieldOps, Performance, `analyze*`); una respuesta 200
+  sin texto de respuesta o con texto que no es un objeto/array JSON también
+  es un fallo (antes un texto escalar terminaba en `TypeError`).
+- `TranslationStateService::recordState` siempre escribe `error`: registrar
+  un estado sin error (traducción exitosa, revisión, `stale`) borra el motivo
+  de un fallo anterior (CLA-694).
+- Nunca se cachea un fallo: `translateAndDetect` solo cachea si todos los
+  locales pedidos volvieron con texto; `translateBatch` solo cachea los
+  ítems con texto (CLA-694).
+- `translateBatch` numera los textos pendientes 1..n por posición y lee
+  la respuesta por esa misma posición; las claves de entrada pueden ser
+  cualquier id (el comando pasa ids de `ai_translation_states`).
 - El estado público de una entidad en un locale se **deriva**
   (peor estado de todas sus claves — `TranslationStateService`) y nunca
   se declara a mano; datos legacy sin filas de estado cuentan como

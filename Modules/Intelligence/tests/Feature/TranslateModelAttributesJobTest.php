@@ -87,9 +87,9 @@ class TranslateModelAttributesJobTest extends TestCase
         $this->assertTrue(true);
     }
 
-    // ── Test 4: Excepción Gemini → capturada, status queda pending ────────────
+    // ── Test 4: Gemini exception → failed state recorded, then rethrown for retry ──
 
-    public function test_gemini_exception_is_caught_and_status_stays_pending(): void
+    public function test_gemini_exception_is_recorded_as_failed_state_and_rethrown_for_retry(): void
     {
         $model = $this->makeType(['nl' => 'Sportveld']);
 
@@ -98,10 +98,21 @@ class TranslateModelAttributesJobTest extends TestCase
             ->once()
             ->andThrow(new \Exception('Gemini API unavailable'));
 
-        $this->job($model)->handle($gemini);
+        try {
+            $this->job($model)->handle($gemini);
+            $this->fail('Expected the provider exception to be rethrown.');
+        } catch (\Exception $e) {
+            $this->assertSame('Gemini API unavailable', $e->getMessage());
+        }
 
         $model->refresh();
         $this->assertSame('pending', $model->ai_translation_status);
+
+        foreach (['en', 'fr', 'de'] as $locale) {
+            $state = app(\Modules\Intelligence\Services\TranslationStateService::class)->stateFor($model, 'type', $locale);
+            $this->assertSame(\Modules\Intelligence\Models\TranslationState::STATUS_FAILED, $state?->status);
+            $this->assertStringContainsString('Gemini API unavailable', (string) $state->error);
+        }
     }
 
     // ── Test 5: Status pending si Gemini devuelve traducciones incompletas ─────
