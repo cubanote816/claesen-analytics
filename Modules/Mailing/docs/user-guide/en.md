@@ -93,7 +93,7 @@ In [[label:mailing::resource.sections.audience]] you choose [[label:mailing::res
 - [[enum:Modules\Mailing\Enums\AudienceType::segment]]: prospects that match rules you define. Choose in [[label:mailing::resource.fields.segment_operator]] whether all rules or any rule must match, then press [[action:mailing::resource.actions.add_rule]] for every rule. A rule is one of:
   - [[label:mailing::resource.fields.rule_has_event]]: for example prospects who clicked in a certain campaign, optionally within the last N days.
   - [[label:mailing::resource.fields.rule_has_no_event]]: the opposite.
-  - [[label:mailing::resource.fields.rule_prospect_field]]: language, federation or region matches a value. Note: [[label:mailing::resource.fields.rule_operator_in]] currently treats the whole text as one value, so `RBFA,LBFA` does not match RBFA or LBFA. To target several values, add one rule per value and choose [[label:mailing::resource.fields.segment_operator_or]].
+  - [[label:mailing::resource.fields.rule_prospect_field]]: language, federation or region matches a value. With [[label:mailing::resource.fields.rule_operator_in]] you can type a comma-separated list, for example `RBFA,LBFA`. Spaces around the items are allowed and empty items are ignored.
 - [[enum:Modules\Mailing\Enums\AudienceType::manual]]: you pick the contacts yourself in [[label:mailing::resource.fields.manual_prospects]]. Only subscribed contacts with an email address can be chosen.
 
 Press [[action:mailing::resource.actions.preview_audience]] to check the audience before you create the campaign. See [Preview audience](#action-campaign-preview_audience).
@@ -139,11 +139,11 @@ A follow-up campaign is sent by the system, so [Send now](#action-campaign-send_
 Press [[action:filament-actions::view.single.label]] on a row in the list to open a campaign. The page has:
 
 - Action buttons at the top: [[action:mailing::resource.actions.submit_review]], [[action:mailing::resource.actions.approve]], [[action:mailing::resource.actions.send_now]] and [[action:mailing::resource.actions.cancel]]. Only the buttons that fit the current status and your role are shown. Every button asks for confirmation.
-- [[label:mailing::resource.sections.campaign_summary]]: description, status, who started it, audience type and size, and the totals ([[label:mailing::resource.fields.total_count]], [[label:mailing::resource.fields.success_count]], [[label:mailing::resource.fields.failed_count]]).
+- [[label:mailing::resource.sections.campaign_summary]]: description, status, who started it, audience type and size, and the totals ([[label:mailing::resource.fields.total_count]], [[label:mailing::resource.fields.success_count]], [[label:mailing::resource.fields.failed_count]]). [[label:mailing::resource.fields.audience_recipients]] is computed live from the audience rules as they are now. [[label:mailing::resource.fields.total_count]] is the number of recipients of the actual send. The two can differ, for example when people subscribed or unsubscribed since the send, or when the campaign has not been sent yet (such as 2,378 against 4).
 - [[label:mailing::resource.sections.approval]]: who approved and when. Shown once the campaign is approved.
 - [[label:mailing::resource.sections.snapshot]]: the subject and body as used in this campaign, with [[action:mailing::resource.actions.view_full_content]].
 - The [metrics](#metrics) below.
-- The [[label:prospects::resource.sections.recipients]] tab, see [Recipient pages](#recipient-pages).
+- The [[label:prospects::resource.sections.recipients]] section at the bottom of the campaign page, see [Recipient pages](#recipient-pages).
 
 The same submit, approve, send and cancel buttons also appear on the rows of the campaign list.
 
@@ -177,7 +177,7 @@ Admin only. Available for campaigns in [[enum:Modules\Mailing\Enums\CampaignStat
 
 ## [[action:mailing::resource.actions.view_full_content]] {#action-campaign-view_full_content}
 
-In [[label:mailing::resource.sections.snapshot]] on the [campaign page](#action-campaign-view). It opens the complete email as this campaign sends it, in the window "[[label:mailing::resource.actions.full_content_modal_title]]". This is the copy taken when the campaign was created, not the current template. Use [[action:mailing::resource.actions.close]] to close it.
+In [[label:mailing::resource.sections.snapshot]] on the [campaign page](#action-campaign-view). It opens the complete subject and body of the campaign snapshot, in the window "[[label:mailing::resource.actions.full_content_modal_title]]". This is the copy taken when the campaign was created, not the current template, and it is shown before the tokens are personalised for each recipient. To see the personalised snapshot of one person, press [[action:filament-actions::view.single.label]] on that recipient in the [[label:prospects::resource.sections.recipients]] section. Neither view is proof of the email that was finally delivered or of its automatic unsubscribe footer. Use [[action:mailing::resource.actions.close]] to close it.
 
 ## Metrics {#metrics}
 
@@ -185,7 +185,7 @@ At the bottom of the [campaign page](#action-campaign-view) you see the results:
 
 - [[label:mailing::resource.metrics.sent]] and [[label:mailing::resource.metrics.delivered]]
 - [[label:mailing::resource.metrics.opens]]: indicative only. Apple Mail Privacy Protection and security proxies can inflate or hide opens.
-- [[label:mailing::resource.metrics.clicks]]: the most reliable signal of interest.
+- [[label:mailing::resource.metrics.clicks]]: the most reliable signal of interest. Next to it you see two rates: CTR (click-through rate) is unique clicks divided by emails sent, and CTOR (click-to-open rate) is unique clicks divided by unique opens. CTOR is indicative only, because opens can be inflated by Apple Mail Privacy Protection.
 - [[label:mailing::resource.metrics.hard_bounces]] and [[label:mailing::resource.metrics.soft_bounces]]
 - [[label:mailing::resource.metrics.complained]] and [[label:mailing::resource.metrics.unsubscribed]]
 
@@ -193,11 +193,11 @@ A warning appears when hard bounces go above 5% or spam complaints above 0.08%. 
 
 ## Recipient pages {#recipient-pages}
 
-The [[label:prospects::resource.sections.recipients]] tab on the [campaign page](#action-campaign-view) lists every email of the campaign: prospect, email, status ([[label:prospects::resource.options.status.sent]], [[label:prospects::resource.options.status.failed]], [[label:prospects::resource.options.status.skipped]] or [[label:prospects::resource.options.status.unsubscribed]]), when it was sent, whether it was opened or clicked, and the last activity.
+The [[label:prospects::resource.sections.recipients]] section of the [campaign page](#action-campaign-view) lists every email of the campaign: prospect, email, status ([[label:prospects::resource.options.status.sent]], [[label:prospects::resource.options.status.failed]], [[label:prospects::resource.options.status.skipped]] or [[label:prospects::resource.options.status.unsubscribed]]), when it was sent, whether it was opened or clicked, and the last activity.
 
 ## [[action:filament-actions::view.single.label]] (recipient) {#action-campaign-messages-view}
 
-Press [[action:filament-actions::view.single.label]] on a row of the recipient tab to open the details of that email: prospect, address, status, send time and an error message when something went wrong. Below that you see the [[label:mailing::resource.sections.engagement]] (for example [[enum:Modules\Mailing\Enums\MessageEventType::delivered]], [[enum:Modules\Mailing\Enums\MessageEventType::opened]] and [[enum:Modules\Mailing\Enums\MessageEventType::clicked]]) with time and clicked link, and the subject and body that were sent.
+Press [[action:filament-actions::view.single.label]] on a row of the [[label:prospects::resource.sections.recipients]] section to open a modal window with the details of that email: prospect, address, status, send time and an error message when something went wrong. Below that you see the [[label:mailing::resource.sections.engagement]] (for example [[enum:Modules\Mailing\Enums\MessageEventType::delivered]], [[enum:Modules\Mailing\Enums\MessageEventType::opened]] and [[enum:Modules\Mailing\Enums\MessageEventType::clicked]]) with time and clicked link, and the subject and body that were sent.
 
 Remember: "[[label:mailing::resource.sections.engagement_note]]"
 
@@ -243,7 +243,7 @@ The panel next to the template form also has [[label:mailing::resource.fields.va
 
 ## Start a campaign from Prospects {#start-from-prospects}
 
-You can also start a campaign straight from the prospect list: open [[nav:prospects::resource.navigation_group > prospects::resource.plural_model_label]], select the prospects and choose [[action:prospects::resource.actions.execute_campaign.label]] in the bulk menu. Choose a template and give the campaign a description.
+You can also start a campaign straight from the prospect list: open [[nav:prospects::resource.navigation_group > prospects::resource.plural_model_label]], select the prospects and choose [[action:prospects::resource.actions.execute_campaign.label]] in the bulk menu. As soon as rows are selected, a floating [[action:prospects::resource.actions.execute_campaign.label]] button also appears on the screen; it does the same. Choose a template and give the campaign a description.
 
 - Admins and campaign managers: the campaign is approved and sent immediately. You get a message and, when it finishes, a notification with a [[action:prospects::resource.actions.execute_campaign.view_campaign]] button.
 - Marketers: a campaign with the selected prospects as manual audience is created in [[enum:Modules\Mailing\Enums\CampaignStatus::review]]. A campaign manager or admin still has to [approve](#action-campaign-approve) it.

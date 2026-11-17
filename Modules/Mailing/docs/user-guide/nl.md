@@ -93,7 +93,7 @@ In [[label:mailing::resource.sections.audience]] kies je [[label:mailing::resour
 - [[enum:Modules\Mailing\Enums\AudienceType::segment]]: prospects die aan de regels voldoen die je opstelt. Kies bij [[label:mailing::resource.fields.segment_operator]] of alle regels of minstens één regel moet kloppen, en klik voor elke regel op [[action:mailing::resource.actions.add_rule]]. Een regel is één van:
   - [[label:mailing::resource.fields.rule_has_event]]: bijvoorbeeld prospects die in een bepaalde campagne geklikt hebben, eventueel binnen de laatste N dagen.
   - [[label:mailing::resource.fields.rule_has_no_event]]: het omgekeerde.
-  - [[label:mailing::resource.fields.rule_prospect_field]]: taal, federatie of regio komt overeen met een waarde. Let op: [[label:mailing::resource.fields.rule_operator_in]] behandelt de volledige tekst momenteel als één waarde, dus `RBFA,LBFA` vindt geen RBFA of LBFA. Wil je meerdere waarden, voeg dan per waarde een regel toe en kies [[label:mailing::resource.fields.segment_operator_or]].
+  - [[label:mailing::resource.fields.rule_prospect_field]]: taal, federatie of regio komt overeen met een waarde. Bij [[label:mailing::resource.fields.rule_operator_in]] kan je een lijst met komma's typen, bijvoorbeeld `RBFA,LBFA`. Spaties rond de items zijn toegestaan en lege items worden genegeerd.
 - [[enum:Modules\Mailing\Enums\AudienceType::manual]]: je kiest zelf de contacten bij [[label:mailing::resource.fields.manual_prospects]]. Enkel ingeschreven contacten met een e-mailadres kunnen gekozen worden.
 
 Klik op [[action:mailing::resource.actions.preview_audience]] om de doelgroep te controleren voor je de campagne aanmaakt. Zie [Voorbeeld van de doelgroep](#action-campaign-preview_audience).
@@ -139,11 +139,11 @@ Een opvolgcampagne wordt door het systeem verstuurd, dus [Nu verzenden](#action-
 Klik op [[action:filament-actions::view.single.label]] bij een rij in de lijst om een campagne te openen. De pagina bevat:
 
 - Actieknoppen bovenaan: [[action:mailing::resource.actions.submit_review]], [[action:mailing::resource.actions.approve]], [[action:mailing::resource.actions.send_now]] en [[action:mailing::resource.actions.cancel]]. Je ziet enkel de knoppen die passen bij de huidige status en je rol. Elke knop vraagt om bevestiging.
-- [[label:mailing::resource.sections.campaign_summary]]: omschrijving, status, wie ze gestart heeft, type en grootte van de doelgroep, en de totalen ([[label:mailing::resource.fields.total_count]], [[label:mailing::resource.fields.success_count]], [[label:mailing::resource.fields.failed_count]]).
+- [[label:mailing::resource.sections.campaign_summary]]: omschrijving, status, wie ze gestart heeft, type en grootte van de doelgroep, en de totalen ([[label:mailing::resource.fields.total_count]], [[label:mailing::resource.fields.success_count]], [[label:mailing::resource.fields.failed_count]]). [[label:mailing::resource.fields.audience_recipients]] wordt live berekend op basis van de doelgroepregels zoals ze nu zijn. [[label:mailing::resource.fields.total_count]] is het aantal ontvangers van de effectieve verzending. Die twee kunnen verschillen, bijvoorbeeld als mensen sinds de verzending zijn in- of uitgeschreven, of als de campagne nog niet verstuurd is (zoals 2.378 tegenover 4).
 - [[label:mailing::resource.sections.approval]]: wie en wanneer goedgekeurd heeft. Zichtbaar zodra de campagne goedgekeurd is.
 - [[label:mailing::resource.sections.snapshot]]: het onderwerp en de tekst zoals ze in deze campagne gebruikt worden, met [[action:mailing::resource.actions.view_full_content]].
 - Onderaan de [statistieken](#metrics).
-- Het tabblad [[label:prospects::resource.sections.recipients]], zie [Ontvangerspagina's](#recipient-pages).
+- De sectie [[label:prospects::resource.sections.recipients]] onderaan de campagnepagina, zie [Ontvangerspagina's](#recipient-pages).
 
 Dezelfde knoppen voor indienen, goedkeuren, versturen en annuleren staan ook bij de rijen van de campagnelijst.
 
@@ -177,7 +177,7 @@ Enkel admin. Beschikbaar voor campagnes met status [[enum:Modules\Mailing\Enums\
 
 ## [[action:mailing::resource.actions.view_full_content]] {#action-campaign-view_full_content}
 
-In [[label:mailing::resource.sections.snapshot]] op de [campagnepagina](#action-campaign-view). Het opent de volledige e-mail zoals deze campagne ze verstuurt, in het venster "[[label:mailing::resource.actions.full_content_modal_title]]". Dit is de kopie van bij het aanmaken van de campagne, niet de huidige sjabloon. Sluit het venster met [[action:mailing::resource.actions.close]].
+In [[label:mailing::resource.sections.snapshot]] op de [campagnepagina](#action-campaign-view). Het opent het volledige onderwerp en de volledige tekst van de campagnekopie, in het venster "[[label:mailing::resource.actions.full_content_modal_title]]". Dit is de kopie van bij het aanmaken van de campagne, niet de huidige sjabloon, en ze wordt getoond voor de tokens per ontvanger worden ingevuld. Wil je de gepersonaliseerde kopie van één persoon zien, klik dan op [[action:filament-actions::view.single.label]] bij die ontvanger in de sectie [[label:prospects::resource.sections.recipients]]. Geen van beide weergaven is een bewijs van de mail die uiteindelijk geleverd is of van de automatische afmeldlink onderaan. Sluit het venster met [[action:mailing::resource.actions.close]].
 
 ## Statistieken {#metrics}
 
@@ -185,7 +185,7 @@ Onderaan de [campagnepagina](#action-campaign-view) zie je de resultaten:
 
 - [[label:mailing::resource.metrics.sent]] en [[label:mailing::resource.metrics.delivered]]
 - [[label:mailing::resource.metrics.opens]]: enkel indicatief. Apple Mail Privacy Protection en beveiligingsproxy's kunnen openingen opdrijven of verbergen.
-- [[label:mailing::resource.metrics.clicks]]: het betrouwbaarste signaal van interesse.
+- [[label:mailing::resource.metrics.clicks]]: het betrouwbaarste signaal van interesse. Daarnaast zie je twee percentages: CTR (doorklikratio) is unieke klikken gedeeld door het aantal verzonden mails, en CTOR (klik-naar-openratio) is unieke klikken gedeeld door unieke openingen. CTOR is enkel indicatief, omdat openingen kunnen opgedreven worden door Apple Mail Privacy Protection.
 - [[label:mailing::resource.metrics.hard_bounces]] en [[label:mailing::resource.metrics.soft_bounces]]
 - [[label:mailing::resource.metrics.complained]] en [[label:mailing::resource.metrics.unsubscribed]]
 
@@ -193,11 +193,11 @@ Er verschijnt een waarschuwing als de hard bounces boven 5% komen of de spamklac
 
 ## Ontvangerspagina's {#recipient-pages}
 
-Het tabblad [[label:prospects::resource.sections.recipients]] op de [campagnepagina](#action-campaign-view) toont elke mail van de campagne: prospect, e-mailadres, status ([[label:prospects::resource.options.status.sent]], [[label:prospects::resource.options.status.failed]], [[label:prospects::resource.options.status.skipped]] of [[label:prospects::resource.options.status.unsubscribed]]), verzendmoment, of de mail geopend of aangeklikt is, en de laatste activiteit.
+De sectie [[label:prospects::resource.sections.recipients]] op de [campagnepagina](#action-campaign-view) toont elke mail van de campagne: prospect, e-mailadres, status ([[label:prospects::resource.options.status.sent]], [[label:prospects::resource.options.status.failed]], [[label:prospects::resource.options.status.skipped]] of [[label:prospects::resource.options.status.unsubscribed]]), verzendmoment, of de mail geopend of aangeklikt is, en de laatste activiteit.
 
 ## [[action:filament-actions::view.single.label]] (ontvanger) {#action-campaign-messages-view}
 
-Klik op [[action:filament-actions::view.single.label]] bij een rij van het tabblad met ontvangers om de details van die mail te openen: prospect, adres, status, verzendmoment en een foutmelding als er iets misliep. Daaronder zie je de [[label:mailing::resource.sections.engagement]] (bijvoorbeeld [[enum:Modules\Mailing\Enums\MessageEventType::delivered]], [[enum:Modules\Mailing\Enums\MessageEventType::opened]] en [[enum:Modules\Mailing\Enums\MessageEventType::clicked]]) met tijdstip en aangeklikte link, en het onderwerp en de tekst die verstuurd zijn.
+Klik op [[action:filament-actions::view.single.label]] bij een rij van de sectie [[label:prospects::resource.sections.recipients]] om de details van die mail in een modaal venster te openen: prospect, adres, status, verzendmoment en een foutmelding als er iets misliep. Daaronder zie je de [[label:mailing::resource.sections.engagement]] (bijvoorbeeld [[enum:Modules\Mailing\Enums\MessageEventType::delivered]], [[enum:Modules\Mailing\Enums\MessageEventType::opened]] en [[enum:Modules\Mailing\Enums\MessageEventType::clicked]]) met tijdstip en aangeklikte link, en het onderwerp en de tekst die verstuurd zijn.
 
 Let op: "[[label:mailing::resource.sections.engagement_note]]"
 
@@ -243,7 +243,7 @@ Naast het sjabloonformulier staat ook [[label:mailing::resource.fields.variables
 
 ## Een campagne starten vanuit Prospects {#start-from-prospects}
 
-Je kan een campagne ook rechtstreeks starten vanuit de prospectlijst: open [[nav:prospects::resource.navigation_group > prospects::resource.plural_model_label]], selecteer de prospects en kies [[action:prospects::resource.actions.execute_campaign.label]] in het menu voor bulkacties. Kies een sjabloon en geef de campagne een omschrijving.
+Je kan een campagne ook rechtstreeks starten vanuit de prospectlijst: open [[nav:prospects::resource.navigation_group > prospects::resource.plural_model_label]], selecteer de prospects en kies [[action:prospects::resource.actions.execute_campaign.label]] in het menu voor bulkacties. Zodra er rijen geselecteerd zijn, verschijnt ook een zwevende knop [[action:prospects::resource.actions.execute_campaign.label]] op het scherm; die doet hetzelfde. Kies een sjabloon en geef de campagne een omschrijving.
 
 - Admins en campaign managers: de campagne wordt meteen goedgekeurd en verstuurd. Je krijgt een melding en, als ze klaar is, een melding met een knop [[action:prospects::resource.actions.execute_campaign.view_campaign]].
 - Marketers: er wordt een campagne met de geselecteerde prospects als handmatige doelgroep aangemaakt met status [[enum:Modules\Mailing\Enums\CampaignStatus::review]]. Een campaign manager of admin moet ze nog [goedkeuren](#action-campaign-approve).
