@@ -5,6 +5,7 @@ namespace Modules\Intelligence\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Modules\Intelligence\Exceptions\GeminiProviderException;
 
 class GeminiService
 {
@@ -20,15 +21,34 @@ class GeminiService
 
     /**
      * Generic method to call Gemini API with JSON output.
+     *
+     * Never throws: any provider failure is logged and yields []. Callers
+     * that must distinguish failure from an empty answer (translation) use
+     * requestStructuredResponse() instead.
      */
     public function generateStructuredResponse(string $prompt): array
+    {
+        try {
+            return $this->requestStructuredResponse($prompt);
+        } catch (GeminiProviderException) {
+            return [];
+        }
+    }
+
+    /**
+     * CLA-694: same call as generateStructuredResponse() but failures are
+     * thrown, so a failed call is never mistaken for an empty translation.
+     *
+     * @throws GeminiProviderException no token, HTTP failure, transport error, or non-JSON answer
+     */
+    private function requestStructuredResponse(string $prompt): array
     {
         $token = $this->auth->getAccessToken();
 
         if (empty($token)) {
             Log::error('Gemini: could not obtain a service account access token.');
 
-            return [];
+            throw new GeminiProviderException('Gemini access token could not be obtained.');
         }
 
         try {
@@ -39,22 +59,37 @@ class GeminiService
                     'temperature' => 0.2,
                 ],
             ]);
-
-            if ($response->failed()) {
-                Log::error('Gemini API Error: '.$response->body());
-
-                return [];
-            }
-
-            $data = $response->json();
-            $content = $data['candidates'][0]['content']['parts'][0]['text'] ?? '{}';
-
-            return json_decode($content, true) ?: [];
         } catch (\Exception $e) {
             Log::error('Gemini Exception: '.$e->getMessage());
 
-            return [];
+            throw new GeminiProviderException('Gemini request failed: '.$e->getMessage(), 0, $e);
         }
+
+        if ($response->failed()) {
+            Log::error('Gemini API Error: '.$response->body());
+
+            throw new GeminiProviderException('Gemini request failed with HTTP '.$response->status().'.');
+        }
+
+        // A 200 without answer text (proxy HTML page, blocked candidate) is a
+        // failure too; the generic caller still maps it to [] as before.
+        $content = $response->json('candidates.0.content.parts.0.text');
+
+        if (! is_string($content)) {
+            Log::error('Gemini: response had no answer text.');
+
+            throw new GeminiProviderException('Gemini response had no answer text.');
+        }
+
+        $decoded = json_decode($content, true);
+
+        if (! is_array($decoded)) {
+            Log::error('Gemini: response text is not a JSON object or array.');
+
+            throw new GeminiProviderException('Gemini response was not valid JSON.');
+        }
+
+        return $decoded;
     }
 
     /**
@@ -95,7 +130,13 @@ class GeminiService
 
         $result = $this->callTranslateProvider($text, $targetLocales, $context, $glossary);
 
-        Cache::put($cacheKey, $result, now()->addDays(7));
+        // CLA-694: only a complete answer is cached — a partial or empty
+        // result must be retried, not served from cache for 7 days.
+        $complete = collect($targetLocales)->every(fn (string $locale) => filled($result['translations'][$locale] ?? null));
+
+        if ($complete) {
+            Cache::put($cacheKey, $result, now()->addDays(7));
+        }
 
         return $result;
     }
@@ -150,10 +191,19 @@ class GeminiService
             return $results;
         }
 
-        $numbered = collect($pending)
-            ->map(fn (array $item, int $index) => ($index + 1).'. '.str_replace(["\r", "\n"], ' ', $item[0]))
-            ->values()
-            ->implode("\n");
+        // Number pending items 1..n by POSITION; the answer for position p is
+        // read from key "p" only and mapped back to the original key.
+        $position = [];
+        $lines = [];
+        $n = 0;
+
+        foreach ($pending as $index => $item) {
+            $n++;
+            $position[$n] = $index;
+            $lines[] = $n.'. '.str_replace(["\r", "\n"], ' ', $item[0]);
+        }
+
+        $numbered = implode("\n", $lines);
 
         $glossaryBlock = $this->glossaryBlock($glossary);
         $contextBlock = filled($context) ? "\nContext (audience/section/field kind — respect it in tone and terminology): {$context}" : '';
@@ -167,21 +217,28 @@ Source strings:
 Return JSON: {"translations": {"1": "...", "2": "..."}}
 PROMPT;
 
-        $result = $this->generateStructuredResponse($prompt);
+        try {
+            $result = $this->requestStructuredResponse($prompt);
+        } finally {
+            Log::info('Gemini batch translation call.', ['provider_call' => true, 'source_strings' => count($pending), 'locale' => $targetLocale]);
+        }
+
         $translations = is_array($result['translations'] ?? null) ? $result['translations'] : [];
 
-        Log::info('Gemini batch translation call.', ['provider_call' => true, 'source_strings' => count($pending), 'locale' => $targetLocale]);
-
-        foreach ($pending as $index => [$text, $cacheKey]) {
-            $numberKey = (string) array_search($index, array_keys($pending), true) + 1;
-            $translated = $translations[$numberKey] ?? $translations[(string) $index] ?? null;
+        foreach ($position as $p => $index) {
+            [, $cacheKey] = $pending[$index];
+            $translated = $translations[(string) $p] ?? null;
+            $filled = is_string($translated) && filled($translated);
 
             $payload = [
                 'detected_locale' => app()->getLocale(),
-                'translations' => [$targetLocale => is_string($translated) ? $translated : ''],
+                'translations' => [$targetLocale => $filled ? $translated : ''],
             ];
 
-            Cache::put($cacheKey, $payload, now()->addDays(7));
+            if ($filled) {
+                Cache::put($cacheKey, $payload, now()->addDays(7));
+            }
+
             $results[$index] = $payload['translations'];
         }
 
@@ -200,9 +257,11 @@ Task: Detect source language of "{$text}" and translate to: {$localesList}.{$con
 Return JSON: {"detected_locale": "ISO", "translations": {"code": "text"}}
 PROMPT;
 
-        $result = $this->generateStructuredResponse($prompt);
-
-        Log::info('Gemini translation call.', ['provider_call' => true, 'locales' => $targetLocales]);
+        try {
+            $result = $this->requestStructuredResponse($prompt);
+        } finally {
+            Log::info('Gemini translation call.', ['provider_call' => true, 'locales' => $targetLocales]);
+        }
 
         return [
             'detected_locale' => $result['detected_locale'] ?? 'nl',

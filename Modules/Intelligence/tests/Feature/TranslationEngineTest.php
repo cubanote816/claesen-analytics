@@ -95,9 +95,16 @@ final class TranslationEngineTest extends TestCase
 
         // ...and the job retranslates exactly the stale locale (G1: no
         // forever-outdated translation, no silence).
+        $titleCalls = 0;
         $gemini = $this->mock(GeminiService::class);
         $gemini->shouldReceive('translateAndDetect')
-            ->andReturnUsing(function (string $text, array $locales) {
+            ->andReturnUsing(function (string $text, array $locales) use (&$titleCalls) {
+                if ($text === 'Body.') {
+                    // The body attribute (never stale here) is also translated.
+                    return ['detected_locale' => 'nl', 'translations' => array_fill_keys($locales, 'Body translation')];
+                }
+
+                $titleCalls++;
                 $this->assertContains('en', $locales);
                 $this->assertSame('Privacyverklaring 2026', $text);
 
@@ -108,6 +115,8 @@ final class TranslationEngineTest extends TestCase
             });
 
         $this->job($doc)->handle($gemini);
+
+        $this->assertSame(1, $titleCalls);
 
         $doc->refresh();
         $this->assertSame('Fresh translation', $doc->getTranslation('title', 'en', false));
@@ -172,7 +181,12 @@ final class TranslationEngineTest extends TestCase
             ->twice() // title AND body both have a nl source
             ->andThrow(new \Exception('Gemini API unavailable'));
 
-        $this->job($doc)->handle($gemini);
+        try {
+            $this->job($doc)->handle($gemini);
+            $this->fail('Expected the provider exception to be rethrown for queue retry.');
+        } catch (\Exception $e) {
+            $this->assertSame('Gemini API unavailable', $e->getMessage());
+        }
 
         foreach (['en', 'fr', 'de'] as $locale) {
             $state = $this->states->stateFor($doc, 'title', $locale);
