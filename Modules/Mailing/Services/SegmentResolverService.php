@@ -193,6 +193,14 @@ class SegmentResolverService
         $value    = $rule['value'];
 
         if ($operator === 'in') {
+            // The operator UI takes one text box: "RBFA,LBFA" means two values.
+            if (is_string($value)) {
+                $value = array_values(array_filter(
+                    array_map('trim', explode(',', $value)),
+                    static fn (string $item): bool => $item !== ''
+                ));
+            }
+
             $query->whereIn("prospects_prospects.{$field}", (array) $value);
         } else {
             $query->where("prospects_prospects.{$field}", $value);
