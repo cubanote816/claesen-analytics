@@ -9,7 +9,7 @@
 - 56 migraciones nuevas sobre las 183 actuales (ninguna existente se modifica ni se borra). Ensayadas sobre una copia de producción del 2026-10-25: ~6 s, sin errores.
 - Multiempresa con `ORGANIZATIONS_ENFORCE` **apagado** (no definido en el `.env` → `false`): Claesen se comporta como hoy.
 - KNX **apagado** (`KNX_ENABLED` no definido → `false`): link oculto y todas sus rutas responden 404. Sus tablas se crean vacías.
-- **MFA obligatorio para `super_admin` y `admin` que entran con email + contraseña local** (decisión del usuario 2026-10-25, ADR D8): en el primer acceso con contraseña tras el deploy, el admin tiene que configurar código por mail o app autenticadora antes de usar el panel. **Quien entra con "Sign in with Microsoft" no lo configura**: el segundo factor lo pone Entra ID (S2c, `b2b4f8c`). No se puede apagar por `.env`.
+- **MFA obligatorio para `super_admin` y `admin` que entran con email + contraseña local** (decisión del usuario 2026-10-25, ADR D8): en el primer acceso con contraseña tras el deploy, el admin tiene que configurar código por mail o app autenticadora antes de usar el panel. **Quien entra con "Sign in with Microsoft" no lo configura**: el segundo factor lo pone Entra ID (S2c, `b2b4f8c`). No se puede apagar por `.env`. *Ampliado por CLA-684 (2026-11-15): ahora aplica a todos los roles que entran con contraseña, no solo a `super_admin`/`admin`.*
 - Tres tareas programadas nuevas: `website:retry-failed-consultation-emails` (cada 15 min, envía mail), `website:apply-retention-policy` (05:00, inerte mientras `WEBSITE_RETENTION_ENABLED` no esté en `true`), `website:check-intake-abuse-alerts` (cada hora).
 - Upgrade de dependencias (Filament 5.10.3, Laravel 13.38, Livewire 4.4.8, Symfony 8.1.9): `composer audit` limpio.
 

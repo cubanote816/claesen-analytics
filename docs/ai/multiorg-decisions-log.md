@@ -499,3 +499,12 @@ Primera porción real de **P6** — el ADR marca explícitamente su viabilidad t
 
 12. **No crear ningún usuario, proyecto ni lead real de Electro Bertels hasta que la fase P5 (enforcement) del programa multiempresa esté completa y verificada** (F0/P0, 2026-09-17). Los roles de Spatie son globales (`teams => false`) y los permisos cuelgan de ellos: un usuario de Bertels con rol `admin` o `viewer` entraría hoy al panel de Claesen, a `/api/v1/fieldops/*`, `/api/v1/safety/*` y `/api/v1/employees/*`, y pasaría a recibir las notificaciones operativas que se eligen por rol. La organización y el sitio de Bertels se crean al final de P7; sus usuarios, después del panel de P6; sus proyectos y leads, en F3/F4. Diseño y secuencia completos en `docs/ai/adr-multi-organization.md`; riesgos en `docs/ai/known-risks.md`.
 
+
+### CLA-684 — MFA obligatorio para toda sesión de panel con contraseña local, sea cual sea el rol (2026-11-15)
+
+Amplía D8/CLA-464. Hallazgo en producción: un usuario `viewer` sin factor configurado entró con email + contraseña sin que se le pidiera 2FA; no era un bypass (producción en `17a84c5`, con el fix CLA-648), era la regla de CLA-464 (solo `super_admin`/`admin`). Decisión del usuario: «todos los usuarios que entran con email/pass necesitan el 2FA; los que entran con Microsoft, Microsoft ya se lo aplica, esos se quedan como están».
+
+- **Middleware renombrado:** `EnsureAdminRoleMultiFactorAuthenticationIsEnabled` → `EnsureLocalPasswordMultiFactorAuthenticationIsEnabled`. Se quitó el filtro por rol; se mantienen la exención de sesiones Microsoft (`AuthenticatedVia`) y `core.panel_mfa_enforced`. Afecta a `admin` y `bertels`.
+- **Efecto al desplegar:** el gate corre en cada request, así que toda sesión abierta de un rol no admin con contraseña se manda a configurar MFA en su siguiente clic. El código por mail depende del mail de producción.
+- **Fuera de alcance:** logins con contraseña fuera de los paneles (`api/v1/auth/login`, `login/sport`, Safety `v1/login`, KNX `auth/login`, portal de clientes) → CLA-691.
+- **Tests:** `MultiFactorAuthenticationEnforcementTest` (los roles no admin, incluido `technician`, van al setup; con factor no se los redirige; un technician llega a `MyWorkOrders` tras configurarlo), `MicrosoftSessionMfaExemptionTest` (viewer: Microsoft exento, contraseña al setup), `LoginMultiFactorChallengeTest` (un viewer con factor recibe el desafío y sin código sigue invitado). Snapshot de rutas actualizado solo por el nombre de la clase.

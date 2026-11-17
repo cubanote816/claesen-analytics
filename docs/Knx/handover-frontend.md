@@ -55,7 +55,8 @@ En desarrollo, con el proxy de Vite: `VITE_API_BASE_URL=/api/v1/knx` +
 **Credenciales sembradas** (solo local): `lien.smet@electrobertels.be` /
 `Kantoor123!` — y `pieter.aerts@electrobertels.be` / `Kantoor123!`.
 
-> El panel Filament exige MFA a `super_admin`, pero **la API no**: para la API basta
+> El panel Filament exige MFA a todo usuario que entra con contraseña (CLA-684), pero **la API no**
+> (pendiente en CLA-691): para la API basta
 > el Bearer. El MFA solo aparece si entráis al backoffice por navegador.
 
 ### Autenticación

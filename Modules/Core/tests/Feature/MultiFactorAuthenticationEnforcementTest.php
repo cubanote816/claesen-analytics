@@ -6,18 +6,23 @@ namespace Modules\Core\Tests\Feature;
 
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Core\Models\Organization;
+use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
+use Modules\FieldOps\Filament\Pages\MyWorkOrders;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /**
- * CLA-464 (ADR D8) — MFA required for super_admin/admin only, via
- * EnsureAdminRoleMultiFactorAuthenticationIsEnabled (see its own docblock for
- * why the role gate lives in that middleware rather than a Closure passed to
- * Panel::requiresMultiFactorAuthentication(), which is evaluated once at
- * boot with no per-request user).
+ * CLA-464 (ADR D8) introduced panel MFA for super_admin/admin only. CLA-684
+ * widened it: every panel session not signed in through Microsoft must have a
+ * second factor configured, whatever its role, via
+ * EnsureLocalPasswordMultiFactorAuthenticationIsEnabled (see its own docblock
+ * for why that decision lives in the middleware rather than in
+ * Panel::requiresMultiFactorAuthentication(), which is evaluated once at boot
+ * with no per-request user).
  *
  * F2/CLA-464 (2026-09-21) — corrected claim, verified with real requests
  * against an isolated DB before writing this comment (not assumed from
@@ -72,7 +77,7 @@ final class MultiFactorAuthenticationEnforcementTest extends TestCase
 
         $this->withoutVite();
 
-        foreach (['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer'] as $role) {
+        foreach (['super_admin', 'admin', 'financial_manager', 'hr_manager', 'viewer', 'technician'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
 
@@ -117,21 +122,78 @@ final class MultiFactorAuthenticationEnforcementTest extends TestCase
         $this->actingAs($user)->get('/')->assertSuccessful();
     }
 
-    #[DataProvider('notForcedRolesProvider')]
-    public function test_roles_other_than_super_admin_and_admin_are_never_forced(string $role): void
+    /** CLA-684: the role no longer decides — every non-admin panel role is forced too. */
+    #[DataProvider('nonAdminPanelRolesProvider')]
+    public function test_every_other_panel_role_without_mfa_set_up_is_redirected_to_the_set_up_page(string $role): void
     {
         $user = $this->userWithRole($role);
 
-        $this->actingAs($user)->get('/')->assertSuccessful();
+        $this->actingAs($user)
+            ->get('/')
+            ->assertRedirect(route('filament.admin.auth.multi-factor-authentication.set-up-required'));
     }
 
-    public static function notForcedRolesProvider(): array
+    #[DataProvider('nonAdminPanelRolesProvider')]
+    public function test_every_other_panel_role_with_email_authentication_enabled_is_not_redirected(string $role): void
+    {
+        $user = $this->userWithRole($role);
+        $user->toggleEmailAuthentication(true);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $this->assertFalse(
+            $response->isRedirect(route('filament.admin.auth.multi-factor-authentication.set-up-required')),
+            "{$role} with a configured factor must not be sent to MFA set-up"
+        );
+    }
+
+    public static function nonAdminPanelRolesProvider(): array
     {
         return [
             'financial_manager' => ['financial_manager'],
             'hr_manager' => ['hr_manager'],
             'viewer' => ['viewer'],
+            'technician' => ['technician'],
         ];
+    }
+
+    public function test_a_technician_without_mfa_is_sent_to_set_up_and_reaches_my_work_orders_once_it_is_set_up(): void
+    {
+        $user = $this->userWithRole('technician');
+        $myWorkOrders = MyWorkOrders::getUrl(panel: 'admin');
+
+        $this->actingAs($user)
+            ->get($myWorkOrders)
+            ->assertRedirect(route('filament.admin.auth.multi-factor-authentication.set-up-required'));
+
+        $this->actingAs($user)
+            ->get(route('filament.admin.auth.multi-factor-authentication.set-up-required'))
+            ->assertSuccessful();
+
+        $user->toggleEmailAuthentication(true);
+
+        $this->actingAs($user->refresh())->get($myWorkOrders)->assertSuccessful();
+    }
+
+    /** CLA-684: the bertels panel applies the same rule to its non-admin users, who can still set up and log out. */
+    public function test_a_bertels_viewer_without_mfa_must_set_it_up_and_can_still_reach_set_up_and_logout(): void
+    {
+        $organization = Organization::factory()->create(['slug' => 'electro-bertels']);
+        Site::factory()->create([
+            'organization_id' => $organization->id,
+            'key' => 'electro-bertels',
+            'status' => Site::STATUS_ACTIVE,
+        ]);
+
+        $user = $this->userWithRole('viewer');
+        $user->forceFill(['organization_id' => $organization->id])->save();
+
+        $setUp = route('filament.bertels.auth.multi-factor-authentication.set-up-required');
+
+        $this->actingAs($user->refresh())->get('/bertels')->assertRedirect($setUp);
+        $this->get($setUp)->assertSuccessful();
+        $this->post(route('filament.bertels.auth.logout'))->assertRedirect();
+        $this->assertGuest();
     }
 
     public function test_a_guest_hitting_the_set_up_page_directly_is_redirected_to_login(): void

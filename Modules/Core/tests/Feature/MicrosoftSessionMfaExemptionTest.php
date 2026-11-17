@@ -164,7 +164,8 @@ final class MicrosoftSessionMfaExemptionTest extends TestCase
             ->assertRedirect(route('filament.admin.auth.multi-factor-authentication.set-up-required'));
     }
 
-    public function test_a_microsoft_session_does_not_change_what_other_roles_see(): void
+    /** CLA-684: Microsoft still exempts every role; a password session of any role must set up MFA. */
+    public function test_a_microsoft_session_of_a_non_admin_is_exempt_but_its_password_session_must_set_up_mfa(): void
     {
         $viewer = $this->userWithRole('viewer');
 
@@ -172,7 +173,9 @@ final class MicrosoftSessionMfaExemptionTest extends TestCase
         $microsoft->get('/')->assertOk();
         $microsoft->post(route('filament.admin.auth.logout'));
 
-        $this->signInWithPassword($viewer)->get('/')->assertOk();
+        $this->signInWithPassword($viewer)
+            ->get('/')
+            ->assertRedirect(route('filament.admin.auth.multi-factor-authentication.set-up-required'));
     }
 
     public function test_when_the_enforcement_flag_is_off_both_paths_reach_the_dashboard(): void

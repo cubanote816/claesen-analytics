@@ -36,7 +36,9 @@ necesita el sync de Cafca para existir (sin él, el comando avisa y lo omite).
 
 ## MFA — el código llega a Mailpit, no al correo real
 
-`super_admin`/`admin` tienen MFA obligatorio: en el primer login el panel pide configurarlo. Elige
+Todo usuario que entra con email + contraseña tiene MFA obligatorio, sea cual sea su rol (CLA-684;
+antes solo `super_admin`/`admin`). Quien entra con "Sign in with Microsoft" no lo configura. En el
+primer login con contraseña el panel pide configurarlo. Elige
 el proveedor **por email** y **el código aparece en Mailpit** (<http://localhost:8025>). No hace
 falta app de autenticación.
 

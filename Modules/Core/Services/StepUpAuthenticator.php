@@ -14,7 +14,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
  * destructivas" — a fresh MFA challenge required immediately before a
  * sensitive Filament action runs, independent of and in addition to the
  * initial-login MFA already enforced by
- * Modules\Core\Http\Middleware\EnsureAdminRoleMultiFactorAuthenticationIsEnabled.
+ * Modules\Core\Http\Middleware\EnsureLocalPasswordMultiFactorAuthenticationIsEnabled.
  *
  * Deliberately does NOT reimplement code verification — every component
  * returned by challengeFormComponents() is one of Filament's own
@@ -41,9 +41,10 @@ class StepUpAuthenticator
     ) {}
 
     /**
-     * False only when the user has neither factor configured — this should
-     * not happen for super_admin/admin in a production environment (the
-     * panel-wide setup-required redirect already forces one), but a step-up
+     * False only when the user has neither factor configured — since CLA-684
+     * this should not happen for any local-password session in production
+     * (the panel-wide setup-required redirect already forces one; Microsoft
+     * sessions are exempt and may have none), but a step-up
      * action must never assume it and silently skip verification for a user
      * with nothing configured. Callers hide/disable the action entirely in
      * that case rather than let it through unchallenged.
@@ -111,8 +112,9 @@ class StepUpAuthenticator
     public function guardedSchema(Authenticatable $user, array $ownComponents): array
     {
         if (! $this->isAvailableFor($user)) {
-            // Should not happen for super_admin/admin in production (the
-            // panel-wide setup-required redirect already forces a factor)
+            // Should not happen for a local-password session in production
+            // since CLA-684 (the panel-wide setup-required redirect already
+            // forces a factor; Microsoft sessions are exempt and may have none)
             // — never fabricate a pass, but also never hard-crash the
             // action for a misconfigured environment; the caller is
             // responsible for hiding/disabling the action when this is

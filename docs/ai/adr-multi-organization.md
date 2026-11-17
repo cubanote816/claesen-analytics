@@ -137,6 +137,8 @@ El documento exige 2FA para administradores antes de producción y hoy **el pane
 
 Decisión requerida **antes de cerrar P7** (Azure SSO/MFA, MFA del panel, o ambos según el rol). No bloquea P1–P7, sí bloquea el primer login real de un usuario de Bertels en producción.
 
+**Addendum CLA-684 (2026-11-15).** CLA-464 aplicó D8 solo a `super_admin`/`admin`. Un `viewer` entró a producción con email + contraseña sin segundo factor, y el usuario decidió: «todos los usuarios que entran con email/pass necesitan el 2FA; los que entran con Microsoft, Microsoft ya se lo aplica, esos se quedan como están». Desde CLA-684, toda sesión de los paneles `admin` y `bertels` que no venga del callback de Microsoft (`AuthenticatedVia`) exige MFA configurado, sea cual sea el rol (`EnsureLocalPasswordMultiFactorAuthenticationIsEnabled`). Los logins con contraseña fuera de los paneles (API Sanctum, Sport, Safety, KNX) siguen sin MFA y se tratan en CLA-691.
+
 ### D9 — Módulos de Claesen: propiedad declarada a nivel de módulo
 
 `config/organizations.php` declara qué módulos pertenecen a Claesen. Sus grupos de rutas (API y web) reciben un middleware de organización, y sus recursos siguen registrados solo en el panel `admin`. Así se evita añadir `organization_id` a ~100 tablas que nunca tendrán otro dueño, manteniendo la propiedad explícita y verificable por test.

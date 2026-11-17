@@ -284,8 +284,9 @@ final class PanelAccessMatrixTest extends TestCase
         $user = User::factory()->create([
             'is_active' => true,
             'password_set_at' => now(),
-            // CLA-464 (ADR D8): super_admin/admin are now forced to set up MFA
-            // before reaching the dashboard (EnsureAdminRoleMultiFactorAuthenticationIsEnabled).
+            // CLA-464 (ADR D8), widened by CLA-684: every non-Microsoft session
+            // is forced to set up MFA before reaching the dashboard, whatever
+            // the role (EnsureLocalPasswordMultiFactorAuthenticationIsEnabled).
             // This baseline is about role-based panel access, a separate
             // concern from MFA enrollment state — pre-enabling email MFA keeps
             // its original assertions (dashboard reachable / redirected to

@@ -61,17 +61,16 @@ class BertelsPanelProvider extends PanelProvider
             // CLA-603: same mockup forgot/reset screens as `admin`, and the same
             // project-owned reset mechanism behind them.
             ->passwordReset(RequestPasswordReset::class, ResetPassword::class)
-            // CLA-464 (ADR D8) — same MFA configuration as `admin`, see its
-            // provider for the full rationale. Only super_admin can reach
-            // this panel at all (CLA-549), so the role gate in
-            // EnsureAdminRoleMultiFactorAuthenticationIsEnabled always
-            // matches here in practice; kept identical rather than
-            // special-cased for one panel.
+            // CLA-464 (ADR D8), widened by CLA-684 — same MFA configuration
+            // as `admin`, see its provider for the full rationale: every
+            // session not signed in through Microsoft must have a second
+            // factor, whatever the role (super_admin and, since CLA-611, any
+            // active user of the site's owning organization reach this panel).
             ->multiFactorAuthentication([
                 AppAuthentication::make(),
                 EmailAuthenticationWithBrand::make(),
             ])
-            ->multiFactorAuthenticationRequiredMiddlewareName(\Modules\Core\Http\Middleware\EnsureAdminRoleMultiFactorAuthenticationIsEnabled::class)
+            ->multiFactorAuthenticationRequiredMiddlewareName(\Modules\Core\Http\Middleware\EnsureLocalPasswordMultiFactorAuthenticationIsEnabled::class)
             ->requiresMultiFactorAuthentication()
             ->colors([
                 'primary' => Color::hex('#EE7203'), // Electro Bertels orange
