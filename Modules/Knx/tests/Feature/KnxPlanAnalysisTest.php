@@ -787,6 +787,23 @@ final class KnxPlanAnalysisTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_a_symbol_fraction_out_of_range_says_between_and_a_non_number_says_number(): void
+    {
+        // E20 (2026-11-17): x = -0.00004 answered "must be a number", which hid the real cause.
+        $url = $this->authorizeOpenAi();
+        Http::fake();
+        $out = $this->bodyRef();
+        $out['symbols'][0]['x'] = -0.00004;
+        $text = $this->bodyRef();
+        $text['symbols'][0]['x'] = 'left';
+
+        $this->postJson($url, $out)->assertUnprocessable()
+            ->assertJsonValidationErrors(['symbols.0.x' => trans('validation.between.numeric', ['attribute' => 'symbols.0.x', 'min' => 0, 'max' => 1])]);
+        $this->postJson($url, $text)->assertUnprocessable()
+            ->assertJsonValidationErrors(['symbols.0.x' => trans('validation.numeric', ['attribute' => 'symbols.0.x'])]);
+        Http::assertNothingSent();
+    }
+
     public function test_a_reference_image_that_is_not_a_png_is_a_422(): void
     {
         $url = $this->authorizeOpenAi();

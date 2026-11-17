@@ -110,9 +110,9 @@ class PlanAnalysisController extends Controller
             $errors = [];
             foreach (array_values($symbols) as $i => $symbol) {
                 $symbol = is_array($symbol) ? $symbol : [];
-                $bad = function (string $field, string $rule) use (&$errors, $i): void {
+                $bad = function (string $field, string $rule, array $params = []) use (&$errors, $i): void {
                     $attribute = "symbols.{$i}.{$field}";
-                    $errors[$attribute][] = trans("validation.{$rule}", ['attribute' => $attribute]);
+                    $errors[$attribute][] = trans("validation.{$rule}", ['attribute' => $attribute] + $params);
                 };
                 $id = $symbol['id'] ?? null;
                 if (! is_string($id) || strlen($id) > 16 || preg_match('/^s\d+$/', $id) !== 1) {
@@ -124,7 +124,12 @@ class PlanAnalysisController extends Controller
                 }
                 foreach (['x', 'y', 'w', 'h'] as $field) {
                     if (! $fraction($symbol[$field] ?? null)) {
-                        $bad($field, ($symbol[$field] ?? null) === null ? 'required' : 'numeric');
+                        $value = $symbol[$field] ?? null;
+                        match (true) {
+                            $value === null => $bad($field, 'required'),
+                            is_numeric($value) => $bad($field, 'between.numeric', ['min' => 0, 'max' => 1]),
+                            default => $bad($field, 'numeric'),
+                        };
                     }
                 }
                 $paths = $int($symbol['paths'] ?? null);
