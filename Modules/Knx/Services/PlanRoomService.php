@@ -95,6 +95,10 @@ class PlanRoomService
                     'area_m2' => $room['areaM2'],
                     'source' => $room['source'],
                     'state' => $room['state'],
+                    'geometry' => $room['geometry'],
+                    'holes' => $room['holes'],
+                    'geometry_note' => $room['geometryNote'],
+                    'processing_version' => $room['processingVersion'],
                     'placed_by_employee_id' => $employee->getKey(),
                     // The client's opacity, stored as sent.
                     'page_width_pt' => $input['pageWidthPt'] ?? null,
@@ -112,7 +116,7 @@ class PlanRoomService
      * between carry-over and payload.
      *
      * @param  array<string, mixed>  $input
-     * @return array<int, array{polygon: array<int, array<int, float>>, labelAt: array<int, float>|null, areaM2: mixed, source: string, state: string}>
+     * @return array<int, array{polygon: array<int, array<int, float>>, labelAt: array<int, float>|null, areaM2: mixed, source: string, state: string, geometry: string, holes: array<int, mixed>, geometryNote: string|null, processingVersion: string|null}>
      */
     private function effectiveRooms(KnxProject $project, array $input): array
     {
@@ -140,6 +144,11 @@ class PlanRoomService
                     'labelAt' => $room->label_at,
                     'areaM2' => $room->area_m2,
                     'source' => $room->source,
+                    // Provenance and topology travel with the polygon they describe.
+                    'geometry' => $room->effectiveGeometry(),
+                    'holes' => $room->holes ?? [],
+                    'geometryNote' => $room->geometry_note,
+                    'processingVersion' => $room->processing_version,
                     // A carry-over is a starting point, never a confirmation inherited
                     // from a drawing the new revision may have changed.
                     'state' => KnxPlanRoom::STATE_PROPOSED,
@@ -154,6 +163,13 @@ class PlanRoomService
                 'areaM2' => $room['areaM2'] ?? null,
                 'source' => $room['source'],
                 'state' => $room['state'],
+                // A PUT that omits `geometry` stores the legacy default: `manual` for a
+                // hand-drawn room, `area` for anything else. It is never promoted to
+                // `contour` on the server's own initiative.
+                'geometry' => $room['geometry'] ?? KnxPlanRoom::defaultGeometry($room['source']),
+                'holes' => $room['holes'] ?? [],
+                'geometryNote' => $room['geometryNote'] ?? null,
+                'processingVersion' => $room['processingVersion'] ?? null,
             ];
         }
 

@@ -44,6 +44,10 @@ class PlanRoomSetResource extends KnxResource
                     'areaM2' => $room->area_m2 !== null ? (float) $room->area_m2 : null,
                     'source' => $room->source,
                     'state' => $room->state,
+                    'geometry' => $room->effectiveGeometry(),
+                    'holes' => $room->holes ?? [],
+                    'geometryNote' => $room->geometry_note,
+                    'processingVersion' => $room->processing_version,
                 ])
                 ->values()
                 ->all(),

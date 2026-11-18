@@ -24,6 +24,7 @@ use Modules\Knx\Http\Controllers\FunctionSpecController;
 use Modules\Knx\Http\Controllers\IntentController;
 use Modules\Knx\Http\Controllers\NotificationPreferenceController;
 use Modules\Knx\Http\Controllers\OfficeIssueController;
+use Modules\Knx\Http\Controllers\PlanCleanProfileController;
 use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
 use Modules\Knx\Http\Controllers\PlanRoomController;
@@ -301,6 +302,14 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::put('projects/{code}/plans/{documentId}/rooms', [PlanRoomController::class, 'update'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans.rooms.update');
+
+            // KNX-48 — the clean-plan profile (group → role) of a revision page.
+            Route::get('projects/{code}/plans/{documentId}/clean-profile', [PlanCleanProfileController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.clean-profile.show');
+            Route::put('projects/{code}/plans/{documentId}/clean-profile', [PlanCleanProfileController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.clean-profile.update');
 
             Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
             Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
