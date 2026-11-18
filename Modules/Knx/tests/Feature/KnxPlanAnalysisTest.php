@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
+use Modules\Knx\Models\KnxAiSpendEntry;
 use Modules\Knx\Models\KnxDocument;
 use Modules\Knx\Models\KnxPlanAnalysis;
 use Modules\Knx\Models\KnxProject;
@@ -93,7 +94,16 @@ final class KnxPlanAnalysisTest extends TestCase
             'knx.plan_analysis.providers.openai.model' => 'test-model',
             'knx.plan_analysis.providers.openai.api_key' => 'sk-test-only',
             'knx.plan_analysis.providers.openai.base_url' => 'https://openai.test/v1',
-            'knx.plan_analysis.budget.max_calls_per_day' => 5,
+            'knx.ai_spend.daily_limit_usd' => 1.0,
+            'knx.ai_spend.max_calls_per_processing' => 2,
+            'knx.ai_spend.max_cost_per_processing_usd' => 0.50,
+            'knx.ai_spend.models' => ['test-model' => ['input' => 1.00, 'cached_input' => 0.05, 'output' => 5.00, 'image_input_tokens_max' => 30000]],
+            'knx.plan_analysis.providers.openai.retention' => [
+                'policy' => 'zero_data_retention',
+                'verified_at' => '2026-11-01',
+                'models' => 'test-model',
+                'features' => 'responses,image_input',
+            ],
         ]);
     }
 
@@ -196,9 +206,19 @@ final class KnxPlanAnalysisTest extends TestCase
             'usage' => ['input_tokens' => 10, 'output_tokens' => 20],
         ])]);
 
-        $proposal = $this->postJson("{$this->base($document)}/analyses", $this->body('openai'))
+        $analysis = $this->postJson("{$this->base($document)}/analyses", $this->body('openai'))
             ->assertCreated()
-            ->json('analysis.proposal');
+            ->json('analysis');
+        $proposal = $analysis['proposal'];
+
+        // The stored usage keeps the real cost: (10 * 1.00 + 20 * 5.00) / 1e6.
+        $this->assertEquals(['inputTokens' => 10, 'cachedTokens' => null, 'outputTokens' => 20, 'costUsd' => 0.00011], $analysis['usage']);
+        $entry = KnxAiSpendEntry::query()->sole();
+        $this->assertSame('settled', $entry->status);
+        $this->assertSame($document->project_id, $entry->project_id);
+        $this->assertSame($document->getKey(), $entry->document_id);
+        $this->assertSame(2, $entry->page);
+        $this->assertNotNull($entry->processing_id);
 
         // A confidence above 1 is clamped to 1 (JSON does not keep 1.0 apart from 1).
         $this->assertEquals([['groupId' => 'style:f:#000000', 'role' => 'wall', 'confidence' => 1, 'reason' => 'fills']], $proposal['groupRoles']);
@@ -209,20 +229,75 @@ final class KnxPlanAnalysisTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_a_spent_budget_is_a_429_and_stores_nothing(): void
+    public function test_a_spent_daily_budget_is_a_429_with_the_resume_time_and_stores_nothing(): void
     {
         $document = $this->document();
         $this->enableOpenAi();
-        config(['knx.plan_analysis.budget.max_calls_per_day' => 0]);
+        config(['knx.ai_spend.daily_limit_usd' => 0]);
+        Http::fake();
+        $this->putJson("{$this->base($document)}/ai-authorizations/openai")->assertOk();
+
+        $response = $this->postJson("{$this->base($document)}/analyses", $this->body('openai'))
+            ->assertStatus(429)
+            ->assertJsonPath('code', 'plan_analysis_daily_budget_exhausted');
+
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T00:00:00[+-]\d{2}:\d{2}$/', $response->json('resumesAt'));
+        $this->assertArrayNotHasKey('remainingUsd', $response->json());
+        Http::assertNothingSent();
+        $this->assertSame(0, KnxPlanAnalysis::query()->count());
+        $this->assertSame(0, KnxAiSpendEntry::query()->count());
+    }
+
+    public function test_a_model_without_a_price_is_a_409_and_nothing_is_sent(): void
+    {
+        $document = $this->document();
+        $this->enableOpenAi();
+        config(['knx.ai_spend.models' => []]);
+        Http::fake();
+        $this->putJson("{$this->base($document)}/ai-authorizations/openai")->assertOk();
+
+        $this->postJson("{$this->base($document)}/analyses", $this->body('openai'))
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'plan_analysis_pricing_unknown');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_an_unverified_retention_policy_is_a_409_and_nothing_is_sent(): void
+    {
+        $document = $this->document();
+        $this->enableOpenAi();
+        config(['knx.plan_analysis.providers.openai.retention.verified_at' => null]);
+        Http::fake();
+        $this->putJson("{$this->base($document)}/ai-authorizations/openai")->assertOk();
+
+        $this->postJson("{$this->base($document)}/analyses", $this->body('openai'))
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'plan_analysis_retention_not_verified');
+
+        Http::assertNothingSent();
+        $providers = $this->getJson("{$this->base($document)}/ai-authorizations")->json('providers');
+        $this->assertFalse(array_column($providers, 'available', 'provider')['openai']);
+    }
+
+    public function test_the_processing_call_cap_is_a_429(): void
+    {
+        $document = $this->document();
+        $this->enableOpenAi();
+        config(['knx.ai_spend.max_calls_per_processing' => 0]);
         Http::fake();
         $this->putJson("{$this->base($document)}/ai-authorizations/openai")->assertOk();
 
         $this->postJson("{$this->base($document)}/analyses", $this->body('openai'))
             ->assertStatus(429)
-            ->assertJsonPath('code', 'plan_analysis_budget_exhausted');
-
+            ->assertJsonPath('code', 'plan_analysis_processing_call_limit');
         Http::assertNothingSent();
-        $this->assertSame(0, KnxPlanAnalysis::query()->count());
+
+        config(['knx.ai_spend.max_calls_per_processing' => 2, 'knx.ai_spend.max_cost_per_processing_usd' => 0.000001]);
+        $this->postJson("{$this->base($document)}/analyses", $this->body('openai'))
+            ->assertStatus(429)
+            ->assertJsonPath('code', 'plan_analysis_processing_cost_limit');
+        Http::assertNothingSent();
     }
 
     public function test_a_failing_provider_is_a_502_stores_nothing_and_falls_back_to_nothing(): void
@@ -240,6 +315,7 @@ final class KnxPlanAnalysisTest extends TestCase
 
         Http::assertSentCount(1);
         $this->assertSame(0, KnxPlanAnalysis::query()->count());
+        $this->assertSame('uncertain', KnxAiSpendEntry::query()->sole()->status);
     }
 
     public function test_bad_input_is_a_422(): void

@@ -31,6 +31,11 @@ class PlanAnalysisController extends Controller
         'not_authorized' => 403,
         'unavailable' => 409,
         'budget_exhausted' => 429,
+        'daily_budget_exhausted' => 429,
+        'processing_call_limit' => 429,
+        'processing_cost_limit' => 429,
+        'pricing_unknown' => 409,
+        'retention_not_verified' => 409,
         'image_too_large' => 413,
         'refused' => 502,
         'incomplete' => 502,
@@ -116,6 +121,7 @@ class PlanAnalysisController extends Controller
                 'providerCode' => $e->providerCode,
                 'providerParam' => $e->providerParam,
                 'requestId' => $e->requestId,
+                'resumesAt' => $e->resumesAt,
             ], fn (mixed $value): bool => $value !== null), self::FAILURE_STATUS[$e->reason] ?? 502);
         }
 

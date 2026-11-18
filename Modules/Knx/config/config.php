@@ -163,6 +163,17 @@ return [
                 // Reasoning effort (`none`, `low`, `medium`, `high`, `xhigh`, `max`); unset = the
                 // model's default. Reasoning tokens are billed as output: lower is cheaper.
                 'reasoning_effort' => env('KNX_PLAN_ANALYSIS_OPENAI_REASONING_EFFORT'),
+                // Data retention approved for OUR account, model and features. Real plans are
+                // only sent when ALL are set: a `policy` (e.g. `zero_data_retention`,
+                // `modified_abuse_monitoring`, `standard_30_days`), the date it was
+                // `verified_at`, the configured model in `models` and `responses` +
+                // `image_input` in `features` (comma lists). Otherwise `retention_not_verified`.
+                'retention' => [
+                    'policy' => env('KNX_PLAN_ANALYSIS_OPENAI_RETENTION_POLICY'),
+                    'verified_at' => env('KNX_PLAN_ANALYSIS_OPENAI_RETENTION_VERIFIED_AT'),
+                    'models' => env('KNX_PLAN_ANALYSIS_OPENAI_RETENTION_MODELS'),
+                    'features' => env('KNX_PLAN_ANALYSIS_OPENAI_RETENTION_FEATURES'),
+                ],
             ],
             // "Sign in with ChatGPT": the employee's OWN plan, never an API key. Available per
             // employee (see PlanAnalysisProviders); the model has no default on purpose.
@@ -179,6 +190,34 @@ return [
             'max_retries' => (int) env('KNX_PLAN_ANALYSIS_MAX_RETRIES', 0),
             'timeout_seconds' => (int) env('KNX_PLAN_ANALYSIS_TIMEOUT_SECONDS', 60),
             'max_image_bytes' => (int) env('KNX_PLAN_ANALYSIS_MAX_IMAGE_BYTES', 8 * 1024 * 1024),
+        ],
+    ],
+
+    /*
+    | Daily USD limit of the OpenAI API calls of plan processing (analysis and image
+    | generation). Only USD-billed calls count (`openai`); the employee's own ChatGPT plan and
+    | the synthetic provider cost nothing. With the default limit of 0 nothing may be spent.
+    | The day is the `timezone` day. `models` = USD per 1M tokens. PRICES MUST BE CHECKED
+    | against OpenAI's pricing page before enabling: a model without an entry is refused.
+    | Above 272,000 input tokens the whole request costs input x2, cached x2, output x1.5.
+    | `image_input_tokens_max` = conservative bound per input image; `per_image_usd` = price of
+    | one generated image (image-generation models). `data_residency_multiplier` > 1 when
+    | processing in the EU costs more.
+    */
+    'ai_spend' => [
+        'daily_limit_usd' => (float) env('KNX_AI_DAILY_LIMIT_USD', 0),
+        'timezone' => 'Europe/Brussels',
+        'max_calls_per_processing' => (int) env('KNX_AI_MAX_CALLS_PER_PROCESSING', 2),
+        'max_cost_per_processing_usd' => (float) env('KNX_AI_MAX_COST_PER_PROCESSING_USD', 0.50),
+        // A `reserved` entry older than this never got its answer recorded (e.g. a crash
+        // between sending and settling): an administrator may reconcile it.
+        'stale_reservation_minutes' => (int) env('KNX_AI_STALE_RESERVATION_MINUTES', 15),
+        'data_residency_multiplier' => (float) env('KNX_AI_DATA_RESIDENCY_MULTIPLIER', 1.0),
+        'models' => [
+            'gpt-6.1-terra' => ['input' => 1.00, 'cached_input' => 0.05, 'output' => 5.00, 'image_input_tokens_max' => 30000],
+            'gpt-6-luna' => ['input' => 0.10, 'cached_input' => 0.01, 'output' => 0.50, 'image_input_tokens_max' => 30000],
+            'gpt-6.1-sol' => ['input' => 2.00, 'cached_input' => 0.10, 'output' => 10.00, 'image_input_tokens_max' => 30000],
+            'gpt-6-astra' => ['input' => 10.00, 'cached_input' => 1.00, 'output' => 50.00, 'image_input_tokens_max' => 30000],
         ],
     ],
 

@@ -2,6 +2,7 @@
 
 namespace Modules\Knx\Models;
 
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -68,6 +69,11 @@ class KnxEmployee extends Model
         ];
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->knx_role === 'admin';
+    }
+
     protected static function newFactory(): KnxEmployeeFactory
     {
         return KnxEmployeeFactory::new();
@@ -119,7 +125,7 @@ class KnxEmployee extends Model
     /**
      * True when this person may actually open the office app.
      *
-     * @see \Database\Seeders\RolesAndPermissionsSeeder for the app roles.
+     * @see RolesAndPermissionsSeeder for the app roles.
      */
     public function hasKantoorAccess(): bool
     {

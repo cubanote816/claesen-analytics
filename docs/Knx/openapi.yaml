@@ -1372,7 +1372,7 @@ paths:
       description: >-
         Orden: documento del proyecto (`404`), entrada válida (`422`), autorización del documento para
         ese proveedor (`403` `plan_analysis_not_authorized`), proveedor disponible en este entorno (`409`
-        `plan_analysis_unavailable`), presupuesto (`429` `plan_analysis_budget_exhausted`), imagen dentro
+        `plan_analysis_unavailable`; `plan_analysis_retention_not_verified` si la política de retención de OpenAI no está verificada; `plan_analysis_pricing_unknown` si el modelo no tiene precio), presupuesto (`429` `plan_analysis_budget_exhausted`; con `openai`, límite diario en USD `plan_analysis_daily_budget_exhausted` con `resumesAt` = próxima medianoche de Europe/Brussels, y `plan_analysis_processing_call_limit` / `plan_analysis_processing_cost_limit`), imagen dentro
         del límite (`413`); un fallo del proveedor es `502` (`plan_analysis_refused`, `_incomplete`,
         `_invalid_output`, `_provider_error`). Con `chatgpt` (plan del propio empleado, solo disponible si ESA
         persona está conectada con permiso de plan) los fallos llevan `code` y, si existen, `providerCode`,
@@ -1434,7 +1434,7 @@ paths:
         "409": { description: "Proveedor no disponible (`plan_analysis_unavailable`) o la persona debe iniciar sesión de nuevo (`plan_analysis_needs_sign_in`)" }
         "413": { description: "Imagen sobre el límite (`plan_analysis_image_too_large`)" }
         "422": { $ref: "#/components/responses/ValidationError" }
-        "429": { description: "Presupuesto agotado (`plan_analysis_budget_exhausted`) o límite de uso del plan (`plan_analysis_plan_usage_limit`)" }
+        "429": { description: "Presupuesto agotado (`plan_analysis_budget_exhausted`, `plan_analysis_daily_budget_exhausted` + `resumesAt`, `plan_analysis_processing_call_limit`, `plan_analysis_processing_cost_limit`) o límite de uso del plan (`plan_analysis_plan_usage_limit`)" }
         "502": { description: "El proveedor falló o respondió algo inutilizable" }
         "503": { description: "El plan de ChatGPT no está disponible (`plan_analysis_plan_unavailable`)" }
   /exports/{id}/download:
@@ -2138,6 +2138,92 @@ paths:
               example: { id: "12", clientId: "b2e5a1c4-77d0-4f39-8a2e-1c9d3b6f4e08" }
         "403": { description: Proyecto no asignado hoy }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /ai-spend/today:
+    get:
+      tags: [ai-spend]
+      summary: Presupuesto diario de OpenAI en USD (solo administración)
+      description: >-
+        Día de presupuesto en Europe/Brussels: límite, gasto liquidado (`spentUsd`), reservas
+        pendientes (`pendingUsd`), reservas inciertas que siguen contando (`uncertainUsd`) y saldo
+        (`availableUsd` = límite − gasto − pendiente − incierto, nunca negativo). `entries` son los
+        movimientos de hoy (máx. 100, el más reciente primero) y `uncertain` todos los inciertos de
+        cualquier día, a conciliar. Nunca incluye contenido de planos, textos, habitaciones ni imágenes.
+        Cuando se alcanza el límite, el procesamiento se reanuda en `resumesAt` o cuando un
+        administrador ajusta el límite.
+      responses:
+        "200":
+          description: Resumen del día
+          content:
+            application/json:
+              example:
+                day: "2026-11-15"
+                timezone: Europe/Brussels
+                currency: USD
+                limitUsd: 5
+                limitSource: config
+                spentUsd: 0.42
+                pendingUsd: 0.1
+                uncertainUsd: 0.1
+                availableUsd: 4.38
+                resumesAt: "2026-11-16T00:00:00+01:00"
+                entries: [{ id: "7", provider: openai, operation: plan_analysis, model: gpt-5, status: settled, reservedUsd: 0.1, actualUsd: 0.042, projectCode: C1618, page: 1, requestId: req_abc, reason: null, createdAt: "2026-11-15T09:00:00+01:00", settledAt: "2026-11-15T09:00:05+01:00" }]
+                uncertain: []
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+  /ai-spend/limit:
+    put:
+      tags: [ai-spend]
+      summary: Fija el límite diario en USD (solo administración)
+      description: >-
+        Guarda un valor propio que sustituye al de configuración; vale desde la siguiente reserva.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dailyLimitUsd]
+              properties:
+                dailyLimitUsd: { type: number, minimum: 0, maximum: 10000 }
+      responses:
+        "200": { description: "El mismo resumen que `GET /ai-spend/today`" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [ai-spend]
+      summary: Vuelve al límite de configuración (solo administración)
+      responses:
+        "200": { description: "El mismo resumen que `GET /ai-spend/today`, con `limitSource` `config`" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+  /ai-spend/entries/{id}/reconcile:
+    post:
+      tags: [ai-spend]
+      summary: Concilia una reserva incierta con su coste real (solo administración)
+      description: >-
+        Solo una entrada `uncertain` de esta organización pasa a `settled` con `actualUsd`
+        (motivo `reconciled`); a partir de ahí cuenta el importe real y no la reserva.
+        Otro estado responde `409` `ai_spend_not_uncertain`; otra organización, `404`.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [actualUsd]
+              properties:
+                actualUsd: { type: number, minimum: 0, maximum: 10000 }
+                note: { type: string, maxLength: 200 }
+      responses:
+        "200": { description: "El mismo resumen que `GET /ai-spend/today`" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: La entrada no está en estado `uncertain` (`ai_spend_not_uncertain`) }
+        "422": { $ref: "#/components/responses/ValidationError" }
 components:
   securitySchemes:
     bearerAuth:
@@ -2166,6 +2252,11 @@ components:
       content:
         application/json:
           example: { message: "Unauthenticated.", code: unauthenticated, errors: {} }
+    AdminRequired:
+      description: La persona no es administradora
+      content:
+        application/json:
+          example: { message: "This action is reserved for administrators.", code: knx_admin_required, errors: {} }
     NotFound:
       description: No existe, o no es de este tenant/proyecto
       content:
