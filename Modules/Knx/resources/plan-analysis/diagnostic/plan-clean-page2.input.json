@@ -1,0 +1,374 @@
+{
+ "description": "Synthetic diagnostic input: Kantoor e2e/fixtures/plan-clean.pdf page 2 (no layers), built with src/components/plan/planAnalysisInput.ts; the PNG next to it is that page rendered with the longest side at 2000 px.",
+ "page": 2,
+ "pageWidthPt": 1190.55,
+ "pageHeightPt": 841.89,
+ "groups": [
+  {
+   "id": "style:f:#000000",
+   "kind": "style",
+   "name": "Fill #000000",
+   "paths": 25,
+   "strokeWidth": null,
+   "strokeColor": null,
+   "closedPct": 100,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:s:#0066cc:0.5",
+   "kind": "style",
+   "name": "Stroke #0066cc 0.5 pt",
+   "paths": 18,
+   "strokeWidth": 0.5,
+   "strokeColor": "#0066cc",
+   "closedPct": 0,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:s:#cc4c00:0.6",
+   "kind": "style",
+   "name": "Stroke #cc4c00 0.6 pt",
+   "paths": 10,
+   "strokeWidth": 0.6,
+   "strokeColor": "#cc4c00",
+   "closedPct": 0,
+   "curvedPct": 50
+  },
+  {
+   "id": "style:s:#663399:0.4",
+   "kind": "style",
+   "name": "Stroke #663399 0.4 pt",
+   "paths": 14,
+   "strokeWidth": 0.4,
+   "strokeColor": "#663399",
+   "closedPct": 7,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:s:#008080:0.7",
+   "kind": "style",
+   "name": "Stroke #008080 0.7 pt",
+   "paths": 4,
+   "strokeWidth": 0.7,
+   "strokeColor": "#008080",
+   "closedPct": 50,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:s:#990033:0.35",
+   "kind": "style",
+   "name": "Stroke #990033 0.35 pt",
+   "paths": 6,
+   "strokeWidth": 0.35,
+   "strokeColor": "#990033",
+   "closedPct": 33,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:s:#80591a:0.3",
+   "kind": "style",
+   "name": "Stroke #80591a 0.3 pt",
+   "paths": 4,
+   "strokeWidth": 0.3,
+   "strokeColor": "#80591a",
+   "closedPct": 75,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:s:#3399e6:0.45",
+   "kind": "style",
+   "name": "Stroke #3399e6 0.45 pt",
+   "paths": 5,
+   "strokeWidth": 0.45,
+   "strokeColor": "#3399e6",
+   "closedPct": 100,
+   "curvedPct": 40
+  },
+  {
+   "id": "style:fs:#ff0000:#ff0000:0.25",
+   "kind": "style",
+   "name": "Fill #ff0000 + stroke #ff0000 0.25 pt",
+   "paths": 5,
+   "strokeWidth": 0.25,
+   "strokeColor": "#ff0000",
+   "closedPct": 100,
+   "curvedPct": 100
+  },
+  {
+   "id": "style:s:#ff0000:0.25",
+   "kind": "style",
+   "name": "Stroke #ff0000 0.25 pt",
+   "paths": 5,
+   "strokeWidth": 0.25,
+   "strokeColor": "#ff0000",
+   "closedPct": 0,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:s:#009900:0.2",
+   "kind": "style",
+   "name": "Stroke #009900 0.2 pt",
+   "paths": 12,
+   "strokeWidth": 0.2,
+   "strokeColor": "#009900",
+   "closedPct": 0,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:s:#b200b2:0.15",
+   "kind": "style",
+   "name": "Stroke #b200b2 0.15 pt",
+   "paths": 5,
+   "strokeWidth": 0.15,
+   "strokeColor": "#b200b2",
+   "closedPct": 0,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:s:#b200b2:0.4",
+   "kind": "style",
+   "name": "Stroke #b200b2 0.4 pt",
+   "paths": 4,
+   "strokeWidth": 0.4,
+   "strokeColor": "#b200b2",
+   "closedPct": 0,
+   "curvedPct": 100
+  },
+  {
+   "id": "style:s:#4c4c4c:0.9",
+   "kind": "style",
+   "name": "Stroke #4c4c4c 0.9 pt",
+   "paths": 5,
+   "strokeWidth": 0.9,
+   "strokeColor": "#4c4c4c",
+   "closedPct": 80,
+   "curvedPct": 20
+  },
+  {
+   "id": "style:s:#e69900:0.55",
+   "kind": "style",
+   "name": "Stroke #e69900 0.55 pt",
+   "paths": 1,
+   "strokeWidth": 0.55,
+   "strokeColor": "#e69900",
+   "closedPct": 100,
+   "curvedPct": 0
+  },
+  {
+   "id": "style:text",
+   "kind": "style",
+   "name": "Text outside layers",
+   "paths": 0,
+   "strokeWidth": null,
+   "strokeColor": null,
+   "closedPct": 0,
+   "curvedPct": 0
+  }
+ ],
+ "texts": [
+  {
+   "id": "t0",
+   "text": "Woonkamer",
+   "x": 0.17189677040023518,
+   "y": 0.34218128259036207
+  },
+  {
+   "id": "t1",
+   "text": "90,5 m2",
+   "x": 0.17824030910083577,
+   "y": 0.3552471225457007
+  },
+  {
+   "id": "t2",
+   "text": "WC",
+   "x": 0.24471462769308305,
+   "y": 0.4768615852427277
+  },
+  {
+   "id": "t3",
+   "text": "6,8 m2",
+   "x": 0.23974902356053926,
+   "y": 0.4899274251980662
+  },
+  {
+   "id": "t4",
+   "text": "Berging",
+   "x": 0.2859795892654656,
+   "y": 0.4768615852427277
+  },
+  {
+   "id": "t5",
+   "text": "6,8 m2",
+   "x": 0.28736819117214735,
+   "y": 0.4899274251980662
+  },
+  {
+   "id": "t6",
+   "text": "Hal",
+   "x": 0.49530788291125954,
+   "y": 0.1906660014966326
+  },
+  {
+   "id": "t7",
+   "text": "25,9 m2",
+   "x": 0.48776489857628824,
+   "y": 0.2037318414519712
+  },
+  {
+   "id": "t8",
+   "text": "Slaapkamer",
+   "x": 0.3625698206711184,
+   "y": 0.3926864554751809
+  },
+  {
+   "id": "t9",
+   "text": "42,1 m2",
+   "x": 0.36871697954726806,
+   "y": 0.4057522954305194
+  },
+  {
+   "id": "t10",
+   "text": "Badkamer",
+   "x": 0.4820141111251103,
+   "y": 0.4229894641817814
+  },
+  {
+   "id": "t11",
+   "text": "30,4 m2",
+   "x": 0.4853839821931041,
+   "y": 0.43605530413712
+  },
+  {
+   "id": "t12",
+   "text": "Technische ruimte",
+   "x": 0.4929295703666373,
+   "y": 0.2748411312641794
+  },
+  {
+   "id": "t13",
+   "text": "4,9 m2",
+   "x": 0.5111782789467053,
+   "y": 0.2879069712195179
+  },
+  {
+   "id": "t14",
+   "text": "Carport",
+   "x": 0.6078088278526732,
+   "y": 0.34218128259036207
+  },
+  {
+   "id": "t15",
+   "text": "18,0 m2",
+   "x": 0.6068128176053085,
+   "y": 0.3552471225457007
+  },
+  {
+   "id": "t17",
+   "text": "2x16A",
+   "x": 0.1879236487337785,
+   "y": 0.5192484766418416
+  },
+  {
+   "id": "t18",
+   "text": "2x16A",
+   "x": 0.41649565326949733,
+   "y": 0.43844029505042226
+  },
+  {
+   "id": "t19",
+   "text": "10,00",
+   "x": 0.19673806224014112,
+   "y": 0.09975673781610428
+  },
+  {
+   "id": "t21",
+   "text": "10,00",
+   "x": 0.43483390029818153,
+   "y": 0.09975673781610428
+  },
+  {
+   "id": "t22",
+   "text": "20,00",
+   "x": 0.31578598126916135,
+   "y": 0.06945372910950365
+  },
+  {
+   "id": "t23",
+   "text": "12,00",
+   "x": 0.03190474990550586,
+   "y": 0.34455688985496913
+  },
+  {
+   "id": "t25",
+   "text": "1",
+   "x": 0.08212674814161522,
+   "y": 0.0510755561890508
+  },
+  {
+   "id": "t27",
+   "text": "2",
+   "x": 0.558318424257696,
+   "y": 0.0510755561890508
+  },
+  {
+   "id": "t28",
+   "text": "A",
+   "x": 0.031356935869976066,
+   "y": 0.14609984677333143
+  },
+  {
+   "id": "t29",
+   "text": "B",
+   "x": 0.031356935869976066,
+   "y": 0.550140754730428
+  },
+  {
+   "id": "t31",
+   "text": "Project: Synthetic House",
+   "x": 0.6803578178152955,
+   "y": 0.8528430079939184
+  },
+  {
+   "id": "t33",
+   "text": "Schaal 1:100",
+   "x": 0.6803578178152955,
+   "y": 0.8718478661107746
+  },
+  {
+   "id": "t35",
+   "text": "Plan E10",
+   "x": 0.8735458401579103,
+   "y": 0.8718478661107746
+  },
+  {
+   "id": "t36",
+   "text": "Legende",
+   "x": 0.6803578178152955,
+   "y": 0.6841748922068204
+  },
+  {
+   "id": "t38",
+   "text": "Stopcontact",
+   "x": 0.6971567762798707,
+   "y": 0.7114943757498011
+  },
+  {
+   "id": "t39",
+   "text": "Meubilair",
+   "x": 0.6971567762798707,
+   "y": 0.7340626447635676
+  },
+  {
+   "id": "t41",
+   "text": "Opmerking: synthetic fixture",
+   "x": 0.08399479232287599,
+   "y": 0.6176578887978239
+  },
+  {
+   "id": "t43",
+   "text": "carport, open",
+   "x": 0.5661388433917097,
+   "y": 0.27246552399957236
+  }
+ ]
+}

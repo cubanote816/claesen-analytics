@@ -124,6 +124,85 @@ return [
     */
     'office_mailbox' => env('KNX_OFFICE_MAILBOX', 'kantoor@electrobertels.be'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Plan analysis by an AI provider (KNX-48, plano IA)
+    |--------------------------------------------------------------------------
+    |
+    | A provider PROPOSES group roles and spaces for one plan page; the geometry is
+    | always rebuilt from the PDF's own vectors in Kantoor. Nothing is ever sent unless
+    | a person authorized that document for that provider (knx_plan_ai_authorizations).
+    |
+    | - `synthetic`: answers from synthetic examples, never leaves the server, and only
+    |   runs in the local and testing environments.
+    | - `openai`: Responses API adapter. Switched OFF and without a model by default;
+    |   enabling it needs the activation checklist (credentials and models, retention
+    |   terms, budget) done first. The credential is an API key read here; a future
+    |   "Sign in with ChatGPT" plan token would be another credential source.
+    |
+    | `budget` is enforced by the backend for EXTERNAL providers: calls per day (0 = none
+    | allowed), output tokens per call, retries and the request timeout.
+    |
+    */
+    'plan_analysis' => [
+        'schema_version' => 'plan-analysis/1',
+        'providers' => [
+            'synthetic' => [
+                'external' => false,
+                'enabled' => (bool) env('KNX_PLAN_ANALYSIS_SYNTHETIC', true),
+                'billing' => 'simulation',
+            ],
+            'openai' => [
+                'external' => true,
+                'billing' => 'api',
+                'enabled' => (bool) env('KNX_PLAN_ANALYSIS_OPENAI_ENABLED', false),
+                'model' => env('KNX_PLAN_ANALYSIS_OPENAI_MODEL'),
+                'base_url' => env('KNX_PLAN_ANALYSIS_OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+                'api_key' => env('KNX_PLAN_ANALYSIS_OPENAI_API_KEY'),
+                'image_detail' => env('KNX_PLAN_ANALYSIS_OPENAI_IMAGE_DETAIL', 'high'),
+                // Reasoning effort (`none`, `low`, `medium`, `high`, `xhigh`, `max`); unset = the
+                // model's default. Reasoning tokens are billed as output: lower is cheaper.
+                'reasoning_effort' => env('KNX_PLAN_ANALYSIS_OPENAI_REASONING_EFFORT'),
+            ],
+            // "Sign in with ChatGPT": the employee's OWN plan, never an API key. Available per
+            // employee (see PlanAnalysisProviders); the model has no default on purpose.
+            'chatgpt' => [
+                'external' => true,
+                'billing' => 'subscription',
+                'model' => env('KNX_PLAN_ANALYSIS_CHATGPT_MODEL'),
+                'max_calls_per_day' => (int) env('KNX_PLAN_ANALYSIS_CHATGPT_MAX_CALLS_PER_DAY', 20),
+            ],
+        ],
+        'budget' => [
+            'max_calls_per_day' => (int) env('KNX_PLAN_ANALYSIS_MAX_CALLS_PER_DAY', 0),
+            'max_output_tokens' => (int) env('KNX_PLAN_ANALYSIS_MAX_OUTPUT_TOKENS', 4000),
+            'max_retries' => (int) env('KNX_PLAN_ANALYSIS_MAX_RETRIES', 0),
+            'timeout_seconds' => (int) env('KNX_PLAN_ANALYSIS_TIMEOUT_SECONDS', 60),
+            'max_image_bytes' => (int) env('KNX_PLAN_ANALYSIS_MAX_IMAGE_BYTES', 8 * 1024 * 1024),
+        ],
+    ],
+
+    /*
+    | "Sign in with ChatGPT" (official flow, a private web app with a REGISTERED client).
+    | Off until OpenAI registration exists: with no client_id / redirect_uri the connection
+    | endpoints answer "not configured" and list the missing settings. The registered
+    | redirect_uri is the Kantoor page `/auth/chatgpt/callback` of each environment.
+    | `token_auth`: `none` (public client, PKCE only) or `client_secret_basic`
+    | (confidential client: the secret travels ONLY in the HTTP Basic header).
+    */
+    'chatgpt' => [
+        'client_id' => env('KNX_CHATGPT_CLIENT_ID'),
+        'client_secret' => env('KNX_CHATGPT_CLIENT_SECRET'),
+        'token_auth' => env('KNX_CHATGPT_TOKEN_AUTH', 'none'),
+        'redirect_uri' => env('KNX_CHATGPT_REDIRECT_URI'),
+        'discovery_url' => env('KNX_CHATGPT_DISCOVERY_URL', 'https://auth.openai.com/.well-known/openid-configuration'),
+        'resource' => env('KNX_CHATGPT_RESOURCE', 'https://api.openai.com/v1'),
+        'scopes' => [
+            'identity' => ['openid', 'profile', 'email', 'offline_access'],
+            'plan' => ['resource.invoke', 'chatgpt.tokens.use.direct'],
+        ],
+    ],
+
     'zone_check_keys' => [
         'installed',
         'power',

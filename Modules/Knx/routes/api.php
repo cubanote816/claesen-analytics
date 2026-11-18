@@ -6,6 +6,8 @@ use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
 use Modules\Knx\Http\Controllers\BoardController;
+use Modules\Knx\Http\Controllers\ChatGptConnectionController;
+use Modules\Knx\Http\Controllers\ChatGptDiagnosticController;
 use Modules\Knx\Http\Controllers\ClientController;
 use Modules\Knx\Http\Controllers\ConflictController;
 use Modules\Knx\Http\Controllers\DashboardController;
@@ -24,6 +26,8 @@ use Modules\Knx\Http\Controllers\FunctionSpecController;
 use Modules\Knx\Http\Controllers\IntentController;
 use Modules\Knx\Http\Controllers\NotificationPreferenceController;
 use Modules\Knx\Http\Controllers\OfficeIssueController;
+use Modules\Knx\Http\Controllers\PlanAiAuthorizationController;
+use Modules\Knx\Http\Controllers\PlanAnalysisController;
 use Modules\Knx\Http\Controllers\PlanCleanProfileController;
 use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
@@ -310,6 +314,39 @@ Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->g
             Route::put('projects/{code}/plans/{documentId}/clean-profile', [PlanCleanProfileController::class, 'update'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans.clean-profile.update');
+
+            // KNX-48 (plano IA) — per-document, per-provider authorization to send a plan
+            // to an AI provider. No authorization = the document is never sent.
+            Route::get('projects/{code}/plans/{documentId}/ai-authorizations', [PlanAiAuthorizationController::class, 'index'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.ai-authorizations.index');
+            Route::put('projects/{code}/plans/{documentId}/ai-authorizations/{provider}', [PlanAiAuthorizationController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->where('provider', '[a-z0-9_-]+')
+                ->name('projects.plans.ai-authorizations.update');
+            Route::delete('projects/{code}/plans/{documentId}/ai-authorizations/{provider}', [PlanAiAuthorizationController::class, 'destroy'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->where('provider', '[a-z0-9_-]+')
+                ->name('projects.plans.ai-authorizations.destroy');
+            // "Sign in with ChatGPT" (prueba): each employee connects their OWN account.
+            Route::get('chatgpt/connection', [ChatGptConnectionController::class, 'show'])
+                ->name('chatgpt.connection.show');
+            Route::post('chatgpt/connection/start', [ChatGptConnectionController::class, 'start'])
+                ->name('chatgpt.connection.start');
+            Route::post('chatgpt/connection/callback', [ChatGptConnectionController::class, 'callback'])
+                ->name('chatgpt.connection.callback');
+            Route::delete('chatgpt/connection', [ChatGptConnectionController::class, 'destroy'])
+                ->name('chatgpt.connection.destroy');
+            Route::post('chatgpt/diagnostic', [ChatGptDiagnosticController::class, 'run'])
+                ->name('chatgpt.diagnostic');
+            // KNX-48 (plano IA) — the AI proposal of a page: POST runs ONE authorized
+            // provider and stores the validated proposal; GET reads the latest one.
+            Route::get('projects/{code}/plans/{documentId}/analyses', [PlanAnalysisController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.analyses.show');
+            Route::post('projects/{code}/plans/{documentId}/analyses', [PlanAnalysisController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.analyses.store');
 
             Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
             Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
