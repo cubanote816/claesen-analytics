@@ -21,6 +21,13 @@ use Modules\Performance\Emails\VanguardImmediateAlertMail;
 use Modules\Performance\Emails\WatchdogRiskReportMail;
 use Modules\Performance\Models\ProjectInsight;
 use Modules\Safety\Emails\InspectionReminderMail;
+use Modules\Safety\Emails\InspectionReportMail;
+use Modules\Safety\Models\Inspection;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Contracts\Queue\Job;
+use Modules\Core\Support\MailBrand;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mime\Email;
@@ -227,5 +234,53 @@ final class ClaesenMailSenderTest extends TestCase
         }
 
         $this->assertSame([], $this->sendMailable(new VanguardImmediateAlertMail(['id' => 1, 'name' => 'P', 'wip' => 1, 'stale_days' => 1, 'risk_level' => 'HIGH']))->getReplyTo());
+    }
+
+    public function test_a_claesen_user_gets_the_platform_sender_name_not_the_site_name(): void
+    {
+        Site::query()->where('key', config('organizations.panel_sites.admin'))
+            ->update(['mail_from_name' => 'Quote Sender']);
+
+        $email = $this->sendNotification($this->claesenUser(['language' => 'en']), new PasswordResetNotification('c'));
+
+        $this->assertSame('backoffice@claesen-verlichting.test', $email->getFrom()[0]->getAddress());
+        $this->assertSame('Platform Sender', $email->getFrom()[0]->getName());
+    }
+
+    public function test_a_bertels_user_without_a_site_gets_no_notice(): void
+    {
+        $email = $this->sendNotification($this->bertelsFixtureUser(null, ['language' => 'en']), new PasswordResetNotification('c'));
+
+        $this->assertNoNotice($email);
+    }
+
+    public function test_a_user_without_organization_still_gets_the_notice(): void
+    {
+        $email = $this->sendNotification(User::factory()->create(['organization_id' => null, 'language' => 'en']), new PasswordResetNotification('c'));
+
+        $this->assertNotice($email, self::EN);
+    }
+
+    public function test_a_starting_queue_job_clears_stale_quote_state(): void
+    {
+        $site = Site::query()->where('key', config('organizations.panel_sites.admin'))->firstOrFail();
+        MailBrand::forSite($site);
+        $this->assertFalse(MailBrand::showsAutomatedNotice());
+
+        event(new JobProcessing('sync', $this->createMock(Job::class)));
+
+        $this->assertTrue(MailBrand::showsAutomatedNotice());
+        $this->assertStringContainsString(self::EN, (string) (new MailMessage)->line('Hello')->render());
+    }
+
+    public function test_the_inspection_report_mail_carries_the_notice(): void
+    {
+        foreach (['super_admin', 'admin', 'project_manager', 'viewer'] as $role) {
+            \Spatie\Permission\Models\Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+        }
+        $inspection = \Modules\Safety\Database\Factories\InspectionFactory::new()->create(['pdf_path' => 'x/report.pdf']);
+        $html = (new InspectionReportMail($inspection, User::factory()->create()))->render();
+
+        $this->assertStringContainsString(self::EN, $html);
     }
 }

@@ -228,6 +228,13 @@ final class MailBrand
             // dejar la del envío anterior, que sería peor que el nombre genérico.
             self::forget();
 
+            // CLA-699: a no-site user is Claesen only without an organization or inside
+            // the Claesen organization (that of the Claesen panel site); a Bertels
+            // user without a site gets no Claesen notice.
+            if ($user?->organization_id !== null && $user->organization_id !== self::claesenOrganizationId()) {
+                self::$bertels = true;
+            }
+
             return [
                 'address' => config('mail.from.address'),
                 'name' => $user?->organization?->name ?? config('mail.from.name'),
@@ -243,9 +250,16 @@ final class MailBrand
         // its site sender for everything.
         if ($site->key === config('organizations.panel_sites.admin')) {
             $brand['address'] = config('mail.from.address');
+            $brand['name'] = config('mail.from.name');
         }
 
         return $brand;
+    }
+
+    private static function claesenOrganizationId(): int
+    {
+        return (int) (Site::query()->where('key', config('organizations.panel_sites.admin'))->value('organization_id')
+            ?? Organization::claesenId());
     }
 
     private static function siteFor(?User $user): ?Site

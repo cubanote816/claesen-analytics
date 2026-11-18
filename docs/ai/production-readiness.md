@@ -119,7 +119,7 @@ El código solo no cambia el correo en producción: con `MAIL_FROM_ADDRESS=offer
 4. **Mantener explícitos** `MAILING_FROM_ADDRESS=sport@…` y `MAILING_REPLY_TO=offerte@…`: `ProspectCampaignMail` cae a `mail.from.address` si faltan, y las campañas saldrían de backoffice@.
 5. **Recargar:** `infrastructure/scripts/reload-config.sh` y `php artisan queue:restart` (los workers conservan la config vieja si no).
 6. **Verificar:** pedir un código de acceso nuevo hacia un buzón externo; la cabecera `From` debe mostrar `backoffice@claesen-verlichting.be` y el cuerpo el aviso de mensaje automático.
-7. **Rollback:** restaurar solo esos dos valores desde el backup, repetir `reload-config.sh` + `php artisan queue:restart`.
+7. **Rollback:** restaurar solo esos dos valores desde el backup; si alguna de las dos claves (`MICROSOFT_GRAPH_MAILBOX_ALIASES` o `MAIL_FROM_ADDRESS`) no existía antes, el rollback elimina esa línea en vez de restaurarla (no tocar ninguna otra clave), repetir `reload-config.sh` + `php artisan queue:restart`.
 
 La migración `set_claesen_quote_mail_sender` (offerte@ para los presupuestos de la web) corre con el deploy y es compatible con ambos estados.
 
