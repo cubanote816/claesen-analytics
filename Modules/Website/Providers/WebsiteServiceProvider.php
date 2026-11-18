@@ -38,6 +38,8 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'website');
+        // CLA-705: strings of the visitor acknowledgement (nl/fr/en/de).
+        $this->loadTranslationsFrom(__DIR__ . '/../lang', 'website');
 
         \Modules\Website\Models\ConsultationRequest::observe(\Modules\Website\Observers\ConsultationRequestObserver::class);
         \Modules\Website\Models\Project::observe(\Modules\Website\Observers\ProjectObserver::class);
