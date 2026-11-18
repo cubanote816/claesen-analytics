@@ -125,7 +125,7 @@ final class KnxFieldDeviceTest extends TestCase
             ->json();
 
         $this->assertSame(
-            ['id', 'address', 'type', 'roomName', 'boardCode', 'serial', 'registeredBy', 'registeredAt'],
+            ['id', 'address', 'type', 'roomName', 'boardCode', 'boardId', 'moduleSlot', 'channel', 'serial', 'registeredBy', 'registeredAt'],
             array_keys($payload),
         );
         $this->assertSame(self::FREE_ADDRESS, $payload['address']);
@@ -206,7 +206,7 @@ final class KnxFieldDeviceTest extends TestCase
         $this->assertSame(self::TAKEN_ADDRESS, $response->json('errors.existing.address'));
 
         $this->assertSame(
-            ['id', 'address', 'type', 'roomName', 'boardCode', 'serial', 'registeredBy', 'registeredAt'],
+            ['id', 'address', 'type', 'roomName', 'boardCode', 'boardId', 'moduleSlot', 'channel', 'serial', 'registeredBy', 'registeredAt'],
             array_keys($response->json('existing')),
         );
 

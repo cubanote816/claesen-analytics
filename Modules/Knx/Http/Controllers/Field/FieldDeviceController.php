@@ -50,6 +50,10 @@ class FieldDeviceController extends Controller
             'roomName' => ['nullable', 'string', 'max:150'],
             'floor' => ['nullable', 'string', 'max:100'],
             'boardCode' => ['nullable', 'string', 'max:32'],
+            // KNX-53: el id estable del cuadro y el lugar del aparato dentro de él.
+            'boardId' => ['nullable', 'string', 'max:128'],
+            'moduleSlot' => ['nullable', 'integer', 'min:1'],
+            'channel' => ['nullable', 'string', 'max:8'],
             'serial' => ['nullable', 'string', 'max:64'],
             'note' => ['nullable', 'string', 'max:1000'],
             'photoDataUrl' => ['nullable', 'string'],

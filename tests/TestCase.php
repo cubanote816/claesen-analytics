@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use RuntimeException;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -14,9 +15,44 @@ abstract class TestCase extends BaseTestCase
      */
     protected function setUp(): void
     {
+        // Before parent::setUp(): the base class runs the test traits, and
+        // RefreshDatabase is one of them. Checking afterwards would be checking
+        // after the development database had already been migrated and wiped.
+        $this->refuseToTouchTheDevelopmentDatabase();
+
         parent::setUp();
 
         config(['core.panel_mfa_enforced' => false]);
+    }
+
+    /**
+     * Fail closed when the suite is not pointed at a test database.
+     *
+     * `phpunit.xml` pins `DB_DATABASE=claesen_analytics_web_testing`, and Laravel's
+     * Dotenv does not overwrite an env var PHPUnit already set, so the suite normally
+     * resolves the testing database no matter what `.env` says. The risk is the path
+     * where that chain breaks: a different phpunit config, a `.env.testing` added by
+     * mistake, or `DB_DATABASE` unset. Then the suite resolves `.env` —
+     * `electrobertels_knx`, the shared development database — and `RefreshDatabase`
+     * MIGRATES AND WIPES it before the first assertion runs.
+     *
+     * A test run that is not clearly aimed at a `*_testing` database is a mistake, so
+     * it stops with an explanation instead of destroying development data. This is the
+     * same fail-closed rule KnxDemoSeeder applies to production.
+     */
+    private function refuseToTouchTheDevelopmentDatabase(): void
+    {
+        $database = $_ENV['DB_DATABASE'] ?? getenv('DB_DATABASE');
+
+        if (is_string($database) && str_ends_with($database, '_testing')) {
+            return;
+        }
+
+        throw new RuntimeException(sprintf(
+            'Refusing to run tests against [%s]: the suite must point at a database whose name ends in "_testing" '
+            .'(phpunit.xml pins it). Running RefreshDatabase here would wipe development data.',
+            is_string($database) && $database !== '' ? $database : '(unset)',
+        ));
     }
 
     /**

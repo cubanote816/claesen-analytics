@@ -75,6 +75,15 @@ class ProjectController extends Controller
                 Rule::unique('knx_projects', 'code')->where('organization_id', KnxTenant::organizationId()),
             ],
             'name' => ['required', 'string', 'max:255'],
+            // `siteAddress` is the structured address the contract requires (KNX-51).
+            // `city` stays accepted for the clients that still send it, but the value
+            // that lands on the row is the one inside `siteAddress`: keeping two
+            // sources for the same fact is how they end up disagreeing.
+            'siteAddress' => ['required', 'array'],
+            'siteAddress.street' => ['required', 'string', 'max:255'],
+            'siteAddress.postalCode' => ['required', 'string', 'max:16'],
+            'siteAddress.city' => ['required', 'string', 'max:255'],
+            'siteAddress.accessNote' => ['sometimes', 'nullable', 'string', 'max:500'],
             'city' => ['sometimes', 'nullable', 'string', 'max:255'],
             'leadEmployeeId' => [
                 'sometimes',
@@ -99,7 +108,12 @@ class ProjectController extends Controller
                 'client_id' => $validated['clientId'],
                 'code' => $validated['code'],
                 'name' => $validated['name'],
-                'city' => $validated['city'] ?? null,
+                // Derived from the structured address, never from a loose `city`.
+                'city' => $validated['siteAddress']['city'],
+                'site_street' => $validated['siteAddress']['street'],
+                'site_postal_code' => $validated['siteAddress']['postalCode'],
+                'site_city' => $validated['siteAddress']['city'],
+                'site_access_note' => $validated['siteAddress']['accessNote'] ?? null,
                 'lead_employee_id' => $validated['leadEmployeeId'] ?? null,
                 'deadline' => $validated['deadline'] ?? null,
             ],
@@ -118,6 +132,64 @@ class ProjectController extends Controller
     {
         // 404 (with the contract's envelope) when the code does not exist.
         return ProjectResource::make($this->resolve($code));
+    }
+
+    /**
+     * Edit the project header (KNX-51): name, lead, deadline and site address.
+     *
+     * Partial by design — only the keys that come are touched. `siteAddress` replaces
+     * the whole block when it comes (its three fields are required together), and its
+     * `city` is copied onto the derived `city` column so the two never disagree.
+     */
+    public function update(Request $request, string $code): ProjectResource
+    {
+        $project = $this->resolve($code);
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'leadEmployeeId' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('knx_employees', 'id')->where('organization_id', KnxTenant::organizationId()),
+            ],
+            'deadline' => ['sometimes', 'nullable', 'date'],
+            'siteAddress' => ['sometimes', 'array'],
+            'siteAddress.street' => ['required_with:siteAddress', 'string', 'max:255'],
+            'siteAddress.postalCode' => ['required_with:siteAddress', 'string', 'max:16'],
+            'siteAddress.city' => ['required_with:siteAddress', 'string', 'max:255'],
+            'siteAddress.accessNote' => ['sometimes', 'nullable', 'string', 'max:500'],
+        ], [
+            'leadEmployeeId.exists' => __('knx::projects.unknown_lead'),
+        ]);
+
+        $attributes = [];
+
+        if (array_key_exists('name', $validated)) {
+            $attributes['name'] = $validated['name'];
+        }
+
+        if (array_key_exists('leadEmployeeId', $validated)) {
+            $attributes['lead_employee_id'] = $validated['leadEmployeeId'];
+        }
+
+        if (array_key_exists('deadline', $validated)) {
+            $attributes['deadline'] = $validated['deadline'];
+        }
+
+        if (array_key_exists('siteAddress', $validated)) {
+            $attributes['site_street'] = $validated['siteAddress']['street'];
+            $attributes['site_postal_code'] = $validated['siteAddress']['postalCode'];
+            $attributes['site_city'] = $validated['siteAddress']['city'];
+            $attributes['site_access_note'] = $validated['siteAddress']['accessNote'] ?? null;
+            $attributes['city'] = $validated['siteAddress']['city'];
+        }
+
+        if ($attributes !== []) {
+            $project->fill($attributes)->save();
+        }
+
+        return ProjectResource::make($project->load(['client', 'lead']));
     }
 
     public function stats(string $code): ProjectStatsResource
@@ -191,9 +263,14 @@ class ProjectController extends Controller
 
     private function resolve(string $code): KnxProject
     {
+        // The tenant boundary is explicit here, not inherited from a trait: the model
+        // deliberately has no global scope (one tenant, and a scope would hide "no
+        // rows" bugs). Without this, two organizations sharing a project code would
+        // resolve each other's row.
         return KnxProject::query()
             ->with(['client', 'lead'])
             ->where('code', $code)
+            ->where('organization_id', KnxTenant::organizationId())
             ->firstOrFail();
     }
 }

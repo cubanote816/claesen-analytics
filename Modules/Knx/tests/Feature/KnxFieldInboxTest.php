@@ -26,6 +26,9 @@ final class KnxFieldInboxTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // The notification title is translated and STORED when the device is registered below: pin the
+        // locale so the test never depends on the environment's APP_LOCALE (CI runs in English).
+        app()->setLocale('nl');
         // The tenant has to exist before the fixture runs (KnxTenant refuses to
         // invent one), and it is the fixture that creates the office account:
         // seeding *after* creating our own person would delete it, because the
@@ -47,11 +50,20 @@ final class KnxFieldInboxTest extends TestCase
 
         $this->assertCount(2, $inbox);
         $this->assertSame(
-            ['id', 'address', 'type', 'room', 'board', 'boardName', 'serial', 'projectCode', 'projectName', 'reportedBy', 'reportedAt', 'acked'],
+            ['id', 'kind', 'projectCode', 'title', 'summary', 'roomId', 'boardId', 'moduleSlot', 'deviceId', 'issueId', 'actor', 'target', 'capturedAt', 'receivedAt', 'acked', 'address', 'type', 'room', 'board', 'boardName', 'serial', 'projectName', 'reportedBy', 'reportedAt'],
             array_keys($inbox[0]),
         );
 
         $first = $inbox[0];
+
+        // KNX-54: the typed block, and the legacy one still there.
+        $this->assertSame('device_registered', $first['kind']);
+        $this->assertSame('Nieuw toestel geregistreerd', $first['title']);
+        $this->assertSame('M. Claes', $first['actor']['name']);
+        $this->assertNotNull($first['actor']['id']);
+        $this->assertSame('device', $first['target']['type']);
+        $this->assertNotNull($first['target']['id']);
+        $this->assertNotNull($first['receivedAt']);
 
         $this->assertSame('1.2.047', $first['address']);
         $this->assertSame('Zaal 2.07', $first['room']);
@@ -62,6 +74,23 @@ final class KnxFieldInboxTest extends TestCase
         $this->assertSame('M. Claes', $first['reportedBy']);
         $this->assertFalse($first['acked']);
         $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $first['reportedAt']);
+    }
+
+    public function test_the_inbox_filters_by_kind_project_and_unacked(): void
+    {
+        // The fixture's two notices are both device registrations, both unacked.
+        $this->assertCount(2, $this->getJson('/api/v1/knx/notifications?kind=device_registered')->assertOk()->json());
+        $this->assertCount(0, $this->getJson('/api/v1/knx/notifications?kind=board_created')->assertOk()->json());
+        $this->assertCount(2, $this->getJson('/api/v1/knx/notifications?unacked=1')->assertOk()->json());
+
+        $byProject = $this->getJson('/api/v1/knx/notifications?project=C1618')->assertOk()->json();
+        $this->assertNotEmpty($byProject);
+        $this->assertTrue(collect($byProject)->every(fn (array $n): bool => $n['projectCode'] === 'C1618'));
+
+        // An unknown kind is a field error, not a silently empty list.
+        $this->getJson('/api/v1/knx/notifications?kind=nope')
+            ->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['kind']]);
     }
 
     public function test_the_inbox_is_most_recent_first(): void

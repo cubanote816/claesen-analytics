@@ -7,7 +7,9 @@ namespace Modules\Knx\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Knx\Models\KnxBoard;
+use Modules\Knx\Models\KnxBoardModule;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Models\KnxProjectRoom;
 
 /**
  * Imports a governed KNX worklist into a project's boards (KNX-3).
@@ -67,32 +69,67 @@ class BoardWorklistImportService
 
         $boards = $this->group($worklist, $roles);
 
-        return DB::transaction(function () use ($project, $boards): array {
-            $stats = ['boards' => 0, 'modules' => 0, 'channels' => 0, 'links' => 0];
+        // Resolve each worklist room name to the canonical room, by name or alias.
+        // Names that do not match stay `null`: the link keeps its original text and the
+        // office sees what still needs modelling (KNX-44).
+        $roomIds = $this->roomIdMap($project);
+
+        return DB::transaction(function () use ($project, $boards, $roomIds): array {
+            $stats = ['boards' => 0, 'modules' => 0, 'channels' => 0, 'links' => 0, 'skipped' => 0];
             $usedCodes = [];
 
             foreach ($boards as $board) {
-                $model = KnxBoard::updateOrCreate(
-                    ['project_id' => $project->getKey(), 'slug' => $board['slug']],
-                    [
+                $model = KnxBoard::query()
+                    ->where('project_id', $project->getKey())
+                    ->where('slug', $board['slug'])
+                    ->with('modules')
+                    ->first();
+
+                // A board a person edited or created by hand is LEFT ALONE: a re-import
+                // must not overwrite office work. It is counted as skipped so the
+                // operator sees what the import did not touch instead of discovering it.
+                if ($model !== null && $this->ownedByAPerson($model)) {
+                    $usedCodes[$model->code] = ($usedCodes[$model->code] ?? 0) + 1;
+                    $stats['skipped']++;
+
+                    continue;
+                }
+
+                if ($model === null) {
+                    $model = KnxBoard::create([
+                        'project_id' => $project->getKey(),
+                        'slug' => $board['slug'],
                         'code' => $this->uniqueCode($board['name'], $usedCodes),
                         'name' => $board['name'],
                         'floor' => $board['floor'],
-                    ],
-                );
+                        'origin' => KnxBoard::ORIGIN_IMPORT,
+                        'review_state' => KnxBoard::REVIEW_CONFIRMED,
+                    ]);
+                } else {
+                    $model->update([
+                        'code' => $this->uniqueCode($board['name'], $usedCodes),
+                        'name' => $board['name'],
+                        'floor' => $board['floor'],
+                    ]);
+                }
 
-                // The board row is reused (so a device pointing at it keeps doing so)
-                // and its structure is replaced: that is what makes a re-import safe.
+                // The board's structure is replaced: that is what makes a re-import safe
+                // for a board nobody has edited.
                 $model->modules()->delete();
 
                 foreach ($board['modules'] as $index => $module) {
                     $created = $model->modules()->create([
                         'device' => $module['device'],
                         'slot' => $index + 1,
+                        'origin' => KnxBoardModule::ORIGIN_IMPORT,
+                        'review_state' => KnxBoardModule::REVIEW_CONFIRMED,
                     ]);
 
                     foreach ($module['links'] as $position => $link) {
-                        $created->links()->create($link + ['position' => $position]);
+                        $created->links()->create($link + [
+                            'position' => $position,
+                            'room_id' => $roomIds[mb_strtolower(trim((string) $link['room']))] ?? null,
+                        ]);
                     }
 
                     $stats['modules']++;
@@ -204,6 +241,51 @@ class BoardWorklistImportService
         }
 
         return null;
+    }
+
+    /**
+     * True when the board or any of its modules was written by a person (`origin` is
+     * not `import`). A re-import leaves those alone.
+     */
+    private function ownedByAPerson(KnxBoard $board): bool
+    {
+        if ($board->origin !== KnxBoard::ORIGIN_IMPORT) {
+            return true;
+        }
+
+        return $board->modules->contains(
+            fn (KnxBoardModule $module): bool => $module->origin !== KnxBoardModule::ORIGIN_IMPORT,
+        );
+    }
+
+    /**
+     * Lower-cased room name (canonical or alias) to room id.
+     *
+     * The canonical name is written first and an alias never overwrites another room's
+     * canonical name (`??=`): if a worklist alias collides with a real room name, the
+     * real room wins.
+     *
+     * @return array<string, int>
+     */
+    private function roomIdMap(KnxProject $project): array
+    {
+        $map = [];
+        $rooms = KnxProjectRoom::query()
+            ->where('project_id', $project->getKey())
+            ->with('aliases')
+            ->get();
+
+        foreach ($rooms as $room) {
+            $map[mb_strtolower(trim($room->name))] ??= $room->getKey();
+        }
+
+        foreach ($rooms as $room) {
+            foreach ($room->aliases as $alias) {
+                $map[mb_strtolower(trim($alias->name))] ??= $room->getKey();
+            }
+        }
+
+        return $map;
     }
 
     /**

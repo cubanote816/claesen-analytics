@@ -42,9 +42,9 @@ use Spatie\Permission\Models\Role;
  * zone, a conflict mid-workflow, a superseded document revision and a
  * functional spec that changed after approval.
  *
- * It REPLACES the tenant's KNX data on every run (children first), so it can be
- * re-run on a used database. Local/testing only — it is a demo fixture, not a
- * production import.
+ * It is additive-or-nothing: it only runs against a tenant with NO KNX projects,
+ * and it never deletes or replaces anything. Local/testing only — it is a demo
+ * fixture, not a production import.
  */
 class KnxDemoSeeder extends Seeder
 {
@@ -57,6 +57,20 @@ class KnxDemoSeeder extends Seeder
 
     /** The mock's TAKEN_ADDRESSES. */
     private const TAKEN_ADDRESSES = ['1.1.100', '1.1.101', '1.1.102'];
+
+    /**
+     * The latest wall-clock time any day-0 fixture row uses (conflict k1).
+     *
+     * Day 0 has to mean ONE calendar day. Deciding it per row flipped the order of
+     * the two critical conflicts whenever the suite ran between 08:15 and 09:42: the
+     * earlier one (08:15) stayed today while the later one (09:42) moved to yesterday,
+     * and `KnxConflictsTest` asserts the contract's severity order. Deciding once,
+     * against this bound, keeps the fixture's order at any hour.
+     */
+    private const LATEST_DAY_ZERO_TIME = [9, 42];
+
+    /** The calendar day the whole day-0 set belongs to, decided once per run. */
+    private ?Carbon $dayZeroDay = null;
 
     /**
      * Password of the seeded Kantoor accounts, documented in
@@ -85,31 +99,37 @@ class KnxDemoSeeder extends Seeder
     private array $projects = [];
 
     /**
-     * This fixture deletes the tenant's KNX rows before recreating them, so it
-     * must not be runnable by reflex against a database that holds real work.
+     * The fixture is additive-or-nothing: it never deletes, so it may only run against
+     * a tenant that has no KNX projects yet.
      *
-     * The test suite seeds it on purpose, so `testing` passes without a flag.
-     * Production is refused outright. Everywhere else it takes an explicit
-     * opt-in — deliberately a thrown error rather than the log-and-return the
-     * two FieldOps QA seeders use: a fixture that quietly does nothing still
-     * prints a successful `db:seed`, which is a worse failure mode than no guard
-     * at all for something destructive (CLA-632).
+     * Order matters. Production is refused outright; outside the test suite it takes an
+     * explicit HUMAN opt-in; and only then does it refuse existing projects. The test
+     * suite passes the confirmation without a flag on purpose. The refusal is a thrown
+     * error rather than the log-and-return the two FieldOps QA seeders use: a fixture
+     * that quietly does nothing still prints a successful `db:seed`, which is a worse
+     * failure mode than no guard at all (CLA-632).
      */
     private function guardAgainstWipingLiveData(): void
     {
-        if (app()->environment('testing')) {
-            return;
-        }
-
         if (app()->environment('production')) {
             throw new LogicException(
-                'KnxDemoSeeder replaces the tenant KNX data on every run and must never run in production.',
+                'KnxDemoSeeder must never run in production.',
             );
         }
 
-        if (! config('knx.demo_seed_confirm')) {
+        if (! app()->environment('testing') && ! config('knx.demo_seed_confirm')) {
             throw new LogicException(
-                'KnxDemoSeeder replaces the tenant KNX data on every run. Set KNX_DEMO_SEED_CONFIRM=true to confirm.',
+                'KnxDemoSeeder needs an explicit human confirmation. Set KNX_DEMO_SEED_CONFIRM=true to confirm.',
+            );
+        }
+
+        // Never over existing work: this seeder has no delete path at all, so running
+        // over a tenant with projects could only duplicate or collide. Refusing is what
+        // keeps it from destroying real development data.
+        if (KnxProject::query()->exists()) {
+            throw new LogicException(
+                'KnxDemoSeeder refuses to run: the tenant already has KNX projects. '
+                .'It never deletes or replaces existing data; wipe the tenant explicitly first if that is what you want.',
             );
         }
     }
@@ -119,8 +139,6 @@ class KnxDemoSeeder extends Seeder
         $this->guardAgainstWipingLiveData();
 
         $organization = KnxTenant::organization();
-
-        $this->purge($organization);
 
         $this->seedPeople($organization);
         $clients = $this->seedClients();
@@ -148,45 +166,34 @@ class KnxDemoSeeder extends Seeder
      */
     private function at(int $daysAgo, int $hour, int $minute): Carbon
     {
+        // Day 0 is anchored once for the whole run, so every "today" row lands on the
+        // same calendar day and their relative order is stable (see the constant).
+        if ($daysAgo === 0) {
+            return $this->dayZeroDay()->copy()->setTime($hour, $minute);
+        }
+
         $at = now()->subDays($daysAgo)->setTime($hour, $minute);
 
         return $at->isFuture() ? $at->subDay() : $at;
     }
 
     /**
-     * Children first: no foreign key is left dangling, and re-running the seeder
-     * on a used database is safe.
-     *
-     * Note which tables are NOT reached by organization_id: devices, rooms,
-     * boards, zone checks and conflict logs have no tenant column on purpose
-     * (they hang off a project/zone/conflict, which does), so they are deleted
-     * through their parent.
+     * The day-0 calendar day: yesterday while the fixture's latest day-0 time has
+     * not happened yet, today otherwise. Memoized so every row agrees.
      */
-    private function purge(Organization $organization): void
+    private function dayZeroDay(): Carbon
     {
-        $projectIds = KnxProject::query()->where('organization_id', $organization->id)->pluck('id');
-        $zoneIds = KnxZone::query()->whereIn('project_id', $projectIds)->pluck('id');
-        $conflictIds = KnxConflict::query()->whereIn('project_id', $projectIds)->pluck('id');
+        if ($this->dayZeroDay === null) {
+            [$hour, $minute] = self::LATEST_DAY_ZERO_TIME;
 
-        KnxZoneCheck::query()->whereIn('zone_id', $zoneIds)->delete();
-        KnxConflictLog::query()->whereIn('conflict_id', $conflictIds)->delete();
+            $latest = now()->copy()->setTime($hour, $minute);
 
-        KnxAcceptanceTest::query()->whereIn('project_id', $projectIds)->delete();
-        KnxFunctionSpec::query()->whereIn('project_id', $projectIds)->delete();
-        KnxZone::query()->whereIn('project_id', $projectIds)->delete();
-        KnxExport::query()->whereIn('project_id', $projectIds)->delete();
-        KnxDocument::query()->whereIn('project_id', $projectIds)->delete();
-        KnxNotification::query()->whereIn('project_id', $projectIds)->delete();
-        KnxConflict::query()->whereIn('project_id', $projectIds)->delete();
-        KnxPlanningAssignment::query()->whereIn('project_id', $projectIds)->delete();
-        KnxDevice::query()->whereIn('project_id', $projectIds)->delete();
-        KnxBoard::query()->whereIn('project_id', $projectIds)->delete();
-        KnxProjectRoom::query()->whereIn('project_id', $projectIds)->delete();
+            $this->dayZeroDay = now()->lt($latest)
+                ? now()->subDay()->startOfDay()
+                : now()->startOfDay();
+        }
 
-        KnxProject::query()->where('organization_id', $organization->id)->delete();
-        KnxClient::query()->where('organization_id', $organization->id)->delete();
-        KnxEmployee::query()->where('organization_id', $organization->id)->delete();
-        User::query()->whereIn('email', self::DEMO_EMAILS)->delete();
+        return $this->dayZeroDay;
     }
 
     /**
@@ -498,12 +505,20 @@ class KnxDemoSeeder extends Seeder
                 'project_id' => $project->id,
                 'device_id' => $device->id,
                 'board_id' => $board->id,
+                'room_id' => $room->id,
+                // KNX-54: the row carries its kind and its human line.
+                'kind' => KnxNotification::KIND_DEVICE_REGISTERED,
                 'type' => $type,
+                'title' => __('knx::notifications.device_registered'),
+                'summary' => trim($address.' · '.$roomName, ' ·'),
                 'address' => $address,
                 'room' => $roomName,
                 'serial' => $serial,
+                'target_type' => 'device',
+                'target_id' => (string) $device->id,
                 'reported_by_employee_id' => $this->people[$by]->id,
                 'reported_at' => $this->at(0, $hour, $minute),
+                'captured_at' => $this->at(0, $hour, $minute),
                 'acknowledged_at' => $acked ? now() : null,
             ]);
         }

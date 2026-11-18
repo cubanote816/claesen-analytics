@@ -15,6 +15,90 @@
 
 ---
 
+## Contrato en staging: `docs/Knx/openapi-next.yaml`
+
+Los hitos **M1, M2, M2b y M2c** (KNX-20, 18, 24, 51, 44, 45, 46, 47, 52, 25, 53, 54, 56, 55, 26,
+50, 48, 49) tienen su contrato completo en **`docs/Knx/openapi-next.yaml`**: 34 paths / 43
+operaciones nuevas o cambiadas, mismo estilo que `openapi.yaml` (`camelCase`, ids como string,
+sobre de error `{message, code, errors}`, sin `{data: …}`). **Podéis construir contra él ya, con
+mocks.**
+
+- Cada operación lleva `x-ticket` y `x-status`:
+  - `planned` — decidida; se implementa como está escrito.
+  - `provisional` — la forma puede cambiar hasta una medición previa (planos DWG, KNX-49).
+  - `pending-decision` — forma acordada, implementación **bloqueada** por decisión del dueño:
+    escritura de intenciones desde campo (KNX-55). **No la implementéis todavía; la ruta no existe.**
+- Regla de movimiento: cada ruta de `openapi-next.yaml` **pasa** a `openapi.yaml` en el mismo commit
+  en que se implementa. Cuando una ruta aparece en `openapi.yaml`, ya existe de verdad en el backend.
+- Orden de rebanadas y qué entrega cada una: `odd/tasks/knx-m1-m2b-m2c-contratos.md` en el repo del
+  backend.
+- **Cambios que tocan rutas que ya consumís:** `POST /projects` **ya exige** `siteAddress` y
+  `PATCH /projects/{code}` **ya existe** (KNX-51, implementado; ver §0.1);
+  `GET /notifications` generaliza `kind` (compatible hacia atrás);
+  `POST /field/projects/{code}/devices` acepta `boardId`/`moduleSlot`/`channel` opcionales;
+  `GET /projects/{code}/boards` expone `origin`/`reviewState`/`updatedBy`/`updatedAt` y `roomId` por
+  enlace; `GET /conflicts` y `GET /conflicts/{id}` exponen `lifecycle`; `PUT …/markers` no cambia.
+- **Decisiones de producto nuevas:** habitación canónica = la que crea oficina (ETS/worklist/plano
+  entran como alias); zona = habitación (`unique(room_id)`); mal funcionamiento = conflicto con
+  `lifecycle: malfunction` y transiciones validadas; fotos como entidad con evento `photos_uploaded`.
+- **Habitaciones (KNX-44, implementado):** `GET`/`POST /projects/{code}/rooms` y `PATCH /rooms/{id}`
+  con `aliases`; `Zone.roomId`; `BoardLink.roomId` resuelto por nombre o alias (null si no casó).
+- **Modelo de plano (KNX-45, implementado):** `GET`/`PUT /projects/{code}/plans/{documentId}/rooms`
+  por página, geometría opaca, `present|array`, `carryOverFrom` de la misma página → `proposed`.
+- **Planta del plano (KNX-47, contrato publicado):** `POST /documents` acepta `floor?`;
+  `DocumentFile` y `GET /field/projects/{code}/plans` exponen `floor` e `isCurrent`;
+  `PATCH /documents/{id} {floor}`. Todavía en `openapi-next.yaml`.
+- **Ficha de habitación (KNX-46, implementado):** `GET /projects/{code}/rooms/{id}/sheet` con
+  `{room, zone, devices, boardLinks, intents, functions, issues, photos}`; `intents`/`photos` viajan
+  `[]` hasta KNX-55 / KNX-26.
+- **Planta del plano y campo (KNX-47, implementado):** `floor?` en `POST /documents`, `floor` en
+  `DocumentFile`, `PATCH /documents/{id} {floor}`; `GET /field/projects/{code}/rooms` y
+  `GET /field/projects/{code}/plans/{documentId}/model` (sólo `confirmed`); los planos de campo
+  exponen `floor` e `isCurrent`.
+- **Cuadros y módulos (KNX-52, implementado):** el CRUD de oficina y `origin`/`reviewState`/
+  `updatedBy`/`updatedAt`; `409 slot_taken` con el módulo actual; renombrar no cambia el `id`; una
+  reimportación salta lo editado a mano.
+- **Cuadros y módulos desde obra (KNX-53, implementado):** `POST /field/projects/{code}/boards` y
+  `POST /field/projects/{code}/boards/{boardId}/modules` (idempotentes por `clientId`, nacen
+  `origin: field`/`reviewState: unreviewed`; un slot ocupado → **`409 slot_taken`** con el módulo que
+  lo ocupa). Además, `POST /field/projects/{code}/devices` acepta `boardId`/`moduleSlot`/`channel`
+  opcionales, y **el `Device` de oficina y el `FieldDevice` los exponen** (`boardId`, `moduleSlot`,
+  `channel`): el dossier y el registro ya dicen *dónde* dentro del cuadro está el aparato.
+- **Avisos tipados y correo (KNX-54, implementado):** `GET /notifications` acepta
+  `?kind=&project=&unacked=` y cada fila trae `kind`, `title`, `summary`, `actor`, `target`, `roomId`,
+  `boardId`, `moduleSlot`, `deviceId`, `issueId`, `capturedAt`, `receivedAt` más los campos viejos.
+  `/events` lleva el mismo `kind`. `GET|PUT /me/notification-preferences` → `{email:{immediate,
+  digest: per_visit|hourly|off, mutedKinds}}`. **Correo:** inmediato sólo para `issue_reported`,
+  `malfunction_reported` y `visit_closed` final; el resto va en un resumen (comando
+  `knx:notification-digest`, horario y al cerrar la visita) a cola con reintentos. Destinatarios:
+  jefe de proyecto + `KNX_OFFICE_MAILBOX`. `emailed_at` evita duplicar. **Los `kind`
+  `module_changed` e `intent_changed` todavía no tienen escritor; `malfunction_*` ya lo tienen
+  (KNX-56).**
+- **Mal funcionamiento (KNX-56, implementado):** el conflicto lleva `lifecycle` (`ets` |
+  `malfunction`) y `symptom`, y `GET /conflicts` acepta `?lifecycle=`. Un `malfunction` valida su
+  ciclo (`open → diagnosing → resolved → verified`, con `rejected` como salida): una transición no
+  permitida → **`422`** en `errors.status`; cada paso escribe `by` (autor) y `note` en el histórico.
+  `POST /projects/{code}/issues` es la ruta nueva de **oficina** (sin `clientId`; `kind` +
+  `symptom` + ids opcionales `roomId`/`deviceId`/`boardId`/`moduleSlot`/`channel`), y
+  `POST /field/projects/{code}/issues` acepta `kind: malfunction` (con `symptom` obligatorio) y los
+  ids opcionales. **Aviso inmediato** `malfunction_reported` al crearlo (y `malfunction_status_changed`
+  en cada paso, al resumen).
+- **Intención por elemento (KNX-55, implementado):** `GET|PUT /projects/{code}/intents` y
+  `GET /intents/{id}/versions`. El elemento es la clave (`target` = `module` con `boardId`+`slot`,
+  `channel` con `+channel`, o `device` con `deviceId`), así que el `PUT` es un upsert que el front
+  puede repetir sin recordar un id: cada cambio crea `version` nueva, la anterior queda en el
+  historial, y repetir el mismo texto no sube versión ni avisa. Cada cambio deja
+  `intent_changed`. `roomId`/`functionId` opcionales. La ficha de habitación ya muestra sus
+  `intents`, y `GET /field/projects/{code}/intents` los sirve para leerlos sin red; **escribir
+  desde obra sigue `pending-decision`** (la ruta no existe).
+- **Cuadros en campo (KNX-25, implementado):** `GET /field/projects/{code}/boards` devuelve la misma
+  estructura que la oficina (con `origin`/`reviewState`), para que el registro use los cuadros reales
+  del proyecto. Antes `/boards` respondía `401` con un token de campo.
+- Los **dos** únicos huecos del contrato nuevo: `provisional` en DWG y `pending-decision` en la
+  escritura de intenciones desde campo. Nada más queda abierto.
+
+---
+
 ## 0. Resumen en una línea
 
 **Los dos fronts pueden trabajar enteros contra el backend real**: el contrato de Kantoor

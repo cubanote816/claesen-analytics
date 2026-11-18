@@ -21,8 +21,23 @@ class FieldNotificationController extends Controller
      */
     public function index(Request $request): array
     {
+        $validated = $request->validate([
+            'kind' => ['sometimes', 'nullable', 'string', 'in:'.implode(',', KnxNotification::KINDS)],
+            'project' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'unacked' => ['sometimes', 'boolean'],
+        ]);
+
         $notifications = KnxNotification::query()
-            ->with(['board', 'project', 'reportedBy'])
+            ->with(['board', 'project', 'reportedBy', 'room', 'issue'])
+            ->when(
+                ($validated['kind'] ?? null) !== null && $validated['kind'] !== '',
+                fn ($query) => $query->where('kind', $validated['kind']),
+            )
+            ->when(
+                ($validated['project'] ?? null) !== null && $validated['project'] !== '',
+                fn ($query) => $query->whereHas('project', fn ($inner) => $inner->where('code', $validated['project'])),
+            )
+            ->when((bool) ($validated['unacked'] ?? false), fn ($query) => $query->whereNull('acknowledged_at'))
             ->orderByDesc('reported_at')
             ->orderByDesc('id')
             ->get();

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Modules\Knx\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\User;
 use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxConflict;
+use Modules\Knx\Models\KnxNotification;
+use Modules\Knx\Models\KnxProject;
 use Tests\TestCase;
 
 /**
@@ -27,6 +30,13 @@ final class KnxConflictsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Freeze the clock mid-morning. This is the exact window that used to flip the
+        // two critical conflicts (08:15 and 09:42): the seeded day-0 rows have to keep
+        // their relative order at any hour, and pinning it here makes that a real
+        // regression test rather than a wall-clock accident.
+        Carbon::setTestNow(Carbon::parse('2026-10-08 08:30:00', 'Europe/Brussels'));
+
         // The tenant has to exist before the fixture runs (KnxTenant refuses to
         // invent one), and it is the fixture that creates the office account:
         // seeding *after* creating our own person would delete it, because the
@@ -42,6 +52,13 @@ final class KnxConflictsTest extends TestCase
 
     }
 
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     private function conflict(string $address): KnxConflict
     {
         return KnxConflict::query()->where('address', $address)->sole();
@@ -53,10 +70,14 @@ final class KnxConflictsTest extends TestCase
 
         $this->assertCount(5, $conflicts);
         $this->assertSame(
-            ['id', 'severity', 'type', 'address', 'projectCode', 'projectName', 'deviceExisting', 'deviceField',
-                'reportedBy', 'reportedAt', 'note', 'photoUrl', 'status', 'proposal', 'takenAddresses', 'history'],
+            ['id', 'lifecycle', 'severity', 'type', 'address', 'projectCode', 'projectName', 'deviceExisting', 'deviceField',
+                'reportedBy', 'reportedAt', 'note', 'photoUrl', 'status', 'symptom', 'proposal', 'takenAddresses', 'history'],
             array_keys($conflicts[0]),
         );
+
+        // Rows raised by office/field reporting before KNX-56 are ETS conflicts.
+        $this->assertSame('ets', $conflicts[0]['lifecycle']);
+        $this->assertNull($conflicts[0]['symptom']);
 
         // critical (most recent first), then warning, then info.
         $this->assertSame(
@@ -250,5 +271,104 @@ final class KnxConflictsTest extends TestCase
         $this->getJson('/api/v1/knx/conflicts')->assertUnauthorized();
         $this->getJson('/api/v1/knx/conflicts/1')->assertUnauthorized();
         $this->patchJson('/api/v1/knx/conflicts/1', [])->assertUnauthorized();
+    }
+
+    private function project(string $code = 'C1618'): KnxProject
+    {
+        return KnxProject::query()->where('code', $code)->sole();
+    }
+
+    private function malfunction(string $address = '1.9.010'): KnxConflict
+    {
+        return KnxConflict::factory()->malfunction()->create([
+            'project_id' => $this->project()->getKey(),
+            'address' => $address,
+        ]);
+    }
+
+    public function test_a_malfunction_walks_its_validated_cycle(): void
+    {
+        $conflict = $this->malfunction();
+
+        // The contract's shape carries the lifecycle and the symptom.
+        $this->getJson("/api/v1/knx/conflicts/{$conflict->id}")
+            ->assertOk()
+            ->assertJsonPath('lifecycle', 'malfunction')
+            ->assertJsonPath('symptom', 'Gaat niet aan als de aanwezigheidsmelder aanslaat.');
+
+        // Skipping the diagnosis is refused, in the field-error envelope.
+        $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'resolved'])
+            ->assertStatus(422)
+            ->assertJsonStructure(['message', 'code', 'errors' => ['status']]);
+
+        $this->assertSame('open', $conflict->fresh()->status, 'a refused step writes nothing');
+
+        $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'diagnosing'])->assertOk();
+        $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'resolved', 'note' => 'Kring doorgemeten.'])->assertOk();
+        $response = $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'verified'])->assertOk();
+
+        $this->assertSame('verified', $response->json('status'));
+
+        $history = $response->json('history');
+
+        $this->assertSame(['diagnosing', 'resolved', 'verified'], array_column($history, 'action'));
+        // Who took the step, and the note they left behind.
+        $this->assertSame('L. Smet', $history[0]['by']);
+        $this->assertSame('Kring doorgemeten.', $history[1]['note']);
+
+        // The step is a typed notice (KNX-54); it goes to the digest, not immediate.
+        // One per step: the fixture's own notices are not touched.
+        $notice = KnxNotification::query()
+            ->where('kind', KnxNotification::KIND_MALFUNCTION_STATUS_CHANGED)
+            ->where('summary', 'resolved → verified')
+            ->sole();
+        $this->assertSame('conflict', $notice->target_type);
+        $this->assertSame((string) $conflict->id, $notice->target_id);
+        $this->assertSame('resolved → verified', $notice->summary);
+    }
+
+    public function test_a_malfunction_can_be_rejected_from_any_live_state(): void
+    {
+        $conflict = $this->malfunction('1.9.011');
+
+        $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'diagnosing'])->assertOk();
+        $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'rejected'])->assertOk()
+            ->assertJsonPath('status', 'rejected');
+
+        // Rejected is terminal: there is no way back out of it.
+        $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'open'])
+            ->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['status']]);
+    }
+
+    public function test_an_ets_conflict_keeps_its_free_and_reversible_cycle(): void
+    {
+        // The fixture's own conflict; ETS has no machine, so a jump straight to `closed`
+        // (and back) is accepted — the office may undo a mis-click.
+        $conflict = $this->conflict('1.1.116');
+
+        $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'closed'])->assertOk();
+        $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'open'])->assertOk();
+
+        // …but a malfunction-only state is not an ETS state.
+        $this->patchJson("/api/v1/knx/conflicts/{$conflict->id}", ['status' => 'diagnosing'])
+            ->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['status']]);
+    }
+
+    public function test_the_list_filters_by_lifecycle(): void
+    {
+        $this->malfunction('1.9.012');
+
+        $this->getJson('/api/v1/knx/conflicts?lifecycle=malfunction')
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.lifecycle', 'malfunction');
+
+        $this->getJson('/api/v1/knx/conflicts?lifecycle=ets')->assertOk()->assertJsonCount(5);
+
+        $this->getJson('/api/v1/knx/conflicts?lifecycle=onzin')
+            ->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['lifecycle']]);
     }
 }

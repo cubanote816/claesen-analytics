@@ -30,6 +30,8 @@ class KnxDevice extends Model
         'project_id',
         'room_id',
         'board_id',
+        'module_slot',
+        'channel',
         'type',
         'address',
         'serial',

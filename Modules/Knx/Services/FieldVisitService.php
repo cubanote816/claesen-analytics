@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxNotification;
 use Modules\Knx\Models\KnxProject;
 use Modules\Knx\Models\KnxProjectRoom;
 use Modules\Knx\Models\KnxVisit;
@@ -108,6 +109,22 @@ class FieldVisitService
             ]);
 
             $this->storeItems($visit, $input);
+
+            // KNX-54: a closure is an event the office inbox shows, typed.
+            KnxNotification::create([
+                'project_id' => $project->getKey(),
+                'room_id' => $room?->getKey(),
+                'kind' => KnxNotification::KIND_VISIT_CLOSED,
+                'title' => __('knx::notifications.visit_closed'),
+                'summary' => trim(($room?->name ?? (string) ($input['room'] ?? '')).' · '.$input['type'], ' ·'),
+                'room' => $room?->name ?? ($input['room'] ?? null),
+                'target_type' => 'visit',
+                'target_id' => (string) $visit->getKey(),
+                'reported_by_employee_id' => $technician->getKey(),
+                'reported_at' => Carbon::parse($input['capturedAt']),
+                'captured_at' => Carbon::parse($input['capturedAt']),
+                'acknowledged_at' => null,
+            ]);
 
             return $visit;
         });

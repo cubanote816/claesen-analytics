@@ -30,12 +30,14 @@ tags:
   - name: dashboard
   - name: clients
   - name: projects
+  - name: rooms
   - name: documents
   - name: plans
   - name: boards
   - name: employees
   - name: planning
   - name: conflicts
+  - name: intents
   - name: zones
   - name: notifications
   - name: reports
@@ -106,6 +108,43 @@ paths:
             application/json:
               example: { id: "106", name: "Lien Smet", initials: "LS", role: "lead", domain: "kantoor.electrobertels.be" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
+  /me/notification-preferences:
+    get:
+      tags: [notifications]
+      summary: Preferencias de aviso de la persona autenticada
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example: { email: { immediate: true, digest: "per_visit", mutedKinds: [] } }
+    put:
+      tags: [notifications]
+      summary: Guarda las preferencias de aviso
+      description: >-
+        `email.immediate` sólo gobierna los tres avisos críticos (`issue_reported`, `malfunction_reported`
+        y `visit_closed` con `type: final`); el resto va siempre en el resumen, y `digest: off` lo apaga.
+        `mutedKinds` silencia la bandeja de la app, nunca el correo inmediato.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: object
+                  required: [immediate, digest]
+                  properties:
+                    immediate: { type: boolean }
+                    digest: { type: string, enum: [per_visit, hourly, off] }
+                    mutedKinds:
+                      type: array
+                      items: { type: string }
+      responses:
+        "200": { description: Preferencias guardadas }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /dashboard:
     get:
       tags: [dashboard]
@@ -176,7 +215,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [clientId, code, name]
+              required: [clientId, code, name, siteAddress]
               properties:
                 clientId: { type: integer, description: Debe pertenecer a la organización del token }
                 code:
@@ -185,7 +224,16 @@ paths:
                   pattern: "^[A-Za-z0-9._-]+$"
                   description: Misma restricción que la ruta de lectura; un espacio es 422, no un proyecto inalcanzable.
                 name: { type: string, maxLength: 255 }
-                city: { type: string, maxLength: 255 }
+                siteAddress:
+                  type: object
+                  description: Dirección de la obra (KNX-51), obligatoria. `city` del proyecto queda como derivado de `siteAddress.city`.
+                  required: [street, postalCode, city]
+                  properties:
+                    street: { type: string, maxLength: 255 }
+                    postalCode: { type: string, maxLength: 16 }
+                    city: { type: string, maxLength: 255 }
+                    accessNote: { type: string, maxLength: 500, nullable: true }
+                city: { type: string, maxLength: 255, description: Aceptada por compatibilidad; se ignora y se deriva de `siteAddress.city`. }
                 leadEmployeeId:
                   description: "Véase GET /employees. Los ids de los recursos viajan como string, así que se aceptan entero o string numérico."
                   oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
@@ -208,8 +256,41 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Code"
       responses:
-        "200": { description: OK }
+        "200": { description: "OK — incluye `siteAddress` (nullable en proyectos anteriores a KNX-51)" }
         "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [projects]
+      summary: Edita la cabecera del proyecto (nombre, responsable, plazo y dirección de obra)
+      description: >-
+        Actualización parcial: sólo se toca lo que viene. `siteAddress`, si viene, reemplaza el bloque
+        completo (sus tres campos son obligatorios juntos) y su `city` se copia a la columna `city`
+        del proyecto.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 255 }
+                leadEmployeeId:
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }, { type: "null" }]
+                deadline: { type: string, format: date, nullable: true }
+                siteAddress:
+                  type: object
+                  required: [street, postalCode, city]
+                  properties:
+                    street: { type: string, maxLength: 255 }
+                    postalCode: { type: string, maxLength: 16 }
+                    city: { type: string, maxLength: 255 }
+                    accessNote: { type: string, maxLength: 500, nullable: true }
+            example: { name: "Den Brand — fase 2", siteAddress: { street: "Heidebloemstraat 14", postalCode: "2400", city: "Mol" } }
+      responses:
+        "200": { description: "Proyecto ya actualizado, misma forma que el GET" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /projects/{code}/stats:
     get:
       tags: [projects]
@@ -218,6 +299,114 @@ paths:
         - $ref: "#/components/parameters/Code"
       responses:
         "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  # KNX-44 — la habitación canónica. El nombre que crea la oficina manda; ETS, el
+  # worklist y el plano entran como `aliases`. Zona = habitación: toda habitación nace
+  # con su zona y sus ocho checks, por cualquier vía que se cree.
+  /projects/{code}/rooms:
+    get:
+      tags: [rooms]
+      summary: Habitaciones canónicas del proyecto, con sus alias y su zona
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                - id: "31"
+                  name: "Polyvalente ruimte"
+                  floor: "Gelijkvloers"
+                  zoneId: "14"
+                  aliases:
+                    - { source: "worklist", name: "Polyvalente ruimte" }
+                    - { source: "ets", name: "polyvalente_ruimte" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [rooms]
+      summary: Crea una habitación y su zona con los ocho checks
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 255, nullable: true }
+                aliases:
+                  type: array
+                  items:
+                    type: object
+                    required: [source, name]
+                    properties:
+                      source: { type: string, enum: [ets, worklist, plan, manual] }
+                      name: { type: string, maxLength: 255 }
+      responses:
+        "201": { description: "Creada — mismo `Room` que las lecturas" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /rooms/{id}:
+    patch:
+      tags: [rooms]
+      summary: Edita una habitación (`aliases` reemplaza el conjunto)
+      description: >-
+        Ruta por id sin proyecto: resuelve a través del proyecto de la habitación y de la
+        organización, así que una habitación de otra organización responde 404 igual que una
+        inexistente.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 255, nullable: true }
+                aliases:
+                  type: array
+                  items:
+                    type: object
+                    required: [source, name]
+                    properties:
+                      source: { type: string, enum: [ets, worklist, plan, manual] }
+                      name: { type: string, maxLength: 255 }
+      responses:
+        "200": { description: "Habitación ya actualizada, con su `zoneId`" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/rooms/{id}/sheet:
+    get:
+      tags: [rooms]
+      summary: Ficha de habitación (todo lo que la oficina muestra al hacer clic)
+      description: >-
+        Un solo payload en vez de seis llamadas. `zone` trae sus ocho checks y su estado derivado, o
+        `null` si la habitación no tiene zona. `intents` y `photos` son secciones reales del contrato
+        (KNX-55 / KNX-26) cuyas tablas todavía no existen: hoy viajan como `[]` para que el front
+        construya la pantalla, y se llenan cuando esas rebanadas entren.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                room: { id: "31", name: "Polyvalente ruimte", floor: "Gelijkvloers", zoneId: "14", aliases: [] }
+                zone: { id: "14", roomId: "31", name: "Polyvalente ruimte", status: "in_progress", checks: [] }
+                devices: []
+                boardLinks: []
+                intents: []
+                functions: []
+                issues: []
+                photos: []
         "404": { $ref: "#/components/responses/NotFound" }
   /projects/{code}/devices:
     get:
@@ -264,14 +453,16 @@ paths:
   /projects/{code}/boards:
     get:
       tags: [boards]
-      summary: Cuadros del proyecto con módulos, canales y enlaces
+      summary: Cuadros del proyecto con módulos, canales y enlaces, con procedencia
       description: >-
-        `boards[].id` es la identidad externa del cuadro (el slug del worklist,
-        o su código corto si lo creó campo) y es **la misma cadena que lleva el
-        `boardId` de un marcador**. Cada módulo lleva `slot` (su posición en el
-        cuadro) porque el worklist sólo trae el número de pedido. El enlace
-        `(canal, habitación, objeto, GA)` es el hecho; ningún canal sirve a más
-        de una habitación.
+        `boards[].id` es la identidad externa del cuadro (el slug del worklist, o el que
+        derivó el servidor si lo creó oficina) y es **la misma cadena que lleva el `boardId`
+        de un marcador**. Cada módulo lleva `slot` (su posición en el cuadro). El enlace
+        `(canal, habitación, objeto, GA)` es el hecho; ningún canal sirve a más de una
+        habitación. `roomId` es la habitación resuelta por nombre o alias: `null` cuando el
+        texto no casó, y queda visible con su texto original. `origin`
+        (`import`/`office`/`field`) y `reviewState` (`confirmed`/`unreviewed`) dicen quién lo
+        escribió y si la oficina lo revisó; `updatedBy`/`updatedAt` lo completan.
       parameters:
         - $ref: "#/components/parameters/Code"
       responses:
@@ -283,15 +474,223 @@ paths:
                 projectCode: "000026"
                 boards:
                   - id: "caja-2-bord-dagbesteding-gelijkvloers-glv"
+                    code: "caja-2"
                     name: "Caja 2 - Bord dagbesteding gelijkvloers (GLV)"
                     floor: "gelijkvloers"
+                    origin: "import"
+                    reviewState: "confirmed"
+                    updatedBy: null
+                    updatedAt: "2026-10-05T14:00:00+02:00"
                     modules:
                       - device: "DG/S1.64.1.1"
                         slot: 2
+                        origin: "import"
+                        reviewState: "confirmed"
+                        updatedBy: null
+                        updatedAt: "2026-10-05T14:00:00+02:00"
                         channels:
                           - channel: "A"
                             links:
-                              - { room: "Polyvalente ruimte", object: "Schakelen (Cmd)", role: "dim_switch_cmd", ga: "2/2/1", gaName: "L-GLV-Dagbesteding-Polyvalente-Cmd", dpt: "DPST-1-1" }
+                              - { roomId: "31", room: "Polyvalente ruimte", object: "Schakelen (Cmd)", role: "dim_switch_cmd", ga: "2/2/1", gaName: "L-GLV-Dagbesteding-Polyvalente-Cmd", dpt: "DPST-1-1" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [boards]
+      summary: Alta de cuadro desde oficina
+      description: >-
+        El servidor deriva el `id` (el slug del nombre) y lo devuelve; nace `origin: office`
+        y `reviewState: confirmed`. Una reimportación no pisa un cuadro escrito a mano.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name]
+              properties:
+                code: { type: string, maxLength: 32 }
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 64, nullable: true }
+      responses:
+        "201": { description: "Creado — mismo `Board` que las lecturas" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/boards/{boardId}:
+    patch:
+      tags: [boards]
+      summary: Edita un cuadro
+      description: >-
+        `boardId` es el `id` estable del cuadro (el slug). Renombrar NO cambia el slug: es la
+        identidad que apunta un marcador. La edición deja `origin: office` y
+        `reviewState: confirmed`, y a partir de ahí una reimportación no lo pisa.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string, maxLength: 32 }
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 64, nullable: true }
+      responses:
+        "200": { description: "Cuadro ya actualizado" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/boards/{boardId}/modules:
+    post:
+      tags: [boards]
+      summary: Añade un módulo a un cuadro
+      description: Un `slot` ocupado responde `409 slot_taken` con el módulo que lo ocupa.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device, slot]
+              properties:
+                device: { type: string, maxLength: 64 }
+                slot: { type: integer, minimum: 1 }
+      responses:
+        "201": { description: "Módulo creado" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: El slot ya está ocupado
+          content:
+            application/json:
+              example: { message: "Slot 2 is already taken on this board.", code: slot_taken, errors: { slot: ["Slot 2 is already taken on this board."] }, module: { device: "SA/S8.16.2.2", slot: 2 } }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/boards/{boardId}/modules/{slot}:
+    patch:
+      tags: [boards]
+      summary: Edita el módulo de un slot
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device: { type: string, maxLength: 64 }
+      responses:
+        "200": { description: "Módulo actualizado" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [boards]
+      summary: Quita un módulo del cuadro
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "204": { description: Quitado }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/boards/{boardId}/modules/{slot}/channels/{channel}/links:
+    put:
+      tags: [boards]
+      summary: Reemplaza los enlaces de un canal (idempotente)
+      description: >-
+        `roomId` es obligatorio aquí: escribir a mano un enlace es haber resuelto la
+        habitación. `links` reemplaza el conjunto de ESA terna; el cuerpo vacío es válido.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - name: channel
+          in: path
+          required: true
+          schema: { type: string, maxLength: 8 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [links]
+              properties:
+                links:
+                  type: array
+                  items:
+                    type: object
+                    required: [roomId, object, role, ga, gaName, dpt]
+                    properties:
+                      roomId: { type: string }
+                      room: { type: string, maxLength: 150, nullable: true }
+                      object: { type: string, maxLength: 150 }
+                      role: { type: string, maxLength: 64 }
+                      ga: { type: string, maxLength: 32 }
+                      gaName: { type: string, maxLength: 255 }
+                      dpt: { type: string, maxLength: 32 }
+      responses:
+        "200": { description: "Canal ya actualizado con sus enlaces" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/boards/{boardId}/confirm:
+    post:
+      tags: [boards]
+      summary: "La oficina confirma el cuadro (pasa a `reviewState: confirmed`)"
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: "Cuadro ya confirmado" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{code}/boards/{boardId}/modules/{slot}/confirm:
+    post:
+      tags: [boards]
+      summary: "La oficina confirma un módulo (pasa a `reviewState: confirmed`)"
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: "Módulo ya confirmado" }
         "404": { $ref: "#/components/responses/NotFound" }
   /projects/{code}/functions:
     get:
@@ -379,6 +778,7 @@ paths:
                 file: { type: string, format: binary }
                 project: { type: string, description: Código de proyecto }
                 kind: { type: string, maxLength: 40, description: "Plan, Schema, ETS, Keuring, Foto's…" }
+                floor: { type: string, maxLength: 64, nullable: true, description: "La planta del plano, como las habitaciones del proyecto (KNX-47)." }
                 revision: { type: string, maxLength: 20 }
                 supersedes:
                   description: Id del documento al que reemplaza (mismo proyecto). Entero o string numérico.
@@ -408,6 +808,27 @@ paths:
       responses:
         "200": { description: OK }
         "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [documents]
+      summary: Corrige la planta de un plano ya subido
+      description: >-
+        Sólo la planta. Se sube a menudo antes de saber en qué nivel va el plano, y corregirlo no
+        debería obligar a subir otra revisión. Un `null` la borra.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [floor]
+              properties:
+                floor: { type: string, maxLength: 64, nullable: true }
+      responses:
+        "200": { description: "Documento ya actualizado (mismo `DocumentFile`)" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /documents/{id}/download:
     get:
       tags: [documents]
@@ -500,6 +921,93 @@ paths:
                 markers: [{ boardId: "caja-1-alsb-leefgroep-gelijkvloers-glv", nx: 0.31, ny: 0.44 }]
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/plans/{documentId}/rooms:
+    get:
+      tags: [plans]
+      summary: Modelo de habitaciones de una página de un plano (geometría opaca)
+      description: >-
+        El conjunto cuelga del documento (una revisión) y de una página, nunca del proyecto. La
+        geometría es dato opaco: el servidor no parsea el PDF. `proposalStatus` es `none` hasta que
+        KNX-48 añada la extracción.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200":
+          description: OK — un conjunto vacío es el estado normal tras subir
+          content:
+            application/json:
+              example:
+                documentId: "89"
+                revision: "Rev. H"
+                page: 1
+                pageWidthPt: 4309.0
+                pageHeightPt: 2591.0
+                proposalStatus: "none"
+                rooms:
+                  - roomId: "31"
+                    polygon: [[0.31, 0.44], [0.42, 0.44], [0.42, 0.55], [0.31, 0.55]]
+                    labelAt: [0.365, 0.495]
+                    areaM2: 137.0
+                    source: "manual"
+                    state: "confirmed"
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [plans]
+      summary: Reemplaza el modelo de habitaciones de una página (idempotente)
+      description: >-
+        `rooms` es `present|array`: la clave es obligatoria pero puede venir vacía (limpiar la página
+        es válido, la misma lección de KNX-18). `roomId` es `distinct` dentro del cuerpo.
+        `carryOverFrom` copia como base el conjunto de la MISMA página del documento origen y lo
+        copiado vuelve a `proposed`: es un punto de partida, no una confirmación heredada.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [page, rooms]
+              properties:
+                page: { type: integer, minimum: 1 }
+                pageWidthPt: { type: number, nullable: true }
+                pageHeightPt: { type: number, nullable: true }
+                carryOverFrom:
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
+                rooms:
+                  type: array
+                  maxItems: 500
+                  items:
+                    type: object
+                    required: [roomId, polygon, source, state]
+                    properties:
+                      roomId: { type: string, description: "Id de una habitación del proyecto; `distinct` dentro del conjunto." }
+                      polygon:
+                        type: array
+                        minItems: 3
+                        items:
+                          type: array
+                          minItems: 2
+                          maxItems: 2
+                          items: { type: number, minimum: 0, maximum: 1 }
+                      labelAt:
+                        type: array
+                        nullable: true
+                        minItems: 2
+                        maxItems: 2
+                        items: { type: number, minimum: 0, maximum: 1 }
+                      areaM2: { type: number, nullable: true }
+                      source: { type: string, enum: [manual, pdf, dwg] }
+                      state: { type: string, enum: [proposed, confirmed] }
+      responses:
+        "200": { description: "El conjunto resultante, misma forma que el GET" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /exports/{id}/download:
     get:
       tags: [reports]
@@ -579,10 +1087,19 @@ paths:
     get:
       tags: [conflicts]
       summary: Conflictencentrum; `status=active` = open + in_review
+      description: >-
+        Cambio de KNX-56: cada conflicto lleva `lifecycle` (`ets` | `malfunction`). `ets` es
+        el ciclo de 8 estados de siempre, libre y reversible. `malfunction` es la incidencia
+        de la instalación física: `open → diagnosing → resolved → verified`, con `rejected`
+        como salida. El `symptom` describe lo que hace mal el elemento; en un conflicto ETS
+        ese papel lo ocupa `proposal`. El histórico añade `by` y `note` a quien ejecutó el paso.
       parameters:
         - name: status
           in: query
           schema: { type: string, enum: [open, in_review, ets_listed, applied, downloaded, verified, closed, rejected, active, all] }
+        - name: lifecycle
+          in: query
+          schema: { type: string, enum: [ets, malfunction] }
         - name: project
           in: query
           schema: { type: string }
@@ -591,10 +1108,11 @@ paths:
           schema: { type: string }
       responses:
         "200": { description: OK }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /conflicts/{id}:
     get:
       tags: [conflicts]
-      summary: Detalle de conflicto con su histórico append-only
+      summary: Detalle de conflicto con su histórico append-only, su `lifecycle` y su `symptom`
       parameters:
         - $ref: "#/components/parameters/Id"
       responses:
@@ -602,9 +1120,24 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
     patch:
       tags: [conflicts]
-      summary: Cambia el estado (cada cambio escribe una línea de histórico)
+      summary: Cambia el estado; cada cambio escribe una línea de histórico con autor (`by`)
+      description: >-
+        Para `lifecycle: ets` no hay máquina de estados: toda transición es reversible. Para
+        `lifecycle: malfunction` la transición se valida (`open → diagnosing → resolved →
+        verified`, `rejected` como salida) y una no permitida responde `422` en
+        `errors.status`. `note` viaja a la línea de histórico.
       parameters:
         - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string }
+                proposal: { type: string, nullable: true }
+                note: { type: string, nullable: true }
       responses:
         "200": { description: OK }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -613,6 +1146,7 @@ paths:
           content:
             application/json:
               example: { message: "The address [1.1.133] is already in use.", code: address_in_use, errors: { proposal: ["The address [1.1.133] is already in use."] } }
+        "422": { $ref: "#/components/responses/ValidationError" }
   /zones:
     get:
       tags: [zones]
@@ -649,15 +1183,61 @@ paths:
   /notifications:
     get:
       tags: [notifications]
-      summary: "Bandeja de campo (incluye las ya confirmadas con `acked: true`)"
+      summary: "Avisos de la bandeja, generalizados por `kind` (incluye los confirmados con `acked: true`)"
+      description: >-
+        Cambio de KNX-54: la fila es un aviso tipado. `kind` dice qué pasó; `title`/`summary`
+        son la línea humana; `actor` y `target` dicen quién lo hizo y sobre qué. Los campos viejos
+        de la registración (`address`, `type`, `room`, `board`, `boardName`, `serial`, `reportedBy`,
+        `reportedAt`) siguen presentes: es compatible hacia atrás.
+      parameters:
+        - name: kind
+          in: query
+          schema:
+            type: string
+            enum: [device_registered, board_created, module_added, module_changed, address_conflict, intent_changed, issue_reported, malfunction_reported, malfunction_status_changed, visit_closed]
+        - name: project
+          in: query
+          schema: { type: string }
+        - name: unacked
+          in: query
+          schema: { type: boolean }
       responses:
-        "200": { description: OK }
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                - id: "44"
+                  kind: "board_created"
+                  projectCode: "000026"
+                  title: "Nieuw verdeelbord gemeld"
+                  summary: "Nieuw verdeelbord (werf)"
+                  roomId: null
+                  boardId: "nieuw-verdeelbord-werf"
+                  moduleSlot: null
+                  deviceId: null
+                  issueId: null
+                  actor: { id: "115", name: "J. Van Dyck" }
+                  target: { type: "board", id: "nieuw-verdeelbord-werf" }
+                  capturedAt: "2026-10-08T09:00:00Z"
+                  receivedAt: "2026-10-08T09:00:04Z"
+                  acked: false
+                  address: null
+                  type: null
+                  room: null
+                  board: "E77"
+                  boardName: "Nieuw verdeelbord (werf)"
+                  serial: null
+                  projectName: "Den Brand"
+                  reportedBy: "J. Van Dyck"
+                  reportedAt: "2026-10-08T09:00:04Z"
+        "422": { $ref: "#/components/responses/ValidationError" }
   /notifications/ack-all:
     post:
       tags: [notifications]
       summary: Confirma todas las pendientes (idempotente)
       responses:
-        "200": { description: OK }
+        "204": { description: Sin contenido — confirmadas }
   /notifications/{id}/ack:
     post:
       tags: [notifications]
@@ -665,7 +1245,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Id"
       responses:
-        "200": { description: OK }
+        "204": { description: Sin contenido — confirmada }
         "404": { $ref: "#/components/responses/NotFound" }
   /reports/exports:
     get:
@@ -698,6 +1278,8 @@ paths:
         `text/event-stream`. Autenticación por Bearer, no por query: por eso el
         `EventSource` nativo no sirve y el front lee el stream con `fetch()`.
         La conexión se cierra sola (55 s por defecto) y el navegador reconecta.
+        Los eventos de aviso llevan el mismo `kind` que `GET /notifications`, así el
+        cliente rutea el aviso sin una segunda consulta (KNX-54).
       responses:
         "200":
           description: Stream abierto
@@ -745,6 +1327,111 @@ paths:
       responses:
         "200": { description: OK }
         "403": { description: Proyecto no asignado hoy }
+  /field/projects/{code}/boards:
+    get:
+      tags: [field]
+      summary: Los cuadros reales del proyecto, para que el registro no use los de la maqueta
+      description: >-
+        Misma forma que el listado de oficina (cuadros con módulos, canales y enlaces, y `roomId`
+        resuelto por enlace). Hoy `/boards` responde `401` con un token de campo porque vive detrás
+        del guard de oficina; esta es la lectura que el registro necesita.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: "OK — `boards: []` es un estado real (worklist sin importar)" }
+        "403": { description: Proyecto no asignado hoy }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [field]
+      summary: Crea un cuadro desde obra (idempotente por `clientId`, nace `unreviewed`)
+      description: >-
+        El servidor deriva el `id` (el slug) y lo devuelve. Nace `origin: field` y
+        `reviewState: unreviewed`: la oficina lo confirma. Un reintento con el mismo `clientId`
+        devuelve el mismo cuadro (`200`); la misma clave en otro proyecto es `422`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, code, name, capturedAt]
+              properties:
+                clientId: { type: string, maxLength: 64 }
+                code: { type: string, maxLength: 32 }
+                name: { type: string, maxLength: 255 }
+                floor: { type: string, maxLength: 64, nullable: true }
+                photoDataUrl: { type: string, nullable: true }
+                capturedAt: { type: string, format: date-time }
+      responses:
+        "201": { description: "Cuadro creado — `origin: field`, `reviewState: unreviewed`" }
+        "200": { description: "Reintento del mismo `clientId` — mismo cuadro" }
+        "403": { description: Proyecto no asignado hoy }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /field/projects/{code}/boards/{boardId}/modules:
+    post:
+      tags: [field]
+      summary: Añade un módulo desde obra (idempotente por `clientId`, nace `unreviewed`)
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: path
+          required: true
+          description: El `id` estable del cuadro que devuelve `GET /field/projects/{code}/boards`.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [clientId, device, slot, capturedAt]
+              properties:
+                clientId: { type: string, maxLength: 64 }
+                device: { type: string, maxLength: 64 }
+                slot: { type: integer, minimum: 1 }
+                photoDataUrl: { type: string, nullable: true }
+                capturedAt: { type: string, format: date-time }
+      responses:
+        "201": { description: "Módulo creado — `origin: field`, `reviewState: unreviewed`" }
+        "200": { description: Reintento del mismo `clientId` }
+        "403": { description: Proyecto no asignado hoy }
+        "409":
+          description: El slot ya está ocupado
+          content:
+            application/json:
+              example: { message: "Slot 2 is already taken on this board.", code: slot_taken, errors: { slot: ["Slot 2 is already taken on this board."] }, module: { device: "SA/S8.16.2.2", slot: 2 } }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /field/projects/{code}/rooms:
+    get:
+      tags: [field]
+      summary: Fichas de habitación de todo el proyecto, para cachear sin red
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200":
+          description: "OK — mismo `RoomSheet` que la ficha de oficina"
+        "403": { description: Proyecto no asignado hoy }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /field/projects/{code}/plans/{documentId}/model:
+    get:
+      tags: [field]
+      summary: Modelo de plano cacheable (sólo habitaciones confirmadas + marcadores de esa página)
+      description: >-
+        Deliberadamente reducido: sólo las habitaciones en `state: confirmed` y los marcadores de
+        cuadro de esa página. Lo `proposed` no viaja a obra: el técnico no debe leer como verdad una
+        propuesta que la oficina todavía no revisó.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - $ref: "#/components/parameters/DocumentId"
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        "200": { description: OK }
+        "403": { description: Proyecto no asignado hoy }
+        "404": { $ref: "#/components/responses/NotFound" }
   /field/projects/{code}/devices:
     get:
       tags: [field]
@@ -780,13 +1467,24 @@ paths:
                 roomName: { type: string, nullable: true, maxLength: 150 }
                 floor: { type: string, nullable: true, maxLength: 100 }
                 boardCode: { type: string, nullable: true, maxLength: 32 }
+                boardId: { type: string, nullable: true, maxLength: 128, description: "El `id` estable del cuadro (KNX-53); debe ser del proyecto." }
+                moduleSlot: { type: integer, nullable: true, description: "El slot del módulo dentro del cuadro (KNX-53)." }
+                channel: { type: string, nullable: true, maxLength: 8, description: "El canal dentro del módulo (KNX-53)." }
                 serial: { type: string, nullable: true, maxLength: 64 }
                 note: { type: string, nullable: true, maxLength: 1000 }
                 photoDataUrl: { type: string, nullable: true }
                 capturedAt: { type: string, format: date-time }
       responses:
-        "201": { description: Aparato creado }
-        "200": { description: Reintento del mismo `clientId` — mismo aparato }
+        "201":
+          description: Aparato creado
+          content:
+            application/json:
+              example: { id: "88", address: "1.1.131", type: "SA/S8.16.2.1", roomName: "Inkomhal", boardCode: "E10", serial: "", registeredBy: "J. Van Dyck", registeredAt: "2026-10-06T09:42:00+02:00" }
+        "200":
+          description: Reintento del mismo `clientId` — mismo aparato
+          content:
+            application/json:
+              example: { id: "88", address: "1.1.131", type: "SA/S8.16.2.1", roomName: "Inkomhal", boardCode: "E10", serial: "", registeredBy: "J. Van Dyck", registeredAt: "2026-10-06T09:42:00+02:00" }
         "403": { description: Proyecto no asignado hoy }
         "409":
           description: Dirección ocupada
@@ -798,7 +1496,12 @@ paths:
     post:
       tags: [field]
       summary: Reporta una incidencia desde obra (idempotente por `clientId`)
-      description: Una incidencia **es** un conflicto con el `kind` mapeado a los tipos de oficina y el contexto conservado en `device_field`.
+      description: >-
+        Una incidencia **es** un conflicto con el `kind` mapeado a los tipos de oficina y el
+        contexto conservado en `device_field`. KNX-56 añade `kind: malfunction` (la instalación
+        física que no funciona, distinto de dañado o falta), su `symptom` obligatorio, y los
+        ids opcionales `roomId`/`deviceId`/`boardId`/`moduleSlot`; `room`/`deviceAddress`/`boardCode`
+        siguen valiendo. Un `malfunction` nace con `lifecycle: malfunction` y avisa al momento.
       parameters:
         - $ref: "#/components/parameters/Code"
       requestBody:
@@ -811,20 +1514,158 @@ paths:
               properties:
                 clientId: { type: string, maxLength: 64 }
                 projectCode: { type: string }
-                kind: { type: string, enum: [damaged, missing, plan_mismatch, other] }
-                roomId: { type: string, nullable: true }
-                roomName: { type: string, nullable: true }
+                projectName: { type: string, nullable: true }
+                kind: { type: string, enum: [damaged, missing, plan_mismatch, other, malfunction] }
+                symptom: { type: string, nullable: true, description: "Obligatorio cuando `kind: malfunction`: qué hace mal el elemento." }
+                room: { type: string, nullable: true }
+                roomId: { type: integer, nullable: true }
+                deviceAddress: { type: string, nullable: true }
+                deviceId: { type: integer, nullable: true }
                 boardCode: { type: string, nullable: true }
+                boardId: { type: string, nullable: true }
+                moduleSlot: { type: integer, nullable: true }
                 channel: { type: string, nullable: true }
-                address: { type: string, nullable: true }
                 note: { type: string, nullable: true }
                 photoDataUrl: { type: string, nullable: true }
                 capturedAt: { type: string, format: date-time }
       responses:
-        "201": { description: Conflicto creado }
-        "200": { description: Reintento del mismo `clientId` }
+        "201":
+          description: Conflicto creado
+          content:
+            application/json:
+              example: { id: "16", clientId: "6f1c9d2e-3a44-4b1e-9c7f-2f0a8e5d1b3c" }
+        "200":
+          description: Reintento del mismo `clientId`
+          content:
+            application/json:
+              example: { id: "16", clientId: "6f1c9d2e-3a44-4b1e-9c7f-2f0a8e5d1b3c" }
         "403": { description: Proyecto no asignado hoy }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/issues:
+    post:
+      tags: [conflicts]
+      summary: La oficina abre una incidencia (KNX-56)
+      description: >-
+        Misma incidencia que la de campo, sin `clientId` (no hay reintento offline). El objetivo es
+        opcional: `roomId`, `deviceId`, `boardId`, `moduleSlot`, `channel`. `kind: malfunction` crea
+        un conflicto con `lifecycle: malfunction` y su `symptom`, y **siempre** avisa al momento
+        (`kind: malfunction_reported`); el resto de `kind` sigue creando un conflicto ETS.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind]
+              properties:
+                kind: { type: string, enum: [damaged, missing, plan_mismatch, other, malfunction] }
+                symptom: { type: string, nullable: true, description: "Obligatorio cuando `kind: malfunction`." }
+                roomId: { type: integer, nullable: true }
+                deviceId: { type: integer, nullable: true }
+                boardId: { type: string, nullable: true }
+                moduleSlot: { type: integer, nullable: true }
+                channel: { type: string, nullable: true }
+                note: { type: string, nullable: true }
+                photoDataUrl: { type: string, nullable: true }
+      responses:
+        "201":
+          description: Incidencia creada
+          content:
+            application/json:
+              example: { id: "17", lifecycle: malfunction, type: malfunction, status: open, symptom: "Gaat niet aan." }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /projects/{code}/intents:
+    get:
+      tags: [intents]
+      summary: Intenciones vigentes del proyecto, filtrables por elemento o habitación
+      description: >-
+        La intención es qué debería hacer un elemento, escrita por el jefe de proyecto y versionada
+        (KNX-55). Un mismo elemento tiene una sola intención vigente; el historial vive en
+        `GET /intents/{id}/versions`. `target.type` ∈ `module` (`boardId`+`slot`), `channel`
+        (`boardId`+`slot`+`channel`) o `device` (`deviceId`).
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: boardId
+          in: query
+          schema: { type: string }
+        - name: slot
+          in: query
+          schema: { type: integer }
+        - name: deviceId
+          in: query
+          schema: { type: integer }
+        - name: roomId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [intents]
+      summary: Escribe la intención de un elemento (upsert por `target`, versiona)
+      description: >-
+        `target` es la clave, así que el front no arrastra un id entre llamadas. Si ya hay intención
+        para ese elemento se crea una versión nueva y la anterior queda en el historial; un `PUT`
+        que no cambia nada devuelve la vigente sin subir versión. Cada cambio genera un aviso
+        `intent_changed`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target, text]
+              properties:
+                target:
+                  type: object
+                  required: [type]
+                  properties:
+                    type: { type: string, enum: [module, channel, device] }
+                    boardId: { type: string, nullable: true }
+                    slot: { type: integer, nullable: true }
+                    channel: { type: string, nullable: true }
+                    deviceId: { type: integer, nullable: true }
+                text: { type: string, maxLength: 5000 }
+                roomId: { type: integer, nullable: true }
+                functionId: { type: integer, nullable: true }
+      responses:
+        "200":
+          description: Intención vigente, con su `version` incrementada
+          content:
+            application/json:
+              example: { id: "12", target: { type: module, boardId: E10, slot: 3, channel: null, deviceId: null }, roomId: "510", functionId: null, text: "Schakelt de gang met aanwezigheid.", version: 2, author: { id: "113", name: "L. Smet" }, updatedAt: "2026-10-09T15:00:00Z" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /intents/{id}/versions:
+    get:
+      tags: [intents]
+      summary: Todas las versiones de una intención, la última primero
+      description: >-
+        Ruta por id sin proyecto: resuelve por el proyecto de la intención y la organización.
+        Otra organización responde `404`.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: OK }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /field/projects/{code}/intents:
+    get:
+      tags: [field]
+      summary: Intenciones del proyecto, para cachear sin red (KNX-55)
+      description: >-
+        El campo las lee, también sin conexión. Escribir desde obra sigue `pending-decision`: la
+        ruta no existe y una llamada responde `404`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      responses:
+        "200": { description: OK }
+        "403": { description: Proyecto no asignado hoy }
+        "404": { $ref: "#/components/responses/NotFound" }
   /field/projects/{code}/visits:
     post:
       tags: [field]
@@ -856,8 +1697,16 @@ paths:
                 documents: { type: array, items: { type: string } }
                 capturedAt: { type: string, format: date-time }
       responses:
-        "201": { description: Cierre registrado }
-        "200": { description: Reintento del mismo `clientId` }
+        "201":
+          description: Cierre registrado
+          content:
+            application/json:
+              example: { id: "12", clientId: "b2e5a1c4-77d0-4f39-8a2e-1c9d3b6f4e08" }
+        "200":
+          description: Reintento del mismo `clientId`
+          content:
+            application/json:
+              example: { id: "12", clientId: "b2e5a1c4-77d0-4f39-8a2e-1c9d3b6f4e08" }
         "403": { description: Proyecto no asignado hoy }
         "422": { $ref: "#/components/responses/ValidationError" }
 components:

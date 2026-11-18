@@ -41,3 +41,24 @@ Reglas:
 - Archivos en UTF-8 limpio.
 - Presenta plan antes de editar.
 - Espera GO antes de implementar.
+
+---
+
+## Cierre de cada ticket KNX (obligatorio)
+
+Un ticket de Linear puede repartirse entre varios repos (backend, Kantoor, Veld). Cerrás solo TU parte:
+- Si el ticket es solo de tu repo: pasalo a Done con el hash.
+- Si lo comparte otro repo (título o descripción nombran Kantoor/Veld/oficina/campo, o otro repo
+  todavía tiene trabajo): NO lo pases a Done. Dejá un comentario "Parte <repo> hecha: <hashes>"
+  y que lo cierre el último repo que termine, tras la aceptación del ticket.
+
+Guardá en Engram una observación con título `KNX cierre: <KNX-NN> [<repo>] <resumen corto>`
+(`<repo>` = backend | kantoor | veld) y este cuerpo:
+- **Qué**: lo implementado, en 1–3 líneas.
+- **Dónde**: repo, rama y hashes de los commits.
+- **Verificación**: resultado crudo de los checks, una línea por check (mock o :8002).
+- **Decisiones**: decisiones tomadas o pedidas al dueño (o "ninguna").
+- **Pendiente**: lo que queda abierto en tu repo o en otros (o "nada").
+- **Linear**: "Done" o "comentado, sigue abierto por <repo>".
+
+No edites nada dentro de `~/knx/orquestador/`: lo mantiene el orquestador con el dueño.

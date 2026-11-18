@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
 use Modules\Knx\Database\Factories\KnxProjectFactory;
+use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
 
 /**
  * An installation project. Addressed by `code` ("C1618"), unique per tenant —
@@ -33,6 +33,10 @@ class KnxProject extends Model
         'code',
         'name',
         'city',
+        'site_street',
+        'site_postal_code',
+        'site_city',
+        'site_access_note',
         'lead_employee_id',
         'devices_planned',
         'devices_done',
@@ -59,6 +63,27 @@ class KnxProject extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(KnxClient::class, 'client_id');
+    }
+
+    /**
+     * The structured site address of the contract (KNX-51), or null for a project
+     * created before the address existed. Null means "we never had one", never a
+     * half-filled block: the office sets the four columns together.
+     *
+     * @return array{street: string|null, postalCode: string|null, city: string|null, accessNote: string|null}|null
+     */
+    public function siteAddress(): ?array
+    {
+        if ($this->site_street === null && $this->site_postal_code === null && $this->site_city === null && $this->site_access_note === null) {
+            return null;
+        }
+
+        return [
+            'street' => $this->site_street,
+            'postalCode' => $this->site_postal_code,
+            'city' => $this->site_city,
+            'accessNote' => $this->site_access_note,
+        ];
     }
 
     /** The project lead (Kantoor shows `lead` as a short name, e.g. "L. Smet"). */

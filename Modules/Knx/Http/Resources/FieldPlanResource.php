@@ -32,11 +32,16 @@ class FieldPlanResource extends KnxResource
             'projectCode' => $document->project->code,
             'name' => $document->name,
             'kind' => $document->kind,
+            // The level the plan belongs to (KNX-47): the technician picks the right
+            // sheet before downloading it for offline use.
+            'floor' => $document->floor,
             'revision' => $document->revision,
             'mimeType' => $document->resolvedMimeType(),
             'url' => $this->signedUrl(),
             'sizeBytes' => (int) ($document->size_bytes ?? 0),
             'pages' => (int) ($document->pages ?? 1),
+            // False when a later revision superseded it (KNX-47).
+            'isCurrent' => (bool) $document->is_current,
         ];
     }
 

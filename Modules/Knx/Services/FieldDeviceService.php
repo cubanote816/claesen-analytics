@@ -113,12 +113,15 @@ class FieldDeviceService
         Carbon $capturedAt,
     ): KnxDevice {
         return DB::transaction(function () use ($technician, $project, $room, $input, $photoPath, $capturedAt): KnxDevice {
-            $board = $this->boardFor($project, $input['boardCode'] ?? null);
+            $board = $this->boardForInput($project, $input);
 
             $device = KnxDevice::create([
                 'project_id' => $project->getKey(),
                 'room_id' => $room->getKey(),
                 'board_id' => $board?->getKey(),
+                // The place inside the cabinet, when the app knows it (KNX-53).
+                'module_slot' => $input['moduleSlot'] ?? null,
+                'channel' => $input['channel'] ?? null,
                 'type' => $input['type'],
                 'address' => $input['address'],
                 'serial' => $input['serial'] ?? null,
@@ -139,14 +142,21 @@ class FieldDeviceService
                 'project_id' => $project->getKey(),
                 'device_id' => $device->getKey(),
                 'board_id' => $board?->getKey(),
-                // The notification mirrors the device (type, address, room, serial):
-                // the inbox row is the event, and it reads like the registration.
+                'room_id' => $room->getKey(),
+                // KNX-54: the event is typed now. The legacy columns stay because the
+                // inbox has read them since V11 and the row IS the registration.
+                'kind' => KnxNotification::KIND_DEVICE_REGISTERED,
                 'type' => $device->type,
+                'title' => __('knx::notifications.device_registered'),
+                'summary' => trim($device->address.' · '.$room->name, ' ·'),
                 'address' => $device->address,
                 'room' => $room->name,
                 'serial' => $device->serial,
+                'target_type' => 'device',
+                'target_id' => (string) $device->getKey(),
                 'reported_by_employee_id' => $technician->getKey(),
                 'reported_at' => $capturedAt,
+                'captured_at' => $capturedAt,
                 'acknowledged_at' => null,
             ]);
 
@@ -222,6 +232,37 @@ class FieldDeviceService
     }
 
     /**
+     * The cabinet of a registration (KNX-53).
+     *
+     * `boardId` is the stable id the app got from `GET /field/projects/{code}/boards`
+     * (the slug, or the code for a board without one): it must belong to THIS project,
+     * so an unknown or foreign id is a field error and never a silent null. `boardCode`
+     * stays for a cabinet the office has not modelled — the historical behaviour, which
+     * creates it on the fly.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private function boardForInput(KnxProject $project, array $input): ?KnxBoard
+    {
+        $boardId = $input['boardId'] ?? null;
+
+        if ($boardId !== null && trim((string) $boardId) !== '') {
+            $board = KnxBoard::query()
+                ->where('project_id', $project->getKey())
+                ->where(fn ($query) => $query->where('slug', $boardId)->orWhere('code', $boardId))
+                ->first();
+
+            if ($board === null) {
+                throw ValidationException::withMessages(['boardId' => [__('knx::field.unknown_board')]]);
+            }
+
+            return $board;
+        }
+
+        return $this->boardFor($project, $input['boardCode'] ?? null);
+    }
+
+    /**
      * Write the rejected attempt down as a conflict.
      *
      * This is the part of the contract that is easy to skip and expensive to skip: the
@@ -265,6 +306,24 @@ class FieldDeviceService
                 'at' => now(),
                 'action' => 'reported',
                 'address' => $input['address'],
+            ]);
+
+            // KNX-54: the attempt also lands in the inbox, typed. The office learns about
+            // the collision even without watching the Conflictencentrum.
+            KnxNotification::create([
+                'project_id' => $project->getKey(),
+                'device_id' => $taken->getKey(),
+                'issue_id' => $conflict->getKey(),
+                'kind' => KnxNotification::KIND_ADDRESS_CONFLICT,
+                'title' => __('knx::notifications.address_conflict'),
+                'summary' => $input['address'],
+                'address' => $input['address'],
+                'target_type' => 'conflict',
+                'target_id' => (string) $conflict->getKey(),
+                'reported_by_employee_id' => $technician->getKey(),
+                'reported_at' => Carbon::parse($input['capturedAt']),
+                'captured_at' => Carbon::parse($input['capturedAt']),
+                'acknowledged_at' => null,
             ]);
         });
     }

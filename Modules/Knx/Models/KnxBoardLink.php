@@ -24,6 +24,7 @@ class KnxBoardLink extends Model
 
     protected $fillable = [
         'module_id',
+        'room_id',
         'channel',
         'room',
         'object',
@@ -44,5 +45,15 @@ class KnxBoardLink extends Model
     public function module(): BelongsTo
     {
         return $this->belongsTo(KnxBoardModule::class, 'module_id');
+    }
+
+    /**
+     * The canonical room this link was resolved to, or null when the source's room
+     * text did not match any room (KNX-44). Null is a real, visible answer: the link
+     * still carries its original `room` string.
+     */
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(KnxProjectRoom::class, 'room_id');
     }
 }

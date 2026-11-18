@@ -12,6 +12,10 @@ use Modules\Knx\Database\Factories\KnxConflictLogFactory;
  * address *at that moment*, because the history is what becomes the ETS
  * correction worklist line.
  *
+ * `by` and `note` (KNX-56) carry who took the step and their free note. `by` is text,
+ * not an FK: the line is a frozen record of the moment, not a pointer that changes
+ * when a person is renamed.
+ *
  * No created_at/updated_at: `at` is the domain timestamp and nothing reads
  * model timestamps here.
  */
@@ -23,7 +27,7 @@ class KnxConflictLog extends Model
 
     protected $table = 'knx_conflict_logs';
 
-    protected $fillable = ['conflict_id', 'at', 'action', 'address'];
+    protected $fillable = ['conflict_id', 'at', 'action', 'by', 'address', 'note'];
 
     protected static function newFactory(): KnxConflictLogFactory
     {

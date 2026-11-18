@@ -12,8 +12,10 @@ use Modules\Knx\Database\Seeders\KnxDemoSeeder;
 use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxDevice;
 use Modules\Knx\Models\KnxEmployee;
+use Modules\Knx\Models\KnxNotification;
 use Modules\Knx\Models\KnxPlanningAssignment;
 use Modules\Knx\Models\KnxProject;
+use Modules\Knx\Services\KnxNoticeMailer;
 use Tests\TestCase;
 
 /**
@@ -338,5 +340,72 @@ final class KnxFieldIssueTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         $this->report()->assertUnauthorized()->assertJsonPath('code', 'unauthenticated');
+    }
+
+    public function test_reporting_an_incident_lands_in_the_inbox_as_issue_reported(): void
+    {
+        $this->planToday('Jan Van Dyck');
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $this->report()->assertCreated();
+
+        $notification = KnxNotification::query()
+            ->where('kind', KnxNotification::KIND_ISSUE_REPORTED)
+            ->sole();
+
+        $this->assertSame('conflict', $notification->target_type);
+        $this->assertNotNull($notification->issue_id);
+        $this->assertSame('J. Van Dyck', $notification->reportedBy->shortName());
+    }
+
+    public function test_a_malfunction_needs_its_symptom_and_warns_immediately(): void
+    {
+        $this->planToday('Jan Van Dyck');
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        // The symptom is what makes a malfunction different from "damaged".
+        $this->report(['kind' => 'malfunction'])
+            ->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['symptom']]);
+
+        $this->report(['kind' => 'malfunction', 'symptom' => 'Gaat niet aan bij beweging.'])->assertCreated();
+
+        $conflict = $this->storedConflict();
+
+        $this->assertSame('malfunction', $conflict->type);
+        $this->assertSame(KnxConflict::LIFECYCLE_MALFUNCTION, $conflict->lifecycle);
+        $this->assertSame('warning', $conflict->severity);
+        $this->assertSame('Gaat niet aan bij beweging.', $conflict->symptom);
+
+        $notice = KnxNotification::query()
+            ->where('kind', KnxNotification::KIND_MALFUNCTION_REPORTED)
+            ->sole();
+
+        $this->assertSame('conflict', $notice->target_type);
+        $this->assertSame((string) $conflict->getKey(), $notice->target_id);
+        $this->assertTrue(app(KnxNoticeMailer::class)->isImmediate($notice));
+    }
+
+    public function test_a_field_incident_can_anchor_to_the_real_ids_of_the_plan(): void
+    {
+        $this->planToday('Jan Van Dyck');
+        $this->actingAs($this->fieldUser(), 'sanctum');
+
+        $device = KnxDevice::query()
+            ->where('project_id', $this->project()->getKey())
+            ->where('address', self::KNOWN_ADDRESS)
+            ->sole();
+
+        $this->report([
+            'deviceAddress' => null,
+            'deviceId' => $device->getKey(),
+            'roomId' => $device->room_id,
+            'room' => null,
+        ])->assertCreated();
+
+        $conflict = $this->storedConflict();
+
+        $this->assertSame($device->getKey(), $conflict->device_id);
+        $this->assertSame($device->address, $conflict->address);
     }
 }

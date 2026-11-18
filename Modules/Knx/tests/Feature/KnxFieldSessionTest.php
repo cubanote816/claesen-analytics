@@ -98,7 +98,7 @@ final class KnxFieldSessionTest extends TestCase
         $this->assertNotEmpty($jobs);
         $this->assertSame(
             [
-                'id', 'projectCode', 'projectName', 'city', 'address', 'room', 'zoneStatus',
+                'id', 'projectCode', 'projectName', 'city', 'siteAddress', 'address', 'room', 'zoneStatus',
                 'blockingReason', 'tasks', 'devicesPlanned', 'devicesDone', 'photos',
                 'openConflicts', 'visitClosed',
             ],

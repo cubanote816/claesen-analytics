@@ -45,6 +45,9 @@ class EventStreamService
                 'event' => 'field.device.created',
                 'data' => array_filter([
                     'notificationId' => (string) $notification->getKey(),
+                    // KNX-54: the SSE events carry the same `kind` the inbox filters by,
+                    // so a client can route a notice without a second lookup.
+                    'kind' => $notification->kind,
                     'projectCode' => $notification->project?->code,
                     'address' => $notification->address,
                     'room' => $notification->room,

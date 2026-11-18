@@ -15,6 +15,8 @@ use Modules\Knx\Models\KnxProjectRoom;
  */
 class ProjectService
 {
+    public function __construct(private readonly ZoneService $zones) {}
+
     /**
      * `status`, the device counters and `photos` keep their column defaults:
      * the caller starts an empty project, it does not invent history. The
@@ -29,11 +31,15 @@ class ProjectService
             $project = KnxProject::create($attributes);
 
             foreach ($rooms as $room) {
-                KnxProjectRoom::create([
+                $created = KnxProjectRoom::create([
                     'project_id' => $project->id,
                     'name' => $room['name'],
                     'floor' => $room['floor'] ?? null,
                 ]);
+
+                // Zona = habitación (KNX-44): the room is born with its readiness
+                // zone and its eight checks, whatever route created it.
+                $this->zones->createForRoom($created);
             }
 
             // Re-read the row: the in-memory model does not see the column

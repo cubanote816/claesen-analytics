@@ -112,6 +112,18 @@ return [
         'url_minutes' => env('KNX_PLAN_URL_MINUTES', 60 * 24 * 7),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Office mailbox for notifications (KNX-54)
+    |--------------------------------------------------------------------------
+    |
+    | The shared address every operational notice is also sent to, next to the project
+    | lead. A single configurable inbox instead of a role list: the office decides who
+    | reads it at the mail server, not in this code.
+    |
+    */
+    'office_mailbox' => env('KNX_OFFICE_MAILBOX', 'kantoor@electrobertels.be'),
+
     'zone_check_keys' => [
         'installed',
         'power',

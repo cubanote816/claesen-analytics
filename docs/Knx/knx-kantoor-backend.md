@@ -190,6 +190,43 @@ para triar, no un error.
 - **Ninguna máquina de estados**, a propósito: el contrato dice que las transiciones son reversibles y que documentar una es opcional. Inventar una aquí impediría deshacer un clic equivocado; lo que el backend garantiza es que **todo** cambio queda registrado.
 - **`409 address_in_use`** (`conflict` + `errors.proposal`) cuando la propuesta **cambia** hacia una dirección ocupada. `takenAddresses` = los aparatos del proyecto + las propuestas de los conflictos que aún la mantienen (liberan al pasar a `closed`/`rejected`), **excluyendo siempre la propuesta del propio conflicto** — si no, nunca podría cambiarla. Un conflicto cuya dirección ya es la de un aparato (el fixture tiene uno) **sí** puede avanzar: solo se valida cuando la dirección cambia de verdad.
 
+### Mal funcionamiento (KNX-56)
+
+`GET /conflicts?lifecycle=` · `PATCH` con `note` · `POST /projects/{code}/issues`.
+
+El Conflictencentrum responde a dos preguntas que ahora comparten fila, separadas por `lifecycle`:
+
+- **`ets`** (por defecto) — el desajuste ETS/obra de arriba: ciclo de 8 estados, libre y reversible, sin máquina.
+- **`malfunction`** — la instalación física que no funciona. Ciclo **validado** `open → diagnosing → resolved → verified`, con `rejected` como salida desde cualquier estado vivo (y terminal). Una transición no permitida responde `422` en `errors.status`. El `symptom` describe **qué hace mal** el elemento; en un conflicto ETS ese papel lo ocupa `proposal`. Severidad `warning`: peor que un daño cosmético, sin reclamar un conflicto de dirección que bloquea la puesta en marcha.
+
+El histórico añade `by` y `note` en cada paso. `by` es **texto congelado**, no un FK: es el nombre tal como estaba en ese momento, y el histórico no puede reescribirse si alguien se renombra después. Cada cambio de estado de un `malfunction` crea la nota tipada `malfunction_status_changed` (KNX-54), que va al **resumen**, no al correo inmediato.
+
+`POST /projects/{code}/issues` es la entrada de **oficina** (la llamada del cliente tras la entrega): el mismo hallazgo que el de campo, sin `clientId` (no hay reintento offline que deduplicar) y con el objetivo por ids (`roomId`/`deviceId`/`boardId`/`moduleSlot`/`channel`). Comparte el único `IssueService` con la ruta de campo, así que las dos entradas escriben el mismo conflicto, su línea `reported` y su nota tipada. `kind: malfunction` exige `symptom` y **siempre** avisa al momento.
+
+## Intención por elemento (KNX-55)
+
+`GET|PUT /projects/{code}/intents` · `GET /intents/{id}/versions` · `GET /field/projects/{code}/intents`.
+
+Qué debe hacer un **módulo, un canal o un aparato**: texto libre con autor, fecha e historial. Hasta
+ahora solo había fichas funcionales **por zona** (§4.B), que siguen siendo otra cosa: la intención es
+la frase que el jefe de proyecto escribe sobre el elemento concreto.
+
+- **El elemento es la clave.** `target` es `module` (`boardId`+`slot`), `channel` (`boardId`+`slot`+
+  `channel`) o `device` (`deviceId`); `boardId` es la misma cadena externa que ya usan los cuadros y
+  los marcadores. El `PUT` es un upsert, así que el front no arrastra un id entre llamadas.
+- **Una sola intención vigente, historial completo.** Cada cambio crea una fila nueva con su
+  `version`; la anterior queda en `GET /intents/{id}/versions` (la última primero) y **no se
+  reescribe**: es lo que el técnico leyó en obra ese día.
+- **Escribir dos veces lo mismo no crea versión ni aviso.** El contrato dice «cada cambio», no «cada
+  llamada»: un doble clic no puede llenar el historial de ruido.
+- **Cada cambio deja `intent_changed`** (KNX-54), que va al resumen.
+- **Vínculos.** `roomId` y `functionId` opcionales, resueltos dentro del proyecto; un id de otro
+  proyecto es `422`.
+- **El campo lee, no escribe.** `GET /field/projects/{code}/intents` sirve las vigentes para
+  cachearlas sin red, y la ficha de habitación (oficina y campo) muestra las de sus elementos. La
+  escritura desde obra sigue `pending-decision`: la ruta `/field/projects/{code}/intents/write` **no
+  existe** y responde `404`.
+
 ## Zonas (K7)
 
 `GET /zones?project=` · `GET /zones/{id}` · `PATCH /zones/{id}/checks/{key}`.
@@ -360,6 +397,8 @@ Una incidencia **es** un conflicto: el Conflictencentrum ya es esa lista, y dupl
 El impacto se midió **antes** de decidir: 3 ficheros y 6 líneas en el front de oficina (`types.ts` la unión, `constants.ts` el mapa, `translations.ts` las dos entradas `ct`), y **el compilador lo verifica** — quitando la etiqueta, `tsc` falla con `TS2741`. No hay ningún `switch` ni comparación sobre `conflict.type` en todo su `src`, así que no se rompe nada más. En backend fueron dos líneas.
 
 **Severidad de `other`: `warning`, decidida.** La fixture fija las otras cuatro (`duplicate_address`→critical, `plan_mismatch`/`missing_device`→warning, `damaged`→info) y `other` no estaba allí: un hallazgo sin clasificar tiene que mirarse, así que no puede enterrarse en `info`, y llamarlo `critical` sería gritar lobo en cada nota rara.
+
+**KNX-56 añade `kind: malfunction`** — no es otro nombre para `damaged`: la instalación física hace algo mal (no enciende, se apaga sola, actúa sobre otra zona) y se describe en `symptom`, que es obligatorio. Nace con `lifecycle: malfunction` y crea la nota inmediata `malfunction_reported` (KNX-54), la única que exige el ticket. El campo acepta además `roomId`/`deviceId`/`boardId`/`moduleSlot` opcionales (los ids reales del plano y los cuadros); `room`, `deviceAddress` y `boardCode` siguen valiendo, y un aparato registrado en la dirección sigue anclando el conflicto. La ruta de oficina `POST /projects/{code}/issues` reutiliza el mismo `IssueService` sin `clientId`.
 
 ### V11.e — cierre de visita en 3 fases (`POST /field/projects/{code}/visits`)
 

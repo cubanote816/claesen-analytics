@@ -22,13 +22,37 @@ class KnxBoard extends Model
 {
     use HasFactory;
 
+    /** The worklist wrote it and the office has been working with it. */
+    public const ORIGIN_IMPORT = 'import';
+
+    public const ORIGIN_OFFICE = 'office';
+
+    public const ORIGIN_FIELD = 'field';
+
+    public const ORIGINS = [self::ORIGIN_IMPORT, self::ORIGIN_OFFICE, self::ORIGIN_FIELD];
+
+    public const REVIEW_CONFIRMED = 'confirmed';
+
+    public const REVIEW_UNREVIEWED = 'unreviewed';
+
+    public const REVIEW_STATES = [self::REVIEW_CONFIRMED, self::REVIEW_UNREVIEWED];
+
     protected $table = 'knx_boards';
 
-    protected $fillable = ['project_id', 'code', 'slug', 'name', 'floor'];
+    protected $fillable = [
+        'project_id', 'code', 'slug', 'client_id', 'name', 'floor', 'photo_path',
+        'origin', 'review_state', 'updated_by_employee_id',
+    ];
 
     protected static function newFactory(): KnxBoardFactory
     {
         return KnxBoardFactory::new();
+    }
+
+    /** Who last wrote the board, for the office's audit trail. */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(KnxEmployee::class, 'updated_by_employee_id');
     }
 
     public function project(): BelongsTo

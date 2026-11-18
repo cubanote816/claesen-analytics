@@ -3,6 +3,7 @@ php artisan fieldops:check-request-alerts | expression=0 * * * * | timezone=Euro
 php artisan fieldops:generate-maintenance-work-orders | expression=0 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
 php artisan intelligence:billing-guardian --previous-month | expression=0 7 2 * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
 php artisan intelligence:sync-mirror | expression=0 4 * * * | timezone=Europe/Brussels | withoutOverlapping=no | onOneServer=no
+php artisan knx:notification-digest | expression=0 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
 php artisan mailing:ab-select-winner | expression=*/5 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
 php artisan mailing:check-deliverability-alerts | expression=*/30 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no
 php artisan mailing:dispatch-followups | expression=*/5 * * * * | timezone=Europe/Brussels | withoutOverlapping=yes | onOneServer=no

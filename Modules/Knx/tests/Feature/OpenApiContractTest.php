@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\Knx\Tests\Feature;
 
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Modules\Knx\Http\Middleware\AssertDocumentedSuccessCode;
 use Symfony\Component\Yaml\Yaml;
 use Tests\TestCase;
 
@@ -18,6 +20,11 @@ use Tests\TestCase;
  * Same two-way check as Modules/Website/tests/Feature/OpenApiContractTest.php:
  * every documented path+method must resolve to a registered route, and every
  * registered `api/v1/knx/*` route must be documented.
+ *
+ * KNX-20 adds the third leg: existence of a path is not the promise. A controller
+ * that returned `204` while the spec said `200` survived this test for months, so
+ * `AssertDocumentedSuccessCode` now checks every 2xx the suite really produces
+ * against the declared responses in any feature test that hits a KNX route.
  */
 final class OpenApiContractTest extends TestCase
 {
@@ -79,5 +86,45 @@ final class OpenApiContractTest extends TestCase
             $registered,
             'docs/Knx/openapi.yaml has drifted from the real registered api/v1/knx/* routes.',
         );
+    }
+
+    /**
+     * The status-code leg only works while the guard is wired into the suite, so its
+     * registration is asserted here: removing it from the service provider must fail
+     * this test instead of silently weakening the contract.
+     */
+    public function test_the_response_code_guard_is_registered_for_the_suite(): void
+    {
+        $middleware = app(Kernel::class)->getGlobalMiddleware();
+
+        $this->assertContains(
+            AssertDocumentedSuccessCode::class,
+            $middleware,
+            'AssertDocumentedSuccessCode is not registered: the spec no longer checks response codes.',
+        );
+    }
+
+    /**
+     * Every operation has to declare at least one 2xx, or the guard has nothing to
+     * compare a real success against.
+     */
+    public function test_every_operation_declares_at_least_one_success_code(): void
+    {
+        $spec = Yaml::parseFile(base_path('docs/Knx/openapi.yaml'));
+
+        foreach ($spec['paths'] as $path => $methods) {
+            foreach (array_keys($methods) as $method) {
+                $responses = $methods[$method]['responses'] ?? [];
+                $success = array_filter(
+                    array_keys($responses),
+                    fn ($code) => is_numeric($code) && (int) $code >= 200 && (int) $code < 300,
+                );
+
+                $this->assertNotEmpty(
+                    $success,
+                    "Documented {$method} {$path} declares no 2xx success code.",
+                );
+            }
+        }
     }
 }

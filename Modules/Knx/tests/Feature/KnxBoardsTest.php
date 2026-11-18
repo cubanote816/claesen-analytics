@@ -119,12 +119,51 @@ final class KnxBoardsTest extends TestCase
         $this->assertSame('caja-1-leefgroep-glv', $first['id']);
         $this->assertSame('Caja 1 - Leefgroep (GLV)', $first['name']);
         $this->assertSame('gelijkvloers', $first['floor']);
-        $this->assertSame(['device', 'slot', 'channels'], array_keys($first['modules'][0]));
+        $this->assertSame(
+            ['device', 'slot', 'origin', 'reviewState', 'updatedBy', 'updatedAt', 'channels'],
+            array_keys($first['modules'][0]),
+        );
 
         $second = $payload['boards'][1];
 
         $this->assertSame('caja-2-kantoren-v01', $second['id']);
         $this->assertSame('1e verdieping', $second['floor']);
+    }
+
+    public function test_the_import_resolves_the_worklist_room_to_the_canonical_room(): void
+    {
+        $this->import();
+
+        $rooms = collect($this->getJson('/api/v1/knx/projects/C1618/rooms')->assertOk()->json());
+        $this->assertNotNull($rooms->firstWhere('name', 'Inkomhal'));
+
+        $links = [];
+
+        foreach ($this->getJson('/api/v1/knx/projects/C1618/boards')->assertOk()->json('boards') as $board) {
+            foreach ($board['modules'] as $module) {
+                foreach ($module['channels'] as $channel) {
+                    foreach ($channel['links'] as $link) {
+                        $links[] = $link;
+                    }
+                }
+            }
+        }
+
+        $this->assertNotEmpty($links);
+
+        // A worklist room that matches a canonical room resolves to it (KNX-44).
+        $resolved = collect($links)->filter(fn (array $link): bool => $link['roomId'] !== null);
+        $this->assertNotEmpty($resolved);
+
+        foreach ($resolved as $link) {
+            $this->assertSame($link['room'], $rooms->firstWhere('id', $link['roomId'])['name']);
+        }
+
+        // A name that matches nothing keeps its original text and stays null, visible:
+        // the office can then model the room or add it as an alias.
+        $this->assertTrue(
+            collect($links)->contains(fn (array $link): bool => $link['room'] === 'Eetruimte' && $link['roomId'] === null),
+        );
     }
 
     public function test_a_module_has_its_own_slot_and_a_channel_carries_its_objects(): void
@@ -147,7 +186,7 @@ final class KnxBoardsTest extends TestCase
 
         $channelA = $channels['A'];
         $this->assertSame(
-            ['room', 'object', 'role', 'ga', 'gaName', 'dpt'],
+            ['roomId', 'room', 'object', 'role', 'ga', 'gaName', 'dpt'],
             array_keys($channelA['links'][0]),
         );
         $this->assertSame('Inkomhal', $channelA['links'][0]['room']);

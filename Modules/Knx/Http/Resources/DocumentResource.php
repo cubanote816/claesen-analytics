@@ -62,6 +62,9 @@ class DocumentResource extends KnxResource
             'mimeType' => $document->resolvedMimeType(),
             'size' => self::humanSize($document->size_bytes),
             'pages' => $document->pages,
+            // The level the plan belongs to (KNX-47). Nullable: the office may upload
+            // before knowing it, and PATCH /documents/{id} corrects it later.
+            'floor' => $document->floor,
             'uploadedAt' => $document->uploaded_at->format('Y-m-d'),
             'uploadedBy' => $document->uploadedBy?->shortName(),
             'url' => $this->withUrl ? $this->signedUrl() : null,

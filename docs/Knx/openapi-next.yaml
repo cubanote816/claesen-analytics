@@ -1,0 +1,920 @@
+openapi: 3.0.3
+info:
+  title: KNX Installation API — next contract (Kantoor + Veld)
+  version: "next"
+  description: >-
+    **Contrato en staging.** Este fichero contiene SOLO las rutas nuevas y las rutas existentes
+    cuya forma cambia para los hitos M1, M2, M2b y M2c del project Linear
+    `P-KNX-30 · KNX · Módulo Kantoor + Veld`. Vive aparte de `docs/Knx/openapi.yaml` por una
+    razón concreta: `Modules/Knx/tests/Feature/OpenApiContractTest.php` es un chequeo
+    bidireccional entre el spec y las rutas registradas, así que documentar una ruta que todavía
+    no existe rompería la suite. Este fichero queda **fuera** de ese test.
+
+    Regla de movimiento: cada ruta de aquí **pasa** a `docs/Knx/openapi.yaml` en el MISMO commit
+    en que se implementa. Los fronts (Kantoor y veld-app) pueden construir contra este fichero
+    con mocks desde el commit del contrato.
+
+    Cada operación lleva `x-ticket` (el ticket de Linear que la entrega) y `x-status`:
+
+    - `planned`: decidida; se implementa como está escrito.
+    - `provisional`: la forma puede cambiar hasta que se complete una medición previa (KNX-49, DWG).
+    - `pending-decision`: la forma es la acordada, pero la implementación espera una decisión del
+      dueño del producto (KNX-55, escritura de campo).
+
+    Estilo, sin excepciones: `camelCase`, los ids viajan como string, el sobre de error es
+    `{message, code, errors}` y **nunca** hay envoltorio `{data: …}`.
+
+    Aislamiento: toda ruta resuelve el recurso **a través del proyecto y de la organización**. Una
+    fila de otra organización responde `404`, indistinguible de inexistente. Nota de modelo:
+    `knx_project_rooms` NO lleva `BelongsToKnxTenant`, así que ese filtro se escribe explícito en
+    cada consulta por id; no se asume.
+servers:
+  - url: /api/v1/knx
+    description: Local (`php artisan serve` / contenedor de desarrollo)
+security:
+  - bearerAuth: []
+tags:
+  - name: projects
+  - name: rooms
+  - name: plans
+  - name: boards
+  - name: notifications
+  - name: conflicts
+  - name: intents
+  - name: photos
+  - name: documents
+  - name: field
+    description: Guard `EnsureKnxApp:field` — sólo la app de campo
+paths:
+
+  # ---------------------------------------------------------------------------
+  # KNX-51 · Dirección de la obra
+  # ---------------------------------------------------------------------------
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-51:
+  #   POST   /projects          (siteAddress obligatoria)
+  #   GET    /projects/{code}   (expone siteAddress)
+  #   PATCH  /projects/{code}   (nuevo)
+  # Los esquemas `Project` y `SiteAddress` siguen aquí como referencia.
+
+  # ---------------------------------------------------------------------------
+  # KNX-44 · Habitación canónica y zona automática
+  # ---------------------------------------------------------------------------
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-44:
+  #   GET    /projects/{code}/rooms
+  #   POST   /projects/{code}/rooms
+  #   PATCH  /rooms/{id}
+  # `Zone.roomId` y `BoardLink.roomId` también ya están en `openapi.yaml`.
+  # Los esquemas `Room`, `RoomAlias` y `RoomCreateInput` siguen aquí de referencia.
+
+  # ---------------------------------------------------------------------------
+  # KNX-45 · Modelo de plano por revisión
+  # ---------------------------------------------------------------------------
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-45:
+  #   GET /projects/{code}/plans/{documentId}/rooms
+  #   PUT /projects/{code}/plans/{documentId}/rooms
+  #   (y el disparo de la propuesta, POST …/rooms/propose, sigue pendiente en KNX-48)
+  #
+
+  # ---------------------------------------------------------------------------
+  # KNX-46 · Ficha de habitación (oficina)
+  # ---------------------------------------------------------------------------
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en el commit de KNX-46:
+  #   GET /projects/{code}/rooms/{id}/sheet
+  # `intents` y `photos` viajan como [] hasta KNX-55 / KNX-26.
+  #
+
+  # ---------------------------------------------------------------------------
+  # KNX-25 / KNX-53 · Cuadros y módulos (campo)
+  # ---------------------------------------------------------------------------
+  #
+  # IMPLEMENTADO — movido a docs/Knx/openapi.yaml en los commits de KNX-25 / KNX-53:
+  #   GET  /field/projects/{code}/boards
+  #   POST /field/projects/{code}/boards
+  #   POST /field/projects/{code}/boards/{boardId}/modules
+  #   POST /field/projects/{code}/devices   (acepta `boardId`/`moduleSlot`/`channel`)
+  #
+
+  # ---------------------------------------------------------------------------
+  # KNX-54 · Avisos en la app y por email
+  # ---------------------------------------------------------------------------
+
+  # /notifications y /events (con `kind`) ya están en docs/Knx/openapi.yaml (KNX-54).
+  # Sólo queda aquí lo que todavía NO se implementa:
+  # IMPLEMENTADO — /me/notification-preferences movido a docs/Knx/openapi.yaml (KNX-54).
+
+  # /projects/{code}/issues (oficina) y /field/projects/{code}/issues movidos a
+  # docs/Knx/openapi.yaml (KNX-56): `kind: malfunction` + `symptom`, ids opcionales
+  # (`roomId`/`deviceId`/`boardId`/`moduleSlot`) y aviso inmediato `malfunction_reported`.
+
+  # /conflicts y /conflicts/{id} (GET, PATCH) movidos a docs/Knx/openapi.yaml
+  # (KNX-56): `lifecycle` + `symptom` en el conflicto, filtro `?lifecycle=`, transición
+  # validada para `malfunction` y `by`/`note` en la línea de histórico.
+
+  # ---------------------------------------------------------------------------
+  # KNX-55 · Intención por elemento
+  # ---------------------------------------------------------------------------
+
+  # /projects/{code}/intents (GET, PUT), /intents/{id}/versions (GET) y
+  # /field/projects/{code}/intents (GET) movidos a docs/Knx/openapi.yaml (KNX-55):
+  # intención por elemento con versiones, upsert por target y aviso `intent_changed`.
+  # Solo queda aquí la escritura desde campo, pendiente de decisión.
+
+  # Ruta declarada pero BLOQUEADA: el campo no puede escribir intenciones todavía. La decisión
+  # pendiente es si sólo el jefe de proyecto o también el técnico. Se deja documentada para que
+  # los fronts no la inventen, y NO se implementa.
+  /field/projects/{code}/intents/write:
+    put:
+      tags: [field]
+      summary: "[PENDIENTE DE DECISIÓN] Escribir una intención desde campo"
+      x-ticket: KNX-55
+      x-status: pending-decision
+      description: >-
+        **No implementar.** El dueño del producto todavía no decidió si el campo puede escribir
+        intenciones (¿sólo el jefe de proyecto, o también el técnico?). La forma queda documentada
+        para acordarla, pero la ruta no existe en el backend; una llamada responde `404`.
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IntentPutInput" }
+      responses:
+        "200": { description: Sin implementar — decisión pendiente }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  # ---------------------------------------------------------------------------
+  # KNX-26 · Fotos como entidad
+  # ---------------------------------------------------------------------------
+
+  /field/projects/{code}/photos:
+    post:
+      tags: [photos]
+      summary: Sube una foto desde obra (multipart, idempotente por `clientId`)
+      x-ticket: KNX-26
+      x-status: planned
+      parameters:
+        - $ref: "#/components/parameters/Code"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [clientId, file, capturedAt]
+              properties:
+                clientId: { type: string, maxLength: 64 }
+                file: { type: string, format: binary }
+                roomId: { type: string, nullable: true }
+                boardId: { type: string, nullable: true }
+                moduleSlot: { type: integer, nullable: true }
+                deviceId: { type: string, nullable: true }
+                issueId: { type: string, nullable: true }
+                capturedAt: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Foto subida
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Photo" }
+        "200":
+          description: Reintento del mismo `clientId` — misma foto
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Photo" }
+        "403": { $ref: "#/components/responses/ProjectNotAssignedToday" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /projects/{code}/photos:
+    get:
+      tags: [photos]
+      summary: Fotos del proyecto, filtrables por habitación o incidencia
+      x-ticket: KNX-26
+      x-status: planned
+      parameters:
+        - $ref: "#/components/parameters/Code"
+        - name: roomId
+          in: query
+          schema: { type: string }
+        - name: issueId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK — `url` firmada, igual que las descargas de documentos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Photo" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ---------------------------------------------------------------------------
+  # KNX-49 · Planos DWG (provisional hasta la medición)
+  # ---------------------------------------------------------------------------
+
+  /documents:
+    post:
+      tags: [documents]
+      summary: Subida de plano o documento (multipart) — planta, PDF y DWG
+      x-ticket: KNX-47
+      x-status: planned
+      description: >-
+        Cambio respecto del contrato actual: acepta `floor` (la planta del plano, la misma que usan
+        las habitaciones del proyecto; nullable) y `.dwg`. `sourceFormat` distingue `pdf` de `dwg`;
+        para DWG el servidor encola una conversión y `previewUrl` apunta al PDF derivado, con
+        `conversion.status` en `pending|ready|failed`. El PDF se sigue sirviendo tal cual, sin
+        convertir. La planta (KNX-47) está decidida; el bloque DWG (KNX-49) es **provisional**
+        hasta la medición de si los DWG de Den Brand traen una capa de habitaciones utilizable.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, project, kind]
+              properties:
+                file: { type: string, format: binary }
+                project: { type: string }
+                kind: { type: string, maxLength: 40 }
+                revision: { type: string, maxLength: 20 }
+                floor: { type: string, maxLength: 64, nullable: true, description: "La planta del plano, como las habitaciones del proyecto (KNX-47)." }
+                supersedes:
+                  oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
+                clientId: { type: string, maxLength: 64 }
+                uploadedAt: { type: string, format: date }
+      responses:
+        "201":
+          description: Creado — mismo `DocumentFile` que las lecturas, con URL firmada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentFile" }
+        "200": { description: Reintento idempotente con el mismo `clientId` }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /documents/{id}:
+    get:
+      tags: [documents]
+      summary: Detalle de documento, con URL firmada, planta y estado de conversión DWG
+      x-ticket: KNX-47
+      x-status: planned
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentFile" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [documents]
+      summary: Corrige la planta de un plano ya subido
+      x-ticket: KNX-47
+      x-status: planned
+      description: >-
+        Sólo la planta. Se sube a menudo antes de saber en qué nivel va el plano, y corregirlo no
+        debería obligar a subir otra revisión. Un `null` la borra.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [floor]
+              properties:
+                floor: { type: string, maxLength: 64, nullable: true }
+      responses:
+        "200":
+          description: Documento ya actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentFile" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Token de Sanctum emitido por `POST /auth/login`
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    Code:
+      name: code
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[A-Za-z0-9._-]+$" }
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema: { type: string }
+    BoardId:
+      name: boardId
+      in: path
+      required: true
+      description: El `id` estable del cuadro (slug del worklist o el que derivó el servidor).
+      schema: { type: string }
+    Slot:
+      name: slot
+      in: path
+      required: true
+      description: Posición 1-based del módulo en el cuadro; su identidad de instancia.
+      schema: { type: integer, minimum: 1 }
+    Channel:
+      name: channel
+      in: path
+      required: true
+      schema: { type: string, maxLength: 8 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+
+  responses:
+    Unauthenticated:
+      description: Sin token, caducado, o de la otra app (indistinguibles a propósito)
+      content:
+        application/json:
+          example: { message: "Unauthenticated.", code: unauthenticated, errors: {} }
+    NotFound:
+      description: No existe, o es de otra organización/proyecto (misma respuesta a propósito)
+      content:
+        application/json:
+          example: { message: "Not found.", code: not_found, errors: {} }
+    ProjectNotAssignedToday:
+      description: El proyecto no está asignado a este técnico hoy
+      content:
+        application/json:
+          example: { message: "Forbidden.", code: forbidden, errors: {} }
+    ValidationError:
+      description: Error de validación campo a campo
+      content:
+        application/json:
+          example: { message: "The given data was invalid.", code: validation_error, errors: { field: ["..."] } }
+    PayloadTooLarge:
+      description: Archivo por encima del límite
+      content:
+        application/json:
+          example: { message: "Het bestand is te groot.", code: payload_too_large, errors: {} }
+    ProjectCreated:
+      description: Creado — mismo `Project` que las lecturas
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Project" }
+    FieldBoardWritten:
+      description: Cuadro escrito desde campo (`201` nuevo, `200` reintento del mismo `clientId`)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Board" }
+    FieldModuleWritten:
+      description: Módulo escrito desde campo (`201` nuevo, `200` reintento del mismo `clientId`)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/BoardModule" }
+    FieldDeviceWritten:
+      description: Aparato registrado (`201` nuevo, `200` reintento del mismo `clientId`)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/FieldDevice" }
+
+  schemas:
+
+    SiteAddress:
+      type: object
+      description: Dirección de la obra. Obligatoria en el alta del proyecto.
+      required: [street, postalCode, city]
+      properties:
+        street: { type: string, maxLength: 255 }
+        postalCode: { type: string, maxLength: 16 }
+        city: { type: string, maxLength: 255 }
+        accessNote: { type: string, maxLength: 500, nullable: true, description: "Cómo entrar al sitio (llaves, contacto)." }
+
+    Project:
+      type: object
+      description: >-
+        `Project` de la oficina. `siteAddress` es nullable en los proyectos anteriores a KNX-51.
+        `city` queda como derivado de `siteAddress.city` por compatibilidad.
+      properties:
+        code: { type: string }
+        name: { type: string }
+        clientId: { type: string }
+        clientName: { type: string }
+        siteAddress: { allOf: [{ $ref: "#/components/schemas/SiteAddress" }], nullable: true }
+        city: { type: string, nullable: true }
+        lead: { type: string, nullable: true }
+        devicesPlanned: { type: integer }
+        devicesDone: { type: integer }
+        photos: { type: integer }
+        status: { type: string, enum: [planned, busy, delivery, done] }
+        deadline: { type: string, format: date, nullable: true }
+
+    RoomAlias:
+      type: object
+      required: [source, name]
+      properties:
+        source: { type: string, enum: [ets, worklist, plan, manual] }
+        name: { type: string, maxLength: 255 }
+
+    RoomCreateInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 255 }
+        floor: { type: string, maxLength: 255, nullable: true }
+        aliases:
+          type: array
+          items: { $ref: "#/components/schemas/RoomAlias" }
+
+    Room:
+      type: object
+      description: Habitación canónica de oficina, con su zona 1:1 y sus alias de otras fuentes.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        floor: { type: string, nullable: true }
+        zoneId: { type: string, nullable: true, description: "La zona de preparación de esta habitación (zona = habitación)." }
+        aliases:
+          type: array
+          items: { $ref: "#/components/schemas/RoomAlias" }
+
+    Zone:
+      type: object
+      description: Zona de preparación con sus 8 checks; `status` derivado en cada lectura.
+      properties:
+        id: { type: string }
+        projectCode: { type: string }
+        projectName: { type: string, nullable: true }
+        roomId: { type: string, nullable: true, description: "La habitación dueña. Null en zonas de demo sin habitación." }
+        name: { type: string }
+        floor: { type: string, nullable: true }
+        status: { type: string, enum: [not_ready, in_progress, ready, blocked] }
+        blockingReason: { type: string, nullable: true }
+        blockedBy: { type: string, nullable: true }
+        nextReviewAt: { type: string, format: date, nullable: true }
+        checks:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              status: { type: string, enum: [pending, passed, failed, na] }
+              updatedAt: { type: string, format: date-time, nullable: true }
+              updatedBy: { type: string, nullable: true }
+              note: { type: string, nullable: true }
+
+    PlanRoom:
+      type: object
+      required: [roomId, polygon, source, state]
+      properties:
+        roomId: { type: string, description: "Id de la habitación canónica. `distinct` dentro del conjunto." }
+        polygon:
+          type: array
+          minItems: 3
+          description: "Polígono como puntos `[nx, ny]` en fracción de página (0..1). Dato opaco."
+          items:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items: { type: number, minimum: 0, maximum: 1 }
+        labelAt:
+          type: array
+          nullable: true
+          minItems: 2
+          maxItems: 2
+          description: "Posición de la etiqueta `[nx, ny]`, o null."
+          items: { type: number, minimum: 0, maximum: 1 }
+        areaM2: { type: number, nullable: true }
+        source: { type: string, enum: [manual, pdf, dwg] }
+        state: { type: string, enum: [proposed, confirmed] }
+
+    PlanRoomSet:
+      type: object
+      properties:
+        documentId: { type: string }
+        revision: { type: string, nullable: true, description: "Derivada del documento; no se duplica." }
+        page: { type: integer }
+        pageWidthPt: { type: number, nullable: true }
+        pageHeightPt: { type: number, nullable: true }
+        proposalStatus: { type: string, enum: [none, running, ready, failed] }
+        rooms:
+          type: array
+          items: { $ref: "#/components/schemas/PlanRoom" }
+
+    PlanRoomSetInput:
+      type: object
+      required: [page, rooms]
+      properties:
+        page: { type: integer, minimum: 1 }
+        pageWidthPt: { type: number, nullable: true }
+        pageHeightPt: { type: number, nullable: true }
+        carryOverFrom:
+          oneOf: [{ type: integer }, { type: string, pattern: "^[0-9]+$" }]
+          nullable: true
+          description: "Documento origen del carry-over, SIEMPRE de esta misma página. Lo copiado vuelve a `proposed`."
+        rooms:
+          type: array
+          description: "`present|array`: la clave es obligatoria pero puede venir vacía (no repetir el error de KNX-18)."
+          items: { $ref: "#/components/schemas/PlanRoom" }
+
+    RoomSheet:
+      type: object
+      description: Todo lo que la ficha de habitación muestra al hacer clic.
+      properties:
+        room: { $ref: "#/components/schemas/Room" }
+        zone: { allOf: [{ $ref: "#/components/schemas/Zone" }], nullable: true }
+        devices:
+          type: array
+          items: { $ref: "#/components/schemas/FieldDevice" }
+        boardLinks:
+          type: array
+          items: { $ref: "#/components/schemas/BoardLink" }
+        intents:
+          type: array
+          items: { $ref: "#/components/schemas/Intent" }
+        functions:
+          type: array
+          items: { type: object, additionalProperties: true }
+        issues:
+          type: array
+          items: { $ref: "#/components/schemas/Conflict" }
+        photos:
+          type: array
+          items: { $ref: "#/components/schemas/Photo" }
+
+    ProjectBoards:
+      type: object
+      properties:
+        projectCode: { type: string }
+        boards:
+          type: array
+          items: { $ref: "#/components/schemas/Board" }
+
+    Board:
+      type: object
+      properties:
+        id: { type: string, description: "Identidad estable: el slug del worklist, la misma cadena que el `boardId` de un marcador." }
+        code: { type: string, nullable: true }
+        name: { type: string }
+        floor: { type: string, nullable: true }
+        origin: { type: string, enum: [import, office, field] }
+        reviewState: { type: string, enum: [confirmed, unreviewed] }
+        updatedBy: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        modules:
+          type: array
+          items: { $ref: "#/components/schemas/BoardModule" }
+
+    BoardCreateInput:
+      type: object
+      required: [code, name, floor]
+      properties:
+        code: { type: string, maxLength: 32 }
+        name: { type: string, maxLength: 255 }
+        floor: { type: string, maxLength: 64, nullable: true }
+
+    BoardModule:
+      type: object
+      properties:
+        device: { type: string }
+        slot: { type: integer }
+        origin: { type: string, enum: [import, office, field] }
+        reviewState: { type: string, enum: [confirmed, unreviewed] }
+        updatedBy: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        channels:
+          type: array
+          items: { $ref: "#/components/schemas/BoardChannel" }
+
+    ModuleCreateInput:
+      type: object
+      required: [device, slot]
+      properties:
+        device: { type: string, maxLength: 64 }
+        slot: { type: integer, minimum: 1 }
+
+    BoardChannel:
+      type: object
+      properties:
+        channel: { type: string }
+        links:
+          type: array
+          items: { $ref: "#/components/schemas/BoardLink" }
+
+    BoardLink:
+      type: object
+      required: [object, role, ga, gaName, dpt]
+      properties:
+        roomId: { type: string, nullable: true, description: "La habitación resuelta por alias. Null si el texto no casó: queda visible sin resolver." }
+        room: { type: string, description: "El texto original de la fuente, tal cual." }
+        object: { type: string }
+        role: { type: string }
+        ga: { type: string }
+        gaName: { type: string }
+        dpt: { type: string }
+
+    LinksPutInput:
+      type: object
+      required: [links]
+      properties:
+        links:
+          type: array
+          description: "`present|array`: reemplaza el conjunto del canal; el cuerpo vacío es válido."
+          items:
+            type: object
+            required: [roomId, object, role, ga, gaName, dpt]
+            properties:
+              roomId: { type: string }
+              object: { type: string, maxLength: 150 }
+              role: { type: string, maxLength: 64 }
+              ga: { type: string, maxLength: 32 }
+              gaName: { type: string, maxLength: 255 }
+              dpt: { type: string, maxLength: 32 }
+
+    FieldBoardCreateInput:
+      type: object
+      required: [clientId, code, name, capturedAt]
+      properties:
+        clientId: { type: string, maxLength: 64 }
+        code: { type: string, maxLength: 32 }
+        name: { type: string, maxLength: 255 }
+        floor: { type: string, maxLength: 64, nullable: true }
+        photoDataUrl: { type: string, nullable: true }
+        capturedAt: { type: string, format: date-time }
+
+    FieldModuleCreateInput:
+      type: object
+      required: [clientId, device, slot, capturedAt]
+      properties:
+        clientId: { type: string, maxLength: 64 }
+        device: { type: string, maxLength: 64 }
+        slot: { type: integer, minimum: 1 }
+        photoDataUrl: { type: string, nullable: true }
+        capturedAt: { type: string, format: date-time }
+
+    FieldDeviceRegistrationInput:
+      type: object
+      required: [clientId, projectCode, address, type, roomId, capturedAt]
+      properties:
+        clientId: { type: string, maxLength: 64 }
+        projectCode: { type: string }
+        address: { type: string, maxLength: 32 }
+        type: { type: string, maxLength: 100 }
+        roomId: { type: string }
+        roomName: { type: string, nullable: true }
+        floor: { type: string, nullable: true }
+        boardCode: { type: string, nullable: true }
+        boardId: { type: string, nullable: true, description: "Id estable del cuadro (nuevo en KNX-53)." }
+        moduleSlot: { type: integer, nullable: true, description: "Nuevo en KNX-53." }
+        channel: { type: string, nullable: true, description: "Nuevo en KNX-53." }
+        serial: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        photoDataUrl: { type: string, nullable: true }
+        capturedAt: { type: string, format: date-time }
+
+    FieldDevice:
+      type: object
+      properties:
+        id: { type: string }
+        address: { type: string }
+        type: { type: string }
+        roomName: { type: string, nullable: true }
+        boardCode: { type: string, nullable: true }
+        boardId: { type: string, nullable: true }
+        moduleSlot: { type: integer, nullable: true }
+        channel: { type: string, nullable: true }
+        serial: { type: string, nullable: true }
+        registeredBy: { type: string }
+        registeredAt: { type: string, format: date-time }
+        source: { type: string, enum: [ets, field] }
+        isNew: { type: boolean }
+        hasConflict: { type: boolean }
+
+    FieldPlanModel:
+      type: object
+      description: "Lo mínimo para cachear sin red: sólo lo confirmado por la oficina."
+      properties:
+        documentId: { type: string }
+        revision: { type: string, nullable: true }
+        page: { type: integer }
+        pageWidthPt: { type: number, nullable: true }
+        pageHeightPt: { type: number, nullable: true }
+        rooms:
+          type: array
+          items: { $ref: "#/components/schemas/PlanRoom" }
+        markers:
+          type: array
+          description: "Marcadores de cuadro de esta página (misma forma que el contrato de marcadores)."
+          items:
+            type: object
+            properties:
+              boardId: { type: string }
+              nx: { type: number }
+              ny: { type: number }
+
+    FieldPlan:
+      type: object
+      description: Plano descargable que ve el técnico (FieldPlanResource, KNX-47).
+      properties:
+        id: { type: string }
+        projectCode: { type: string }
+        name: { type: string }
+        kind: { type: string }
+        revision: { type: string, nullable: true }
+        mimeType: { type: string }
+        url: { type: string, description: "URL firmada de una semana: se descarga una vez y se abre sin conexión." }
+        sizeBytes: { type: integer }
+        pages: { type: integer }
+        floor: { type: string, nullable: true }
+        isCurrent: { type: boolean, description: "false cuando una revisión posterior lo reemplazó." }
+
+    Notification:
+      type: object
+      description: >-
+        Aviso tipado. Los campos viejos siguen presentes para no romper la bandeja actual: es
+        compatible hacia atrás.
+      properties:
+        id: { type: string }
+        kind:
+          type: string
+          enum: [device_registered, board_created, module_added, module_changed, address_conflict, intent_changed, issue_reported, malfunction_reported, malfunction_status_changed, visit_closed]
+        projectCode: { type: string }
+        title: { type: string }
+        summary: { type: string, nullable: true }
+        roomId: { type: string, nullable: true }
+        boardId: { type: string, nullable: true }
+        moduleSlot: { type: integer, nullable: true }
+        deviceId: { type: string, nullable: true }
+        issueId: { type: string, nullable: true }
+        actor:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+        target:
+          type: object
+          properties:
+            type: { type: string, enum: [device, board, module, conflict, intent, visit, photo] }
+            id: { type: string }
+        capturedAt: { type: string, format: date-time, nullable: true, description: "Hora de obra." }
+        receivedAt: { type: string, format: date-time, description: "Hora de llegada al servidor." }
+        acked: { type: boolean }
+        address: { type: string, nullable: true }
+        type: { type: string, nullable: true }
+        room: { type: string, nullable: true }
+        board: { type: string, nullable: true }
+        boardName: { type: string, nullable: true }
+        serial: { type: string, nullable: true }
+        projectName: { type: string }
+        reportedBy: { type: string }
+        reportedAt: { type: string, format: date-time }
+
+    NotificationPreferences:
+      type: object
+      properties:
+        email:
+          type: object
+          properties:
+            immediate: { type: boolean, description: "Sólo aplica a issue_reported, malfunction_reported y visit_closed final." }
+            digest: { type: string, enum: [per_visit, hourly, off] }
+            mutedKinds:
+              type: array
+              items: { type: string }
+
+    IntentTarget:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [module, channel, device] }
+        boardId: { type: string, nullable: true }
+        slot: { type: integer, nullable: true }
+        channel: { type: string, nullable: true }
+        deviceId: { type: string, nullable: true }
+
+    Intent:
+      type: object
+      properties:
+        id: { type: string }
+        target: { $ref: "#/components/schemas/IntentTarget" }
+        roomId: { type: string, nullable: true }
+        functionId: { type: string, nullable: true }
+        text: { type: string }
+        version: { type: integer }
+        author:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+        updatedAt: { type: string, format: date-time }
+
+    IntentPutInput:
+      type: object
+      required: [target, text]
+      properties:
+        target: { $ref: "#/components/schemas/IntentTarget" }
+        text: { type: string, maxLength: 5000 }
+        roomId: { type: string, nullable: true }
+        functionId: { type: string, nullable: true }
+
+    # IssueInput / FieldIssueInput / FieldIssueResult movidos a docs/Knx/openapi.yaml
+    # con su ruta (KNX-56); el esquema se documenta allí inline, como el resto del spec vivo.
+
+    Conflict:
+      type: object
+      description: >-
+        `lifecycle` decide el ciclo. `ets` = los 8 estados del Conflictencentrum (libre y
+        reversible). `malfunction` = `open|diagnosing|resolved|verified|rejected`, con transiciones
+        validadas y `symptom` en lugar de `proposal`.
+      properties:
+        id: { type: string }
+        lifecycle: { type: string, enum: [ets, malfunction] }
+        severity: { type: string, enum: [critical, warning, info] }
+        type: { type: string, enum: [duplicate_address, missing_device, plan_mismatch, damaged, other, malfunction] }
+        status: { type: string }
+        symptom: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        projectCode: { type: string }
+        projectName: { type: string }
+        deviceExisting: { type: string, nullable: true }
+        deviceField: { type: string, nullable: true }
+        reportedBy: { type: string }
+        reportedAt: { type: string, format: date-time }
+        note: { type: string, nullable: true }
+        photoUrl: { type: string, nullable: true }
+        proposal: { type: string, nullable: true }
+        takenAddresses:
+          type: array
+          items: { type: string }
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              at: { type: string, format: date-time }
+              action: { type: string }
+              by: { type: string, nullable: true }
+              address: { type: string, nullable: true }
+              note: { type: string, nullable: true }
+
+    Photo:
+      type: object
+      properties:
+        id: { type: string }
+        url: { type: string, description: "URL firmada; la firma es la credencial." }
+        projectCode: { type: string }
+        roomId: { type: string, nullable: true }
+        boardId: { type: string, nullable: true }
+        moduleSlot: { type: integer, nullable: true }
+        deviceId: { type: string, nullable: true }
+        issueId: { type: string, nullable: true }
+        takenBy: { type: string }
+        capturedAt: { type: string, format: date-time }
+        sizeBytes: { type: integer }
+        mimeType: { type: string }
+
+    DocumentFile:
+      type: object
+      description: >-
+        Documento con su formato de origen y, para DWG, el estado de la conversión en servidor.
+        `previewUrl` es el PDF derivado; para PDF apunta al propio documento.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        projectCode: { type: string }
+        projectName: { type: string }
+        kind: { type: string }
+        size: { type: string }
+        sizeBytes: { type: integer }
+        mimeType: { type: string, nullable: true }
+        pages: { type: integer }
+        floor: { type: string, nullable: true, description: "La planta del plano, la misma que usan las habitaciones del proyecto (KNX-47)." }
+        sourceFormat: { type: string, enum: [pdf, dwg] }
+        previewUrl: { type: string, nullable: true }
+        conversion:
+          type: object
+          nullable: true
+          properties:
+            status: { type: string, enum: [pending, ready, failed] }
+            error: { type: string, nullable: true }
+        uploadedAt: { type: string, format: date }
+        uploadedBy: { type: string }
+        url: { type: string, nullable: true }
+        revision: { type: string, nullable: true }
+        isCurrent: { type: boolean }
+        approvedBy: { type: string, nullable: true }

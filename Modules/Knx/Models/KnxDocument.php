@@ -29,6 +29,7 @@ class KnxDocument extends Model
         'project_id',
         'name',
         'kind',
+        'floor',
         'mime_type',
         'size_bytes',
         'pages',

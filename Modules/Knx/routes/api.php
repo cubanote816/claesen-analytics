@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Core\Http\Middleware\SetLocaleFromHeader;
 use Modules\Knx\Http\Controllers\AcceptanceTestController;
 use Modules\Knx\Http\Controllers\Auth\AuthController;
 use Modules\Knx\Http\Controllers\Auth\SessionController;
@@ -11,6 +12,7 @@ use Modules\Knx\Http\Controllers\DashboardController;
 use Modules\Knx\Http\Controllers\DocumentController;
 use Modules\Knx\Http\Controllers\EmployeeController;
 use Modules\Knx\Http\Controllers\EventStreamController;
+use Modules\Knx\Http\Controllers\Field\FieldBoardController;
 use Modules\Knx\Http\Controllers\Field\FieldDeviceController;
 use Modules\Knx\Http\Controllers\Field\FieldIssueController;
 use Modules\Knx\Http\Controllers\Field\FieldProjectController;
@@ -19,10 +21,15 @@ use Modules\Knx\Http\Controllers\Field\FieldTodayController;
 use Modules\Knx\Http\Controllers\Field\FieldVisitController;
 use Modules\Knx\Http\Controllers\FieldNotificationController;
 use Modules\Knx\Http\Controllers\FunctionSpecController;
+use Modules\Knx\Http\Controllers\IntentController;
+use Modules\Knx\Http\Controllers\NotificationPreferenceController;
+use Modules\Knx\Http\Controllers\OfficeIssueController;
 use Modules\Knx\Http\Controllers\PlanMarkerController;
 use Modules\Knx\Http\Controllers\PlanningController;
+use Modules\Knx\Http\Controllers\PlanRoomController;
 use Modules\Knx\Http\Controllers\ProjectController;
 use Modules\Knx\Http\Controllers\ReportController;
+use Modules\Knx\Http\Controllers\RoomController;
 use Modules\Knx\Http\Controllers\ZoneController;
 use Modules\Knx\Http\Middleware\EnsureKnxApp;
 
@@ -36,7 +43,7 @@ use Modules\Knx\Http\Middleware\EnsureKnxApp;
  * `organization:electro-bertels` so no Claesen token can reach it.
  */
 
-Route::prefix('v1/knx')->name('knx.')->group(function (): void {
+Route::prefix('v1/knx')->name('knx.')->middleware(SetLocaleFromHeader::class)->group(function (): void {
     // K1 — session. Login/refresh are unauthenticated by definition and throttled
     // like the rest of the app's logins; logout needs a token to revoke.
     Route::post('auth/login', [AuthController::class, 'login'])
@@ -78,6 +85,20 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans');
 
+            // KNX-47 — el plano real offline: la ficha de cada habitación y el modelo
+            // confirmado de una página del plano.
+            Route::get('projects/{code}/rooms', [FieldProjectController::class, 'rooms'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.rooms');
+            // KNX-25 — los cuadros reales del proyecto, para que el registro no use los
+            // de la maqueta.
+            Route::get('projects/{code}/boards', [FieldProjectController::class, 'boards'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards');
+            Route::get('projects/{code}/plans/{documentId}/model', [FieldProjectController::class, 'planModel'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.model');
+
             // V11.f — the project's devices. The card's progress and the plan's
             // per-room counts come from here, and it answers the same shape the
             // registration does, so the app has one device shape and not two.
@@ -85,11 +106,26 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.devices.index');
 
+            // KNX-55 — las intenciones vigentes del proyecto, para leerlas sin red. El
+            // campo las lee; escribir desde obra sigue pendiente de decisión.
+            Route::get('projects/{code}/intents', [FieldProjectController::class, 'intents'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.intents.index');
+
             // V11.c — registering an apparatus from site. Idempotent by the app's own
             // `clientId`, so this is a POST the client may safely repeat.
             Route::post('projects/{code}/devices', [FieldDeviceController::class, 'store'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.devices.store');
+
+            // KNX-53 — alta de cuadro y de módulo desde obra. Idempotentes por `clientId`
+            // y nacen `unreviewed`: la oficina confirma.
+            Route::post('projects/{code}/boards', [FieldBoardController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.store');
+            Route::post('projects/{code}/boards/{boardId}/modules', [FieldBoardController::class, 'storeModule'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.store');
 
             // V11.d — an incident reported from site. Also idempotent by `clientId`.
             Route::post('projects/{code}/issues', [FieldIssueController::class, 'store'])
@@ -114,6 +150,12 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
         ->group(function (): void {
             Route::get('me/session', [SessionController::class, 'show'])->name('me.session');
 
+            // KNX-54 — las preferencias de aviso de la persona autenticada.
+            Route::get('me/notification-preferences', [NotificationPreferenceController::class, 'show'])
+                ->name('me.notification-preferences.show');
+            Route::put('me/notification-preferences', [NotificationPreferenceController::class, 'update'])
+                ->name('me.notification-preferences.update');
+
             // K7b — the dashboard aggregate (its inputs all exist now).
             Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard.show');
 
@@ -129,9 +171,29 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::get('projects/{code}', [ProjectController::class, 'show'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.show');
+            // KNX-51 — edit the header (name, lead, deadline, site address).
+            Route::patch('projects/{code}', [ProjectController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.update');
             Route::get('projects/{code}/stats', [ProjectController::class, 'stats'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.stats');
+
+            // KNX-44 — the canonical rooms of a project, with their aliases and their
+            // zone. `PATCH /rooms/{id}` has no project in the URL: it resolves through
+            // the room's project and the organization.
+            Route::get('projects/{code}/rooms', [RoomController::class, 'index'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.rooms.index');
+            Route::post('projects/{code}/rooms', [RoomController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.rooms.store');
+            Route::patch('rooms/{id}', [RoomController::class, 'update'])->name('rooms.update');
+
+            // KNX-46 — la ficha de habitación: todo lo que la oficina muestra al hacer clic.
+            Route::get('projects/{code}/rooms/{id}/sheet', [RoomController::class, 'sheet'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.rooms.sheet');
 
             // K3 — the dossier of a project.
             Route::get('projects/{code}/devices', [ProjectController::class, 'devices'])
@@ -145,6 +207,33 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::get('projects/{code}/boards', [BoardController::class, 'index'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.boards');
+            // KNX-52 — el alta y la edición de cuadros y módulos desde oficina. Toda
+            // escritura deja `origin`/`reviewState`/`updatedBy` para que una
+            // reimportación no pise lo editado a mano.
+            Route::post('projects/{code}/boards', [BoardController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.store');
+            Route::patch('projects/{code}/boards/{boardId}', [BoardController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.update');
+            Route::post('projects/{code}/boards/{boardId}/modules', [BoardController::class, 'storeModule'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.store');
+            Route::patch('projects/{code}/boards/{boardId}/modules/{slot}', [BoardController::class, 'updateModule'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.update');
+            Route::delete('projects/{code}/boards/{boardId}/modules/{slot}', [BoardController::class, 'destroyModule'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.destroy');
+            Route::put('projects/{code}/boards/{boardId}/modules/{slot}/channels/{channel}/links', [BoardController::class, 'updateLinks'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.links.update');
+            Route::post('projects/{code}/boards/{boardId}/confirm', [BoardController::class, 'confirm'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.confirm');
+            Route::post('projects/{code}/boards/{boardId}/modules/{slot}/confirm', [BoardController::class, 'confirmModule'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.boards.modules.confirm');
             // V11.e — the closures signed off from site. The office is the reader: the
             // field app only ever sends them.
             Route::get('projects/{code}/visits', [ProjectController::class, 'visits'])
@@ -168,6 +257,22 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::get('conflicts', [ConflictController::class, 'index'])->name('conflicts.index');
             Route::get('conflicts/{id}', [ConflictController::class, 'show'])->name('conflicts.show');
             Route::patch('conflicts/{id}', [ConflictController::class, 'update'])->name('conflicts.update');
+            // KNX-56 — la oficina también abre incidencias (por ejemplo, la llamada del
+            // cliente tras la entrega). `kind: malfunction` abre el ciclo validado.
+            Route::post('projects/{code}/issues', [OfficeIssueController::class, 'store'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.issues.store');
+            // KNX-55 — la intención por elemento: qué debe hacer un módulo, un canal o un
+            // aparato. Es un upsert por la identidad del elemento, así que el front no
+            // arrastra un id entre llamadas.
+            Route::get('projects/{code}/intents', [IntentController::class, 'index'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.intents.index');
+            Route::put('projects/{code}/intents', [IntentController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.intents.update');
+            Route::get('intents/{id}/versions', [IntentController::class, 'versions'])
+                ->name('intents.versions');
             // K7 — readiness writes. The reads live in the shared group below: Veld uses
             // the same payload (its contract says so), but only the office changes checks.
             Route::patch('zones/{id}/checks/{key}', [ZoneController::class, 'updateCheck'])->name('zones.checks.update');
@@ -176,6 +281,8 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::post('documents', [DocumentController::class, 'store'])->name('documents.store');
             Route::get('documents', [DocumentController::class, 'index'])->name('documents.index');
             Route::get('documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
+            // KNX-47 — corregir la planta de un plano ya subido, sin subir otra revisión.
+            Route::patch('documents/{id}', [DocumentController::class, 'update'])->name('documents.update');
 
             // KNX-3 — the boards placed on a revision. The set belongs to the document,
             // so both routes resolve the document inside the project (`{code}`).
@@ -185,6 +292,15 @@ Route::prefix('v1/knx')->name('knx.')->group(function (): void {
             Route::put('projects/{code}/plans/{documentId}/markers', [PlanMarkerController::class, 'update'])
                 ->where('code', '[A-Za-z0-9._-]+')
                 ->name('projects.plans.markers.update');
+
+            // KNX-45 — the room model of a revision, per page. Same anchoring as the
+            // markers: the set belongs to the document and the page.
+            Route::get('projects/{code}/plans/{documentId}/rooms', [PlanRoomController::class, 'show'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.rooms.show');
+            Route::put('projects/{code}/plans/{documentId}/rooms', [PlanRoomController::class, 'update'])
+                ->where('code', '[A-Za-z0-9._-]+')
+                ->name('projects.plans.rooms.update');
 
             Route::get('reports/exports', [ReportController::class, 'index'])->name('reports.exports');
             Route::post('reports', [ReportController::class, 'store'])->name('reports.store');

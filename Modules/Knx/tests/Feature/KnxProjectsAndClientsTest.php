@@ -54,7 +54,7 @@ final class KnxProjectsAndClientsTest extends TestCase
         $projects = $response->json();
 
         $this->assertSame(
-            ['code', 'name', 'clientId', 'clientName', 'city', 'lead', 'devicesPlanned', 'devicesDone', 'photos', 'status', 'deadline'],
+            ['code', 'name', 'clientId', 'clientName', 'siteAddress', 'city', 'lead', 'devicesPlanned', 'devicesDone', 'photos', 'status', 'deadline'],
             array_keys($projects[0]),
         );
 

@@ -3,6 +3,7 @@
 namespace Modules\Knx\Http\Resources;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Modules\Knx\Models\KnxConflict;
 use Modules\Knx\Models\KnxConflictLog;
 
@@ -33,6 +34,7 @@ class ConflictResource extends KnxResource
     {
         return [
             'id' => (string) $this->resource->id,
+            'lifecycle' => $this->resource->lifecycle,
             'severity' => $this->resource->severity,
             'type' => $this->resource->type,
             'address' => $this->resource->address,
@@ -45,13 +47,16 @@ class ConflictResource extends KnxResource
             'note' => $this->resource->note,
             'photoUrl' => $this->photoUrl(),
             'status' => $this->resource->status,
+            'symptom' => $this->resource->symptom,
             'proposal' => $this->resource->proposal,
             'takenAddresses' => array_values($this->takenAddresses),
             'history' => $this->resource->logs->map(fn (KnxConflictLog $log): array => array_filter([
                 'at' => $log->at->toIso8601ZuluString(),
                 'action' => $log->action,
+                'by' => $log->by,
                 // Optional in the contract: only the ETS worklist lines carry one.
                 'address' => $log->address,
+                'note' => $log->note,
             ], static fn ($value): bool => $value !== null))->values()->all(),
         ];
     }
@@ -68,6 +73,6 @@ class ConflictResource extends KnxResource
         // fixture has no photo. The real media pipeline (private originals,
         // conversions, signed temporary URLs) is K8's problem for documents and
         // will be reused here.
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($path);
+        return Storage::disk('public')->url($path);
     }
 }
