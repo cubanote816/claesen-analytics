@@ -338,6 +338,25 @@ Lo que lo resuelve de raíz es servir con **nginx + php-fpm**, que es el stack r
 las imágenes disponibles en esta máquina son sólo `sail-8.x/app` (la de PHP), y la de nginx requiere un
 `pull` que no se intentó.
 
+### La landing de Bertels no puede enviar el formulario en producción hasta cambiar nginx (CLA-705) — PENDIENTE
+
+La landing estática (`cubanote816/electrobertels`, carpeta local `electrobertels_landingpage`) envía
+el formulario con `fetch` a `https://backend.claesen-verlichting.be/v1/website/consultations?site=electro-bertels`
+con la cabecera `Idempotency-Key`. En producción el CORS de `/v1/` **no** lo hace Laravel sino nginx
+(`infrastructure/nginx/sbapu03/backend.claesen-verlichting.be.conf`, que oculta las cabeceras de Laravel),
+y hoy le faltan dos cosas:
+
+1. `cors-map.conf` no lista `https://www.electrobertels.be` ni `https://electrobertels.be`
+   (ni el origen que vaya a servir la landing, si es otro).
+2. El preflight de `location /v1/` responde `Access-Control-Allow-Headers: Content-Type, Authorization,
+   X-Requested-With, X-XSRF-TOKEN, Accept`: **sin `Idempotency-Key`**, así que el navegador cancela
+   el POST aunque el origen esté permitido.
+
+Mientras no se cambie y se recargue nginx, el visitante ve el error «Uw bericht kon niet worden
+verzonden» con el teléfono y el correo como alternativa (no se pierde el contacto, pero no queda
+registrado). En local funciona porque Laravel (`config/cors.php`, `allowed_headers: *`) sí lo permite.
+Comprobación tras el cambio: **navegador** desde el dominio real (nunca solo `curl`, ver abajo).
+
 ### El sitio necesita su origen en CORS ~~y el de producción falta confirmar~~ (2026-10-04) — RESUELTO
 
 El formulario de contacto vive en **otro origen** que la API, así que sin su origen en

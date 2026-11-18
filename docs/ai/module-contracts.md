@@ -222,6 +222,17 @@ Modules/Safety/config/config.php
 - `docs/api/website-v1-openapi.yaml` se valida bidireccionalmente contra
   las rutas reales (`OpenApiContractTest`): toda ruta nueva de
   `/v1/website/*` DEBE documentarse aquí.
+- **Acuse al visitante (`ConsultationConfirmationMail`, CLA-705):** se
+  escribe en el `locale` del pedido si es nl/fr/en/de; si no, en el
+  `default_locale` del sitio; si tampoco, en inglés
+  (`ConsultationConfirmationMail::resolveLocale()`). Asunto y cuerpo llevan
+  la referencia `ConsultationRequest::publicReference()` (`CR-%06d`, el id),
+  que es la que el cliente cita al llamar. Tiene parte HTML **y** de texto;
+  el mensaje citado va escapado en el HTML. La línea «¿urgente? llámenos»
+  sale de los ajustes `phone_display`/`phone_tel` del sitio y se omite si no
+  hay teléfono. Textos en `Modules/Website/lang/{nl,fr,en,de}/consultation.php`
+  (registro `website::`); un idioma nuevo necesita sus cuatro piezas: el
+  archivo, `LOCALES` y el test con data provider.
 
 ### Reglas de documentos legales y media slots (CLA-479/481)
 
