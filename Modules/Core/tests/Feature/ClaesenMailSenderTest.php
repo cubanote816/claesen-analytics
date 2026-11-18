@@ -252,6 +252,9 @@ final class ClaesenMailSenderTest extends TestCase
         $email = $this->sendNotification($this->bertelsFixtureUser(null, ['language' => 'en']), new PasswordResetNotification('c'));
 
         $this->assertNoNotice($email);
+        // S6: suppressing the notice must not switch this mail to the Bertels theme;
+        // a no-site user kept the default (Claesen) logo before CLA-699.
+        $this->assertStringContainsString('cid:claesen-logo@mail.brand', (string) $email->getHtmlBody());
     }
 
     public function test_a_user_without_organization_still_gets_the_notice(): void

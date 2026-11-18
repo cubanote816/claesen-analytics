@@ -70,6 +70,13 @@ final class MailBrand
     private static bool $siteMail = false;
 
     /**
+     * CLA-699: a user of another company without a site keeps today's (default) theme
+     * but must not get the Claesen "do not reply" notice. Kept apart from `$bertels`,
+     * which also selects the logo and palette.
+     */
+    private static bool $suppressNotice = false;
+
+    /**
      * Visual identity per company (design/system.md, CLA-686). The band is the dark
      * header/footer color, the accent the stripe and button fill, and the button label
      * is dark because white on either accent fails WCAG AA. Logos are light-on-dark
@@ -167,7 +174,7 @@ final class MailBrand
      */
     public static function showsAutomatedNotice(): bool
     {
-        return ! self::$bertels && ! self::$siteMail;
+        return ! self::$bertels && ! self::$siteMail && ! self::$suppressNotice;
     }
 
     /** Called after a message is sent, so nothing leaks into the next one. */
@@ -176,6 +183,7 @@ final class MailBrand
         self::$forThisSend = null;
         self::$bertels = false;
         self::$siteMail = false;
+        self::$suppressNotice = false;
     }
 
     /**
@@ -232,7 +240,7 @@ final class MailBrand
             // the Claesen organization (that of the Claesen panel site); a Bertels
             // user without a site gets no Claesen notice.
             if ($user?->organization_id !== null && $user->organization_id !== self::claesenOrganizationId()) {
-                self::$bertels = true;
+                self::$suppressNotice = true;
             }
 
             return [
