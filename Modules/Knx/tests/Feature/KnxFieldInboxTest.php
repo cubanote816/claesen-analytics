@@ -26,6 +26,9 @@ final class KnxFieldInboxTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // The notification title is translated and STORED when the device is registered below: pin the
+        // locale so the test never depends on the environment's APP_LOCALE (CI runs in English).
+        app()->setLocale('nl');
         // The tenant has to exist before the fixture runs (KnxTenant refuses to
         // invent one), and it is the fixture that creates the office account:
         // seeding *after* creating our own person would delete it, because the
