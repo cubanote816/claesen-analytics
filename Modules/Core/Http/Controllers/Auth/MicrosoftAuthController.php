@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Modules\Core\Http\Middleware\ResolveSessionCookieDomain;
+use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
 use Modules\Core\Services\Auth\AzureRoleService;
 use Modules\Core\Services\Auth\FrontendRedirectService;
@@ -19,6 +20,9 @@ use Modules\Core\Support\AuthenticatedVia;
 
 class MicrosoftAuthController extends Controller
 {
+    /** CLA-704 (S6): the only panel the sign-in button may ask to return to besides the default one. */
+    public const BERTELS_PANEL = 'bertels';
+
     /**
      * Returns the OAuth redirect URI to use.
      * API requests (Safety Hub / Sport / PWA) use the public-facing URL registered in Azure
@@ -51,6 +55,12 @@ class MicrosoftAuthController extends Controller
         if ($source) {
             session(['auth_source' => $source]);
         }
+
+        // CLA-704 (S6): a hint only — strictly an allowlisted panel id, never a URL. Anything
+        // else (unknown id, URL, array) is dropped, so the callback behaves as it always did.
+        $request->input('panel') === self::BERTELS_PANEL
+            ? session(['auth_panel' => self::BERTELS_PANEL])
+            : session()->forget('auth_panel');
 
         $redirect = null;
 
@@ -237,6 +247,16 @@ class MicrosoftAuthController extends Controller
                     return redirect()->route('auth.setup-password');
                 }
 
+                $landing = $this->landingPanelUrl($user, session()->pull('auth_panel'));
+
+                if ($landing !== null) {
+                    session()->forget('url.intended');
+
+                    return redirect()->to($landing);
+                }
+
+                $this->forgetIntendedBertelsUrlIfInaccessible($user);
+
                 return redirect()->intended(Filament::getUrl());
             }
 
@@ -284,6 +304,48 @@ class MicrosoftAuthController extends Controller
 
             return redirect('/login')
                 ->withErrors(['microsoft' => 'Inloggen via Microsoft is mislukt. Probeer het opnieuw of neem contact op met de beheerder.']);
+        }
+    }
+
+    /**
+     * CLA-704 (S6): the Bertels panel URL when the Microsoft sign-in must land there, else
+     * null (the Claesen panel, exactly as before). Never built from request input: only
+     * the Bertels panel's own URL is ever returned, and only to a user who can access it.
+     * A user of the Bertels organization always lands there; anyone else only when the
+     * button asked for it ($hint === 'bertels') and they are allowed in.
+     */
+    private function landingPanelUrl(User $user, mixed $hint): ?string
+    {
+        $panel = Filament::getPanel(self::BERTELS_PANEL, isStrict: false);
+
+        if ($panel === null || ! $user->canAccessPanel($panel)) {
+            return null;
+        }
+
+        $bertelsOrganizationId = Site::forPanel(self::BERTELS_PANEL)?->organization_id;
+        $isBertelsUser = $bertelsOrganizationId !== null && $user->organization_id === $bertelsOrganizationId;
+
+        return $isBertelsUser || $hint === self::BERTELS_PANEL ? $panel->getUrl() : null;
+    }
+
+    /**
+     * CLA-704 (S6): a URL remembered from an unauthenticated visit to /bertels must not send
+     * a user who cannot open that panel there (a 403 right after signing in).
+     */
+    private function forgetIntendedBertelsUrlIfInaccessible(User $user): void
+    {
+        $panel = Filament::getPanel(self::BERTELS_PANEL, isStrict: false);
+        $intended = session('url.intended');
+
+        if ($panel === null || ! is_string($intended) || $user->canAccessPanel($panel)) {
+            return;
+        }
+
+        $path = '/'.trim((string) parse_url($intended, PHP_URL_PATH), '/');
+        $base = '/'.trim($panel->getPath(), '/');
+
+        if ($path === $base || str_starts_with($path, $base.'/')) {
+            session()->forget('url.intended');
         }
     }
 
