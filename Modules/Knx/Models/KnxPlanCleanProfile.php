@@ -13,14 +13,18 @@ use Modules\Knx\Models\Concerns\BelongsToKnxTenant;
  * The clean-plan profile of one page of one plan revision (KNX-48).
  *
  * `roles` maps an opaque group id (`layer:<name>`, `style:<signature>`) to a role. The
- * server stores it as sent and never reads the PDF.
+ * server stores it as sent and never reads the PDF. `symbol_roles` maps a symbol id
+ * (`s<index>`) to a symbol role.
  */
 class KnxPlanCleanProfile extends Model
 {
     use BelongsToKnxTenant;
     use HasFactory;
 
-    public const ROLES = ['wall', 'window', 'door', 'stair', 'lift', 'void', 'hidden', 'unknown'];
+    public const ROLES = ['wall', 'window', 'door', 'stair', 'lift', 'void', 'furniture', 'hidden', 'unknown'];
+
+    /** Roles of a single SYMBOL (a cluster of small strokes, `s<index>`). */
+    public const SYMBOL_ROLES = ['furniture', 'device', 'hidden', 'unknown'];
 
     protected $table = 'knx_plan_clean_profiles';
 
@@ -31,6 +35,7 @@ class KnxPlanCleanProfile extends Model
         'page',
         'roles',
         'boundaries',
+        'symbol_roles',
         'revision',
         'processing_version',
         'updated_by_employee_id',
@@ -42,6 +47,7 @@ class KnxPlanCleanProfile extends Model
             'page' => 'integer',
             'roles' => 'array',
             'boundaries' => 'array',
+            'symbol_roles' => 'array',
         ];
     }
 

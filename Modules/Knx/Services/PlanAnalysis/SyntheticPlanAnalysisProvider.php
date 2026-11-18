@@ -11,7 +11,8 @@ namespace Modules\Knx\Services\PlanAnalysis;
  * An example applies when every group id it names in `match.groupIds` is on the page.
  * Rooms and uncertain points name a text of the example; they are placed at that text
  * of the INPUT (its id and position), and skipped when the page has no such text, so
- * even the simulator never invents a name. A page no example matches gets an empty
+ * even the simulator never invents a name. Symbols and legend entries follow the same
+ * rule: they appear only when the request has that symbol id and that text (plan-analysis/2). A page no example matches gets an empty
  * proposal with one uncertain point that says so.
  */
 class SyntheticPlanAnalysisProvider implements PlanAnalysisProvider
@@ -37,7 +38,10 @@ class SyntheticPlanAnalysisProvider implements PlanAnalysisProvider
         $example = $this->exampleFor($input);
         if ($example === null) {
             return new PlanAnalysisResult(self::ID, 'synthetic-examples', [
+                'planKind' => 'unknown',
                 'groupRoles' => [],
+                'symbols' => [],
+                'legend' => [],
                 'rooms' => [],
                 'uncertain' => [['x' => 0.5, 'y' => 0.5, 'reason' => 'No synthetic example matches this page.']],
             ]);
@@ -58,8 +62,10 @@ class SyntheticPlanAnalysisProvider implements PlanAnalysisProvider
                     'textId' => $text['id'],
                     'x' => $text['x'],
                     'y' => $text['y'],
+                    'kind' => (string) ($room['kind'] ?? 'other'),
                     'confidence' => (float) $room['confidence'],
                     'reason' => (string) $room['reason'],
+                    'geometryNullReason' => null,
                 ];
             }
         }
@@ -72,8 +78,36 @@ class SyntheticPlanAnalysisProvider implements PlanAnalysisProvider
             }
         }
 
+        $symbolsOnPage = array_flip($input->symbolIds());
+        $symbols = [];
+        foreach ((array) ($example['symbols'] ?? []) as $symbol) {
+            if (! isset($symbolsOnPage[$symbol['symbolId']])) {
+                continue;
+            }
+            $label = isset($symbol['labelText']) ? $this->text($input, (string) $symbol['labelText']) : null;
+            $symbols[] = [
+                'symbolId' => $symbol['symbolId'],
+                'role' => $symbol['role'],
+                'deviceType' => $symbol['deviceType'] ?? null,
+                'labelTextId' => $label['id'] ?? null,
+                'confidence' => (float) $symbol['confidence'],
+                'reason' => (string) $symbol['reason'],
+            ];
+        }
+
+        $legend = [];
+        foreach ((array) ($example['legend'] ?? []) as $entry) {
+            $text = $this->text($input, (string) $entry['text']);
+            if ($text !== null && (($entry['symbolId'] ?? null) === null || isset($symbolsOnPage[$entry['symbolId']]))) {
+                $legend[] = ['symbolId' => $entry['symbolId'] ?? null, 'textId' => $text['id'], 'deviceType' => $entry['deviceType']];
+            }
+        }
+
         return new PlanAnalysisResult(self::ID, 'synthetic-examples', [
+            'planKind' => (string) ($example['planKind'] ?? 'unknown'),
             'groupRoles' => $groupRoles,
+            'symbols' => $symbols,
+            'legend' => $legend,
             'rooms' => $rooms,
             'uncertain' => $uncertain,
         ]);

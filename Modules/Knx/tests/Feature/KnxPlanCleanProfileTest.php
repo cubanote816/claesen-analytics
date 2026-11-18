@@ -58,10 +58,11 @@ final class KnxPlanCleanProfileTest extends TestCase
         $response = $this->getJson($this->url($document, '?page=1'))->assertOk();
 
         $this->assertSame(
-            ['documentId', 'page', 'revision', 'documentRevision', 'processingVersion', 'roles', 'boundaries', 'updatedAt'],
+            ['documentId', 'page', 'revision', 'documentRevision', 'processingVersion', 'roles', 'boundaries', 'symbolRoles', 'updatedAt'],
             array_keys($response->json()),
         );
         $this->assertSame([], $response->json('boundaries'));
+        $this->assertStringContainsString('"symbolRoles":{}', $response->getContent());
         $this->assertSame((string) $document->getKey(), $response->json('documentId'));
         $this->assertSame(1, $response->json('page'));
         $this->assertNull($response->json('revision'));
@@ -240,5 +241,55 @@ final class KnxPlanCleanProfileTest extends TestCase
             $this->putJson($this->url($document), ['page' => 1, 'roles' => [], 'boundaries' => $bad])->assertStatus(422);
         }
         $this->assertEquals([[[0.2, 0.2], [0.4, 0.4]]], $this->getJson($this->url($document, '?page=1'))->json('boundaries'));
+    }
+
+    public function test_the_furniture_role_is_accepted_for_groups_and_round_trips(): void
+    {
+        $document = $this->document();
+        $roles = ['style:s:#80591a:0.3' => 'furniture', 'layer:A-WALL' => 'wall'];
+
+        $this->putJson($this->url($document), ['page' => 1, 'roles' => $roles])->assertOk();
+
+        $this->assertEquals($roles, $this->getJson($this->url($document, '?page=1'))->json('roles'));
+        $this->assertContains('furniture', KnxPlanCleanProfile::ROLES);
+    }
+
+    public function test_symbol_roles_round_trip_per_page_and_are_replaced_whole(): void
+    {
+        $document = $this->document();
+        $symbolRoles = ['s12' => 'furniture', 's40' => 'device', 's7' => 'hidden', 's1' => 'unknown'];
+
+        $put = $this->putJson($this->url($document), ['page' => 1, 'roles' => ['layer:A' => 'wall'], 'symbolRoles' => $symbolRoles])->assertOk();
+        $get = $this->getJson($this->url($document, '?page=1'))->assertOk();
+
+        foreach ([$put, $get] as $response) {
+            $this->assertEquals($symbolRoles, $response->json('symbolRoles'));
+            $this->assertEquals(['layer:A' => 'wall'], $response->json('roles'));
+        }
+        $this->assertStringContainsString('"symbolRoles":{}', $this->getJson($this->url($document, '?page=2'))->getContent());
+
+        // A second PUT replaces the map; an omitted `symbolRoles` clears it (boundaries behave the same).
+        $this->putJson($this->url($document), ['page' => 1, 'roles' => [], 'symbolRoles' => ['s2' => 'device']])->assertOk();
+        $this->assertEquals(['s2' => 'device'], $this->getJson($this->url($document, '?page=1'))->json('symbolRoles'));
+        $this->putJson($this->url($document), ['page' => 1, 'roles' => []])->assertOk();
+        $this->assertStringContainsString('"symbolRoles":{}', $this->getJson($this->url($document, '?page=1'))->getContent());
+    }
+
+    public function test_bad_symbol_roles_are_a_422_and_store_nothing(): void
+    {
+        $document = $this->document();
+        $this->putJson($this->url($document), ['page' => 1, 'roles' => [], 'symbolRoles' => ['s2' => 'device']])->assertOk();
+
+        foreach ([
+            ['x12' => 'furniture'],     // id must be s<digits>
+            ['s12' => 'wall'],          // wall is a group role, not a symbol role
+            ['s12' => 'lamp'],
+            ['s12' => ['furniture']],
+        ] as $bad) {
+            $this->putJson($this->url($document), ['page' => 1, 'roles' => [], 'symbolRoles' => $bad])->assertUnprocessable()->assertJsonValidationErrors('symbolRoles');
+        }
+        $this->putJson($this->url($document), ['page' => 1, 'roles' => [], 'symbolRoles' => 'furniture'])->assertUnprocessable();
+
+        $this->assertEquals(['s2' => 'device'], $this->getJson($this->url($document, '?page=1'))->json('symbolRoles'));
     }
 }

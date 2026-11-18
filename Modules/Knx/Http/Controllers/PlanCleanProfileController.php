@@ -6,6 +6,7 @@ namespace Modules\Knx\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Knx\Http\Resources\PlanCleanProfileResource;
 use Modules\Knx\Models\KnxDocument;
@@ -34,9 +35,7 @@ class PlanCleanProfileController extends Controller
 
         $document = $this->document($code, $documentId);
 
-        return PlanCleanProfileResource::make(
-            $this->profiles->forDocument($document, (int) ($validated['page'] ?? 1)),
-        )->resolve($request);
+        return $this->present($request, $this->profiles->forDocument($document, (int) ($validated['page'] ?? 1)));
     }
 
     public function update(Request $request, string $code, string $documentId): array
@@ -56,17 +55,64 @@ class PlanCleanProfileController extends Controller
             'boundaries.*' => ['array', 'size:2'],
             'boundaries.*.*' => ['array', 'size:2'],
             'boundaries.*.*.*' => ['numeric', 'between:0,1'],
+            // Roles of single symbols (`s<index>`, plano IA v2). Replaced whole like the
+            // boundaries: omitted = none. The entries are checked by hand below.
+            'symbolRoles' => ['sometimes', 'array', 'max:3000'],
         ]);
 
         $this->assertValidRoles($validated['roles']);
+        $this->assertValidSymbolRoles($validated['symbolRoles'] ?? []);
         $this->assertNoDegenerateBoundary($validated['boundaries'] ?? []);
 
         /** @var KnxEmployee $employee */
         $employee = $request->attributes->get('knx_employee');
 
-        return PlanCleanProfileResource::make(
-            $this->profiles->replace($document, $employee, $validated),
-        )->resolve($request);
+        $saved = DB::transaction(function () use ($document, $employee, $validated): array {
+            $saved = $this->profiles->replace($document, $employee, $validated);
+            $saved['profile']?->forceFill(['symbol_roles' => $validated['symbolRoles'] ?? []])->save();
+
+            return $saved;
+        });
+
+        return $this->present($request, $saved);
+    }
+
+    /**
+     * The profile payload, with the roles of symbols next to the roles of groups. Always a
+     * JSON object (`{}` when empty), like `roles`.
+     *
+     * @param  array{document: KnxDocument, page: int, profile: KnxPlanCleanProfile|null}  $saved
+     * @return array<string, mixed>
+     */
+    private function present(Request $request, array $saved): array
+    {
+        $payload = PlanCleanProfileResource::make($saved)->resolve($request);
+        $symbolRoles = (object) ($saved['profile']?->symbol_roles ?? []);
+
+        $out = [];
+        foreach ($payload as $key => $value) {
+            if ($key === 'updatedAt') {
+                $out['symbolRoles'] = $symbolRoles;
+            }
+            $out[$key] = $value;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $symbolRoles
+     */
+    private function assertValidSymbolRoles(array $symbolRoles): void
+    {
+        foreach ($symbolRoles as $symbolId => $role) {
+            if (preg_match('/^s\d{1,9}$/', (string) $symbolId) !== 1
+                || ! is_string($role) || ! in_array($role, KnxPlanCleanProfile::SYMBOL_ROLES, true)) {
+                throw ValidationException::withMessages(['symbolRoles' => [
+                    'Every key must be a symbol id (s<digits>) and every role one of: '.implode(', ', KnxPlanCleanProfile::SYMBOL_ROLES).'.',
+                ]]);
+            }
+        }
     }
 
     /**

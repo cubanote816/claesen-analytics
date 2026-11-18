@@ -7,6 +7,8 @@ namespace Modules\Knx\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\Knx\Http\Controllers\Concerns\ResolvesPlanDocument;
 use Modules\Knx\Models\KnxEmployee;
@@ -72,10 +74,101 @@ class PlanAnalysisController extends Controller
     {
         $document = $this->planDocument($code, $documentId);
 
-        $validated = $request->validate([
+        // Uniqueness and membership are checked against sets built ONCE: Laravel's `distinct` and a
+        // Rule::in over every text are quadratic on wildcards (3000 symbols took ~60 s, doc 108).
+        $refsSeen = fn (string $list): array => array_filter(
+            array_count_values(array_filter(
+                is_array($request->input($list)) ? array_column($request->input($list), 'ref') : [],
+                fn ($ref): bool => is_int($ref) || is_string($ref),
+            )),
+            fn (int $count): bool => $count > 1,
+        );
+        $duplicateGroupRefs = $refsSeen('groups');
+        $duplicateSymbolRefs = $refsSeen('symbols');
+        $unique = fn (array $duplicates): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($duplicates): void {
+            if ((is_int($value) || is_string($value)) && isset($duplicates[$value])) {
+                $fail(trans('validation.distinct'));
+            }
+        };
+        $textIds = array_flip(array_filter(
+            is_array($request->input('texts')) ? array_column($request->input('texts'), 'id') : [],
+            'is_string',
+        ));
+
+        // Symbols are checked in ONE plain pass (same rules as `symbols.*.…`: required, id ^s\d+$ max 16,
+        // group max 255, x/y/w/h numeric 0..1, paths integer >= 0, ref integer >= 1 unique and required
+        // with the reference image, nearTextIds array max 3 of sent text ids). Wildcard rules and one
+        // validator per symbol took 20-60 s for 3000 symbols. Error keys keep `symbols.N.field`.
+        $hasReference = $request->filled('referenceImage');
+        $validateSymbols = function () use ($request, $hasReference, $duplicateSymbolRefs, $textIds): array {
+            $symbols = $request->input('symbols');
+            if (! is_array($symbols)) {
+                return [[], []];
+            }
+            $int = fn (mixed $v): ?int => is_int($v) ? $v : (is_string($v) && preg_match('/^-?\d+$/', $v) === 1 ? (int) $v : null);
+            $fraction = fn (mixed $v): bool => is_numeric($v) && (float) $v >= 0 && (float) $v <= 1;
+            $errors = [];
+            foreach (array_values($symbols) as $i => $symbol) {
+                $symbol = is_array($symbol) ? $symbol : [];
+                $bad = function (string $field, string $rule, array $params = []) use (&$errors, $i): void {
+                    $attribute = "symbols.{$i}.{$field}";
+                    $errors[$attribute][] = trans("validation.{$rule}", ['attribute' => $attribute] + $params);
+                };
+                $id = $symbol['id'] ?? null;
+                if (! is_string($id) || strlen($id) > 16 || preg_match('/^s\d+$/', $id) !== 1) {
+                    $bad('id', $id === null ? 'required' : 'regex');
+                }
+                $group = $symbol['group'] ?? null;
+                if (! is_string($group) || $group === '' || strlen($group) > 255) {
+                    $bad('group', $group === null ? 'required' : 'string');
+                }
+                foreach (['x', 'y', 'w', 'h'] as $field) {
+                    if (! $fraction($symbol[$field] ?? null)) {
+                        $value = $symbol[$field] ?? null;
+                        match (true) {
+                            $value === null => $bad($field, 'required'),
+                            is_numeric($value) => $bad($field, 'between.numeric', ['min' => 0, 'max' => 1]),
+                            default => $bad($field, 'numeric'),
+                        };
+                    }
+                }
+                $paths = $int($symbol['paths'] ?? null);
+                if ($paths === null || $paths < 0) {
+                    $bad('paths', ($symbol['paths'] ?? null) === null ? 'required' : 'integer');
+                }
+                if (array_key_exists('ref', $symbol) || $hasReference) {
+                    $ref = $int($symbol['ref'] ?? null);
+                    if ($ref === null || $ref < 1) {
+                        $bad('ref', ($symbol['ref'] ?? null) === null ? 'required' : 'integer');
+                    } elseif (isset($duplicateSymbolRefs[$ref])) {
+                        $bad('ref', 'distinct');
+                    }
+                }
+                $near = $symbol['nearTextIds'] ?? null;
+                if (! is_array($near) || count($near) > 3) {
+                    $bad('nearTextIds', $near === null ? 'present' : 'array');
+                } else {
+                    foreach (array_values($near) as $n => $textId) {
+                        if (! is_string($textId) || ! isset($textIds[$textId])) {
+                            $bad("nearTextIds.{$n}", 'in');
+                        }
+                    }
+                }
+            }
+
+            return [array_values($symbols), $errors];
+        };
+
+        // The symbols are left out of the main validator: every wildcard rule flattens the WHOLE
+        // payload, so thousands of symbols made each `groups.*` / `texts.*` rule slow as well.
+        Validator::make(['symbols' => $request->input('symbols')], [
+            'symbols' => ['sometimes', 'nullable', 'array', 'max:3000'],
+        ])->validate();
+        $main = Validator::make($request->except('symbols'), [
             'page' => ['required', 'integer', 'min:1'],
             'provider' => ['required', 'string', 'max:32'],
             'image' => ['required', 'string'],
+            'referenceImage' => ['sometimes', 'nullable', 'string'],
             'pageWidthPt' => ['required', 'numeric', 'gt:0'],
             'pageHeightPt' => ['required', 'numeric', 'gt:0'],
             'groups' => ['present', 'array', 'max:2000'],
@@ -87,12 +180,26 @@ class PlanAnalysisController extends Controller
             'groups.*.strokeColor' => ['present', 'nullable', 'string', 'max:32'],
             'groups.*.closedPct' => ['required', 'integer', 'between:0,100'],
             'groups.*.curvedPct' => ['required', 'integer', 'between:0,100'],
+            'groups.*.ref' => ['required_with:referenceImage', 'integer', 'min:1', $unique($duplicateGroupRefs)],
             'texts' => ['present', 'array', 'max:5000'],
             'texts.*.id' => ['required', 'string', 'max:64'],
             'texts.*.text' => ['required', 'string', 'max:500'],
             'texts.*.x' => ['required', 'numeric', 'between:0,1'],
             'texts.*.y' => ['required', 'numeric', 'between:0,1'],
+            // Plano IA v2 (optional: a v1 client keeps working). Symbol candidates per
+            // instance and the detected legend region, in page fractions.
+            'legend' => ['sometimes', 'nullable', 'array:x,y,w,h'],
+            'legend.x' => ['required_with:legend', 'numeric', 'between:0,1'],
+            'legend.y' => ['required_with:legend', 'numeric', 'between:0,1'],
+            'legend.w' => ['required_with:legend', 'numeric', 'between:0,1'],
+            'legend.h' => ['required_with:legend', 'numeric', 'between:0,1'],
         ]);
+        // Both sets of errors in ONE 422 (the list itself already passed: array, max 3000).
+        [$validatedSymbols, $symbolErrors] = $validateSymbols();
+        if ($main->fails() || $symbolErrors !== []) {
+            throw ValidationException::withMessages($main->errors()->messages() + $symbolErrors);
+        }
+        $validated = $main->validated();
 
         if (! $this->providers->exists($validated['provider'])) {
             throw ValidationException::withMessages(['provider' => ['Unknown plan-analysis provider.']]);
@@ -100,6 +207,13 @@ class PlanAnalysisController extends Controller
         $png = base64_decode($validated['image'], true);
         if ($png === false || ! str_starts_with($png, "\x89PNG")) {
             throw ValidationException::withMessages(['image' => ['The image must be a base64-encoded PNG.']]);
+        }
+        $referencePng = null;
+        if (isset($validated['referenceImage'])) {
+            $referencePng = base64_decode($validated['referenceImage'], true);
+            if ($referencePng === false || ! str_starts_with($referencePng, "\x89PNG")) {
+                throw ValidationException::withMessages(['referenceImage' => ['The referenceImage must be a base64-encoded PNG.']]);
+            }
         }
 
         /** @var KnxEmployee $employee */
@@ -113,6 +227,12 @@ class PlanAnalysisController extends Controller
                 imagePng: $png,
                 groups: $this->groups($validated['groups']),
                 texts: $this->texts($validated['texts']),
+                symbols: $this->symbols($validatedSymbols),
+                legend: isset($validated['legend']) ? array_map('floatval', [
+                    'x' => $validated['legend']['x'], 'y' => $validated['legend']['y'],
+                    'w' => $validated['legend']['w'], 'h' => $validated['legend']['h'],
+                ]) : null,
+                referencePng: $referencePng,
             ));
         } catch (PlanAnalysisFailed $e) {
             return response()->json(array_filter([
@@ -147,7 +267,7 @@ class PlanAnalysisController extends Controller
             'strokeColor' => $g['strokeColor'] === null ? null : (string) $g['strokeColor'],
             'closedPct' => (int) $g['closedPct'],
             'curvedPct' => (int) $g['curvedPct'],
-        ], array_values($groups));
+        ] + (isset($g['ref']) ? ['ref' => (int) $g['ref']] : []), array_values($groups));
     }
 
     /**
@@ -162,6 +282,24 @@ class PlanAnalysisController extends Controller
             'x' => (float) $t['x'],
             'y' => (float) $t['y'],
         ], array_values($texts));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $symbols
+     * @return list<array{id: string, group: string, x: float, y: float, w: float, h: float, paths: int, nearTextIds: list<string>}>
+     */
+    private function symbols(array $symbols): array
+    {
+        return array_map(fn (array $s): array => [
+            'id' => (string) $s['id'],
+            'group' => (string) $s['group'],
+            'x' => (float) $s['x'],
+            'y' => (float) $s['y'],
+            'w' => (float) $s['w'],
+            'h' => (float) $s['h'],
+            'paths' => (int) $s['paths'],
+            'nearTextIds' => array_values(array_map('strval', $s['nearTextIds'])),
+        ] + (isset($s['ref']) ? ['ref' => (int) $s['ref']] : []), array_values($symbols));
     }
 
     private function present(KnxPlanAnalysis $analysis): array
