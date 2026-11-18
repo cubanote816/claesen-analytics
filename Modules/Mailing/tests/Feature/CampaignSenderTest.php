@@ -178,4 +178,17 @@ class CampaignSenderTest extends TestCase
         $this->assertSame([], $mailable->from);
         $this->assertSame('offerte@claesen-verlichting.be', config('mail.from.address'));
     }
+
+    // CLA-699: campaigns never carry the automated-mail notice.
+    public function test_campaign_mail_has_no_automated_notice_and_keeps_its_sender(): void
+    {
+        config(['mailing.from_address' => 'sport@claesen-verlichting.be', 'mail.from.address' => 'backoffice@claesen-verlichting.be']);
+
+        $mailable = $this->makeMailable();
+        $html = $mailable->render();
+
+        $this->assertSame('sport@claesen-verlichting.be', $mailable->envelope()->from->address);
+        $this->assertStringNotContainsString('This is an automated message', $html);
+        $this->assertStringNotContainsString('Dit is een automatisch bericht', $html);
+    }
 }

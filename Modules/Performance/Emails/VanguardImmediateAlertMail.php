@@ -25,7 +25,7 @@ class VanguardImmediateAlertMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('vanguard@claesen-verlichting.be', 'Vanguard Guardian'),
+            from: new Address((string) config('mail.from.address'), (string) config('mail.from.name')),
             subject: '🚨 DRINGEND: Kritiek Financieel Risico - Project ' . $this->projectData['id'],
         );
     }

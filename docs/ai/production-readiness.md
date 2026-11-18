@@ -109,6 +109,20 @@ Los correos ya enviados conservan la URL interna; la corrección aplica a los en
 
 IP del cliente (CLA-661): todo lo que entra por el túnel desde `192.168.60.10` llega con `REMOTE_ADDR` 127.0.0.1. `bootstrap/app.php` confía solo en ese salto y solo en `X-Forwarded-For` (`trustProxies(at: '127.0.0.1', headers: HEADER_X_FORWARDED_FOR)`), así que `$request->ip()` es la IP que agrega el borde y el tracking, Turnstile, el anti-spam y los límites `throttle` (incluido el del login) trabajan por IP real. Requisito para que no se pueda falsear: **todo `location` de `192.168.60.10` que haga `proxy_pass` a `127.0.0.1:9443` tiene que definir `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`** (auditado el 2026-11-07: safety, fieldops, service y el snippet de tracking). Un vhost nuevo que lo omita deja pasar el `X-Forwarded-For` del cliente. La decisión de URLs de storage (`AppServiceProvider::servesLocalStorageUrls`) lee `REMOTE_ADDR`, no `ip()`.
 
+### Remitentes de Claesen: backoffice@ (CLA-699)
+
+El código solo no cambia el correo en producción: con `MAIL_FROM_ADDRESS=offerte@` y alias vacíos todo sigue saliendo de un buzón existente. El cambio a `backoffice@` es un paso de configuración aparte (lo ejecuta el usuario):
+
+1. **Prerrequisito:** en Exchange, «Turn on sending from aliases» guardado (puede tardar hasta 60 min) y `backoffice@claesen-verlichting.be` como alias de `sport@claesen-verlichting.be`.
+2. **Backup acotado** (solo estas dos líneas, sin imprimir otros valores de `.env`): `grep -E '^(MAIL_FROM_ADDRESS|MICROSOFT_GRAPH_MAILBOX_ALIASES)=' shared/.env > shared/.env.cla699.bak` (si una no existe, anotarlo).
+3. **Editar** en `shared/.env`: `MAIL_FROM_ADDRESS=backoffice@claesen-verlichting.be` y `MICROSOFT_GRAPH_MAILBOX_ALIASES=backoffice@claesen-verlichting.be=sport@claesen-verlichting.be`.
+4. **Mantener explícitos** `MAILING_FROM_ADDRESS=sport@…` y `MAILING_REPLY_TO=offerte@…`: `ProspectCampaignMail` cae a `mail.from.address` si faltan, y las campañas saldrían de backoffice@.
+5. **Recargar:** `infrastructure/scripts/reload-config.sh` y `php artisan queue:restart` (los workers conservan la config vieja si no).
+6. **Verificar:** pedir un código de acceso nuevo hacia un buzón externo; la cabecera `From` debe mostrar `backoffice@claesen-verlichting.be` y el cuerpo el aviso de mensaje automático.
+7. **Rollback:** restaurar solo esos dos valores desde el backup; si alguna de las dos claves (`MICROSOFT_GRAPH_MAILBOX_ALIASES` o `MAIL_FROM_ADDRESS`) no existía antes, el rollback elimina esa línea en vez de restaurarla (no tocar ninguna otra clave), repetir `reload-config.sh` + `php artisan queue:restart`.
+
+La migración `set_claesen_quote_mail_sender` (offerte@ para los presupuestos de la web) corre con el deploy y es compatible con ambos estados.
+
 ### Scheduler (debe estar en crontab)
 
 ```bash

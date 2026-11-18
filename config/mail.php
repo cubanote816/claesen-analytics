@@ -93,6 +93,24 @@ return [
             'client_id' => env('MICROSOFT_GRAPH_CLIENT_ID'),
             'tenant_id' => env('MICROSOFT_GRAPH_TENANT_ID'),
             'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET'),
+            // CLA-699: alias => mailbox map from "alias@x=mailbox@x[,alias2=mailbox2]".
+            // Graph sends via /users/{mailbox}/sendMail while message.from keeps the
+            // alias. Keys lowercased; malformed pairs ignored. Empty by default.
+            'mailbox_aliases' => (function (): array {
+                $map = [];
+                foreach (explode(',', (string) env('MICROSOFT_GRAPH_MAILBOX_ALIASES', '')) as $pair) {
+                    $parts = explode('=', $pair);
+                    if (count($parts) !== 2) {
+                        continue;
+                    }
+                    [$alias, $mailbox] = array_map('trim', $parts);
+                    if ($alias !== '' && $mailbox !== '') {
+                        $map[strtolower($alias)] = $mailbox;
+                    }
+                }
+
+                return $map;
+            })(),
         ],
 
         'roundrobin' => [

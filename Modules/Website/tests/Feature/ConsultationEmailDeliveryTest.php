@@ -272,4 +272,25 @@ final class ConsultationEmailDeliveryTest extends TestCase
 
         $this->assertSame('Global Sender', $payload['message']['from']['emailAddress']['name']);
     }
+
+    /**
+     * CLA-699: the Claesen quote mails leave from the Claesen SITE sender (offerte@,
+     * set by the `set_claesen_quote_mail_sender` migration) — never the platform
+     * sender — and carry no "automated message" notice.
+     */
+    public function test_claesen_quote_mails_come_from_the_site_sender_without_the_automated_notice(): void
+    {
+        config(['mail.from.address' => 'backoffice@claesen-verlichting.test', 'mail.from.name' => 'Platform Sender']);
+
+        $site = Site::query()->where('key', config('organizations.panel_sites.admin'))->firstOrFail();
+        $consultation = ConsultationRequest::factory()->create(['site_id' => $site->id]);
+
+        foreach ([new ConsultationConfirmationMail($consultation, $site), new NewConsultationRequestMail($consultation, $site)] as $mailable) {
+            $this->assertSame('offerte@claesen-verlichting.be', $mailable->envelope()->from->address);
+
+            $html = $mailable->render();
+            $this->assertStringNotContainsString('This is an automated message', $html);
+            $this->assertStringNotContainsString('Dit is een automatisch bericht', $html);
+        }
+    }
 }

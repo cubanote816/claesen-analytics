@@ -33,9 +33,9 @@ class MicrosoftGraphTransport extends AbstractTransport
     {
         $email = MessageConverter::toEmail($message->getOriginalMessage());
         $payload = $this->getPayload($email);
-        $from = $this->getSenderEmail($email);
+        $mailbox = $this->resolveMailbox($this->getSenderEmail($email));
 
-        if (!$this->graphService->sendMail($from, $payload)) {
+        if (!$this->graphService->sendMail($mailbox, $payload)) {
             Log::error("Microsoft Graph Transport: Failed to send email via Graph API.");
             // CLA-681: carry the structured Graph reason (status + code) up to the caller.
             $reason = $this->graphService->lastFailureReason();
@@ -142,6 +142,22 @@ class MicrosoftGraphTransport extends AbstractTransport
     {
         $from = $email->getFrom();
         return count($from) > 0 ? $from[0]->getAddress() : config('mail.from.address');
+    }
+
+    /**
+     * CLA-699: mailbox used in /users/{mailbox}/sendMail. A configured alias
+     * (case-insensitive) maps to its real mailbox; message.from/sender keep the
+     * alias. Unmapped senders use their own address.
+     */
+    protected function resolveMailbox(string $from): string
+    {
+        $aliases = config('mail.mailers.microsoft-graph.mailbox_aliases');
+
+        if (!is_array($aliases) || $aliases === []) {
+            return $from;
+        }
+
+        return $aliases[strtolower($from)] ?? $from;
     }
 
     /**

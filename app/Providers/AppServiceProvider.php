@@ -51,6 +51,9 @@ class AppServiceProvider extends ServiceProvider
         // para este correo— pero ANTES del siguiente envío, así que limpiar acá es
         // justo lo que impide que una empresa herede el nombre de la anterior.
         Event::listen(MessageSending::class, static fn () => MailBrand::forget());
+        // A send that throws before MessageSending never clears the state; a worker
+        // starting its next job must not inherit it.
+        Event::listen(\Illuminate\Queue\Events\JobProcessing::class, static fn () => MailBrand::forget());
 
 
         // F1/P5c of the multi-organization program (ADR D5,

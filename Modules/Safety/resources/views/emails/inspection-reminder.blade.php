@@ -112,7 +112,8 @@
             <p style="margin:0;font-size:11px;color:#9ca3af;line-height:1.6;">
               Dit is een automatisch bericht van het
               <strong style="color:#6b7280;">Claesen Outdoor Lighting Platform</strong>.<br>
-              Gelieve niet te antwoorden op dit e&#8209;mailadres.
+              Gelieve niet te antwoorden op dit e&#8209;mailadres.<br>
+              {{ __('core::mail.automated_notice') }}
             </p>
           </td>
         </tr>
