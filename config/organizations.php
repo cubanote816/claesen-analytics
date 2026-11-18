@@ -148,6 +148,17 @@ return [
     ],
 
     /*
+    | CLA-704 — corporate e-mail domain of each company's own staff, per site key
+    | (same keys as `panel_sites`). An address on it is a Microsoft account (Entra
+    | sign-in, no password); any other address is a local account (password + app
+    | 2FA). Read by the Users section of the panel that manages that site. Never
+    | add a fallback: a site without an entry has no Microsoft accounts.
+    */
+    'microsoft_email_domains' => [
+        'electro-bertels' => 'electrobertels.be',
+    ],
+
+    /*
     | CLA-603 — brand identity of the login screens, per site (the site a panel
     | manages, same keys as `panel_sites` above). The login is one design for
     | both companies; what changes per company is the logo and the brand accent.

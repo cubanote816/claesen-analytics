@@ -85,6 +85,9 @@ final class PanelRegistrySnapshotTest extends TestCase
         //
         // Guides & Procedures (2026-10-28): the internal ETS6 Project Archive guide, shared with
         // the admin panel and gated to super_admin (Ets6ProjectArchiveGuide::canAccess()).
+        //
+        // CLA-704: the Users section (App\Filament\Bertels\Resources\Users\BertelsUserResource),
+        // super_admin only and scoped to the Bertels organization, is registered by hand.
         $panel = Filament::getPanel('bertels');
 
         $this->assertSame('bertels', $panel->getId());
@@ -92,6 +95,7 @@ final class PanelRegistrySnapshotTest extends TestCase
         $this->assertFalse($panel->isDefault());
         $this->assertSame(
             $this->sorted([
+                \App\Filament\Bertels\Resources\Users\BertelsUserResource::class,
                 \App\Filament\Clusters\Website\Resources\AnnouncementResource::class,
                 \App\Filament\Clusters\Website\Resources\ConsultationRequestResource::class,
                 \App\Filament\Clusters\Website\Resources\MediaSlotResource::class,
