@@ -79,15 +79,15 @@ final class ModuleOrganizationEnforcementTest extends TestCase
     }
 
     #[DataProvider('endpointProvider')]
-    public function test_with_enforcement_off_a_user_outside_claesens_organization_can_still_reach_the_endpoint(string $method, string $uri): void
+    public function test_with_enforcement_off_a_user_outside_claesens_organization_is_still_rejected(string $method, string $uri): void
     {
+        // CLA-704 (S7): enforcement off no longer opens Claesen endpoints to users of another
+        // organization; it only keeps null-organization users passing.
         config(['organizations.enforce' => false]);
 
         $user = $this->userInFixtureOrganization();
 
-        $response = $this->actingAs($user, 'sanctum')->json($method, $uri);
-
-        $this->assertNotSame(403, $response->getStatusCode(), "Expected {$uri} to be reachable with enforcement off.");
+        $this->actingAs($user, 'sanctum')->json($method, $uri)->assertForbidden();
     }
 
     #[DataProvider('endpointProvider')]

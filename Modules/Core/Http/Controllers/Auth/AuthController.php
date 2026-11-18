@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Modules\Core\Services\AccessAnalyticsService;
 use Modules\Core\Models\User;
+use Modules\Core\Support\ClaesenAppAccess;
 
 class AuthController extends Controller
 {
@@ -166,6 +167,21 @@ class AuthController extends Controller
             ]);
         }
 
+        if (ClaesenAppAccess::denies($user)) {
+            $analytics->recordBlockedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'session_cookie',
+                $request,
+                'organization_not_permitted'
+            );
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
         Auth::login($user);
         if ($request->hasSession()) {
             $request->session()->regenerate();
@@ -285,6 +301,21 @@ class AuthController extends Controller
             );
             $this->hitRateLimiter($throttleKey);
             $this->hitEmailRateLimiter($emailThrottleKey);
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        if (ClaesenAppAccess::denies($user)) {
+            $analytics->recordBlockedLogin(
+                $user,
+                $request->input('email'),
+                $appSource,
+                'sanctum_token',
+                $request,
+                'organization_not_permitted'
+            );
 
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],

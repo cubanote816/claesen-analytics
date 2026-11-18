@@ -17,6 +17,7 @@ use Modules\Core\Services\Auth\AzureRoleService;
 use Modules\Core\Services\Auth\FrontendRedirectService;
 use Modules\Core\Services\AccessAnalyticsService;
 use Modules\Core\Support\AuthenticatedVia;
+use Modules\Core\Support\ClaesenAppAccess;
 
 class MicrosoftAuthController extends Controller
 {
@@ -131,6 +132,25 @@ class MicrosoftAuthController extends Controller
 
             // SECURITY: If user does not exist locally, deny access
             if (! $user) {
+                $analytics->recordFailedLogin(
+                    null,
+                    $azureUser->getEmail(),
+                    'backoffice',
+                    'azure_oauth_session',
+                    $request,
+                    'account_not_authorized',
+                    ['provider' => 'azure']
+                );
+
+                return redirect('/login')
+                    ->withErrors(['microsoft' => "Toegang Geweigerd: Uw Microsoft-account ({$azureUser->getEmail()}) is niet geautoriseerd voor deze applicatie. Neem contact op met de beheerder."]);
+            }
+
+            // CLA-704 (S7): the API / non-filament flow serves the Claesen apps only. A user of
+            // another organization is treated exactly like an unauthorized account, before
+            // anything is stored, any session exists or any activation code is issued. The
+            // Filament flow is untouched: panel access is decided by canAccessPanel().
+            if (session('auth_source', 'frontend') !== 'filament' && ClaesenAppAccess::denies($user)) {
                 $analytics->recordFailedLogin(
                     null,
                     $azureUser->getEmail(),
