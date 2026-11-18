@@ -68,6 +68,19 @@ MAIL_ENCRYPTION=null
 Después: `php artisan config:clear` (el contenedor de Sail suele reiniciarse solo al detectar el
 cambio de `.env`).
 
+## Crear un usuario de prueba de Bertels desde `/bertels` > Users (CLA-704)
+
+Solo `super_admin` ve la sección (entra con `qa.bertels@…` o `qa.backoffice@…`). Hace falta que existan la organización y el sitio de Bertels (el comando QA los crea). El usuario nuevo siempre queda en la organización de Bertels.
+
+1. Abre <http://localhost:8001/bertels>, inicia sesión y ve a **Users** > **Create**.
+2. Elige el tipo de cuenta (el correo se valida según el tipo):
+   - **`@electrobertels.be`** (Microsoft): sin contraseña ni correo de activación; entra con «Sign in with Microsoft» y no usa el 2FA de la aplicación. Solo funciona si ese correo existe en el tenant de Microsoft del entorno.
+   - **Cualquier otro correo** (cuenta local): sin contraseña; se envía el correo de activación (marca Bertels) con un enlace a la página de reset de `/bertels`. Con el mailer apuntando a Mailpit (ver arriba), abre el correo en <http://localhost:8025>, elige tu contraseña y completa el MFA en el primer login.
+3. Rol: solo `viewer` o `admin` (hoy dan el mismo acceso al panel).
+4. En la pantalla de edición hay: cambiar roles (pide código MFA), reenviar el correo de activación (solo cuentas locales sin contraseña) y revocar sesiones.
+
+Comprobaciones útiles: el usuario no puede abrir el panel de Claesen ni iniciar sesión en las APIs de Claesen; los usuarios de Claesen no aparecen en esta lista. No se documentan credenciales aquí: las contraseñas las elige cada persona al activar la cuenta.
+
 ## URLs del stack aislado (CLA-603 / multiorg)
 
 | Qué | URL |
@@ -85,7 +98,7 @@ Puertos a propósito distintos de los del checkout principal (8000/3308) para no
    ahí hasta P6 (ADR D10, "regla de hierro"). Por eso el usuario QA de Bertels es `super_admin`:
    con `admin` o `viewer` no entraría *en absoluto*, y parecería roto en vez de restringido.
 2. **Con `organizations.enforce=false` (el default) los dos `super_admin` entran en los dos
-   paneles.** La separación real "un usuario de Bertels solo ve Bertels" llega en P5/P7.
+   paneles.** Desde CLA-611/CLA-704 un usuario de Bertels que no es `super_admin` ya no entra al panel ni a las APIs de Claesen; el resto de la separación llega en P5/P7.
 3. **Rate limiting del flujo de contraseña:** la solicitud de reset son 2 intentos por minuto por
    IP+componente y el reset 2 por email (`rateLimit(2)` de Filament, no una decisión propia). Si
    repites el flujo a mano muy seguido, "no cambia de pantalla" — es correcto. `php artisan
