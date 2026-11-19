@@ -228,6 +228,13 @@ Modules/Safety/config/config.php
 - `docs/api/website-v1-openapi.yaml` se valida bidireccionalmente contra
   las rutas reales (`OpenApiContractTest`): toda ruta nueva de
   `/v1/website/*` DEBE documentarse aquí.
+- **Selector `site` (CLA-706):** un `site` que no es texto (`site[]=x`) es
+  **400** `{"message":"Invalid site parameter."}` en toda ruta `/v1/website/*`
+  (`ResolveRequestSite`), nunca 500 ni fallback a Claesen. La caché de
+  idempotencia del intake va **por sitio** (`website.consultation-intake.<siteId>.<sha1>`):
+  guarda la consulta completa, así que una clave repetida desde otro sitio
+  nunca devuelve la de otro. `/contact-email` lleva el mismo guard que
+  `/consultations`.
 - **Intake con sitio nombrado cierra en falso (CLA-705):** `POST
   /v1/website/consultations?site=<key>` responde **503** si `<key>` no es un
   sitio activo (`EnsureRequestedSiteResolved`), antes de guardar, encolar o

@@ -313,6 +313,13 @@ paths:
           content:
             application/json:
               example: { message: "Failed to create consultation request." }
+        "400":
+          description: >-
+            CLA-706 — `site` is not a string (for example `site[]=x`). Returned
+            by every /v1/website route; nothing is read or stored.
+          content:
+            application/json:
+              example: { message: "Invalid site parameter." }
         "503":
           description: >-
             CLA-705 — the `site` query parameter names a site that is not
@@ -328,10 +335,32 @@ paths:
         Prospects behaviour, and the same F4/CLA-475 rate limit/honeypot/
         Turnstile/consent handling), kept for backward compatibility with
         its simpler name/email/message-only request shape.
+      parameters:
+        - name: site
+          in: query
+          schema: { type: string }
+          description: >-
+            CLA-706: same rule as /consultations. When present it must resolve
+            to an active site, otherwise 503 (no Claesen fallback, nothing
+            stored). Omitted: resolved from the Host, falling back to Claesen.
       responses:
         "201": { description: Created }
+        "400":
+          description: >-
+            CLA-706 — `site` is not a string (for example `site[]=x`). Returned
+            by every /v1/website route; nothing is read or stored.
+          content:
+            application/json:
+              example: { message: "Invalid site parameter." }
         "422": { description: Validation error }
         "429": { description: F4/CLA-475 — per-IP rate limit exceeded. }
+        "503":
+          description: >-
+            CLA-706 — the `site` query parameter names a site that is not
+            active. Nothing is stored, queued or replayed.
+          content:
+            application/json:
+              example: { message: "Intake temporarily unavailable." }
 components:
   headers:
     ETag:
