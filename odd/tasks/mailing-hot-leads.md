@@ -19,7 +19,7 @@ Rank the prospects who reacted best to mailing campaigns and have not contacted 
 | ID | Specs | Route | Commit |
 |---|---|---|---|
 | T0 | S1 | inline, read-only SQL validated in a throwaway MySQL 8.4; posted to CLA-710 | — (no code) |
-| T1 | S2–S5 | inline: Prospects migration, model, enums, policy, resource, lang, tests, docs | pending |
+| T1 | S2–S5 | gentle-ai-worker (context backstop) + parent review: Prospects migration, model, enums, policy, resource, lang, tests, docs | 64ce59ea |
 | T2 | S6 | after T0 results | pending |
 | T3 | S7 | after T1, T2 | pending |
 | T4 | S8 | independent | pending |
@@ -33,4 +33,5 @@ Rank the prospects who reacted best to mailing campaigns and have not contacted 
 - **L4** T0: 11 queries validated in `mysql:8.4` (exit 0, expected results on synthetic rows) and posted to CLA-710. Waiting for the user to run them in production.
 - **L5** (user): "go" — prepare the T1 plan. Plan presented; role question asked.
 - **L6** (user): "b y go" — management uses `admin`; implement T1.
+- **L8** T1 evidence: RED 17/19 before implementation (missing `ContactLog`, unresolvable actions; the 2 passing pin existing behaviour). After the parent review (Logged by label, no per-row query for `remove_contact` visibility) `bin/wt-test Modules/Prospects/tests`: 205 passed (867 assertions); Pint passes on every new file. Native assess unassessable (untracked files); plan: self-verification, no independent verifier. Risk: none (new additive table, no consumed contract changed). Slice: one commit of 818 lines (296 of them tests, 135 translations) — one behaviour unit, kept whole; T2 starts a new branch and slice.
 - **L7** Correction to the T0 note: `trustProxies` was fixed by CLA-661 (merged 47f01dc, deployed 2026-11-07), so tracking events after that deploy store the real client IP. Q3 still confirms it for the first campaign.
