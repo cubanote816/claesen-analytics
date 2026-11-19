@@ -74,13 +74,16 @@ class PasswordResetService
      *
      * Like `issueActivationCode()` it decides nothing about eligibility: the
      * caller (CreateUser for External workers, EditUser's resend action) does.
+     *
+     * CLA-704: `$panelId` is the panel whose reset page the link opens — `admin`
+     * for Claesen (the default), `bertels` for the Electro Bertels Users section.
      */
-    public function sendActivationEmail(User $user): void
+    public function sendActivationEmail(User $user, string $panelId = 'admin'): void
     {
         $code = $this->issueActivationCode($user, self::WELCOME_CODE_TTL_MINUTES);
 
         $user->notify(new AccountActivationNotification(
-            Filament::getPanel('admin')->getResetPasswordUrl($code, $user),
+            Filament::getPanel($panelId)->getResetPasswordUrl($code, $user),
         ));
     }
 

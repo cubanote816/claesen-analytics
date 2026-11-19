@@ -35,6 +35,16 @@ class RequireOrganization
     public function handle(Request $request, Closure $next, string $slug): Response
     {
         if (! config('organizations.enforce')) {
+            // CLA-704 (S7): the boundary holds even with enforcement off (production) for a
+            // user that has an organization; users with none keep today's pass-through.
+            $organizationId = $request->user()?->organization_id;
+
+            if ($organizationId !== null) {
+                $requiredId = Organization::query()->where('slug', $slug)->value('id');
+
+                abort_unless($requiredId !== null && (int) $organizationId === (int) $requiredId, 403);
+            }
+
             return $next($request);
         }
 

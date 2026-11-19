@@ -139,13 +139,24 @@ class OrganizationIsolationHarnessTest extends TestCase
         $this->assertPanelAllowsOwner($superAdmin, '/bertels');
     }
 
-    public function test_disabling_enforcement_makes_every_mechanism_above_inert_for_claesen(): void
+    public function test_disabling_enforcement_still_keeps_another_organizations_user_out_of_claesen_apis(): void
     {
+        // CLA-704 (S7): the organization boundary on Claesen APIs no longer depends on the flag.
         config(['organizations.enforce' => false]);
 
         $outsider = $this->bertelsFixtureUser();
 
-        $response = $this->actingAs($outsider)->getJson('/api/v1/fieldops/terrains');
+        $this->actingAs($outsider)->getJson('/api/v1/fieldops/terrains')->assertForbidden();
+    }
+
+    public function test_disabling_enforcement_keeps_a_null_organization_user_passing_claesen_apis(): void
+    {
+        config(['organizations.enforce' => false]);
+
+        $user = $this->bertelsFixtureUser();
+        $user->forceFill(['organization_id' => null])->save();
+
+        $response = $this->actingAs($user->refresh())->getJson('/api/v1/fieldops/terrains');
 
         $this->assertNotSame(403, $response->getStatusCode());
     }

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Modules\Core\Models\User;
+use Modules\Core\Support\ClaesenAppAccess;
 
 class ExchangeActivationCodeController extends Controller
 {
@@ -29,7 +30,9 @@ class ExchangeActivationCodeController extends Controller
             if (
                 ! $user ||
                 ! $user->activation_code_expires_at ||
-                $user->activation_code_expires_at->isPast()
+                $user->activation_code_expires_at->isPast() ||
+                // CLA-704 (S7): a user of another organization is not a Claesen app account.
+                ClaesenAppAccess::denies($user)
             ) {
                 abort(422, 'Invalid or expired activation code.');
             }
