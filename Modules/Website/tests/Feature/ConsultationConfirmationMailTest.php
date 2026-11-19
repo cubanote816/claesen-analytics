@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Modules\Website\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\Site;
 use Modules\Website\Mail\ConsultationConfirmationMail;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\SiteSetting;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mime\Email;
 use Tests\TestCase;
 
 /**
@@ -113,6 +116,94 @@ final class ConsultationConfirmationMailTest extends TestCase
 
         $this->assertSame('info@electrobertels.test', $from->address);
         $this->assertSame('Electro Bertels', $from->name);
+    }
+
+    /**
+     * CLA-707: the Electro Bertels acknowledgement uses the branded layout
+     * (dark band, orange accent, logo by CID), not the generic header.
+     */
+    public function test_the_bertels_acknowledgement_uses_the_branded_layout(): void
+    {
+        [$site, $consultation] = $this->bertelsRequest();
+        $html = (new ConsultationConfirmationMail($consultation, $site))->render();
+
+        $this->assertStringContainsString('#EE7203', $html);
+        $this->assertStringContainsString('#121212', $html);
+        $this->assertStringContainsString('src="cid:bertels-logo@mail.brand"', $html);
+        $this->assertStringNotContainsString('#1a1a2e', $html);
+        $this->assertStringNotContainsString('#00aeef', $html);
+    }
+
+    /**
+     * The branded header links the logo to config('app.url') — the private
+     * backoffice in production. A visitor's mail must not link there: the logo
+     * points to the site's public domain, or carries no link at all.
+     */
+    public function test_the_logo_never_links_to_the_backoffice(): void
+    {
+        config(['app.url' => 'https://backoffice.internal.test']);
+        [$site, $consultation] = $this->bertelsRequest();
+
+        $html = (new ConsultationConfirmationMail($consultation, $site))->render();
+        $this->assertStringNotContainsString('backoffice.internal.test', $html);
+
+        $site->update(['domain' => 'www.electrobertels.test']);
+        $html = (new ConsultationConfirmationMail($consultation, $site->fresh()))->render();
+        $this->assertStringContainsString('href="https://www.electrobertels.test"', $html);
+        $this->assertStringNotContainsString('backoffice.internal.test', $html);
+    }
+
+    public function test_the_bertels_logo_is_embedded_when_the_mail_is_sent(): void
+    {
+        [$site, $consultation] = $this->bertelsRequest();
+
+        Mail::mailer('array')->to('visitor@example.test')->send(new ConsultationConfirmationMail($consultation, $site));
+
+        $sent = collect(Mail::mailer('array')->getSymfonyTransport()->messages())->last();
+        $this->assertInstanceOf(SentMessage::class, $sent);
+        $email = $sent->getOriginalMessage();
+        $this->assertInstanceOf(Email::class, $email);
+
+        $contentIds = collect($email->getAttachments())
+            ->filter(fn ($part) => $part->hasContentId())
+            ->map(fn ($part) => $part->getContentId())
+            ->values()
+            ->all();
+        $this->assertSame(['bertels-logo@mail.brand'], $contentIds);
+        $this->assertStringContainsString('Uw referentienummer is', (string) $email->getTextBody());
+    }
+
+    /**
+     * CLA-707: the branded layout renders Markdown, so whatever the visitor
+     * typed must stay inert text — never a link or formatting in a mail sent
+     * from the company's own address.
+     */
+    public function test_visitor_text_is_never_interpreted_as_markdown(): void
+    {
+        [$site, $consultation] = $this->bertelsRequest([
+            'name' => '*Jan* [Peeters](https://evil.example/name)',
+            'message' => "Klik [hier](https://evil.example/msg)\n\nTweede **vet** regel\n\n# kop",
+        ]);
+        $html = (new ConsultationConfirmationMail($consultation, $site))->render();
+
+        $this->assertStringNotContainsString('evil.example/name"', $html);
+        $this->assertStringNotContainsString('evil.example/msg"', $html);
+        $this->assertStringNotContainsString('<strong>vet</strong>', $html);
+        $this->assertStringNotContainsString('<em>Jan</em>', $html);
+        $this->assertStringNotContainsString('<h1>kop</h1>', $html);
+        $this->assertStringContainsString('Klik [hier](https://evil.example/msg)', $html);
+        $this->assertStringContainsString('Tweede **vet** regel', $html);
+    }
+
+    public function test_the_claesen_acknowledgement_keeps_its_current_template(): void
+    {
+        $site = Site::query()->where('key', Site::CLAESEN_KEY)->firstOrFail();
+        $consultation = ConsultationRequest::factory()->create(['site_id' => $site->id, 'locale' => 'nl']);
+        $html = (new ConsultationConfirmationMail($consultation, $site))->render();
+
+        $this->assertStringContainsString('#1a1a2e', $html);
+        $this->assertStringNotContainsString('#EE7203', $html);
+        $this->assertStringNotContainsString('cid:', $html);
     }
 
     /**
