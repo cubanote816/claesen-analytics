@@ -78,13 +78,25 @@ class ConsultationConfirmationMail extends Mailable
 
     public function content(): Content
     {
+        $with = [
+            'reference' => $this->consultation->publicReference(),
+            'phone' => $this->sitePhone(),
+        ];
+
+        // CLA-707: Electro Bertels gets the per-company branded layout (CLA-686).
+        // Claesen keeps its current template, by the user's decision.
+        if ($this->site->key !== Site::CLAESEN_KEY) {
+            return new Content(
+                markdown: 'website::emails.consultation-confirmation-branded',
+                text: 'website::emails.consultation-confirmation-text',
+                with: $with,
+            );
+        }
+
         return new Content(
             view: 'website::emails.consultation-confirmation',
             text: 'website::emails.consultation-confirmation-text',
-            with: [
-                'reference' => $this->consultation->publicReference(),
-                'phone' => $this->sitePhone(),
-            ],
+            with: $with,
         );
     }
 

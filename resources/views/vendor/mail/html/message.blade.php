@@ -1,7 +1,9 @@
+@props(['headerUrl' => null])
+{{-- CLA-707: header-url overrides the logo link (null = config('app.url'), unchanged for every staff mail; '' = no link, for mail to visitors). --}}
 <x-mail::layout>
 {{-- Header --}}
 <x-slot:header>
-<x-mail::header :url="config('app.url')">
+<x-mail::header :url="$headerUrl ?? config('app.url')">
 {{ \Modules\Core\Support\MailBrand::footerName() }}
 </x-mail::header>
 </x-slot:header>
