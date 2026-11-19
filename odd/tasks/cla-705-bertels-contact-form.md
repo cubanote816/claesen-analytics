@@ -60,3 +60,5 @@ Linear: CLA-705. Goal: the landing contact form creates a lead in the bertels pa
 
 **L13 — 2026-11-19, re-verification S6 FAIL:** blank/suspended fixes accepted; still open: (a) repeated `site` params (PHP keeps the last one) silently discard an earlier selector — fixed, RED 1 (201) → guard counts selectors on the raw query string and rejects more than one; IntakeSiteGuardTest 8/8, intake suites 77 passed (302 assertions). (b) `site[]=x` makes the shared `ResolveRequestSite` return 500 before the guard runs — no data path, unreachable through the landing proxy (it replaces the query), but it is not the 503 of S6; needs the user's decision because the fix touches shared code. Accepted follow-ups: `/contact-email` unguarded (out of scope), idempotency cache not site-scoped (pre-existing).
 
+**L14 — 2026-11-19, user decision on (b):** "Dejarlo así y abrir ticket aparte (recomendado)". Follow-up CLA-706 (malformed `site` → 400 on every public route; also lists `/contact-email` without the guard and the idempotency cache not site-scoped). S6 closes with that documented exception; implementation complete, deploy pending.
+
