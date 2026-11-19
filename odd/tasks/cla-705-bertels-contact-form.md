@@ -13,7 +13,11 @@ Linear: CLA-705. Goal: the landing contact form creates a lead in the bertels pa
 
 **S4 — No regression.** Existing intake and consultation mail suites stay green (CLA-699 sender/no-notice test included).
 
-**S5 — Production rollout documented.** The landing origin is missing in `infrastructure/nginx/sbapu03/cors-map.conf`; document it. Deploy is the user's decision.
+**S5 — Production rollout documented (rewritten after L7).** `backend.claesen-verlichting.be` is retired and `backoffice.claesen.local` is private; public frontends reach Laravel through the existing tunnel. No CORS change and no revival of the old vhost. The deploy order, backup, `nginx -t`, rollback and the external checks are documented; deploy is the user's decision.
+
+**S6 — Fail closed on an unresolved site (L8).** "Sumá el guard solo a POST /v1/website/consultations": when the request names a site (`?site=`) and Laravel does not resolve that active site, respond 503 before storing, queueing or replaying an idempotent response; never log the raw client value. Without `?site=` the Claesen flow is unchanged.
+
+**S7 — Same-origin intake on the landing (L8).** The landing posts to the relative `/intake/consultations`; nginx on the landing vhost forwards only `POST` of that exact path through the tunnel to `/v1/website/consultations?site=electro-bertels`, drops visitor query args, cookies and Authorization, replaces `X-Forwarded-For` with the client address, and caps the body. Versioned in the repo and exercised on a temporary local nginx, never on the live config.
 
 ## Tasks
 
@@ -22,7 +26,11 @@ Linear: CLA-705. Goal: the landing contact form creates a lead in the bertels pa
 | T1 | S3, S4 | inline, test-first (backend) | backend `0bb1a094` |
 | T2 | S1, S2 | inline (landing) | landing `5a7a680` |
 | T3 | S1–S3 | inline (verifier had no local network), local E2E | evidence L5 |
-| T4 | S5 | inline, docs | backend docs commit |
+| T4 | S5 | inline, docs | backend `45c9a57a` (CORS plan superseded by T8) |
+| T5 | S6 | inline, test-first (backend guard) | backend `eb317147` |
+| T6 | S7 | inline (landing URL) | landing `510b44a` |
+| T7 | S7 | inline, nginx snippet + temporary local nginx | backend docs/infra commit |
+| T8 | S5 | inline, docs rewrite (known-risks, handoff, readiness) | backend docs/infra commit |
 
 ## Log
 
@@ -37,3 +45,14 @@ Linear: CLA-705. Goal: the landing contact form creates a lead in the bertels pa
 **L5 — 2026-11-18, T3 evidence:** `gentle-ai-verify` could not reach the local network (NOT VERIFIED, not retried); its review found that a retry after a network failure reused the idempotency key even after an edit, fixed in the landing (key reset on input). Inline E2E with real Chromium (landing on 127.0.0.1:8080 → API localhost:8001): empty submit → 3 field errors, 0 requests; valid submit → 201, button disabled while sending, success text, form reset, double click → 1 POST with `Idempotency-Key` and `locale: nl`; honeypot → 201, not stored. Mocked: 422 → inline email error + focus; 429 → wait text; network → tel:/mailto: links, same key on retry, new key after edit. DB: requests stored with `site=electro-bertels` (what the panel lists via `ScopedToPanelSite`), confirmation deliveries `queued`. Mail rendered to Mailpit through `smtp` (not Graph): «Wij hebben uw bericht ontvangen (CR-000001)» and «Nous avons bien reçu votre message (CR-000003)», From `Electro Bertels <info@electrobertels.be>`, HTML + text parts, tel link. Panel UI login not exercised. QA rows and Mailpit cleaned; local electro-bertels org/site kept.
 
 **L6 — 2026-11-18, production finding:** nginx owns `/v1/` CORS in production: `cors-map.conf` lacks the electrobertels.be origins and the preflight `Access-Control-Allow-Headers` lacks `Idempotency-Key`. Documented in `known-risks.md`; not changed (deploy is the user's decision).
+
+**L7 — 2026-11-19, user (verbatim):** "algo a tener en cuenta que creo que no has tenido el ya no usaos backend.claesen... ahora es https://backoffice.claesen.local/ y no tiene alcanse desde internet solo es visible en nuestra red local ademas se comunica con las app de forntend que si estan en internet y son publicas a traves de un tunel." Effect: S5 rewritten; the CORS plan of L6 is superseded.
+
+**L8 — 2026-11-19, user-relayed read-only production diagnosis:** route `service.claesen-verlichting.be` (sbapu03) → `proxy_pass https://127.0.0.1:9443` (tunnel) → prod-priv-01 vhost `backoffice.claesen.local`, which already allows `127.0.0.1` on `/v1/website`; Laravel trusts `X-Forwarded-For` only from `127.0.0.1`; `electro-bertels` active; `contact_consent_version` not set in production; sender and notice recipient are `@electrobertels.be`. Agreed: same-origin `/intake/consultations` on the landing vhost, plus a fail-closed guard because `ResolveRequestSite` falls back to Claesen when the named site is not active.
+
+**L9 — 2026-11-19, user (verbatim):** "vamos a organizarnos mejor dime si ya tienes todo lo necesario para terminar la implementacion? si es si hacerlo y luego hacemos el deploy y probamos en produccion"
+
+**L10 — 2026-11-19, user (verbatim):** "la landing page esta en otro servidor desplegado en produccion 192.168.60.10". Effect: the nginx upstream is host-specific (`intake-upstream.conf`); the deploy must confirm how that host reaches the backoffice and that Laravel sees the visitor IP.
+
+**L11 — 2026-11-19, T5–T7 evidence:** guard RED 3 failed / 2 passed (suspended and unknown `?site=` were 201 under Claesen), GREEN 5/5. Intake, mail, contract, route-snapshot and OpenAPI suites 74 passed (293 assertions). Route baseline regenerated: one additive middleware entry. Temporary `nginx:alpine` with the versioned snippets and a mock TLS backoffice on 127.0.0.1:9443: GET/OPTIONS/PUT 403; POST with `?site=claesen-verlichting&x=1`, spoofed XFF, Cookie and Authorization reached the upstream as `/v1/website/consultations?site=electro-bertels`, Host/SNI `backoffice.claesen.local`, XFF = client address, no cookie or authorization, `Idempotency-Key` kept, upstream `Set-Cookie` hidden; 70 kB body 413; `/v1/website/*`, `/api/user`, `/bertels/...`, `/admin`, `/intake/other` 404; 8 rapid POSTs from one client 6×201 then 2×429, a second client 201. Chromium through that nginx: relative URL, 201, success state. Slice note: the backend branch passes the ~400-line slice; review it commit by commit (`0bb1a094` mail, `eb317147` guard, docs/infra).
+

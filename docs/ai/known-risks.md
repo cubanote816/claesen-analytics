@@ -338,24 +338,35 @@ Lo que lo resuelve de raíz es servir con **nginx + php-fpm**, que es el stack r
 las imágenes disponibles en esta máquina son sólo `sail-8.x/app` (la de PHP), y la de nginx requiere un
 `pull` que no se intentó.
 
-### La landing de Bertels no puede enviar el formulario en producción hasta cambiar nginx (CLA-705) — PENDIENTE
+### La landing de Bertels necesita su ruta de intake en nginx antes de publicarse (CLA-705) — PENDIENTE DE DEPLOY
 
-La landing estática (`cubanote816/electrobertels`, carpeta local `electrobertels_landingpage`) envía
-el formulario con `fetch` a `https://backend.claesen-verlichting.be/v1/website/consultations?site=electro-bertels`
-con la cabecera `Idempotency-Key`. En producción el CORS de `/v1/` **no** lo hace Laravel sino nginx
-(`infrastructure/nginx/sbapu03/backend.claesen-verlichting.be.conf`, que oculta las cabeceras de Laravel),
-y hoy le faltan dos cosas:
+**Corrección (2026-11-19):** la versión anterior de esta entrada pedía CORS en
+`backend.claesen-verlichting.be`. Ese host **ya no se usa** y `backoffice.claesen.local` no es
+accesible desde internet: los frontends públicos llegan a Laravel por el **túnel** existente.
 
-1. `cors-map.conf` no lista `https://www.electrobertels.be` ni `https://electrobertels.be`
-   (ni el origen que vaya a servir la landing, si es otro).
-2. El preflight de `location /v1/` responde `Access-Control-Allow-Headers: Content-Type, Authorization,
-   X-Requested-With, X-XSRF-TOKEN, Accept`: **sin `Idempotency-Key`**, así que el navegador cancela
-   el POST aunque el origen esté permitido.
+La landing (`cubanote816/electrobertels`, servida en producción desde `192.168.60.10`) envía el
+formulario al **mismo origen**: `POST /intake/consultations`. nginx de ese sitio reenvía solo ese
+POST al backoffice, fija `site=electro-bertels` y descarta los parámetros, cookies y credenciales del
+visitante. No hay CORS. Fragmentos versionados en `infrastructure/nginx/electrobertels/`
+(`intake-upstream.conf` en `http {}`, `intake-location.conf` en el `server` HTTPS), probados en un
+nginx temporal (solo POST, 413 sobre 64k, 404 para todo lo demás, `X-Forwarded-For` reemplazado,
+límite por IP en el borde).
 
-Mientras no se cambie y se recargue nginx, el visitante ve el error «Uw bericht kon niet worden
-verzonden» con el teléfono y el correo como alternativa (no se pierde el contacto, pero no queda
-registrado). En local funciona porque Laravel (`config/cors.php`, `allowed_headers: *`) sí lo permite.
-Comprobación tras el cambio: **navegador** desde el dominio real (nunca solo `curl`, ver abajo).
+Riesgos que quedan para el deploy:
+
+1. **El upstream depende del host.** El fragmento apunta al túnel en `127.0.0.1:9443`, que es como
+   llega `sbapu03`. Si la landing la sirve `192.168.60.10`, hay que confirmar antes cómo llega ese
+   host al backoffice. Si Laravel no ve la conexión desde `127.0.0.1` (`trustProxies` en
+   `bootstrap/app.php`), ignora `X-Forwarded-For` y **todos los visitantes comparten un único cupo**
+   de 10/min. El `limit_req` del fragmento mantiene un límite por IP en el borde igual.
+2. **Orden de deploy:** primero Laravel (guard `EnsureRequestedSiteResolved` + acuse), después
+   nginx, después la landing. La landing publicada sin la ruta de nginx muestra el error con teléfono
+   y correo, pero no registra la consulta.
+3. **Consentimiento:** `contact_consent_version` no está configurado en producción, así que no se
+   exige. Cuando el cliente entregue el texto legal, registrar la versión **solo** con la landing ya
+   preparada para mostrarlo y enviarlo; si no, todo envío da 422.
+
+Runbook: `docs/ai/production-readiness.md` → *Electro Bertels: intake de la landing (CLA-705)*.
 
 ### El sitio necesita su origen en CORS ~~y el de producción falta confirmar~~ (2026-10-04) — RESUELTO
 
