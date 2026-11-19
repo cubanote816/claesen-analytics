@@ -109,6 +109,20 @@ final class IntakeSiteGuardTest extends TestCase
         $this->assertSame(0, $this->leads()->count());
     }
 
+    public function test_an_ambiguous_repeated_site_selector_is_rejected(): void
+    {
+        Queue::fake();
+        $site = $this->bertelsFixtureSite();
+
+        foreach (['site=unknown&site='.$site->key, 'site='.$site->key.'&site='.$site->key] as $query) {
+            $this->postJson('/v1/website/consultations?'.$query, $this->payload())
+                ->assertStatus(503);
+        }
+
+        $this->assertSame(0, $this->leads()->count());
+        Queue::assertNothingPushed();
+    }
+
     public function test_a_suspended_claesen_site_named_explicitly_is_rejected(): void
     {
         Site::query()->whereKey(Site::claesenId())->update(['status' => Site::STATUS_SUSPENDED]);

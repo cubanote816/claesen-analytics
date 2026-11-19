@@ -42,12 +42,37 @@ class EnsureRequestedSiteResolved
         $requested = $request->query('site');
         $site = app(OrganizationContext::class)->site();
 
-        if (! is_string($requested) || $site?->key !== $requested || $site->status !== Site::STATUS_ACTIVE) {
+        if (
+            $this->siteSelectorCount((string) $request->server('QUERY_STRING')) !== 1
+            || ! is_string($requested)
+            || $site?->key !== $requested
+            || $site->status !== Site::STATUS_ACTIVE
+        ) {
             Log::warning('Website intake rejected: the requested site is not an active site.');
 
             return response()->json(['message' => 'Intake temporarily unavailable.'], 503);
         }
 
         return $next($request);
+    }
+
+    /**
+     * PHP keeps only the last of repeated `site` parameters, so an earlier
+     * selector would be silently discarded. Counted on the raw query string:
+     * more than one selector is ambiguous and fails closed.
+     */
+    private function siteSelectorCount(string $queryString): int
+    {
+        $count = 0;
+
+        foreach (explode('&', $queryString) as $pair) {
+            $name = urldecode(explode('=', $pair, 2)[0]);
+
+            if ($name === 'site' || str_starts_with($name, 'site[')) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 }
