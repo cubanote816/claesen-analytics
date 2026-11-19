@@ -239,6 +239,14 @@ paths:
         - name: utm_campaign
           in: query
           schema: { type: string }
+        - name: site
+          in: query
+          schema: { type: string, example: electro-bertels }
+          description: >-
+            CLA-705: names the site the lead belongs to. When present it must
+            resolve to an active site, otherwise the request fails closed with
+            503 (no Claesen fallback, nothing stored). Omitted: the site is
+            resolved from the Host, falling back to Claesen.
         - name: Idempotency-Key
           in: header
           schema: { type: string }
@@ -305,6 +313,13 @@ paths:
           content:
             application/json:
               example: { message: "Failed to create consultation request." }
+        "503":
+          description: >-
+            CLA-705 — the `site` query parameter names a site that is not
+            active. Nothing is stored, queued or replayed.
+          content:
+            application/json:
+              example: { message: "Intake temporarily unavailable." }
   /contact-email:
     post:
       summary: >-
