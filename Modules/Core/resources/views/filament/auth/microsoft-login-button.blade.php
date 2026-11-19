@@ -4,8 +4,16 @@
      a bare "OR" with nothing above it to divide.
      Wrapped in one element on purpose: the parent schema grid adds a gap between items, which would otherwise land between the button and the divider.
      The button is a real link to the existing SSO redirect route (MicrosoftAuthController). --}}
+{{-- CLA-704 (S6): the Bertels login carries its panel so the callback returns there; the Claesen login stays as before. --}}
+@php
+    $microsoftQuery = ['source' => 'filament'];
+
+    if (\Filament\Facades\Filament::getCurrentPanel()?->getId() === \Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::BERTELS_PANEL) {
+        $microsoftQuery['panel'] = \Modules\Core\Http\Controllers\Auth\MicrosoftAuthController::BERTELS_PANEL;
+    }
+@endphp
 <div class="cafca-login-alt">
-    <a href="{{ route('auth.microsoft.redirect', ['source' => 'filament']) }}" class="cafca-login-microsoft">
+    <a href="{{ route('auth.microsoft.redirect', $microsoftQuery) }}" class="cafca-login-microsoft">
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
         {{ __('core::auth.microsoft_login') }}
     </a>

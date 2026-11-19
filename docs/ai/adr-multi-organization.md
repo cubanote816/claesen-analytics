@@ -149,6 +149,16 @@ Si Bertels llegara a adoptar alguno de esos módulos (ver preguntas abiertas), e
 
 **Hasta que P5 esté completa y verificada no debe existir ningún usuario real de Electro Bertels**, porque los roles globales le darían acceso a datos de Claesen. El alta de la organización y el sitio de Bertels ocurre al final de P7; los proyectos y leads de Bertels, en las fases F3/F4 del documento.
 
+**Addendum CLA-704 (2026-11-18).** El usuario decidió adelantar el alta de usuarios de Bertels antes de P5/P7 («si vamos a crearlo ahora»). Lo construido:
+
+- Sección **Users** en el panel `/bertels` (`BertelsUserResource`), solo `super_admin`. Todo listado, edición y alta se acota explícitamente a la organización del sitio de Bertels (`Site::forPanel('bertels')->organization_id`), con independencia de `ORGANIZATIONS_ENFORCE`; un usuario de Claesen no es alcanzable por URL y, si el sitio no existe, la sección no está disponible (nunca cae a Claesen).
+- Dos tipos de cuenta: `@electrobertels.be` (Microsoft, sin contraseña ni correo) y local (correo de activación con enlace a `/bertels`, 2FA de la aplicación). El dominio se valida en servidor según el tipo.
+- Roles asignables: solo `viewer` y `admin` (con step-up MFA al cambiarlos); hoy dan el mismo acceso al panel.
+- Microsoft por panel: el botón de `/bertels/login` devuelve a `/bertels`; un usuario de Bertels siempre aterriza en su panel y uno de Claesen en el suyo.
+- **Frontera independiente de `ORGANIZATIONS_ENFORCE` (S7):** los inicios de sesión de las apps de Claesen (`api/v1/auth/login`, `login/sport`, `login/client-portal`, Safety `v1/login`, canje de código de activación y callback Microsoft de API) y los grupos de rutas con `organization:claesen` rechazan a un usuario con organización definida distinta de Claesen (`ClaesenAppAccess`, `RequireOrganization`). Los usuarios con `organization_id` nulo conservan el comportamiento actual mientras el flag esté apagado. KNX queda fuera.
+
+Sigue pendiente (fuera de alcance de CLA-704): viewer de solo lectura, acceso de usuarios de Bertels a KNX, activar `ORGANIZATIONS_ENFORCE` (P5), y confirmar el grupo de Azure de Bertels (hoy un usuario `@electrobertels.be` se crea manualmente desde Users). La regla «ningún usuario real hasta P5» queda sustituida, para la frontera de acceso, por las dos barreras de arriba; los riesgos residuales están en `docs/ai/known-risks.md`.
+
 ---
 
 ### D11 — De Mailing se comparte el transporte transaccional, no la plataforma de campañas (decisiones del usuario, 2026-09-17)
@@ -294,3 +304,11 @@ El puerto 3310 evita el 3308 que ocupa otro worktree. `PanelAccessMatrixTest` ll
 - Frontend Astro de Claesen — repositorio `cubanote816/website-claesen-v1`, desplegado por espejo LFTP. Su hostname de producción no está declarado en la configuración versionada de este repositorio (vive en `.env`/secretos de CI): **a confirmar** antes de darlo por bueno en cualquier diagrama.
 - `service.claesen-verlichting.be`, `client.claesen-verlichting.be`, `fieldops.claesen-verlichting.be` — PWAs de Claesen (Safety, portal cliente, Sport/FieldOps).
 - `electrobertels.be` — web pública de Bertels, repositorio y despliegue independientes (`/home/totti/electrobertels.be`, Astro 7, contrato de backoffice todavía simulado con identidad de sitio `electro-bertels`).
+
+---
+
+## 9. Registro de decisiones
+
+| Fecha | Decisión | Referencia |
+|---|---|---|
+| 2026-11-18 | **Adelantar el alta de usuarios de Electro Bertels antes de P5/P7** (decisión del usuario: «si vamos a crearlo ahora»). Sección Users en `/bertels` solo para `super_admin`, acotada a la organización de Bertels; dos tipos de cuenta (Microsoft `@electrobertels.be` / local con 2FA); roles `viewer` y `admin`; Microsoft por panel. La frontera con las APIs de Claesen se aplica ya, sin depender de `ORGANIZATIONS_ENFORCE`. Pendientes: viewer de solo lectura, KNX para usuarios de Bertels, activar el flag, grupo de Azure de Bertels sin confirmar. | D10 (addendum CLA-704), CLA-704 |

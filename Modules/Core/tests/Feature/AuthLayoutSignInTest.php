@@ -148,8 +148,10 @@ final class AuthLayoutSignInTest extends TestCase
     {
         $response = $this->get($url);
 
-        // Existing Microsoft SSO flow (MicrosoftAuthController), not a new route.
-        $response->assertSee('href="'.route('auth.microsoft.redirect', ['source' => 'filament']).'"', false);
+        // Existing Microsoft SSO flow (MicrosoftAuthController), not a new route. CLA-704 (S6):
+        // the Bertels login also carries its panel so the callback returns there.
+        $microsoftQuery = $panel === 'bertels' ? ['source' => 'filament', 'panel' => 'bertels'] : ['source' => 'filament'];
+        $response->assertSee('href="'.e(route('auth.microsoft.redirect', $microsoftQuery)).'"', false);
 
         // That panel's own password-reset request route.
         $resetUrl = route("filament.{$panel}.auth.password-reset.request");

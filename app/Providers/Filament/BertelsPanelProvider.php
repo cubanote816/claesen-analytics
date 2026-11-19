@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Bertels\Resources\Users\BertelsUserResource;
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
 use App\Filament\Guides\Ets6ProjectArchiveGuide;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
@@ -127,6 +128,10 @@ class BertelsPanelProvider extends PanelProvider
             // is the only cluster under app/Filament/Clusters; every resource in it is
             // scoped to the panel's own site (App\Filament\Concerns\ScopedToPanelSite).
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
+            // CLA-704: the only resource registered by hand — the panel still discovers nothing else.
+            ->resources([
+                BertelsUserResource::class,
+            ])
             ->pages([
                 Dashboard::class,
                 // Guides & Procedures: same page as the admin panel, in the Bertels skin.

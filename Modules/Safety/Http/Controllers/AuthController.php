@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Modules\Core\Models\User;
+use Modules\Core\Support\ClaesenAppAccess;
 
 class AuthController extends Controller
 {
@@ -27,7 +28,7 @@ class AuthController extends Controller
         $user = User::where('email', $validated['email'])->first();
 
         // Suspended, not-yet-activated, or wrong credentials → same generic 401.
-        if (! $user || ! $user->is_active || ! $user->hasCompletedPasswordSetup() || ! Hash::check($validated['password'], $user->password)) {
+        if (! $user || ! $user->is_active || ! $user->hasCompletedPasswordSetup() || ! Hash::check($validated['password'], $user->password) || ClaesenAppAccess::denies($user)) {
             return response()->json([
                 'message' => 'Ongeldige inloggegevens.',
             ], 401);

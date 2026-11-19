@@ -177,6 +177,7 @@ php artisan website:regenerate-media
 
 `config/permission.php` tiene `teams => false` y los permisos cuelgan de los roles. `User::hasPanelAccess()` decide el acceso al backoffice solo por rol (`super_admin`, `admin`, `financial_manager`, `hr_manager`, `viewer`), y `admin` arrastra `fieldops.view-all-clients`. Un usuario de Bertels con rol `admin` vería el panel de Claesen, `/api/v1/fieldops/*` completo, `/api/v1/safety/*` y `/api/v1/employees/*`.
 **Control:** organización explícita en el usuario + `canAccessPanel`/`EnsurePanelAccess` por panel + middleware de organización en las rutas de los módulos de Claesen (fases P2/P5a/P5b).
+**Mitigado por CLA-704 (2026-11-19) para usuarios con organización definida:** con `ORGANIZATIONS_ENFORCE` apagado (producción), `RequireOrganization` y `ClaesenAppAccess` ya rechazan (403 / sin token) a todo usuario cuya organización esté definida y no sea Claesen, tanto en los inicios de sesión de las apps de Claesen como en las rutas `organization:claesen`. Sigue abierto lo de abajo en «Residuales de CLA-704».
 
 ### 2. CRÍTICO — La API pública de Website no conoce el sitio
 
@@ -579,6 +580,14 @@ por defecto. Debe ejecutarse antes de que exista el primer usuario real de Berte
 
 **Qué NO se hizo:** cerrar el caso nulo en el código. Habría dejado fuera al equipo actual
 en cualquier entorno recién sembrado, que es un fallo peor que el que se estaba arreglando.
+
+### Residuales de CLA-704 — usuarios de Electro Bertels antes de P5 (2026-11-19)
+
+**Mitigado:** el riesgo de que un usuario de Bertels alcance las APIs de Claesen con el flag apagado (inicio de sesión y rutas `organization:claesen`; ver riesgo 1 y `docs/ai/module-contracts.md` → Core). Quedan:
+
+1. **Un usuario con `organization_id` nulo sigue pasando** `RequireOrganization` y `ClaesenAppAccess` mientras `ORGANIZATIONS_ENFORCE` esté apagado (es el estado de los usuarios sembrados y anteriores a P2). Un usuario de Bertels creado desde `/bertels` > Users siempre lleva la organización de Bertels, pero uno creado por otra vía sin organización entraría a Claesen. **Control:** `core:backfill-user-organizations --apply` y, en P5, activar el flag.
+2. **La cookie de sesión del backoffice es compartida entre los paneles** (misma app y mismo dominio): una sesión iniciada en `/bertels` viaja también a las rutas de Claesen. La frontera depende de `canAccessPanel`/`EnsurePanelAccess` y de `organization:claesen`, no de la cookie; un grupo de rutas de Claesen sin ese middleware sería alcanzable con sesión de Bertels.
+3. **Pendientes de producto, fuera de CLA-704:** viewer de solo lectura (`viewer` y `admin` de Bertels hoy ven lo mismo), acceso de usuarios de Bertels a KNX, activar `ORGANIZATIONS_ENFORCE`, y confirmar el grupo de Azure de Bertels (hasta entonces las cuentas `@electrobertels.be` se crean a mano desde Users).
 
 ## Decisiones pendientes
 
