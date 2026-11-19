@@ -66,4 +66,9 @@ class Prospect extends Model
     {
         return $this->hasMany(ProspectLocation::class);
     }
+
+    public function contactLogs(): HasMany
+    {
+        return $this->hasMany(ContactLog::class);
+    }
 }

@@ -547,6 +547,8 @@ MAILING_UNSUBSCRIBE_DOMAIN=claesen-verlichting.be
 "Continuamos con MAI-031. Lee CLAUDE.md y docs/Mailing/mailing-platform-master.md."
 ```
 
+**Hot leads (epic CLA-709, en curso):** ranking de prospectos con mejor engagement que todavía no nos contactaron, para seguimiento de gerencia (= rol `admin`). Plan y specs en `odd/tasks/mailing-hot-leads.md` (T0 auditoría SQL CLA-710 → T1 historial de contacto manual CLA-711 → T2 scoring determinístico → T3 página Hot leads → T4 capa IA con proveedor/modelo por config → T5 resumen y borrador IA). El contacto manual vive en `prospects_contact_logs` (`ContactLog`); solo `super_admin`/`admin` agregan o quitan entradas; el último contacto se calcula con `withMax`, nunca se copia a `Prospect`. La IA no asigna el puntaje.
+
 ### Reglas Mailing (no negociables)
 
 - Transporte siempre via `MarketingCampaignInterface` — nunca `MicrosoftGraphMailer` directo
