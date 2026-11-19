@@ -9,6 +9,7 @@ use App\Filament\Bertels\Resources\Users\Pages\CreateBertelsUser;
 use App\Filament\Bertels\Resources\Users\Pages\EditBertelsUser;
 use App\Filament\Bertels\Resources\Users\Pages\ListBertelsUsers;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Modules\Core\Filament\Resources\Users\Pages\CreateUser;
+use Modules\Core\Filament\Resources\Users\Schemas\CreateUserForm;
 use Modules\Core\Models\Organization;
 use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
@@ -45,7 +47,7 @@ final class BertelsUserManagementTest extends TestCase
         $this->withoutVite();
         Notification::fake();
 
-        foreach (['super_admin', 'admin', 'viewer', 'client', 'technician'] as $role) {
+        foreach (['super_admin', 'admin', 'viewer', 'client', 'technician', 'finance'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -322,23 +324,26 @@ final class BertelsUserManagementTest extends TestCase
 
     public static function forbiddenRoles(): array
     {
-        return ['super_admin' => ['super_admin'], 'client' => ['client'], 'technician' => ['technician']];
+        return ['super_admin' => ['super_admin'], 'client' => ['client']];
     }
 
-    // S4
-    public function test_viewer_and_admin_are_accepted_on_create(): void
+    // S10 (supersedes S4 viewer/admin): every role except super_admin and client is accepted.
+    public function test_every_other_role_is_accepted_on_create(): void
     {
         Livewire::test(CreateBertelsUser::class)
-            ->fillForm($this->localForm(['role_ids' => [$this->roleId('viewer'), $this->roleId('admin')]]))
+            ->fillForm($this->localForm(['role_ids' => [$this->roleId('viewer'), $this->roleId('finance'), $this->roleId('technician')]]))
             ->call('create')
             ->assertHasNoFormErrors();
 
-        $this->assertEqualsCanonicalizing(['admin', 'viewer'], User::where('email', 'luc@gmail.com')->firstOrFail()->getRoleNames()->all());
+        $this->assertEqualsCanonicalizing(
+            ['finance', 'technician', 'viewer'],
+            User::where('email', 'luc@gmail.com')->firstOrFail()->getRoleNames()->all(),
+        );
     }
 
-    // S4
+    // S10
     #[DataProvider('forbiddenRoles')]
-    public function test_other_roles_are_rejected_on_create_and_nothing_is_stored(string $role): void
+    public function test_super_admin_and_client_are_rejected_on_create_and_nothing_is_stored(string $role): void
     {
         $before = User::count();
 
@@ -351,9 +356,9 @@ final class BertelsUserManagementTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    // S4: the server-side allowlist holds even when the form's own option check is bypassed.
+    // S10: the server-side rule holds even when the form's own option check is bypassed.
     #[DataProvider('forbiddenRoles')]
-    public function test_the_create_page_itself_refuses_other_roles(string $role): void
+    public function test_the_create_page_itself_refuses_super_admin_and_client(string $role): void
     {
         $page = app(CreateBertelsUser::class);
         $method = new \ReflectionMethod($page, 'mutateFormDataBeforeCreate');
@@ -361,36 +366,42 @@ final class BertelsUserManagementTest extends TestCase
 
         try {
             $method->invoke($page, $this->localForm(['role_ids' => [$this->roleId($role)]]));
-            $this->fail('A role outside the allowlist was not refused.');
+            $this->fail('A forbidden role was not refused.');
         } catch (ValidationException $e) {
-            $this->assertSame(['Only the Viewer and Admin roles can be assigned.'], $e->errors()['data.role_ids'] ?? null);
+            $this->assertSame(
+                ['Bertels accounts cannot have the Super Admin or Client role.'],
+                $e->errors()['data.role_ids'] ?? null,
+            );
         }
     }
 
-    // S4
-    public function test_the_create_form_offers_only_viewer_and_admin(): void
+    // S10: same list, same order as Claesen's External worker checkboxes.
+    public function test_the_role_options_are_claesens_external_worker_list(): void
     {
-        $this->assertSame(
-            ['admin', 'viewer'],
-            collect(BertelsUserResource::assignableRoleOptions())->map(fn ($label) => strtolower($label))->sort()->values()->all(),
+        $expected = CreateUserForm::roleOptions('external');
+
+        $this->assertSame($expected, BertelsUserResource::assignableRoleOptions());
+        $this->assertEqualsCanonicalizing(
+            ['admin', 'finance', 'technician', 'viewer'],
+            array_map('strtolower', array_values($expected)),
         );
     }
 
-    // S4
-    public function test_change_roles_with_a_valid_code_accepts_viewer_and_admin(): void
+    // S10
+    public function test_change_roles_accepts_any_role_but_super_admin_and_client(): void
     {
         $target = $this->bertelsUser();
 
         Livewire::test(EditBertelsUser::class, ['record' => $target->getKey()])
-            ->callAction('changeRoles', data: ['code' => $this->stepUpCode(), 'roles' => [$this->roleId('admin')]])
+            ->callAction('changeRoles', data: ['code' => $this->stepUpCode(), 'roles' => [$this->roleId('finance'), $this->roleId('technician')]])
             ->assertHasNoActionErrors();
 
-        $this->assertSame(['admin'], $target->fresh()->roles->pluck('name')->all());
+        $this->assertEqualsCanonicalizing(['finance', 'technician'], $target->fresh()->roles->pluck('name')->all());
     }
 
-    // S4
+    // S10
     #[DataProvider('forbiddenRoles')]
-    public function test_change_roles_rejects_other_roles_and_stores_nothing(string $role): void
+    public function test_change_roles_rejects_super_admin_and_client_and_stores_nothing(string $role): void
     {
         $target = $this->bertelsUser();
 
@@ -465,5 +476,242 @@ final class BertelsUserManagementTest extends TestCase
 
         $this->assertFalse(DB::table('sessions')->where('id', 'session-target')->exists());
         $this->assertTrue(DB::table('sessions')->where('id', 'session-other')->exists());
+    }
+
+    // ------------------------------------------------------------------ S10
+
+    // S10: navigation group declared with the same label as Claesen's panel. The group icon
+    // cannot be copied: this panel's sidebar is not collapsible, and Filament rejects a group
+    // icon together with item icons there (the Users item keeps its icon).
+    public function test_the_user_management_group_is_declared_with_claesens_label(): void
+    {
+        $find = fn (string $panel) => collect(Filament::getPanel($panel)->getNavigationGroups())
+            ->first(fn ($group) => $group->getLabel() === __('navigation.groups.user_management'));
+
+        $claesen = $find('admin');
+        $bertels = $find('bertels');
+
+        $this->assertNotNull($claesen);
+        $this->assertNotNull($bertels);
+        $this->assertNull($bertels->getIcon());
+        $this->assertNotNull(BertelsUserResource::getNavigationIcon());
+        $this->get('/bertels/users')->assertSuccessful();
+        $this->assertSame(BertelsUserResource::getNavigationGroup(), $bertels->getLabel());
+    }
+
+    // S10
+    public function test_the_list_shows_claesens_columns_in_claesens_order(): void
+    {
+        $this->bertelsUser();
+        $test = Livewire::test(ListBertelsUsers::class);
+
+        $columns = array_keys($test->instance()->getTable()->getColumns());
+        $this->assertSame(
+            ['name', 'organization.name', 'status', 'last_active_at', 'last_login_at', 'last_login_app_source', 'last_login_channel', 'email', 'roles.name', 'created_at'],
+            $columns,
+        );
+        $this->assertTrue($test->instance()->getTable()->getColumn('created_at')->isToggledHiddenByDefault());
+    }
+
+    // S10
+    public function test_the_organization_column_shows_bertels_and_the_status_badge_is_offline(): void
+    {
+        $user = $this->bertelsUser();
+
+        Livewire::test(ListBertelsUsers::class)
+            ->assertTableColumnStateSet('organization.name', 'Electro Bertels', $user)
+            ->assertTableColumnStateSet('status', __('users/resource.fields.offline'), $user)
+            ->assertTableColumnStateSet('last_login_channel', __('users/resource.fields.unknown_channel'), $user);
+    }
+
+    // S10
+    public function test_search_by_name_and_email(): void
+    {
+        $ana = $this->bertelsUser(['name' => 'Ana Zeppelin', 'email' => 'ana@example.com']);
+        $bob = $this->bertelsUser(['name' => 'Bob Quartz', 'email' => 'bob@example.org']);
+
+        Livewire::test(ListBertelsUsers::class)
+            ->searchTable('Zeppelin')
+            ->assertCanSeeTableRecords([$ana])
+            ->assertCanNotSeeTableRecords([$bob])
+            ->searchTable('bob@example.org')
+            ->assertCanSeeTableRecords([$bob])
+            ->assertCanNotSeeTableRecords([$ana]);
+    }
+
+    // S10
+    public function test_sorting_by_name_and_email(): void
+    {
+        $a = $this->bertelsUser(['name' => 'Aaa', 'email' => 'zzz@example.com']);
+        $b = $this->bertelsUser(['name' => 'Bbb', 'email' => 'aaa@example.com']);
+
+        Livewire::test(ListBertelsUsers::class)
+            ->sortTable('name')
+            ->assertCanSeeTableRecords([$a, $b], inOrder: true)
+            ->sortTable('name', 'desc')
+            ->assertCanSeeTableRecords([$b, $a], inOrder: true)
+            ->sortTable('email')
+            ->assertCanSeeTableRecords([$b, $a], inOrder: true);
+    }
+
+    // S10: one organization → no organization filter.
+    public function test_there_is_no_organization_filter(): void
+    {
+        $this->assertSame([], Livewire::test(ListBertelsUsers::class)->instance()->getTable()->getFilters());
+    }
+
+    // S10
+    public function test_delete_on_the_edit_page_removes_only_that_bertels_user(): void
+    {
+        $target = $this->bertelsUser();
+        $other = $this->bertelsUser();
+
+        Livewire::test(EditBertelsUser::class, ['record' => $target->getKey()])
+            ->callAction('delete');
+
+        $this->assertNull(User::find($target->id));
+        $this->assertNotNull(User::find($other->id));
+    }
+
+    // S10
+    public function test_bulk_delete_removes_the_selected_bertels_users(): void
+    {
+        $one = $this->bertelsUser();
+        $two = $this->bertelsUser();
+        $keep = $this->bertelsUser();
+
+        Livewire::test(ListBertelsUsers::class)
+            ->callTableBulkAction('delete', [$one, $two]);
+
+        $this->assertNull(User::find($one->id));
+        $this->assertNull(User::find($two->id));
+        $this->assertNotNull(User::find($keep->id));
+    }
+
+    // S10 (security): a Claesen id posted into a bulk delete never deletes a Claesen user.
+    public function test_bulk_delete_never_deletes_a_claesen_user(): void
+    {
+        $bertelsUser = $this->bertelsUser();
+        $claesenUser = $this->claesenUser();
+
+        try {
+            Livewire::test(ListBertelsUsers::class)
+                ->set('selectedTableRecords', [(string) $bertelsUser->getKey(), (string) $claesenUser->getKey()])
+                ->callAction(TestAction::make('delete')->table()->bulk());
+        } catch (\Throwable) {
+            // a refusal is acceptable; what matters is what survives
+        }
+
+        $this->assertNotNull(User::find($claesenUser->id));
+        $this->assertNotNull(User::find($this->superAdmin->id));
+    }
+
+    // S10 (security): deleting a Claesen user through the Bertels edit page is a 404.
+    public function test_a_claesen_user_cannot_be_deleted_through_the_bertels_edit_page(): void
+    {
+        $claesenUser = $this->claesenUser();
+
+        Livewire::test(EditBertelsUser::class, ['record' => $claesenUser->getKey()])->assertNotFound();
+
+        $this->assertNotNull(User::find($claesenUser->id));
+    }
+
+    public static function nonSuperAdminRoles(): array
+    {
+        return ['bertels admin' => ['admin'], 'bertels viewer' => ['viewer']];
+    }
+
+    // S10 / S1
+    #[DataProvider('nonSuperAdminRoles')]
+    public function test_non_super_admin_cannot_delete(string $role): void
+    {
+        $actor = $this->bertelsUser([], $role);
+        $target = $this->bertelsUser();
+
+        $this->actingAs($actor);
+        Filament::setCurrentPanel(Filament::getPanel('bertels'));
+
+        $this->assertFalse(BertelsUserResource::canDelete($target));
+        $this->assertFalse(BertelsUserResource::canDeleteAny());
+        $this->get("/bertels/users/{$target->getKey()}/edit")->assertForbidden();
+        $this->assertNotNull(User::find($target->id));
+    }
+
+    // S10
+    public function test_super_admin_can_delete(): void
+    {
+        $this->assertTrue(BertelsUserResource::canDelete($this->bertelsUser()));
+        $this->assertTrue(BertelsUserResource::canDeleteAny());
+    }
+
+    // S10
+    public function test_email_edit_within_the_account_type_is_saved(): void
+    {
+        $local = $this->bertelsUser(['email' => 'old@gmail.com']);
+        $microsoft = $this->bertelsUser(['email' => 'old@electrobertels.be']);
+
+        Livewire::test(EditBertelsUser::class, ['record' => $local->getKey()])
+            ->fillForm(['email' => 'new@example.com'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+        Livewire::test(EditBertelsUser::class, ['record' => $microsoft->getKey()])
+            ->fillForm(['email' => 'new@electrobertels.be'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('new@example.com', $local->fresh()->email);
+        $this->assertSame('new@electrobertels.be', $microsoft->fresh()->email);
+    }
+
+    public static function crossings(): array
+    {
+        return [
+            'local to microsoft' => ['old@gmail.com', 'old@electrobertels.be'],
+            'microsoft to local' => ['old@electrobertels.be', 'old@gmail.com'],
+            'microsoft to local, case/space' => ['old@electrobertels.be', 'Old@Other.com'],
+        ];
+    }
+
+    // S10
+    #[DataProvider('crossings')]
+    public function test_an_email_change_crossing_the_bertels_domain_is_rejected_and_nothing_is_stored(string $from, string $to): void
+    {
+        $user = $this->bertelsUser(['email' => $from, 'name' => 'Before']);
+
+        Livewire::test(EditBertelsUser::class, ['record' => $user->getKey()])
+            ->fillForm(['email' => $to, 'name' => 'After'])
+            ->call('save')
+            ->assertHasFormErrors(['email']);
+
+        $fresh = $user->fresh();
+        $this->assertSame($from, $fresh->email);
+        $this->assertSame('Before', $fresh->name);
+    }
+
+    // S10
+    public function test_a_duplicate_email_is_rejected_on_edit(): void
+    {
+        $this->claesenUser(['email' => 'taken@gmail.com']);
+        $user = $this->bertelsUser(['email' => 'mine@gmail.com']);
+
+        Livewire::test(EditBertelsUser::class, ['record' => $user->getKey()])
+            ->fillForm(['email' => 'taken@gmail.com'])
+            ->call('save')
+            ->assertHasFormErrors(['email']);
+
+        $this->assertSame('mine@gmail.com', $user->fresh()->email);
+    }
+
+    // S10: unchanged email on save is not a "duplicate of itself".
+    public function test_saving_without_changing_the_email_works(): void
+    {
+        $user = $this->bertelsUser(['email' => 'same@gmail.com']);
+
+        Livewire::test(EditBertelsUser::class, ['record' => $user->getKey()])
+            ->fillForm(['name' => 'Renamed'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('Renamed', $user->fresh()->name);
     }
 }

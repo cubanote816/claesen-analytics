@@ -20,38 +20,7 @@ class UserForm
             ->components([
                 Section::make()
                     ->schema([
-                        TextInput::make('name')
-                            ->label(__('users/resource.fields.name'))
-                            ->required(),
-                        TextInput::make('email')
-                            ->label(__('users/resource.fields.email'))
-                            ->email()
-                            ->required()
-                            ->unique(ignoreRecord: true),
-                        // CLA-599: shown, never editable here — moving a user between
-                        // organizations is a sensitive operation of its own (audit + step-up).
-                        Placeholder::make('organization')
-                            ->label(__('users/resource.fields.organization'))
-                            ->content(fn (?User $record) => $record?->organization?->name ?? '—')
-                            ->visible(fn (?User $record) => $record !== null),
-                        Toggle::make('is_active')
-                            ->label(__('users/resource.fields.is_active'))
-                            ->helperText(__('users/resource.fields.is_active_hint'))
-                            ->default(true)
-                            ->onColor('success')
-                            ->offColor('danger'),
-                        // F2/CLA-464: roles are no longer editable through this
-                        // general save — changing them requires a fresh MFA
-                        // challenge, only available through the dedicated
-                        // "Change roles" header action on the Edit page
-                        // (Modules\Core\Filament\Resources\Users\Pages\EditUser).
-                        // This is read-only, never dehydrated.
-                        Placeholder::make('roles')
-                            ->label(__('users/resource.fields.roles'))
-                            ->content(fn ($record) => $record
-                                ? $record->roles->pluck('name')->map(fn ($name) => Str::headline($name))->implode(', ')
-                                : '—')
-                            ->visible(fn (?User $record) => $record !== null),
+                        ...self::commonComponents(),
                         // CLA-553: deliberately NOT ->relationship() — a plain relationship()
                         // sync() on save reattaches every fo_client_user row using the
                         // migration defaults (is_active/can_view=true, can_manage_contacts=
@@ -86,5 +55,49 @@ class UserForm
                             ->visible(fn (?User $record): bool => $record?->hasRole('client') ?? false),
                     ]),
             ]);
+    }
+
+    /**
+     * Name, email, organization, active toggle and the read-only roles: shared with the
+     * Electro Bertels Users edit form (CLA-704 S10) so both panels edit the same fields.
+     *
+     * @return array<int, \Filament\Schemas\Components\Component>
+     */
+    public static function commonComponents(): array
+    {
+        return [
+                TextInput::make('name')
+                    ->label(__('users/resource.fields.name'))
+                    ->required(),
+                TextInput::make('email')
+                    ->label(__('users/resource.fields.email'))
+                    ->email()
+                    ->required()
+                    ->unique(ignoreRecord: true),
+                // CLA-599: shown, never editable here — moving a user between
+                // organizations is a sensitive operation of its own (audit + step-up).
+                Placeholder::make('organization')
+                    ->label(__('users/resource.fields.organization'))
+                    ->content(fn (?User $record) => $record?->organization?->name ?? '—')
+                    ->visible(fn (?User $record) => $record !== null),
+                Toggle::make('is_active')
+                    ->label(__('users/resource.fields.is_active'))
+                    ->helperText(__('users/resource.fields.is_active_hint'))
+                    ->default(true)
+                    ->onColor('success')
+                    ->offColor('danger'),
+                // F2/CLA-464: roles are no longer editable through this
+                // general save — changing them requires a fresh MFA
+                // challenge, only available through the dedicated
+                // "Change roles" header action on the Edit page
+                // (Modules\Core\Filament\Resources\Users\Pages\EditUser).
+                // This is read-only, never dehydrated.
+                Placeholder::make('roles')
+                    ->label(__('users/resource.fields.roles'))
+                    ->content(fn ($record) => $record
+                        ? $record->roles->pluck('name')->map(fn ($name) => Str::headline($name))->implode(', ')
+                        : '—')
+                    ->visible(fn (?User $record) => $record !== null),
+        ];
     }
 }

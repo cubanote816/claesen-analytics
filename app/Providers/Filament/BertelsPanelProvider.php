@@ -14,6 +14,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\View\PanelsRenderHook;
+use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -105,6 +106,12 @@ class BertelsPanelProvider extends PanelProvider
             // Filament's default 20rem width), so switching panels causes no visual jump.
             ->navigationGroups([
                 ...WebsiteNavigationGroups::navigationGroups(),
+                // CLA-704 S10: same group and label as the Claesen panel. No group icon on
+                // purpose: Claesen's panel has a collapsible sidebar (group icon, item icon
+                // hidden) but this one does not, and Filament throws when a group AND its
+                // items both carry an icon outside that mode. The Users item keeps its icon.
+                NavigationGroup::make('User Management')
+                    ->label(fn () => __('navigation.groups.user_management')),
                 Ets6ProjectArchiveGuide::panelNavigationGroup(),
             ])
             ->renderHook(

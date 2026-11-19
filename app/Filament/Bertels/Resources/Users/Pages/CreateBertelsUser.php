@@ -20,7 +20,7 @@ use Spatie\Permission\Models\Role;
  * Bertels organization:
  *  - microsoft: an address on the corporate domain; signs in with Microsoft, no e-mail.
  *  - local: any other address; gets the activation e-mail with a /bertels reset link.
- * The domain/type split, the role allowlist and the organization are all decided here,
+ * The domain/type split, the forbidden roles and the organization are all decided here,
  * server-side, never by what the form happened to offer.
  */
 class CreateBertelsUser extends CreateRecord
@@ -59,8 +59,12 @@ class CreateBertelsUser extends CreateRecord
         $roleIds = collect($data['role_ids'] ?? [])->filter()->unique()->values()->all();
         $this->refuseIf($roleIds === [], 'role_ids', 'At least one role is required.');
         $this->refuseIf(
-            Role::query()->whereKey($roleIds)->whereIn('name', BertelsUserResource::ASSIGNABLE_ROLES)->count() !== count($roleIds),
-            'role_ids', 'Only the Viewer and Admin roles can be assigned.'
+            Role::query()->whereKey($roleIds)->count() !== count($roleIds),
+            'role_ids', 'One or more selected roles do not exist.'
+        );
+        $this->refuseIf(
+            Role::query()->whereKey($roleIds)->whereIn('name', BertelsUserResource::forbiddenRoleNames())->exists(),
+            'role_ids', 'Bertels accounts cannot have the Super Admin or Client role.'
         );
 
         // Only these keys ever reach the model: forged attributes are dropped here.

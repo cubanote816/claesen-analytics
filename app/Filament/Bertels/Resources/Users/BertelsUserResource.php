@@ -16,7 +16,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use Modules\Core\Filament\Resources\Users\Schemas\CreateUserForm;
 use Modules\Core\Models\Site;
 use Modules\Core\Models\User;
 use Spatie\Permission\Models\Role;
@@ -33,9 +33,6 @@ use Spatie\Permission\Models\Role;
  */
 class BertelsUserResource extends Resource
 {
-    /** S4: the only roles a Bertels user can be given, at creation and on change. */
-    public const ASSIGNABLE_ROLES = ['viewer', 'admin'];
-
     protected static ?string $model = User::class;
 
     // Same path as Claesen's Users resource, in the other panel.
@@ -62,16 +59,35 @@ class BertelsUserResource extends Resource
     }
 
     /**
+     * S10/L9: the roles a Bertels user can never be given — the very list Claesen applies
+     * to its External workers (every role but super_admin and client).
+     *
+     * @return array<int, string>
+     */
+    public static function forbiddenRoleNames(): array
+    {
+        return CreateUserForm::EXTERNAL_FORBIDDEN_ROLES;
+    }
+
+    /**
+     * Names of the roles that can be assigned (everything not forbidden): the server-side
+     * allowlist of change-roles.
+     *
+     * @return array<int, string>
+     */
+    public static function assignableRoleNames(): array
+    {
+        return Role::query()->whereNotIn('name', self::forbiddenRoleNames())->pluck('name')->all();
+    }
+
+    /**
+     * Checkbox options: Claesen's External worker list, same order.
+     *
      * @return array<int, string> role id => headline name
      */
     public static function assignableRoleOptions(): array
     {
-        return Role::query()
-            ->whereIn('name', self::ASSIGNABLE_ROLES)
-            ->orderBy('sort')
-            ->pluck('name', 'id')
-            ->map(fn ($name) => Str::headline($name))
-            ->all();
+        return CreateUserForm::roleOptions('external');
     }
 
     public static function getEloquentQuery(): Builder
@@ -107,14 +123,16 @@ class BertelsUserResource extends Resource
         return static::canAccess();
     }
 
+    // S10: delete exactly like Claesen, but only ever over this organization's users.
     public static function canDelete(Model $record): bool
     {
-        return false;
+        return static::canAccess()
+            && $record->getAttribute('organization_id') === static::organizationId();
     }
 
     public static function canDeleteAny(): bool
     {
-        return false;
+        return static::canAccess();
     }
 
     public static function getNavigationGroup(): ?string
