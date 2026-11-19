@@ -153,10 +153,6 @@ return [
         'template_invalid_pref_category' => 'Sjabloon heeft een ongeldige voorkeurscategorie',
     ],
 
-    'placeholders' => [
-        'content_description' => 'Je kunt variabelen gebruiken zoals {{ naam }} en {{ regio }}',
-    ],
-
     'preview' => [
         'heading'        => 'Voorvertoning doelgroep',
         'total'          => ':count ontvangers',

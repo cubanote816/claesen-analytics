@@ -49,6 +49,7 @@ return [
     ],
 
     'status' => [
+        'all' => 'Alle',
         'active' => 'Actief',
         'inactive' => 'Inactief',
     ],
