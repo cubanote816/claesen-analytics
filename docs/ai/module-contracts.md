@@ -245,7 +245,15 @@ Modules/Safety/config/config.php
   que es la que el cliente cita al llamar. Tiene parte HTML **y** de texto;
   el mensaje citado va escapado en el HTML. La línea «¿urgente? llámenos»
   sale de los ajustes `phone_display`/`phone_tel` del sitio y se omite si no
-  hay teléfono. Textos en `Modules/Website/lang/{nl,fr,en,de}/consultation.php`
+  hay teléfono. **CLA-707:** para Electro Bertels el HTML usa el layout de marca
+  (CLA-686, `Content(markdown:)`, vista `consultation-confirmation-branded`);
+  Claesen conserva su plantilla (decisión del usuario). En esa vista Markdown,
+  lo que escribió el visitante (nombre, mensaje) va SOLO en bloques HTML de
+  una línea, escapados y con saltos como `<br>`, para que nunca se interprete
+  como Markdown. El logo enlaza al dominio público del sitio o a nada, nunca a
+  `config('app.url')` (el backoffice privado): `header-url` del componente
+  `mail::message` (null = `app.url`, sin cambios para los correos al personal).
+  Textos en `Modules/Website/lang/{nl,fr,en,de}/consultation.php`
   (registro `website::`); un idioma nuevo necesita sus cuatro piezas: el
   archivo, `LOCALES` y el test con data provider.
 
