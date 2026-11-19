@@ -339,7 +339,15 @@ Lo que lo resuelve de raíz es servir con **nginx + php-fpm**, que es el stack r
 las imágenes disponibles en esta máquina son sólo `sail-8.x/app` (la de PHP), y la de nginx requiere un
 `pull` que no se intentó.
 
-### La landing de Bertels necesita su ruta de intake en nginx antes de publicarse (CLA-705) — PENDIENTE DE DEPLOY
+### La landing de Bertels necesita su ruta de intake en nginx antes de publicarse (CLA-705) — DESPLEGADO (2026-11-19)
+
+**Desplegado el 2026-11-19.** Laravel: PR #86 (`c3cdb469`). nginx en `sbapu03` (192.168.60.10, el host
+del túnel; el upstream quedó como viene, `127.0.0.1:9443`): `conf.d/electrobertels-intake-upstream.conf`,
+`snippets/electrobertels-intake-location.conf` y el `include` en el server 443 de
+`sites-available/electrobertels.be.conf`. Landing: commit `510b44a` (PR electrobertels#1, `7f8fa44f`).
+Backups en `/root/backups/cla-705/2026-11-19/` (vhost y `landing/`). Envío real de prueba: 201, CR-000002,
+visible en el panel de Bertels y acuse recibido. Lo que sigue abajo describe el diseño y queda como
+referencia para un rollback o un host nuevo.
 
 **Corrección (2026-11-19):** la versión anterior de esta entrada pedía CORS en
 `backend.claesen-verlichting.be`. Ese host **ya no se usa** y `backoffice.claesen.local` no es
