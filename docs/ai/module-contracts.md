@@ -225,8 +225,10 @@ Modules/Safety/config/config.php
 - **Intake con sitio nombrado cierra en falso (CLA-705):** `POST
   /v1/website/consultations?site=<key>` responde **503** si `<key>` no es un
   sitio activo (`EnsureRequestedSiteResolved`), antes de guardar, encolar o
-  devolver una respuesta idempotente. Nunca cae a Claesen. Sin `?site=` el
-  flujo de Claesen no cambia. No quitar este guard: el proxy de la landing de
+  devolver una respuesta idempotente. Nunca cae a Claesen. El parámetro cuenta
+  aunque venga vacío (`site=` → 503) y el sitio resuelto tiene que estar
+  activo, también Claesen. Sin el parámetro `site` el flujo de Claesen no
+  cambia. No quitar este guard: el proxy de la landing de
   Bertels fija `site=electro-bertels` y sin él, un sitio suspendido mandaría
   los datos del visitante a Claesen.
 - **Acuse al visitante (`ConsultationConfirmationMail`, CLA-705):** se

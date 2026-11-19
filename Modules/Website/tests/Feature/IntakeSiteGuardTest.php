@@ -99,6 +99,26 @@ final class IntakeSiteGuardTest extends TestCase
         $this->assertSame($deliveries, ConsultationEmailDelivery::query()->withoutGlobalScopes()->count());
     }
 
+    public function test_a_present_but_blank_site_is_rejected_instead_of_falling_back_to_claesen(): void
+    {
+        foreach (['site=', 'site=%20'] as $query) {
+            $this->postJson('/v1/website/consultations?'.$query, $this->payload())
+                ->assertStatus(503);
+        }
+
+        $this->assertSame(0, $this->leads()->count());
+    }
+
+    public function test_a_suspended_claesen_site_named_explicitly_is_rejected(): void
+    {
+        Site::query()->whereKey(Site::claesenId())->update(['status' => Site::STATUS_SUSPENDED]);
+
+        $this->postJson('/v1/website/consultations?site='.Site::CLAESEN_KEY, $this->payload())
+            ->assertStatus(503);
+
+        $this->assertSame(0, $this->leads()->count());
+    }
+
     public function test_a_request_without_a_named_site_keeps_the_claesen_flow(): void
     {
         $this->postJson('/v1/website/consultations', $this->payload())
