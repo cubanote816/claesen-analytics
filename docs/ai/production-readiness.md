@@ -225,6 +225,43 @@ php artisan website:regenerate-media --project=<id>
 
 ---
 
+### Electro Bertels: intake de la landing (CLA-705)
+
+La landing de Bertels (`cubanote816/electrobertels`, en `192.168.60.10`) envía el formulario a
+`POST /intake/consultations` en su propio dominio. nginx reenvía ese POST al backoffice por la ruta que
+ya usan los demás frontends públicos (túnel). `backoffice.claesen.local` sigue privado y no se usa CORS.
+Orden obligatorio, cada paso verificado antes del siguiente:
+
+1. **Laravel** (deploy normal, `infrastructure/scripts/deploy.sh`): trae el guard
+   `EnsureRequestedSiteResolved` y el acuse localizado. Comprobar desde la red interna, **sin crear
+   datos**:
+   - `POST https://backoffice.claesen.local/v1/website/consultations?site=electro-bertels` con `{}` → **422**.
+   - El mismo POST con `?site=no-existe` → **503** `{"message":"Intake temporarily unavailable."}`.
+   - El worker de colas activo (los correos salen por `SendConsultationEmailJob`).
+2. **nginx del host que sirve `electrobertels.be`** (operador con sudo):
+   - Confirmar qué host atiende hoy el dominio y **cómo llega ese host al backoffice**. Ajustar
+     `server` en `intake-upstream.conf` a esa ruta. El valor versionado, `127.0.0.1:9443`, es el túnel
+     de `sbapu03`.
+   - Backup del vhost fuera de los directorios que carga nginx, por ejemplo `/root/backups/cla-705/`.
+   - `intake-upstream.conf` en `http {}` (por ejemplo `/etc/nginx/conf.d/`). `include` de
+     `intake-location.conf` en el `server` HTTPS de `electrobertels.be`/`www`, antes de `location /`.
+   - `nginx -t`. Recargar solo si pasa. Si algo falla: restaurar solo esos archivos, `nginx -t` y recargar.
+3. **Verificación externa (desde internet, sin POST válido):**
+   - `GET` y `OPTIONS` a `https://electrobertels.be/intake/consultations` → **403**, sin cabeceras CORS.
+   - `POST` con `{}` → **422** de Laravel. Llega al backoffice sin crear consulta ni correo.
+   - `/v1/website/projects`, `/api/user`, `/bertels/website/consultation-requests` y `/admin` en
+     `electrobertels.be` → **404**.
+   - `backoffice.claesen.local` sigue sin resolver desde internet.
+   - `service.claesen-verlichting.be` y `safety.claesen-verlichting.be` siguen respondiendo igual.
+4. **Landing:** publicar `index.html` y `js/contact-form.js` de la rama `feat/cla-705-contact-form`.
+   `data-intake-url` es `/intake/consultations`.
+5. **Envío real controlado (autorización aparte):** un envío desde el sitio publicado con un buzón de
+   prueba. Debe dar 201, aparecer en `/bertels/website/consultation-requests` (red interna) y llegar
+   el acuse desde `info@electrobertels.be` con referencia `CR-…` en el idioma de la página.
+
+**Rollback:** quitar el `include` de `intake-location.conf` y recargar nginx. La landing vuelve a
+mostrar el error con teléfono y correo. Laravel no necesita rollback: sin `?site=` no cambia nada.
+
 ## Checklist específico — Módulo Performance
 
 ### Scheduler

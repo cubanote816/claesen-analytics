@@ -228,6 +228,26 @@ Modules/Safety/config/config.php
 - `docs/api/website-v1-openapi.yaml` se valida bidireccionalmente contra
   las rutas reales (`OpenApiContractTest`): toda ruta nueva de
   `/v1/website/*` DEBE documentarse aquí.
+- **Intake con sitio nombrado cierra en falso (CLA-705):** `POST
+  /v1/website/consultations?site=<key>` responde **503** si `<key>` no es un
+  sitio activo (`EnsureRequestedSiteResolved`), antes de guardar, encolar o
+  devolver una respuesta idempotente. Nunca cae a Claesen. El parámetro cuenta
+  aunque venga vacío (`site=` → 503) y el sitio resuelto tiene que estar
+  activo, también Claesen. Sin el parámetro `site` el flujo de Claesen no
+  cambia. No quitar este guard: el proxy de la landing de
+  Bertels fija `site=electro-bertels` y sin él, un sitio suspendido mandaría
+  los datos del visitante a Claesen.
+- **Acuse al visitante (`ConsultationConfirmationMail`, CLA-705):** se
+  escribe en el `locale` del pedido si es nl/fr/en/de; si no, en el
+  `default_locale` del sitio; si tampoco, en inglés
+  (`ConsultationConfirmationMail::resolveLocale()`). Asunto y cuerpo llevan
+  la referencia `ConsultationRequest::publicReference()` (`CR-%06d`, el id),
+  que es la que el cliente cita al llamar. Tiene parte HTML **y** de texto;
+  el mensaje citado va escapado en el HTML. La línea «¿urgente? llámenos»
+  sale de los ajustes `phone_display`/`phone_tel` del sitio y se omite si no
+  hay teléfono. Textos en `Modules/Website/lang/{nl,fr,en,de}/consultation.php`
+  (registro `website::`); un idioma nuevo necesita sus cuatro piezas: el
+  archivo, `LOCALES` y el test con data provider.
 
 ### Reglas de documentos legales y media slots (CLA-479/481)
 

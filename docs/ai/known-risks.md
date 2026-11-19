@@ -339,6 +339,41 @@ Lo que lo resuelve de raíz es servir con **nginx + php-fpm**, que es el stack r
 las imágenes disponibles en esta máquina son sólo `sail-8.x/app` (la de PHP), y la de nginx requiere un
 `pull` que no se intentó.
 
+### La landing de Bertels necesita su ruta de intake en nginx antes de publicarse (CLA-705) — PENDIENTE DE DEPLOY
+
+**Corrección (2026-11-19):** la versión anterior de esta entrada pedía CORS en
+`backend.claesen-verlichting.be`. Ese host **ya no se usa** y `backoffice.claesen.local` no es
+accesible desde internet: los frontends públicos llegan a Laravel por el **túnel** existente.
+
+La landing (`cubanote816/electrobertels`, servida en producción desde `192.168.60.10`) envía el
+formulario al **mismo origen**: `POST /intake/consultations`. nginx de ese sitio reenvía solo ese
+POST al backoffice, fija `site=electro-bertels` y descarta los parámetros, cookies y credenciales del
+visitante. No hay CORS. Fragmentos versionados en `infrastructure/nginx/electrobertels/`
+(`intake-upstream.conf` en `http {}`, `intake-location.conf` en el `server` HTTPS), probados en un
+nginx temporal (solo POST, 413 sobre 64k, 404 para todo lo demás, `X-Forwarded-For` reemplazado,
+límite por IP en el borde).
+
+Riesgos que quedan para el deploy:
+
+1. **El upstream depende del host.** El fragmento apunta al túnel en `127.0.0.1:9443`, que es como
+   llega `sbapu03`. Si la landing la sirve `192.168.60.10`, hay que confirmar antes cómo llega ese
+   host al backoffice. Si Laravel no ve la conexión desde `127.0.0.1` (`trustProxies` en
+   `bootstrap/app.php`), ignora `X-Forwarded-For` y **todos los visitantes comparten un único cupo**
+   de 10/min. El `limit_req` del fragmento mantiene un límite por IP en el borde igual.
+2. **Orden de deploy:** primero Laravel (guard `EnsureRequestedSiteResolved` + acuse), después
+   nginx, después la landing. La landing publicada sin la ruta de nginx muestra el error con teléfono
+   y correo, pero no registra la consulta.
+3. **Consentimiento:** `contact_consent_version` no está configurado en producción, así que no se
+   exige. Cuando el cliente entregue el texto legal, registrar la versión **solo** con la landing ya
+   preparada para mostrarlo y enviarlo; si no, todo envío da 422.
+
+4. **Selector malformado (CLA-706, aparte):** `?site[]=x` hace que `ResolveRequestSite` responda 500
+   en toda la API pública. No guarda nada ni cae a Claesen, y desde la landing no se puede provocar
+   porque nginx reemplaza la query. Decisión del usuario: ticket aparte. CLA-706 también recoge
+   `/contact-email`, que no tiene el guard, y la caché de idempotencia, que no separa por sitio.
+
+Runbook: `docs/ai/production-readiness.md` → *Electro Bertels: intake de la landing (CLA-705)*.
+
 ### El sitio necesita su origen en CORS ~~y el de producción falta confirmar~~ (2026-10-04) — RESUELTO
 
 El formulario de contacto vive en **otro origen** que la API, así que sin su origen en

@@ -11,6 +11,7 @@ use Modules\Website\Http\Controllers\MediaSlotController;
 use Modules\Website\Http\Controllers\PagePublicationController;
 use Modules\Website\Http\Controllers\ProjectController;
 use Modules\Website\Http\Controllers\SiteContentController;
+use Modules\Website\Http\Middleware\EnsureRequestedSiteResolved;
 
 Route::prefix('v1/website')->middleware([
     ResolveRequestSite::class,
@@ -37,7 +38,10 @@ Route::prefix('v1/website')->middleware([
         config('website.intake_hardening.rate_limit.decay_minutes', 1)
     );
 
-    Route::post('/consultations', [ConsultationController::class, 'store'])->middleware($intakeThrottle);
+    // CLA-705: a named `?site=` that does not resolve fails closed (503) instead
+    // of ResolveRequestSite's Claesen fallback — see EnsureRequestedSiteResolved.
+    Route::post('/consultations', [ConsultationController::class, 'store'])
+        ->middleware([$intakeThrottle, EnsureRequestedSiteResolved::class]);
     Route::post('/contact-email', [ContactController::class, 'store'])->middleware($intakeThrottle);
 
     Route::get('/settings', [SiteContentController::class, 'settings']);

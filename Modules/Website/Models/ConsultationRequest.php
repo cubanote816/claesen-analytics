@@ -96,6 +96,16 @@ class ConsultationRequest extends Model
             ->dontLogEmptyChanges();
     }
 
+    /**
+     * CLA-705: the reference the visitor gets in the acknowledgement e-mail
+     * (`CR-000123`). Derived from the id, so staff find the request in the
+     * panel by the number the client quotes.
+     */
+    public function publicReference(): string
+    {
+        return sprintf('CR-%06d', $this->getKey());
+    }
+
     public function assignedUser()
     {
         return $this->belongsTo(User::class, 'assigned_to');
