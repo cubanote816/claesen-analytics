@@ -17,9 +17,9 @@ Branch: `docs/app-documentation`. Phase 0 ticket: CLA-718. Dutch text is reviewe
 
 | ID | Specs | Ticket | Route | Status | Commit |
 | --- | --- | --- | --- | --- | --- |
-| T1 | S6 | CLA-718 | inline + explore | written; waits for user confirmation | (docs commit) |
-| T2 | S7 | CLA-718 | inline, test-first | done (Bertels page registration moved to T5) | (code commit) |
-| T3 | S2 | CLA-718 | inline | done | (docs commit) |
+| T1 | S6 | CLA-718 | inline + explore | written; waits for user confirmation | 782ce4aa |
+| T2 | S7 | CLA-718 | inline, test-first | done (Bertels page registration moved to T5) | 744f51ca |
+| T3 | S2 | CLA-718 | inline | done | 782ce4aa |
 | T4 | S1, S5 | CLA-719 | Core guide | pending | |
 | T5 | S1, S5 | CLA-720 | Website guide | pending | |
 | T6 | S1, S5 | CLA-721 | Safety guide | pending | |
@@ -38,3 +38,4 @@ Branch: `docs/app-documentation`. Phase 0 ticket: CLA-718. Dutch text is reviewe
 - L5 — T2: first RED 4 failed (no `filamentRoots()`, grouped scope). Real-module check then showed trait-in-trait (`BuildsSiteSettingsSection` → `ShowsSitePublicationState`) and the factory `PublishSiteNowAction::make()` → `Action::make('publish_now')` named wrongly; second RED observed, then GREEN `tests/Feature/Documentation` 25/25, Mailing page 9/9, Mailing inventory unchanged (13). Anchors: FieldOps 137, Website+cluster 48, Core 15, Safety 11, Prospects 12, Intelligence 8, Cafca 8, Performance 4, Employee 4. Pint issues are pre-existing on HEAD.
 - L6 — Decision: Bertels panel guide registration moves to T5 (CLA-720), where the first Bertels guide exists; no meaningful RED without a page.
 - L7 — `.git/info/exclude` (local) ignores `/.agents/skills/`; the skill is tracked with `git add -f`.
+- L8 — Slice boundary: CLA-718 = 744f51ca + 782ce4aa (546 changed lines incl. fixtures and docs) on `docs/app-documentation`; one PR. Each later ticket (CLA-719+) is its own branch and PR from `main`. `gentle_review assess` (base origin/main): risk medium, reviewDue false, no independent verifier.
