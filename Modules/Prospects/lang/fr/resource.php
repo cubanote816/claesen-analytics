@@ -158,6 +158,10 @@ return [
             'title' => 'Campagne Non Créée',
             'body' => ':reason',
         ],
+        'partial_skip' => [
+            'title' => 'Campagne Démarrée',
+            'body' => 'Attention : :unsubscribed des :total prospects sélectionnés sont désabonnés et seront ignorés.',
+        ],
         'master_sync_started' => [
             'title' => 'Master Sync Démarrée',
             'body' => 'Toutes les fédérations sont maintenant synchronisées séquentiellement en arrière-plan.',
