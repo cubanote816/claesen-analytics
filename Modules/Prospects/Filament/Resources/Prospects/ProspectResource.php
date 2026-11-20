@@ -3,6 +3,9 @@
 namespace Modules\Prospects\Filament\Resources\Prospects;
 
 use Modules\Prospects\Filament\Resources\Prospects\Pages\ManageProspects;
+use Modules\Prospects\Enums\ContactDirection;
+use Modules\Prospects\Enums\ContactMethod;
+use Modules\Prospects\Models\ContactLog;
 use Modules\Prospects\Models\Prospect;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -25,9 +28,11 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Text;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ImageEntry;
@@ -288,6 +293,36 @@ class ProspectResource extends Resource
                             ])
                             ->columns(1),
                     ]),
+                Section::make(__('prospects::resource.sections.contact_history'))
+                    ->components([
+                        RepeatableEntry::make('contact_history')
+                            ->hiddenLabel()
+                            ->state(fn (Prospect $record) => $record->contactLogs()->with('user')->orderByDesc('contacted_at')->orderByDesc('id')->get())
+                            ->visible(fn (Prospect $record): bool => $record->contactLogs()->exists())
+                            ->components([
+                                TextEntry::make('contacted_at')
+                                    ->label(__('prospects::resource.actions.mark_contacted.form.contacted_at'))
+                                    ->dateTime(),
+                                TextEntry::make('direction')
+                                    ->label(__('prospects::resource.actions.mark_contacted.form.direction'))
+                                    ->badge()
+                                    ->color(fn (ContactDirection $state): string => $state->color())
+                                    ->formatStateUsing(fn (ContactDirection $state): string => $state->label()),
+                                TextEntry::make('method')
+                                    ->label(__('prospects::resource.actions.mark_contacted.form.method'))
+                                    ->formatStateUsing(fn (ContactMethod $state): string => $state->label()),
+                                TextEntry::make('user.name')
+                                    ->label(__('prospects::resource.fields.logged_by'))
+                                    ->placeholder('—'),
+                                TextEntry::make('note')
+                                    ->label(__('prospects::resource.actions.mark_contacted.form.note'))
+                                    ->visible(fn ($state) => filled($state))
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(4),
+                        Text::make(fn (): string => __('prospects::resource.contact_history.empty'))
+                            ->visible(fn (Prospect $record): bool => ! $record->contactLogs()->exists()),
+                    ]),
             ]);
     }
 
@@ -413,6 +448,11 @@ class ProspectResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->color('danger')
                     ->placeholder(__('prospects::resource.options.status.active')),
+                TextColumn::make('contact_logs_max_contacted_at')
+                    ->label(__('prospects::resource.fields.last_contacted_at'))
+                    ->dateTime()
+                    ->sortable()
+                    ->placeholder(__('prospects::resource.options.contact_status.never')),
                 ToggleColumn::make('is_tester')
                     ->label(__('prospects::resource.fields.tester'))
                     ->sortable()
@@ -435,6 +475,17 @@ class ProspectResource extends Resource
                     ->queries(
                         true: fn(Builder $query) => $query->whereNotNull('unsubscribed_at'),
                         false: fn(Builder $query) => $query->whereNull('unsubscribed_at'),
+                        blank: fn(Builder $query) => $query,
+                    )
+                    ->native(false),
+                TernaryFilter::make('contacted')
+                    ->label(__('prospects::resource.fields.contacted'))
+                    ->placeholder(__('prospects::resource.options.status.all'))
+                    ->trueLabel(__('prospects::resource.options.contact_status.contacted'))
+                    ->falseLabel(__('prospects::resource.options.contact_status.not_contacted'))
+                    ->queries(
+                        true: fn(Builder $query) => $query->whereHas('contactLogs'),
+                        false: fn(Builder $query) => $query->whereDoesntHave('contactLogs'),
                         blank: fn(Builder $query) => $query,
                     )
                     ->native(false),
@@ -515,6 +566,8 @@ class ProspectResource extends Resource
                     ->label(fn () => new \Illuminate\Support\HtmlString('<span class="hidden xl:inline">' . __('filament-actions::edit.single.label') . '</span>')),
                 DeleteAction::make()
                     ->label(fn () => new \Illuminate\Support\HtmlString('<span class="hidden xl:inline">' . __('filament-actions::delete.single.label') . '</span>')),
+                static::markContactedAction(),
+                static::removeContactAction(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -603,6 +656,99 @@ class ProspectResource extends Resource
                         ->deselectRecordsAfterCompletion(),
                 ]),
             ]);
+    }
+
+    /** CLA-711: log a manual contact (S2). Only super_admin/admin, see ContactLogPolicy. */
+    private static function markContactedAction(): Action
+    {
+        return Action::make('mark_contacted')
+            ->label(fn () => new \Illuminate\Support\HtmlString('<span class="hidden xl:inline">' . __('prospects::resource.actions.mark_contacted.label') . '</span>'))
+            ->icon('heroicon-o-chat-bubble-left-right')
+            ->modalHeading(__('prospects::resource.actions.mark_contacted.label'))
+            ->visible(fn (): bool => auth()->user()?->can('create', ContactLog::class) ?? false)
+            ->schema([
+                DateTimePicker::make('contacted_at')
+                    ->label(__('prospects::resource.actions.mark_contacted.form.contacted_at'))
+                    ->required()
+                    ->default(fn () => now())
+                    ->maxDate(fn () => now())
+                    ->rule('before_or_equal:now'),
+                Select::make('direction')
+                    ->label(__('prospects::resource.actions.mark_contacted.form.direction'))
+                    ->options(ContactDirection::options())
+                    ->default(ContactDirection::Inbound->value)
+                    ->required(),
+                Select::make('method')
+                    ->label(__('prospects::resource.actions.mark_contacted.form.method'))
+                    ->options(ContactMethod::options())
+                    ->required(),
+                Textarea::make('note')
+                    ->label(__('prospects::resource.actions.mark_contacted.form.note'))
+                    ->maxLength(1000),
+            ])
+            ->action(function (Prospect $record, array $data): void {
+                abort_unless(auth()->user()?->can('create', ContactLog::class), 403);
+
+                $record->contactLogs()->create([
+                    'user_id' => auth()->id(),
+                    'contacted_at' => $data['contacted_at'],
+                    'direction' => $data['direction'],
+                    'method' => $data['method'],
+                    'note' => filled($data['note'] ?? null) ? $data['note'] : null,
+                ]);
+
+                Notification::make()
+                    ->title(__('prospects::resource.notifications.contact_logged.title'))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /** Uses the withMax() aggregate when the table query loaded it, so table rows add no extra query. */
+    private static function hasContactLogs(Prospect $record): bool
+    {
+        if (array_key_exists('contact_logs_max_contacted_at', $record->getAttributes())) {
+            return $record->getAttribute('contact_logs_max_contacted_at') !== null;
+        }
+
+        return $record->contactLogs()->exists();
+    }
+
+    /** CLA-711: remove one contact entry of this prospect (S5). */
+    private static function removeContactAction(): Action
+    {
+        return Action::make('remove_contact')
+            ->label(fn () => new \Illuminate\Support\HtmlString('<span class="hidden xl:inline">' . __('prospects::resource.actions.remove_contact.label') . '</span>'))
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading(__('prospects::resource.actions.remove_contact.label'))
+            ->modalDescription(__('prospects::resource.actions.remove_contact.confirm'))
+            ->visible(fn (Prospect $record): bool => (auth()->user()?->can('create', ContactLog::class) ?? false)
+                && static::hasContactLogs($record))
+            ->schema([
+                Select::make('contact_log_id')
+                    ->label(__('prospects::resource.actions.remove_contact.form.entry'))
+                    ->options(fn (Prospect $record): array => $record->contactLogs()
+                        ->orderByDesc('contacted_at')->orderByDesc('id')->get()
+                        ->mapWithKeys(fn (ContactLog $log): array => [
+                            $log->id => $log->contacted_at->format('Y-m-d H:i') . ' · ' . $log->direction->label() . ' · ' . $log->method->label(),
+                        ])->all())
+                    ->required(),
+            ])
+            ->action(function (Prospect $record, array $data): void {
+                // Server-side re-check: the entry must belong to THIS prospect and the user must be allowed to delete it.
+                $log = $record->contactLogs()->whereKey($data['contact_log_id'])->first();
+
+                abort_unless($log !== null && (auth()->user()?->can('delete', $log) ?? false), 403);
+
+                $log->delete();
+
+                Notification::make()
+                    ->title(__('prospects::resource.notifications.contact_removed.title'))
+                    ->success()
+                    ->send();
+            });
     }
 
     /**
@@ -703,6 +849,7 @@ class ProspectResource extends Resource
     {
         return parent::getEloquentQuery()
             ->with(['region'])
+            ->withMax('contactLogs', 'contacted_at')
             ->withExists(['locations as locations_exists_with_email' => function (Builder $query) {
                 $query->whereNotNull('email')->where('email', '!=', '');
             }]);

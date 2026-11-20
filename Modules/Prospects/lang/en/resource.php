@@ -12,6 +12,7 @@ return [
     ],
 
     'sections' => [
+        'contact_history' => 'Contact history',
         'club_info' => 'Club Information',
         'marketing_targets' => 'Marketing Targets',
         'sync_details' => 'Sync Details',
@@ -26,6 +27,8 @@ return [
     ],
 
     'fields' => [
+        'last_contacted_at' => 'Last contact',
+        'contacted' => 'Contacted',
         'name' => 'Club Name',
         'region' => 'Region',
         'federation' => 'Federation',
@@ -47,6 +50,7 @@ return [
         'command' => 'Command',
         'status' => 'Status',
         'started_by' => 'Started by',
+        'logged_by' => 'Logged by',
         'items' => 'Items',
         'started_at' => 'Started at',
         'finished_at' => 'Finished at',
@@ -71,6 +75,22 @@ return [
     ],
 
     'options' => [
+        'contact_directions' => [
+            'inbound' => 'Inbound (they contacted us)',
+            'outbound' => 'Outbound (we contacted them)',
+        ],
+        'contact_methods' => [
+            'phone' => 'Phone',
+            'email' => 'Email',
+            'in_person' => 'In person',
+            'website_form' => 'Website form',
+            'other' => 'Other',
+        ],
+        'contact_status' => [
+            'contacted' => 'Contacted',
+            'not_contacted' => 'Not contacted',
+            'never' => 'Never',
+        ],
         'contact_types' => [
             'headquarters' => 'Headquarters',
             'stadium' => 'Stadium',
@@ -106,6 +126,22 @@ return [
     ],
 
     'actions' => [
+        'mark_contacted' => [
+            'label' => 'Log contact',
+            'form' => [
+                'contacted_at' => 'Date and time',
+                'direction' => 'Direction',
+                'method' => 'Method',
+                'note' => 'Note',
+            ],
+        ],
+        'remove_contact' => [
+            'label' => 'Remove contact entry',
+            'form' => [
+                'entry' => 'Entry to remove',
+            ],
+            'confirm' => 'Only the selected entry is removed. The other contact entries stay untouched.',
+        ],
         'execute_campaign' => [
             'label' => 'Start Mailing Campaign',
             'view_campaign' => 'View campaign',
@@ -138,6 +174,12 @@ return [
     ],
 
     'notifications' => [
+        'contact_logged' => [
+            'title' => 'Contact logged',
+        ],
+        'contact_removed' => [
+            'title' => 'Contact entry removed',
+        ],
         'no_prospects_selected' => [
             'title' => 'No prospects selected',
             'body' => 'Please select at least one prospect to start the mailing.',
@@ -192,6 +234,10 @@ return [
             'body' => 'The selected prospects do not have any locations with registered email addresses.',
         ],
         'error_mailer' => 'Error sending campaign via mailer service.',
+    ],
+
+    'contact_history' => [
+        'empty' => 'No contact has been logged for this prospect yet.',
     ],
 
     'sync_history' => [

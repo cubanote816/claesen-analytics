@@ -445,6 +445,7 @@ Modules/Performance/Models/Mirror/MirrorProject.php
 - No duplicar datos de contacto en Mailing. Si se necesita un campo, agregarlo a `Prospect`.
 - Los syncs de federaciones son idempotentes: ejecutar varias veces no debe crear duplicados.
 - `SyncHistory` registra el historial de syncs para auditoría.
+- El historial manual de contacto vive en `prospects_contact_logs` (`ContactLog`); solo `super_admin`/`admin` pueden agregar o quitar entradas (CLA-711). El último contacto se calcula con `withMax`, nunca se copia a `Prospect`.
 
 ### Archivos clave
 ```
