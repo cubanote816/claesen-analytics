@@ -106,6 +106,18 @@
 
 ---
 
+## Riesgos abiertos — Módulo Intelligence
+
+### Llamadas directas a Gemini fuera de `GeminiService` y `env()` fuera de config (detectado en CLA-714)
+
+**Estado:** documentado, sin ticket. CLA-714 no lo corrige: solo agrega `TextGenerationManager` para las tareas nuevas.
+
+- Cinco servicios arman su propia llamada HTTP a Gemini en vez de usar `GeminiService` (regla del módulo): `Modules/Intelligence/Services/MaterialIntelligenceService.php:26`, `Modules/Intelligence/Services/BudgetAssistantService.php:106`, `Modules/Intelligence/Jobs/GenerateBudgetSimulationJob.php:110`, `Modules/Performance/Services/TechnicianAnalysisService.php:42`, `Modules/Performance/Services/AuditProjectService.php:53`.
+- Tres de ellos (`GenerateBudgetSimulationJob`, `TechnicianAnalysisService`, `AuditProjectService`) caen a `env('GEMINI_API_URL')` fuera de `config/`: con `config:cache` en producción ese `env()` devuelve `null` (CLA-532) y solo funciona por el `config('services.gemini.url')` previo o la URL fija.
+- Ninguno pasa por los logs sin prompt ni por la configuración por tarea de `intelligence.ai`. Migrarlos a `TextGenerationManager` es un ticket aparte, por módulo, con sus tests.
+
+---
+
 ## Riesgos abiertos — Módulo Cafca / ERP
 
 ### Dependencia de SQL Server legacy

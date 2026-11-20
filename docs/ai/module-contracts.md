@@ -359,9 +359,11 @@ Modules/FieldOps/Models/FoMaintenanceWorkOrderEvent.php
 ### Reglas
 
 - Siempre usar `GeminiService` para llamadas a Gemini. No instanciar el cliente HTTP directamente.
-- El Semantic Cache usa hash MD5 del payload. Verificar que el payload es determinista antes de llamar.
+- El cache de traducciones usa un hash sha256 del payload (`ai-trans:` + `sha256(serialize(...))`). Verificar que el payload es determinista antes de llamar.
 - Las operaciones de sync solo deben ejecutarse via commands o jobs, no inline en controllers.
 - `SyncMirrorDataService` escribe en MySQL (tablas mirror). Verificar que no se confunde con las tablas del ERP.
+- **Tareas de IA nuevas (CLA-714):** pasan por `TextGenerationManager` (`Modules/Intelligence/TextGeneration`), nunca por un SDK o un `Http::post` propio. Cada tarea tiene un nombre (`TextGenerationRequest::$task`, p. ej. `lead_summary`) y su proveedor/modelo sale de `config('intelligence.ai')`: la tarea → `default`. Proveedor desconocido o modelo fuera de `intelligence.ai.providers.*.models` → `TextGenerationException` (falla cerrado); `fake` está prohibido en producción. Para cambiar de proveedor o modelo no se toca código.
+- **Datos mínimos a la IA (CLA-714):** el prompt lleva solo lo necesario para la tarea — nunca emails ni teléfonos. Los logs `[ai.text_generation]` registran tarea, proveedor, modelo, duración y tokens; nunca el prompt, la instrucción de sistema ni la respuesta, y los mensajes de `TextGenerationException` tampoco.
 
 ### Reglas del motor de traducción IA (CLA-611, no negociables)
 
