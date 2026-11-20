@@ -140,6 +140,23 @@ final class PublicSiteHardeningTest extends TestCase
         $this->assertSame(0, $this->leads()->count());
     }
 
+    /**
+     * PHP drops every parameter past max_input_vars. A `site` placed after
+     * that many parameters never reaches the request, so the guard must judge
+     * by the raw query string instead of falling back to Claesen.
+     */
+    public function test_a_site_dropped_by_the_input_variable_limit_fails_closed(): void
+    {
+        $site = $this->bertelsFixtureSite();
+        $padding = implode('&', array_map(fn (int $i): string => 'p'.$i.'=1', range(1, (int) ini_get('max_input_vars'))));
+
+        foreach (['/v1/website/consultations', '/v1/website/contact-email'] as $uri) {
+            $this->postJson($uri.'?'.$padding.'&site='.$site->key, $this->payload())->assertStatus(503);
+        }
+
+        $this->assertSame(0, $this->leads()->count());
+    }
+
     public function test_an_idempotency_key_of_zero_is_still_a_key(): void
     {
         $headers = ['Idempotency-Key' => '0'];

@@ -35,7 +35,12 @@ class EnsureRequestedSiteResolved
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->query->has('site')) {
+        // Judged on the raw query string too: PHP drops parameters past
+        // max_input_vars, so a `site` it discarded would otherwise look absent
+        // and fall back to Claesen.
+        $selectors = $this->siteSelectorCount((string) $request->server('QUERY_STRING'));
+
+        if ($selectors === 0 && ! $request->query->has('site')) {
             return $next($request);
         }
 
@@ -43,7 +48,8 @@ class EnsureRequestedSiteResolved
         $site = app(OrganizationContext::class)->site();
 
         if (
-            $this->siteSelectorCount((string) $request->server('QUERY_STRING')) !== 1
+            $selectors !== 1
+            || ! $request->query->has('site')
             || ! is_string($requested)
             || $site?->key !== $requested
             || $site->status !== Site::STATUS_ACTIVE
@@ -70,7 +76,12 @@ class EnsureRequestedSiteResolved
     {
         $count = 0;
 
-        foreach (explode('&', $queryString) as $pair) {
+        // Split on the separators PHP itself uses (arg_separator.input, `&` by
+        // default) so one chunk never hides two selectors.
+        $separators = (string) ini_get('arg_separator.input');
+        $pattern = '/['.preg_quote($separators !== '' ? $separators : '&', '/').']/';
+
+        foreach (preg_split($pattern, $queryString) ?: [] as $pair) {
             if ($pair === '') {
                 continue;
             }
