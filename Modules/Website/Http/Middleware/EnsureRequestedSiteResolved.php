@@ -66,7 +66,9 @@ class EnsureRequestedSiteResolved
         $count = 0;
 
         foreach (explode('&', $queryString) as $pair) {
-            $name = urldecode(explode('=', $pair, 2)[0]);
+            // PHP drops leading spaces from parameter names (` site` and `+site`
+            // both become `site`), so count them the same way it parses them.
+            $name = ltrim(urldecode(explode('=', $pair, 2)[0]), ' ');
 
             if ($name === 'site' || str_starts_with($name, 'site[')) {
                 $count++;

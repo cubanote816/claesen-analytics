@@ -111,6 +111,48 @@ final class PublicSiteHardeningTest extends TestCase
         $this->assertSame('second@example.test', $other->json('data.email'));
         $this->assertSame($bertels->id, $other->json('data.site_id'));
         $this->assertStringNotContainsString('first@example.test', $other->getContent());
+
+        $stored = ConsultationRequest::query()->withoutGlobalScopes()
+            ->whereIn('email', ['first@example.test', 'second@example.test'])
+            ->pluck('site_id', 'email')->all();
+        $this->assertSame(['first@example.test' => Site::claesenId(), 'second@example.test' => $bertels->id], $stored);
+    }
+
+    /**
+     * PHP drops leading spaces from parameter names, so ` site` is a second
+     * `site` selector even though it is not spelled the same on the wire.
+     */
+    public function test_repeated_selectors_are_rejected_on_both_intakes_including_php_normalized_names(): void
+    {
+        $site = $this->bertelsFixtureSite();
+
+        foreach (['/v1/website/consultations', '/v1/website/contact-email'] as $uri) {
+            foreach (['site=unknown&site='.$site->key, 'site=unknown&%20site='.$site->key, 'site=unknown&+site='.$site->key] as $query) {
+                $this->postJson($uri.'?'.$query, $this->payload())->assertStatus(503);
+            }
+        }
+
+        $this->assertSame(0, $this->leads()->count());
+    }
+
+    public function test_an_idempotency_key_of_zero_is_still_a_key(): void
+    {
+        $headers = ['Idempotency-Key' => '0'];
+
+        $first = $this->postJson('/v1/website/consultations', $this->payload(), $headers)->assertCreated();
+        $again = $this->postJson('/v1/website/consultations', $this->payload(), $headers)->assertCreated();
+
+        $this->assertSame($first->json('data.id'), $again->json('data.id'));
+        $this->assertSame(1, $this->leads()->count());
+    }
+
+    public function test_a_site_sent_in_the_body_is_ignored(): void
+    {
+        $bertels = $this->bertelsFixtureSite();
+
+        $this->postJson('/v1/website/consultations', $this->payload(['site' => $bertels->key]))->assertCreated();
+
+        $this->assertSame([Site::claesenId()], $this->leads()->pluck('site_id')->all());
     }
 
     public function test_an_idempotency_key_replayed_on_the_same_site_still_stores_one_lead(): void
