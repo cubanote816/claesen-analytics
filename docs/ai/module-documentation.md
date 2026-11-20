@@ -58,8 +58,9 @@ Code: `app/Support/Documentation/ModuleGuide.php` (renderer), `ModuleActionInven
    `*Resource` file or folder, or the folder that holds `Pages`, `Schemas`, `Tables`, ...
 
    An action declared in a trait belongs to every screen that uses the trait, also through
-   another trait; traits match by qualified name, so aliases, grouped imports and same-named
-   traits in other namespaces resolve correctly.
+   another trait; traits match by qualified name, case-insensitively like PHP, so aliases, grouped
+   imports and same-named traits in other namespaces resolve correctly. Commented-out code is
+   ignored: a commented-out action or trait use needs no section.
 
    Known limit: an action factory (a plain `*Action` class with a static `make()`, such as
    Website's `PublishSiteNowAction`) is named after its class where it is called

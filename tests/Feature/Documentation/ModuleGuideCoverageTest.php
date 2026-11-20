@@ -94,10 +94,15 @@ class ModuleGuideCoverageTest extends TestCase
         ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/module'))));
     }
 
-    /** CLA-718: grouped resources (FieldOps Catalogs/*) and actions declared in traits (also through another trait). */
+    /**
+     * CLA-718: grouped resources (FieldOps Catalogs/*, also a resource folder named like a Filament
+     * part), actions declared in traits (also through another trait), commented-out trait uses ignored.
+     */
     public function test_grouped_resources_and_trait_actions_take_the_scope_of_their_screen(): void
     {
         $this->assertSame([
+            'action-form-create' => ['Resources/Catalogs/Forms/Pages/ListForms.php'],
+            'action-form-edit' => ['Resources/Catalogs/FormResource.php'],
             'action-gadget-report-archive' => ['Concerns/HasArchiveAction.php'],
             'action-gadget-type-archive' => ['Concerns/HasArchiveAction.php'],
             'action-gadget-type-create' => ['Resources/Catalogs/GadgetTypes/Pages/ListGadgetTypes.php'],
@@ -107,7 +112,7 @@ class ModuleGuideCoverageTest extends TestCase
         ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/nested-module'))));
     }
 
-    /** CLA-718 review: traits resolve by qualified name (grouped imports with aliases, same short name). */
+    /** CLA-718 review: traits resolve by qualified name (grouped imports with aliases and comments, any case, same short name). */
     public function test_traits_resolve_by_qualified_name(): void
     {
         $this->assertSame([

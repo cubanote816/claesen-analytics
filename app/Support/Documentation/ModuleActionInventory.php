@@ -73,17 +73,29 @@ final class ModuleActionInventory
                 if ($file->getExtension() === 'php') {
                     $files[] = [
                         'relative' => Str::after($file->getPathname(), rtrim($root, '/') . '/'),
-                        'source' => (string) file_get_contents($file->getPathname()),
+                        'source' => self::withoutComments((string) file_get_contents($file->getPathname())),
+                        'root' => $root,
                     ];
                 }
             }
         }
 
+        $resourceFiles = [];
+        foreach ($files as $file) {
+            if (str_ends_with($file['relative'], 'Resource.php')) {
+                $resourceFiles[$file['root']][] = $file['relative'];
+            }
+        }
+        foreach ($files as &$file) {
+            $file['scope'] = self::scope($file['relative'], $resourceFiles[$file['root']] ?? []);
+        }
+        unset($file);
+
         $declaredTrait = [];
         $traitUsers = [];
         foreach ($files as $index => $file) {
             $declaredTrait[$index] = preg_match(self::TRAIT, $file['source'], $declared) === 1
-                ? self::qualify($declared[1], self::namespaceOf($file['source']), [])
+                ? strtolower(self::qualify($declared[1], self::namespaceOf($file['source']), []))
                 : null;
 
             foreach (self::usedTraits($file['source']) as $trait) {
@@ -92,11 +104,11 @@ final class ModuleActionInventory
         }
 
         $anchors = [];
-        foreach ($files as $index => ['relative' => $relative, 'source' => $source]) {
+        foreach ($files as $index => ['relative' => $relative, 'source' => $source, 'scope' => $scope]) {
             $scopes = $declaredTrait[$index] !== null
                 ? self::traitScopes($declaredTrait[$index], $files, $declaredTrait, $traitUsers, [])
                 : [];
-            $scopes = $scopes === [] ? [self::scope($relative)] : $scopes;
+            $scopes = $scopes === [] ? [$scope] : $scopes;
 
             preg_match_all(self::ALIAS, $source, $aliases, PREG_SET_ORDER);
             $aliasOf = array_column($aliases, 1, 2);
@@ -129,7 +141,7 @@ final class ModuleActionInventory
      * Scopes of the screens that use a trait, following traits that use traits (Website's settings
      * pages use BuildsSiteSettingsSection, which uses ShowsSitePublicationState).
      *
-     * @param  list<array{relative: string, source: string}>  $files
+     * @param  list<array{relative: string, source: string, root: string, scope: string}>  $files
      * @param  array<int, ?string>  $declaredTrait
      * @param  array<string, list<int>>  $traitUsers
      * @param  list<string>  $visited
@@ -145,10 +157,30 @@ final class ModuleActionInventory
         foreach ($traitUsers[$trait] ?? [] as $user) {
             $scopes = [...$scopes, ...($declaredTrait[$user] !== null
                 ? self::traitScopes($declaredTrait[$user], $files, $declaredTrait, $traitUsers, [...$visited, $trait])
-                : [self::scope($files[$user]['relative'])])];
+                : [$files[$user]['scope']])];
         }
 
         return array_values(array_unique($scopes));
+    }
+
+    /**
+     * Comments are not code: a commented-out trait use or action is not on the screen, and a comment
+     * inside an import must not hide it. Line breaks are kept, so line-anchored patterns still match.
+     */
+    private static function withoutComments(string $source): string
+    {
+        if (! str_contains($source, '<?php')) {
+            return $source;
+        }
+
+        $code = '';
+        foreach (token_get_all($source) as $token) {
+            $code .= ! is_array($token) ? $token : (in_array($token[0], [T_COMMENT, T_DOC_COMMENT], true)
+                ? str_repeat("\n", substr_count($token[1], "\n")) . ' '
+                : $token[1]);
+        }
+
+        return $code;
     }
 
     private static function namespaceOf(string $source): string
@@ -159,8 +191,9 @@ final class ModuleActionInventory
     /**
      * Fully qualified name, the way PHP resolves a trait reference: a leading `\` is absolute, an
      * imported name or alias expands to its import, anything else is relative to the namespace.
+     * Class names are case-insensitive in PHP, so callers compare the result lowercased.
      *
-     * @param  array<string, string>  $imports  alias => qualified name
+     * @param  array<string, string>  $imports  lowercased alias => qualified name
      */
     private static function qualify(string $name, string $namespace, array $imports): string
     {
@@ -169,8 +202,8 @@ final class ModuleActionInventory
         }
 
         $first = Str::before($name, '\\');
-        if (isset($imports[$first])) {
-            return $imports[$first] . Str::after($name, $first);
+        if (isset($imports[strtolower($first)])) {
+            return $imports[strtolower($first)] . Str::after($name, $first);
         }
 
         return ltrim($namespace . '\\' . $name, '\\');
@@ -206,7 +239,7 @@ final class ModuleActionInventory
             foreach (array_filter(array_map('trim', explode(',', $statement))) as $clause) {
                 if (preg_match('/^([\w\\\\]+)(?:\s+as\s+(\w+))?$/', $clause, $import) === 1) {
                     $qualified = ltrim($prefix . $import[1], '\\');
-                    $imports[($import[2] ?? '') !== '' ? $import[2] : Str::afterLast($qualified, '\\')] = $qualified;
+                    $imports[strtolower(($import[2] ?? '') !== '' ? $import[2] : Str::afterLast($qualified, '\\'))] = $qualified;
                 }
             }
         }
@@ -216,17 +249,39 @@ final class ModuleActionInventory
         $traits = [];
         foreach ($uses[1] as $list) {
             foreach (explode(',', $list) as $name) {
-                $traits[] = self::qualify(trim($name), self::namespaceOf($source), $imports);
+                $traits[] = strtolower(self::qualify(trim($name), self::namespaceOf($source), $imports));
             }
         }
 
         return array_values(array_unique($traits));
     }
 
-    /** The segment after `Resources/` that names the resource, skipping grouping folders. */
-    private static function resourceSegment(array $segments): string
+    /**
+     * The segment after `Resources/` that names the resource, skipping grouping folders. The deepest
+     * folder confirmed by a `*Resource.php` (its own name, a sibling `<Folder>Resource.php` or one
+     * inside it) wins, so a resource folder named like a Filament part (`Catalogs/Forms`) is still
+     * the resource; otherwise the folder that holds `Pages`, `Schemas`, ... is.
+     *
+     * @param  list<string>  $segments
+     * @param  list<string>  $resourceFiles  `*Resource.php` paths in the same root
+     */
+    private static function resourceSegment(array $segments, array $resourceFiles): string
     {
         $last = count($segments) - 1;
+        if (str_ends_with($segments[$last], 'Resource.php')) {
+            return $segments[$last];
+        }
+
+        for ($i = $last - 1; $i >= 1; $i--) {
+            $parent = implode('/', array_slice($segments, 0, $i));
+            $folder = $parent . '/' . $segments[$i];
+
+            if (str_ends_with($segments[$i], 'Resource')
+                || array_intersect([$folder . 'Resource.php', $parent . '/' . Str::singular($segments[$i]) . 'Resource.php'], $resourceFiles) !== []
+                || array_filter($resourceFiles, fn (string $path): bool => dirname($path) === $folder) !== []) {
+                return $segments[$i];
+            }
+        }
 
         for ($i = 1; $i <= $last; $i++) {
             $name = basename($segments[$i], '.php');
@@ -239,12 +294,13 @@ final class ModuleActionInventory
         return $segments[1];
     }
 
-    private static function scope(string $relative): string
+    /** @param  list<string>  $resourceFiles  `*Resource.php` paths in the same root */
+    private static function scope(string $relative, array $resourceFiles): string
     {
         $segments = explode('/', $relative);
 
         if ($segments[0] === 'Resources' && isset($segments[1])) {
-            $segment = basename(self::resourceSegment($segments), '.php');
+            $segment = basename(self::resourceSegment($segments, $resourceFiles), '.php');
             $resource = Str::kebab(Str::singular(Str::beforeLast($segment, 'Resource') ?: $segment));
 
             $index = array_search('RelationManagers', $segments, true);
