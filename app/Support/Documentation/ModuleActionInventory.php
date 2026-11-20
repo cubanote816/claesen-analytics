@@ -78,25 +78,23 @@ final class ModuleActionInventory
         $traitUsers = [];
         $factories = [];
         foreach ($files as $index => $file) {
-            $declaredTrait[$index] = preg_match(self::TRAIT, $file['source'], $declared) === 1 ? $declared[1] : null;
+            $declaredTrait[$index] = preg_match(self::TRAIT, $file['source'], $declared) === 1
+                ? self::qualify($declared[1], self::namespaceOf($file['source']), [])
+                : null;
 
             foreach (self::usedTraits($file['source']) as $trait) {
                 $traitUsers[$trait][] = $index;
             }
 
             if (($factory = self::factory($file['source'])) !== null) {
-                $factories[$factory[0]] = ['name' => $factory[1], 'index' => $index];
+                $factories[$factory['class']] = $factory + ['index' => $index];
             }
         }
-        $factoryFiles = array_column($factories, 'index');
-        $factoryNames = array_map(fn (array $factory): string => $factory['name'], $factories);
+        $factoryBody = array_column($factories, 'body', 'index');
+        $factoryNames = array_column($factories, 'name', 'class');
 
         $anchors = [];
         foreach ($files as $index => ['relative' => $relative, 'source' => $source]) {
-            if (in_array($index, $factoryFiles, true)) {
-                continue;
-            }
-
             $scopes = $declaredTrait[$index] !== null
                 ? self::traitScopes($declaredTrait[$index], $files, $declaredTrait, $traitUsers, [])
                 : [];
@@ -105,17 +103,25 @@ final class ModuleActionInventory
             preg_match_all(self::ALIAS, $source, $aliases, PREG_SET_ORDER);
             $aliasOf = array_column($aliases, 1, 2);
 
-            preg_match_all(self::MAKE, $source, $matches, PREG_SET_ORDER);
+            preg_match_all(self::MAKE, $source, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 
             foreach ($matches as $match) {
-                $class = str_ends_with($match[1], 'Action') ? $match[1] : ($aliasOf[$match[1]] ?? null);
+                [$called, $offset] = $match[1];
+                $explicit = $match[3][0] ?? '';
+
+                // The action a factory's make() builds is documented where the factory is called.
+                if (isset($factoryBody[$index]) && $offset >= $factoryBody[$index][0] && $offset < $factoryBody[$index][1]) {
+                    continue;
+                }
+
+                $class = str_ends_with($called, 'Action') ? $called : ($aliasOf[$called] ?? null);
                 if ($class === null) {
                     continue;
                 }
 
-                $name = ($match[3] ?? '') === '' && isset($factoryNames[$match[1]])
-                    ? $factoryNames[$match[1]]
-                    : self::actionName($class, $match[3] ?? '');
+                $name = $explicit === '' && isset($factoryNames[$called])
+                    ? $factoryNames[$called]
+                    : self::actionName($class, $explicit);
                 if ($name === null) {
                     continue;
                 }
@@ -158,26 +164,58 @@ final class ModuleActionInventory
     }
 
     /**
-     * An action factory: a plain `*Action` class whose static make() returns one named action, such
-     * as Website's `PublishSiteNowAction::make()` → `Action::make('publish_now')`. Its call sites take
-     * that name and the factory file itself is not a screen.
+     * An action factory: a plain `*Action` class with a static make(), such as Website's
+     * `PublishSiteNowAction::make()` → `Action::make('publish_now')`. The name is the first action
+     * that make() itself builds; its call sites take that name. Actions declared elsewhere in the
+     * file keep the file's own scope (CLA-718 review).
      *
-     * @return array{0: string, 1: string}|null [class, action name]
+     * @return array{class: string, name: string, body: array{0: int, 1: int}}|null
      */
     private static function factory(string $source): ?array
     {
         if (preg_match('/^\s*(?:final\s+)?class\s+(\w+Action)\b(?![^{]*\bextends\b)/m', $source, $class) !== 1
-            || preg_match('/\bstatic\s+function\s+make\s*\(/', $source) !== 1) {
+            || preg_match('/\bstatic\s+function\s+make\s*\([^{]*\{/', $source, $make, PREG_OFFSET_CAPTURE) !== 1) {
             return null;
         }
 
-        preg_match_all(self::MAKE, $source, $matches, PREG_SET_ORDER);
-        $names = array_values(array_unique(array_filter(array_map(
-            fn (array $match): string => str_ends_with($match[1], 'Action') ? ($match[3] ?? '') : '',
-            $matches,
-        ))));
+        $start = $make[0][1] + strlen($make[0][0]);
+        for ($depth = 1, $end = $start; $end < strlen($source) && $depth > 0; $end++) {
+            $depth += ['{' => 1, '}' => -1][$source[$end]] ?? 0;
+        }
 
-        return count($names) === 1 ? [$class[1], $names[0]] : null;
+        preg_match_all(self::MAKE, substr($source, $start, $end - $start), $matches, PREG_SET_ORDER);
+        foreach ($matches as $match) {
+            if (str_ends_with($match[1], 'Action') && ($name = self::actionName($match[1], $match[3] ?? '')) !== null) {
+                return ['class' => $class[1], 'name' => $name, 'body' => [$start, $end]];
+            }
+        }
+
+        return null;
+    }
+
+    private static function namespaceOf(string $source): string
+    {
+        return preg_match('/^\s*namespace\s+([\w\\\\]+)\s*;/m', $source, $namespace) === 1 ? $namespace[1] : '';
+    }
+
+    /**
+     * Fully qualified name, the way PHP resolves a trait reference: a leading `\` is absolute, an
+     * imported name or alias expands to its import, anything else is relative to the namespace.
+     *
+     * @param  array<string, string>  $imports  alias => qualified name
+     */
+    private static function qualify(string $name, string $namespace, array $imports): string
+    {
+        if (str_starts_with($name, '\\')) {
+            return ltrim($name, '\\');
+        }
+
+        $first = Str::before($name, '\\');
+        if (isset($imports[$first])) {
+            return $imports[$first] . Str::after($name, $first);
+        }
+
+        return ltrim($namespace . '\\' . $name, '\\');
     }
 
     private static function actionName(string $class, string $explicit): ?string
@@ -191,11 +229,17 @@ final class ModuleActionInventory
         return $base === '' ? null : Str::snake($base);
     }
 
-    /** @return list<string> short names of the traits a class, trait or enum body uses */
+    /** @return list<string> qualified names of the traits a class, trait or enum body uses */
     private static function usedTraits(string $source): array
     {
         if (preg_match(self::DECLARATION, $source, $declaration, PREG_OFFSET_CAPTURE) !== 1) {
             return [];
+        }
+
+        preg_match_all('/^\s*use\s+([\w\\\\]+)(?:\s+as\s+(\w+))?\s*;/m', substr($source, 0, $declaration[0][1]), $imported, PREG_SET_ORDER);
+        $imports = [];
+        foreach ($imported as $import) {
+            $imports[($import[2] ?? '') !== '' ? $import[2] : Str::afterLast($import[1], '\\')] = ltrim($import[1], '\\');
         }
 
         preg_match_all(self::TRAIT_USE, substr($source, $declaration[0][1]), $uses);
@@ -203,7 +247,7 @@ final class ModuleActionInventory
         $traits = [];
         foreach ($uses[1] as $list) {
             foreach (explode(',', $list) as $name) {
-                $traits[] = Str::afterLast(trim($name), '\\');
+                $traits[] = self::qualify(trim($name), self::namespaceOf($source), $imports);
             }
         }
 

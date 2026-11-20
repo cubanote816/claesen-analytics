@@ -111,6 +111,17 @@ class ModuleGuideCoverageTest extends TestCase
         ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/nested-module'))));
     }
 
+    /** CLA-718 review: traits resolve by qualified name (aliases, same short name); a factory is named by its make() only. */
+    public function test_traits_resolve_by_qualified_name_and_factories_by_their_make_method(): void
+    {
+        $this->assertSame([
+            'action-archive-page-archive' => ['Concerns/Archive/HasButtons.php'],
+            'action-export-page-export' => ['Concerns/Export/HasButtons.php'],
+            'action-make-widget-action-preview' => ['Actions/MakeWidgetAction.php'],
+            'action-widgets-page-create' => ['Pages/WidgetsPage.php'],
+        ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/qualified-module'))));
+    }
+
     /** CLA-718: a guide lists screens that live outside its module (Website lives in app/Filament/Clusters). */
     public function test_guide_front_matter_adds_filament_roots_outside_the_module(): void
     {
