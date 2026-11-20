@@ -6,6 +6,7 @@ namespace Modules\Intelligence\TextGeneration\Drivers;
 
 use Modules\Intelligence\Contracts\TextGenerationProvider;
 use Modules\Intelligence\Exceptions\TextGenerationException;
+use Modules\Intelligence\TextGeneration\DecodesJsonAnswer;
 use Modules\Intelligence\TextGeneration\TextGenerationRequest;
 use Modules\Intelligence\TextGeneration\TextGenerationResult;
 
@@ -16,6 +17,8 @@ use Modules\Intelligence\TextGeneration\TextGenerationResult;
  */
 final class FakeTextGenerationDriver implements TextGenerationProvider
 {
+    use DecodesJsonAnswer;
+
     /** @var list<TextGenerationRequest> */
     public array $requests = [];
 
@@ -67,9 +70,12 @@ final class FakeTextGenerationDriver implements TextGenerationProvider
             throw new TextGenerationException('The fake provider was told to fail.');
         }
 
+        $text = is_string($answer) ? $answer : json_encode($answer);
+
+        // Same contract as the real drivers: a schema request needs a matching JSON answer.
         return new TextGenerationResult(
-            text: is_string($answer) ? $answer : json_encode($answer),
-            json: is_array($answer) ? $answer : null,
+            text: $text,
+            json: $this->decodeIfSchema($request, $text, 'fake'),
             provider: 'fake',
             model: $this->model,
             inputTokens: null,

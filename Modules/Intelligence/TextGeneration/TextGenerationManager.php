@@ -19,10 +19,11 @@ use Modules\Intelligence\TextGeneration\Drivers\GeminiTextGenerationDriver;
  * never needs a code change.
  *
  * Resolution: each TaskSettingsSource is asked in order; the first one that
- * names a provider for the task wins. A source that names only a model is
- * ignored. When the provider has no model, the default model is used if the
- * provider is the default provider, else the first allowed model of that
- * provider. With no source, config('intelligence.ai.default') applies.
+ * names a provider or a model for the task wins. A model without a provider
+ * uses the default provider. A provider without a model uses the default
+ * model if it is the default provider, else its first allowed model. With no
+ * source, config('intelligence.ai.default') applies. Resolution happens on
+ * every generate() call, so a saved change applies to the next call.
  * Unknown providers and models outside config('intelligence.ai.providers.*.models')
  * fail closed. The "fake" provider is refused in production.
  *
@@ -56,12 +57,13 @@ class TextGenerationManager
 
             $settings = $source->settingsFor($task);
             $provider = $settings['provider'] ?? null;
+            $model = $settings['model'] ?? null;
 
-            if (blank($provider)) {
+            if (blank($provider) && blank($model)) {
                 continue;
             }
 
-            $model = $settings['model'] ?? null;
+            $provider = filled($provider) ? $provider : $defaultProvider;
 
             if (blank($model)) {
                 $model = $provider === $defaultProvider
@@ -73,13 +75,6 @@ class TextGenerationManager
         }
 
         return $this->validated($defaultProvider, $defaultModel, 'default_config');
-    }
-
-    public function forTask(string $task): TextGenerationProvider
-    {
-        $resolved = $this->resolve($task);
-
-        return $this->driver($resolved['provider'], $resolved['model']);
     }
 
     /** @throws TextGenerationException */

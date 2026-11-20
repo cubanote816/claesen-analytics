@@ -90,6 +90,29 @@ final class GeminiTextGenerationDriverTest extends TestCase
         $this->driver()->generate(new TextGenerationRequest(task: 't', prompt: 'Rate it', jsonSchema: ['type' => 'object']));
     }
 
+    public function test_valid_json_that_violates_the_schema_fails(): void
+    {
+        Http::fake(['*' => Http::response($this->answer('{}'))]);
+
+        $this->expectException(TextGenerationException::class);
+
+        $this->driver()->generate(new TextGenerationRequest(task: 't', prompt: 'x', jsonSchema: ['type' => 'object', 'required' => ['summary']]));
+    }
+
+    public function test_a_url_without_a_model_is_refused_before_sending(): void
+    {
+        config(['services.gemini.url' => 'https://vertex.test/v1/projects/p/locations/l/endpoints/123:generateContent']);
+        Http::fake();
+
+        $this->expectException(TextGenerationException::class);
+
+        try {
+            $this->driver()->generate(new TextGenerationRequest(task: 't', prompt: 'x'));
+        } finally {
+            Http::assertNothingSent();
+        }
+    }
+
     public function test_http_failure_fails_without_leaking_the_prompt(): void
     {
         Http::fake(['*' => Http::response(['error' => 'boom'], 500)]);

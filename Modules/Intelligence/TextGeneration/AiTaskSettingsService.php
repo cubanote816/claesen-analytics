@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\Intelligence\TextGeneration;
 
+use Illuminate\Support\Facades\DB;
 use Modules\Intelligence\Exceptions\TextGenerationException;
 use Modules\Intelligence\Models\AiTaskSetting;
 
@@ -48,22 +49,31 @@ class AiTaskSettingsService
     {
         $this->assertAllowed($task, $provider, $model);
 
-        $setting = AiTaskSetting::query()->firstOrNew(['task' => $task]);
+        return DB::transaction(function () use ($task, $provider, $model, $userId): AiTaskSetting {
+            // Locked read: a concurrent clear either finishes first (we create) or waits.
+            $setting = AiTaskSetting::query()->where('task', $task)->lockForUpdate()->first()
+                ?? new AiTaskSetting(['task' => $task]);
 
-        // A save that changes nothing is a no-op: no write, no audit entry, and
-        // updated_by keeps pointing at whoever really made the current choice.
-        if ($setting->exists && $setting->provider === $provider && $setting->model === $model) {
+            // A save that changes nothing is a no-op: no write, no audit entry, and
+            // updated_by keeps pointing at whoever really made the current choice.
+            if ($setting->exists && $setting->provider === $provider && $setting->model === $model) {
+                return $setting;
+            }
+
+            $setting->fill(['provider' => $provider, 'model' => $model, 'updated_by' => $userId])->save();
+
+            // Never report a save that did not land (the row vanished under us).
+            if (! AiTaskSetting::query()->whereKey($setting->getKey())->where('provider', $provider)->where('model', $model)->exists()) {
+                throw new TextGenerationException('The AI setting was changed by someone else meanwhile. Reload and try again.');
+            }
+
             return $setting;
-        }
-
-        $setting->fill(['provider' => $provider, 'model' => $model, 'updated_by' => $userId])->save();
-
-        return $setting;
+        });
     }
 
     public function clear(string $task): void
     {
-        AiTaskSetting::query()->where('task', $task)->get()->each->delete();
+        DB::transaction(fn () => AiTaskSetting::query()->where('task', $task)->lockForUpdate()->get()->each->delete());
     }
 
     /** @throws TextGenerationException */

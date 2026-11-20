@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\Intelligence\Tests\Feature\TextGeneration;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Modules\Core\Models\User;
@@ -170,6 +171,22 @@ final class AiProvidersPageTest extends TestCase
 
         $this->assertSame($first->id, AiTaskSetting::query()->sole()->updated_by);
         $this->assertSame($before, $activityModel::query()->count());
+    }
+
+    public function test_a_save_that_does_not_land_is_reported_and_rolled_back(): void
+    {
+        AiTaskSetting::query()->create(['task' => 'lead_summary', 'provider' => 'gemini', 'model' => 'gemini-2.5-pro']);
+        // Simulates a concurrent clear removing the row between our read and our update.
+        AiTaskSetting::updating(fn (AiTaskSetting $s) => DB::table('intelligence_ai_task_settings')->where('id', $s->id)->delete());
+
+        try {
+            app(AiTaskSettingsService::class)->save('lead_summary', 'anthropic', 'claude-sonnet-5', null);
+            $this->fail('Expected TextGenerationException');
+        } catch (TextGenerationException $e) {
+            $this->assertStringContainsString('changed by someone else', $e->getMessage());
+        }
+
+        $this->assertSame('gemini', AiTaskSetting::query()->sole()->provider);
     }
 
     private function revokeAdmin(User $user): void

@@ -66,14 +66,39 @@ final class TextGenerationManagerTest extends TestCase
         $this->assertSame('gemini-2.5-flash', $this->manager()->resolve('lead_summary')['model']);
     }
 
-    public function test_task_model_without_provider_is_ignored(): void
+    public function test_task_model_without_provider_uses_the_default_provider(): void
     {
-        config(['intelligence.ai.tasks.lead_summary' => ['provider' => null, 'model' => 'claude-haiku-5-5']]);
+        config(['intelligence.ai.tasks.lead_summary' => ['provider' => null, 'model' => 'gemini-2.5-pro']]);
 
         $this->assertSame(
-            ['provider' => 'gemini', 'model' => 'gemini-2.5-flash', 'source' => 'default_config'],
+            ['provider' => 'gemini', 'model' => 'gemini-2.5-pro', 'source' => 'task_config'],
             $this->manager()->resolve('lead_summary'),
         );
+
+        config(['intelligence.ai.tasks.lead_summary' => ['provider' => null, 'model' => 'claude-haiku-5-5']]);
+        $this->expectException(TextGenerationException::class);
+        $this->manager()->resolve('lead_summary');
+    }
+
+    public function test_a_schema_answer_that_does_not_match_fails(): void
+    {
+        config(['intelligence.ai.default' => ['provider' => 'fake', 'model' => 'fake-model']]);
+        $fake = app(FakeTextGenerationDriver::class)->queueJson(['score' => 'high']);
+        $schema = ['type' => 'object', 'required' => ['score', 'summary'], 'properties' => ['score' => ['type' => 'integer']]];
+
+        try {
+            $this->manager()->generate(new TextGenerationRequest(task: 'lead_summary', prompt: 'x', jsonSchema: $schema));
+            $this->fail('Expected TextGenerationException');
+        } catch (TextGenerationException $e) {
+            $this->assertSame('The fake answer did not match the requested JSON schema.', $e->getMessage());
+        }
+
+        $fake->queueJson(['score' => 7, 'summary' => 'ok']);
+        $this->assertSame(7, $this->manager()->generate(new TextGenerationRequest(task: 'lead_summary', prompt: 'x', jsonSchema: $schema))->json['score']);
+
+        $fake->queueJson(['a' => 1]);
+        $this->expectExceptionMessage('The JSON schema uses a keyword that is not supported.');
+        $this->manager()->generate(new TextGenerationRequest(task: 'lead_summary', prompt: 'x', jsonSchema: ['type' => 'object', 'minProperties' => 1]));
     }
 
     public function test_unknown_provider_fails_closed(): void
