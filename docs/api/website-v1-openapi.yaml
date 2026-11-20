@@ -276,10 +276,15 @@ paths:
                   type: string
                   nullable: true
                   description: >-
-                    F4/CLA-475: Cloudflare Turnstile response token. Optional
-                    and currently ignored — verification only runs once
-                    services.turnstile.secret_key AND services.turnstile.enforce
-                    are both set, which they are not in any environment today.
+                    F4/CLA-475 + CLA-731: Cloudflare Turnstile response token.
+                    Required only when the global switch is on
+                    (services.turnstile.secret_key AND services.turnstile.enforce)
+                    AND the resolved site is listed in
+                    website.intake_hardening.turnstile_required_site_keys
+                    (electro-bertels; Claesen is not listed and needs none).
+                    Missing or rejected → 422 on turnstile_token, nothing stored.
+                    A Cloudflare outage fails open. Same rule on /contact-email,
+                    whose 422 body is {success:false, errors:{turnstile_token}}.
                 consent:
                   type: boolean
                   nullable: true

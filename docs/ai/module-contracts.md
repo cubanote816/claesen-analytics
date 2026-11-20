@@ -235,6 +235,15 @@ Modules/Safety/config/config.php
   guarda la consulta completa, así que una clave repetida desde otro sitio
   nunca devuelve la de otro. `/contact-email` lleva el mismo guard que
   `/consultations`.
+- **Turnstile por sitio (CLA-731):** el intake (`/consultations` y
+  `/contact-email`) exige `turnstile_token` solo si está encendido el
+  interruptor global (`TURNSTILE_SECRET_KEY` + `TURNSTILE_ENFORCE`) **y** el
+  sitio resuelto está en `website.intake_hardening.turnstile_required_site_keys`
+  (`electro-bertels`). Claesen no está en la lista: su formulario no manda
+  token. Rechazo → 422 en `turnstile_token`, nada guardado y el intento
+  registrado con su sitio; una caída de Cloudflare deja pasar (fail-open).
+  No encender `TURNSTILE_ENFORCE` antes de que la landing publique su clave
+  de sitio: cada envío de Bertels daría 422.
 - **Intake con sitio nombrado cierra en falso (CLA-705):** `POST
   /v1/website/consultations?site=<key>` responde **503** si `<key>` no es un
   sitio activo (`EnsureRequestedSiteResolved`), antes de guardar, encolar o

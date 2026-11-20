@@ -62,7 +62,12 @@ class ContactController extends Controller
                 ], 201);
             }
 
-            $guard->assertTurnstilePasses($request->input('turnstile_token'), $siteId, $request->ip());
+            $guard->assertTurnstilePasses(
+                $request->input('turnstile_token'),
+                $siteId,
+                $request->ip(),
+                app(OrganizationContext::class)->site()?->key,
+            );
 
             $this->consultationService->handlePublicIntake($request, array_merge($validated, [
                 'type' => 'consultation',

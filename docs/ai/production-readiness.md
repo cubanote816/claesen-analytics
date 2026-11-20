@@ -225,6 +225,31 @@ php artisan website:regenerate-media --project=<id>
 
 ---
 
+### Electro Bertels: Cloudflare Turnstile en el formulario (CLA-731)
+
+El backend exige el token solo a los sitios de
+`website.intake_hardening.turnstile_required_site_keys` (`electro-bertels`) y solo con el interruptor
+global encendido. Claesen no cambia. Orden obligatorio:
+
+1. **Cloudflare (lo hace el dueño de la cuenta):** crear un widget Turnstile en modo *Managed* para
+   `electrobertels.be` y `www.electrobertels.be`. Anotar la **clave de sitio** (pública) y el
+   **secreto** (privado; no va en el repo ni en el chat).
+2. **Backend:** desplegar el código de CLA-731 (inerte sin las variables).
+3. **Landing:** poner la clave de sitio en `data-turnstile-sitekey` de `index.html` (repo
+   `cubanote816/electrobertels`) y publicar `index.html` en `sbapu03` como en CLA-705 (backup,
+   sha256, mismo dueño y permisos). Comprobar en un navegador que el envío sigue dando 201: con el
+   backend todavía sin exigir, el token viaja y se ignora.
+4. **Encender** en `prod-priv-01`, en `shared/.env`: `TURNSTILE_SECRET_KEY=<secreto>` y
+   `TURNSTILE_ENFORCE=true`, y después `infrastructure/scripts/reload-config.sh` (regla 7 de
+   `CLAUDE.md`: nunca solo `config:cache`).
+5. **Verificar:** un envío real desde el navegador da 201. `POST /intake/consultations` sin token
+   (por ejemplo `curl -d '{"name":"x","email":"x@example.test","message":"x"}'`) da **422**
+   `turnstile_token` sin crear nada. El formulario de Claesen sigue funcionando.
+
+**Rollback inmediato:** `TURNSTILE_ENFORCE=false` + `reload-config.sh`. La landing sigue mandando
+el token y el backend lo ignora. Si se enciende `TURNSTILE_ENFORCE` antes del paso 3, todo envío de
+Bertels da 422: el visitante ve el teléfono y el correo, pero la consulta no se registra.
+
 ### Electro Bertels: intake de la landing (CLA-705)
 
 La landing de Bertels (`cubanote816/electrobertels`, en `192.168.60.10`) envía el formulario a
