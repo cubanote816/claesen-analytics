@@ -24,7 +24,7 @@ Modules/<Module>/Filament/Pages/<Module>Documentation.php
   `.agents/skills/feature-documentation/SKILL.md` (CLA-718) say what to update before Done.
 
 Code: `app/Support/Documentation/ModuleGuide.php` (renderer), `ModuleActionInventory.php`
-(action scan), `app/Filament/Documentation/ModuleDocumentationPage.php` (base page),
+(reads the actions from the panels, CLA-728), `app/Filament/Documentation/ModuleDocumentationPage.php` (base page),
 `resources/views/filament/documentation/module-guide.blade.php` (view).
 
 ## Writing rules
@@ -44,34 +44,35 @@ Code: `app/Support/Documentation/ModuleGuide.php` (renderer), `ModuleActionInven
    Names always follow the reader's UI locale, even when the guide text falls back to English.
    When someone renames a button, the guide renames itself.
 
-2. **Every Filament action gets a section** with the anchor `action-<scope>-<name>`:
+2. **Every Filament action gets a section** with the anchor `action-<scope>-<name>`.
 
-   | Declared in | Scope |
+   The inventory reads the panels, not the source text (CLA-728). It takes every resource and
+   page registered on a panel whose class file lives in the module (or in a `filament` folder
+   of the front matter), and collects what the screen shows: header actions, the table's row,
+   toolbar and bulk actions, the form's and infolist's action rows and hint, prefix and suffix
+   actions, relation manager tables, and a custom page's form and footer actions. Only methods
+   the module declares are read, so Filament's defaults (the edit page's save and cancel) need
+   no section.
+
+   | Screen | Scope |
    | --- | --- |
-   | `Resources/CampaignResource.php` and everything under `Resources/CampaignResource/` | `campaign` |
-   | `Resources/EmailTemplates/**` | `email-template` |
-   | `Resources/<X>/RelationManagers/MessagesRelationManager.php` | `<x>-messages` |
-   | `Resources/Catalogs/AccessTypeResource.php` and `Resources/Catalogs/AccessTypes/**` | `access-type` |
-   | `Pages/<Page>.php` | `<page>` in kebab case |
+   | `CampaignResource`: its pages, table, form and infolist | `campaign` |
+   | `CampaignResource` relation `MessagesRelationManager` | `campaign-messages` |
+   | Page `BiConfigPage` | `bi-config-page` |
 
-   Grouping folders such as FieldOps' `Resources/Catalogs` are skipped: the resource is the
-   `*Resource` file or folder, or the folder that holds `Pages`, `Schemas`, `Tables`, ...
+   The scope comes from the class name: `EmailTemplateResource` becomes `email-template`, wherever
+   the file lives. The name is the action's real name: `Action::make('send_now')` is `send_now`,
+   `CreateAction` is `create`, and a factory such as Website's `PublishSiteNowAction::make()` is
+   the name of the action it builds (`publish_now`). Filament also names `DeleteBulkAction`
+   `delete`, so a bulk action gets `_bulk` (`delete_bulk`) and keeps its own section. The same
+   button on a list row and on the record page shares one section.
 
-   An action declared in a trait belongs to every screen that uses the trait, also through
-   another trait; traits match by qualified name, case-insensitively like PHP, so aliases, grouped
-   imports and same-named traits in other namespaces resolve correctly. Commented-out code is
-   ignored: a commented-out action or trait use needs no section.
-
-   Known limit: an action factory (a plain `*Action` class with a static `make()`, such as
-   Website's `PublishSiteNowAction`) is named after its class where it is called
-   (`publish_site_now`), and the action it builds inside is listed under the factory file
-   (`action-publish-site-now-action-publish_now`). Document both until the inventory reads the
-   panel at runtime.
-
-   The name is the one passed to `Action::make('send_now')`. An unnamed Filament action uses
-   its default name: `CreateAction` becomes `create`, `EditAction` becomes `edit`, and
-   `DeleteBulkAction` becomes `delete_bulk`. The same button on a list row and on the record
-   page shares one section.
+   A screen that cannot be built without a record (for example a relation manager that reads its
+   owner record while building the table) fails the coverage test with the screen's name; make
+   that code tolerate a missing record before you add the module's guide. Screens that resolve
+   their panel's site while they are built (Website: `Site::forPanelOrFail()`) need that site in
+   the test database; `tests/Feature/Documentation/WebsiteActionInventoryTest.php` shows the
+   setup, and the Website guide (CLA-720) brings it to the coverage test.
 
    Example: `### [[action:mailing::resource.actions.send_now]] {#action-campaign-send_now}`.
 
