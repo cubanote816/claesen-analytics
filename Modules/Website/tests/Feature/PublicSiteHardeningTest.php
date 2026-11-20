@@ -157,6 +157,22 @@ final class PublicSiteHardeningTest extends TestCase
         $this->assertSame(0, $this->leads()->count());
     }
 
+    /**
+     * PHP drops an array parameter nested deeper than max_input_nesting_level
+     * from the request AND from parse_str: the raw name still names a site.
+     */
+    public function test_a_site_dropped_by_the_nesting_limit_fails_closed(): void
+    {
+        $this->bertelsFixtureSite();
+        $name = 'site'.str_repeat('%5Ba%5D', (int) ini_get('max_input_nesting_level') + 1);
+
+        foreach (['/v1/website/consultations', '/v1/website/contact-email'] as $uri) {
+            $this->postJson($uri.'?'.$name.'=x', $this->payload())->assertStatus(503);
+        }
+
+        $this->assertSame(0, $this->leads()->count());
+    }
+
     public function test_an_idempotency_key_of_zero_is_still_a_key(): void
     {
         $headers = ['Idempotency-Key' => '0'];

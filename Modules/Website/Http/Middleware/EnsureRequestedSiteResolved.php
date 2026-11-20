@@ -67,10 +67,13 @@ class EnsureRequestedSiteResolved
      * selector would be silently discarded. More than one selector is
      * ambiguous and fails closed.
      *
-     * Each raw pair is parsed on its own with PHP's own parser, so the count
-     * sees exactly the names PHP sees: it normalizes them (leading spaces
-     * dropped, cut at NUL, `site[...]` as an array, CLA-706) and imitating
-     * those rules by hand missed spellings.
+     * Counted on the raw names with PHP's own normalization of a name that
+     * starts with `site` (CLA-706): leading spaces dropped (`%20site`,
+     * `+site`), cut at NUL (`site%00x`), and `site[...]` is the same
+     * parameter as an array, however deep. Deliberately not parse_str():
+     * PHP drops (and warns about) parameters past max_input_vars or
+     * max_input_nesting_level, which would hide exactly the selectors this
+     * counter must see.
      */
     private function siteSelectorCount(string $queryString): int
     {
@@ -86,9 +89,10 @@ class EnsureRequestedSiteResolved
                 continue;
             }
 
-            parse_str($pair, $parsed);
+            $name = ltrim(urldecode(explode('=', $pair, 2)[0]), ' ');
+            $name = explode("\0", $name, 2)[0];
 
-            if (array_key_exists('site', $parsed)) {
+            if ($name === 'site' || str_starts_with($name, 'site[')) {
                 $count++;
             }
         }
