@@ -1,0 +1,85 @@
+<?php
+
+return [
+    'navigation' => 'Inspektionen',
+    'model_label' => 'Inspektion',
+    'plural_model_label' => 'Inspektionen',
+    'columns' => [
+        'project_id'      => 'Projekt-ID',
+        'inspector'       => 'Inspektor',
+        'checklist'       => 'Checkliste',
+        'date'            => 'Datum',
+        'type'            => 'Typ',
+        'reporter'        => 'Inspektor / Melder',
+        'involved_worker' => 'Beteiligter Arbeiter',
+        'present_workers' => 'Anwesende Arbeiter',
+        'completed_at'    => 'Abgeschlossen am',
+        'question'        => 'Frage',
+        'remark'          => 'Bemerkung',
+    ],
+    'filters' => [
+        'has_nok' => 'Mit Mängeln (NOK)',
+        'from' => 'Von',
+        'until' => 'Bis',
+    ],
+    'actions' => [
+        'regenerate_pdf'      => 'PDF',
+        'download_pdf'        => 'PDF',
+        'regenerate_success'  => 'Die PDF-Neuerstellung wurde im Hintergrund gestartet.',
+        'regenerate_error'    => 'Fehler beim Erstellen des PDF',
+        'archive'             => 'Archivieren',
+        'archive_heading'     => 'Inspektion archivieren?',
+        'archive_description' => "Die Inspektion wird ausgeblendet, Antworten, Fotos und PDF bleiben jedoch erhalten.",
+        'archive_confirm'     => 'Archivieren',
+        'group_label'         => 'Aktionen',
+    ],
+    'sections' => [
+        'details' => 'Inspektionsdetails',
+        'answers' => 'Antworten',
+    ],
+    'types' => [
+        'inspection' => 'Baustelleninspektion',
+        'incident'   => 'Vorfallbericht',
+    ],
+    'pdf_status' => [
+        'generated'     => 'Erstellt',
+        'not_generated' => 'Nicht erstellt',
+    ],
+    'statuses' => [
+        'ok'  => 'Konform (OK)',
+        'nok' => 'Nicht konform (NOK)',
+        'na'  => 'k. A.',
+    ],
+    'widgets' => [
+        'periods' => [
+            'yesterday' => 'Gestern',
+            '7'  => 'Letzte 7 Tage',
+            '30' => 'Letzte 30 Tage',
+            '90' => 'Letzte 90 Tage',
+        ],
+        'stats' => [
+            'period_label' => 'Zeitraum',
+            'title' => 'Inspektionen (:period)',
+            'trend' => ':trend gegenüber dem Vorzeitraum',
+            'nok_title' => 'Nicht konform (NOK) (:period)',
+            'nok_hint' => 'Punkte, die sofortige Aufmerksamkeit erfordern',
+            'pdf_reports' => 'PDF-Berichte (gesamt)',
+            'pdf_hint' => 'Automatisch erstellte Berichte, vom Zeitraumfilter nicht betroffen',
+        ],
+        'adoption' => [
+            'period_label'       => 'Zeitraum',
+            'mau_title'          => 'MAU-Nutzung (:period)',
+            'mau_desc'           => ':active aktiv / :total freigeschaltet',
+            'inspections_title'  => 'Abgeschlossene Inspektionen (:period)',
+            'inspections_desc'   => 'Erfolgreiche Übermittlungen bestätigt',
+            'incidents_title'    => 'Gemeldete Vorfälle (:period)',
+            'incidents_desc'     => 'Bestätigte Vorfallberichte',
+            'friction_title'     => 'Technische Reibung (:period)',
+            'friction_desc'      => 'Upload-Fehler oder Netzwerkkonflikte',
+        ],
+        'trend_chart' => [
+            'heading' => 'Inspektionstrend',
+            'description' => 'Tägliche Anzahl abgeschlossener Sicherheitsinspektionen',
+            'dataset_label' => 'Inspektionen',
+        ],
+    ],];

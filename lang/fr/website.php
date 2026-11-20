@@ -11,6 +11,7 @@ return [
             'details' => 'Détails du projet',
             'media' => 'Médias',
             'settings' => 'Paramètres',
+            'work_details' => 'Détails des travaux / En action',
         ],
         'fields' => [
             'title' => 'Titre',
@@ -26,6 +27,11 @@ return [
             'order_index_helper' => 'Détermine la position sur le site (1 = premier, 0 = par défaut ou en bas).',
             'featured_image' => 'Image à la une',
             'gallery' => 'Galerie',
+            'detail_gallery' => 'Galerie de détails',
+            'work_story' => 'Histoire du projet',
+            'challenge' => 'Défi',
+            'solution' => 'Solution',
+            'result' => 'Résultat',
         ],
     ],
     'pages' => [
@@ -149,6 +155,59 @@ return [
             'reminder_due_body' => ':title — :name',
         ],
     ],
+    'media_slots' => [
+        'label' => 'Emplacement média',
+        'plural_label' => 'Emplacements média',
+        'fields' => [
+            'slot' => 'Emplacement',
+            'slot_helper' => 'Le nom utilisé par le site web, par exemple home.hero. Le modifier implique de modifier aussi le site web.',
+            'media' => 'Média d\'un projet',
+            'media_invalid' => 'Ce média n\'appartient pas à un projet de ce site.',
+        ],
+    ],
+    'page_publication_review' => [
+        'label' => 'Publications de pages',
+        'fields' => [
+            'page' => 'Page',
+            'locale' => 'Langue',
+            'status' => 'Statut',
+            'reviewed_at' => 'Relu',
+            'reviewed_by' => 'Relu par',
+        ],
+        'statuses' => [
+            'machine' => 'Brouillon',
+            'reviewed' => 'Relu',
+            'published' => 'Publié',
+        ],
+        'locales' => [
+            'nl' => 'Néerlandais',
+            'fr' => 'Français',
+            'en' => 'Anglais',
+            'de' => 'Allemand',
+        ],
+        'pages' => [
+            'home' => 'Accueil',
+            'particulieren' => 'Particuliers',
+            'bedrijven' => 'Entreprises & industrie',
+            'winkel' => 'Boutique',
+            'projecten' => 'Projets',
+            'over-ons' => 'À propos de nous',
+            'contact' => 'Contact & demande de devis',
+            'legal-privacy' => 'Déclaration de confidentialité',
+            'legal-cookies' => 'Politique de cookies',
+            'legal-terms' => 'Conditions générales',
+        ],
+        'actions' => [
+            'approve' => 'Approuver',
+            'publish' => 'Publier',
+            'retire' => 'Retirer',
+            'publish_confirm' => 'Cette page deviendra indexable dans cette langue. Continuer ?',
+            'retire_confirm' => 'Cette page ne sera plus indexable dans cette langue. Continuer ?',
+        ],
+        'notifications' => [
+            'updated' => 'Statut de publication mis à jour',
+        ],
+    ],
     'translation_review' => [
         'label' => 'Révision des traductions',
         'fields' => [
@@ -158,6 +217,15 @@ return [
             'status' => 'Statut',
             'error' => 'Erreur',
             'updated_at' => 'Mis à jour',
+        ],
+        'statuses' => [
+            'missing' => 'Manquant',
+            'machine' => 'Brouillon',
+            'stale' => 'Obsolète',
+            'needs_review' => 'À relire',
+            'reviewed' => 'Relu',
+            'published' => 'Publié',
+            'failed' => 'Échec',
         ],
         'actions' => [
             'edit' => 'Modifier',
