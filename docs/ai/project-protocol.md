@@ -95,6 +95,7 @@ Todo ticket debe cumplir **todos** los puntos siguientes antes de recibir GO té
 - [ ] `handoff.md` actualizado con estado global actual
 - [ ] Documento del módulo actualizado si cambió contexto técnico
 - [ ] Guía de usuario del módulo (`Modules/<Módulo>/docs/user-guide/{en,nl}.md`) actualizada si cambió su UI o su comportamiento — `docs/ai/module-documentation.md` (CLA-693; el test de cobertura falla en CI si una acción nueva no tiene sección)
+- [ ] **Documentación de la funcionalidad** según la skill `.agents/skills/feature-documentation/SKILL.md` (CLA-718): toda funcionalidad cerrada que cambie lo que el usuario ve o hace lleva su guía, doc técnico e inventario de producción (`docs/ai/production-inventory.md`) al día, y el cierre incluye la línea `Docs:` de la skill. Sin línea `Docs:`, no hay Done.
 - [ ] Commit dedicado creado
 - [ ] GO técnico recibido
 - [ ] Issue Linear marcado Done con hash del commit

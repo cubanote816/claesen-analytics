@@ -37,6 +37,8 @@ Lectura opcional, solo a demanda (no cargar por defecto): `docs/ai/decisions-log
 | Safety (cualquier ticket SAF) | `docs/safety-sprint-linear-tickets.md` |
 | Contratos y reglas por módulo | `docs/ai/module-contracts.md` |
 | Guías de usuario en la app (menú Documentation) — al cambiar UI de un módulo con guía | `docs/ai/module-documentation.md` |
+| **Cerrar una funcionalidad: qué documentar** (guía, doc técnico, inventario) | **`.agents/skills/feature-documentation/SKILL.md`** + regla `.agents/rules/10-feature-documentation.md` |
+| Qué está en producción, por módulo, y qué guía tiene | `docs/ai/production-inventory.md` |
 | **Tests y obligatoriedad de testing** | **`docs/ai/test-gate-harness.md` ← leer antes de Plan, Review y Done** |
 | Tests técnicos por tipo de cambio | `docs/ai/testing-checklists.md` |
 | Revisar código de un PR | `docs/ai/code-review-rubric.md` |

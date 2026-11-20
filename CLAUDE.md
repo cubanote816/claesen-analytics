@@ -34,6 +34,10 @@ Al iniciar cada sesión, leer en este orden:
 | `prompt-templates.md` | Prompts reutilizables para las tareas más comunes |
 | `commands-runbook.md` | Todos los comandos Artisan con descripción y notas operativas |
 | `handoff-strategy.md` | Cómo mantener y usar `handoff.md` y los documentos de módulo |
+| `module-documentation.md` | Guías de usuario en la app (en/nl) y su test de cobertura |
+| `production-inventory.md` | Qué corre en producción por módulo y qué guía tiene (CLA-718) |
+
+**Documentar al cerrar (CLA-718):** antes de cerrar una funcionalidad que cambie lo que el usuario ve o hace, correr la skill `.agents/skills/feature-documentation/SKILL.md` (regla siempre activa: `.agents/rules/10-feature-documentation.md`). Sin línea `Docs:` en el cierre, no hay Done.
 
 ---
 
