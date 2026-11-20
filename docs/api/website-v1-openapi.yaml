@@ -13,6 +13,9 @@ info:
     SiteContentApiTest.php, not by this document — this file freezes shape
     and examples, the tests freeze behaviour.
     F3/CLA-471 of docs/ai/adr-multi-organization.md.
+    CLA-706: on EVERY route, a non-string `site` (for example `site[]=x`)
+    answers 400 {"message":"Invalid site parameter."} before any handler
+    runs — never a 500 and never the Claesen fallback.
 servers:
   - url: /v1/website
 paths:
@@ -251,8 +254,11 @@ paths:
           in: header
           schema: { type: string }
           description: >-
-            Optional. A repeated request with the same key returns the same
-            201 response instead of creating a second lead (10-minute TTL).
+            Optional. A repeated request with the same key ON THE SAME SITE
+            returns the same 201 response instead of creating a second lead
+            (10-minute TTL). Any non-empty value is a key ("0" included).
+            CLA-706: the key is scoped per site — the same key on another
+            site creates its own lead and never replays another site's.
             Omitted => not idempotent (CLA-532's original guarantee: two
             deliberate POSTs create two rows).
       requestBody:
@@ -313,10 +319,19 @@ paths:
           content:
             application/json:
               example: { message: "Failed to create consultation request." }
+        "400":
+          description: >-
+            CLA-706 — `site` is not a string (for example `site[]=x`). Returned
+            by every /v1/website route; nothing is read or stored.
+          content:
+            application/json:
+              example: { message: "Invalid site parameter." }
         "503":
           description: >-
-            CLA-705 — the `site` query parameter names a site that is not
-            active. Nothing is stored, queued or replayed.
+            CLA-705 — the `site` query parameter is present but does not
+            resolve to one active site: unknown, inactive, blank, or repeated
+            (also when PHP normalizes the name, e.g. ` site`). Nothing is
+            stored, queued or replayed.
           content:
             application/json:
               example: { message: "Intake temporarily unavailable." }
@@ -328,10 +343,33 @@ paths:
         Prospects behaviour, and the same F4/CLA-475 rate limit/honeypot/
         Turnstile/consent handling), kept for backward compatibility with
         its simpler name/email/message-only request shape.
+      parameters:
+        - name: site
+          in: query
+          schema: { type: string }
+          description: >-
+            CLA-706: same rule as /consultations. When present it must resolve
+            to an active site, otherwise 503 (no Claesen fallback, nothing
+            stored). Omitted: resolved from the Host, falling back to Claesen.
       responses:
         "201": { description: Created }
+        "400":
+          description: >-
+            CLA-706 — `site` is not a string (for example `site[]=x`). Returned
+            by every /v1/website route; nothing is read or stored.
+          content:
+            application/json:
+              example: { message: "Invalid site parameter." }
         "422": { description: Validation error }
         "429": { description: F4/CLA-475 — per-IP rate limit exceeded. }
+        "503":
+          description: >-
+            CLA-706 — same rule as /consultations: `site` is present but
+            does not resolve to one active site (unknown, inactive, blank or
+            repeated). Nothing is stored, queued or replayed.
+          content:
+            application/json:
+              example: { message: "Intake temporarily unavailable." }
 components:
   headers:
     ETag:

@@ -45,15 +45,21 @@ class ConsultationService
      */
     public function handlePublicIntake(Request $request, array $validated): array
     {
+        $siteId = app(OrganizationContext::class)->siteId() ?? Site::claesenId();
+
+        // CLA-706: the key is scoped to the site. The cached response carries the
+        // stored lead, so a key replayed from another site must never return it.
         $idempotencyKey = $request->header('Idempotency-Key');
-        $cacheKey = $idempotencyKey ? 'website.consultation-intake.'.sha1($idempotencyKey) : null;
+        // Any non-empty header is a key ("0" included).
+        $cacheKey = is_string($idempotencyKey) && $idempotencyKey !== ''
+            ? 'website.consultation-intake.'.$siteId.'.'.sha1($idempotencyKey)
+            : null;
 
         if ($cacheKey && ($cached = Cache::get($cacheKey)) !== null) {
             return $cached;
         }
 
         $normalizer = app(LeadSourceNormalizer::class);
-        $siteId = app(OrganizationContext::class)->siteId() ?? Site::claesenId();
         $source = $normalizer->resolveSource($request);
         $utm = $normalizer->resolveUtm($request);
 
