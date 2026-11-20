@@ -98,6 +98,7 @@ final class GeminiTextGenerationDriverTest extends TestCase
             $this->driver()->generate(new TextGenerationRequest(task: 't', prompt: 'SECRET-PROMPT'));
             $this->fail('Expected TextGenerationException');
         } catch (TextGenerationException $e) {
+            $this->assertNull($e->getPrevious());
             $this->assertStringContainsString('HTTP 500', $e->getMessage());
             $this->assertStringNotContainsString('SECRET', $e->getMessage());
         }

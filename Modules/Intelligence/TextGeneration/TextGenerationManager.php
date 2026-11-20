@@ -39,13 +39,21 @@ class TextGenerationManager
         private readonly array $sources,
     ) {}
 
-    /** @return array{provider: string, model: string, source: string} */
-    public function resolve(string $task): array
+    /**
+     * @param  string|null  $skipSource  ignore one source by name, e.g. "screen" to see what
+     *                                   clearing the screen setting would switch to
+     * @return array{provider: string, model: string, source: string}
+     */
+    public function resolve(string $task, ?string $skipSource = null): array
     {
         $defaultProvider = (string) config('intelligence.ai.default.provider');
         $defaultModel = (string) config('intelligence.ai.default.model');
 
         foreach ($this->sources as $source) {
+            if ($skipSource !== null && $source->name() === $skipSource) {
+                continue;
+            }
+
             $settings = $source->settingsFor($task);
             $provider = $settings['provider'] ?? null;
 
@@ -78,6 +86,31 @@ class TextGenerationManager
     public function generate(TextGenerationRequest $request): TextGenerationResult
     {
         $resolved = $this->resolve($request->task);
+
+        return $this->run($resolved['provider'], $resolved['model'], $request);
+    }
+
+    /**
+     * Connection check for the settings screen: a minimal prompt to an
+     * explicit provider and model (validated like any resolution).
+     *
+     * @throws TextGenerationException
+     */
+    public function test(string $provider, string $model): TextGenerationResult
+    {
+        $this->validated($provider, $model, 'connection_test');
+
+        return $this->run($provider, $model, new TextGenerationRequest(
+            task: 'connection_test',
+            prompt: 'Reply with the single word OK.',
+            maxTokens: 16,
+        ));
+    }
+
+    /** @throws TextGenerationException */
+    private function run(string $provider, string $model, TextGenerationRequest $request): TextGenerationResult
+    {
+        $resolved = ['provider' => $provider, 'model' => $model];
         $startedAt = hrtime(true);
 
         try {
@@ -94,7 +127,7 @@ class TextGenerationManager
 
             throw $e instanceof TextGenerationException
                 ? $e
-                : new TextGenerationException('The AI request failed ('.class_basename($e).').', 0, $e);
+                : new TextGenerationException('The AI request failed ('.class_basename($e).').');
         }
 
         Log::info('[ai.text_generation]', [

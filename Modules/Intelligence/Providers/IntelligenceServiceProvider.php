@@ -42,11 +42,12 @@ class IntelligenceServiceProvider extends ServiceProvider
             \Modules\Intelligence\Services\BiConfigService::class
         );
 
-        // CLA-714: AI provider and model per task, from config.
+        // CLA-714: AI provider and model per task: the screen setting, then config.
         $this->app->singleton(\Modules\Intelligence\TextGeneration\Drivers\FakeTextGenerationDriver::class);
         $this->app->singleton(
             \Modules\Intelligence\TextGeneration\TextGenerationManager::class,
             fn ($app) => new \Modules\Intelligence\TextGeneration\TextGenerationManager($app, [
+                new \Modules\Intelligence\TextGeneration\ScreenTaskSettingsSource,
                 new \Modules\Intelligence\TextGeneration\ConfigTaskSettingsSource,
             ])
         );

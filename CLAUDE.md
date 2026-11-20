@@ -65,7 +65,7 @@ Cada ticket debe terminar con tests relevantes, actualización de `CLAUDE.md` y 
 | Módulos | nwidart/laravel-modules ^12.0 |
 | Auth | Laravel Sanctum + Azure OAuth (Microsoft Graph) |
 | RBAC | spatie/laravel-permission |
-| IA | Google Gemini (alias `gemini-flash-latest`, `GEMINI_API_URL` en `.env`) + Anthropic Claude Sonnet 5 (`Modules/Intelligence/Services/ClaudeVisionService`, identificación visual FieldOps) |
+| IA | Google Gemini (alias `gemini-flash-latest`, `GEMINI_API_URL` en `.env`) + Anthropic Claude Sonnet 5 (`Modules/Intelligence/Services/ClaudeVisionService`, identificación visual FieldOps). **Tareas nuevas (CLA-714):** `TextGenerationManager` elige proveedor y modelo por tarea — pantalla *AI providers* (super_admin/admin) → `config('intelligence.ai.tasks')` → `default`, con lista de modelos permitidos; las claves siguen en `.env`; ver `docs/ai/module-contracts.md` (Intelligence) |
 | Infra | Docker Sail, Redis, Meilisearch |
 
 ---

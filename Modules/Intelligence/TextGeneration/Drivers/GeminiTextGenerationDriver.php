@@ -38,7 +38,7 @@ final class GeminiTextGenerationDriver implements TextGenerationProvider
                 timeoutSeconds: $this->timeoutSeconds,
             );
         } catch (GeminiProviderException $e) {
-            throw new TextGenerationException($e->getMessage(), 0, $e);
+            throw new TextGenerationException($e->getMessage());
         }
 
         return new TextGenerationResult(

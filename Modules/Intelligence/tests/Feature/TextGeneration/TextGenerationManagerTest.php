@@ -129,10 +129,11 @@ final class TextGenerationManagerTest extends TestCase
         $this->assertSame('fake-model', $fake->models[0]);
         $this->assertSame('SECRET-PROMPT prospect@example.com', $fake->requests[0]->prompt);
 
-        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context = []): bool {
             $flat = json_encode($context);
 
             return $message === '[ai.text_generation]'
+                && ($context['ok'] ?? null) === true
                 && $context['task'] === 'lead_summary'
                 && $context['provider'] === 'fake'
                 && $context['model'] === 'fake-model'
@@ -154,8 +155,8 @@ final class TextGenerationManagerTest extends TestCase
             $this->assertStringNotContainsString('SECRET', $e->getMessage());
         }
 
-        Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === '[ai.text_generation]'
-            && $context['ok'] === false
+        Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context = []): bool => $message === '[ai.text_generation]'
+            && ($context['ok'] ?? null) === false
             && ! str_contains(json_encode($context), 'SECRET'))->once();
     }
 }

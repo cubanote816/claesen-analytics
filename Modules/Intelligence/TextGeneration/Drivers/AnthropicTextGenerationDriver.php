@@ -56,7 +56,11 @@ final class AnthropicTextGenerationDriver implements TextGenerationProvider
         try {
             $message = $this->client->createMessage($apiKey, $params);
         } catch (\Throwable $e) {
-            throw new TextGenerationException('The Anthropic request failed ('.class_basename($e).').', 0, $e);
+            // The SDK exception is not chained: its message and request can carry the
+            // upstream body and the API key, and log formatters print previous exceptions.
+            $status = method_exists($e, 'getStatusCode') ? ' HTTP '.$e->getStatusCode() : '';
+
+            throw new TextGenerationException('The Anthropic request failed ('.class_basename($e).$status.').');
         }
 
         $text = collect($message->content ?? [])->first(fn ($block) => ($block->type ?? null) === 'text')?->text;

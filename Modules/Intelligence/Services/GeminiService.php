@@ -87,7 +87,8 @@ class GeminiService
         } catch (\Exception $e) {
             Log::error('Gemini generateContent transport error: '.class_basename($e));
 
-            throw new GeminiProviderException('Gemini request failed ('.class_basename($e).').', 0, $e);
+            // Not chained, so no request details reach the logs (CLA-714).
+            throw new GeminiProviderException('Gemini request failed ('.class_basename($e).').');
         }
 
         if ($response->failed()) {

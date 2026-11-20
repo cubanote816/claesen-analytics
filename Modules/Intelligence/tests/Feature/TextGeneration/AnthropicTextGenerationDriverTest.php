@@ -97,14 +97,20 @@ final class AnthropicTextGenerationDriverTest extends TestCase
         $this->assertSame([], $client->calls);
     }
 
-    public function test_sdk_errors_become_a_text_generation_exception(): void
+    public function test_sdk_errors_become_a_text_generation_exception_without_the_raw_error(): void
     {
         config(['services.anthropic.key' => 'test-key']);
+        $sdkError = new \RuntimeException('upstream body with x-api-key: test-key and SECRET-PROMPT');
 
-        $this->expectException(TextGenerationException::class);
-
-        (new AnthropicTextGenerationDriver($this->client(new \RuntimeException('network down')), 'claude-sonnet-5', 30))
-            ->generate(new TextGenerationRequest(task: 't', prompt: 'Hi'));
+        try {
+            (new AnthropicTextGenerationDriver($this->client($sdkError), 'claude-sonnet-5', 30))
+                ->generate(new TextGenerationRequest(task: 't', prompt: 'SECRET-PROMPT'));
+            $this->fail('Expected TextGenerationException');
+        } catch (TextGenerationException $e) {
+            $this->assertNull($e->getPrevious());
+            $this->assertStringNotContainsString('test-key', $e->getMessage());
+            $this->assertStringNotContainsString('SECRET', $e->getMessage());
+        }
     }
 
     public function test_non_json_answer_with_a_schema_fails(): void
