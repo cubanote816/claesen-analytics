@@ -2,6 +2,7 @@
 
 namespace Modules\Intelligence\Jobs;
 
+use Modules\Intelligence\Support\GeminiEndpoint;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -107,14 +108,14 @@ PROMPT;
 
     private function callAiNative(string $prompt, GoogleServiceAccountAuthService $auth): string
     {
-        $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent';
+        $apiUrl = GeminiEndpoint::generateContentUrl();
         $token = $auth->getAccessToken();
 
         if (empty($token)) {
             throw new \Exception('Could not obtain a service account access token.');
         }
 
-        $response = Http::withToken($token)->post($apiUrl, [
+        $payload = [
             'contents' => [
                 [
                     'role' => 'user',
@@ -123,11 +124,15 @@ PROMPT;
                     ]
                 ]
             ],
-            'generationConfig' => [
-                'temperature' => 0.1,
-                'topK' => 10,
-            ]
-        ]);
+        ];
+
+        // Vertex expects generationConfig to be an object: send it only when
+        // there is something to configure (CLA-729).
+        if (GeminiEndpoint::thinkingConfig() !== []) {
+            $payload['generationConfig'] = ['thinkingConfig' => GeminiEndpoint::thinkingConfig()];
+        }
+
+        $response = Http::withToken($token)->timeout(GeminiEndpoint::timeout())->post($apiUrl, $payload);
 
         if ($response->failed()) {
             throw new \Exception("Gemini API Error: " . $response->body());

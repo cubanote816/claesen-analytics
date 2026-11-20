@@ -2,6 +2,7 @@
 
 namespace Modules\Intelligence\Services;
 
+use Modules\Intelligence\Support\GeminiEndpoint;
 use Modules\Performance\Models\Mirror\MirrorMaterial;
 use Modules\Performance\Models\Mirror\MirrorCost;
 use Modules\Performance\Models\Mirror\MirrorProject;
@@ -23,7 +24,7 @@ class MaterialIntelligenceService
         $usageSummary = $this->buildUsageSummary($material);
         $material->usage_summary = $usageSummary;
 
-        $baseUrl = config('services.gemini.url', 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent');
+        $baseUrl = GeminiEndpoint::generateContentUrl();
         $token = $this->auth->getAccessToken();
 
         if (!$token) {
@@ -58,9 +59,9 @@ JSON FORMAAT:
 EOT;
 
         try {
-            $response = Http::withToken($token)->post($baseUrl, [
+            $response = Http::withToken($token)->timeout(GeminiEndpoint::timeout())->post($baseUrl, [
                 'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
-                'generationConfig' => ['response_mime_type' => 'application/json']
+                'generationConfig' => ['response_mime_type' => 'application/json', ...(GeminiEndpoint::thinkingConfig() !== [] ? ['thinkingConfig' => GeminiEndpoint::thinkingConfig()] : [])]
             ]);
 
             if ($response->successful()) {

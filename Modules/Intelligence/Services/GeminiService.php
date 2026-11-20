@@ -2,6 +2,7 @@
 
 namespace Modules\Intelligence\Services;
 
+use Modules\Intelligence\Support\GeminiEndpoint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +17,7 @@ class GeminiService
 
     public function __construct(protected GoogleServiceAccountAuthService $auth)
     {
-        $this->apiUrl = config('services.gemini.url') ?: 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent';
+        $this->apiUrl = GeminiEndpoint::generateContentUrl();
     }
 
     /**
@@ -52,11 +53,11 @@ class GeminiService
         }
 
         try {
-            $response = Http::withToken($token)->post($this->apiUrl, [
+            $response = Http::withToken($token)->timeout(GeminiEndpoint::timeout())->post($this->apiUrl, [
                 'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
                 'generationConfig' => [
                     'response_mime_type' => 'application/json',
-                    'temperature' => 0.2,
+                    ...(GeminiEndpoint::thinkingConfig() !== [] ? ['thinkingConfig' => GeminiEndpoint::thinkingConfig()] : []),
                 ],
             ]);
         } catch (\Exception $e) {

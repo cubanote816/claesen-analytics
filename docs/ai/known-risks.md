@@ -598,6 +598,14 @@ en cualquier entorno recién sembrado, que es un fallo peor que el que se estaba
 2. **La cookie de sesión del backoffice es compartida entre los paneles** (misma app y mismo dominio): una sesión iniciada en `/bertels` viaja también a las rutas de Claesen. La frontera depende de `canAccessPanel`/`EnsurePanelAccess` y de `organization:claesen`, no de la cookie; un grupo de rutas de Claesen sin ese middleware sería alcanzable con sesión de Bertels.
 3. **Pendientes de producto, fuera de CLA-704:** viewer de solo lectura (`viewer` y `admin` de Bertels hoy ven lo mismo), acceso de usuarios de Bertels a KNX, activar `ORGANIZATIONS_ENFORCE`, y confirmar el grupo de Azure de Bertels (hasta entonces las cuentas `@electrobertels.be` se crean a mano desde Users).
 
+### Modelo Gemini retirado y override de entorno (CLA-729, 2026-11-20)
+
+Vertex retiró `gemini-2.5-flash` el 2026-10-20 y las seis llamadas a Gemini lo tenían escrito como fallback. CLA-729 las centraliza en `GeminiEndpoint` con `gemini-3.5-flash-lite` en `global` por defecto (en Vertex, el pago por uso de ese modelo solo existe en `global`, `us` y `eu`; no en `us-central1`).
+
+- **Override vigente:** si un `.env` define `GEMINI_API_URL`, esa URL gana y sigue usando el modelo que nombre. El `.env` de desarrollo lo define con `us-central1 … gemini-2.5-flash` (visto el 2026-11-20 por la URL resuelta); producción no lo define (confirmado por el usuario). Al 2026-11-20 Vertex todavía acepta pedidos para 2.5-flash, pero puede apagarlo sin aviso: quitar o actualizar el override.
+- **`thinking_level` en modelos 2.x:** mandarlo a un modelo 2.x devuelve HTTP 400 ("thinking_level is not supported by this model"). `GeminiEndpoint::thinkingConfig()` solo lo agrega para Gemini ≥ 3.
+- **Pendiente (ticket siguiente):** detección del idioma de origen con reubicación y los hallazgos 1–6 de `docs/ai/translation-system-audit.md`.
+
 ## Decisiones pendientes
 
 | Decisión | Contexto | Responsable |

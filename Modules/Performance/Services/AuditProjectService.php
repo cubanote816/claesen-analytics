@@ -2,6 +2,7 @@
 
 namespace Modules\Performance\Services;
 
+use Modules\Intelligence\Support\GeminiEndpoint;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Modules\Intelligence\Services\GoogleServiceAccountAuthService;
@@ -50,7 +51,7 @@ INSTRUCTIONS:
 4. Output strict JSON only.
 PROMPT;
 
-        $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent';
+        $apiUrl = GeminiEndpoint::generateContentUrl();
         $token = $this->auth->getAccessToken();
 
         if (empty($token)) {
@@ -59,10 +60,10 @@ PROMPT;
         }
 
         try {
-            $response = Http::withToken($token)->post($apiUrl, [
+            $response = Http::withToken($token)->timeout(GeminiEndpoint::timeout())->post($apiUrl, [
                 'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
                 'generationConfig' => [
-                    'temperature' => 0.1,
+                    ...(GeminiEndpoint::thinkingConfig() !== [] ? ['thinkingConfig' => GeminiEndpoint::thinkingConfig()] : []),
                     'responseMimeType' => 'application/json'
                 ]
             ]);

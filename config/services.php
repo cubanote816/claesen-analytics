@@ -62,7 +62,13 @@ return [
 
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
+        // Full endpoint override; when empty the URL is built from the keys below
+        // (Modules\Intelligence\Support\GeminiEndpoint, CLA-729).
         'url' => env('GEMINI_API_URL'),
+        'project' => env('GEMINI_PROJECT', 'gen-lang-client-0849598291'),
+        'location' => env('GEMINI_LOCATION', 'global'),
+        'model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
+        'timeout' => (int) env('GEMINI_TIMEOUT', 30),
         // CLA-407 — org policy blocks simple API keys for Gemini; auth is via
         // a dedicated service account's JSON credentials instead (OAuth2
         // JWT-bearer flow), see GoogleServiceAccountAuthService.

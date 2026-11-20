@@ -365,7 +365,8 @@ Modules/FieldOps/Models/FoMaintenanceWorkOrderEvent.php
 
 ### Reglas
 
-- Siempre usar `GeminiService` para llamadas a Gemini. No instanciar el cliente HTTP directamente.
+- Código nuevo: usar `GeminiService` para llamadas a Gemini, sin instanciar el cliente HTTP directamente. Excepción heredada (CLA-729): `GenerateBudgetSimulationJob`, `BudgetAssistantService`, `MaterialIntelligenceService`, `AuditProjectService` y `TechnicianAnalysisService` llaman a Vertex con `Http` directamente; deben seguir la regla siguiente.
+- **Endpoint y modelo (CLA-729):** la URL, el modelo y el timeout salen solo de `Modules\Intelligence\Support\GeminiEndpoint` (`generateContentUrl()`, `model()`, `timeout()`, `thinkingConfig()`), que lee `config('services.gemini.*')`. Nunca una URL, proyecto o modelo escritos en el código, ni `env()` en runtime. `services.gemini.url` (`GEMINI_API_URL`) es un override completo; sin él se usa `gemini-3.5-flash-lite` en la ubicación `global`. `thinkingConfig.thinkingLevel = MINIMAL` se manda solo a modelos Gemini ≥ 3 (un modelo 2.x devuelve HTTP 400). No mandar `temperature`/`topK`/`topP` (Gemini 3 los ignora) ni penalizaciones de frecuencia/presencia (Gemini 3 las rechaza).
 - El Semantic Cache usa hash MD5 del payload. Verificar que el payload es determinista antes de llamar.
 - Las operaciones de sync solo deben ejecutarse via commands o jobs, no inline en controllers.
 - `SyncMirrorDataService` escribe en MySQL (tablas mirror). Verificar que no se confunde con las tablas del ERP.

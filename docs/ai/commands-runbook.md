@@ -111,6 +111,21 @@ php artisan queue:flush
 
 ---
 
+## Gemini (Vertex AI) — variables de entorno (CLA-729)
+
+Solo nombres y los valores por defecto del código; nunca copiar en la documentación los valores de un `.env`. Todas se leen en `config/services.php` (bloque `gemini`) y las consume `Modules\Intelligence\Support\GeminiEndpoint`.
+
+| Variable | Por defecto | Uso |
+|---|---|---|
+| `GEMINI_PROJECT` | el proyecto GCP actual | Proyecto de Vertex AI |
+| `GEMINI_LOCATION` | `global` | Ubicación; `global` usa `aiplatform.googleapis.com`, otra ubicación usa `<ubicación>-aiplatform.googleapis.com` |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Modelo |
+| `GEMINI_TIMEOUT` | `30` | Timeout HTTP en segundos |
+| `GEMINI_API_URL` | vacío | Override completo de la URL; si está definido, reemplaza proyecto, ubicación y modelo (el modelo se deduce de la URL). `GEMINI_TIMEOUT` sigue aplicando |
+| `GEMINI_SERVICE_ACCOUNT_PATH` | `storage/app/private/credentials/gemini-service-account.json` | Credenciales de la cuenta de servicio |
+
+Tras cambiar cualquiera en un entorno con `config:cache`, volver a cachear la configuración (`php artisan optimize`).
+
 ## Módulo Mailing
 
 ### `mailing:dispatch-scheduled`

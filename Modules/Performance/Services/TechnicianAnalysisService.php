@@ -2,6 +2,7 @@
 
 namespace Modules\Performance\Services;
 
+use Modules\Intelligence\Support\GeminiEndpoint;
 use Modules\Cafca\Models\Labor;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -39,7 +40,7 @@ class TechnicianAnalysisService
 
             $prompt = $this->buildPrompt($locale, $employeeName, json_encode($historyData));
 
-            $apiUrl = config('services.gemini.url') ?? env('GEMINI_API_URL') ?? 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent';
+            $apiUrl = GeminiEndpoint::generateContentUrl();
 
             try {
                 $token = $this->auth->getAccessToken();
@@ -48,10 +49,10 @@ class TechnicianAnalysisService
                     throw new \Exception('Could not obtain a service account access token.');
                 }
 
-                $response = Http::withToken($token)->post($apiUrl, [
+                $response = Http::withToken($token)->timeout(GeminiEndpoint::timeout())->post($apiUrl, [
                     'contents'         => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
                     'generationConfig' => [
-                        'temperature'      => 0.1,
+                        ...(GeminiEndpoint::thinkingConfig() !== [] ? ['thinkingConfig' => GeminiEndpoint::thinkingConfig()] : []),
                         'responseMimeType' => 'application/json',
                     ],
                 ]);
