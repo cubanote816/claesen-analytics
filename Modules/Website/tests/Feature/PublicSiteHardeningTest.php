@@ -127,7 +127,12 @@ final class PublicSiteHardeningTest extends TestCase
         $site = $this->bertelsFixtureSite();
 
         foreach (['/v1/website/consultations', '/v1/website/contact-email'] as $uri) {
-            foreach (['site=unknown&site='.$site->key, 'site=unknown&%20site='.$site->key, 'site=unknown&+site='.$site->key] as $query) {
+            foreach ([
+                'site=unknown&site='.$site->key,
+                'site=unknown&%20site='.$site->key,
+                'site=unknown&+site='.$site->key,
+                'site=unknown&site%00suffix='.$site->key,
+            ] as $query) {
                 $this->postJson($uri.'?'.$query, $this->payload())->assertStatus(503);
             }
         }

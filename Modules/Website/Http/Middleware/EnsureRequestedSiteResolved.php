@@ -58,19 +58,26 @@ class EnsureRequestedSiteResolved
 
     /**
      * PHP keeps only the last of repeated `site` parameters, so an earlier
-     * selector would be silently discarded. Counted on the raw query string:
-     * more than one selector is ambiguous and fails closed.
+     * selector would be silently discarded. More than one selector is
+     * ambiguous and fails closed.
+     *
+     * Each raw pair is parsed on its own with PHP's own parser, so the count
+     * sees exactly the names PHP sees: it normalizes them (leading spaces
+     * dropped, cut at NUL, `site[...]` as an array, CLA-706) and imitating
+     * those rules by hand missed spellings.
      */
     private function siteSelectorCount(string $queryString): int
     {
         $count = 0;
 
         foreach (explode('&', $queryString) as $pair) {
-            // PHP drops leading spaces from parameter names (` site` and `+site`
-            // both become `site`), so count them the same way it parses them.
-            $name = ltrim(urldecode(explode('=', $pair, 2)[0]), ' ');
+            if ($pair === '') {
+                continue;
+            }
 
-            if ($name === 'site' || str_starts_with($name, 'site[')) {
+            parse_str($pair, $parsed);
+
+            if (array_key_exists('site', $parsed)) {
                 $count++;
             }
         }
