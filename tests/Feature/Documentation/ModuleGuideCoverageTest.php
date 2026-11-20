@@ -6,7 +6,10 @@ namespace Tests\Feature\Documentation;
 
 use App\Support\Documentation\ModuleActionInventory;
 use App\Support\Documentation\ModuleGuide;
+use Filament\Facades\Filament;
+use Filament\Panel;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Fixtures\DocumentationPanel\GadgetResource;
 use Tests\TestCase;
 
 /**
@@ -122,6 +125,26 @@ class ModuleGuideCoverageTest extends TestCase
         sort($expected, SORT_STRING);
 
         $this->assertSame($expected, array_keys(ModuleActionInventory::anchors(base_path('Modules/Core'))));
+    }
+
+    /**
+     * CLA-728 verification: hidden actions in an Actions row, a page's own infolist and relation
+     * managers registered with RelationManager::make() all count, and the panel state is restored.
+     */
+    public function test_inventory_reads_hidden_row_actions_page_infolists_and_configured_relation_managers(): void
+    {
+        Filament::setCurrentPanel(null);
+        $panel = Panel::make()->id('documentation-fixture')->resources([GadgetResource::class]);
+
+        $anchors = ModuleActionInventory::anchors(base_path('tests/Fixtures/DocumentationPanel'), [], [$panel]);
+
+        $this->assertSame([
+            'action-gadget-audit',
+            'action-gadget-hidden_until_ready',
+            'action-gadget-roles-inspect',
+            'action-gadget-shown',
+        ], array_keys($anchors));
+        $this->assertNull(Filament::getCurrentPanel());
     }
 
     /** CLA-728: actions in a custom page's form and footer are part of the screen too. */

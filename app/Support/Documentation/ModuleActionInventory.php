@@ -12,6 +12,8 @@ use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Resources\RelationManagers\RelationGroup;
+use Filament\Resources\RelationManagers\RelationManagerConfiguration;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
@@ -68,21 +70,20 @@ final class ModuleActionInventory
 
     /**
      * @param  list<string>  $extraRoots  absolute folders outside the module (ModuleGuide::filamentRoots())
+     * @param  list<Panel>|null  $panels  the panels to read; every registered panel when null (tests pass a fixture panel)
      * @return array<string, list<string>> anchor => where it is declared (class basename and part), sorted by anchor
      */
-    public static function anchors(string $moduleDirectory, array $extraRoots = []): array
+    public static function anchors(string $moduleDirectory, array $extraRoots = [], ?array $panels = null): array
     {
         $inventory = new self([$moduleDirectory, ...$extraRoots]);
         $current = Filament::getCurrentPanel();
 
         try {
-            foreach (Filament::getPanels() as $panel) {
+            foreach ($panels ?? Filament::getPanels() as $panel) {
                 $inventory->readPanel($panel);
             }
         } finally {
-            if ($current !== null) {
-                Filament::setCurrentPanel($current);
-            }
+            Filament::setCurrentPanel($current);
         }
 
         if ($inventory->errors !== []) {
@@ -134,7 +135,10 @@ final class ModuleActionInventory
         }
 
         foreach ($resource::getRelations() as $relation) {
-            foreach (is_string($relation) ? [$relation] : $relation->getManagers() as $manager) {
+            $managers = $relation instanceof RelationGroup ? $relation->getManagers() : [$relation];
+
+            // A manager is a class name or, through RelationManager::make(), a configuration object.
+            foreach (array_map(fn ($manager): string => $manager instanceof RelationManagerConfiguration ? $manager->relationManager : $manager, $managers) as $manager) {
                 $this->attempt($manager, function () use ($scope, $manager): void {
                     $instance = app($manager);
                     $relationScope = $scope.'-'.Str::kebab(Str::beforeLast(class_basename($manager), 'RelationManager'));
@@ -155,8 +159,10 @@ final class ModuleActionInventory
             }
         }
 
-        if ($this->declares($page::class, 'form') && ! (new ReflectionMethod($page, 'form'))->isStatic()) {
-            $this->add($scope, $this->schemaActions($page->form(Schema::make($page))), $where.' form');
+        foreach (['form', 'infolist'] as $schema) {
+            if ($this->declares($page::class, $schema) && ! (new ReflectionMethod($page, $schema))->isStatic()) {
+                $this->add($scope, $this->schemaActions($page->{$schema}(Schema::make($page))), $where.' '.$schema);
+            }
         }
         if ($this->declares($page::class, 'table') && ! (new ReflectionMethod($page, 'table'))->isStatic()) {
             $this->add($scope, $this->tableActions($page->table(Table::make($page))), $where.' table');
@@ -179,7 +185,9 @@ final class ModuleActionInventory
                 continue;
             }
             if ($component instanceof Actions) {
-                $names = [...$names, ...$this->flatten($component->getChildComponents())];
+                // Hidden ones too: an action shown only in some state still needs its section.
+                $children = $component->getDefaultChildComponents();
+                $names = [...$names, ...$this->flatten($children instanceof Schema ? $children->getComponents(withHidden: true) : $children)];
             }
             foreach (['getHintActions', 'getPrefixActions', 'getSuffixActions'] as $method) {
                 if (method_exists($component, $method)) {

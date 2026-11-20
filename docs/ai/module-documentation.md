@@ -50,7 +50,8 @@ Code: `app/Support/Documentation/ModuleGuide.php` (renderer), `ModuleActionInven
    page registered on a panel whose class file lives in the module (or in a `filament` folder
    of the front matter), and collects what the screen shows: header actions, the table's row,
    toolbar and bulk actions, the form's and infolist's action rows and hint, prefix and suffix
-   actions, relation manager tables, and a custom page's form and footer actions. Only methods
+   actions (hidden ones too), relation manager tables (also those registered with
+   `RelationManager::make()`), a page's own form or infolist, and a custom page's footer actions. Only methods
    the module declares are read, so Filament's defaults (the edit page's save and cancel) need
    no section.
 
