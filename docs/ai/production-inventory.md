@@ -27,7 +27,7 @@ no evidence of use found. **Off** = deployed but switched off by a flag.
 | Module | Surfaces | Panel | Status | Evidence | Guide | Guide ticket |
 | --- | --- | --- | --- | --- | --- | --- |
 | Mailing | Campaigns, Email templates, messages, public tracking / unsubscribe / preferences | admin | Live | `handoff.md` (campaigns 21–23 sent in production; CLA-698 seen in production) | Yes (CLA-693) | — |
-| Core | Users, Roles, Permissions, Activity log, Access analytics, login + Microsoft + MFA | admin, bertels | Live | `odd/tasks/release-trunk-to-main.md` L13, L26–L35 | No | CLA-719 |
+| Core | Users, Roles, Permissions, Activity log, Access analytics, login + Microsoft + MFA | admin, bertels | Live | `odd/tasks/release-trunk-to-main.md` L13, L26–L35 | Yes, admin panel, super admins only (CLA-719); NL review pending (management) | — |
 | Website | Projects, Announcements, Consultation requests, Media slots, site settings cluster; public `v1/website/*` API | admin, bertels | Live | `release-trunk-to-main.md` L30, L37; `handoff.md` CLA-705 (real request → CR-000002) | No | CLA-720 |
 | Safety | Checklists, Inspections; mobile API `v1/*` for the Safety PWA | admin + PWA | Live (indirect) | `docs/ai/handoff-archive.md` (production commands 2026-06); field photos to Anthropic (CLA-577) | No | CLA-721 |
 | Intelligence / BI | Billing Guardian, Monthly billing control, Offer simulator, Mirror sync status, Project intelligence detail, BI config | admin | Deployed; Mirror live | `handoff-archive.md` (`intelligence:sync-mirror` in production); per-page use not proven | Loose: `docs/billing-guardian-user-guide.md` | CLA-722 |
@@ -36,7 +36,7 @@ no evidence of use found. **Off** = deployed but switched off by a flag.
 | Employee | Employees resource and pages, hours widget; `v1/employees` | admin | Live | `release-trunk-to-main.md` L8, L10 (widget fixed in the release) | No | CLA-724 |
 | Cafca | ERP read-only pages (employees, projects); `v1/cafcas` | admin | Live | `release-trunk-to-main.md` L16 | No | CLA-724 |
 | Prospects | Prospects, Sync history, Sync dashboard | admin | Live | `handoff.md` CLA-660 (39 duplicates merged on production data) | No | CLA-725 (after the federation refactor) |
-| Bertels users (`app/Filament`) | `/bertels` → Users | bertels | Deployed | On `main` (PR #84, #85); no evidence of use yet | No | CLA-719 (Core) |
+| Bertels users (`app/Filament`) | `/bertels` → Users | bertels | Deployed | On `main` (PR #84, #85); no evidence of use yet | No | CLA-720 (with the Bertels Documentation group) |
 | Guides & procedures (`app/Filament`) | ETS6 project archive guide | admin, bertels | Deployed | On `main` | Is itself a guide | — |
 | Analytics | `POST v1/events` ingest only | — | Deployed, unused | No frontend sends events (CLA-229) | Out of scope | — |
 | Knx | `v1/knx/*`, `/bertels/knx` | bertels | Off | `KNX_ENABLED` absent in production → routes 404 (`release-trunk-to-main.md` L13, L27) | Out of scope | — |
