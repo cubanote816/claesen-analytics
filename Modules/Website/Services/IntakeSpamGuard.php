@@ -57,9 +57,15 @@ class IntakeSpamGuard
      *                             legitimate submission on the site
      *                             ("Turnstile accesible con fallback").
      */
-    public function assertTurnstilePasses(?string $token, ?int $siteId, string $ip): void
+    public function assertTurnstilePasses(?string $token, ?int $siteId, string $ip, ?string $siteKey = null): void
     {
         if (! config('services.turnstile.enforce') || blank(config('services.turnstile.secret_key'))) {
+            return;
+        }
+
+        // CLA-731: enforced PER SITE. The global switch above stays the kill
+        // switch; only listed sites need a token (Claesen's form sends none).
+        if (! in_array($siteKey, (array) config('website.intake_hardening.turnstile_required_site_keys', []), true)) {
             return;
         }
 

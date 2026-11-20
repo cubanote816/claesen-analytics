@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
+use Modules\Core\Models\Site;
 use Modules\Website\Models\ConsultationRequest;
 use Modules\Website\Models\WebsiteIntakeSpamAttempt;
 use Tests\TestCase;
@@ -168,7 +169,7 @@ final class IntakeHardeningTest extends TestCase
     public function test_turnstile_enforced_and_verified_allows_the_submission(): void
     {
         $email = 'jan-'.uniqid().'@example.test';
-        config(['services.turnstile.secret_key' => 'fake-secret', 'services.turnstile.enforce' => true]);
+        config(['services.turnstile.secret_key' => 'fake-secret', 'services.turnstile.enforce' => true, 'website.intake_hardening.turnstile_required_site_keys' => [Site::CLAESEN_KEY]]);
         Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true])]);
 
         $this->postJson('/v1/website/consultations', $this->validPayload(['email' => $email, 'turnstile_token' => 'valid-token']))
@@ -184,7 +185,7 @@ final class IntakeHardeningTest extends TestCase
     public function test_turnstile_enforced_and_failed_verification_is_rejected(): void
     {
         $email = 'jan-'.uniqid().'@example.test';
-        config(['services.turnstile.secret_key' => 'fake-secret', 'services.turnstile.enforce' => true]);
+        config(['services.turnstile.secret_key' => 'fake-secret', 'services.turnstile.enforce' => true, 'website.intake_hardening.turnstile_required_site_keys' => [Site::CLAESEN_KEY]]);
         Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => false])]);
 
         $this->postJson('/v1/website/consultations', $this->validPayload(['email' => $email, 'turnstile_token' => 'bad-token']))
@@ -198,7 +199,7 @@ final class IntakeHardeningTest extends TestCase
     public function test_turnstile_enforced_and_missing_token_is_rejected_without_a_network_call(): void
     {
         $email = 'jan-'.uniqid().'@example.test';
-        config(['services.turnstile.secret_key' => 'fake-secret', 'services.turnstile.enforce' => true]);
+        config(['services.turnstile.secret_key' => 'fake-secret', 'services.turnstile.enforce' => true, 'website.intake_hardening.turnstile_required_site_keys' => [Site::CLAESEN_KEY]]);
         Http::fake();
 
         $this->postJson('/v1/website/consultations', $this->validPayload(['email' => $email]))
@@ -211,7 +212,7 @@ final class IntakeHardeningTest extends TestCase
     public function test_turnstile_verification_network_failure_fails_open(): void
     {
         $email = 'jan-'.uniqid().'@example.test';
-        config(['services.turnstile.secret_key' => 'fake-secret', 'services.turnstile.enforce' => true]);
+        config(['services.turnstile.secret_key' => 'fake-secret', 'services.turnstile.enforce' => true, 'website.intake_hardening.turnstile_required_site_keys' => [Site::CLAESEN_KEY]]);
         Http::fake(function () {
             throw new ConnectionException('Cloudflare is unreachable.');
         });
