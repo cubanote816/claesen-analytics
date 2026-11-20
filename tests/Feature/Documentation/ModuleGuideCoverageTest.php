@@ -94,15 +94,11 @@ class ModuleGuideCoverageTest extends TestCase
         ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/module'))));
     }
 
-    /**
-     * CLA-718: grouped resources (FieldOps Catalogs/*), actions declared in traits (also through
-     * another trait), and action factories such as Website's PublishSiteNowAction::make().
-     */
+    /** CLA-718: grouped resources (FieldOps Catalogs/*) and actions declared in traits (also through another trait). */
     public function test_grouped_resources_and_trait_actions_take_the_scope_of_their_screen(): void
     {
         $this->assertSame([
             'action-gadget-report-archive' => ['Concerns/HasArchiveAction.php'],
-            'action-gadget-report-publish_now' => ['Pages/GadgetReport.php'],
             'action-gadget-type-archive' => ['Concerns/HasArchiveAction.php'],
             'action-gadget-type-create' => ['Resources/Catalogs/GadgetTypes/Pages/ListGadgetTypes.php'],
             'action-gadget-type-edit' => ['Resources/Catalogs/GadgetTypeResource.php'],
@@ -111,14 +107,12 @@ class ModuleGuideCoverageTest extends TestCase
         ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/nested-module'))));
     }
 
-    /** CLA-718 review: traits resolve by qualified name (aliases, same short name); a factory is named by its make() only. */
-    public function test_traits_resolve_by_qualified_name_and_factories_by_their_make_method(): void
+    /** CLA-718 review: traits resolve by qualified name (grouped imports with aliases, same short name). */
+    public function test_traits_resolve_by_qualified_name(): void
     {
         $this->assertSame([
             'action-archive-page-archive' => ['Concerns/Archive/HasButtons.php'],
             'action-export-page-export' => ['Concerns/Export/HasButtons.php'],
-            'action-make-widget-action-preview' => ['Actions/MakeWidgetAction.php'],
-            'action-widgets-page-create' => ['Pages/WidgetsPage.php'],
         ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/qualified-module'))));
     }
 

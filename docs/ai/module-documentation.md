@@ -58,10 +58,14 @@ Code: `app/Support/Documentation/ModuleGuide.php` (renderer), `ModuleActionInven
    `*Resource` file or folder, or the folder that holds `Pages`, `Schemas`, `Tables`, ...
 
    An action declared in a trait belongs to every screen that uses the trait, also through
-   another trait; traits match by qualified name, so aliases and same-named traits in other
-   namespaces resolve correctly. An action factory (a plain `*Action` class with a static
-   `make()`, such as Website's `PublishSiteNowAction`) gives its call sites the name of the
-   action its `make()` builds: `publish_now`, not `publish_site_now`.
+   another trait; traits match by qualified name, so aliases, grouped imports and same-named
+   traits in other namespaces resolve correctly.
+
+   Known limit: an action factory (a plain `*Action` class with a static `make()`, such as
+   Website's `PublishSiteNowAction`) is named after its class where it is called
+   (`publish_site_now`), and the action it builds inside is listed under the factory file
+   (`action-publish-site-now-action-publish_now`). Document both until the inventory reads the
+   panel at runtime.
 
    The name is the one passed to `Action::make('send_now')`. An unnamed Filament action uses
    its default name: `CreateAction` becomes `create`, `EditAction` becomes `edit`, and

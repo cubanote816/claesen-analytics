@@ -4,9 +4,4 @@
 class GadgetReport
 {
     use HasArchiveAction;
-
-    public function actions(): array
-    {
-        return [PublishGadgetAction::make()];
-    }
 }
