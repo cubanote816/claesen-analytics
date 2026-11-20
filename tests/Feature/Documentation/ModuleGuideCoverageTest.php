@@ -72,7 +72,7 @@ class ModuleGuideCoverageTest extends TestCase
     public function test_every_filament_action_is_documented(string $module): void
     {
         $directory = ModuleGuide::directoryFor($module);
-        $required = ModuleActionInventory::anchors(base_path("Modules/{$module}"));
+        $required = ModuleActionInventory::anchors(base_path("Modules/{$module}"), ModuleGuide::filamentRoots($directory));
 
         foreach (ModuleGuide::locales($directory) as $locale) {
             $anchors = ModuleGuide::render($directory, $locale)->anchors();
@@ -92,6 +92,44 @@ class ModuleGuideCoverageTest extends TestCase
             'action-widget-report-export' => ['Pages/WidgetReport.php'],
             'action-widget-view' => ['Resources/WidgetResource.php'],
         ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/module'))));
+    }
+
+    /**
+     * CLA-718: grouped resources (FieldOps Catalogs/*), actions declared in traits (also through
+     * another trait), and action factories such as Website's PublishSiteNowAction::make().
+     */
+    public function test_grouped_resources_and_trait_actions_take_the_scope_of_their_screen(): void
+    {
+        $this->assertSame([
+            'action-gadget-report-archive' => ['Concerns/HasArchiveAction.php'],
+            'action-gadget-report-publish_now' => ['Pages/GadgetReport.php'],
+            'action-gadget-type-archive' => ['Concerns/HasArchiveAction.php'],
+            'action-gadget-type-create' => ['Resources/Catalogs/GadgetTypes/Pages/ListGadgetTypes.php'],
+            'action-gadget-type-edit' => ['Resources/Catalogs/GadgetTypeResource.php'],
+            'action-has-orphan-action-orphan' => ['Concerns/HasOrphanAction.php'],
+            'action-settings-page-archive' => ['Concerns/HasArchiveAction.php'],
+        ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/nested-module'))));
+    }
+
+    /** CLA-718: a guide lists screens that live outside its module (Website lives in app/Filament/Clusters). */
+    public function test_guide_front_matter_adds_filament_roots_outside_the_module(): void
+    {
+        $roots = ModuleGuide::filamentRoots(base_path('tests/Fixtures/documentation/cluster-guide'));
+
+        $this->assertSame([base_path('tests/Fixtures/documentation/cluster')], $roots);
+        $this->assertSame(
+            ['action-sign-publish' => ['Resources/SignResource.php']],
+            ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/no-such-module'), $roots),
+        );
+        $this->assertSame([], ModuleGuide::filamentRoots(ModuleGuide::directoryFor('Mailing')));
+    }
+
+    public function test_a_filament_root_that_does_not_exist_fails_loudly(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('tests/Fixtures/documentation/does-not-exist');
+
+        ModuleGuide::filamentRoots(base_path('tests/Fixtures/documentation/missing-root-guide'));
     }
 
     public function test_named_arguments_and_aliased_imports_are_inventoried(): void

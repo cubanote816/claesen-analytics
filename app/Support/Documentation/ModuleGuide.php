@@ -76,6 +76,33 @@ final class ModuleGuide
         return self::split(self::read($directory, self::resolveLocale($directory, $locale)))[0];
     }
 
+    /**
+     * Filament roots outside the module whose actions the guide documents (CLA-718), from the
+     * `filament` front matter of the English guide: repository-relative folders, comma separated,
+     * e.g. `filament: app/Filament/Clusters/Website`. A folder that does not exist inside the
+     * repository fails loudly, so a moved cluster cannot silently drop out of the coverage test.
+     *
+     * @return list<string> absolute paths
+     */
+    public static function filamentRoots(string $directory): array
+    {
+        $declared = (string) (self::meta($directory, self::FALLBACK_LOCALE)['filament'] ?? '');
+        $base = rtrim(base_path(), '/');
+
+        $roots = [];
+        foreach (array_filter(array_map('trim', explode(',', $declared))) as $relative) {
+            $absolute = realpath($base . '/' . ltrim($relative, '/'));
+
+            if ($absolute === false || ! is_dir($absolute) || ! str_starts_with($absolute . '/', $base . '/')) {
+                throw new RuntimeException("Guide {$directory}: filament root {$relative} is not a folder in this repository.");
+            }
+
+            $roots[] = $absolute;
+        }
+
+        return $roots;
+    }
+
     public static function render(string $directory, ?string $locale = null): RenderedGuide
     {
         $uiLocale = self::normalizeLocale($locale ?? app()->getLocale());
