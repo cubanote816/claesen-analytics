@@ -7,6 +7,7 @@ namespace Modules\Website\Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Modules\Core\Models\Site;
 use Modules\Core\Tests\Support\InteractsWithOrganizationFixtures;
 use Modules\Intelligence\Services\GeminiService;
@@ -130,6 +131,56 @@ final class TurnstilePerSiteTest extends TestCase
         $this->postJson($this->consultations(), $this->payload(['turnstile_token' => 'any-token']))->assertCreated();
 
         $this->assertSame(1, $this->leads()->count());
+    }
+
+    /**
+     * Only a real `success: true` in a 2xx answer verifies. A string "false"
+     * (truthy in PHP) and a 4xx are rejections, not passes.
+     */
+    public function test_only_a_boolean_success_in_a_2xx_answer_verifies(): void
+    {
+        foreach ([Http::response(['success' => 'false']), Http::response(['success' => true], 400), Http::response('not json')] as $answer) {
+            Http::fake(['challenges.cloudflare.com/*' => $answer]);
+
+            $this->postJson($this->consultations(), $this->payload(['turnstile_token' => 'some-token']))
+                ->assertStatus(422)
+                ->assertJsonValidationErrors('turnstile_token');
+        }
+
+        $this->assertSame(0, $this->leads()->count());
+    }
+
+    /** A Cloudflare outage answering 5xx fails open, like a connection failure. */
+    public function test_a_cloudflare_5xx_fails_open(): void
+    {
+        Http::fake(['challenges.cloudflare.com/*' => Http::response('unavailable', 503)]);
+
+        $this->postJson($this->consultations(), $this->payload(['turnstile_token' => 'any-token']))->assertCreated();
+
+        $this->assertSame(0, WebsiteIntakeSpamAttempt::query()->count());
+    }
+
+    /**
+     * Anything that is not "Cloudflare is unreachable" fails CLOSED, and the
+     * log carries the exception class only, never its message (no token,
+     * secret or URL).
+     */
+    public function test_an_unexpected_error_fails_closed_and_logs_only_the_exception_class(): void
+    {
+        Log::spy();
+        Http::fake(function () {
+            throw new \RuntimeException('boom with secret test-secret');
+        });
+
+        $this->postJson($this->consultations(), $this->payload(['turnstile_token' => 'any-token']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('turnstile_token');
+
+        $this->assertSame(0, $this->leads()->count());
+        Log::shouldHaveReceived('warning')->withArgs(
+            fn (string $message, array $context = []): bool => ! str_contains($message.json_encode($context), 'test-secret')
+                && ($context['exception'] ?? null) === \RuntimeException::class
+        );
     }
 
     private function consultations(): string

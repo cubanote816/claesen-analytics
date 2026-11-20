@@ -2,6 +2,7 @@
 
 namespace Modules\Website\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -95,6 +96,11 @@ class IntakeSpamGuard
             return false;
         }
 
+        // CLA-731: fail OPEN only when Cloudflare itself is unavailable (no
+        // connection, or a 5xx). Every other outcome must be an explicit
+        // boolean `success: true` in a 2xx answer; anything else is a rejection.
+        // Logs carry the exception class only: never the token, the secret or
+        // a message that could echo either.
         try {
             $response = Http::asForm()
                 ->timeout(5)
@@ -103,14 +109,22 @@ class IntakeSpamGuard
                     'response' => $token,
                     'remoteip' => $ip,
                 ]);
+        } catch (ConnectionException $e) {
+            Log::warning('IntakeSpamGuard: Turnstile is unreachable — failing open.', ['exception' => $e::class]);
 
-            return (bool) $response->json('success', false);
+            return true;
         } catch (\Throwable $e) {
-            Log::warning('IntakeSpamGuard: Turnstile verification request failed — failing open.', [
-                'error' => $e->getMessage(),
-            ]);
+            Log::warning('IntakeSpamGuard: Turnstile verification errored — rejecting.', ['exception' => $e::class]);
+
+            return false;
+        }
+
+        if ($response->serverError()) {
+            Log::warning('IntakeSpamGuard: Turnstile answered '.$response->status().' — failing open.');
 
             return true;
         }
+
+        return $response->successful() && $response->json('success') === true;
     }
 }
