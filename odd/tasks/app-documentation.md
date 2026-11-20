@@ -17,11 +17,12 @@ Branch: `docs/app-documentation`. Phase 0 ticket: CLA-718. Dutch text is reviewe
 
 | ID | Specs | Ticket | Route | Status | Commit |
 | --- | --- | --- | --- | --- | --- |
-| T1 | S6 | CLA-718 | inline + explore | written; waits for user confirmation | 782ce4aa |
-| T2 | S7 | CLA-718 | inline, test-first | done (Bertels page registration moved to T5) | 744f51ca |
+| T1 | S6 | CLA-718 | inline + explore | done (accepted L12) | 782ce4aa |
+| T2 | S7 | CLA-718 | inline, test-first | done (Bertels page registration moved to T5; factories: known limit) | 744f51ca, ab1bb934, db34f534 |
 | T3 | S2 | CLA-718 | inline | done | 782ce4aa |
 | T4 | S1, S5 | CLA-719 | Core guide | pending | |
-| T5 | S1, S5 | CLA-720 | Website guide | pending | |
+| T12 | S7 | CLA-728 | runtime action inventory (blocks T5) | pending | |
+| T5 | S1, S5 | CLA-720 | Website guide | pending (after T12) | |
 | T6 | S1, S5 | CLA-721 | Safety guide | pending | |
 | T7 | S1, S5 | CLA-722 | Intelligence/BI guide | pending | |
 | T8 | S1, S5 | CLA-723 | FieldOps guide | pending | |
@@ -41,3 +42,5 @@ Branch: `docs/app-documentation`. Phase 0 ticket: CLA-718. Dutch text is reviewe
 - L8 — Slice boundary: CLA-718 = 744f51ca + 782ce4aa (546 changed lines incl. fixtures and docs) on `docs/app-documentation`; one PR. Each later ticket (CLA-719+) is its own branch and PR from `main`. `gentle_review assess` (base origin/main): risk medium, reviewDue false, no independent verifier.
 - L9 — Native review (lineage review-ca82597cd41122cf, readability + reliability) found 4 candidate-caused blockers: factory name taken from the whole file instead of `make()` (R2-001, R3-002) and traits matched by short name (aliases, same-named traits; R2-002, R3-001). One bounded correction (plan 190 lines): RED observed, GREEN `tests/Feature/Documentation` 26/26; real-module anchor counts unchanged.
 - L10 — The scope_changed recover could not be called (tool layer turns its JSON input into an object); inspect then offered a fresh START on the corrected candidate (lineage review-1ed8a4dc7e331fcb). It found 8 more blockers: 6 on factory detection edge cases, 2 on grouped imports. Decision: drop factory detection (back to baseline, documented as a known limit for CLA-720) and parse grouped/list imports. RED observed for the grouped import, GREEN 26/26; Website anchors 49.
+- L11 — Targeted validator rejected that correction; lineage review-1ed8a4dc7e331fcb is terminal `escalated`. Accepted: R2-004, R3-004 (grouped imports). Rejected: dropping factory naming is a regression against the candidate's own contract (REG-001: screens get `publish_site_now` instead of `publish_now`); the strict alternatives (qualified factory resolution, multi-return factories, tokenizer-based bodies) were not done. Against `main` there is no regression: `main` never supported factories. Waits for the user's decision (commit db34f534 is the current tip).
+- L12 — 2026-11-20, user: "go" — accepted option 1: keep db34f534 (factories named as on `main`, documented limit), open a separate ticket for a runtime action inventory before CLA-720; technical GO for CLA-718; inventory accepted as written.
