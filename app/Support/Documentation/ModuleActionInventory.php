@@ -137,10 +137,17 @@ final class ModuleActionInventory
         foreach ($resource::getRelations() as $relation) {
             $managers = $relation instanceof RelationGroup ? $relation->getManagers() : [$relation];
 
-            // A manager is a class name or, through RelationManager::make(), a configuration object.
-            foreach (array_map(fn ($manager): string => $manager instanceof RelationManagerConfiguration ? $manager->relationManager : $manager, $managers) as $manager) {
-                $this->attempt($manager, function () use ($scope, $manager): void {
+            // A manager is a class name or, through RelationManager::make([...]), a configuration
+            // object whose properties shape the table, so they are applied before it is built.
+            foreach ($managers as $configured) {
+                $manager = $configured instanceof RelationManagerConfiguration ? $configured->relationManager : $configured;
+                $properties = $configured instanceof RelationManagerConfiguration ? $configured->getProperties() : [];
+
+                $this->attempt($manager, function () use ($scope, $manager, $properties): void {
                     $instance = app($manager);
+                    foreach ($properties as $property => $value) {
+                        $instance->{$property} = $value;
+                    }
                     $relationScope = $scope.'-'.Str::kebab(Str::beforeLast(class_basename($manager), 'RelationManager'));
                     $this->add($relationScope, $this->tableActions($instance->table(Table::make($instance))), class_basename($manager));
                 });

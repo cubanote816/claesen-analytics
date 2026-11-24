@@ -141,7 +141,7 @@ class ModuleGuideCoverageTest extends TestCase
         $this->assertSame([
             'action-gadget-audit',
             'action-gadget-hidden_until_ready',
-            'action-gadget-roles-inspect',
+            'action-gadget-roles-inspect_extra',
             'action-gadget-shown',
         ], array_keys($anchors));
         $this->assertNull(Filament::getCurrentPanel());

@@ -13,8 +13,11 @@ class RolesRelationManager extends RelationManager
 {
     protected static string $relationship = 'roles';
 
+    /** Set through RelationManager::make(['showExtra' => true]): the table depends on it. */
+    public bool $showExtra = false;
+
     public function table(Table $table): Table
     {
-        return $table->recordActions([Action::make('inspect')]);
+        return $table->recordActions([Action::make($this->showExtra ? 'inspect_extra' : 'inspect_default')]);
     }
 }

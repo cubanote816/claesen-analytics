@@ -28,7 +28,7 @@ class GadgetResource extends Resource
 
     public static function getRelations(): array
     {
-        return [RolesRelationManager::make()];
+        return [RolesRelationManager::make(['showExtra' => true])];
     }
 
     public static function getPages(): array
