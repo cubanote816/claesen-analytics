@@ -82,6 +82,24 @@ final class AnthropicTextGenerationDriverTest extends TestCase
         $this->assertArrayNotHasKey('system', $client->calls[0]['params']);
     }
 
+    public function test_an_http_status_from_the_sdk_is_kept_in_the_message(): void
+    {
+        config(['services.anthropic.key' => 'test-key']);
+        $sdkError = new class('raw upstream body') extends \RuntimeException
+        {
+            public ?int $status = 529;
+        };
+
+        try {
+            (new AnthropicTextGenerationDriver($this->client($sdkError), 'claude-sonnet-5', 30))
+                ->generate(new TextGenerationRequest(task: 't', prompt: 'Hi'));
+            $this->fail('Expected TextGenerationException');
+        } catch (TextGenerationException $e) {
+            $this->assertStringContainsString('HTTP 529', $e->getMessage());
+            $this->assertStringNotContainsString('raw upstream body', $e->getMessage());
+        }
+    }
+
     public function test_missing_api_key_fails_before_calling(): void
     {
         config(['services.anthropic.key' => null]);

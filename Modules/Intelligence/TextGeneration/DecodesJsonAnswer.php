@@ -8,13 +8,19 @@ use Modules\Intelligence\Exceptions\TextGenerationException;
 
 /**
  * CLA-714: shared JSON handling for drivers. An answer to a request with a
- * JSON schema must decode and match it. Supported keywords: type, properties,
- * required, items, enum (plus description/title); any other keyword is
- * rejected rather than silently not enforced.
+ * JSON schema must be a JSON object or array that matches the schema.
+ *
+ * Supported subset (documented in docs/ai/module-contracts.md): type (object,
+ * array, string, integer, number, boolean, null, or a list of them),
+ * properties, required, items, enum, true/false schemas, and the description
+ * and title annotations. Any other keyword or type is refused, never silently
+ * ignored. Objects are decoded as objects, so {} and [] stay distinct.
  */
 trait DecodesJsonAnswer
 {
     private const SCHEMA_KEYWORDS = ['type', 'properties', 'required', 'items', 'enum', 'description', 'title'];
+
+    private const SCHEMA_TYPES = ['object', 'array', 'string', 'integer', 'number', 'boolean', 'null'];
 
     /** @return array<mixed>|null */
     private function decodeIfSchema(TextGenerationRequest $request, string $text, string $provider): ?array
@@ -23,51 +29,104 @@ trait DecodesJsonAnswer
             return null;
         }
 
-        $decoded = json_decode($text, true);
+        $value = json_decode($text);
 
-        if (! is_array($decoded) || ! self::matchesSchema($decoded, $request->jsonSchema)) {
+        if (! ($value instanceof \stdClass || is_array($value)) || ! self::matchesSchema($value, $request->jsonSchema)) {
             throw new TextGenerationException("The {$provider} answer did not match the requested JSON schema.");
         }
 
-        return $decoded;
+        return json_decode($text, true);
     }
 
-    private static function matchesSchema(mixed $value, array $schema): bool
+    /** @param  array<string, mixed>|bool  $schema */
+    private static function matchesSchema(mixed $value, array|bool $schema): bool
     {
-        if (array_diff(array_keys($schema), self::SCHEMA_KEYWORDS) !== []) {
-            throw new TextGenerationException('The JSON schema uses a keyword that is not supported.');
+        if (is_bool($schema)) {
+            return $schema;
         }
 
-        $object = is_array($value) && ($value === [] || ! array_is_list($value));
-        $checks = [
-            ! isset($schema['enum']) || in_array($value, $schema['enum'], true),
-            ! isset($schema['type']) || self::matchesType($value, (array) $schema['type']),
-            ! $object || array_diff($schema['required'] ?? [], array_keys($value)) === [],
-        ];
+        $unknown = array_diff(array_keys($schema), self::SCHEMA_KEYWORDS);
 
-        foreach ($object ? ($schema['properties'] ?? []) : [] as $key => $sub) {
-            $checks[] = ! array_key_exists($key, $value) || self::matchesSchema($value[$key], $sub);
+        if ($unknown !== []) {
+            throw new TextGenerationException('The JSON schema uses an unsupported keyword: '.implode(', ', $unknown).'.');
         }
 
-        foreach (is_array($value) && array_is_list($value) && isset($schema['items']) ? $value : [] as $item) {
-            $checks[] = self::matchesSchema($item, $schema['items']);
+        if (isset($schema['type']) && ! self::matchesType($value, (array) $schema['type'])) {
+            return false;
         }
 
-        return ! in_array(false, $checks, true);
+        if (array_key_exists('enum', $schema)) {
+            $allowed = array_map(fn (mixed $choice): string => self::canonical(json_decode(json_encode($choice))), $schema['enum']);
+
+            if (! in_array(self::canonical($value), $allowed, true)) {
+                return false;
+            }
+        }
+
+        if ($value instanceof \stdClass) {
+            $members = get_object_vars($value);
+
+            foreach ($schema['required'] ?? [] as $key) {
+                if (! array_key_exists((string) $key, $members)) {
+                    return false;
+                }
+            }
+
+            foreach ($schema['properties'] ?? [] as $key => $memberSchema) {
+                if (array_key_exists((string) $key, $members) && ! self::matchesSchema($members[$key], $memberSchema)) {
+                    return false;
+                }
+            }
+        }
+
+        if (is_array($value) && array_key_exists('items', $schema)) {
+            foreach ($value as $item) {
+                if (! self::matchesSchema($item, $schema['items'])) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
+    /** @param  list<string>  $types */
     private static function matchesType(mixed $value, array $types): bool
     {
+        foreach ($types as $type) {
+            if (! in_array($type, self::SCHEMA_TYPES, true)) {
+                throw new TextGenerationException("The JSON schema uses an unsupported type: {$type}.");
+            }
+        }
+
         return collect($types)->contains(fn (string $type): bool => match ($type) {
-            'object' => is_array($value) && ($value === [] || ! array_is_list($value)),
-            'array' => is_array($value) && array_is_list($value),
+            'object' => $value instanceof \stdClass,
+            'array' => is_array($value),
             'string' => is_string($value),
-            'integer' => is_int($value),
+            // JSON Schema treats 7.0 as an integer: a number without a fractional part.
+            'integer' => is_int($value) || (is_float($value) && is_finite($value) && floor($value) === $value),
             'number' => is_int($value) || is_float($value),
             'boolean' => is_bool($value),
             'null' => $value === null,
-            default => throw new TextGenerationException("The JSON schema type \"{$type}\" is not supported."),
         });
+    }
+
+    /** JSON text with object members sorted, so enum comparison ignores member order. */
+    private static function canonical(mixed $value): string
+    {
+        return (string) json_encode(self::sortedMembers($value));
+    }
+
+    private static function sortedMembers(mixed $value): mixed
+    {
+        if ($value instanceof \stdClass) {
+            $members = array_map(fn (mixed $member): mixed => self::sortedMembers($member), get_object_vars($value));
+            ksort($members);
+
+            return (object) $members;
+        }
+
+        return is_array($value) ? array_map(fn (mixed $item): mixed => self::sortedMembers($item), $value) : $value;
     }
 
     private static function elapsedMs(int $startedAt): int

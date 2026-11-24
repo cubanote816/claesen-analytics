@@ -58,7 +58,8 @@ final class AnthropicTextGenerationDriver implements TextGenerationProvider
         } catch (\Throwable $e) {
             // The SDK exception is not chained: its message and request can carry the
             // upstream body and the API key, and log formatters print previous exceptions.
-            $status = method_exists($e, 'getStatusCode') ? ' HTTP '.$e->getStatusCode() : '';
+            // APIStatusException exposes the HTTP status as the public \$status property.
+            $status = isset($e->status) && is_int($e->status) ? ' HTTP '.$e->status : '';
 
             throw new TextGenerationException('The Anthropic request failed ('.class_basename($e).$status.').');
         }

@@ -316,6 +316,7 @@ final class AiProvidersPageTest extends TestCase
         $this->mock(GoogleServiceAccountAuthService::class, fn ($mock) => $mock->shouldReceive('getAccessToken')->andReturn('fake-token'));
         Http::preventStrayRequests();
         Http::fake(['*' => Http::response(['candidates' => [['content' => ['parts' => [['text' => 'OK']]]]]])]);
+        $this->mock(AnthropicMessageClient::class, fn ($mock) => $mock->shouldReceive('createMessage')->never());
 
         $this->page()
             ->fillForm(['tasks' => ['lead_summary' => ['provider' => null, 'model' => null]]])

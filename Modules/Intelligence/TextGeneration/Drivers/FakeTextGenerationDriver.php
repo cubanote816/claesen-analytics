@@ -75,7 +75,9 @@ final class FakeTextGenerationDriver implements TextGenerationProvider
         // Same contract as the real drivers: a schema request needs a matching JSON answer.
         return new TextGenerationResult(
             text: $text,
-            json: $this->decodeIfSchema($request, $text, 'fake'),
+            json: $request->jsonSchema !== null
+                ? $this->decodeIfSchema($request, $text, 'fake')
+                : (is_array($answer) ? $answer : null),
             provider: 'fake',
             model: $this->model,
             inputTokens: null,

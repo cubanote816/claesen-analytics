@@ -101,16 +101,25 @@ final class GeminiTextGenerationDriverTest extends TestCase
 
     public function test_a_url_without_a_model_is_refused_before_sending(): void
     {
-        config(['services.gemini.url' => 'https://vertex.test/v1/projects/p/locations/l/endpoints/123:generateContent']);
         Http::fake();
 
-        $this->expectException(TextGenerationException::class);
+        foreach ([
+            'https://vertex.test/v1/projects/p/locations/l/endpoints/123:generateContent',
+            // A model only in the fragment or query does not count: only the path is called.
+            'https://vertex.test/v1/projects/p/locations/l/endpoints/123:generateContent#/models/x:generateContent',
+            'https://vertex.test/v1/projects/p/locations/l/endpoints/123:generateContent?u=/models/x:y',
+        ] as $url) {
+            config(['services.gemini.url' => $url]);
 
-        try {
-            $this->driver()->generate(new TextGenerationRequest(task: 't', prompt: 'x'));
-        } finally {
-            Http::assertNothingSent();
+            try {
+                $this->driver()->generate(new TextGenerationRequest(task: 't', prompt: 'x'));
+                $this->fail("Expected refusal for {$url}");
+            } catch (TextGenerationException $e) {
+                $this->assertStringContainsString('does not name a model', $e->getMessage());
+            }
         }
+
+        Http::assertNothingSent();
     }
 
     public function test_http_failure_fails_without_leaking_the_prompt(): void

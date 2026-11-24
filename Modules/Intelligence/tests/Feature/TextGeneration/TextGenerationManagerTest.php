@@ -97,7 +97,7 @@ final class TextGenerationManagerTest extends TestCase
         $this->assertSame(7, $this->manager()->generate(new TextGenerationRequest(task: 'lead_summary', prompt: 'x', jsonSchema: $schema))->json['score']);
 
         $fake->queueJson(['a' => 1]);
-        $this->expectExceptionMessage('The JSON schema uses a keyword that is not supported.');
+        $this->expectExceptionMessage('The JSON schema uses an unsupported keyword: minProperties.');
         $this->manager()->generate(new TextGenerationRequest(task: 'lead_summary', prompt: 'x', jsonSchema: ['type' => 'object', 'minProperties' => 1]));
     }
 

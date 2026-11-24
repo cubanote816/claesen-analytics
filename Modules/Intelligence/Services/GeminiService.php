@@ -63,12 +63,18 @@ class GeminiService
             throw new GeminiProviderException('Gemini access token could not be obtained.');
         }
 
-        $url = preg_replace('#/models/[^/:]+:#', '/models/'.rawurlencode($model).':', $this->apiUrl, 1, $replaced);
+        // Only the path is called, so only the path may name the model (a fragment
+        // or query mentioning /models/ must not satisfy the check).
+        $parts = parse_url($this->apiUrl) ?: [];
+        $path = preg_replace('#/models/[^/:]+:#', '/models/'.rawurlencode($model).':', $parts['path'] ?? '', 1, $replaced);
 
-        if ($replaced !== 1) {
+        if ($replaced !== 1 || ! isset($parts['scheme'], $parts['host'])) {
             // e.g. a deployed endpoint URL: the chosen model would not be the one called.
             throw new GeminiProviderException('The configured Gemini URL does not name a model, so the model cannot be chosen.');
         }
+
+        $url = $parts['scheme'].'://'.$parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '')
+            .$path.(isset($parts['query']) ? '?'.$parts['query'] : '');
 
         $payload = ['contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]]];
 
