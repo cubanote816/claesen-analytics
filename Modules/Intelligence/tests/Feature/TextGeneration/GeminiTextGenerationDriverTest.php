@@ -76,9 +76,25 @@ final class GeminiTextGenerationDriverTest extends TestCase
         $this->assertSame(['score' => 7], $result->json);
         Http::assertSent(fn (Request $request): bool => $request['systemInstruction']['parts'][0]['text'] === 'You are strict.'
             && $request['generationConfig']['responseMimeType'] === 'application/json'
-            && $request['generationConfig']['responseSchema'] === $schema
+            && $request['generationConfig']['responseSchema'] === ['type' => 'OBJECT', 'properties' => ['score' => ['type' => 'INTEGER']]]
             && $request['generationConfig']['maxOutputTokens'] === 256
             && $request['generationConfig']['temperature'] === 0.1);
+    }
+
+    public function test_the_schema_is_sent_in_the_form_vertex_accepts(): void
+    {
+        Http::fake(['*' => Http::response($this->answer('{"summary": null, "tags": []}'))]);
+        $schema = ['type' => 'object', 'required' => ['summary'], 'properties' => [
+            'summary' => ['type' => ['string', 'null'], 'description' => 'Short summary'],
+            'tags' => ['type' => 'array', 'items' => true],
+            'choice' => ['enum' => [['a' => 1], 'none']],
+        ]];
+
+        $this->driver()->generate(new TextGenerationRequest(task: 't', prompt: 'x', jsonSchema: $schema));
+
+        // Raw body: an empty subschema must be the JSON object {}, which a decoded array would hide.
+        Http::assertSent(fn (Request $request): bool => str_contains($request->body(), '"responseSchema":{"required":["summary"],"type":"OBJECT","properties":{'
+            .'"summary":{"description":"Short summary","type":"STRING","nullable":true},"tags":{"type":"ARRAY"},"choice":{}}}'));
     }
 
     public function test_non_json_answer_with_a_schema_fails(): void

@@ -106,6 +106,12 @@ class TextGenerationManager
     private function run(string $provider, string $model, TextGenerationRequest $request): TextGenerationResult
     {
         $resolved = ['provider' => $provider, 'model' => $model];
+
+        // The whole schema is checked before any provider call, not only the parts an answer reaches.
+        if ($request->jsonSchema !== null) {
+            ProviderSchema::assertSupported($request->jsonSchema);
+        }
+
         $startedAt = hrtime(true);
 
         try {

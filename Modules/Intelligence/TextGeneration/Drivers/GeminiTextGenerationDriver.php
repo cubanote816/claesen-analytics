@@ -9,6 +9,7 @@ use Modules\Intelligence\Exceptions\GeminiProviderException;
 use Modules\Intelligence\Exceptions\TextGenerationException;
 use Modules\Intelligence\Services\GeminiService;
 use Modules\Intelligence\TextGeneration\DecodesJsonAnswer;
+use Modules\Intelligence\TextGeneration\ProviderSchema;
 use Modules\Intelligence\TextGeneration\TextGenerationRequest;
 use Modules\Intelligence\TextGeneration\TextGenerationResult;
 
@@ -25,6 +26,10 @@ final class GeminiTextGenerationDriver implements TextGenerationProvider
 
     public function generate(TextGenerationRequest $request): TextGenerationResult
     {
+        if ($request->jsonSchema !== null) {
+            ProviderSchema::assertSupported($request->jsonSchema);
+        }
+
         $startedAt = hrtime(true);
 
         try {
@@ -32,7 +37,7 @@ final class GeminiTextGenerationDriver implements TextGenerationProvider
                 model: $this->model,
                 prompt: $request->prompt,
                 system: $request->system,
-                responseSchema: $request->jsonSchema,
+                responseSchema: $request->jsonSchema === null ? null : ProviderSchema::forGemini($request->jsonSchema),
                 maxTokens: $request->maxTokens,
                 temperature: $request->temperature,
                 timeoutSeconds: $this->timeoutSeconds,

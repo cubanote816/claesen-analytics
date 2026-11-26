@@ -108,6 +108,13 @@ final class JsonSchemaCheckTest extends TestCase
         $this->assertRejected('{"a":1}', ['type' => 'tuple'], 'The JSON schema uses an unsupported type: tuple.');
     }
 
+    public function test_unsupported_keywords_are_refused_even_where_the_answer_does_not_reach(): void
+    {
+        $message = 'The JSON schema uses an unsupported keyword: minLength.';
+        $this->assertRejected('{}', ['type' => 'object', 'properties' => ['summary' => ['type' => 'string', 'minLength' => 1]]], $message);
+        $this->assertRejected('[]', ['type' => 'array', 'items' => ['type' => 'string', 'minLength' => 1]], $message);
+    }
+
     public function test_the_fake_keeps_json_for_queued_arrays_without_a_schema(): void
     {
         $fake = app(FakeTextGenerationDriver::class)->queueJson(['a' => 1]);

@@ -8,6 +8,7 @@ use Modules\Intelligence\Contracts\TextGenerationProvider;
 use Modules\Intelligence\Exceptions\TextGenerationException;
 use Modules\Intelligence\TextGeneration\AnthropicMessageClient;
 use Modules\Intelligence\TextGeneration\DecodesJsonAnswer;
+use Modules\Intelligence\TextGeneration\ProviderSchema;
 use Modules\Intelligence\TextGeneration\TextGenerationRequest;
 use Modules\Intelligence\TextGeneration\TextGenerationResult;
 
@@ -48,7 +49,8 @@ final class AnthropicTextGenerationDriver implements TextGenerationProvider
         }
 
         if ($request->jsonSchema !== null) {
-            $params['outputConfig'] = ['format' => ['type' => 'json_schema', 'schema' => $request->jsonSchema]];
+            ProviderSchema::assertSupported($request->jsonSchema);
+            $params['outputConfig'] = ['format' => ['type' => 'json_schema', 'schema' => ProviderSchema::forAnthropic($request->jsonSchema)]];
         }
 
         $startedAt = hrtime(true);

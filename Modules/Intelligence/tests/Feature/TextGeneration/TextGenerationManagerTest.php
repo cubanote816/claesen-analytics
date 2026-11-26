@@ -167,6 +167,22 @@ final class TextGenerationManagerTest extends TestCase
         })->once();
     }
 
+    public function test_an_unsupported_schema_is_refused_before_any_provider_call(): void
+    {
+        config(['intelligence.ai.default' => ['provider' => 'fake', 'model' => 'fake-model']]);
+        $fake = app(FakeTextGenerationDriver::class);
+        $schema = ['type' => 'object', 'properties' => ['next_steps' => ['type' => 'array', 'maxItems' => 3]]];
+
+        try {
+            $this->manager()->generate(new TextGenerationRequest(task: 'lead_summary', prompt: 'x', jsonSchema: $schema));
+            $this->fail('Expected TextGenerationException');
+        } catch (TextGenerationException $e) {
+            $this->assertSame('The JSON schema uses an unsupported keyword: maxItems.', $e->getMessage());
+        }
+
+        $this->assertSame([], $fake->requests);
+    }
+
     public function test_a_failed_call_is_logged_and_rethrown_without_the_prompt(): void
     {
         config(['intelligence.ai.default' => ['provider' => 'fake', 'model' => 'fake-model']]);

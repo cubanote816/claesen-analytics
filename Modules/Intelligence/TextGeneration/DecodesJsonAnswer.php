@@ -29,6 +29,7 @@ trait DecodesJsonAnswer
             return null;
         }
 
+        ProviderSchema::assertSupported($request->jsonSchema);
         $value = json_decode($text);
 
         if (! ($value instanceof \stdClass || is_array($value)) || ! self::matchesSchema($value, $request->jsonSchema)) {

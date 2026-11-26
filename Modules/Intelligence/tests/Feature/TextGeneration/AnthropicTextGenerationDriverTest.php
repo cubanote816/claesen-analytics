@@ -64,8 +64,23 @@ final class AnthropicTextGenerationDriverTest extends TestCase
         $this->assertSame('Be brief.', $params['system']);
         $this->assertSame(300, $params['maxTokens']);
         $this->assertSame([['role' => 'user', 'content' => 'Suggest']], $params['messages']);
-        $this->assertSame(['format' => ['type' => 'json_schema', 'schema' => $schema]], $params['outputConfig']);
+        // Anthropic structured outputs need additionalProperties false on every object.
+        $this->assertSame(['format' => ['type' => 'json_schema', 'schema' => ['type' => 'object', 'additionalProperties' => false]]], $params['outputConfig']);
         $this->assertSame(['timeout' => 30.0], $params['requestOptions']);
+    }
+
+    public function test_nested_objects_also_get_additional_properties_false(): void
+    {
+        config(['services.anthropic.key' => 'test-key']);
+        $client = $this->client($this->message('{"lead": {"name": "x"}}'));
+        $schema = ['type' => 'object', 'properties' => ['lead' => ['type' => 'object', 'properties' => ['name' => ['type' => 'string']]]]];
+
+        (new AnthropicTextGenerationDriver($client, 'claude-sonnet-5', 30))->generate(new TextGenerationRequest(task: 't', prompt: 'x', jsonSchema: $schema));
+
+        $wire = $client->calls[0]['params']['outputConfig']['format']['schema'];
+        $this->assertFalse($wire['additionalProperties']);
+        $this->assertFalse($wire['properties']['lead']['additionalProperties']);
+        $this->assertArrayNotHasKey('additionalProperties', $wire['properties']['lead']['properties']['name']);
     }
 
     public function test_plain_text_without_schema_sends_no_output_config(): void
