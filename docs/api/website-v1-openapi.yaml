@@ -283,7 +283,7 @@ paths:
                     website.intake_hardening.turnstile_required_site_keys
                     (electro-bertels; Claesen is not listed and needs none).
                     Missing or rejected → 422 on turnstile_token, nothing stored.
-                    A Cloudflare outage fails open. Same rule on /contact-email,
+                    Only an unreachable Cloudflare (no connection) fails open; a 5xx or any answer without a boolean success=true rejects. Same rule on /contact-email,
                     whose 422 body is {success:false, errors:{turnstile_token}}.
                 consent:
                   type: boolean

@@ -241,7 +241,9 @@ Modules/Safety/config/config.php
   sitio resuelto está en `website.intake_hardening.turnstile_required_site_keys`
   (`electro-bertels`). Claesen no está en la lista: su formulario no manda
   token. Rechazo → 422 en `turnstile_token`, nada guardado y el intento
-  registrado con su sitio; una caída de Cloudflare deja pasar (fail-open).
+  registrado con su sitio. Solo si no hay conexión con Cloudflare se deja pasar
+  (fail-open); una respuesta 5xx, un 4xx o un `success` que no sea el booleano
+  `true` rechazan.
   No encender `TURNSTILE_ENFORCE` antes de que la landing publique su clave
   de sitio: cada envío de Bertels daría 422.
 - **Intake con sitio nombrado cierra en falso (CLA-705):** `POST

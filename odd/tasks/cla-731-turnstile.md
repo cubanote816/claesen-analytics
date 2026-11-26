@@ -35,3 +35,5 @@ Linear: CLA-731. Complements the honeypot, the rate limits and the CLA-705/706 g
 - S3: the runbook published only `index.html` and treated a 201 as proof; now it publishes the three files, requires checking in DevTools that the POST carries a non-empty `turnstile_token` before enabling, and the `curl` example sends JSON headers. OpenAPI `/contact-email` declares its request body with `turnstile_token`.
 Not a defect: a POST without `site` through another public route files under Claesen, which is not listed by design.
 
+**L6 — 2026-11-26, re-verification:** S3 PASS; S2 no remaining defect (its own offline re-run unavailable; the parent's Chromium A–G stands); S1 FAIL because the fix had widened fail-open to 5xx, while the spec only keeps fail-open for a network error and a 5xx was a rejection before. Reverted to the spec: a 5xx rejects (test renamed to `test_a_cloudflare_5xx_is_a_rejection`, RED 201 → 422), 65 passed. Product option recorded for the user: failing open on a Cloudflare 5xx is a one-line change if they prefer not to lose leads during a Cloudflare outage.
+

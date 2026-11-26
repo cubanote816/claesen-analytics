@@ -96,9 +96,10 @@ class IntakeSpamGuard
             return false;
         }
 
-        // CLA-731: fail OPEN only when Cloudflare itself is unavailable (no
-        // connection, or a 5xx). Every other outcome must be an explicit
-        // boolean `success: true` in a 2xx answer; anything else is a rejection.
+        // CLA-731: fail OPEN only when Cloudflare cannot be reached at all (no
+        // connection). Every other outcome must be an explicit boolean
+        // `success: true` in a 2xx answer; anything else, a 5xx included, is a
+        // rejection (the visitor gets the phone/e-mail fallback).
         // Logs carry the exception class only: never the token, the secret or
         // a message that could echo either.
         try {
@@ -117,12 +118,6 @@ class IntakeSpamGuard
             Log::warning('IntakeSpamGuard: Turnstile verification errored — rejecting.', ['exception' => $e::class]);
 
             return false;
-        }
-
-        if ($response->serverError()) {
-            Log::warning('IntakeSpamGuard: Turnstile answered '.$response->status().' — failing open.');
-
-            return true;
         }
 
         return $response->successful() && $response->json('success') === true;

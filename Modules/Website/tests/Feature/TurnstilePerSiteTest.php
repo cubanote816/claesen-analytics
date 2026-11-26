@@ -150,14 +150,20 @@ final class TurnstilePerSiteTest extends TestCase
         $this->assertSame(0, $this->leads()->count());
     }
 
-    /** A Cloudflare outage answering 5xx fails open, like a connection failure. */
-    public function test_a_cloudflare_5xx_fails_open(): void
+    /**
+     * Only an unreachable Cloudflare (no connection) fails open. A 5xx is an
+     * answer, not an outage of the network path: it is a rejection, like any
+     * other non-2xx (spec S1).
+     */
+    public function test_a_cloudflare_5xx_is_a_rejection(): void
     {
         Http::fake(['challenges.cloudflare.com/*' => Http::response('unavailable', 503)]);
 
-        $this->postJson($this->consultations(), $this->payload(['turnstile_token' => 'any-token']))->assertCreated();
+        $this->postJson($this->consultations(), $this->payload(['turnstile_token' => 'any-token']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('turnstile_token');
 
-        $this->assertSame(0, WebsiteIntakeSpamAttempt::query()->count());
+        $this->assertSame(0, $this->leads()->count());
     }
 
     /**
