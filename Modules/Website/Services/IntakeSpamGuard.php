@@ -2,6 +2,7 @@
 
 namespace Modules\Website\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -57,9 +58,15 @@ class IntakeSpamGuard
      *                             legitimate submission on the site
      *                             ("Turnstile accesible con fallback").
      */
-    public function assertTurnstilePasses(?string $token, ?int $siteId, string $ip): void
+    public function assertTurnstilePasses(?string $token, ?int $siteId, string $ip, ?string $siteKey = null): void
     {
         if (! config('services.turnstile.enforce') || blank(config('services.turnstile.secret_key'))) {
+            return;
+        }
+
+        // CLA-731: enforced PER SITE. The global switch above stays the kill
+        // switch; only listed sites need a token (Claesen's form sends none).
+        if (! in_array($siteKey, (array) config('website.intake_hardening.turnstile_required_site_keys', []), true)) {
             return;
         }
 
@@ -89,6 +96,12 @@ class IntakeSpamGuard
             return false;
         }
 
+        // CLA-731: fail OPEN only when Cloudflare cannot be reached at all (no
+        // connection). Every other outcome must be an explicit boolean
+        // `success: true` in a 2xx answer; anything else, a 5xx included, is a
+        // rejection (the visitor gets the phone/e-mail fallback).
+        // Logs carry the exception class only: never the token, the secret or
+        // a message that could echo either.
         try {
             $response = Http::asForm()
                 ->timeout(5)
@@ -97,14 +110,16 @@ class IntakeSpamGuard
                     'response' => $token,
                     'remoteip' => $ip,
                 ]);
-
-            return (bool) $response->json('success', false);
-        } catch (\Throwable $e) {
-            Log::warning('IntakeSpamGuard: Turnstile verification request failed — failing open.', [
-                'error' => $e->getMessage(),
-            ]);
+        } catch (ConnectionException $e) {
+            Log::warning('IntakeSpamGuard: Turnstile is unreachable — failing open.', ['exception' => $e::class]);
 
             return true;
+        } catch (\Throwable $e) {
+            Log::warning('IntakeSpamGuard: Turnstile verification errored — rejecting.', ['exception' => $e::class]);
+
+            return false;
         }
+
+        return $response->successful() && $response->json('success') === true;
     }
 }

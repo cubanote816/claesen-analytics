@@ -276,10 +276,15 @@ paths:
                   type: string
                   nullable: true
                   description: >-
-                    F4/CLA-475: Cloudflare Turnstile response token. Optional
-                    and currently ignored — verification only runs once
-                    services.turnstile.secret_key AND services.turnstile.enforce
-                    are both set, which they are not in any environment today.
+                    F4/CLA-475 + CLA-731: Cloudflare Turnstile response token.
+                    Required only when the global switch is on
+                    (services.turnstile.secret_key AND services.turnstile.enforce)
+                    AND the resolved site is listed in
+                    website.intake_hardening.turnstile_required_site_keys
+                    (electro-bertels; Claesen is not listed and needs none).
+                    Missing or rejected → 422 on turnstile_token, nothing stored.
+                    Only an unreachable Cloudflare (no connection) fails open; a 5xx or any answer without a boolean success=true rejects. Same rule on /contact-email,
+                    whose 422 body is {success:false, errors:{turnstile_token}}.
                 consent:
                   type: boolean
                   nullable: true
@@ -351,6 +356,25 @@ paths:
             CLA-706: same rule as /consultations. When present it must resolve
             to an active site, otherwise 503 (no Claesen fallback, nothing
             stored). Omitted: resolved from the Host, falling back to Claesen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, message]
+              properties:
+                name: { type: string, maxLength: 255 }
+                email: { type: string, format: email, maxLength: 255 }
+                message: { type: string, maxLength: 5000 }
+                turnstile_token:
+                  type: string
+                  nullable: true
+                  description: >-
+                    CLA-731: same rule as /consultations — required only when
+                    the global Turnstile switch is on AND the resolved site is
+                    in website.intake_hardening.turnstile_required_site_keys.
+                    Rejected → 422 {success:false, errors:{turnstile_token:[…]}}.
       responses:
         "201": { description: Created }
         "400":

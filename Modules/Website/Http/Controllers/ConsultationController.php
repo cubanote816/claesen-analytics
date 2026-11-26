@@ -105,7 +105,7 @@ class ConsultationController extends Controller
         // Throws a ValidationException (=> Laravel's normal automatic 422
         // JSON render, same as the $request->validate() call above) only
         // when Turnstile is both configured AND enforced — a no-op today.
-        $guard->assertTurnstilePasses($request->input('turnstile_token'), $siteId, $request->ip());
+        $guard->assertTurnstilePasses($request->input('turnstile_token'), $siteId, $request->ip(), $siteKey);
 
         try {
             $response = $this->consultationService->handlePublicIntake($request, $validated);

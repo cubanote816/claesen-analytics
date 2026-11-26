@@ -144,5 +144,9 @@ return [
         // stays off this list: its live form doesn't send the field and its
         // payload/behaviour stays byte-identical.
         'consent_version_required_site_keys' => ['electro-bertels'],
+        // CLA-731: sites whose intake REQUIRES a Cloudflare Turnstile token,
+        // once the global switch is on (services.turnstile.enforce + secret).
+        // Claesen stays off this list: its form sends no token.
+        'turnstile_required_site_keys' => ['electro-bertels'],
     ],
 ];
