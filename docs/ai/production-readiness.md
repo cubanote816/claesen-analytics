@@ -236,14 +236,19 @@ global encendido. Claesen no cambia. Orden obligatorio:
    **secreto** (privado; no va en el repo ni en el chat).
 2. **Backend:** desplegar el código de CLA-731 (inerte sin las variables).
 3. **Landing:** poner la clave de sitio en `data-turnstile-sitekey` de `index.html` (repo
-   `cubanote816/electrobertels`) y publicar `index.html` en `sbapu03` como en CLA-705 (backup,
-   sha256, mismo dueño y permisos). Comprobar en un navegador que el envío sigue dando 201: con el
-   backend todavía sin exigir, el token viaja y se ignora.
+   `cubanote816/electrobertels`) y publicar en `sbapu03`, como en CLA-705 (backup, sha256, mismo
+   dueño y permisos), los **tres** archivos que cambian: `index.html`, `js/contact-form.js` y
+   `css/electrobertels-style.css`. `index.html` los carga con `?v=cla731`, así el navegador no
+   sigue usando la versión anterior. **Antes del paso 4**, en un navegador con las herramientas de
+   desarrollo abiertas (pestaña Red), hacer un envío real y confirmar que el `POST
+   /intake/consultations` lleva un `turnstile_token` no vacío y da 201. Un 201 solo no prueba nada:
+   con el backend todavía sin exigir, un envío sin token también da 201.
 4. **Encender** en `prod-priv-01`, en `shared/.env`: `TURNSTILE_SECRET_KEY=<secreto>` y
    `TURNSTILE_ENFORCE=true`, y después `infrastructure/scripts/reload-config.sh` (regla 7 de
    `CLAUDE.md`: nunca solo `config:cache`).
 5. **Verificar:** un envío real desde el navegador da 201. `POST /intake/consultations` sin token
-   (por ejemplo `curl -d '{"name":"x","email":"x@example.test","message":"x"}'`) da **422**
+   (`curl -X POST https://electrobertels.be/intake/consultations -H 'Content-Type: application/json'
+   -H 'Accept: application/json' -d '{"name":"x","email":"x@example.test","message":"x"}'`) da **422**
    `turnstile_token` sin crear nada. El formulario de Claesen sigue funcionando.
 
 **Rollback inmediato:** `TURNSTILE_ENFORCE=false` + `reload-config.sh`. La landing sigue mandando
