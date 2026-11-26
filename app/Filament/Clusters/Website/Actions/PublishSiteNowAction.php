@@ -6,6 +6,7 @@ namespace App\Filament\Clusters\Website\Actions;
 
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Modules\Core\Models\Site;
 use Modules\Website\Services\StaticSitePublicationService;
 
 /**
@@ -48,8 +49,10 @@ class PublishSiteNowAction
                     return;
                 }
 
+                // CLA-733: the site of the panel the button is on. Without it the service falls
+                // back to Claesen, and the Electro Bertels panel rebuilt the Claesen website.
                 app(StaticSitePublicationService::class)
-                    ->requestRebuild(reason: 'manual', force: true);
+                    ->requestRebuild(siteId: Site::forPanelOrFail()->id, reason: 'manual', force: true);
 
                 Notification::make()
                     ->title(__('website.publication.actions.publish_now_success'))
