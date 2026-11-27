@@ -6,8 +6,6 @@ namespace Tests\Feature\Documentation;
 
 use App\Support\Documentation\ModuleActionInventory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Core\Models\Organization;
-use Modules\Core\Models\Site;
 use Tests\TestCase;
 
 /**
@@ -17,20 +15,13 @@ use Tests\TestCase;
 class WebsiteActionInventoryTest extends TestCase
 {
     use RefreshDatabase;
+    use SeedsPanelSites;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        foreach (array_unique(array_values((array) config('organizations.panel_sites'))) as $key) {
-            if (! Site::query()->where('key', $key)->exists()) {
-                Site::factory()->create([
-                    'organization_id' => Organization::factory()->create(['slug' => $key])->id,
-                    'key' => $key,
-                    'status' => Site::STATUS_ACTIVE,
-                ]);
-            }
-        }
+        $this->seedPanelSites();
     }
 
     /** A factory such as PublishSiteNowAction::make() is named after the action it builds. */

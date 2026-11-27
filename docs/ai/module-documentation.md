@@ -72,8 +72,8 @@ Code: `app/Support/Documentation/ModuleGuide.php` (renderer), `ModuleActionInven
    owner record while building the table) fails the coverage test with the screen's name; make
    that code tolerate a missing record before you add the module's guide. Screens that resolve
    their panel's site while they are built (Website: `Site::forPanelOrFail()`) need that site in
-   the test database; `tests/Feature/Documentation/WebsiteActionInventoryTest.php` shows the
-   setup, and the Website guide (CLA-720) brings it to the coverage test.
+   the test database: the coverage test creates every panel's site first
+   (`tests/Feature/Documentation/SeedsPanelSites.php`, CLA-720).
 
    Example: `### [[action:mailing::resource.actions.send_now]] {#action-campaign-send_now}`.
 
@@ -124,8 +124,12 @@ Run it locally with `bin/wt-test tests/Feature/Documentation`.
 5. Update the module's row in `docs/ai/production-inventory.md`.
 
 Guide pages live in `Modules/*/Filament/Pages`, which only the admin panel discovers. A guide
-that must also show on the Bertels panel (Website) is registered there explicitly, with the
-Documentation group; CLA-720 adds the first one.
+that must also show on the Bertels panel is registered there by hand in
+`BertelsPanelProvider::pages()`; the panel already has the Documentation group (CLA-720, first
+one: Website). Registering a page changes two baseline snapshots on purpose: regenerate them with
+`UPDATE_BASELINE_SNAPSHOTS=1` and update the Bertels page list in
+`tests/Feature/ClaesenBaseline/PanelRegistrySnapshotTest.php`. A new admin guide page changes the
+snapshots too.
 
 ## Future: per-module RAG
 

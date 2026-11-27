@@ -53,6 +53,7 @@ page App\Filament\Clusters\Website\WebsiteCluster
 page App\Filament\Guides\Ets6ProjectArchiveGuide
 page Filament\Pages\Dashboard
 page Modules\Core\Filament\Pages\AccessAnalyticsPage
+page Modules\Core\Filament\Pages\CoreDocumentation
 page Modules\Employee\Filament\Pages\EmployeeDayStats
 page Modules\Employee\Filament\Pages\EmployeeHoursDashboard
 page Modules\Employee\Filament\Pages\EmployeeMonthStats
@@ -67,6 +68,7 @@ page Modules\Intelligence\Filament\Pages\ProjectIntelligenceDetail
 page Modules\Mailing\Filament\Pages\MailingDocumentation
 page Modules\Performance\Filament\Pages\EmployeeInsight
 page Modules\Prospects\Filament\Pages\SyncDashboardPage
+page Modules\Website\Filament\Pages\WebsiteDocumentation
 widget Modules\Employee\Filament\Widgets\EmployeeHoursSummaryWidget
 widget Modules\FieldOps\Filament\Widgets\MaintenanceRequestLifecycleWidget
 widget Modules\Mailing\Filament\Widgets\CampaignMetricsWidget
