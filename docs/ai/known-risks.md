@@ -375,7 +375,8 @@ Riesgos que quedan para el deploy:
    exige. Cuando el cliente entregue el texto legal, registrar la versión **solo** con la landing ya
    preparada para mostrarlo y enviarlo; si no, todo envío da 422.
 
-4. **Selector malformado (CLA-706, aparte):** `?site[]=x` hace que `ResolveRequestSite` responda 500
+4. **RESUELTO en CLA-706:** `site[]=x` → 400, `/contact-email` con el guard, idempotencia por sitio.
+   Texto original: **Selector malformado (CLA-706, aparte):** `?site[]=x` hace que `ResolveRequestSite` responda 500
    en toda la API pública. No guarda nada ni cae a Claesen, y desde la landing no se puede provocar
    porque nginx reemplaza la query. Decisión del usuario: ticket aparte. CLA-706 también recoge
    `/contact-email`, que no tiene el guard, y la caché de idempotencia, que no separa por sitio.
