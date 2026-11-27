@@ -6,7 +6,10 @@ namespace Tests\Feature\Documentation;
 
 use App\Support\Documentation\ModuleActionInventory;
 use App\Support\Documentation\ModuleGuide;
+use Filament\Facades\Filament;
+use Filament\Panel;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Fixtures\DocumentationPanel\GadgetResource;
 use Tests\TestCase;
 
 /**
@@ -82,55 +85,12 @@ class ModuleGuideCoverageTest extends TestCase
         }
     }
 
-    public function test_inventory_names_actions_by_scope_and_filament_default_names(): void
-    {
-        $this->assertSame([
-            'action-widget-create' => ['Resources/WidgetResource/Pages/ViewWidget.php'],
-            'action-widget-delete_bulk' => ['Resources/WidgetResource.php'],
-            'action-widget-parts-view' => ['Resources/WidgetResource/RelationManagers/PartsRelationManager.php'],
-            'action-widget-publish' => ['Resources/WidgetResource.php', 'Resources/WidgetResource/Pages/ViewWidget.php'],
-            'action-widget-report-export' => ['Pages/WidgetReport.php'],
-            'action-widget-view' => ['Resources/WidgetResource.php'],
-        ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/module'))));
-    }
-
-    /**
-     * CLA-718: grouped resources (FieldOps Catalogs/*, also a resource folder named like a Filament
-     * part), actions declared in traits (also through another trait), commented-out trait uses ignored.
-     */
-    public function test_grouped_resources_and_trait_actions_take_the_scope_of_their_screen(): void
-    {
-        $this->assertSame([
-            'action-form-create' => ['Resources/Catalogs/Forms/Pages/ListForms.php'],
-            'action-form-edit' => ['Resources/Catalogs/FormResource.php'],
-            'action-gadget-report-archive' => ['Concerns/HasArchiveAction.php'],
-            'action-gadget-type-archive' => ['Concerns/HasArchiveAction.php'],
-            'action-gadget-type-create' => ['Resources/Catalogs/GadgetTypes/Pages/ListGadgetTypes.php'],
-            'action-gadget-type-edit' => ['Resources/Catalogs/GadgetTypeResource.php'],
-            'action-has-orphan-action-orphan' => ['Concerns/HasOrphanAction.php'],
-            'action-settings-page-archive' => ['Concerns/HasArchiveAction.php'],
-        ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/nested-module'))));
-    }
-
-    /** CLA-718 review: traits resolve by qualified name (grouped imports with aliases and comments, any case, same short name). */
-    public function test_traits_resolve_by_qualified_name(): void
-    {
-        $this->assertSame([
-            'action-archive-page-archive' => ['Concerns/Archive/HasButtons.php'],
-            'action-export-page-export' => ['Concerns/Export/HasButtons.php'],
-        ], self::sortPaths(ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/qualified-module'))));
-    }
-
     /** CLA-718: a guide lists screens that live outside its module (Website lives in app/Filament/Clusters). */
     public function test_guide_front_matter_adds_filament_roots_outside_the_module(): void
     {
         $roots = ModuleGuide::filamentRoots(base_path('tests/Fixtures/documentation/cluster-guide'));
 
         $this->assertSame([base_path('tests/Fixtures/documentation/cluster')], $roots);
-        $this->assertSame(
-            ['action-sign-publish' => ['Resources/SignResource.php']],
-            ModuleActionInventory::anchors(base_path('tests/Fixtures/documentation/no-such-module'), $roots),
-        );
         $this->assertSame([], ModuleGuide::filamentRoots(ModuleGuide::directoryFor('Mailing')));
     }
 
@@ -142,56 +102,58 @@ class ModuleGuideCoverageTest extends TestCase
         ModuleGuide::filamentRoots(base_path('tests/Fixtures/documentation/missing-root-guide'));
     }
 
-    public function test_named_arguments_and_aliased_imports_are_inventoried(): void
-    {
-        $dir = sys_get_temp_dir() . '/guide-' . bin2hex(random_bytes(8));
-        mkdir($dir . '/Filament/Pages', 0777, true);
-        $file = $dir . '/Filament/Pages/Report.php';
-
-        try {
-            foreach ([
-                "Action::make(name: 'publish');",
-                "use Filament\\Actions\\Action as Button;\nButton::make('publish');",
-                "use Filament\\Actions\\CreateAction as NewThing;\nNewThing::make();",
-            ] as $index => $source) {
-                file_put_contents($file, "<?php\n" . $source);
-                $this->assertSame(
-                    [$index === 2 ? 'action-report-create' : 'action-report-publish'],
-                    array_keys(ModuleActionInventory::anchors($dir)),
-                    $source,
-                );
-            }
-        } finally {
-            @unlink($file);
-            @rmdir($dir . '/Filament/Pages');
-            @rmdir($dir . '/Filament');
-            @rmdir($dir);
-        }
-    }
-
-    public function test_non_action_factories_are_ignored(): void
-    {
-        $dir = sys_get_temp_dir() . '/guide-' . bin2hex(random_bytes(8));
-        mkdir($dir . '/Filament/Pages', 0777, true);
-        $file = $dir . '/Filament/Pages/Report.php';
-
-        try {
-            file_put_contents($file, "<?php\nTextColumn::make('name'); SchemaActions::make([]); BulkActionGroup::make([]);");
-            $this->assertSame([], ModuleActionInventory::anchors($dir));
-        } finally {
-            @unlink($file);
-            @rmdir($dir . '/Filament/Pages');
-            @rmdir($dir . '/Filament');
-            @rmdir($dir);
-        }
-    }
-
     public function test_dutch_mailing_guide_names_the_real_send_button(): void
     {
         $html = ModuleGuide::render(ModuleGuide::directoryFor('Mailing'), 'nl')->html;
 
         $this->assertStringContainsString('Nu verzenden', $html);
         $this->assertStringNotContainsString('Nu versturen', $html);
+    }
+
+    /** CLA-728: Core's guide is pinned like Mailing's, so a silent inventory change cannot drop a section. */
+    public function test_core_inventory_matches_its_screens(): void
+    {
+        $expected = [];
+        foreach (['permission', 'role', 'user'] as $scope) {
+            foreach (['create', 'delete', 'delete_bulk', 'edit'] as $name) {
+                $expected[] = "action-{$scope}-{$name}";
+            }
+        }
+        foreach (['changeRoles', 'resendActivationEmail', 'revokeSessions'] as $name) {
+            $expected[] = "action-user-{$name}";
+        }
+        sort($expected, SORT_STRING);
+
+        $this->assertSame($expected, array_keys(ModuleActionInventory::anchors(base_path('Modules/Core'))));
+    }
+
+    /**
+     * CLA-728 verification: hidden actions in an Actions row, a page's own infolist and relation
+     * managers registered with RelationManager::make() all count, and the panel state is restored.
+     */
+    public function test_inventory_reads_hidden_row_actions_page_infolists_and_configured_relation_managers(): void
+    {
+        Filament::setCurrentPanel(null);
+        $panel = Panel::make()->id('documentation-fixture')->resources([GadgetResource::class]);
+
+        $anchors = ModuleActionInventory::anchors(base_path('tests/Fixtures/DocumentationPanel'), [], [$panel]);
+
+        $this->assertSame([
+            'action-gadget-audit',
+            'action-gadget-hidden_until_ready',
+            'action-gadget-roles-inspect_extra',
+            'action-gadget-shown',
+        ], array_keys($anchors));
+        $this->assertNull(Filament::getCurrentPanel());
+    }
+
+    /** CLA-728: actions in a custom page's form and footer are part of the screen too. */
+    public function test_custom_page_form_actions_are_inventoried(): void
+    {
+        $anchors = array_keys(ModuleActionInventory::anchors(base_path('Modules/Intelligence')));
+
+        $this->assertContains('action-bi-config-page-save', $anchors);
+        $this->assertContains('action-offer-simulator-simulate', $anchors);
     }
 
     public function test_mailing_inventory_matches_its_screens(): void
@@ -211,18 +173,5 @@ class ModuleGuideCoverageTest extends TestCase
             'action-email-template-delete_bulk',
             'action-email-template-edit',
         ], array_keys(ModuleActionInventory::anchors(base_path('Modules/Mailing'))));
-    }
-
-    /**
-     * @param  array<string, list<string>>  $anchors
-     * @return array<string, list<string>>
-     */
-    private static function sortPaths(array $anchors): array
-    {
-        foreach ($anchors as &$paths) {
-            sort($paths);
-        }
-
-        return $anchors;
     }
 }

@@ -4,315 +4,273 @@ declare(strict_types=1);
 
 namespace App\Support\Documentation;
 
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Facades\Filament;
+use Filament\Panel;
+use Filament\Resources\Pages\CreateRecord;
+use Filament\Resources\Pages\EditRecord;
+use Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ViewRecord;
+use Filament\Resources\RelationManagers\RelationGroup;
+use Filament\Resources\RelationManagers\RelationManagerConfiguration;
+use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
 use Illuminate\Support\Str;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
+use ReflectionClass;
+use ReflectionMethod;
+use RuntimeException;
+use Throwable;
 
 /**
- * Every Filament action a module declares, as the guide anchor that must document it (CLA-693).
+ * Every Filament action a module shows, as the guide anchor that must document it (CLA-693, CLA-728).
  *
  * The guide coverage test (tests/Feature/Documentation/ModuleGuideCoverageTest) fails when an
  * action has no section, so a new button cannot ship without its documentation.
  *
- * Static scan of `<module>/Filament/**.php`, no Livewire boot: `Action::make('send_now')` (also
- * `make(name: 'send_now')` or through a `use ... as Alias` import) is named `send_now`; an unnamed `CreateAction::make()` takes Filament's default name from its
- * class (`create`, `edit`, `delete_bulk`, ...). The anchor is `action-<scope>-<name>`:
+ * The inventory reads the panels, not the source text: it takes every resource and page registered
+ * on a panel whose class file lives in the module (or in an extra root a guide lists in its
+ * `filament` front matter, see ModuleGuide::filamentRoots()), builds its header actions, tables,
+ * forms and infolists on an unmounted page, and keeps the real action names. Only hooks the module
+ * itself declares are read, so Filament's own defaults (the edit page's save and cancel) are not.
  *
- *   Resources/CampaignResource.php, CampaignResource/Pages/*, .../Schemas/*  → campaign
- *   Resources/EmailTemplates/**                                              → email-template
- *   Resources/CampaignResource/RelationManagers/MessagesRelationManager.php → campaign-messages
- *   Pages/MailingDocumentation.php                                           → mailing-documentation
- *   Resources/Catalogs/AccessTypeResource.php, Catalogs/AccessTypes/Pages/*  → access-type (CLA-718)
+ * The anchor is `action-<scope>-<name>`:
  *
- * so the same button on a list row and on the record page is one section. Grouping folders such
- * as FieldOps' `Resources/Catalogs` are skipped: the resource is the `*Resource` file or folder,
- * or the folder that holds `Pages`, `Schemas`, `Tables`, ... (CLA-718).
+ *   CampaignResource (its pages, table, form, infolist) → campaign
+ *   CampaignResource relation MessagesRelationManager    → campaign-messages
+ *   Pages/BiConfigPage                                    → bi-config-page
  *
- * An action declared in a trait belongs to every screen that uses the trait, also through another
- * trait; traits are matched by qualified name (namespace, imports, aliases, grouped imports). A
- * trait nobody uses keeps its own file name as scope, so its actions still need a section (CLA-718).
+ * so the same button on a list row and on the record page is one section. Filament names
+ * DeleteBulkAction `delete`, like DeleteAction; a bulk action gets `_bulk` so the two keep their
+ * own sections. In schemas only actions placed on purpose count (an Actions row, hint, prefix and
+ * suffix actions), not the controls a component brings itself (a repeater's add button).
  *
- * Known limit: an action factory such as Website's `PublishSiteNowAction::make()` is named after
- * its class at the call site (`publish_site_now`), and the action it builds inside is listed under
- * the factory file. A static scan cannot follow what make() returns.
- *
- * Screens that live outside the module (Website lives in app/Filament/Clusters/Website) are
- * scanned through extra roots, which a guide lists in its `filament` front matter
- * (see ModuleGuide::filamentRoots()).
+ * A screen that cannot be built on an unmounted page throws, naming the screen: a coverage gap is
+ * never silent.
  */
 final class ModuleActionInventory
 {
-    private const MAKE = '/\b(\w+)::make\(\s*(?:name\s*:\s*)?(?:([\'"])([^\'"]+)\2)?/';
+    /** @var list<string> */
+    private array $roots;
 
-    /** `use Filament\Actions\Action as Button;` makes `Button::make()` an action too. */
-    private const ALIAS = '/^\s*use\s+[\w\\\\]*?\\\\?(\w*Action)\s+as\s+(\w+)\s*;/m';
+    /** @var array<string, list<string>> */
+    private array $anchors = [];
 
-    private const TRAIT = '/^\s*trait\s+(\w+)/m';
+    /** @var list<string> */
+    private array $errors = [];
 
-    private const DECLARATION = '/^\s*(?:(?:final|abstract|readonly)\s+)*(?:class|trait|enum)\s+\w+/m';
-
-    /** `use A, B;` inside a class body; `function () use ($x)` never matches (no word after `use`). */
-    private const TRAIT_USE = '/\buse\s+([\w\\\\]+(?:\s*,\s*[\w\\\\]+)*)\s*[;{]/';
-
-    /** Folders Filament puts inside a resource: the folder that holds them is the resource. */
-    private const RESOURCE_PARTS = ['Pages', 'Schemas', 'Tables', 'RelationManagers', 'Widgets', 'Concerns', 'Actions', 'Forms', 'Infolists'];
-
-    /**
-     * @param  list<string>  $extraRoots  absolute Filament roots outside the module (ModuleGuide::filamentRoots())
-     * @return array<string, list<string>> anchor => files (relative to their root) that declare it, sorted by anchor
-     */
-    public static function anchors(string $moduleDirectory, array $extraRoots = []): array
+    /** @param  list<string>  $roots */
+    private function __construct(array $roots)
     {
-        $roots = array_values(array_filter([rtrim($moduleDirectory, '/') . '/Filament', ...$extraRoots], 'is_dir'));
-
-        $files = [];
-        foreach ($roots as $root) {
-            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, RecursiveDirectoryIterator::SKIP_DOTS));
-
-            foreach ($iterator as $file) {
-                if ($file->getExtension() === 'php') {
-                    $files[] = [
-                        'relative' => Str::after($file->getPathname(), rtrim($root, '/') . '/'),
-                        'source' => self::withoutComments((string) file_get_contents($file->getPathname())),
-                        'root' => $root,
-                    ];
-                }
-            }
-        }
-
-        $resourceFiles = [];
-        foreach ($files as $file) {
-            if (str_ends_with($file['relative'], 'Resource.php')) {
-                $resourceFiles[$file['root']][] = $file['relative'];
-            }
-        }
-        foreach ($files as &$file) {
-            $file['scope'] = self::scope($file['relative'], $resourceFiles[$file['root']] ?? []);
-        }
-        unset($file);
-
-        $declaredTrait = [];
-        $traitUsers = [];
-        foreach ($files as $index => $file) {
-            $declaredTrait[$index] = preg_match(self::TRAIT, $file['source'], $declared) === 1
-                ? strtolower(self::qualify($declared[1], self::namespaceOf($file['source']), []))
-                : null;
-
-            foreach (self::usedTraits($file['source']) as $trait) {
-                $traitUsers[$trait][] = $index;
-            }
-        }
-
-        $anchors = [];
-        foreach ($files as $index => ['relative' => $relative, 'source' => $source, 'scope' => $scope]) {
-            $scopes = $declaredTrait[$index] !== null
-                ? self::traitScopes($declaredTrait[$index], $files, $declaredTrait, $traitUsers, [])
-                : [];
-            $scopes = $scopes === [] ? [$scope] : $scopes;
-
-            preg_match_all(self::ALIAS, $source, $aliases, PREG_SET_ORDER);
-            $aliasOf = array_column($aliases, 1, 2);
-
-            preg_match_all(self::MAKE, $source, $matches, PREG_SET_ORDER);
-
-            foreach ($matches as $match) {
-                $class = str_ends_with($match[1], 'Action') ? $match[1] : ($aliasOf[$match[1]] ?? null);
-                if ($class === null) {
-                    continue;
-                }
-
-                $name = self::actionName($class, $match[3] ?? '');
-                if ($name === null) {
-                    continue;
-                }
-
-                foreach ($scopes as $scope) {
-                    $anchors['action-' . $scope . '-' . $name][] = $relative;
-                }
-            }
-        }
-
-        ksort($anchors);
-
-        return array_map(fn (array $paths): array => array_values(array_unique($paths)), $anchors);
+        $this->roots = array_map(fn (string $root): string => rtrim((string) (realpath($root) ?: $root), '/').'/', $roots);
     }
 
     /**
-     * Scopes of the screens that use a trait, following traits that use traits (Website's settings
-     * pages use BuildsSiteSettingsSection, which uses ShowsSitePublicationState).
-     *
-     * @param  list<array{relative: string, source: string, root: string, scope: string}>  $files
-     * @param  array<int, ?string>  $declaredTrait
-     * @param  array<string, list<int>>  $traitUsers
-     * @param  list<string>  $visited
-     * @return list<string> empty when no screen uses the trait
+     * @param  list<string>  $extraRoots  absolute folders outside the module (ModuleGuide::filamentRoots())
+     * @param  list<Panel>|null  $panels  the panels to read; every registered panel when null (tests pass a fixture panel)
+     * @return array<string, list<string>> anchor => where it is declared (class basename and part), sorted by anchor
      */
-    private static function traitScopes(string $trait, array $files, array $declaredTrait, array $traitUsers, array $visited): array
+    public static function anchors(string $moduleDirectory, array $extraRoots = [], ?array $panels = null): array
     {
-        if (in_array($trait, $visited, true)) {
-            return [];
-        }
+        $inventory = new self([$moduleDirectory, ...$extraRoots]);
+        $current = Filament::getCurrentPanel();
 
-        $scopes = [];
-        foreach ($traitUsers[$trait] ?? [] as $user) {
-            $scopes = [...$scopes, ...($declaredTrait[$user] !== null
-                ? self::traitScopes($declaredTrait[$user], $files, $declaredTrait, $traitUsers, [...$visited, $trait])
-                : [$files[$user]['scope']])];
-        }
-
-        return array_values(array_unique($scopes));
-    }
-
-    /**
-     * Comments are not code: a commented-out trait use or action is not on the screen, and a comment
-     * inside an import must not hide it. Line breaks are kept, so line-anchored patterns still match.
-     */
-    private static function withoutComments(string $source): string
-    {
-        if (! str_contains($source, '<?php')) {
-            return $source;
-        }
-
-        $code = '';
-        foreach (token_get_all($source) as $token) {
-            $code .= ! is_array($token) ? $token : (in_array($token[0], [T_COMMENT, T_DOC_COMMENT], true)
-                ? str_repeat("\n", substr_count($token[1], "\n")) . ' '
-                : $token[1]);
-        }
-
-        return $code;
-    }
-
-    private static function namespaceOf(string $source): string
-    {
-        return preg_match('/^\s*namespace\s+([\w\\\\]+)\s*;/m', $source, $namespace) === 1 ? $namespace[1] : '';
-    }
-
-    /**
-     * Fully qualified name, the way PHP resolves a trait reference: a leading `\` is absolute, an
-     * imported name or alias expands to its import, anything else is relative to the namespace.
-     * Class names are case-insensitive in PHP, so callers compare the result lowercased.
-     *
-     * @param  array<string, string>  $imports  lowercased alias => qualified name
-     */
-    private static function qualify(string $name, string $namespace, array $imports): string
-    {
-        if (str_starts_with($name, '\\')) {
-            return ltrim($name, '\\');
-        }
-
-        $first = Str::before($name, '\\');
-        if (isset($imports[strtolower($first)])) {
-            return $imports[strtolower($first)] . Str::after($name, $first);
-        }
-
-        return ltrim($namespace . '\\' . $name, '\\');
-    }
-
-    private static function actionName(string $class, string $explicit): ?string
-    {
-        if ($explicit !== '') {
-            return $explicit;
-        }
-
-        $base = Str::beforeLast($class, 'Action');
-
-        return $base === '' ? null : Str::snake($base);
-    }
-
-    /** @return list<string> qualified names of the traits a class, trait or enum body uses */
-    private static function usedTraits(string $source): array
-    {
-        if (preg_match(self::DECLARATION, $source, $declaration, PREG_OFFSET_CAPTURE) !== 1) {
-            return [];
-        }
-
-        // Top-level imports: `use A\B;`, `use A\B as C;`, `use A\B, D\E;` and `use A\{B, C\D as E};`.
-        preg_match_all('/^\s*use\s+(?!function\b|const\b)([^;]+);/m', substr($source, 0, $declaration[0][1]), $statements);
-        $imports = [];
-        foreach ($statements[1] as $statement) {
-            $prefix = '';
-            if (preg_match('/^([\w\\\\]*)\\\\\s*\{(.*)\}\s*$/s', trim($statement), $group) === 1) {
-                [$prefix, $statement] = [$group[1] . '\\', $group[2]];
+        try {
+            foreach ($panels ?? Filament::getPanels() as $panel) {
+                $inventory->readPanel($panel);
             }
+        } finally {
+            Filament::setCurrentPanel($current);
+        }
 
-            foreach (array_filter(array_map('trim', explode(',', $statement))) as $clause) {
-                if (preg_match('/^([\w\\\\]+)(?:\s+as\s+(\w+))?$/', $clause, $import) === 1) {
-                    $qualified = ltrim($prefix . $import[1], '\\');
-                    $imports[strtolower(($import[2] ?? '') !== '' ? $import[2] : Str::afterLast($qualified, '\\'))] = $qualified;
+        if ($inventory->errors !== []) {
+            throw new RuntimeException("These screens could not be read for the guide coverage:\n- ".implode("\n- ", array_unique($inventory->errors)));
+        }
+
+        ksort($inventory->anchors);
+
+        return array_map(fn (array $where): array => array_values(array_unique($where)), $inventory->anchors);
+    }
+
+    private function readPanel(Panel $panel): void
+    {
+        Filament::setCurrentPanel($panel);
+
+        foreach ($panel->getResources() as $resource) {
+            if ($this->owns($resource)) {
+                $this->attempt($resource, fn () => $this->readResource($resource));
+            }
+        }
+
+        foreach ($panel->getPages() as $page) {
+            if ($this->owns($page)) {
+                $this->attempt($page, fn () => $this->readPage(Str::kebab(class_basename($page)), app($page)));
+            }
+        }
+    }
+
+    /** @param  class-string<\Filament\Resources\Resource>  $resource */
+    private function readResource(string $resource): void
+    {
+        $scope = Str::kebab(Str::singular(Str::beforeLast(class_basename($resource), 'Resource')));
+
+        foreach ($resource::getPages() as $registration) {
+            $pageClass = $registration->getPage();
+            $page = app($pageClass);
+
+            $this->readPage($scope, $page);
+
+            if (is_subclass_of($pageClass, ListRecords::class) && $this->declares($resource, 'table')) {
+                $this->add($scope, $this->tableActions($resource::table(Table::make($page))), class_basename($resource).' table');
+            }
+            if (is_subclass_of($pageClass, ViewRecord::class) && $this->declares($resource, 'infolist')) {
+                $this->add($scope, $this->schemaActions($resource::infolist(Schema::make($page))), class_basename($resource).' infolist');
+            }
+            if ((is_subclass_of($pageClass, CreateRecord::class) || is_subclass_of($pageClass, EditRecord::class)) && $this->declares($resource, 'form')) {
+                $this->add($scope, $this->schemaActions($resource::form(Schema::make($page))), class_basename($resource).' form');
+            }
+        }
+
+        foreach ($resource::getRelations() as $relation) {
+            $managers = $relation instanceof RelationGroup ? $relation->getManagers() : [$relation];
+
+            // A manager is a class name or, through RelationManager::make([...]), a configuration
+            // object whose properties shape the table, so they are applied before it is built.
+            foreach ($managers as $configured) {
+                $manager = $configured instanceof RelationManagerConfiguration ? $configured->relationManager : $configured;
+                $properties = $configured instanceof RelationManagerConfiguration ? $configured->getProperties() : [];
+
+                $this->attempt($manager, function () use ($scope, $manager, $properties): void {
+                    $instance = app($manager);
+                    foreach ($properties as $property => $value) {
+                        $instance->{$property} = $value;
+                    }
+                    $relationScope = $scope.'-'.Str::kebab(Str::beforeLast(class_basename($manager), 'RelationManager'));
+                    $this->add($relationScope, $this->tableActions($instance->table(Table::make($instance))), class_basename($manager));
+                });
+            }
+        }
+    }
+
+    /** Header actions, footer form actions, its own form and table: whatever the module declares. */
+    private function readPage(string $scope, object $page): void
+    {
+        $where = class_basename($page);
+
+        foreach (['getHeaderActions', 'getFormActions'] as $hook) {
+            if ($this->declares($page::class, $hook)) {
+                $this->add($scope, $this->flatten($this->invoke($page, $hook)), $where);
+            }
+        }
+
+        foreach (['form', 'infolist'] as $schema) {
+            if ($this->declares($page::class, $schema) && ! (new ReflectionMethod($page, $schema))->isStatic()) {
+                $this->add($scope, $this->schemaActions($page->{$schema}(Schema::make($page))), $where.' '.$schema);
+            }
+        }
+        if ($this->declares($page::class, 'table') && ! (new ReflectionMethod($page, 'table'))->isStatic()) {
+            $this->add($scope, $this->tableActions($page->table(Table::make($page))), $where.' table');
+        }
+    }
+
+    /** @return list<string> */
+    private function tableActions(Table $table): array
+    {
+        return $this->flatten([...$table->getHeaderActions(), ...$table->getRecordActions(), ...$table->getToolbarActions(), ...$table->getBulkActions()]);
+    }
+
+    /** @return list<string> actions placed on purpose: Actions rows and hint, prefix and suffix actions */
+    private function schemaActions(Schema $schema): array
+    {
+        $names = [];
+
+        foreach ($schema->getComponents(withHidden: true) as $component) {
+            if (! $component instanceof Component) {
+                continue;
+            }
+            if ($component instanceof Actions) {
+                // Hidden ones too: an action shown only in some state still needs its section.
+                $children = $component->getDefaultChildComponents();
+                $names = [...$names, ...$this->flatten($children instanceof Schema ? $children->getComponents(withHidden: true) : $children)];
+            }
+            foreach (['getHintActions', 'getPrefixActions', 'getSuffixActions'] as $method) {
+                if (method_exists($component, $method)) {
+                    $names = [...$names, ...$this->flatten($component->{$method}())];
                 }
             }
-        }
-
-        preg_match_all(self::TRAIT_USE, substr($source, $declaration[0][1]), $uses);
-
-        $traits = [];
-        foreach ($uses[1] as $list) {
-            foreach (explode(',', $list) as $name) {
-                $traits[] = strtolower(self::qualify(trim($name), self::namespaceOf($source), $imports));
+            foreach ($component->getChildSchemas(withHidden: true) ?? [] as $child) {
+                $names = [...$names, ...$this->schemaActions($child)];
             }
         }
 
-        return array_values(array_unique($traits));
+        return $names;
     }
 
-    /**
-     * The segment after `Resources/` that names the resource, skipping grouping folders. The deepest
-     * folder confirmed by a `*Resource.php` (its own name, a sibling `<Folder>Resource.php` or one
-     * inside it) wins, so a resource folder named like a Filament part (`Catalogs/Forms`) is still
-     * the resource; otherwise the folder that holds `Pages`, `Schemas`, ... is.
-     *
-     * @param  list<string>  $segments
-     * @param  list<string>  $resourceFiles  `*Resource.php` paths in the same root
-     */
-    private static function resourceSegment(array $segments, array $resourceFiles): string
+    /** @return list<string> */
+    private function flatten(array $actions): array
     {
-        $last = count($segments) - 1;
-        if (str_ends_with($segments[$last], 'Resource.php')) {
-            return $segments[$last];
-        }
+        $names = [];
 
-        for ($i = $last - 1; $i >= 1; $i--) {
-            $parent = implode('/', array_slice($segments, 0, $i));
-            $folder = $parent . '/' . $segments[$i];
-
-            if (str_ends_with($segments[$i], 'Resource')
-                || array_intersect([$folder . 'Resource.php', $parent . '/' . Str::singular($segments[$i]) . 'Resource.php'], $resourceFiles) !== []
-                || array_filter($resourceFiles, fn (string $path): bool => dirname($path) === $folder) !== []) {
-                return $segments[$i];
+        foreach ($actions as $action) {
+            if ($action instanceof ActionGroup) {
+                $names = [...$names, ...$this->flatten(array_values($action->getFlatActions()))];
+            } elseif ($action instanceof Action && ($name = $action->getName()) !== null) {
+                $names[] = $action->isBulk() && ! str_ends_with($name, '_bulk') ? $name.'_bulk' : $name;
             }
         }
 
-        for ($i = 1; $i <= $last; $i++) {
-            $name = basename($segments[$i], '.php');
-
-            if (str_ends_with($name, 'Resource') || ($i < $last && in_array($segments[$i + 1], self::RESOURCE_PARTS, true))) {
-                return $segments[$i];
-            }
-        }
-
-        return $segments[1];
+        return $names;
     }
 
-    /** @param  list<string>  $resourceFiles  `*Resource.php` paths in the same root */
-    private static function scope(string $relative, array $resourceFiles): string
+    /** @param  list<string>  $names */
+    private function add(string $scope, array $names, string $where): void
     {
-        $segments = explode('/', $relative);
+        foreach ($names as $name) {
+            $this->anchors['action-'.$scope.'-'.$name][] = $where;
+        }
+    }
 
-        if ($segments[0] === 'Resources' && isset($segments[1])) {
-            $segment = basename(self::resourceSegment($segments, $resourceFiles), '.php');
-            $resource = Str::kebab(Str::singular(Str::beforeLast($segment, 'Resource') ?: $segment));
+    private function attempt(string $class, callable $read): void
+    {
+        try {
+            $read();
+        } catch (Throwable $e) {
+            $this->errors[] = class_basename($class).' ('.$class.'): '.$e::class.': '.Str::limit($e->getMessage(), 200);
+        }
+    }
 
-            $index = array_search('RelationManagers', $segments, true);
-            if ($index !== false && isset($segments[$index + 1])) {
-                $relation = Str::beforeLast(basename($segments[$index + 1], '.php'), 'RelationManager');
+    private function invoke(object $page, string $method): array
+    {
+        $reflection = new ReflectionMethod($page, $method);
+        $reflection->setAccessible(true);
 
-                return $resource . '-' . Str::kebab($relation);
+        return (array) $reflection->invoke($page);
+    }
+
+    /** The class lives in the module or an extra root. */
+    private function owns(string $class): bool
+    {
+        return $this->inRoots((string) (new ReflectionClass($class))->getFileName());
+    }
+
+    /** The method is declared (or overridden) by module code, not inherited from Filament. */
+    private function declares(string $class, string $method): bool
+    {
+        return method_exists($class, $method)
+            && $this->inRoots((string) (new ReflectionMethod($class, $method))->getDeclaringClass()->getFileName());
+    }
+
+    private function inRoots(string $file): bool
+    {
+        foreach ($this->roots as $root) {
+            if (str_starts_with($file, $root)) {
+                return true;
             }
-
-            return $resource;
         }
 
-        return Str::kebab(basename(end($segments), '.php'));
+        return false;
     }
 }
