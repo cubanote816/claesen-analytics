@@ -8,6 +8,7 @@ use App\Support\Documentation\ModuleActionInventory;
 use App\Support\Documentation\ModuleGuide;
 use Filament\Facades\Filament;
 use Filament\Panel;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Fixtures\DocumentationPanel\GadgetResource;
 use Tests\TestCase;
@@ -22,6 +23,17 @@ use Tests\TestCase;
  */
 class ModuleGuideCoverageTest extends TestCase
 {
+    use RefreshDatabase;
+    use SeedsPanelSites;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // CLA-720: Website's screens need their panel's site to be built (SeedsPanelSites).
+        $this->seedPanelSites();
+    }
+
     /** Locales every module guide must ship (user decision, CLA-693). */
     private const REQUIRED_LOCALES = ['en', 'nl'];
 

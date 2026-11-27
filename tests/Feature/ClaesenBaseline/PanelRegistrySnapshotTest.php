@@ -88,6 +88,9 @@ final class PanelRegistrySnapshotTest extends TestCase
         //
         // CLA-704: the Users section (App\Filament\Bertels\Resources\Users\BertelsUserResource),
         // super_admin only and scoped to the Bertels organization, is registered by hand.
+        //
+        // CLA-720: the Website user guide (Modules\Website\Filament\Pages\WebsiteDocumentation),
+        // the same page the admin panel discovers, registered by hand with its Documentation group.
         $panel = Filament::getPanel('bertels');
 
         $this->assertSame('bertels', $panel->getId());
@@ -117,6 +120,7 @@ final class PanelRegistrySnapshotTest extends TestCase
                 \App\Filament\Clusters\Website\Pages\SocialLinksSettingsPage::class,
                 \App\Filament\Clusters\Website\Pages\TranslationReviewPage::class,
                 \App\Filament\Clusters\Website\WebsiteCluster::class, // a cluster is itself a page
+                \Modules\Website\Filament\Pages\WebsiteDocumentation::class,
             ]),
             $this->sorted($panel->getPages()),
         );

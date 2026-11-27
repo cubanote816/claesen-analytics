@@ -113,6 +113,8 @@ class BertelsPanelProvider extends PanelProvider
                 NavigationGroup::make('User Management')
                     ->label(fn () => __('navigation.groups.user_management')),
                 Ets6ProjectArchiveGuide::panelNavigationGroup(),
+                // CLA-720: in-app module guides, same group as the Claesen panel. No icon (see above).
+                \App\Filament\Documentation\ModuleDocumentationPage::panelNavigationGroup(),
             ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
@@ -143,6 +145,9 @@ class BertelsPanelProvider extends PanelProvider
                 Dashboard::class,
                 // Guides & Procedures: same page as the admin panel, in the Bertels skin.
                 Ets6ProjectArchiveGuide::class,
+                // CLA-720: the Website guide, registered by hand because this panel discovers no
+                // module pages. The same page the admin panel discovers in Modules/Website.
+                \Modules\Website\Filament\Pages\WebsiteDocumentation::class,
             ])
             ->widgets([])
             // F1/P4+P6 (CLA-460 cont.): the same audited switch back to
