@@ -77,6 +77,18 @@ class WebsiteTechnicianAccessTest extends TestCase
         $this->assertFalse($screen::canAccess(), class_basename($screen).' is open to technician');
     }
 
+    /** Over HTTP too: Filament authorizes the route from canAccess(), so the technician gets a 403. */
+    public function test_technician_gets_403_on_website_routes(): void
+    {
+        $this->withoutVite();
+        // MFA enrolment would redirect before the page; it is covered elsewhere.
+        config(['core.panel_mfa_enforced' => false]);
+        $this->actingAsRole('technician');
+
+        $this->get(GeneralSettingsPage::getUrl(panel: 'admin'))->assertForbidden();
+        $this->get(ProjectResource::getUrl(panel: 'admin'))->assertForbidden();
+    }
+
     /** The guard is about technician only: a viewer keeps the access it had. */
     #[DataProvider('websiteScreens')]
     public function test_viewer_still_opens_the_website_screen(string $screen): void
