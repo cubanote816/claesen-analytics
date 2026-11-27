@@ -263,4 +263,12 @@ return [
     'defaults' => [
         'region' => 'Flanders',
     ],
+
+    'unsubscribe' => [
+        'link' => 'Unsubscribe',
+        'text' => 'No longer want to receive these emails?',
+        'success_title' => 'Unsubscribed',
+        'success_body' => 'You have been successfully unsubscribed from our mailing list.',
+        'confirmation_button' => 'Confirm unsubscribe',
+    ],
 ];

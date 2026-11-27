@@ -35,7 +35,12 @@ class EnsureRequestedSiteResolved
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->query->has('site')) {
+        // Judged on the raw query string too: PHP drops parameters past
+        // max_input_vars, so a `site` it discarded would otherwise look absent
+        // and fall back to Claesen.
+        $selectors = $this->siteSelectorCount((string) $request->server('QUERY_STRING'));
+
+        if ($selectors === 0 && ! $request->query->has('site')) {
             return $next($request);
         }
 
@@ -43,7 +48,8 @@ class EnsureRequestedSiteResolved
         $site = app(OrganizationContext::class)->site();
 
         if (
-            $this->siteSelectorCount((string) $request->server('QUERY_STRING')) !== 1
+            $selectors !== 1
+            || ! $request->query->has('site')
             || ! is_string($requested)
             || $site?->key !== $requested
             || $site->status !== Site::STATUS_ACTIVE
@@ -58,15 +64,33 @@ class EnsureRequestedSiteResolved
 
     /**
      * PHP keeps only the last of repeated `site` parameters, so an earlier
-     * selector would be silently discarded. Counted on the raw query string:
-     * more than one selector is ambiguous and fails closed.
+     * selector would be silently discarded. More than one selector is
+     * ambiguous and fails closed.
+     *
+     * Counted on the raw names with PHP's own normalization of a name that
+     * starts with `site` (CLA-706): leading spaces dropped (`%20site`,
+     * `+site`), cut at NUL (`site%00x`), and `site[...]` is the same
+     * parameter as an array, however deep. Deliberately not parse_str():
+     * PHP drops (and warns about) parameters past max_input_vars or
+     * max_input_nesting_level, which would hide exactly the selectors this
+     * counter must see.
      */
     private function siteSelectorCount(string $queryString): int
     {
         $count = 0;
 
-        foreach (explode('&', $queryString) as $pair) {
-            $name = urldecode(explode('=', $pair, 2)[0]);
+        // Split on the separators PHP itself uses (arg_separator.input, `&` by
+        // default) so one chunk never hides two selectors.
+        $separators = (string) ini_get('arg_separator.input');
+        $pattern = '/['.preg_quote($separators !== '' ? $separators : '&', '/').']/';
+
+        foreach (preg_split($pattern, $queryString) ?: [] as $pair) {
+            if ($pair === '') {
+                continue;
+            }
+
+            $name = ltrim(urldecode(explode('=', $pair, 2)[0]), ' ');
+            $name = explode("\0", $name, 2)[0];
 
             if ($name === 'site' || str_starts_with($name, 'site[')) {
                 $count++;
