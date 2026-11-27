@@ -12,6 +12,7 @@ return [
     ],
 
     'sections' => [
+        'contact_history' => 'Historique des contacts',
         'club_info' => 'Informations du Club',
         'marketing_targets' => 'Cibles Marketing',
         'sync_details' => 'Détails de Synchronisation',
@@ -26,6 +27,8 @@ return [
     ],
 
     'fields' => [
+        'last_contacted_at' => 'Dernier contact',
+        'contacted' => 'Contacté',
         'name' => 'Nom du Club',
         'region' => 'Région',
         'federation' => 'Fédération',
@@ -47,6 +50,7 @@ return [
         'command' => 'Commande',
         'status' => 'Statut',
         'started_by' => 'Démarré par',
+        'logged_by' => 'Enregistré par',
         'items' => 'Articles',
         'started_at' => 'Démarré le',
         'finished_at' => 'Terminé le',
@@ -71,6 +75,22 @@ return [
     ],
 
     'options' => [
+        'contact_directions' => [
+            'inbound' => 'Entrant (ils nous ont contactés)',
+            'outbound' => 'Sortant (nous les avons contactés)',
+        ],
+        'contact_methods' => [
+            'phone' => 'Téléphone',
+            'email' => 'E-mail',
+            'in_person' => 'En personne',
+            'website_form' => 'Formulaire du site web',
+            'other' => 'Autre',
+        ],
+        'contact_status' => [
+            'contacted' => 'Contacté',
+            'not_contacted' => 'Non contacté',
+            'never' => 'Jamais',
+        ],
         'contact_types' => [
             'headquarters' => 'Siège social',
             'stadium' => 'Stade',
@@ -106,6 +126,22 @@ return [
     ],
 
     'actions' => [
+        'mark_contacted' => [
+            'label' => 'Enregistrer un contact',
+            'form' => [
+                'contacted_at' => 'Date et heure',
+                'direction' => 'Direction',
+                'method' => 'Méthode',
+                'note' => 'Note',
+            ],
+        ],
+        'remove_contact' => [
+            'label' => 'Supprimer une entrée de contact',
+            'form' => [
+                'entry' => 'Entrée à supprimer',
+            ],
+            'confirm' => 'Seule l\'entrée sélectionnée est supprimée. Les autres entrées de contact restent inchangées.',
+        ],
         'execute_campaign' => [
             'label' => 'Démarrer la Campagne de Mailing',
             'view_campaign' => 'Voir la campagne',
@@ -138,6 +174,12 @@ return [
     ],
 
     'notifications' => [
+        'contact_logged' => [
+            'title' => 'Contact enregistré',
+        ],
+        'contact_removed' => [
+            'title' => 'Entrée de contact supprimée',
+        ],
         'no_prospects_selected' => [
             'title' => 'Aucun prospect sélectionné',
             'body' => 'Veuillez sélectionner au moins un prospect pour démarrer un mailing.',
@@ -192,6 +234,10 @@ return [
             'body' => 'Les prospects sélectionnés n\'ont pas d\'emplacements avec des adresses e-mail enregistrées.',
         ],
         'error_mailer' => 'Erreur lors de l\'envoi de la campagne via le service de messagerie.',
+    ],
+
+    'contact_history' => [
+        'empty' => 'Aucun contact n\'a encore été enregistré pour ce prospect.',
     ],
 
     'sync_history' => [
