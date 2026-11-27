@@ -43,6 +43,13 @@ class ResolveRequestSite
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // CLA-706: `site[]=x` used to reach the string cast below and surface as a
+        // 500. A non-string selector is a client error: 400, never a Claesen
+        // fallback. String selectors (blank included) are unchanged.
+        if (is_array($request->query('site'))) {
+            return response()->json(['message' => 'Invalid site parameter.'], 400);
+        }
+
         app(OrganizationContext::class)->setSite($this->resolveSite($request));
 
         return $next($request);

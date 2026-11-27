@@ -42,7 +42,9 @@ Route::prefix('v1/website')->middleware([
     // of ResolveRequestSite's Claesen fallback — see EnsureRequestedSiteResolved.
     Route::post('/consultations', [ConsultationController::class, 'store'])
         ->middleware([$intakeThrottle, EnsureRequestedSiteResolved::class]);
-    Route::post('/contact-email', [ContactController::class, 'store'])->middleware($intakeThrottle);
+    // CLA-706: same fail-closed guard as /consultations — it shares the intake.
+    Route::post('/contact-email', [ContactController::class, 'store'])
+        ->middleware([$intakeThrottle, EnsureRequestedSiteResolved::class]);
 
     Route::get('/settings', [SiteContentController::class, 'settings']);
     Route::get('/announcements', [SiteContentController::class, 'announcements']);
