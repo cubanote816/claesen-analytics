@@ -168,14 +168,26 @@ final class AccessControlContractTest extends TestCase
     public function test_website_projects_and_leads_are_not_restricted_by_role_in_the_panel(): void
     {
         // Documented gap (pre-existing): unlike every Claesen module resource,
-        // the Website resources declare no canAccess(), so any role with panel
+        // the Website resources carry no role list, so any role with panel
         // access can read and edit public projects and incoming leads.
+        //
+        // CLA-734 declared inversion: they now declare canAccess(), but only to
+        // exclude the technician role (CLA-581: technician enters the panel for
+        // its own work orders only) through WebsiteAccess. No other role is
+        // restricted, so the gap for the remaining panel roles still holds.
         foreach ([
             'app/Filament/Clusters/Website/Resources/ProjectResource.php',
             'app/Filament/Clusters/Website/Resources/ConsultationRequestResource.php',
         ] as $file) {
-            $this->assertStringNotContainsString('function canAccess', $this->source($file));
+            $source = $this->source($file);
+            $this->assertStringContainsString('WebsiteAccess::allowsCurrentUser()', $source);
+            $this->assertStringNotContainsString('hasRole(', $source);
+            $this->assertStringNotContainsString('hasAnyRole(', $source);
         }
+        $this->assertStringContainsString(
+            "hasRole('technician')",
+            $this->source('app/Filament/Clusters/Website/WebsiteAccess.php'),
+        );
 
         // F4/CLA-477 declared inversion: the assignee picker used to list
         // every user in the database unconditionally. It now narrows to the

@@ -10,6 +10,12 @@ use UnitEnum;
 
 class WebsiteCluster extends Cluster
 {
+    /** CLA-734: the Website menu entry is not for the technician role (WebsiteAccess). */
+    public static function canAccess(): bool
+    {
+        return parent::canAccess() && WebsiteAccess::allowsCurrentUser();
+    }
+
     protected static BackedEnum | string | null $navigationIcon = 'heroicon-o-globe-alt';
     
     protected static ?int $navigationSort = 2;
