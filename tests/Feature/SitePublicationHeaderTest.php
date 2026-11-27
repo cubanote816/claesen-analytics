@@ -11,6 +11,7 @@ use App\Filament\Clusters\Website\Resources\MediaSlotResource\Pages\ListMediaSlo
 use App\Filament\Clusters\Website\Resources\ProjectResource\Pages\EditProject;
 use App\Filament\Clusters\Website\Resources\ProjectResource\Pages\ListProjects;
 use App\Filament\Clusters\Website\Widgets\PublicationStatusWidget;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
@@ -129,6 +130,49 @@ final class SitePublicationHeaderTest extends TestCase
         Queue::assertPushed(
             TriggerStaticSiteRebuildJob::class,
             fn (TriggerStaticSiteRebuildJob $job): bool => $job->force === true,
+        );
+    }
+
+    /**
+     * CLA-733: Publish now rebuilds the site of the panel it is pressed on. Without a site the
+     * service fell back to Claesen, so on the Electro Bertels panel it rebuilt the wrong website.
+     */
+    public function test_publish_now_rebuilds_the_site_of_the_current_panel(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+        $this->serveBertelsPanelSite();
+        $bertels = Site::query()->where('key', 'electro-bertels')->firstOrFail();
+
+        Queue::fake();
+        Filament::setCurrentPanel(Filament::getPanel('bertels'));
+
+        Livewire::test(AddressSettingsPage::class)->callAction('publish_now');
+
+        Queue::assertPushed(
+            TriggerStaticSiteRebuildJob::class,
+            fn (TriggerStaticSiteRebuildJob $job): bool => $job->siteId === $bertels->id && $job->force === true,
+        );
+        Queue::assertNotPushed(
+            TriggerStaticSiteRebuildJob::class,
+            fn (TriggerStaticSiteRebuildJob $job): bool => $job->siteId === Site::claesenId(),
+        );
+    }
+
+    /** CLA-733: on the Claesen panel Publish now still rebuilds the Claesen site. */
+    public function test_publish_now_on_the_admin_panel_still_rebuilds_claesen(): void
+    {
+        $this->actingAsSuperAdmin();
+        $this->enablePublishPipeline();
+
+        Queue::fake();
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        Livewire::test(AddressSettingsPage::class)->callAction('publish_now');
+
+        Queue::assertPushed(
+            TriggerStaticSiteRebuildJob::class,
+            fn (TriggerStaticSiteRebuildJob $job): bool => $job->siteId === Site::claesenId(),
         );
     }
 
