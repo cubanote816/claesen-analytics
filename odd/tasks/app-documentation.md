@@ -22,8 +22,8 @@ Branch: `docs/app-documentation`. Phase 0 ticket: CLA-718. Dutch text is reviewe
 | T3 | S2 | CLA-718 | inline | done | 782ce4aa |
 | T4 | S1, S5 | CLA-719 | Core guide, branch `docs/cla-719-core-guide` (on top of `docs/app-documentation`) | done (technical GO L16) | 8b2c06bb |
 | T12 | S7 | CLA-728 | runtime action inventory (blocks T5) | done (technical GO L21) | 79ca9ed8, 7fc0793d, 1fd88706 |
-| T5 | S1, S5 | CLA-720 | Website guide (admin + Bertels), branch `docs/cla-720-website-guide` | done, waits for technical GO | 57656fec, 198cbffc + fix |
-| T6 | S1, S5 | CLA-721 | Safety guide | pending | |
+| T5 | S1, S5 | CLA-720 | Website guide (admin + Bertels), branch `docs/cla-720-website-guide` | done (technical GO L27) | 57656fec, 198cbffc, a883fa1e |
+| T6 | S1, S5 | CLA-721 | Safety guide | in progress (mapping) | |
 | T7 | S1, S5 | CLA-722 | Intelligence/BI guide | pending | |
 | T8 | S1, S5 | CLA-723 | FieldOps guide | pending | |
 | T9 | S1, S5 | CLA-724 | Performance/Employee/Cafca | pending | |
@@ -58,3 +58,4 @@ Branch: `docs/app-documentation`. Phase 0 ticket: CLA-718. Dutch text is reviewe
 - L24 — CLA-733 fixed on `fix/cla-733-bertels-publish-now` (a33732da, RED reproduced, publication suites 52/52); CLA-734 fixed on `fix/cla-734-website-technician` (e8ddd4d8 + 48fd42ba: technician denied on 14 screens and 403 over HTTP, `AccessControlContractTest` baseline as declared inversion, suites 168/168, independent verification). Both from `main`, both wait for technical GO.
 - L25 — CLA-720: `Modules/Website/docs/user-guide/{en,nl}.md` (44 action sections), `WebsiteDocumentation` (follows `ProjectResource`, never technician), registered on Bertels with the Documentation group; the coverage test seeds every panel's site (`SeedsPanelSites`). Baseline snapshots regenerated on purpose: they also gained `CoreDocumentation`, which the CLA-719 commit left out (`ClaesenBaseline` was not run then: a miss of that ticket, fixed here). The guide's "each panel publishes its own site" relies on CLA-733 being merged first.
 - L26 — Independent verification of 57656fec/198cbffc (Risk: item 3): Bertels change additive, snapshots only add the documentation pages/routes, access confirmed. Refuted guide claims fixed in en+nl (history = webhook acceptance; page publish = indexable; project order is a number; media slots only project images, no auto alt/caption or empty-slot claims; announcements "for the website"; export/erase "can ask" for MFA; admins notified, not "of your company"). Added the verifier's /bertels denial test (technician of Electro Bertels, outsider). Documentation 40/40. Merge order: CLA-733 and CLA-734 before CLA-720.
+- L27 — 2026-11-27: the user disabled native review on this clone (`gentle-ai review mode disable --scope clone`: off). User: "go" — technical GO for CLA-733, CLA-734 and CLA-720 (Done in Linear); start CLA-721. Push, PRs and merge to `main` (which deploys to production) asked separately.
