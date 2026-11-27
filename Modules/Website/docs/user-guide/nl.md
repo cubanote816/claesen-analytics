@@ -8,7 +8,7 @@ filament: app/Filament/Clusters/Website
 ---
 ## Overzicht {#overview}
 
-Met de Website-schermen beheer je de publieke website: de instellingen, de projectgalerij, afbeeldingen, mededelingen, welke pagina's en vertalingen online gaan, en de adviesaanvragen die via de site binnenkomen.
+Met de Website-schermen beheer je de publieke website: de instellingen, de projectgalerij, afbeeldingen, mededelingen, welke pagina's zoekmachines mogen tonen, welke vertalingen online gaan, en de adviesaanvragen die via de site binnenkomen.
 
 Elk beheerpaneel beheert zijn eigen website. Het Claesen-paneel beheert de site van Claesen Verlichting, het Electro Bertels-paneel de site van Electro Bertels. Je ziet of wijzigt nooit de site van het andere bedrijf.
 
@@ -33,7 +33,7 @@ De website is een aparte kopie die vanuit het platform opnieuw wordt opgebouwd. 
 2. **Publiceren.** Je vraagt om de website opnieuw op te bouwen met de opgeslagen wijzigingen:
    - [[action:website.publication.actions.publish_section]] op een instellingenpagina publiceert alleen de instellingen van die pagina. Als ze niets zouden veranderen op de site, krijg je een melding dat er niets te publiceren is.
    - [[action:website.publication.actions.publish_now]] bouwt de hele site opnieuw op. De huidige versie blijft online tot de nieuwe klaar is.
-3. **Controleren.** Een publicatie is een aanvraag: het opbouwen duurt even. Volg ze bij [[label:website.publication_history.label]], dat elke aanvraag toont, wie ze deed en of ze gelukt of mislukt is.
+3. **Controleren.** Een publicatie is een aanvraag: het opbouwen duurt even. Volg ze bij [[label:website.publication_history.label]], dat elke aanvraag toont, wie ze deed en of de website ze aanvaardde of ze mislukte.
 
 Als publiceren op de server uitgeschakeld is, tonen beide knoppen een waarschuwing en wordt er niets verstuurd.
 
@@ -119,7 +119,7 @@ Bouwt de hele site opnieuw op.
 
 ## Projecten {#projects}
 
-De projectgalerij op de website. Elk project heeft een titel (het webadres wordt ervan gemaakt), een categorie, de klant, de locatie en het jaar, een beschrijving, en schakelaars voor gepubliceerd, uitgelicht en de volgorde. Sleep rijen in de lijst om de volgorde te wijzigen.
+De projectgalerij op de website. Elk project heeft een titel (het webadres wordt ervan gemaakt), een categorie, de klant, de locatie en het jaar, een beschrijving, schakelaars voor gepubliceerd en uitgelicht, en een getal voor de plaats in de volgorde. Je kunt ook rijen in de lijst slepen om de volgorde te wijzigen.
 
 Afbeeldingen: maximaal 10 MB en 8000 pixels per afbeelding. Eén uitgelichte afbeelding, plus een galerij en een detailgalerij die je kunt herschikken.
 
@@ -145,7 +145,7 @@ Op de lijst en op de bewerkpagina. Bouwt de hele site opnieuw op, zie [Publicere
 
 ## Mediaslots {#media-slots}
 
-Een mediaslot is een vaste plaats op de website, zoals een kopafbeelding. De naam van het slot moet de naam zijn die de website gebruikt; vraag de webontwikkelaar als je een nieuw slot nodig hebt. Elk slot toont één afbeelding, gekozen uit de projectafbeeldingen van deze site of uit haar eigen afbeeldingen. De alternatieve tekst en het onderschrift worden automatisch gemaakt.
+Een mediaslot is een vaste plaats op de website, zoals een kopafbeelding. De naam van het slot moet de naam zijn die de website gebruikt; vraag de webontwikkelaar als je een nieuw slot nodig hebt. Elk slot toont één afbeelding, gekozen uit de projectafbeeldingen van deze site.
 
 ### [[action:filament-actions::create.single.label?label=website.media_slots.label]] {#action-media-slot-create}
 
@@ -157,7 +157,7 @@ Kies een andere afbeelding voor het slot.
 
 ### [[action:filament-actions::delete.single.label]] {#action-media-slot-delete}
 
-Verwijdert het slot. De plaats op de website blijft leeg tot het slot weer bestaat.
+Verwijdert het slot.
 
 ### [[action:website.publication.actions.publish_now]] {#action-media-slot-publish_now}
 
@@ -165,7 +165,7 @@ Bouwt de hele site opnieuw op, zie [Publiceren](#publishing).
 
 ## Mededelingen {#announcements}
 
-Korte berichten op de website, bijvoorbeeld een sluiting tijdens de feestdagen. Een mededeling is concept, gepubliceerd of gearchiveerd, en kan een optionele begin- en einddatum hebben.
+Korte berichten voor de website, bijvoorbeeld een sluiting tijdens de feestdagen. Een mededeling is concept, gepubliceerd of gearchiveerd, en kan een optionele begin- en einddatum hebben.
 
 ### [[action:filament-actions::create.single.label?label=website.announcements.label]] {#action-announcement-create}
 
@@ -181,7 +181,7 @@ Verwijdert de mededeling. Wil je ze alleen verbergen, archiveer ze dan.
 
 ## Pagina-publicaties {#page-publications}
 
-[[label:website.page_publication_review.label]] bepaalt welke websitepagina's in welke taal online gaan. De tekst van de pagina's schrijven de webontwikkelaars, dus hier valt niets te bewerken: je kijkt pagina's na en zet ze aan of uit.
+[[label:website.page_publication_review.label]] bepaalt welke websitepagina's zoekmachines mogen tonen, en in welke taal. De tekst van de pagina's schrijven de webontwikkelaars, dus hier valt niets te bewerken: je kijkt pagina's na en zet ze aan of uit.
 
 Een pagina gaat van concept naar nagekeken naar gepubliceerd. Elke stap bewaart wie ze zette en wanneer.
 
@@ -191,11 +191,11 @@ Markeert een pagina als nagekeken, nadat je ze gecontroleerd hebt. Getoond zolan
 
 ### [[action:website.page_publication_review.actions.publish]] {#action-page-publication-review-page-publish}
 
-Zet een nagekeken pagina aan in die taal, zodat zoekmachines ze vinden. Getoond voor nagekeken pagina's.
+Markeert een nagekeken pagina als een pagina die zoekmachines in die taal mogen tonen. Getoond voor nagekeken pagina's.
 
 ### [[action:website.page_publication_review.actions.retire]] {#action-page-publication-review-page-retire}
 
-Zet een gepubliceerde pagina terug naar nagekeken. Getoond voor gepubliceerde pagina's.
+Zet een gepubliceerde pagina terug naar nagekeken, zodat zoekmachines ze niet meer tonen. Getoond voor gepubliceerde pagina's.
 
 ### [[action:website.publication.actions.publish_now]] {#action-page-publication-review-page-publish_now}
 
@@ -239,11 +239,11 @@ Wijzig de status, prioriteit of toegewezen collega. Je kunt ook de naam, het e-m
 
 ### [[action:website.consultation_requests.actions.export]] {#action-consultation-request-export}
 
-Downloadt alle aanvragen van deze site als CSV-bestand. Het vraagt het exportrecht en een bevestiging met je authenticator-app of e-mailcode. De beheerders van je bedrijf krijgen een melding dat er een export gemaakt is.
+Downloadt alle aanvragen van deze site als CSV-bestand. Het vraagt het exportrecht en kan je vragen te bevestigen met je authenticator-app of e-mailcode. De beheerders krijgen een melding dat er een export gemaakt is.
 
 ### [[action:website.consultation_requests.actions.erase]] {#action-consultation-request-erase}
 
-Verwijdert de persoonsgegevens van een aanvraag, als de persoon daarom vraagt volgens de AVG. Het vraagt het wisrecht en een bevestiging met je authenticator-app of e-mailcode. Het kan niet ongedaan gemaakt worden; daarna wordt de knop voor die aanvraag niet meer getoond.
+Verwijdert de persoonsgegevens van een aanvraag, als de persoon daarom vraagt volgens de AVG. Het vraagt het wisrecht en kan je vragen te bevestigen met je authenticator-app of e-mailcode. Het kan niet ongedaan gemaakt worden; daarna wordt de knop voor die aanvraag niet meer getoond.
 
 ### [[action:filament-actions::view.single.label]] {#action-consultation-request-activities-view}
 

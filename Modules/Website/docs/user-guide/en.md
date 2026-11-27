@@ -8,7 +8,7 @@ filament: app/Filament/Clusters/Website
 ---
 ## Overview {#overview}
 
-The Website screens manage the public website: its settings, the project gallery, images, announcements, which pages and translations go live, and the consultation requests that arrive through the site.
+The Website screens manage the public website: its settings, the project gallery, images, announcements, which pages search engines may list, which translations go live, and the consultation requests that arrive through the site.
 
 Each admin panel manages its own website. The Claesen panel manages the Claesen Verlichting site, the Electro Bertels panel manages the Electro Bertels site. You never see or change the other company's site.
 
@@ -33,7 +33,7 @@ The website is a separate copy that is rebuilt from the platform. Changing somet
 2. **Publish.** You ask for the website to be rebuilt with the saved changes:
    - [[action:website.publication.actions.publish_section]] on a settings page publishes only that page's settings. If they would not change anything on the site, you get a message that there is nothing to publish.
    - [[action:website.publication.actions.publish_now]] rebuilds the whole site. The current version stays online until the new one is ready.
-3. **Check.** A publication is a request: the rebuild takes a moment. Follow it under [[label:website.publication_history.label]], which lists every request, who made it, and whether it succeeded or failed.
+3. **Check.** A publication is a request: the rebuild takes a moment. Follow it under [[label:website.publication_history.label]], which lists every request, who made it, and whether the website accepted it or it failed.
 
 If publishing is switched off on the server, both buttons show a warning and nothing is sent.
 
@@ -119,7 +119,7 @@ Rebuilds the whole site.
 
 ## Projects {#projects}
 
-The project gallery on the website. Each project has a title (the web address is made from it), a category, the client, location and year, a description, and switches for published, featured and the order. Drag rows in the list to change the order.
+The project gallery on the website. Each project has a title (the web address is made from it), a category, the client, location and year, a description, switches for published and featured, and a number for its place in the order. You can also drag rows in the list to change the order.
 
 Images: at most 10 MB and 8000 pixels per image. One featured image, plus a gallery and a detail gallery that you can reorder.
 
@@ -145,7 +145,7 @@ On the list and on the edit page. Rebuilds the whole site, see [Publishing](#pub
 
 ## Media slots {#media-slots}
 
-A media slot is a fixed place on the website, such as a header image. The slot name must be the one the website uses; ask the web developer when you need a new one. Each slot shows one image, picked from this site's project images or its own images. The alternative text and caption are generated automatically.
+A media slot is a fixed place on the website, such as a header image. The slot name must be the one the website uses; ask the web developer when you need a new one. Each slot shows one image, picked from this site's project images.
 
 ### [[action:filament-actions::create.single.label?label=website.media_slots.label]] {#action-media-slot-create}
 
@@ -157,7 +157,7 @@ Pick another image for the slot.
 
 ### [[action:filament-actions::delete.single.label]] {#action-media-slot-delete}
 
-Removes the slot. The place on the website stays empty until the slot exists again.
+Removes the slot.
 
 ### [[action:website.publication.actions.publish_now]] {#action-media-slot-publish_now}
 
@@ -165,7 +165,7 @@ Rebuilds the whole site, see [Publishing](#publishing).
 
 ## Announcements {#announcements}
 
-Short messages on the website, for example a holiday closure. An announcement is draft, published or archived, and can have an optional start and end date.
+Short messages for the website, for example a holiday closure. An announcement is draft, published or archived, and can have an optional start and end date.
 
 ### [[action:filament-actions::create.single.label?label=website.announcements.label]] {#action-announcement-create}
 
@@ -181,7 +181,7 @@ Removes the announcement. To only hide it, archive it instead.
 
 ## Page publications {#page-publications}
 
-[[label:website.page_publication_review.label]] decides which website pages go live in which language. The text of the pages is written by the web developers, so there is nothing to edit here: you review and switch pages on or off.
+[[label:website.page_publication_review.label]] decides which website pages search engines may list, in which language. The text of the pages is written by the web developers, so there is nothing to edit here: you review and switch pages on or off.
 
 A page goes from draft to reviewed to published. Every step records who did it and when.
 
@@ -191,11 +191,11 @@ Marks a page as reviewed, after you checked it. Shown while the page is neither 
 
 ### [[action:website.page_publication_review.actions.publish]] {#action-page-publication-review-page-publish}
 
-Switches a reviewed page on in that language, so search engines can find it. Shown for reviewed pages.
+Marks a reviewed page as one search engines may list in that language. Shown for reviewed pages.
 
 ### [[action:website.page_publication_review.actions.retire]] {#action-page-publication-review-page-retire}
 
-Takes a published page back to reviewed. Shown for published pages.
+Takes a published page back to reviewed, so search engines no longer list it. Shown for published pages.
 
 ### [[action:website.publication.actions.publish_now]] {#action-page-publication-review-page-publish_now}
 
@@ -239,11 +239,11 @@ Change the status, priority or assignee. You can also correct the name, email, p
 
 ### [[action:website.consultation_requests.actions.export]] {#action-consultation-request-export}
 
-Downloads every request of this site as a CSV file. It needs the export right and a confirmation with your authenticator app or email code. The admins of your company are told that an export was made.
+Downloads every request of this site as a CSV file. It needs the export right and can ask you to confirm with your authenticator app or email code. The admins are notified that an export was made.
 
 ### [[action:website.consultation_requests.actions.erase]] {#action-consultation-request-erase}
 
-Removes the personal data of a request, when the person asks for it under the GDPR. It needs the erase right and a confirmation with your authenticator app or email code. It cannot be undone; after that the button is no longer shown for that request.
+Removes the personal data of a request, when the person asks for it under the GDPR. It needs the erase right and can ask you to confirm with your authenticator app or email code. It cannot be undone; after that the button is no longer shown for that request.
 
 ### [[action:filament-actions::view.single.label]] {#action-consultation-request-activities-view}
 

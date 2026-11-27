@@ -78,6 +78,20 @@ class WebsiteDocumentationPageTest extends TestCase
             ->assertSee('Publish now');
     }
 
+    /** Independent verification: on /bertels a technician of Electro Bertels and an outsider are denied. */
+    public function test_bertels_guide_denies_technicians_and_outsiders(): void
+    {
+        config(['organizations.enforce' => false]);
+        $organizationId = Site::query()->where('key', config('organizations.panel_sites.bertels'))->firstOrFail()->organization_id;
+        $url = WebsiteDocumentation::getUrl(panel: 'bertels');
+
+        $this->actingAsRole('technician', $organizationId, 'bertels');
+        $this->get($url)->assertForbidden();
+
+        $this->actingAsRole('viewer', Organization::claesenId(), 'bertels');
+        $this->get($url)->assertForbidden();
+    }
+
     public function test_both_guides_resolve_every_placeholder(): void
     {
         $directory = ModuleGuide::directoryFor('Website');
