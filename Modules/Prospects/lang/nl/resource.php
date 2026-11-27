@@ -12,6 +12,7 @@ return [
     ],
 
     'sections' => [
+        'contact_history' => 'Contactgeschiedenis',
         'club_info' => 'Club Informatie',
         'marketing_targets' => 'Marketing Doelwitten',
         'sync_details' => 'Sync Details',
@@ -26,6 +27,8 @@ return [
     ],
 
     'fields' => [
+        'last_contacted_at' => 'Laatste contact',
+        'contacted' => 'Gecontacteerd',
         'name' => 'Naam van de Club',
         'region' => 'Regio',
         'federation' => 'Federatie',
@@ -47,6 +50,7 @@ return [
         'command' => 'Commando',
         'status' => 'Status',
         'started_by' => 'Gestart door',
+        'logged_by' => 'Geregistreerd door',
         'items' => 'Items',
         'started_at' => 'Gestart op',
         'finished_at' => 'Klaar op',
@@ -71,6 +75,22 @@ return [
     ],
 
     'options' => [
+        'contact_directions' => [
+            'inbound' => 'Inkomend (zij namen contact op)',
+            'outbound' => 'Uitgaand (wij namen contact op)',
+        ],
+        'contact_methods' => [
+            'phone' => 'Telefoon',
+            'email' => 'E-mail',
+            'in_person' => 'Persoonlijk',
+            'website_form' => 'Websiteformulier',
+            'other' => 'Andere',
+        ],
+        'contact_status' => [
+            'contacted' => 'Gecontacteerd',
+            'not_contacted' => 'Niet gecontacteerd',
+            'never' => 'Nooit',
+        ],
         'contact_types' => [
             'headquarters' => 'Hoofdkantoor',
             'stadium' => 'Stadion',
@@ -106,6 +126,22 @@ return [
     ],
 
     'actions' => [
+        'mark_contacted' => [
+            'label' => 'Contact registreren',
+            'form' => [
+                'contacted_at' => 'Datum en tijd',
+                'direction' => 'Richting',
+                'method' => 'Methode',
+                'note' => 'Notitie',
+            ],
+        ],
+        'remove_contact' => [
+            'label' => 'Contactregistratie verwijderen',
+            'form' => [
+                'entry' => 'Te verwijderen registratie',
+            ],
+            'confirm' => 'Alleen de geselecteerde registratie wordt verwijderd. De overige contactregistraties blijven ongewijzigd.',
+        ],
         'execute_campaign' => [
             'label' => 'Start Mailing Campagne',
             'view_campaign' => 'Campagne bekijken',
@@ -138,6 +174,12 @@ return [
     ],
 
     'notifications' => [
+        'contact_logged' => [
+            'title' => 'Contact geregistreerd',
+        ],
+        'contact_removed' => [
+            'title' => 'Contactregistratie verwijderd',
+        ],
         'no_prospects_selected' => [
             'title' => 'Geen prospecten geselecteerd',
             'body' => 'Selecteer minstens één prospect om een mailing te starten.',
@@ -192,6 +234,10 @@ return [
             'body' => 'De geselecteerde prospecten hebben geen locaties met geregistreerde e-mailadressen.',
         ],
         'error_mailer' => 'Fout bij het verzenden van de campagne via de mailer service.',
+    ],
+
+    'contact_history' => [
+        'empty' => 'Voor deze prospect is nog geen contact geregistreerd.',
     ],
 
     'sync_history' => [

@@ -23,6 +23,7 @@ return [
         'snapshot_desc' => 'Genauer Inhalt der gesendeten E-Mail.',
         'campaign_summary' => 'Kampagnenübersicht',
         'recipients' => 'Empfänger',
+        'contact_history' => 'Kontaktverlauf',
     ],
 
     'fields' => [
@@ -47,6 +48,7 @@ return [
         'command' => 'Befehl',
         'status' => 'Status',
         'started_by' => 'Gestartet von',
+        'logged_by' => 'Erfasst von',
         'items' => 'Einträge',
         'started_at' => 'Gestartet am',
         'finished_at' => 'Beendet am',
@@ -67,6 +69,8 @@ return [
         'unsubscribed_at' => 'Abonnementstatus',
         'is_tester' => 'Tester (Testumgebung)',
         'is_tester_helper' => 'Als Test-Interessenten für das Management markieren',
+        'last_contacted_at' => 'Letzter Kontakt',
+        'contacted' => 'Kontaktiert',
         'tester' => 'Tester',
     ],
 
@@ -103,6 +107,22 @@ return [
             'table_tennis_club' => 'Tischtennis',
             'sports_infrastructure' => 'Sportinfrastruktur',
         ],
+        'contact_directions' => [
+            'inbound' => 'Eingehend (sie haben uns kontaktiert)',
+            'outbound' => 'Ausgehend (wir haben sie kontaktiert)',
+        ],
+        'contact_methods' => [
+            'phone' => 'Telefon',
+            'email' => 'E-Mail',
+            'in_person' => 'Persönlich',
+            'website_form' => 'Website-Formular',
+            'other' => 'Sonstiges',
+        ],
+        'contact_status' => [
+            'contacted' => 'Kontaktiert',
+            'not_contacted' => 'Nicht kontaktiert',
+            'never' => 'Nie',
+        ],
     ],
 
     'actions' => [
@@ -135,6 +155,22 @@ return [
             'label' => 'Als abgeschlossen markieren',
         ],
         'back_to_list' => 'Zurück zur Liste',
+        'mark_contacted' => [
+            'label' => 'Kontakt erfassen',
+            'form' => [
+                'contacted_at' => 'Datum und Uhrzeit',
+                'direction' => 'Richtung',
+                'method' => 'Kanal',
+                'note' => 'Notiz',
+            ],
+        ],
+        'remove_contact' => [
+            'label' => 'Kontakteintrag entfernen',
+            'form' => [
+                'entry' => 'Zu entfernender Eintrag',
+            ],
+            'confirm' => 'Nur der ausgewählte Eintrag wird entfernt. Die übrigen Kontakteinträge bleiben unverändert.',
+        ],
     ],
 
     'notifications' => [
@@ -192,6 +228,12 @@ return [
             'body' => 'Die ausgewählten Interessenten haben keine Standorte mit hinterlegten E-Mail-Adressen.',
         ],
         'error_mailer' => 'Fehler beim Senden der Kampagne über den Mailer-Dienst.',
+        'contact_logged' => [
+            'title' => 'Kontakt erfasst',
+        ],
+        'contact_removed' => [
+            'title' => 'Kontakteintrag entfernt',
+        ],
     ],
 
     'sync_history' => [
@@ -224,5 +266,9 @@ return [
         'success_title' => 'Abgemeldet',
         'success_body' => 'Sie wurden erfolgreich von unserer Mailingliste abgemeldet.',
         'confirmation_button' => 'Abmeldung bestätigen',
+    ],
+
+    'contact_history' => [
+        'empty' => 'Für diesen Interessenten wurde noch kein Kontakt erfasst.',
     ],
 ];

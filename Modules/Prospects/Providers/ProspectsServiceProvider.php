@@ -3,6 +3,9 @@
 namespace Modules\Prospects\Providers;
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
+use Modules\Prospects\Models\ContactLog;
+use Modules\Prospects\Policies\ContactLogPolicy;
 use Illuminate\Support\ServiceProvider;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
@@ -37,6 +40,8 @@ class ProspectsServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        Gate::policy(ContactLog::class, ContactLogPolicy::class);
     }
 
     /**
