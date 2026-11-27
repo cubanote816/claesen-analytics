@@ -18,7 +18,10 @@ Modules/<Module>/Filament/Pages/<Module>Documentation.php
   locale (fr, de) get the English text.
 - **Access.** Each page follows the module resource named in `accessFollows()`. Whoever can
   open the module can read its guide.
-- **Pilot.** Mailing (`Modules/Mailing/docs/user-guide`).
+- **Modules.** Mailing was the pilot (`Modules/Mailing/docs/user-guide`). The rollout to every
+  production module is epic CLA-717; status per module: `docs/ai/production-inventory.md`.
+- **Closing a feature.** The rule `.agents/rules/10-feature-documentation.md` and the skill
+  `.agents/skills/feature-documentation/SKILL.md` (CLA-718) say what to update before Done.
 
 Code: `app/Support/Documentation/ModuleGuide.php` (renderer), `ModuleActionInventory.php`
 (action scan), `app/Filament/Documentation/ModuleDocumentationPage.php` (base page),
@@ -48,7 +51,22 @@ Code: `app/Support/Documentation/ModuleGuide.php` (renderer), `ModuleActionInven
    | `Resources/CampaignResource.php` and everything under `Resources/CampaignResource/` | `campaign` |
    | `Resources/EmailTemplates/**` | `email-template` |
    | `Resources/<X>/RelationManagers/MessagesRelationManager.php` | `<x>-messages` |
+   | `Resources/Catalogs/AccessTypeResource.php` and `Resources/Catalogs/AccessTypes/**` | `access-type` |
    | `Pages/<Page>.php` | `<page>` in kebab case |
+
+   Grouping folders such as FieldOps' `Resources/Catalogs` are skipped: the resource is the
+   `*Resource` file or folder, or the folder that holds `Pages`, `Schemas`, `Tables`, ...
+
+   An action declared in a trait belongs to every screen that uses the trait, also through
+   another trait; traits match by qualified name, case-insensitively like PHP, so aliases, grouped
+   imports and same-named traits in other namespaces resolve correctly. Commented-out code is
+   ignored: a commented-out action or trait use needs no section.
+
+   Known limit: an action factory (a plain `*Action` class with a static `make()`, such as
+   Website's `PublishSiteNowAction`) is named after its class where it is called
+   (`publish_site_now`), and the action it builds inside is listed under the factory file
+   (`action-publish-site-now-action-publish_now`). Document both until the inventory reads the
+   panel at runtime.
 
    The name is the one passed to `Action::make('send_now')`. An unnamed Filament action uses
    its default name: `CreateAction` becomes `create`, `EditAction` becomes `edit`, and
@@ -65,6 +83,11 @@ Code: `app/Support/Documentation/ModuleGuide.php` (renderer), `ModuleActionInven
    order.
 
 5. **Front matter is required:** `module`, `title`, `navigation_label`, `locale` and `summary`.
+   Optional: `filament`, in `en.md`, lists screens that live outside the module as
+   repository-relative folders, comma separated. Website's screens live in
+   `app/Filament/Clusters/Website`, so its guide declares
+   `filament: app/Filament/Clusters/Website`. A folder that does not exist fails the coverage
+   test.
 
 6. **Write for end users.** Describe what the screen does and who may use it. Describe only
    behaviour you have checked in the code.
@@ -96,6 +119,11 @@ Run it locally with `bin/wt-test tests/Feature/Documentation`.
    It covers who can open the page, that the technician role is denied, and that both
    languages render.
 4. The coverage test picks up the new module automatically.
+5. Update the module's row in `docs/ai/production-inventory.md`.
+
+Guide pages live in `Modules/*/Filament/Pages`, which only the admin panel discovers. A guide
+that must also show on the Bertels panel (Website) is registered there explicitly, with the
+Documentation group; CLA-720 adds the first one.
 
 ## Future: per-module RAG
 

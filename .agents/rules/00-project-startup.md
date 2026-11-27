@@ -18,6 +18,8 @@ After reading context, respond briefly with:
 
 Workflow: full 10-step ticket flow (create/move ticket → plan → approval → implement → tests → commit → GO → Done) is defined once in `docs/ai/project-protocol.md` — follow it there, do not re-derive it here.
 
+Before closing a feature, follow `.agents/rules/10-feature-documentation.md`.
+
 Never print, copy, summarize, or commit secrets.
 
 Do not read full contents of:

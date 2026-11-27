@@ -25,6 +25,7 @@ Follow:
 - `docs/ai/prompt-templates.md`
 - `docs/ai/commands-runbook.md`
 - `docs/ai/handoff-strategy.md`
+- `.agents/rules/10-feature-documentation.md` (skill `.agents/skills/feature-documentation/SKILL.md`): documentar cada funcionalidad antes de cerrarla.
 
 No ticket, no edits.
 No plan, no edits.
