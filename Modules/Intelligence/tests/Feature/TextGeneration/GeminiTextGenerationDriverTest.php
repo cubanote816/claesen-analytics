@@ -76,7 +76,7 @@ final class GeminiTextGenerationDriverTest extends TestCase
         $this->assertSame(['score' => 7], $result->json);
         Http::assertSent(fn (Request $request): bool => $request['systemInstruction']['parts'][0]['text'] === 'You are strict.'
             && $request['generationConfig']['responseMimeType'] === 'application/json'
-            && $request['generationConfig']['responseSchema'] === ['type' => 'OBJECT', 'properties' => ['score' => ['type' => 'INTEGER']]]
+            && json_decode($request->body(), true)['generationConfig']['responseSchema'] === ['type' => 'OBJECT', 'properties' => ['score' => ['type' => 'INTEGER']]]
             && $request['generationConfig']['maxOutputTokens'] === 256
             && $request['generationConfig']['temperature'] === 0.1);
     }
@@ -95,6 +95,17 @@ final class GeminiTextGenerationDriverTest extends TestCase
         // Raw body: an empty subschema must be the JSON object {}, which a decoded array would hide.
         Http::assertSent(fn (Request $request): bool => str_contains($request->body(), '"responseSchema":{"required":["summary"],"type":"OBJECT","properties":{'
             .'"summary":{"description":"Short summary","type":"STRING","nullable":true},"tags":{"type":"ARRAY"},"choice":{}}}'));
+    }
+
+    public function test_numeric_property_names_are_sent_as_an_object(): void
+    {
+        Http::fake(['*' => Http::response($this->answer('{"0": "ok"}'))]);
+
+        $this->driver()->generate(new TextGenerationRequest(task: 't', prompt: 'x', jsonSchema: [
+            'type' => 'object', 'properties' => ['0' => ['type' => 'string']],
+        ]));
+
+        Http::assertSent(fn (Request $request): bool => str_contains($request->body(), '"properties":{"0":{"type":"STRING"}}'));
     }
 
     public function test_non_json_answer_with_a_schema_fails(): void

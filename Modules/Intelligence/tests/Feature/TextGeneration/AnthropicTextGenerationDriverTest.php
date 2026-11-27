@@ -77,10 +77,40 @@ final class AnthropicTextGenerationDriverTest extends TestCase
 
         (new AnthropicTextGenerationDriver($client, 'claude-sonnet-5', 30))->generate(new TextGenerationRequest(task: 't', prompt: 'x', jsonSchema: $schema));
 
-        $wire = $client->calls[0]['params']['outputConfig']['format']['schema'];
+        $wire = json_decode(json_encode($client->calls[0]['params']['outputConfig']['format']['schema']), true);
         $this->assertFalse($wire['additionalProperties']);
         $this->assertFalse($wire['properties']['lead']['additionalProperties']);
         $this->assertArrayNotHasKey('additionalProperties', $wire['properties']['lead']['properties']['name']);
+    }
+
+    public function test_required_fields_without_a_property_schema_stay_satisfiable(): void
+    {
+        config(['services.anthropic.key' => 'test-key']);
+        $client = $this->client($this->message('{"score": 7, "summary": "ok"}'));
+        $schema = ['type' => 'object', 'required' => ['score', 'summary'], 'properties' => ['score' => ['type' => 'integer']]];
+
+        (new AnthropicTextGenerationDriver($client, 'claude-sonnet-5', 30))->generate(new TextGenerationRequest(task: 't', prompt: 'x', jsonSchema: $schema));
+
+        // additionalProperties false must not forbid a required field: it is declared as "any value".
+        $this->assertSame(
+            '{"type":"object","required":["score","summary"],"properties":{"score":{"type":"integer"},"summary":{}},"additionalProperties":false}',
+            json_encode($client->calls[0]['params']['outputConfig']['format']['schema']),
+        );
+    }
+
+    public function test_numeric_property_names_are_sent_as_an_object(): void
+    {
+        config(['services.anthropic.key' => 'test-key']);
+        $client = $this->client($this->message('{"0": "ok"}'));
+
+        (new AnthropicTextGenerationDriver($client, 'claude-sonnet-5', 30))->generate(new TextGenerationRequest(task: 't', prompt: 'x', jsonSchema: [
+            'type' => 'object', 'properties' => ['0' => ['type' => 'string']],
+        ]));
+
+        $this->assertSame(
+            '{"type":"object","properties":{"0":{"type":"string"}},"additionalProperties":false}',
+            json_encode($client->calls[0]['params']['outputConfig']['format']['schema']),
+        );
     }
 
     public function test_plain_text_without_schema_sends_no_output_config(): void

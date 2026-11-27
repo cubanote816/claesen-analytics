@@ -76,6 +76,11 @@ final class ProviderSchema
             $wire['items'] = self::forGemini($schema['items']) ?: (object) [];
         }
 
+        // Always a JSON object: property names such as "0" would otherwise become a JSON list.
+        if (isset($wire['properties'])) {
+            $wire['properties'] = (object) $wire['properties'];
+        }
+
         return $wire;
     }
 
@@ -89,13 +94,24 @@ final class ProviderSchema
     public static function forAnthropic(array $schema): array
     {
         $wire = $schema;
+        $properties = [];
 
-        if (in_array('object', (array) ($schema['type'] ?? []), true) || isset($schema['properties'])) {
+        foreach ($schema['properties'] ?? [] as $key => $child) {
+            $properties[$key] = is_array($child) ? self::forAnthropic($child) : (object) [];
+        }
+
+        if (in_array('object', (array) ($schema['type'] ?? []), true) || isset($schema['properties']) || isset($schema['required'])) {
+            // additionalProperties false must not forbid a required field: declare it as "any value".
+            foreach ($schema['required'] ?? [] as $key) {
+                $properties[$key] ??= (object) [];
+            }
+
             $wire['additionalProperties'] = false;
         }
 
-        foreach ($schema['properties'] ?? [] as $key => $child) {
-            $wire['properties'][$key] = is_array($child) ? self::forAnthropic($child) : (object) [];
+        // Always a JSON object: property names such as "0" would otherwise become a JSON list.
+        if ($properties !== []) {
+            $wire['properties'] = (object) $properties;
         }
 
         if (array_key_exists('items', $schema)) {
