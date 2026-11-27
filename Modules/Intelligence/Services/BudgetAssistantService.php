@@ -2,6 +2,7 @@
 
 namespace Modules\Intelligence\Services;
 
+use Modules\Intelligence\Support\GeminiEndpoint;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Modules\Intelligence\Services\ProjectSimilarityService;
@@ -103,7 +104,7 @@ class BudgetAssistantService
             $projectNames = collect($similarProjects)->map(fn($p) => "- {$p['name']}" . (!empty($p['client']) ? " — klant: {$p['client']}" : "") . " ({$p['city']}, {$p['year']})")->implode("\n");
 
             // ... Prepare and Call AI ...
-            $baseUrl = config('services.gemini.url', 'https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0849598291/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent');
+            $baseUrl = GeminiEndpoint::generateContentUrl();
             $token = $this->auth->getAccessToken();
 
             if (!$token) {
@@ -158,10 +159,10 @@ OUTPUT SCHEMA (JSON):
 EOT;
 
             try {
-                $response = Http::withToken($token)->post($baseUrl, [
+                $response = Http::withToken($token)->timeout(GeminiEndpoint::timeout())->post($baseUrl, [
                     'system_instruction' => ['parts' => [['text' => $systemText]]],
                     'contents' => [['role' => 'user', 'parts' => [['text' => $userInputText]]]],
-                    'generationConfig' => ['response_mime_type' => 'application/json', 'temperature' => 0.1]
+                    'generationConfig' => ['response_mime_type' => 'application/json', ...(GeminiEndpoint::thinkingConfig() !== [] ? ['thinkingConfig' => GeminiEndpoint::thinkingConfig()] : [])]
                 ]);
 
                 if ($response->successful()) {
