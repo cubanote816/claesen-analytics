@@ -25,7 +25,15 @@ use Modules\Website\Services\RetentionService;
 
 class ConsultationRequestResource extends Resource
 {
-    use \App\Filament\Concerns\ScopedToPanelSite;
+    use \App\Filament\Concerns\ScopedToPanelSite {
+        canAccess as scopedToPanelSiteCanAccess;
+    }
+
+    /** CLA-734: the panel site check of ScopedToPanelSite, and never the technician role (WebsiteAccess). */
+    public static function canAccess(): bool
+    {
+        return static::scopedToPanelSiteCanAccess() && \App\Filament\Clusters\Website\WebsiteAccess::allowsCurrentUser();
+    }
 
     public static function getNavigationGroup(): ?string
     {

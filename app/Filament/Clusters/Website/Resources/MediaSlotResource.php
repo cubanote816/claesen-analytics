@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Clusters\Website\Resources;
 
 use App\Filament\Clusters\Website\Resources\MediaSlotResource\Pages;
+use App\Filament\Clusters\Website\WebsiteAccess;
 use App\Filament\Clusters\Website\WebsiteCluster;
 use App\Filament\Clusters\Website\WebsiteNavigationBadges;
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
@@ -33,7 +34,15 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 class MediaSlotResource extends Resource
 {
-    use ScopedToPanelSite;
+    use ScopedToPanelSite {
+        canAccess as scopedToPanelSiteCanAccess;
+    }
+
+    /** CLA-734: the panel site check of ScopedToPanelSite, and never the technician role (WebsiteAccess). */
+    public static function canAccess(): bool
+    {
+        return static::scopedToPanelSiteCanAccess() && WebsiteAccess::allowsCurrentUser();
+    }
 
     public static function getNavigationGroup(): ?string
     {

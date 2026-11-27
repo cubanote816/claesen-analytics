@@ -60,7 +60,8 @@ class PublicationHistoryPage extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return parent::canAccess() && Site::forPanel() !== null;
+        return parent::canAccess() && Site::forPanel() !== null
+            && \App\Filament\Clusters\Website\WebsiteAccess::allowsCurrentUser();
     }
 
     public static function getNavigationLabel(): string

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Clusters\Website\Pages;
 
 use App\Filament\Clusters\Website\Concerns\ShowsSitePublicationState;
+use App\Filament\Clusters\Website\WebsiteAccess;
 use App\Filament\Clusters\Website\WebsiteCluster;
 use App\Filament\Clusters\Website\WebsiteNavigationBadges;
 use App\Filament\Clusters\Website\WebsiteNavigationGroups;
@@ -77,7 +78,8 @@ class TranslationReviewPage extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return parent::canAccess() && Site::forPanel() !== null;
+        return parent::canAccess() && Site::forPanel() !== null
+            && WebsiteAccess::allowsCurrentUser();
     }
 
     public static function getNavigationLabel(): string

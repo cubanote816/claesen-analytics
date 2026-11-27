@@ -198,7 +198,7 @@ final class PanelAccessMatrixTest extends TestCase
             FoMaintenanceRecordResource::class => $superAdminAndAdmin,
             FoMaintenanceRequestResource::class => $superAdminAndAdmin,
             FoMaintenanceWorkOrderResource::class => $superAdminAndAdmin,
-            // Open to every panel role today (no canAccess declared, or auth()->check()).
+            // Open to every panel role today (no role list: no canAccess, auth()->check(), or only the technician exclusion of CLA-734).
             \App\Filament\Clusters\Website\Resources\ProjectResource::class => $everyPanelRole,
             ConsultationRequestResource::class => $everyPanelRole,
             EmployeeResource::class => $everyPanelRole,
