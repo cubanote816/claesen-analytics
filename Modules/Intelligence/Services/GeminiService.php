@@ -36,6 +36,92 @@ class GeminiService
     }
 
     /**
+     * CLA-714: one generateContent call for TextGenerationManager, with the
+     * model, optional system instruction and optional JSON response schema
+     * chosen by the caller. The model replaces the one in the configured URL.
+     * Existing methods keep using the configured URL unchanged (CLA-611).
+     *
+     * Logs never include the prompt or the answer.
+     *
+     * @param  array<string, mixed>|null  $responseSchema
+     * @return array{text: string, input_tokens: ?int, output_tokens: ?int}
+     *
+     * @throws GeminiProviderException no token, HTTP failure, transport error, or no answer text
+     */
+    public function generateContent(
+        string $model,
+        string $prompt,
+        ?string $system = null,
+        ?array $responseSchema = null,
+        ?int $maxTokens = null,
+        ?float $temperature = null,
+        int $timeoutSeconds = 30,
+    ): array {
+        $token = $this->auth->getAccessToken();
+
+        if (empty($token)) {
+            throw new GeminiProviderException('Gemini access token could not be obtained.');
+        }
+
+        // Only the path is called, so only the path may name the model (a fragment
+        // or query mentioning /models/ must not satisfy the check).
+        $parts = parse_url($this->apiUrl) ?: [];
+        $path = preg_replace('#/models/[^/:]+:#', '/models/'.rawurlencode($model).':', $parts['path'] ?? '', 1, $replaced);
+
+        if ($replaced !== 1 || ! isset($parts['scheme'], $parts['host'])) {
+            // e.g. a deployed endpoint URL: the chosen model would not be the one called.
+            throw new GeminiProviderException('The configured Gemini URL does not name a model, so the model cannot be chosen.');
+        }
+
+        $url = $parts['scheme'].'://'.$parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '')
+            .$path.(isset($parts['query']) ? '?'.$parts['query'] : '');
+
+        $payload = ['contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]]];
+
+        if ($system !== null) {
+            $payload['systemInstruction'] = ['parts' => [['text' => $system]]];
+        }
+
+        $generationConfig = array_filter([
+            'responseMimeType' => $responseSchema !== null ? 'application/json' : null,
+            'responseSchema' => $responseSchema,
+            'maxOutputTokens' => $maxTokens,
+            'temperature' => $temperature,
+        ], fn ($value) => $value !== null);
+
+        if ($generationConfig !== []) {
+            $payload['generationConfig'] = $generationConfig;
+        }
+
+        try {
+            $response = Http::withToken($token)->timeout($timeoutSeconds)->post($url, $payload);
+        } catch (\Exception $e) {
+            Log::error('Gemini generateContent transport error: '.class_basename($e));
+
+            // Not chained, so no request details reach the logs (CLA-714).
+            throw new GeminiProviderException('Gemini request failed ('.class_basename($e).').');
+        }
+
+        if ($response->failed()) {
+            Log::error('Gemini generateContent HTTP '.$response->status());
+
+            throw new GeminiProviderException('Gemini request failed with HTTP '.$response->status().'.');
+        }
+
+        $text = $response->json('candidates.0.content.parts.0.text');
+
+        if (! is_string($text)) {
+            throw new GeminiProviderException('Gemini response had no answer text.');
+        }
+
+        return [
+            'text' => $text,
+            'input_tokens' => $response->json('usageMetadata.promptTokenCount'),
+            'output_tokens' => $response->json('usageMetadata.candidatesTokenCount'),
+        ];
+    }
+
+    /**
      * CLA-694: same call as generateStructuredResponse() but failures are
      * thrown, so a failed call is never mistaken for an empty translation.
      *
